@@ -1,9 +1,9 @@
 import React from 'react'
 
-function mobile-nav() {
+function MobileNav() {
   return (
     <div>mobile-nav</div>
   )
 }
 
-export default mobile-nav
+export default MobileNav
