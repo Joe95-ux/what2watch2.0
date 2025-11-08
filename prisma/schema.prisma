@@ -1,15 +1,235 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
+}
+
+// User model - synced with Clerk
+model User {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  clerkId       String   @unique
+  email         String
+  username      String?  @unique
+  displayName   String?
+  avatarUrl     String?
+  bio           String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  preferences   UserPreferences?
+  favorites     Favorite[]
+  playlists     Playlist[]
+  reviews       Review[]
+  forumPosts    ForumPost[]
+  forumReplies  ForumReply[]
+  sharedPlaylists SharedPlaylist[]
+
+  @@map("users")
+}
+
+// User preferences from onboarding
+model UserPreferences {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String   @unique @db.ObjectId
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Genre preferences (stored as array of genre IDs from TMDB)
+  favoriteGenres    Int[]    @default([])
+  dislikedGenres    Int[]    @default([])
+  
+  // Content preferences
+  preferredTypes    String[] @default([]) // ["movie", "tv"]
+  minRating         Float?    // Minimum rating user wants to see
+  preferredLanguages String[] @default([]) // ISO 639-1 codes
+  
+  // Release year preferences
+  minYear           Int?
+  maxYear           Int?
+  
+  // Onboarding completed flag
+  onboardingCompleted Boolean @default(false)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("user_preferences")
+}
+
+// Favorites - movies and TV shows user likes
+model Favorite {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // TMDB data
+  tmdbId        Int      // Movie or TV show ID from TMDB
+  mediaType     String   // "movie" or "tv"
+  title         String
+  posterPath    String?
+  backdropPath String?
+  releaseDate   String?  // For movies
+  firstAirDate  String?  // For TV shows
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, tmdbId, mediaType])
+  @@map("favorites")
+  @@index([userId])
+}
+
+// Playlists - user-created collections
+model Playlist {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name          String
+  description   String?
+  isPublic      Boolean  @default(false)
+  coverImage    String?  // URL to cover image
+  
+  items         PlaylistItem[]
+  sharedPlaylists SharedPlaylist[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("playlists")
+  @@index([userId])
+  @@index([isPublic])
+}
+
+// Items in a playlist
+model PlaylistItem {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  playlistId    String   @db.ObjectId
+  playlist      Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  
+  // TMDB data
+  tmdbId        Int
+  mediaType     String   // "movie" or "tv"
+  title         String
+  posterPath    String?
+  backdropPath String?
+  releaseDate   String?
+  firstAirDate  String?
+  
+  // Order in playlist
+  order         Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+
+  @@map("playlist_items")
+  @@index([playlistId])
+  @@unique([playlistId, tmdbId, mediaType])
+}
+
+// Reviews - user reviews for movies/TV shows
+model Review {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // TMDB data
+  tmdbId        Int
+  mediaType     String   // "movie" or "tv"
+  
+  rating        Int      // 1-10 rating
+  title         String?  // Review title
+  content       String   // Review text
+  
+  // Engagement
+  likes         Int      @default(0)
+  helpful       Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, tmdbId, mediaType])
+  @@map("reviews")
+  @@index([userId])
+  @@index([tmdbId, mediaType])
+}
+
+// Forum posts - discussion threads
+model ForumPost {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title         String
+  content       String
+  
+  // Optional TMDB link
+  tmdbId        Int?
+  mediaType     String?  // "movie" or "tv"
+  
+  // Categories/Tags
+  tags          String[] @default([])
+  
+  // Engagement
+  views         Int      @default(0)
+  likes         Int      @default(0)
+  
+  replies       ForumReply[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("forum_posts")
+  @@index([userId])
+  @@index([tmdbId, mediaType])
+  @@index([createdAt])
+}
+
+// Forum replies - comments on forum posts
+model ForumReply {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  postId        String   @db.ObjectId
+  post          ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  content       String
+  
+  // Optional reply to another reply
+  parentReplyId String?  @db.ObjectId
+  
+  likes         Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("forum_replies")
+  @@index([postId])
+  @@index([userId])
+}
+
+// Shared playlists - tracking who shared playlists with whom
+model SharedPlaylist {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  playlistId    String   @db.ObjectId
+  playlist      Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  
+  sharedById    String   @db.ObjectId
+  sharedBy      User     @relation(fields: [sharedById], references: [id], onDelete: Cascade)
+  
+  // Optional: shared with specific user (if null, public share)
+  sharedWithId  String?  @db.ObjectId
+  
+  shareToken    String   @unique // For public sharing via link
+  
+  createdAt     DateTime @default(now())
+
+  @@map("shared_playlists")
+  @@index([playlistId])
+  @@index([sharedById])
 }

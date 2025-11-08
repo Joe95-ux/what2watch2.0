@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "What2watch",
-  description: "A movie and tv show watch guide like no other",
+  title: "What2Watch - Discover Your Next Favorite Watch",
+  description: "A movie and tv show watch guide like no other. Find, organize, and share your favorite content with personalized recommendations.",
 };
 
 export default function RootLayout({
