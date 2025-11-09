@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { Star, Play, Plus, Info, Maximize2 } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getPosterUrl, TMDBVideo, getYouTubeEmbedUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import ContentDetailModal from "./content-detail-modal";
+import TrailerModal from "./trailer-modal";
 
 interface MovieCardProps {
   item: TMDBMovie | TMDBSeries;
@@ -18,8 +18,10 @@ interface MovieCardProps {
 export default function MovieCard({ item, type, className }: MovieCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [trailer, setTrailer] = useState<TMDBVideo | null>(null);
+  const [allVideos, setAllVideos] = useState<TMDBVideo[]>([]);
   const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -48,11 +50,13 @@ export default function MovieCard({ item, type, className }: MovieCardProps) {
           const response = await fetch(`/api/${type}/${item.id}/videos`);
           if (response.ok) {
             const data = await response.json();
+            const videos = data.results || [];
+            setAllVideos(videos);
             // Find first trailer (prefer official trailers)
-            const officialTrailer = data.results?.find(
+            const officialTrailer = videos.find(
               (v: TMDBVideo) => v.type === "Trailer" && v.official && v.site === "YouTube"
             );
-            const anyTrailer = data.results?.find(
+            const anyTrailer = videos.find(
               (v: TMDBVideo) => v.type === "Trailer" && v.site === "YouTube"
             );
             setTrailer(officialTrailer || anyTrailer || null);
@@ -79,21 +83,32 @@ export default function MovieCard({ item, type, className }: MovieCardProps) {
     const rect = cardRef.current.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     
+    // Check if card is under gradient area (first 64px from left or right)
+    const isUnderLeftGradient = rect.left < 64;
+    const isUnderRightGradient = rect.right > viewportWidth - 64;
+    
+    // Don't scale if under gradient area
+    if (isUnderLeftGradient || isUnderRightGradient) {
+      return {};
+    }
+    
     // Check if card would go off right edge
     const wouldOverflowRight = rect.right > viewportWidth - 20;
     // Check if card would go off left edge
     const wouldOverflowLeft = rect.left < 20;
     
+    // Only scale vertically/outward, no horizontal translation
     let transform = "scale(1.2)";
     
+    // Only adjust if absolutely necessary to prevent going off-screen
     if (wouldOverflowRight && !wouldOverflowLeft) {
-      // Shift left
+      // Shift left slightly
       const overflow = rect.right - viewportWidth + 20;
-      transform = `scale(1.2) translateX(-${overflow}px)`;
+      transform = `scale(1.2) translateX(-${Math.min(overflow, 50)}px)`;
     } else if (wouldOverflowLeft && !wouldOverflowRight) {
-      // Shift right
+      // Shift right slightly
       const overflow = 20 - rect.left;
-      transform = `scale(1.2) translateX(${overflow}px)`;
+      transform = `scale(1.2) translateX(${Math.min(overflow, 50)}px)`;
     }
     
     return {
@@ -106,7 +121,7 @@ export default function MovieCard({ item, type, className }: MovieCardProps) {
     <>
       <div
         ref={cardRef}
-        className={cn("relative group flex-shrink-0", className)}
+        className={cn("relative group flex-shrink-0 cursor-pointer", className)}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => {
           setIsHovered(false);
@@ -128,14 +143,15 @@ export default function MovieCard({ item, type, className }: MovieCardProps) {
           }}
         >
           {/* Trailer Preview (on hover) */}
-          {isHovered && trailer && (
+          {isHovered && trailer && !isLoadingTrailer && (
             <div className="absolute inset-0 z-10">
               <iframe
                 src={getYouTubeEmbedUrl(trailer.key)}
                 className="w-full h-full"
-                allow="autoplay; encrypted-media"
+                allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
                 style={{ pointerEvents: "none" }}
+                title="Trailer"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none" />
             </div>
@@ -176,7 +192,7 @@ export default function MovieCard({ item, type, className }: MovieCardProps) {
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-8 w-8 rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/30"
+                className="h-8 w-8 rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/30 cursor-pointer"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -193,23 +209,23 @@ export default function MovieCard({ item, type, className }: MovieCardProps) {
               <div className="flex items-center gap-1.5 mb-2">
                 <Button
                   size="sm"
-                  className="h-7 px-3 rounded-full bg-white text-black hover:bg-white/90 font-medium text-xs"
+                  className="h-7 px-3 rounded-full bg-white text-black hover:bg-white/90 font-medium text-xs cursor-pointer"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    // TODO: Handle play action
+                    if (trailer) {
+                      setIsTrailerModalOpen(true);
+                    }
                   }}
-                  asChild
+                  disabled={!trailer}
                 >
-                  <Link href={`/${type}/${item.id}`}>
-                    <Play className="h-3 w-3 mr-1 fill-black" />
-                    Play
-                  </Link>
+                  <Play className="h-3 w-3 mr-1 fill-black" />
+                  Play
                 </Button>
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-7 w-7 rounded-full p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30"
+                  className="h-7 w-7 rounded-full p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 cursor-pointer"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -221,7 +237,7 @@ export default function MovieCard({ item, type, className }: MovieCardProps) {
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-7 w-7 rounded-full p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30"
+                  className="h-7 w-7 rounded-full p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 cursor-pointer"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -271,6 +287,17 @@ export default function MovieCard({ item, type, className }: MovieCardProps) {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
       />
+
+      {/* Trailer Modal */}
+      {trailer && (
+        <TrailerModal
+          video={trailer}
+          videos={allVideos}
+          isOpen={isTrailerModalOpen}
+          onClose={() => setIsTrailerModalOpen(false)}
+          title={title}
+        />
+      )}
     </>
   );
 }

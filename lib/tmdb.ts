@@ -336,8 +336,15 @@ export async function getTVVideos(tvId: number): Promise<TMDBVideosResponse> {
 /**
  * Get YouTube embed URL from video key
  */
-export function getYouTubeEmbedUrl(key: string): string {
-  return `https://www.youtube.com/embed/${key}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&loop=1&playlist=${key}`;
+export function getYouTubeEmbedUrl(key: string, autoplay: boolean = true): string {
+  return `https://www.youtube.com/embed/${key}?autoplay=${autoplay ? 1 : 0}&mute=1&controls=1&rel=0&modestbranding=1${autoplay ? `&loop=1&playlist=${key}` : ''}`;
+}
+
+/**
+ * Get YouTube thumbnail URL from video key
+ */
+export function getYouTubeThumbnailUrl(key: string, quality: 'maxresdefault' | 'hqdefault' | 'mqdefault' = 'hqdefault'): string {
+  return `https://img.youtube.com/vi/${key}/${quality}.jpg`;
 }
 
 /**

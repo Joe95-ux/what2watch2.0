@@ -16,6 +16,8 @@ import {
 } from "@/hooks/use-content-details";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import VideosCarousel from "./videos-carousel";
+import TrailerModal from "./trailer-modal";
 
 interface ContentDetailModalProps {
   item: TMDBMovie | TMDBSeries;
@@ -31,6 +33,8 @@ export default function ContentDetailModal({
   onClose,
 }: ContentDetailModalProps) {
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<TMDBVideo | null>(null);
+  const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
 
   // Fetch details based on type
   const { data: movieDetails, isLoading: isLoadingMovie } = useMovieDetails(
@@ -63,7 +67,7 @@ export default function ContentDetailModal({
   const backdropPath = item.backdrop_path || item.poster_path;
   const posterPath = item.poster_path;
 
-  // Find trailer
+  // Find trailer for hero section
   const trailer: TMDBVideo | null =
     videosData?.results?.find(
       (v: TMDBVideo) => v.type === "Trailer" && v.official && v.site === "YouTube"
@@ -72,6 +76,9 @@ export default function ContentDetailModal({
       (v: TMDBVideo) => v.type === "Trailer" && v.site === "YouTube"
     ) ||
     null;
+
+  // All videos for carousel
+  const allVideos = videosData?.results || [];
 
   // Format runtime
   const formatRuntime = (minutes: number | number[] | undefined): string => {
@@ -96,7 +103,10 @@ export default function ContentDetailModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden p-0 gap-0">
+      <DialogContent 
+        showCloseButton={false}
+        className="!max-w-[100vw] !w-full !h-full !max-h-[100vh] !top-0 !left-0 !translate-x-0 !translate-y-0 !rounded-none overflow-hidden p-0 gap-0"
+      >
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -108,16 +118,17 @@ export default function ContentDetailModal({
 
         {/* Hero Section with Trailer/Backdrop */}
         <div className="relative w-full h-[50vh] min-h-[400px] overflow-hidden">
-          {trailer && isOpen ? (
+          {trailer && isOpen && videosData ? (
             <div className="absolute inset-0">
               <iframe
                 src={getYouTubeEmbedUrl(trailer.key)}
                 className="w-full h-full"
-                allow="autoplay; encrypted-media"
+                allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
                 style={{ pointerEvents: "none" }}
+                title="Trailer"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent pointer-events-none" />
             </div>
           ) : backdropPath ? (
             <>
@@ -206,7 +217,7 @@ export default function ContentDetailModal({
         </div>
 
         {/* Scrollable Content */}
-        <div className="overflow-y-auto max-h-[45vh] bg-background">
+        <div className="overflow-y-auto flex-1 bg-background" style={{ maxHeight: 'calc(100vh - 50vh)' }}>
           <div className="px-6 sm:px-8 lg:px-12 py-8">
             {isLoading ? (
               <div className="space-y-4">
@@ -242,6 +253,17 @@ export default function ContentDetailModal({
                         ))}
                       </div>
                     </div>
+                  )}
+
+                  {/* Videos Carousel */}
+                  {allVideos.length > 0 && (
+                    <VideosCarousel
+                      videos={allVideos}
+                      onVideoSelect={(video) => {
+                        setSelectedVideo(video);
+                        setIsTrailerModalOpen(true);
+                      }}
+                    />
                   )}
 
                   {/* TV Seasons & Episodes */}
@@ -335,6 +357,20 @@ export default function ContentDetailModal({
             )}
           </div>
         </div>
+
+        {/* Trailer Modal */}
+        {selectedVideo && (
+          <TrailerModal
+            video={selectedVideo}
+            videos={allVideos}
+            isOpen={isTrailerModalOpen}
+            onClose={() => {
+              setIsTrailerModalOpen(false);
+              setSelectedVideo(null);
+            }}
+            title={title}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

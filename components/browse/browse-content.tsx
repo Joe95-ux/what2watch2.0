@@ -36,8 +36,8 @@ export default function BrowseContent({ favoriteGenres }: BrowseContentProps) {
         isLoading={isLoadingPopularMovies}
       />
 
-      {/* Content Rows - Full width with padding */}
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
+      {/* Content Rows - Full width, padding handled by ContentRow */}
+      <div className="w-full py-8">
         {/* Personalized Section */}
         {personalizedMovies.length > 0 && (
           <ContentRow
@@ -45,6 +45,7 @@ export default function BrowseContent({ favoriteGenres }: BrowseContentProps) {
             items={personalizedMovies}
             type="movie"
             isLoading={isLoadingPersonalized}
+            href="/browse/personalized"
           />
         )}
 
@@ -54,6 +55,7 @@ export default function BrowseContent({ favoriteGenres }: BrowseContentProps) {
           items={popularMovies}
           type="movie"
           isLoading={isLoadingPopularMovies}
+          href="/browse/movies/popular"
         />
 
         {/* Latest Movies */}
@@ -62,6 +64,7 @@ export default function BrowseContent({ favoriteGenres }: BrowseContentProps) {
           items={nowPlayingMovies}
           type="movie"
           isLoading={isLoadingNowPlaying}
+          href="/browse/movies/latest"
         />
 
         {/* Popular TV Shows */}
@@ -70,6 +73,7 @@ export default function BrowseContent({ favoriteGenres }: BrowseContentProps) {
           items={popularTV}
           type="tv"
           isLoading={isLoadingPopularTV}
+          href="/browse/tv/popular"
         />
 
         {/* Latest TV Shows */}
@@ -78,6 +82,7 @@ export default function BrowseContent({ favoriteGenres }: BrowseContentProps) {
           items={onTheAirTV}
           type="tv"
           isLoading={isLoadingOnTheAir}
+          href="/browse/tv/latest"
         />
 
         {/* Genre Sections */}
@@ -103,6 +108,7 @@ function GenreRow({ genreId, genreName }: { genreId: number; genreName: string }
       items={genreMovies}
       type="movie"
       isLoading={isLoading}
+      href={`/browse/genre/${genreId}`}
     />
   );
 }

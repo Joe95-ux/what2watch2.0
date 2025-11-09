@@ -459,7 +459,7 @@ function FiltersSheet({
         <SheetTitle>Advanced Filters</SheetTitle>
         <SheetDescription>Refine your search with advanced filters</SheetDescription>
       </SheetHeader>
-      <div className="mt-6 space-y-6">
+      <div className="px-4 pb-4 space-y-6">
         <div>
           <Label>Content Type</Label>
           <Select
@@ -560,6 +560,6 @@ function FiltersSheet({
           </Button>
         </div>
       </div>
-    </>
+    </div>
   );
 }

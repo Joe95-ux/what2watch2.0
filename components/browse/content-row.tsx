@@ -2,20 +2,22 @@
 
 import { useState, useEffect } from "react";
 import useEmblaCarousel from "embla-carousel-react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronRight as CaretRight } from "lucide-react";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import MovieCard from "./movie-card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 interface ContentRowProps {
   title: string;
   items: (TMDBMovie | TMDBSeries)[];
   type: "movie" | "tv";
   isLoading?: boolean;
+  href?: string; // Optional href for the title link
 }
 
-export default function ContentRow({ title, items, type, isLoading }: ContentRowProps) {
+export default function ContentRow({ title, items, type, isLoading, href }: ContentRowProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "start",
     slidesToScroll: 5,
@@ -52,7 +54,7 @@ export default function ContentRow({ title, items, type, isLoading }: ContentRow
 
   if (isLoading) {
     return (
-      <div className="mb-12">
+      <div className="mb-12 px-4 sm:px-6 lg:px-8">
         <div className="h-8 w-48 bg-muted rounded mb-6 animate-pulse" />
         <div className="flex gap-4">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -67,10 +69,33 @@ export default function ContentRow({ title, items, type, isLoading }: ContentRow
     return null;
   }
 
+  // Generate href if not provided
+  const titleHref = href || (() => {
+    // Generate routes based on title
+    const titleLower = title.toLowerCase();
+    if (titleLower.includes("popular movies")) return "/browse/movies/popular";
+    if (titleLower.includes("latest movies") || titleLower.includes("now playing")) return "/browse/movies/latest";
+    if (titleLower.includes("popular tv") || titleLower.includes("popular tv shows")) return "/browse/tv/popular";
+    if (titleLower.includes("latest tv") || titleLower.includes("on the air")) return "/browse/tv/latest";
+    if (titleLower.includes("we think you'll love")) return "/browse/personalized";
+    // For genre titles, we'll need to pass genreId separately or extract from context
+    return "#";
+  })();
+
   return (
-    <div className="mb-12">
-      <h2 className="text-2xl font-bold mb-6 px-4 sm:px-6 lg:px-8">{title}</h2>
-      <div className="relative group">
+    <div className="mb-12 px-4 sm:px-6 lg:px-8">
+      <Link 
+        href={titleHref}
+        className="group/title inline-flex items-center gap-2 mb-6 transition-all duration-300"
+      >
+        <h2 className="text-2xl font-medium text-foreground group-hover/title:text-primary transition-colors">
+          {title}
+        </h2>
+        <CaretRight 
+          className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover/title:opacity-100 group-hover/title:translate-x-0 transition-all duration-300" 
+        />
+      </Link>
+      <div className="relative group" style={{ paddingTop: '20px', paddingBottom: '20px' }}>
         {/* Left Gradient Fade */}
         {canScrollPrev && (
           <div
@@ -127,9 +152,9 @@ export default function ContentRow({ title, items, type, isLoading }: ContentRow
           <ChevronRight className="h-8 w-8 text-white drop-shadow-lg" />
         </button>
 
-        {/* Carousel */}
-        <div className="overflow-hidden" ref={emblaRef}>
-          <div className="flex gap-3 px-4 sm:px-6 lg:px-8">
+        {/* Carousel - overflow-hidden for Embla, but allow cards to overflow */}
+        <div className="overflow-x-hidden overflow-y-visible" ref={emblaRef}>
+          <div className="flex gap-3">
             {items.map((item) => (
               <div key={item.id} className="flex-shrink-0 w-[180px] sm:w-[200px]">
                 <MovieCard item={item} type={type} />
