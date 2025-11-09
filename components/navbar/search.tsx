@@ -560,6 +560,6 @@ function FiltersSheet({
           </Button>
         </div>
       </div>
-    </div>
+    </>
   );
 }
