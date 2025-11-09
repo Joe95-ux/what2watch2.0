@@ -102,15 +102,13 @@ export default function ContentRow({ title, items, type, isLoading }: ContentRow
           className={cn(
             "absolute left-2 top-1/2 -translate-y-1/2 z-20 h-full w-12 flex items-center justify-center",
             "opacity-0 group-hover:opacity-100 transition-opacity duration-300",
-            "hover:bg-black/20 rounded",
+            "hover:bg-black/10 rounded",
             "hidden md:flex",
             !canScrollPrev && "opacity-0 cursor-not-allowed"
           )}
           aria-label="Scroll left"
         >
-          <div className="h-10 w-10 flex items-center justify-center rounded-full bg-black/60 hover:bg-black/80 transition-colors">
-            <ChevronLeft className="h-6 w-6 text-white" />
-          </div>
+          <ChevronLeft className="h-8 w-8 text-white drop-shadow-lg" />
         </button>
 
         {/* Right Arrow Button - Netflix Style */}
@@ -120,15 +118,13 @@ export default function ContentRow({ title, items, type, isLoading }: ContentRow
           className={cn(
             "absolute right-2 top-1/2 -translate-y-1/2 z-20 h-full w-12 flex items-center justify-center",
             "opacity-0 group-hover:opacity-100 transition-opacity duration-300",
-            "hover:bg-black/20 rounded",
+            "hover:bg-black/10 rounded",
             "hidden md:flex",
             !canScrollNext && "opacity-0 cursor-not-allowed"
           )}
           aria-label="Scroll right"
         >
-          <div className="h-10 w-10 flex items-center justify-center rounded-full bg-black/60 hover:bg-black/80 transition-colors">
-            <ChevronRight className="h-6 w-6 text-white" />
-          </div>
+          <ChevronRight className="h-8 w-8 text-white drop-shadow-lg" />
         </button>
 
         {/* Carousel */}

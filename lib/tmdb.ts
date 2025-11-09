@@ -339,3 +339,61 @@ export async function getTVVideos(tvId: number): Promise<TMDBVideosResponse> {
 export function getYouTubeEmbedUrl(key: string): string {
   return `https://www.youtube.com/embed/${key}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&loop=1&playlist=${key}`;
 }
+
+/**
+ * TMDB TV Season interface
+ */
+export interface TMDBTVSeason {
+  id: number;
+  name: string;
+  overview: string;
+  season_number: number;
+  episode_count: number;
+  air_date: string | null;
+  poster_path: string | null;
+}
+
+/**
+ * TMDB TV Episode interface
+ */
+export interface TMDBTVEpisode {
+  id: number;
+  name: string;
+  overview: string;
+  episode_number: number;
+  season_number: number;
+  air_date: string | null;
+  still_path: string | null;
+  runtime: number | null;
+  vote_average: number;
+  vote_count: number;
+}
+
+/**
+ * TMDB TV Season Details interface
+ */
+export interface TMDBTVSeasonDetails {
+  _id: string;
+  air_date: string | null;
+  episodes: TMDBTVEpisode[];
+  name: string;
+  overview: string;
+  id: number;
+  poster_path: string | null;
+  season_number: number;
+}
+
+/**
+ * Get TV show seasons
+ */
+export async function getTVSeasons(tvId: number): Promise<{ id: number; seasons: TMDBTVSeason[] }> {
+  const data = await fetchTMDB<{ id: number; seasons: TMDBTVSeason[] }>(`/tv/${tvId}`);
+  return data;
+}
+
+/**
+ * Get TV show season details with episodes
+ */
+export async function getTVSeasonDetails(tvId: number, seasonNumber: number): Promise<TMDBTVSeasonDetails> {
+  return fetchTMDB<TMDBTVSeasonDetails>(`/tv/${tvId}/season/${seasonNumber}`);
+}

@@ -4,12 +4,12 @@ import { useState } from "react";
 import { useUser, SignInButton, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import Logo from "@/components/Logo";
 import Search from "./search";
-import { ThemeSwitcherBtn } from "@/components/theme-switcher-btn";
+import { UserMenu } from "./user-menu";
 import MobileNav from "./mobile-nav";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +34,7 @@ export default function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-4 max-w-7xl mx-auto">
+      <div className="w-full flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Left side - Logo and Desktop Nav */}
         <div className="flex items-center gap-8 flex-1">
           <Logo fontSize="text-xl" iconSize={20} />
@@ -59,15 +59,10 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Right side - Search, Theme, User */}
+        {/* Right side - Search, User */}
         <div className="flex items-center gap-3 flex-shrink-0">
-          {/* Search - Hidden on mobile */}
-          <div className="hidden sm:block">
-            <Search />
-          </div>
-
-          {/* Theme Switcher */}
-          <ThemeSwitcherBtn />
+          {/* Search - Always visible, expands on mobile */}
+          <Search />
 
           {/* Mobile Menu Button */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -77,7 +72,7 @@ export default function Navbar() {
                 <span className="sr-only">Toggle menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+            <SheetContent side="right" className="w-[300px] sm:w-[400px] pt-6">
               <MobileNav 
                 navLinks={navLinks} 
                 pathname={pathname}
@@ -88,16 +83,33 @@ export default function Navbar() {
 
           {/* User Auth */}
           {isLoaded && (
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               {isSignedIn ? (
-                <UserButton
-                  afterSignOutUrl="/"
-                  appearance={{
-                    elements: {
-                      avatarBox: "h-8 w-8",
-                    },
-                  }}
-                />
+                <>
+                  {/* Notification Icon */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 relative"
+                    aria-label="Notifications"
+                  >
+                    <Bell className="h-5 w-5" />
+                    {/* Badge indicator for future use */}
+                    {/* <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive"></span> */}
+                  </Button>
+                  <UserButton
+                    afterSignOutUrl="/"
+                    appearance={{
+                      elements: {
+                        avatarBox: "h-8 w-8",
+                      },
+                    }}
+                  />
+                  {/* User Menu - Hidden on mobile, shown in mobile menu */}
+                  <div className="hidden md:block">
+                    <UserMenu />
+                  </div>
+                </>
               ) : (
                 <SignInButton mode="modal">
                   <Button size="sm" className="hidden sm:inline-flex">
