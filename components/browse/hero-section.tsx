@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Play, Info, Plus } from "lucide-react";
-import { TMDBMovie, TMDBSeries, getBackdropUrl, TMDBVideo } from "@/lib/tmdb";
+import { TMDBMovie, TMDBSeries, getBackdropUrl, getYouTubeEmbedUrl, TMDBVideo } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import TrailerModal from "./trailer-modal";
