@@ -11,17 +11,24 @@ import ContentDetailModal from "./content-detail-modal";
 
 interface HeroSectionProps {
   featuredItem: TMDBMovie | TMDBSeries | null;
+  featuredItems?: (TMDBMovie | TMDBSeries)[]; // Array of items for carousel rotation
   type: "movie" | "tv";
   isLoading?: boolean;
 }
 
-export default function HeroSection({ featuredItem, type, isLoading }: HeroSectionProps) {
+export default function HeroSection({ featuredItem, featuredItems, type, isLoading }: HeroSectionProps) {
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [trailer, setTrailer] = useState<TMDBVideo | null>(null);
   const [allVideos, setAllVideos] = useState<TMDBVideo[]>([]);
   const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Determine which items to use (array or single item)
+  const items = featuredItems || (featuredItem ? [featuredItem] : []);
+  const currentItem = items[currentIndex] || featuredItem;
 
   // Type-safe title extraction
   const getTitle = (item: TMDBMovie | TMDBSeries): string => {
@@ -31,11 +38,16 @@ export default function HeroSection({ featuredItem, type, isLoading }: HeroSecti
     return item.name;
   };
 
-  // Fetch trailer on mount
+  // Determine type for current item
+  const currentItemType = currentItem && "title" in currentItem ? "movie" : "tv";
+
+  // Fetch trailer when current item changes
   useEffect(() => {
-    if (featuredItem && !isLoading) {
+    if (currentItem && !isLoading) {
       setIsLoadingTrailer(true);
-      fetch(`/api/${type}/${featuredItem.id}/videos`)
+      setImageLoaded(false);
+      const itemType = "title" in currentItem ? "movie" : "tv";
+      fetch(`/api/${itemType}/${currentItem.id}/videos`)
         .then((res) => res.json())
         .then((data) => {
           const videos = data.results || [];
@@ -56,9 +68,24 @@ export default function HeroSection({ featuredItem, type, isLoading }: HeroSecti
           setIsLoadingTrailer(false);
         });
     }
-  }, [featuredItem, type, isLoading]);
+  }, [currentItem, isLoading]);
 
-  if (isLoading || !featuredItem) {
+  // Auto-rotate to next item after video playback (approximately 30-60 seconds)
+  useEffect(() => {
+    if (!featuredItems || featuredItems.length <= 1) return;
+    
+    const rotationInterval = setInterval(() => {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % featuredItems.length);
+        setIsTransitioning(false);
+      }, 500); // Transition duration
+    }, 45000); // Rotate every 45 seconds (typical trailer length)
+
+    return () => clearInterval(rotationInterval);
+  }, [featuredItems]);
+
+  if (isLoading || !currentItem) {
     return (
       <div className="relative w-full h-[70vh] min-h-[600px] bg-muted">
         <Skeleton className="absolute inset-0 w-full h-full" />
@@ -66,15 +93,15 @@ export default function HeroSection({ featuredItem, type, isLoading }: HeroSecti
     );
   }
 
-  const title = getTitle(featuredItem);
-  const overview = featuredItem.overview || "";
-  const backdropPath = featuredItem.backdrop_path;
+  const title = getTitle(currentItem);
+  const overview = currentItem.overview || "";
+  const backdropPath = currentItem.backdrop_path;
 
   return (
     <div className="relative w-full h-[70vh] min-h-[600px] overflow-hidden">
       {/* Trailer Video (if available) */}
       {trailer && !isLoadingTrailer && (
-        <div className="absolute inset-0 z-0">
+        <div className={`absolute inset-0 z-0 transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
           <iframe
             src={getYouTubeEmbedUrl(trailer.key)}
             className="w-full h-full"
@@ -91,7 +118,7 @@ export default function HeroSection({ featuredItem, type, isLoading }: HeroSecti
       {/* Backdrop Image (fallback or when no trailer) */}
       {(!trailer || isLoadingTrailer) && backdropPath && (
         <>
-          <div className="absolute inset-0">
+          <div className={`absolute inset-0 transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
             <Image
               src={getBackdropUrl(backdropPath, "w1280")}
               alt={title}
@@ -113,7 +140,7 @@ export default function HeroSection({ featuredItem, type, isLoading }: HeroSecti
       <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-transparent z-10" />
 
       {/* Content */}
-      <div className="relative z-20 h-full flex items-end">
+      <div className={`relative z-20 h-full flex items-end transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
         <div className="w-full px-4 sm:px-6 lg:px-8 pb-20">
           <div className="max-w-2xl">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-white drop-shadow-lg">
@@ -127,7 +154,7 @@ export default function HeroSection({ featuredItem, type, isLoading }: HeroSecti
             <div className="flex items-center gap-4">
               <Button
                 size="lg"
-                className="bg-white text-black hover:bg-white/90 h-14 px-10 text-base font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg cursor-pointer"
+                className="bg-white text-black hover:bg-white/90 h-14 px-10 text-base font-medium transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:shadow-white/20 cursor-pointer"
                 onClick={() => {
                   if (trailer) {
                     setIsTrailerModalOpen(true);
@@ -141,7 +168,7 @@ export default function HeroSection({ featuredItem, type, isLoading }: HeroSecti
               <Button
                 size="lg"
                 variant="outline"
-                className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 px-10 text-base font-medium backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer"
+                className="bg-white/10 text-white border-white/30 hover:bg-white/25 hover:border-white/60 h-14 px-10 text-base font-medium backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-white/10 cursor-pointer"
                 onClick={() => setIsDetailModalOpen(true)}
               >
                 <Info className="h-7 w-7 mr-2.5" />
@@ -150,7 +177,7 @@ export default function HeroSection({ featuredItem, type, isLoading }: HeroSecti
               <Button
                 size="lg"
                 variant="ghost"
-                className="h-14 w-14 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 hover:border-white/50 backdrop-blur-sm transition-all duration-300 hover:scale-110 cursor-pointer"
+                className="h-14 w-14 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 hover:border-white/60 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-white/10 cursor-pointer"
               >
                 <Plus className="h-7 w-7 text-white" />
               </Button>
@@ -172,8 +199,8 @@ export default function HeroSection({ featuredItem, type, isLoading }: HeroSecti
 
       {/* Detail Modal */}
       <ContentDetailModal
-        item={featuredItem}
-        type={type}
+        item={currentItem}
+        type={currentItemType}
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
       />

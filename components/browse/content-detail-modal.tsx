@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { X, Play, Plus, Star, Clock, Calendar } from "lucide-react";
+import { X, Play, Plus, Heart, Star, Clock, Calendar } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getBackdropUrl, getPosterUrl, getYouTubeEmbedUrl, TMDBVideo } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -105,7 +105,7 @@ export default function ContentDetailModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
         showCloseButton={false}
-        className="!max-w-[100vw] !w-full !h-full !max-h-[100vh] !top-0 !left-0 !translate-x-0 !translate-y-0 !rounded-none overflow-hidden p-0 gap-0"
+        className="!w-[calc(100vw-16px)] !max-w-[calc(100vw-16px)] sm:!max-w-[60rem] !h-auto !max-h-[90vh] !rounded-lg overflow-hidden p-0 gap-0"
       >
         {/* Close Button */}
         <button
@@ -191,7 +191,7 @@ export default function ContentDetailModal({
                     </>
                   )}
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <Button
                     size="lg"
                     className="bg-white text-black hover:bg-white/90 h-14 px-10 text-base font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg"
@@ -208,7 +208,14 @@ export default function ContentDetailModal({
                     className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 px-10 text-base font-semibold backdrop-blur-sm transition-all duration-300 hover:scale-105"
                   >
                     <Plus className="h-6 w-6 mr-2.5" />
-                    My List
+                    Add
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 w-14 p-0 backdrop-blur-sm transition-all duration-300 hover:scale-105"
+                  >
+                    <Heart className="h-6 w-6" />
                   </Button>
                 </div>
               </div>
@@ -232,7 +239,7 @@ export default function ContentDetailModal({
                   {/* Overview */}
                   {item.overview && (
                     <div>
-                      <p className="text-base leading-relaxed text-foreground">
+                      <p className="text-sm leading-relaxed text-muted-foreground">
                         {item.overview}
                       </p>
                     </div>
@@ -241,12 +248,12 @@ export default function ContentDetailModal({
                   {/* Genres */}
                   {details?.genres && details.genres.length > 0 && (
                     <div>
-                      <h3 className="text-sm font-semibold mb-2 text-muted-foreground">Genres</h3>
+                      <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Genres</h3>
                       <div className="flex flex-wrap gap-2">
                         {details.genres.map((genre) => (
                           <span
                             key={genre.id}
-                            className="px-3 py-1 rounded-full bg-muted text-sm"
+                            className="px-3 py-1 rounded-full bg-muted text-sm text-foreground"
                           >
                             {genre.name}
                           </span>
@@ -277,37 +284,52 @@ export default function ContentDetailModal({
                     />
                   )}
 
-                  {/* Movie Details */}
-                  {type === "movie" && details && "runtime" in details && (
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      {details.release_date && (
-                        <div>
-                          <span className="text-muted-foreground">Release Date</span>
-                          <p className="font-medium">{formatDate(details.release_date)}</p>
-                        </div>
-                      )}
-                      {details.runtime && (
-                        <div>
-                          <span className="text-muted-foreground">Runtime</span>
-                          <p className="font-medium">{formatRuntime(details.runtime)}</p>
-                        </div>
-                      )}
-                      {details.production_countries && details.production_countries.length > 0 && (
-                        <div>
-                          <span className="text-muted-foreground">Country</span>
-                          <p className="font-medium">
-                            {details.production_countries.map((c) => c.name).join(", ")}
-                          </p>
-                        </div>
-                      )}
-                      {details.spoken_languages && details.spoken_languages.length > 0 && (
-                        <div>
-                          <span className="text-muted-foreground">Language</span>
-                          <p className="font-medium">
-                            {details.spoken_languages.map((l) => l.english_name).join(", ")}
-                          </p>
-                        </div>
-                      )}
+                  {/* Additional Details */}
+                  {details && (
+                    <div>
+                      <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Details</h3>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        {type === "movie" && "release_date" in details && details.release_date && (
+                          <div>
+                            <span className="text-muted-foreground block mb-1">Release Date</span>
+                            <p className="font-medium text-foreground">{formatDate(details.release_date)}</p>
+                          </div>
+                        )}
+                        {type === "tv" && "first_air_date" in details && details.first_air_date && (
+                          <div>
+                            <span className="text-muted-foreground block mb-1">First Air Date</span>
+                            <p className="font-medium text-foreground">{formatDate(details.first_air_date)}</p>
+                          </div>
+                        )}
+                        {type === "movie" && "runtime" in details && details.runtime && (
+                          <div>
+                            <span className="text-muted-foreground block mb-1">Runtime</span>
+                            <p className="font-medium text-foreground">{formatRuntime(details.runtime)}</p>
+                          </div>
+                        )}
+                        {type === "tv" && "episode_run_time" in details && details.episode_run_time?.[0] && (
+                          <div>
+                            <span className="text-muted-foreground block mb-1">Episode Runtime</span>
+                            <p className="font-medium text-foreground">{formatRuntime(details.episode_run_time[0])}</p>
+                          </div>
+                        )}
+                        {details.production_countries && details.production_countries.length > 0 && (
+                          <div>
+                            <span className="text-muted-foreground block mb-1">Country</span>
+                            <p className="font-medium text-foreground">
+                              {details.production_countries.map((c) => c.name).join(", ")}
+                            </p>
+                          </div>
+                        )}
+                        {details.spoken_languages && details.spoken_languages.length > 0 && (
+                          <div>
+                            <span className="text-muted-foreground block mb-1">Language</span>
+                            <p className="font-medium text-foreground">
+                              {details.spoken_languages.map((l) => l.english_name).join(", ")}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

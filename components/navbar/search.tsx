@@ -1,6 +1,6 @@
 "use client";
 
-import { Search as SearchIcon, X, SlidersHorizontal } from "lucide-react";
+import { Search as SearchIcon, X, SlidersHorizontal, Image as ImageIcon } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -428,7 +428,7 @@ function SearchResultItem({
         />
       ) : (
         <div className="h-12 w-8 bg-muted rounded flex items-center justify-center flex-shrink-0">
-          <span className="text-xs">No Image</span>
+          <ImageIcon className="h-4 w-4 text-muted-foreground" />
         </div>
       )}
       <div className="flex-1 min-w-0">
@@ -482,7 +482,7 @@ function FiltersSheet({
         <div>
           <Label>Genre</Label>
           <Select
-            value={filters.genre}
+            value={filters.genre || ""}
             onValueChange={(value) => setFilters({ ...filters, genre: value })}
           >
             <SelectTrigger>
@@ -490,11 +490,13 @@ function FiltersSheet({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">All Genres</SelectItem>
-              {genres.map((genre) => (
-                <SelectItem key={genre.id} value={genre.id.toString()}>
-                  {genre.name}
-                </SelectItem>
-              ))}
+              {genres && genres.length > 0 ? (
+                genres.map((genre) => (
+                  <SelectItem key={genre.id} value={genre.id.toString()}>
+                    {genre.name}
+                  </SelectItem>
+                ))
+              ) : null}
             </SelectContent>
           </Select>
         </div>

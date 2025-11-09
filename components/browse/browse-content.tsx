@@ -4,7 +4,7 @@ import { usePopularMovies, useNowPlayingMovies, usePopularTV, useOnTheAirTV, use
 import { useAllGenres } from "@/hooks/use-genres";
 import ContentRow from "./content-row";
 import HeroSection from "./hero-section";
-import { TMDBMovie } from "@/lib/tmdb";
+import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 
 interface BrowseContentProps {
   favoriteGenres: number[];
@@ -21,7 +21,11 @@ export default function BrowseContent({ favoriteGenres }: BrowseContentProps) {
   );
   const { data: allGenres = [] } = useAllGenres();
 
-  // Featured item for hero (first popular movie)
+  // Featured items for hero carousel (mix of popular movies and TV shows)
+  const featuredItems: (TMDBMovie | TMDBSeries)[] = [
+    ...(popularMovies.slice(0, 3) || []),
+    ...(popularTV.slice(0, 2) || []),
+  ].filter(Boolean);
   const featuredMovie: TMDBMovie | null = popularMovies[0] || null;
 
   // Get top genres for genre sections (limit to 6 most common genres)
@@ -32,12 +36,13 @@ export default function BrowseContent({ favoriteGenres }: BrowseContentProps) {
       {/* Hero Section */}
       <HeroSection
         featuredItem={featuredMovie}
+        featuredItems={featuredItems.length > 0 ? featuredItems : undefined}
         type="movie"
         isLoading={isLoadingPopularMovies}
       />
 
       {/* Content Rows - Full width, padding handled by ContentRow */}
-      <div className="w-full py-8">
+      <div className="w-full py-8 overflow-visible">
         {/* Personalized Section */}
         {personalizedMovies.length > 0 && (
           <ContentRow

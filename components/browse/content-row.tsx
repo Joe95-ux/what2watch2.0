@@ -56,10 +56,14 @@ export default function ContentRow({ title, items, type, isLoading, href }: Cont
     return (
       <div className="mb-12 px-4 sm:px-6 lg:px-8">
         <div className="h-8 w-48 bg-muted rounded mb-6 animate-pulse" />
-        <div className="flex gap-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex-shrink-0 w-[200px] aspect-[2/3] bg-muted rounded-lg animate-pulse" />
-          ))}
+        <div className="relative" style={{ paddingTop: '60px', paddingBottom: '60px' }}>
+          <div className="overflow-x-hidden">
+            <div className="flex gap-3">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="flex-shrink-0 w-[180px] sm:w-[200px] aspect-[2/3] bg-muted rounded-lg animate-pulse" />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -95,7 +99,7 @@ export default function ContentRow({ title, items, type, isLoading, href }: Cont
           className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover/title:opacity-100 group-hover/title:translate-x-0 transition-all duration-300" 
         />
       </Link>
-      <div className="relative group" style={{ paddingTop: '20px', paddingBottom: '20px' }}>
+      <div className="relative group overflow-visible" style={{ paddingTop: '60px', paddingBottom: '60px' }}>
         {/* Left Gradient Fade */}
         {canScrollPrev && (
           <div
@@ -127,9 +131,9 @@ export default function ContentRow({ title, items, type, isLoading, href }: Cont
           className={cn(
             "absolute left-2 top-1/2 -translate-y-1/2 z-20 h-full w-12 flex items-center justify-center",
             "opacity-0 group-hover:opacity-100 transition-opacity duration-300",
-            "hover:bg-black/10 rounded",
+            "hover:bg-black/10 rounded cursor-pointer",
             "hidden md:flex",
-            !canScrollPrev && "opacity-0 cursor-not-allowed"
+            !canScrollPrev && "opacity-0"
           )}
           aria-label="Scroll left"
         >
@@ -143,20 +147,20 @@ export default function ContentRow({ title, items, type, isLoading, href }: Cont
           className={cn(
             "absolute right-2 top-1/2 -translate-y-1/2 z-20 h-full w-12 flex items-center justify-center",
             "opacity-0 group-hover:opacity-100 transition-opacity duration-300",
-            "hover:bg-black/10 rounded",
+            "hover:bg-black/10 rounded cursor-pointer",
             "hidden md:flex",
-            !canScrollNext && "opacity-0 cursor-not-allowed"
+            !canScrollNext && "opacity-0"
           )}
           aria-label="Scroll right"
         >
           <ChevronRight className="h-8 w-8 text-white drop-shadow-lg" />
         </button>
 
-        {/* Carousel - overflow-hidden for Embla, but allow cards to overflow */}
+        {/* Carousel - overflow-hidden for Embla, but allow cards to overflow vertically */}
         <div className="overflow-x-hidden overflow-y-visible" ref={emblaRef}>
           <div className="flex gap-3">
             {items.map((item) => (
-              <div key={item.id} className="flex-shrink-0 w-[180px] sm:w-[200px]">
+              <div key={item.id} className="flex-shrink-0 w-[180px] sm:w-[200px] overflow-visible">
                 <MovieCard item={item} type={type} />
               </div>
             ))}
