@@ -184,7 +184,7 @@ export default function LandingPage() {
               <h3 className="text-xl font-semibold mb-2">Sign Up & Onboard</h3>
               <p className="text-muted-foreground">
                 Create your account and tell us about your preferences. 
-                We'll customize your experience from day one.
+                We&apos;ll customize your experience from day one.
               </p>
             </div>
 
@@ -195,7 +195,7 @@ export default function LandingPage() {
               <h3 className="text-xl font-semibold mb-2">Explore & Discover</h3>
               <p className="text-muted-foreground">
                 Browse thousands of movies and TV shows. Use filters to find exactly 
-                what you're looking for.
+                what you&apos;re looking for.
               </p>
             </div>
 
