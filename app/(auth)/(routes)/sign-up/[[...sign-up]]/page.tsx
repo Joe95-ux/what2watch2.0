@@ -1,5 +1,12 @@
 import { SignUp } from "@clerk/nextjs";
  
 export default function Page() {
-  return <SignUp />;
+  return (
+    <SignUp 
+      routing="path"
+      path="/sign-up"
+      afterSignUpUrl="/onboarding"
+      signInUrl="/sign-in"
+    />
+  );
 }

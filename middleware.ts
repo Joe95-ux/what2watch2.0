@@ -11,6 +11,9 @@ const isPublicRoute = createRouteMatcher([
   '/api/genres(.*)', // Public genre endpoints
 ]);
 
+// Routes that require auth but have special handling
+const isOnboardingRoute = createRouteMatcher(['/onboarding(.*)']);
+
 export default clerkMiddleware(async (auth, req) => {
   // Protect all routes except public ones
   if (!isPublicRoute(req)) {

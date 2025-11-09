@@ -1,0 +1,323 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { Star, Play, Plus, Info, Maximize2 } from "lucide-react";
+import { TMDBMovie, TMDBSeries, getPosterUrl, getBackdropUrl, TMDBVideo, getYouTubeEmbedUrl } from "@/lib/tmdb";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+
+interface MovieCardProps {
+  item: TMDBMovie | TMDBSeries;
+  type: "movie" | "tv";
+  className?: string;
+}
+
+export default function MovieCard({ item, type, className }: MovieCardProps) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [trailer, setTrailer] = useState<TMDBVideo | null>(null);
+  const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const title = "title" in item ? item.title : item.name;
+  const posterPath = item.poster_path || item.backdrop_path;
+  const backdropPath = item.backdrop_path;
+  const releaseDate = type === "movie" ? (item as TMDBMovie).release_date : (item as TMDBSeries).first_air_date;
+  const year = releaseDate ? new Date(releaseDate).getFullYear() : null;
+
+  // Reset hover state when modal opens
+  useEffect(() => {
+    if (isModalOpen) {
+      setIsHovered(false);
+      setTrailer(null);
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    }
+  }, [isModalOpen]);
+
+  // Fetch trailer on hover (with delay to avoid too many requests)
+  useEffect(() => {
+    if (isHovered && !trailer && !isLoadingTrailer && !isModalOpen) {
+      hoverTimeoutRef.current = setTimeout(async () => {
+        setIsLoadingTrailer(true);
+        try {
+          const response = await fetch(`/api/${type}/${item.id}/videos`);
+          if (response.ok) {
+            const data = await response.json();
+            // Find first trailer (prefer official trailers)
+            const officialTrailer = data.results?.find(
+              (v: TMDBVideo) => v.type === "Trailer" && v.official && v.site === "YouTube"
+            );
+            const anyTrailer = data.results?.find(
+              (v: TMDBVideo) => v.type === "Trailer" && v.site === "YouTube"
+            );
+            setTrailer(officialTrailer || anyTrailer || null);
+          }
+        } catch (error) {
+          console.error("Error fetching trailer:", error);
+        } finally {
+          setIsLoadingTrailer(false);
+        }
+      }, 500); // 500ms delay before fetching
+    }
+
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, [isHovered, item.id, type, trailer, isLoadingTrailer, isModalOpen]);
+
+  // Calculate position to prevent card from going off-screen
+  const getCardStyle = () => {
+    if (!isHovered || !cardRef.current) return {};
+    
+    const rect = cardRef.current.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    
+    // Check if card would go off right edge
+    const wouldOverflowRight = rect.right > viewportWidth - 20;
+    // Check if card would go off left edge
+    const wouldOverflowLeft = rect.left < 20;
+    
+    let transform = "scale(1.15)";
+    
+    if (wouldOverflowRight && !wouldOverflowLeft) {
+      // Shift left
+      const overflow = rect.right - viewportWidth + 20;
+      transform = `scale(1.15) translateX(-${overflow}px)`;
+    } else if (wouldOverflowLeft && !wouldOverflowRight) {
+      // Shift right
+      const overflow = 20 - rect.left;
+      transform = `scale(1.15) translateX(${overflow}px)`;
+    }
+    
+    return {
+      transform,
+      transformOrigin: "center top",
+    };
+  };
+
+  return (
+    <>
+      <div
+        ref={cardRef}
+        className={cn("relative group flex-shrink-0 transition-all duration-300 ease-out", className)}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => {
+          setIsHovered(false);
+          setTrailer(null); // Clear trailer when not hovering
+        }}
+        style={isHovered ? getCardStyle() : {}}
+      >
+        <div
+          className={cn(
+            "relative block aspect-[2/3] rounded-lg overflow-hidden transition-all duration-300 ease-out",
+            isHovered && "z-[100] shadow-2xl"
+          )}
+        >
+          {/* Trailer Preview (on hover) */}
+          {isHovered && trailer && (
+            <div className="absolute inset-0 z-10">
+              <iframe
+                src={getYouTubeEmbedUrl(trailer.key)}
+                className="w-full h-full"
+                allow="autoplay; encrypted-media"
+                allowFullScreen
+                style={{ pointerEvents: "none" }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none" />
+            </div>
+          )}
+
+          {/* Poster Image (fallback or when no trailer) */}
+          {(!isHovered || !trailer) && (
+            <>
+              {posterPath ? (
+                <Image
+                  src={getPosterUrl(posterPath, "w500")}
+                  alt={title}
+                  fill
+                  className="object-cover transition-transform duration-300"
+                  sizes="(max-width: 640px) 200px, 300px"
+                  unoptimized
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">
+                  <span className="text-muted-foreground text-sm">No Image</span>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Hover Overlay with Info */}
+          <div
+            className={cn(
+              "absolute inset-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent transition-opacity duration-300 pointer-events-none",
+              isHovered ? "opacity-100" : "opacity-0"
+            )}
+          >
+            {/* Action Buttons */}
+            <div className="absolute top-3 right-3 flex items-center gap-2 z-20 pointer-events-auto">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 w-8 rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/30"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsModalOpen(true);
+                }}
+              >
+                <Maximize2 className="h-4 w-4 text-white" />
+              </Button>
+            </div>
+
+            {/* Content Info */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 space-y-2">
+              {/* Action Buttons Row */}
+              <div className="flex items-center gap-2 mb-2">
+                <Button
+                  size="sm"
+                  className="h-9 px-4 rounded-full bg-white text-black hover:bg-white/90 font-medium text-sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // TODO: Handle play action
+                  }}
+                  asChild
+                >
+                  <Link href={`/${type}/${item.id}`}>
+                    <Play className="h-4 w-4 mr-1 fill-black" />
+                    Play
+                  </Link>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-9 w-9 rounded-full p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // TODO: Handle add to list
+                  }}
+                >
+                  <Plus className="h-4 w-4 text-white" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-9 w-9 rounded-full p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsModalOpen(true);
+                  }}
+                >
+                  <Info className="h-4 w-4 text-white" />
+                </Button>
+              </div>
+
+              {/* Rating and Type */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
+                  <span className="text-xs font-semibold text-white">
+                    {item.vote_average.toFixed(1)}
+                  </span>
+                </div>
+                {year && (
+                  <>
+                    <span className="text-xs text-white/80">•</span>
+                    <span className="text-xs text-white/80">{year}</span>
+                  </>
+                )}
+                <span className="text-xs text-white/80">•</span>
+                <span className="text-xs text-white/80 uppercase">{type === "movie" ? "Movie" : "TV"}</span>
+              </div>
+
+              {/* Title */}
+              <h3 className="font-bold text-white text-sm line-clamp-1">{title}</h3>
+
+              {/* Overview */}
+              {item.overview && (
+                <p className="text-xs text-white/90 line-clamp-2 leading-relaxed">
+                  {item.overview}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Detail Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{title}</DialogTitle>
+            <DialogDescription>
+              {year && `${year} • `}
+              {type === "movie" ? "Movie" : "TV Show"}
+              {item.vote_average > 0 && ` • ⭐ ${item.vote_average.toFixed(1)}`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Backdrop Image */}
+            {backdropPath && (
+              <div className="relative w-full h-64 rounded-lg overflow-hidden">
+                <Image
+                  src={getBackdropUrl(backdropPath, "w1280")}
+                  alt={title}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+              </div>
+            )}
+
+            {/* Overview */}
+            {item.overview && (
+              <div>
+                <h3 className="font-semibold mb-2">Overview</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{item.overview}</p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center gap-3 pt-4">
+              <Button asChild className="bg-white text-black hover:bg-white/90">
+                <Link href={`/${type}/${item.id}`}>
+                  <Play className="h-4 w-4 mr-2 fill-black" />
+                  Play
+                </Link>
+              </Button>
+              <Button variant="outline">
+                <Plus className="h-4 w-4 mr-2" />
+                Add to List
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href={`/${type}/${item.id}`}>
+                  <Info className="h-4 w-4 mr-2" />
+                  More Info
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

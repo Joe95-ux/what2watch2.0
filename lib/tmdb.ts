@@ -50,23 +50,14 @@ export interface TMDBResponse<T> {
 }
 
 /**
- * Get TMDB API headers with authentication
+ * Simple fetch from TMDB API with timeout
  */
-function getHeaders(): Record<string, string> {
+async function fetchTMDB<T>(endpoint: string, params?: Record<string, string | number>): Promise<T> {
   const accessToken = process.env.MOVIEDB_ACCESS_TOKEN;
   if (!accessToken) {
     throw new Error('MOVIEDB_ACCESS_TOKEN is not set');
   }
-  return {
-    'Authorization': `Bearer ${accessToken}`,
-    'Content-Type': 'application/json',
-  };
-}
 
-/**
- * Fetch from TMDB API
- */
-async function fetchTMDB<T>(endpoint: string, params?: Record<string, string | number>): Promise<T> {
   const url = new URL(`${TMDB_BASE_URL}${endpoint}`);
   
   if (params) {
@@ -75,16 +66,38 @@ async function fetchTMDB<T>(endpoint: string, params?: Record<string, string | n
     });
   }
 
-  const response = await fetch(url.toString(), {
-    headers: getHeaders(),
-    next: { revalidate: 3600 }, // Cache for 1 hour
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 second timeout (less than route-level 15s)
 
-  if (!response.ok) {
-    throw new Error(`TMDB API error: ${response.statusText}`);
+  try {
+    const response = await fetch(url.toString(), {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      signal: controller.signal,
+      next: { revalidate: 3600 }, // Cache for 1 hour
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`TMDB API error: ${response.statusText} (${response.status})`);
+    }
+
+    return response.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
+    
+    // Check for abort error or timeout-related errors
+    if (error instanceof Error) {
+      if (error.name === 'AbortError' || error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
+        throw new Error('Request timeout: TMDB API took too long to respond');
+      }
+    }
+    
+    throw error;
   }
-
-  return response.json();
 }
 
 /**
@@ -107,6 +120,28 @@ export function getPosterUrl(path: string | null, size: 'w200' | 'w300' | 'w500'
  */
 export function getBackdropUrl(path: string | null, size: 'w300' | 'w780' | 'w1280' | 'original' = 'w1280'): string {
   return getImageUrl(path, size);
+}
+
+/**
+ * Get all genres (combines movie and TV genres)
+ */
+export async function getAllGenres(): Promise<TMDBGenre[]> {
+  try {
+    const [movieData, tvData] = await Promise.all([
+      fetchTMDB<{ genres: TMDBGenre[] }>('/genre/movie/list'),
+      fetchTMDB<{ genres: TMDBGenre[] }>('/genre/tv/list'),
+    ]);
+
+    // Combine and deduplicate
+    const allGenres = new Map<number, TMDBGenre>();
+    movieData.genres.forEach(genre => allGenres.set(genre.id, genre));
+    tvData.genres.forEach(genre => allGenres.set(genre.id, genre));
+    
+    return Array.from(allGenres.values());
+  } catch (error) {
+    console.error('Failed to fetch genres:', error);
+    throw error;
+  }
 }
 
 /**
@@ -214,7 +249,7 @@ export async function getTVDetails(tvId: number): Promise<TMDBSeries & { genres:
  */
 export async function discoverMovies(filters: {
   page?: number;
-  genre?: number;
+  genre?: number | number[];
   year?: number;
   sortBy?: string;
   minRating?: number;
@@ -224,7 +259,11 @@ export async function discoverMovies(filters: {
     page: filters.page || 1,
   };
   
-  if (filters.genre) params.with_genres = filters.genre;
+  if (filters.genre) {
+    params.with_genres = Array.isArray(filters.genre) 
+      ? filters.genre.join(',') 
+      : filters.genre;
+  }
   if (filters.year) params.primary_release_year = filters.year;
   if (filters.sortBy) params.sort_by = filters.sortBy;
   if (filters.minRating) params['vote_average.gte'] = filters.minRating;
@@ -238,7 +277,7 @@ export async function discoverMovies(filters: {
  */
 export async function discoverTV(filters: {
   page?: number;
-  genre?: number;
+  genre?: number | number[];
   year?: number;
   sortBy?: string;
   minRating?: number;
@@ -248,7 +287,11 @@ export async function discoverTV(filters: {
     page: filters.page || 1,
   };
   
-  if (filters.genre) params.with_genres = filters.genre;
+  if (filters.genre) {
+    params.with_genres = Array.isArray(filters.genre) 
+      ? filters.genre.join(',') 
+      : filters.genre;
+  }
   if (filters.year) params.first_air_date_year = filters.year;
   if (filters.sortBy) params.sort_by = filters.sortBy;
   if (filters.minRating) params['vote_average.gte'] = filters.minRating;
@@ -257,3 +300,42 @@ export async function discoverTV(filters: {
   return fetchTMDB<TMDBResponse<TMDBSeries>>('/discover/tv', params);
 }
 
+/**
+ * TMDB Video interface
+ */
+export interface TMDBVideo {
+  id: string;
+  key: string;
+  name: string;
+  site: string;
+  size: number;
+  type: string;
+  official: boolean;
+  published_at: string;
+}
+
+export interface TMDBVideosResponse {
+  id: number;
+  results: TMDBVideo[];
+}
+
+/**
+ * Get movie videos (trailers, teasers, etc.)
+ */
+export async function getMovieVideos(movieId: number): Promise<TMDBVideosResponse> {
+  return fetchTMDB<TMDBVideosResponse>(`/movie/${movieId}/videos`);
+}
+
+/**
+ * Get TV show videos (trailers, teasers, etc.)
+ */
+export async function getTVVideos(tvId: number): Promise<TMDBVideosResponse> {
+  return fetchTMDB<TMDBVideosResponse>(`/tv/${tvId}/videos`);
+}
+
+/**
+ * Get YouTube embed URL from video key
+ */
+export function getYouTubeEmbedUrl(key: string): string {
+  return `https://www.youtube.com/embed/${key}?autoplay=1&mute=1&controls=0&rel=0&modestbranding=1&loop=1&playlist=${key}`;
+}

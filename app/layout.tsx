@@ -35,9 +35,9 @@ export default function RootLayout({
         },
       }}
     >
-    <html lang="en">
+    <html lang="en" style={{ height: '100%' }}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased h-full`}
       >
         <Toaster richColors position="bottom-right" />
         <RootProviders>{children}</RootProviders>

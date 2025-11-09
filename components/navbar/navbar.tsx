@@ -34,9 +34,9 @@ export default function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-4">
+      <div className="container flex h-16 items-center justify-between px-4 max-w-7xl mx-auto">
         {/* Left side - Logo and Desktop Nav */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-8 flex-1">
           <Logo fontSize="text-xl" iconSize={20} />
           
           {/* Desktop Navigation */}
@@ -60,7 +60,7 @@ export default function Navbar() {
         </div>
 
         {/* Right side - Search, Theme, User */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 flex-shrink-0">
           {/* Search - Hidden on mobile */}
           <div className="hidden sm:block">
             <Search />
@@ -88,7 +88,7 @@ export default function Navbar() {
 
           {/* User Auth */}
           {isLoaded && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center">
               {isSignedIn ? (
                 <UserButton
                   afterSignOutUrl="/"
