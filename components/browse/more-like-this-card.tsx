@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Play, Plus } from "lucide-react";
+import { Play, Plus, Heart } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getPosterUrl, TMDBVideo } from "@/lib/tmdb";
-import { Button } from "@/components/ui/button";
+import { CircleActionButton } from "./circle-action-button";
 import TrailerModal from "./trailer-modal";
 import ContentDetailModal from "./content-detail-modal";
 
@@ -21,23 +21,28 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [runtime, setRuntime] = useState<number | null>(null);
+  const [isLoadingRuntime, setIsLoadingRuntime] = useState(false);
 
   const title = "title" in item ? item.title : item.name;
   const posterPath = item.poster_path || item.backdrop_path;
   const releaseDate = type === "movie" ? (item as TMDBMovie).release_date : (item as TMDBSeries).first_air_date;
   const year = releaseDate ? new Date(releaseDate).getFullYear() : null;
   
-  // Get runtime - check if available in item, otherwise format as "N/A"
-  const runtime = type === "movie" 
-    ? (item as TMDBMovie & { runtime?: number }).runtime 
-    : (item as TMDBSeries & { episode_run_time?: number[] }).episode_run_time?.[0];
-  const formatRuntime = (minutes: number | undefined) => {
+  // Format runtime helper
+  const formatRuntime = (minutes: number | null | undefined) => {
     if (!minutes) return null;
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
-  const runtimeText = formatRuntime(runtime);
+  
+  // Get runtime from item if available, otherwise fetch on hover
+  const initialRuntime = type === "movie" 
+    ? (item as TMDBMovie & { runtime?: number }).runtime 
+    : (item as TMDBSeries & { episode_run_time?: number[] }).episode_run_time?.[0];
+  
+  const runtimeText = formatRuntime(runtime || initialRuntime);
   
   // Get parental rating - TMDB doesn't always provide this, so we'll use a simple fallback
   const parentalRating = type === "movie" 
@@ -53,6 +58,24 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  // Fetch runtime if not available
+  useEffect(() => {
+    if (!initialRuntime && !runtime && !isLoadingRuntime) {
+      setIsLoadingRuntime(true);
+      fetch(`/api/${type === "movie" ? "movies" : "tv"}/${item.id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (type === "movie" && data.runtime) {
+            setRuntime(data.runtime);
+          } else if (type === "tv" && data.episode_run_time?.[0]) {
+            setRuntime(data.episode_run_time[0]);
+          }
+        })
+        .catch(console.error)
+        .finally(() => setIsLoadingRuntime(false));
+    }
+  }, [item.id, type, initialRuntime, runtime, isLoadingRuntime]);
 
   // Fetch trailer on hover (with delay to avoid too many requests)
   const handleMouseEnter = () => {
@@ -101,13 +124,15 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
         onClick={handleCardClick}
       >
         {/* Section 1: Movie Poster - Reduced height */}
-        <div className="relative aspect-[4/5] bg-muted">
+        <div className="relative aspect-[5/5] bg-muted overflow-hidden">
           {posterPath ? (
             <Image
               src={getPosterUrl(posterPath, "w500")}
               alt={title}
               fill
-              className="object-cover"
+              className={`object-cover transition-transform duration-500 ease-out ${
+                isHovered ? "scale-110" : "scale-100"
+              }`}
               sizes="(max-width: 640px) 200px, 300px"
               unoptimized
             />
@@ -117,9 +142,23 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
             </div>
           )}
 
+          {/* Like Button - Top Left */}
+          <div className="absolute top-2 left-2 z-20">
+            <CircleActionButton
+              size="sm"
+              onClick={(e: React.MouseEvent) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // TODO: Handle like/favorite
+              }}
+            >
+              <Heart className="h-3 w-3 text-white" />
+            </CircleActionButton>
+          </div>
+
           {/* Runtime - Top Right */}
           {runtimeText && (
-            <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-xs text-white font-medium">
+            <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-xs text-white font-medium z-20">
               {runtimeText}
             </div>
           )}
@@ -131,18 +170,18 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
             }`}
           >
             <div className="bg-black/40 backdrop-blur-sm absolute inset-0" />
-            <Button
-              variant="ghost"
-              className="h-10 w-10 rounded-full p-0 bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 backdrop-blur-sm transition-all duration-300 hover:scale-105 pointer-events-auto cursor-pointer z-10"
-              onClick={(e) => {
+            <CircleActionButton
+              size="md"
+              onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
                 e.stopPropagation();
                 // Open details sheet instead of trailer modal
                 setIsDetailModalOpen(true);
               }}
+              className="pointer-events-auto z-10"
             >
               <Play className="size-6 text-white fill-white" />
-            </Button>
+            </CircleActionButton>
           </div>
 
           {/* Loading state for play button */}
@@ -164,18 +203,16 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
                 {parentalRating}
               </span>
             </div>
-            <Button
+            <CircleActionButton
               size="sm"
-              variant="ghost"
-              className="h-7 w-7 rounded-full p-0 bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 backdrop-blur-sm cursor-pointer"
-              onClick={(e) => {
+              onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
                 e.stopPropagation();
                 // TODO: Handle add to list
               }}
             >
-              <Plus className="h-3 w-3 text-white size-3" />
-            </Button>
+              <Plus className="h-3 w-3 text-white" />
+            </CircleActionButton>
           </div>
 
           {/* Bottom Row: Synopsis (Truncated to 4 lines) */}

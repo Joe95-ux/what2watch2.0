@@ -23,6 +23,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import VideosCarousel from "./videos-carousel";
 import TrailerModal from "./trailer-modal";
 import MoreLikeThis from "./more-like-this";
+import { useAddRecentlyViewed } from "@/hooks/use-recently-viewed";
 
 interface ContentDetailModalProps {
   item: TMDBMovie | TMDBSeries;
@@ -41,6 +42,9 @@ export default function ContentDetailModal({
   const [selectedVideo, setSelectedVideo] = useState<TMDBVideo | null>(null);
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay compatibility
+  
+  // Track recently viewed
+  const addRecentlyViewed = useAddRecentlyViewed();
 
   // Fetch details based on type
   const { data: movieDetails, isLoading: isLoadingMovie } = useMovieDetails(
@@ -71,10 +75,10 @@ export default function ContentDetailModal({
   );
   
   // Combine similar and recommended content (prioritize recommendations)
-  // Fetch max 24 items for "More Like This" section
+  // Fetch max 16 items for "More Like This" section
   const moreLikeThisItems = type === "movie"
-    ? [...(recommendedMovies?.results || []), ...(similarMovies?.results || [])].slice(0, 24)
-    : [...(recommendedTV?.results || []), ...(similarTV?.results || [])].slice(0, 24);
+    ? [...(recommendedMovies?.results || []), ...(similarMovies?.results || [])].slice(0, 16)
+    : [...(recommendedTV?.results || []), ...(similarTV?.results || [])].slice(0, 16);
   
   const isLoadingMoreLikeThis = type === "movie"
     ? isLoadingRecommendedMovies || isLoadingSimilarMovies
@@ -89,6 +93,22 @@ export default function ContentDetailModal({
       }
     }
   }, [type, seasonsData, selectedSeason]);
+
+  // Track view when sheet opens
+  useEffect(() => {
+    if (isOpen) {
+      const title = "title" in item ? item.title : item.name;
+      addRecentlyViewed.mutate({
+        tmdbId: item.id,
+        mediaType: type,
+        title: title,
+        posterPath: item.poster_path || null,
+        backdropPath: item.backdrop_path || null,
+        releaseDate: "release_date" in item ? item.release_date || null : null,
+        firstAirDate: "first_air_date" in item ? item.first_air_date || null : null,
+      });
+    }
+  }, [isOpen, item, type, addRecentlyViewed]);
 
   const details = type === "movie" ? movieDetails : tvDetails;
   const isLoading = type === "movie" ? isLoadingMovie : isLoadingTV;
@@ -435,7 +455,7 @@ export default function ContentDetailModal({
               </div>
 
               {/* More Like This Section - Full Width, Outside Grid */}
-              <div className="w-full -mx-6 sm:-mx-8 lg:-mx-12 px-6 sm:px-8 lg:px-12 mt-8">
+              <div className="w-full mt-8">
                 <MoreLikeThis
                   items={moreLikeThisItems}
                   type={type}

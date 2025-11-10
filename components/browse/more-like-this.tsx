@@ -16,8 +16,8 @@ interface MoreLikeThisProps {
   hasMore?: boolean;
 }
 
-const INITIAL_ITEMS = 12; // Show 12 items initially (half of max)
-const MAX_ITEMS = 24; // Maximum items to show
+const INITIAL_ITEMS = 8; // Show 8 items initially (half of max)
+const MAX_ITEMS = 16; // Maximum items to show
 
 export default function MoreLikeThis({ 
   items, 
@@ -52,8 +52,8 @@ export default function MoreLikeThis({
     return (
       <div className="w-full space-y-6">
         <Skeleton className="h-7 w-48" />
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {[...Array(12)].map((_, i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
+          {[...Array(8)].map((_, i) => (
             <Skeleton key={i} className="aspect-[2/3] rounded-lg" />
           ))}
         </div>
@@ -70,7 +70,7 @@ export default function MoreLikeThis({
       <h3 className="text-xl font-semibold">{title}</h3>
       
       {/* Grid Layout - 3-4 columns responsive */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
         {displayedItems.map((item) => (
           <MoreLikeThisCard key={item.id} item={item} type={type} />
         ))}
@@ -90,7 +90,7 @@ export default function MoreLikeThis({
               size="sm"
               onClick={handleToggle}
               disabled={isLoading}
-              className="h-8 w-8 rounded-full p-0 bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer"
+              className="h-12 w-12 rounded-full p-0 bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer"
               aria-label={isExpanded ? "Show less" : "Show more"}
             >
               {isExpanded ? (

@@ -4,6 +4,7 @@ import { usePopularMovies, useNowPlayingMovies, usePopularTV, useOnTheAirTV, use
 import { useAllGenres } from "@/hooks/use-genres";
 import ContentRow from "./content-row";
 import HeroSection from "./hero-section";
+import RecentlyViewed from "./recently-viewed";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 
 interface BrowseContentProps {
@@ -93,6 +94,9 @@ export default function BrowseContent({ favoriteGenres }: BrowseContentProps) {
         {topGenres.map((genre) => (
           <GenreRow key={genre.id} genreId={genre.id} genreName={genre.name} />
         ))}
+
+        {/* Recently Viewed Section */}
+        <RecentlyViewed />
       </div>
     </div>
   );

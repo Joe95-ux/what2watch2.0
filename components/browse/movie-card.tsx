@@ -6,6 +6,7 @@ import { Star, Play, Plus, Heart, Maximize2 } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getPosterUrl, TMDBVideo, getYouTubeEmbedUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { CircleActionButton } from "./circle-action-button";
 import ContentDetailModal from "./content-detail-modal";
 import TrailerModal from "./trailer-modal";
 
@@ -27,6 +28,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const originalRectRef = useRef<DOMRect | null>(null);
 
   const title = "title" in item ? item.title : item.name;
   const posterPath = item.poster_path || item.backdrop_path;
@@ -43,6 +45,15 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
       }
     }
   }, [isModalOpen]);
+
+  // Store original rect when hover starts
+  useEffect(() => {
+    if (isHovered && cardRef.current && !originalRectRef.current) {
+      originalRectRef.current = cardRef.current.getBoundingClientRect();
+    } else if (!isHovered) {
+      originalRectRef.current = null;
+    }
+  }, [isHovered]);
 
   // Fetch trailer on hover (with delay to avoid too many requests)
   useEffect(() => {
@@ -83,7 +94,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const getCardStyle = () => {
     if (!isHovered || !cardRef.current) return {};
     
-    const rect = cardRef.current.getBoundingClientRect();
+    // Use original rect (before scaling) to prevent feedback loop
+    const rect = originalRectRef.current || cardRef.current.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     
     // Check if card is under gradient area (first 64px from viewport edges)
@@ -96,24 +108,51 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
       return {};
     }
     
-    // Check if card would go off right edge
-    const wouldOverflowRight = rect.right > viewportWidth - 20;
-    // Check if card would go off left edge
-    const wouldOverflowLeft = rect.left < 20;
-    
     // Different scale for "more-like-this" variant (smaller scale like Netflix)
-    const scale = variant === "more-like-this" ? "1.15" : "1.5";
-    let transform = `scale(${scale})`;
+    const scale = variant === "more-like-this" ? 1.15 : 1.5;
     
-    // Only adjust if absolutely necessary to prevent going off-screen
+    // Calculate scaled dimensions
+    const scaledWidth = rect.width * scale;
+    const scaledHeight = rect.height * scale;
+    const scaleOffsetX = (scaledWidth - rect.width) / 2;
+    const scaleOffsetY = (scaledHeight - rect.height) / 2;
+    
+    // Calculate where scaled card would be positioned
+    const scaledLeft = rect.left - scaleOffsetX;
+    const scaledRight = rect.right + scaleOffsetX;
+    const scaledTop = rect.top - scaleOffsetY;
+    const scaledBottom = rect.bottom + scaleOffsetY;
+    
+    // Check if scaled card would overflow viewport
+    const wouldOverflowRight = scaledRight > viewportWidth - 20;
+    const wouldOverflowLeft = scaledLeft < 20;
+    const wouldOverflowTop = scaledTop < 20;
+    const wouldOverflowBottom = scaledBottom > window.innerHeight - 20;
+    
+    let transform = `scale(${scale})`;
+    let translateX = 0;
+    let translateY = 0;
+    
+    // Adjust horizontal position if needed
     if (wouldOverflowRight && !wouldOverflowLeft) {
-      // Shift left slightly
-      const overflow = rect.right - viewportWidth + 20;
-      transform = `scale(${scale}) translateX(-${Math.min(overflow, 50)}px)`;
+      translateX = -(scaledRight - viewportWidth + 20);
     } else if (wouldOverflowLeft && !wouldOverflowRight) {
-      // Shift right slightly
-      const overflow = 20 - rect.left;
-      transform = `scale(${scale}) translateX(${Math.min(overflow, 50)}px)`;
+      translateX = 20 - scaledLeft;
+    }
+    
+    // Adjust vertical position if needed
+    if (wouldOverflowTop && !wouldOverflowBottom) {
+      translateY = 20 - scaledTop;
+    } else if (wouldOverflowBottom && !wouldOverflowTop) {
+      translateY = -(scaledBottom - window.innerHeight + 20);
+    }
+    
+    // Clamp translations to reasonable values
+    translateX = Math.max(-50, Math.min(50, translateX));
+    translateY = Math.max(-50, Math.min(50, translateY));
+    
+    if (translateX !== 0 || translateY !== 0) {
+      transform = `scale(${scale}) translate(${translateX}px, ${translateY}px)`;
     }
     
     return {
@@ -248,30 +287,24 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                   <Play className="h-3 w-3 mr-1 fill-black" />
                   Play
                 </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 w-7 rounded-full p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 cursor-pointer"
-                  onClick={(e) => {
+                <CircleActionButton
+                  onClick={(e: React.MouseEvent) => {
                     e.preventDefault();
                     e.stopPropagation();
                     // TODO: Handle add to list
                   }}
                 >
                   <Plus className="h-3 w-3 text-white" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 w-7 rounded-full p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 cursor-pointer"
-                  onClick={(e) => {
+                </CircleActionButton>
+                <CircleActionButton
+                  onClick={(e: React.MouseEvent) => {
                     e.preventDefault();
                     e.stopPropagation();
                     // TODO: Handle like/favorite
                   }}
                 >
                   <Heart className="h-3 w-3 text-white" />
-                </Button>
+                </CircleActionButton>
               </div>
 
               {/* Rating and Type */}

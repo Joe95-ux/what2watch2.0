@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import useEmblaCarousel from "embla-carousel-react";
-import { ChevronLeft, ChevronRight, ChevronRight as CaretRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronRight as CaretRight, Trash2 } from "lucide-react";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import MovieCard from "./movie-card";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 interface ContentRowProps {
   title: string;
@@ -14,9 +15,12 @@ interface ContentRowProps {
   type: "movie" | "tv";
   isLoading?: boolean;
   href?: string; // Optional href for the title link
+  showClearButton?: boolean;
+  onClear?: () => void;
+  isClearing?: boolean;
 }
 
-export default function ContentRow({ title, items, type, isLoading, href }: ContentRowProps) {
+export default function ContentRow({ title, items, type, isLoading, href, showClearButton, onClear, isClearing }: ContentRowProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "start",
     slidesToScroll: 5,
@@ -166,7 +170,7 @@ export default function ContentRow({ title, items, type, isLoading, href }: Cont
   return (
     <div className="mb-12">
       {/* Title with padding */}
-      <div className="px-4 sm:px-6 lg:px-8 mb-6">
+      <div className="px-4 sm:px-6 lg:px-8 mb-6 flex items-center justify-between">
         <Link 
           href={titleHref}
           className="group/title inline-flex items-center gap-2 transition-all duration-300"
@@ -178,6 +182,18 @@ export default function ContentRow({ title, items, type, isLoading, href }: Cont
             className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover/title:opacity-100 group-hover/title:translate-x-0 transition-all duration-300" 
           />
         </Link>
+        {showClearButton && onClear && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClear}
+            disabled={isClearing}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            {isClearing ? "Clearing..." : "Clear"}
+          </Button>
+        )}
       </div>
       
       {/* Carousel container - starts with padding, expands to full width on scroll */}

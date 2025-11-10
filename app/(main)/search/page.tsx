@@ -8,20 +8,9 @@ import MoreLikeThisCard from "@/components/browse/more-like-this-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState, useEffect } from "react";
-
-interface SearchFilters {
-  type: "all" | "movie" | "tv";
-  genre: string;
-  year: string;
-  minRating: number;
-  sortBy: string;
-}
+import { FiltersSheet, type SearchFilters } from "@/components/filters/filters-sheet";
 
 function SearchResultsContent() {
   const searchParams = useSearchParams();
@@ -92,6 +81,7 @@ function SearchResultsContent() {
     // Preserve all existing URL parameters
     if (query) params.set("query", query);
     if (type && type !== "all") params.set("type", type);
+    // Always include genre if it's set (even if empty string, we need to handle it)
     if (genre) params.set("genre", genre);
     if (year) params.set("year", year);
     if (minRating > 0) params.set("minRating", minRating.toString());
@@ -102,6 +92,9 @@ function SearchResultsContent() {
       if (value !== undefined && value !== null) {
         // Always include page, even if it's 1
         if (key === "page") {
+          params.set(key, value.toString());
+        } else if (key === "genre") {
+          // Always include genre if it's provided, even if empty (to clear it)
           params.set(key, value.toString());
         } else if (value && value !== "all" && value !== "" && value !== 0) {
           params.set(key, value.toString());
@@ -114,8 +107,8 @@ function SearchResultsContent() {
   const handleApplyFilters = () => {
     updateURL({
       type: filters.type,
-      genre: filters.genre,
-      year: filters.year,
+      genre: filters.genre || "", // Always include genre, even if empty
+      year: filters.year || "",
       minRating: filters.minRating > 0 ? filters.minRating : undefined,
       sortBy: filters.sortBy,
       page: 1, // Reset to page 1 when filters change
@@ -189,7 +182,7 @@ function SearchResultsContent() {
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[400px] sm:w-[540px] flex flex-col">
+            <SheetContent side="right" className="w-[400px] sm:w-[540px] flex flex-col p-0">
               <FiltersSheet
                 filters={filters}
                 setFilters={setFilters}
@@ -290,257 +283,6 @@ function SearchResultsContent() {
             )}
           </>
         )}
-      </div>
-    </div>
-  );
-}
-
-// Filters Sheet Component (reused from search.tsx)
-function FiltersSheet({
-  filters,
-  setFilters,
-  genres,
-  resetFilters,
-  onApply,
-  isLoading,
-  showAllGenres,
-  setShowAllGenres,
-  GENRES_TO_SHOW,
-  currentYear,
-  startYear,
-  hasActiveFilters,
-}: {
-  filters: SearchFilters;
-  setFilters: (filters: SearchFilters) => void;
-  genres: Array<{ id: number; name: string }>;
-  resetFilters: () => void;
-  onApply: () => void;
-  isLoading?: boolean;
-  showAllGenres: boolean;
-  setShowAllGenres: (show: boolean) => void;
-  GENRES_TO_SHOW: number;
-  currentYear: number;
-  startYear: number;
-  hasActiveFilters: boolean;
-}) {
-  return (
-    <div className="flex flex-col h-full">
-      <SheetHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
-        <SheetTitle className="text-xl font-semibold">Filter</SheetTitle>
-        <SheetDescription className="text-sm text-muted-foreground mt-1">
-          Refine your search by genre, year, rating, and more to find exactly what you&apos;re looking for.
-        </SheetDescription>
-      </SheetHeader>
-      
-      <ScrollArea className="flex-1">
-        <div className="px-6 py-4 space-y-6">
-          {/* Type Section */}
-          <div className="space-y-3">
-            <Label className="text-sm font-semibold uppercase tracking-wider">Type</Label>
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="type"
-                  value="all"
-                  checked={filters.type === "all"}
-                  onChange={(e) => setFilters({ ...filters, type: e.target.value as "all" | "movie" | "tv" })}
-                  className="w-4 h-4"
-                />
-                <span className="text-sm">All</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="type"
-                  value="movie"
-                  checked={filters.type === "movie"}
-                  onChange={(e) => setFilters({ ...filters, type: e.target.value as "all" | "movie" | "tv" })}
-                  className="w-4 h-4"
-                />
-                <span className="text-sm">Movies</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="type"
-                  value="tv"
-                  checked={filters.type === "tv"}
-                  onChange={(e) => setFilters({ ...filters, type: e.target.value as "all" | "movie" | "tv" })}
-                  className="w-4 h-4"
-                />
-                <span className="text-sm">TV Shows</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Sort By Section */}
-          <div className="space-y-3">
-            <Label className="text-sm font-semibold uppercase tracking-wider">Sort By</Label>
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="sortBy"
-                  value="popularity.desc"
-                  checked={filters.sortBy === "popularity.desc"}
-                  onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
-                  className="w-4 h-4"
-                />
-                <span className="text-sm">Popular</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="sortBy"
-                  value="vote_average.desc"
-                  checked={filters.sortBy === "vote_average.desc"}
-                  onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
-                  className="w-4 h-4"
-                />
-                <span className="text-sm">Highest Rated</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="sortBy"
-                  value="release_date.desc"
-                  checked={filters.sortBy === "release_date.desc"}
-                  onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
-                  className="w-4 h-4"
-                />
-                <span className="text-sm">Newest</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="sortBy"
-                  value="release_date.asc"
-                  checked={filters.sortBy === "release_date.asc"}
-                  onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
-                  className="w-4 h-4"
-                />
-                <span className="text-sm">Oldest</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Genre Section */}
-          {genres && genres.length > 0 && (
-            <div className="space-y-3">
-              <Label className="text-sm font-semibold uppercase tracking-wider">Genre</Label>
-              <div className="space-y-2">
-                {(showAllGenres ? genres : genres.slice(0, GENRES_TO_SHOW)).map((genre) => (
-                  <label key={genre.id} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={filters.genre === genre.id.toString()}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setFilters({ ...filters, genre: genre.id.toString() });
-                        } else {
-                          setFilters({ ...filters, genre: "" });
-                        }
-                      }}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-sm">{genre.name}</span>
-                  </label>
-                ))}
-                {genres.length > GENRES_TO_SHOW && (
-                  <button
-                    onClick={() => setShowAllGenres(!showAllGenres)}
-                    className="text-sm text-primary hover:underline mt-2"
-                  >
-                    {showAllGenres ? "Show less" : "Show more"}
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Release Year Section */}
-          <div className="space-y-3">
-            <Label className="text-sm font-semibold uppercase tracking-wider">Release Year</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                type="number"
-                placeholder="From"
-                value={filters.year ? filters.year.split("-")[0] : ""}
-                onChange={(e) => {
-                  const fromYear = e.target.value;
-                  const toYear = filters.year?.includes("-") ? filters.year.split("-")[1] : "";
-                  setFilters({ ...filters, year: toYear ? `${fromYear}-${toYear}` : fromYear });
-                }}
-                min={startYear}
-                max={currentYear + 1}
-                className="h-9 text-sm"
-              />
-              <span className="text-sm text-muted-foreground">-</span>
-              <Input
-                type="number"
-                placeholder="To"
-                value={filters.year?.includes("-") ? filters.year.split("-")[1] : filters.year || ""}
-                onChange={(e) => {
-                  const toYear = e.target.value;
-                  const fromYear = filters.year?.includes("-") ? filters.year.split("-")[0] : filters.year || "";
-                  setFilters({ ...filters, year: fromYear ? `${fromYear}-${toYear}` : toYear });
-                }}
-                min={startYear}
-                max={currentYear + 1}
-                className="h-9 text-sm"
-              />
-            </div>
-          </div>
-
-          {/* Minimum Rating Section */}
-          <div className="space-y-3">
-            <Label className="text-sm font-semibold uppercase tracking-wider">Minimum Rating</Label>
-            <div className="space-y-2">
-              <Slider
-                value={[filters.minRating]}
-                onValueChange={([value]) => setFilters({ ...filters, minRating: value })}
-                max={10}
-                min={0}
-                step={0.5}
-                className="w-full"
-              />
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">0.0</span>
-                <span className="font-semibold">{filters.minRating.toFixed(1)} / 10</span>
-                <span className="text-muted-foreground">10.0</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </ScrollArea>
-
-      {/* Footer with Action Buttons - Fixed at bottom */}
-      <div className="border-t px-6 py-4 bg-background flex-shrink-0">
-        <div className="flex gap-3">
-          <Button 
-            variant="outline" 
-            onClick={resetFilters} 
-            className="flex-1 h-10 text-sm"
-            disabled={!hasActiveFilters}
-          >
-            Reset
-          </Button>
-          <Button
-            onClick={onApply}
-            className="flex-1 h-10 text-sm"
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <span className="flex items-center gap-2">
-                <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                Applying...
-              </span>
-            ) : (
-              "Apply"
-            )}
-          </Button>
-        </div>
       </div>
     </div>
   );

@@ -30,6 +30,7 @@ model User {
   forumPosts    ForumPost[]
   forumReplies  ForumReply[]
   sharedPlaylists SharedPlaylist[]
+  recentlyViewed RecentlyViewed[]
 
   @@map("users")
 }
@@ -232,4 +233,27 @@ model SharedPlaylist {
   @@map("shared_playlists")
   @@index([playlistId])
   @@index([sharedById])
+}
+
+// Recently Viewed - tracks movies and TV shows user has viewed
+model RecentlyViewed {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // TMDB data
+  tmdbId        Int      // Movie or TV show ID from TMDB
+  mediaType     String   // "movie" or "tv"
+  title         String
+  posterPath    String?
+  backdropPath  String?
+  releaseDate   String?  // For movies
+  firstAirDate  String?  // For TV shows
+  
+  viewedAt      DateTime @default(now())
+  
+  @@map("recently_viewed")
+  @@index([userId])
+  @@index([userId, viewedAt])
+  @@unique([userId, tmdbId, mediaType])
 }
