@@ -93,7 +93,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
         tmdbId: r.tmdbId,
         mediaType: r.mediaType as "movie" | "tv",
         genreIds: r.genreIds,
-        rating: (r as any).rating,
+        rating: "rating" in r && typeof r.rating === "number" ? r.rating : undefined,
         createdAt: r.createdAt,
       })),
       playlistItems: playlistItemsWithGenres.map((p) => ({
