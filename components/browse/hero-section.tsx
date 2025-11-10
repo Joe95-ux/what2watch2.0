@@ -185,69 +185,71 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
                 {overview}
               </p>
             )}
-            <div className="flex items-center gap-4">
-              <Button
-                size="lg"
-                className="bg-white text-black hover:bg-white/90 h-14 px-10 text-base font-medium transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:shadow-white/20 cursor-pointer"
-                onClick={() => {
-                  if (trailer) {
-                    setIsRotationPaused(true);
-                    setIsTrailerModalOpen(true);
-                  }
-                }}
-                disabled={!trailer}
-              >
-                <Play className="mr-2.5 fill-black size-6" />
-                Play
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="bg-white/10 text-white border-white/30 hover:bg-white/25 hover:border-white/60 h-14 px-10 text-base font-medium backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-white/10 cursor-pointer"
-                onClick={() => setIsDetailModalOpen(true)}
-              >
-                <Info className="mr-2.5 size-6" />
-                More Info
-              </Button>
-              {currentItem && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <AddToPlaylistDropdown
-                        item={currentItem}
-                        type={currentItemType}
-                        trigger={
-                          <Button
-                            size="lg"
-                            variant="ghost"
-                            className="h-14 w-14 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 hover:border-white/60 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-white/10 cursor-pointer"
-                          >
-                            <Plus className="text-white size-6" />
-                          </Button>
-                        }
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Add to Playlist</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-              {/* Mute/Unmute Toggle - Only show when trailer is available, on extreme right */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+                <Button
+                  size="lg"
+                  className="bg-white text-black hover:bg-white/90 h-10 sm:h-14 px-4 sm:px-10 text-sm sm:text-base font-medium transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:shadow-white/20 cursor-pointer"
+                  onClick={() => {
+                    if (trailer) {
+                      setIsRotationPaused(true);
+                      setIsTrailerModalOpen(true);
+                    }
+                  }}
+                  disabled={!trailer}
+                >
+                  <Play className="mr-1.5 sm:mr-2.5 fill-black size-4 sm:size-6" />
+                  Play
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="bg-white/10 text-white border-white/30 hover:bg-white/25 hover:border-white/60 h-10 sm:h-14 px-4 sm:px-10 text-sm sm:text-base font-medium backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-white/10 cursor-pointer"
+                  onClick={() => setIsDetailModalOpen(true)}
+                >
+                  <Info className="mr-1.5 sm:mr-2.5 size-4 sm:size-6" />
+                  More Info
+                </Button>
+                {currentItem && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div>
+                        <AddToPlaylistDropdown
+                          item={currentItem}
+                          type={currentItemType}
+                          trigger={
+                            <Button
+                              size="lg"
+                              variant="ghost"
+                              className="h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 hover:border-white/60 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-white/10 cursor-pointer"
+                            >
+                              <Plus className="text-white size-4 sm:size-6" />
+                            </Button>
+                          }
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Add to Playlist</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
+              {/* Mute/Unmute Toggle - Only show when trailer is available */}
               {trailer && !isLoadingTrailer && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       size="lg"
                       variant="ghost"
-                      className="absolute right-8 bottom-20 h-14 w-14 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 hover:border-white/60 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-white/10 cursor-pointer ml-auto"
+                      className="h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 hover:border-white/60 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-white/10 cursor-pointer sm:absolute sm:right-8 sm:bottom-20"
                       onClick={() => setIsMuted(!isMuted)}
                       aria-label={isMuted ? "Unmute" : "Mute"}
                     >
                       {isMuted ? (
-                        <VolumeX className="text-white size-6" />
+                        <VolumeX className="text-white size-4 sm:size-6" />
                       ) : (
-                        <Volume2 className="text-white size-6" />
+                        <Volume2 className="text-white size-4 sm:size-6" />
                       )}
                     </Button>
                   </TooltipTrigger>

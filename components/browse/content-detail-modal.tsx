@@ -207,13 +207,13 @@ export default function ContentDetailModal({
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent 
         side="right"
-        className="!w-full sm:!w-[90vw] lg:!w-[80vw] xl:!max-w-[60rem] !h-full overflow-y-auto p-0 gap-0 [&>button]:hidden"
+        className="!w-full sm:!w-[90vw] lg:!w-[80vw] xl:!max-w-[60rem] !h-full overflow-y-auto p-0 gap-0 [&>button]:hidden relative"
       >
         {/* Back Button (when opened from More Like This) */}
         {showBackButton && (
           <button
             onClick={handleBack}
-            className="absolute top-4 left-4 z-50 h-14 w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105"
+            className="absolute top-4 left-4 z-[100] h-14 w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105"
             aria-label="Back"
           >
             <ArrowLeft className="h-7 w-7 text-white" />
@@ -223,7 +223,7 @@ export default function ContentDetailModal({
         {/* Close Button - More Prominent */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-50 h-14 w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105"
+          className="absolute top-4 right-4 z-[100] h-14 w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105"
           aria-label="Close"
         >
           <X className="h-7 w-7 text-white" />
@@ -545,7 +545,7 @@ export default function ContentDetailModal({
 
               {/* TV Seasons & Episodes - Full Width, Outside Grid */}
               {type === "tv" && seasonsData && (
-                <div className="w-full mt-8 -mx-6 sm:-mx-8 lg:-mx-12 px-6 sm:px-8 lg:px-12">
+                <div className="w-full mt-8">
                   <TVSeasonsSection
                     tvId={item.id}
                     seasons={seasonsData.seasons}
@@ -558,7 +558,7 @@ export default function ContentDetailModal({
               )}
 
               {/* More Like This Section - Full Width, Outside Grid */}
-              <div className="w-full mt-8 -mx-6 sm:-mx-8 lg:-mx-12 px-6 sm:px-8 lg:px-12">
+              <div className="w-full mt-8">
                 <MoreLikeThis
                   items={moreLikeThisItems}
                   type={type}

@@ -44,7 +44,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                 isActive
                   ? "text-foreground"
                   : "text-muted-foreground",
-                isActive && "after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-[#E50914]"
+                isActive && "after:content-[''] after:absolute after:bottom-[-15px] after:left-0 after:right-0 after:h-[3px] after:bg-[#E50914] after:rounded-t-[15px]"
               )}
             >
               {link.label}

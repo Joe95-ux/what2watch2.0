@@ -58,7 +58,7 @@ export default function MoreLikeThis({
     return (
       <div className="w-full space-y-6">
         <Skeleton className="h-7 w-48" />
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
           {[...Array(8)].map((_, i) => (
             <Skeleton key={i} className="aspect-[2/3] rounded-lg" />
           ))}
@@ -76,7 +76,7 @@ export default function MoreLikeThis({
       <h3 className="text-xl font-semibold">{title}</h3>
       
       {/* Grid Layout - 3-4 columns responsive */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
         {displayedItems.map((item) => (
           <MoreLikeThisCard 
             key={item.id} 
