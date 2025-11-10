@@ -67,7 +67,7 @@ async function fetchTMDB<T>(endpoint: string, params?: Record<string, string | n
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 second timeout (less than route-level 15s)
+  const timeoutId = setTimeout(() => controller.abort(), 40000); // 40 second timeout (less than route-level 45s)
 
   try {
     const response = await fetch(url.toString(), {
@@ -334,10 +334,35 @@ export async function getTVVideos(tvId: number): Promise<TMDBVideosResponse> {
 }
 
 /**
- * Get YouTube embed URL from video key
+ * Get similar movies
  */
-export function getYouTubeEmbedUrl(key: string, autoplay: boolean = true): string {
-  return `https://www.youtube.com/embed/${key}?autoplay=${autoplay ? 1 : 0}&mute=1&controls=1&rel=0&modestbranding=1${autoplay ? `&loop=1&playlist=${key}` : ''}`;
+export async function getSimilarMovies(movieId: number, page: number = 1): Promise<TMDBResponse<TMDBMovie>> {
+  return fetchTMDB<TMDBResponse<TMDBMovie>>(`/movie/${movieId}/similar`, { page });
+}
+
+/**
+ * Get recommended movies
+ */
+export async function getRecommendedMovies(movieId: number, page: number = 1): Promise<TMDBResponse<TMDBMovie>> {
+  return fetchTMDB<TMDBResponse<TMDBMovie>>(`/movie/${movieId}/recommendations`, { page });
+}
+
+/**
+ * Get similar TV shows
+ */
+export async function getSimilarTV(tvId: number, page: number = 1): Promise<TMDBResponse<TMDBSeries>> {
+  return fetchTMDB<TMDBResponse<TMDBSeries>>(`/tv/${tvId}/similar`, { page });
+}
+
+/**
+ * Get recommended TV shows
+ */
+export async function getRecommendedTV(tvId: number, page: number = 1): Promise<TMDBResponse<TMDBSeries>> {
+  return fetchTMDB<TMDBResponse<TMDBSeries>>(`/tv/${tvId}/recommendations`, { page });
+}
+
+export function getYouTubeEmbedUrl(key: string, autoplay: boolean = true, muted: boolean = true): string {
+  return `https://www.youtube.com/embed/${key}?autoplay=${autoplay ? 1 : 0}&mute=${muted ? 1 : 0}&controls=1&rel=0&modestbranding=1${autoplay ? `&loop=1&playlist=${key}` : ''}`;
 }
 
 /**

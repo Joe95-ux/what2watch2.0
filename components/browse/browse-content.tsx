@@ -37,12 +37,11 @@ export default function BrowseContent({ favoriteGenres }: BrowseContentProps) {
       <HeroSection
         featuredItem={featuredMovie}
         featuredItems={featuredItems.length > 0 ? featuredItems : undefined}
-        type="movie"
         isLoading={isLoadingPopularMovies}
       />
 
       {/* Content Rows - Full width, padding handled by ContentRow */}
-      <div className="w-full py-8 overflow-visible">
+      <div className="w-full py-8 overflow-hidden">
         {/* Personalized Section */}
         {personalizedMovies.length > 0 && (
           <ContentRow

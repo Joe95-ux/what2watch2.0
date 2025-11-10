@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { X, Play, Plus, Heart, Star, Clock, Calendar } from "lucide-react";
+import { X, Play, Plus, Heart, Star, Clock, Calendar, Volume2, VolumeX } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getBackdropUrl, getPosterUrl, getYouTubeEmbedUrl, TMDBVideo } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,11 +13,16 @@ import {
   useContentVideos,
   useTVSeasons,
   useTVSeasonDetails,
+  useSimilarMovies,
+  useRecommendedMovies,
+  useSimilarTV,
+  useRecommendedTV,
 } from "@/hooks/use-content-details";
 import { cn } from "@/lib/utils";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import VideosCarousel from "./videos-carousel";
 import TrailerModal from "./trailer-modal";
+import MoreLikeThis from "./more-like-this";
 
 interface ContentDetailModalProps {
   item: TMDBMovie | TMDBSeries;
@@ -35,6 +40,7 @@ export default function ContentDetailModal({
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<TMDBVideo | null>(null);
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay compatibility
 
   // Fetch details based on type
   const { data: movieDetails, isLoading: isLoadingMovie } = useMovieDetails(
@@ -45,10 +51,33 @@ export default function ContentDetailModal({
   );
   const { data: videosData } = useContentVideos(type, item.id);
   const { data: seasonsData } = useTVSeasons(type === "tv" ? item.id : null);
-  const { data: seasonDetails } = useTVSeasonDetails(
+  const { data: seasonDetails, isLoading: isLoadingSeasonDetails } = useTVSeasonDetails(
     type === "tv" ? item.id : null,
     selectedSeason
   );
+  
+  // Fetch similar/recommended content
+  const { data: similarMovies, isLoading: isLoadingSimilarMovies } = useSimilarMovies(
+    type === "movie" ? item.id : null
+  );
+  const { data: recommendedMovies, isLoading: isLoadingRecommendedMovies } = useRecommendedMovies(
+    type === "movie" ? item.id : null
+  );
+  const { data: similarTV, isLoading: isLoadingSimilarTV } = useSimilarTV(
+    type === "tv" ? item.id : null
+  );
+  const { data: recommendedTV, isLoading: isLoadingRecommendedTV } = useRecommendedTV(
+    type === "tv" ? item.id : null
+  );
+  
+  // Combine similar and recommended content (prioritize recommendations)
+  const moreLikeThisItems = type === "movie"
+    ? [...(recommendedMovies?.results || []), ...(similarMovies?.results || [])].slice(0, 20)
+    : [...(recommendedTV?.results || []), ...(similarTV?.results || [])].slice(0, 20);
+  
+  const isLoadingMoreLikeThis = type === "movie"
+    ? isLoadingRecommendedMovies || isLoadingSimilarMovies
+    : isLoadingRecommendedTV || isLoadingSimilarTV;
 
   // Auto-select first season when seasons load
   useEffect(() => {
@@ -102,26 +131,27 @@ export default function ContentDetailModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent 
-        showCloseButton={false}
-        className="!w-[calc(100vw-16px)] !max-w-[calc(100vw-16px)] sm:!max-w-[60rem] !h-auto !max-h-[90vh] !rounded-lg overflow-hidden p-0 gap-0"
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent 
+        side="right"
+        className="!w-full sm:!w-[90vw] lg:!w-[80vw] xl:!max-w-[60rem] !h-full overflow-y-auto p-0 gap-0 [&>button]:hidden"
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-50 h-10 w-10 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-colors"
+          className="absolute top-4 right-4 z-50 h-12 w-12 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center transition-colors shadow-lg"
           aria-label="Close"
         >
-          <X className="h-5 w-5 text-white" />
+          <X className="h-6 w-6 text-white" />
         </button>
 
         {/* Hero Section with Trailer/Backdrop */}
-        <div className="relative w-full h-[50vh] min-h-[400px] overflow-hidden">
+        <div className="relative w-full h-[70vh] min-h-[500px] overflow-hidden">
           {trailer && isOpen && videosData ? (
             <div className="absolute inset-0">
               <iframe
-                src={getYouTubeEmbedUrl(trailer.key)}
+                key={`${trailer.key}-${isMuted}`}
+                src={getYouTubeEmbedUrl(trailer.key, true, isMuted)}
                 className="w-full h-full"
                 allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
@@ -194,37 +224,52 @@ export default function ContentDetailModal({
                 <div className="flex items-center gap-3">
                   <Button
                     size="lg"
-                    className="bg-white text-black hover:bg-white/90 h-14 px-10 text-base font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                    className="bg-white text-black hover:bg-white/90 h-14 px-10 text-base font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg rounded-md"
                     asChild
                   >
                     <Link href={`/${type}/${item.id}`}>
-                      <Play className="h-6 w-6 mr-2.5 fill-black" />
+                      <Play className="size-6 mr-2.5 fill-black" />
                       Play
                     </Link>
                   </Button>
                   <Button
                     size="lg"
                     variant="outline"
-                    className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 px-10 text-base font-semibold backdrop-blur-sm transition-all duration-300 hover:scale-105"
+                    className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105"
                   >
-                    <Plus className="h-6 w-6 mr-2.5" />
-                    Add
+                    <Plus className="size-6 text-white" />
                   </Button>
                   <Button
                     size="lg"
                     variant="outline"
-                    className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 w-14 p-0 backdrop-blur-sm transition-all duration-300 hover:scale-105"
+                    className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105"
                   >
-                    <Heart className="h-6 w-6" />
+                    <Heart className="size-6 text-white" />
                   </Button>
+                  {/* Mute/Unmute Toggle - Only show when trailer is available, on extreme right */}
+                  {trailer && videosData && (
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 ml-auto"
+                      onClick={() => setIsMuted(!isMuted)}
+                      aria-label={isMuted ? "Unmute" : "Mute"}
+                    >
+                      {isMuted ? (
+                        <VolumeX className="size-6 text-white" />
+                      ) : (
+                        <Volume2 className="size-6 text-white" />
+                      )}
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Scrollable Content */}
-        <div className="overflow-y-auto flex-1 bg-background" style={{ maxHeight: 'calc(100vh - 50vh)' }}>
+        {/* Content */}
+        <div className="bg-background">
           <div className="px-6 sm:px-8 lg:px-12 py-8">
             {isLoading ? (
               <div className="space-y-4">
@@ -236,6 +281,15 @@ export default function ContentDetailModal({
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Content */}
                 <div className="lg:col-span-2 space-y-6">
+                  {/* Tagline */}
+                  {details && "tagline" in details && details.tagline && typeof details.tagline === "string" && (
+                    <div>
+                      <p className="text-lg font-medium italic text-foreground/80">
+                        {details.tagline}
+                      </p>
+                    </div>
+                  )}
+                  
                   {/* Overview */}
                   {item.overview && (
                     <div>
@@ -281,6 +335,7 @@ export default function ContentDetailModal({
                       selectedSeason={selectedSeason}
                       onSeasonSelect={setSelectedSeason}
                       seasonDetails={seasonDetails}
+                      isLoadingSeasonDetails={isLoadingSeasonDetails}
                     />
                   )}
 
@@ -332,6 +387,14 @@ export default function ContentDetailModal({
                       </div>
                     </div>
                   )}
+
+                  {/* More Like This Section */}
+                  <MoreLikeThis
+                    items={moreLikeThisItems}
+                    type={type}
+                    title="More Like This"
+                    isLoading={isLoadingMoreLikeThis}
+                  />
                 </div>
 
                 {/* Sidebar */}
@@ -393,8 +456,8 @@ export default function ContentDetailModal({
             title={title}
           />
         )}
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -433,6 +496,7 @@ interface TVSeasonsSectionProps {
     poster_path: string | null;
     season_number: number;
   } | null | undefined;
+  isLoadingSeasonDetails?: boolean;
 }
 
 function TVSeasonsSection({
@@ -440,6 +504,7 @@ function TVSeasonsSection({
   selectedSeason,
   onSeasonSelect,
   seasonDetails,
+  isLoadingSeasonDetails = false,
 }: TVSeasonsSectionProps) {
   // Filter out season 0 (specials)
   const regularSeasons = seasons.filter((s) => s.season_number > 0);
@@ -467,11 +532,16 @@ function TVSeasonsSection({
       </div>
 
       {/* Episodes Table */}
-      {selectedSeason !== null && seasonDetails && (
+      {selectedSeason !== null && (
         <div className="mt-6">
-          <div className="border border-border rounded-lg overflow-hidden bg-card">
-            <div className="overflow-x-auto">
-              <table className="w-full">
+          {isLoadingSeasonDetails ? (
+            <div className="border border-border rounded-lg p-8 text-center text-muted-foreground">
+              Loading episodes...
+            </div>
+          ) : seasonDetails && seasonDetails.episodes && seasonDetails.episodes.length > 0 ? (
+            <div className="border border-border rounded-lg overflow-hidden bg-card">
+              <div className="overflow-x-auto">
+                <table className="w-full">
                 <thead className="bg-muted/30 border-b border-border">
                   <tr>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -557,6 +627,11 @@ function TVSeasonsSection({
               </table>
             </div>
           </div>
+          ) : (
+            <div className="border border-border rounded-lg p-8 text-center text-muted-foreground">
+              No episodes available for this season.
+            </div>
+          )}
         </div>
       )}
     </div>

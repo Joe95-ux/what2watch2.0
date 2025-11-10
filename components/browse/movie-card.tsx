@@ -13,9 +13,12 @@ interface MovieCardProps {
   item: TMDBMovie | TMDBSeries;
   type: "movie" | "tv";
   className?: string;
+  canScrollPrev?: boolean;
+  canScrollNext?: boolean;
+  variant?: "default" | "more-like-this"; // Variant for different card styles
 }
 
-export default function MovieCard({ item, type, className }: MovieCardProps) {
+export default function MovieCard({ item, type, className, canScrollPrev = false, canScrollNext = false, variant = "default" }: MovieCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [trailer, setTrailer] = useState<TMDBVideo | null>(null);
   const [allVideos, setAllVideos] = useState<TMDBVideo[]>([]);
@@ -83,11 +86,12 @@ export default function MovieCard({ item, type, className }: MovieCardProps) {
     const rect = cardRef.current.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     
-    // Check if card is under gradient area (first 64px from left or right)
-    const isUnderLeftGradient = rect.left < 64;
-    const isUnderRightGradient = rect.right > viewportWidth - 64;
+    // Check if card is under gradient area (first 64px from viewport edges)
+    // Only prevent scaling if gradients are actually visible (when can scroll)
+    const isUnderLeftGradient = canScrollPrev && rect.left < 64;
+    const isUnderRightGradient = canScrollNext && rect.right > viewportWidth - 64;
     
-    // Don't scale if under gradient area
+    // Don't scale if under gradient area AND gradients are visible
     if (isUnderLeftGradient || isUnderRightGradient) {
       return {};
     }
@@ -97,18 +101,19 @@ export default function MovieCard({ item, type, className }: MovieCardProps) {
     // Check if card would go off left edge
     const wouldOverflowLeft = rect.left < 20;
     
-    // Only scale vertically/outward, no horizontal translation
-    let transform = "scale(1.2)";
+    // Different scale for "more-like-this" variant (smaller scale like Netflix)
+    const scale = variant === "more-like-this" ? "1.15" : "1.5";
+    let transform = `scale(${scale})`;
     
     // Only adjust if absolutely necessary to prevent going off-screen
     if (wouldOverflowRight && !wouldOverflowLeft) {
       // Shift left slightly
       const overflow = rect.right - viewportWidth + 20;
-      transform = `scale(1.2) translateX(-${Math.min(overflow, 50)}px)`;
+      transform = `scale(${scale}) translateX(-${Math.min(overflow, 50)}px)`;
     } else if (wouldOverflowLeft && !wouldOverflowRight) {
       // Shift right slightly
       const overflow = 20 - rect.left;
-      transform = `scale(1.2) translateX(${Math.min(overflow, 50)}px)`;
+      transform = `scale(${scale}) translateX(${Math.min(overflow, 50)}px)`;
     }
     
     return {
@@ -121,7 +126,11 @@ export default function MovieCard({ item, type, className }: MovieCardProps) {
     <>
       <div
         ref={cardRef}
-        className={cn("relative group flex-shrink-0 cursor-pointer", className)}
+        className={cn(
+          "relative group flex-shrink-0 cursor-pointer",
+          isHovered && "z-[100]",
+          className
+        )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => {
           setIsHovered(false);
@@ -187,21 +196,38 @@ export default function MovieCard({ item, type, className }: MovieCardProps) {
               transition: "opacity 0.3s ease-out",
             }}
           >
-            {/* Action Buttons */}
-            <div className="absolute top-3 right-3 flex items-center gap-2 z-20 pointer-events-auto">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-8 w-8 rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/30 cursor-pointer"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsModalOpen(true);
-                }}
-              >
-                <Maximize2 className="h-4 w-4 text-white" />
-              </Button>
-            </div>
+            {/* Action Buttons - Different design for "more-like-this" variant */}
+            {variant === "more-like-this" ? (
+              <div className="absolute top-2 right-2 z-20 pointer-events-auto">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-9 w-9 rounded-full p-0 bg-white hover:bg-white/90 text-black shadow-lg hover:shadow-xl transition-all cursor-pointer flex items-center justify-center"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsModalOpen(true);
+                  }}
+                >
+                  <Plus className="h-5 w-5" />
+                </Button>
+              </div>
+            ) : (
+              <div className="absolute top-3 right-3 flex items-center gap-2 z-20 pointer-events-auto">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 w-8 rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/30 cursor-pointer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsModalOpen(true);
+                  }}
+                >
+                  <Maximize2 className="h-4 w-4 text-white" />
+                </Button>
+              </div>
+            )}
 
             {/* Content Info */}
             <div className="absolute bottom-0 left-0 right-0 p-4 space-y-2">

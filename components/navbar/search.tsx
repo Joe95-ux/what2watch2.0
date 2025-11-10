@@ -1,7 +1,7 @@
 "use client";
 
 import { Search as SearchIcon, X, SlidersHorizontal, Image as ImageIcon } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,15 +12,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { TMDBMovie, TMDBSeries, TMDBResponse } from "@/lib/tmdb";
@@ -123,15 +117,7 @@ export default function Search() {
     }
   }, [isExpanded, isMobile]);
 
-  useEffect(() => {
-    if (debouncedQuery.trim()) {
-      handleSearch(debouncedQuery);
-    } else {
-      setResults([]);
-    }
-  }, [debouncedQuery, filters]);
-
-  const handleSearch = async (searchQuery: string) => {
+  const handleSearch = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim()) {
       setResults([]);
       return;
@@ -167,7 +153,15 @@ export default function Search() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    if (debouncedQuery.trim()) {
+      handleSearch(debouncedQuery);
+    } else {
+      setResults([]);
+    }
+  }, [debouncedQuery, handleSearch]);
 
   const handleSelect = (result: SearchResult) => {
     setIsExpanded(false);
@@ -243,7 +237,7 @@ export default function Search() {
                     variant="ghost"
                     size="icon"
                     className={cn(
-                      "h-10 w-10",
+                      "h-10 w-10 cursor-pointer",
                       hasActiveFilters && "bg-primary/10 text-primary"
                     )}
                   >
@@ -338,7 +332,7 @@ export default function Search() {
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "h-7 w-7",
+                  "h-7 w-7 cursor-pointer",
                   hasActiveFilters && "bg-primary/10 text-primary"
                 )}
               >
@@ -439,7 +433,7 @@ function SearchResultItem({
   );
 }
 
-// Filters Sheet Component
+// Filters Sheet Component - TVGuide.com style
 function FiltersSheet({
   filters,
   setFilters,
@@ -453,112 +447,209 @@ function FiltersSheet({
   resetFilters: () => void;
   onClose: () => void;
 }) {
+  const hasActiveFilters = filters.type !== "all" || filters.genre || filters.year || filters.minRating > 0;
+  const currentYear = new Date().getFullYear();
+  const startYear = 1900;
+  const [showAllGenres, setShowAllGenres] = useState(false);
+  const GENRES_TO_SHOW = 8; // Show first 8 genres by default
+
   return (
     <>
-      <SheetHeader>
-        <SheetTitle>Advanced Filters</SheetTitle>
-        <SheetDescription>Refine your search with advanced filters</SheetDescription>
+      <SheetHeader className="px-6 pt-6 pb-4 border-b">
+        <SheetTitle className="text-xl font-semibold">Filter</SheetTitle>
+        <SheetDescription className="text-sm text-muted-foreground mt-1">
+          Refine your search by genre, year, rating, and more to find exactly what you&apos;re looking for.
+        </SheetDescription>
       </SheetHeader>
-      <div className="px-4 pb-4 space-y-6">
-        <div>
-          <Label>Content Type</Label>
-          <Select
-            value={filters.type}
-            onValueChange={(value) =>
-              setFilters({ ...filters, type: value as "all" | "movie" | "tv" })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="movie">Movies</SelectItem>
-              <SelectItem value="tv">TV Shows</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      
+      <ScrollArea className="flex-1 max-h-[calc(100vh-180px)]">
+        <div className="px-6 py-4 space-y-6">
+          {/* Sort By Section */}
+          <div className="space-y-3">
+            <Label className="text-sm font-semibold uppercase tracking-wider">Sort By</Label>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="sortBy"
+                  value="popularity.desc"
+                  checked={filters.sortBy === "popularity.desc"}
+                  onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">Popular</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="sortBy"
+                  value="vote_average.desc"
+                  checked={filters.sortBy === "vote_average.desc"}
+                  onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">Highest Rated</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="sortBy"
+                  value="release_date.desc"
+                  checked={filters.sortBy === "release_date.desc"}
+                  onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">Release Date</span>
+              </label>
+            </div>
+          </div>
 
-        <div>
-          <Label>Genre</Label>
-          <Select
-            value={filters.genre || ""}
-            onValueChange={(value) => setFilters({ ...filters, genre: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select genre" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All Genres</SelectItem>
-              {genres && genres.length > 0 ? (
-                genres.map((genre) => (
-                  <SelectItem key={genre.id} value={genre.id.toString()}>
-                    {genre.name}
-                  </SelectItem>
-                ))
-              ) : null}
-            </SelectContent>
-          </Select>
-        </div>
+          {/* Type Section */}
+          <div className="space-y-3">
+            <Label className="text-sm font-semibold uppercase tracking-wider">Type</Label>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="type"
+                  value="all"
+                  checked={filters.type === "all"}
+                  onChange={(e) => setFilters({ ...filters, type: e.target.value as "all" | "movie" | "tv" })}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">All</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="type"
+                  value="movie"
+                  checked={filters.type === "movie"}
+                  onChange={(e) => setFilters({ ...filters, type: e.target.value as "all" | "movie" | "tv" })}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">Movies</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="type"
+                  value="tv"
+                  checked={filters.type === "tv"}
+                  onChange={(e) => setFilters({ ...filters, type: e.target.value as "all" | "movie" | "tv" })}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">TV Shows</span>
+              </label>
+            </div>
+          </div>
 
-        <div>
-          <Label>Minimum Rating</Label>
-          <div className="mt-2">
-            <Slider
-              value={[filters.minRating]}
-              onValueChange={([value]) => setFilters({ ...filters, minRating: value })}
-              max={10}
-              min={0}
-              step={0.5}
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs text-muted-foreground mt-1">
-              <span>0</span>
-              <span className="font-medium">{filters.minRating}</span>
-              <span>10</span>
+          {/* Genre Section */}
+          {genres && genres.length > 0 && (
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold uppercase tracking-wider">Genre</Label>
+              <div className="space-y-2">
+                {(showAllGenres ? genres : genres.slice(0, GENRES_TO_SHOW)).map((genre) => (
+                  <label key={genre.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={filters.genre === genre.id.toString()}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFilters({ ...filters, genre: genre.id.toString() });
+                        } else {
+                          setFilters({ ...filters, genre: "" });
+                        }
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">{genre.name}</span>
+                  </label>
+                ))}
+                {genres.length > GENRES_TO_SHOW && (
+                  <button
+                    onClick={() => setShowAllGenres(!showAllGenres)}
+                    className="text-sm text-primary hover:underline mt-2"
+                  >
+                    {showAllGenres ? "Show less" : "Show more"}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Release Year Section */}
+          <div className="space-y-3">
+            <Label className="text-sm font-semibold uppercase tracking-wider">Release Year</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                placeholder="From"
+                value={filters.year ? filters.year.split("-")[0] : ""}
+                onChange={(e) => {
+                  const fromYear = e.target.value;
+                  const toYear = filters.year?.includes("-") ? filters.year.split("-")[1] : "";
+                  setFilters({ ...filters, year: toYear ? `${fromYear}-${toYear}` : fromYear });
+                }}
+                min={startYear}
+                max={currentYear + 1}
+                className="h-9 text-sm"
+              />
+              <span className="text-sm text-muted-foreground">-</span>
+              <Input
+                type="number"
+                placeholder="To"
+                value={filters.year?.includes("-") ? filters.year.split("-")[1] : filters.year || ""}
+                onChange={(e) => {
+                  const toYear = e.target.value;
+                  const fromYear = filters.year?.includes("-") ? filters.year.split("-")[0] : filters.year || "";
+                  setFilters({ ...filters, year: fromYear ? `${fromYear}-${toYear}` : toYear });
+                }}
+                min={startYear}
+                max={currentYear + 1}
+                className="h-9 text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Minimum Rating Section */}
+          <div className="space-y-3">
+            <Label className="text-sm font-semibold uppercase tracking-wider">Minimum Rating</Label>
+            <div className="space-y-2">
+              <Slider
+                value={[filters.minRating]}
+                onValueChange={([value]) => setFilters({ ...filters, minRating: value })}
+                max={10}
+                min={0}
+                step={0.5}
+                className="w-full"
+              />
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">0.0</span>
+                <span className="font-semibold">{filters.minRating.toFixed(1)} / 10</span>
+                <span className="text-muted-foreground">10.0</span>
+              </div>
             </div>
           </div>
         </div>
+      </ScrollArea>
 
-        <div>
-          <Label>Release Year</Label>
-          <Input
-            type="number"
-            placeholder="e.g., 2020"
-            value={filters.year}
-            onChange={(e) => setFilters({ ...filters, year: e.target.value })}
-            min="1900"
-            max={new Date().getFullYear() + 1}
-          />
-        </div>
-
-        <div>
-          <Label>Sort By</Label>
-          <Select
-            value={filters.sortBy}
-            onValueChange={(value) => setFilters({ ...filters, sortBy: value })}
+      {/* Footer with Action Buttons */}
+      <div className="border-t px-6 py-4">
+        <div className="flex gap-3">
+          <Button 
+            variant="outline" 
+            onClick={resetFilters} 
+            className="flex-1 h-10 text-sm"
+            disabled={!hasActiveFilters}
           >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="popularity.desc">Popularity</SelectItem>
-              <SelectItem value="vote_average.desc">Rating</SelectItem>
-              <SelectItem value="release_date.desc">Release Date (Newest)</SelectItem>
-              <SelectItem value="release_date.asc">Release Date (Oldest)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex gap-2 pt-4">
-          <Button variant="outline" onClick={resetFilters} className="flex-1">
             Reset
           </Button>
           <Button
             onClick={onClose}
-            className="flex-1 bg-gradient-to-r from-[#066f72] to-[#0d9488] hover:from-[#055a5d] hover:to-[#0a7a6e] text-white"
+            className="flex-1 h-10 text-sm"
           >
-            Apply Filters
+            Apply
           </Button>
         </div>
       </div>

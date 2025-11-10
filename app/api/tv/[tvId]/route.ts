@@ -23,9 +23,10 @@ export async function GET(
   request: NextRequest,
   { params }: RouteParams
 ): Promise<NextResponse<TVDetails | { error: string }>> {
+  let tvIdNum = 0;
   try {
     const { tvId } = await params;
-    const tvIdNum = parseInt(tvId, 10);
+    tvIdNum = parseInt(tvId, 10);
 
     if (isNaN(tvIdNum)) {
       return NextResponse.json(
@@ -34,9 +35,9 @@ export async function GET(
       );
     }
 
-    // Add timeout wrapper
+    // Add timeout wrapper - increased to 45 seconds for slow TMDB responses
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error("Request timeout")), 15000);
+      setTimeout(() => reject(new Error("Request timeout")), 45000);
     });
 
     const detailsPromise = getTVDetails(tvIdNum);
@@ -46,9 +47,28 @@ export async function GET(
       details = await Promise.race([detailsPromise, timeoutPromise]);
     } catch (error) {
       console.warn("TV details timeout or error:", error);
+      // Return graceful fallback instead of 500 error
       return NextResponse.json(
-        { error: "Failed to fetch TV details" },
-        { status: 500 }
+        {
+          id: tvIdNum,
+          name: "",
+          overview: "",
+          poster_path: null,
+          backdrop_path: null,
+          first_air_date: "",
+          vote_average: 0,
+          vote_count: 0,
+          genres: [],
+          number_of_seasons: 0,
+          number_of_episodes: 0,
+          episode_run_time: [],
+        } as TVDetails,
+        {
+          status: 200,
+          headers: {
+            'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
+          },
+        }
       );
     }
 
@@ -59,10 +79,28 @@ export async function GET(
     });
   } catch (error) {
     console.error("TV details API error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to fetch TV details";
+    // Return graceful fallback instead of 500 error
     return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
+      {
+        id: tvIdNum || 0,
+        name: "",
+        overview: "",
+        poster_path: null,
+        backdrop_path: null,
+        first_air_date: "",
+        vote_average: 0,
+        vote_count: 0,
+        genres: [],
+        number_of_seasons: 0,
+        number_of_episodes: 0,
+        episode_run_time: [],
+      } as TVDetails,
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
+        },
+      }
     );
   }
 }

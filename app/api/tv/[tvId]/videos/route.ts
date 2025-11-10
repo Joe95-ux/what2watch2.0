@@ -20,9 +20,9 @@ export async function GET(
       );
     }
 
-    // Add timeout wrapper
+    // Add timeout wrapper - increased to 30 seconds for slow TMDB responses
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error("Request timeout")), 10000); // 10 second timeout for videos
+      setTimeout(() => reject(new Error("Request timeout")), 30000);
     });
 
     const videosPromise = getTVVideos(tvIdNum);

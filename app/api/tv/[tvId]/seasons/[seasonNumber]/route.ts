@@ -32,10 +32,44 @@ export async function GET(
     try {
       season = await Promise.race([seasonPromise, timeoutPromise]);
     } catch (error) {
+      // Handle 404 errors gracefully (season might not exist)
+      if (error instanceof Error && error.message.includes('404')) {
+        console.warn(`TV season ${seasonNum} not found for TV ${tvIdNum}`);
+        return NextResponse.json(
+          {
+            id: 0,
+            name: `Season ${seasonNum}`,
+            overview: "",
+            season_number: seasonNum,
+            episodes: [],
+            air_date: null,
+            poster_path: null,
+          },
+          {
+            status: 200,
+            headers: {
+              'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
+            },
+          }
+        );
+      }
       console.warn("TV season details timeout or error:", error);
       return NextResponse.json(
-        { error: "Failed to fetch season details" },
-        { status: 500 }
+        {
+          id: 0,
+          name: `Season ${seasonNum}`,
+          overview: "",
+          season_number: seasonNum,
+          episodes: [],
+          air_date: null,
+          poster_path: null,
+        },
+        {
+          status: 200,
+          headers: {
+            'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
+          },
+        }
       );
     }
 

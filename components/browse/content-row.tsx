@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, ChevronRight as CaretRight } from "lucide-react";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import MovieCard from "./movie-card";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -30,9 +29,87 @@ export default function ContentRow({ title, items, type, isLoading, href }: Cont
 
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const [scrollProgress, setScrollProgress] = useState(0); // 0 = start, 1 = scrolled
+  const [currentPadding, setCurrentPadding] = useState(16); // Default to px-4 (16px)
+  const [rowPosition, setRowPosition] = useState<{ top: number; height: number } | null>(null);
 
   const scrollPrev = () => emblaApi?.scrollPrev();
   const scrollNext = () => emblaApi?.scrollNext();
+
+  // Calculate padding based on viewport width
+  useEffect(() => {
+    const getCurrentPadding = () => {
+      if (typeof window === 'undefined') return 16;
+      if (window.innerWidth >= 1024) return 32; // lg:px-8 = 32px
+      if (window.innerWidth >= 640) return 24;  // sm:px-6 = 24px
+      return 16; // px-4 = 16px
+    };
+
+    const updatePadding = () => {
+      setCurrentPadding(getCurrentPadding());
+    };
+
+    updatePadding();
+    window.addEventListener('resize', updatePadding);
+    return () => window.removeEventListener('resize', updatePadding);
+  }, []);
+
+  // Update row position for gradient positioning (only on resize/intersection, not scroll)
+  useEffect(() => {
+    if (!rowRef.current) return;
+
+    const updatePosition = () => {
+      const rect = rowRef.current?.getBoundingClientRect();
+      if (rect) {
+        setRowPosition({ top: rect.top, height: rect.height });
+      }
+    };
+
+    // Initial position
+    updatePosition();
+
+    // Use IntersectionObserver to update when row enters/leaves viewport
+    const intersectionObserver = new IntersectionObserver(
+      () => {
+        // Update position when intersection changes (row enters/leaves viewport)
+        updatePosition();
+      },
+      { threshold: [0, 1] }
+    );
+    intersectionObserver.observe(rowRef.current);
+
+    // Update on resize
+    const resizeObserver = new ResizeObserver(updatePosition);
+    resizeObserver.observe(rowRef.current);
+    window.addEventListener('resize', updatePosition);
+
+    return () => {
+      intersectionObserver.disconnect();
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, []);
+
+  // Track scroll progress to adjust padding
+  useEffect(() => {
+    if (!emblaApi) return;
+
+    const updateScrollProgress = () => {
+      const progress = emblaApi.scrollProgress();
+      setScrollProgress(progress);
+    };
+
+    updateScrollProgress();
+    emblaApi.on('scroll', updateScrollProgress);
+    emblaApi.on('reInit', updateScrollProgress);
+
+    return () => {
+      emblaApi.off('scroll', updateScrollProgress);
+      emblaApi.off('reInit', updateScrollProgress);
+    };
+  }, [emblaApi]);
 
   useEffect(() => {
     if (!emblaApi) return;
@@ -56,7 +133,7 @@ export default function ContentRow({ title, items, type, isLoading, href }: Cont
     return (
       <div className="mb-12 px-4 sm:px-6 lg:px-8">
         <div className="h-8 w-48 bg-muted rounded mb-6 animate-pulse" />
-        <div className="relative" style={{ paddingTop: '60px', paddingBottom: '60px' }}>
+        <div className="relative">
           <div className="overflow-x-hidden">
             <div className="flex gap-3">
               {Array.from({ length: 10 }).map((_, i) => (
@@ -87,83 +164,110 @@ export default function ContentRow({ title, items, type, isLoading, href }: Cont
   })();
 
   return (
-    <div className="mb-12 px-4 sm:px-6 lg:px-8">
-      <Link 
-        href={titleHref}
-        className="group/title inline-flex items-center gap-2 mb-6 transition-all duration-300"
-      >
-        <h2 className="text-2xl font-medium text-foreground group-hover/title:text-primary transition-colors">
-          {title}
-        </h2>
-        <CaretRight 
-          className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover/title:opacity-100 group-hover/title:translate-x-0 transition-all duration-300" 
-        />
-      </Link>
-      <div className="relative group overflow-visible" style={{ paddingTop: '60px', paddingBottom: '60px' }}>
-        {/* Left Gradient Fade */}
+    <div className="mb-12">
+      {/* Title with padding */}
+      <div className="px-4 sm:px-6 lg:px-8 mb-6">
+        <Link 
+          href={titleHref}
+          className="group/title inline-flex items-center gap-2 transition-all duration-300"
+        >
+          <h2 className="text-2xl font-medium text-foreground group-hover/title:text-primary transition-colors">
+            {title}
+          </h2>
+          <CaretRight 
+            className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover/title:opacity-100 group-hover/title:translate-x-0 transition-all duration-300" 
+          />
+        </Link>
+      </div>
+      
+      {/* Carousel container - starts with padding, expands to full width on scroll */}
+      <div ref={rowRef} className="relative group">
+        {/* Left Gradient Fade - Fixed to viewport edge, only show if can scroll left */}
+        {canScrollPrev && rowPosition && (
+          <div
+            className={cn(
+              "fixed left-0 w-16 z-30 pointer-events-none transition-opacity duration-300",
+              "bg-gradient-to-r from-[#EEEFE9] via-[#EEEFE9]/80 to-transparent dark:from-background dark:via-background/80",
+              "opacity-100",
+              "hidden md:block"
+            )}
+            style={{
+              top: `${rowPosition.top}px`,
+              height: `${rowPosition.height}px`,
+            }}
+          />
+        )}
+
+        {/* Right Gradient Fade - Fixed to viewport edge, only show if can scroll */}
+        {canScrollNext && rowPosition && (
+          <div
+            className={cn(
+              "fixed right-0 w-16 z-30 pointer-events-none transition-opacity duration-300",
+              "bg-gradient-to-l from-[#EEEFE9] via-[#EEEFE9]/80 to-transparent dark:from-background dark:via-background/80",
+              "opacity-100",
+              "hidden md:block"
+            )}
+            style={{
+              top: `${rowPosition.top}px`,
+              height: `${rowPosition.height}px`,
+            }}
+          />
+        )}
+
+        {/* Left Arrow Button - Only show if can scroll */}
         {canScrollPrev && (
-          <div
+          <button
+            onClick={scrollPrev}
             className={cn(
-              "absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none transition-opacity duration-300",
-              "bg-gradient-to-r from-background via-background/80 to-transparent",
-              "opacity-100",
-              "hidden md:block"
+              "absolute left-2 top-1/2 -translate-y-1/2 z-40 h-full w-12 flex items-center justify-center",
+              "opacity-0 group-hover:opacity-100 transition-opacity duration-300",
+              "hover:bg-black/10 rounded cursor-pointer",
+              "hidden md:flex"
             )}
-          />
+            aria-label="Scroll left"
+          >
+            <ChevronLeft className="h-8 w-8 text-white drop-shadow-lg" />
+          </button>
         )}
 
-        {/* Right Gradient Fade */}
+        {/* Right Arrow Button - Only show if can scroll */}
         {canScrollNext && (
-          <div
+          <button
+            onClick={scrollNext}
             className={cn(
-              "absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none transition-opacity duration-300",
-              "bg-gradient-to-l from-background via-background/80 to-transparent",
-              "opacity-100",
-              "hidden md:block"
+              "absolute right-2 top-1/2 -translate-y-1/2 z-40 h-full w-12 flex items-center justify-center",
+              "opacity-0 group-hover:opacity-100 transition-opacity duration-300",
+              "hover:bg-black/10 rounded cursor-pointer",
+              "hidden md:flex"
             )}
-          />
+            aria-label="Scroll right"
+          >
+            <ChevronRight className="h-8 w-8 text-white drop-shadow-lg" />
+          </button>
         )}
 
-        {/* Left Arrow Button - Netflix Style */}
-        <button
-          onClick={scrollPrev}
-          disabled={!canScrollPrev}
-          className={cn(
-            "absolute left-2 top-1/2 -translate-y-1/2 z-20 h-full w-12 flex items-center justify-center",
-            "opacity-0 group-hover:opacity-100 transition-opacity duration-300",
-            "hover:bg-black/10 rounded cursor-pointer",
-            "hidden md:flex",
-            !canScrollPrev && "opacity-0"
-          )}
-          aria-label="Scroll left"
+        {/* Carousel - starts with left padding, expands to full width on scroll */}
+        <div 
+          ref={carouselRef}
+          className="overflow-visible transition-all duration-300 ease-out"
+          style={{
+            paddingLeft: `${currentPadding * (1 - scrollProgress)}px`, // Match title padding at start, 0 when scrolled
+            paddingRight: scrollProgress > 0 ? '0px' : `${currentPadding}px`, // Remove right padding when scrolled
+          }}
         >
-          <ChevronLeft className="h-8 w-8 text-white drop-shadow-lg" />
-        </button>
-
-        {/* Right Arrow Button - Netflix Style */}
-        <button
-          onClick={scrollNext}
-          disabled={!canScrollNext}
-          className={cn(
-            "absolute right-2 top-1/2 -translate-y-1/2 z-20 h-full w-12 flex items-center justify-center",
-            "opacity-0 group-hover:opacity-100 transition-opacity duration-300",
-            "hover:bg-black/10 rounded cursor-pointer",
-            "hidden md:flex",
-            !canScrollNext && "opacity-0"
-          )}
-          aria-label="Scroll right"
-        >
-          <ChevronRight className="h-8 w-8 text-white drop-shadow-lg" />
-        </button>
-
-        {/* Carousel - overflow-hidden for Embla, but allow cards to overflow vertically */}
-        <div className="overflow-x-hidden overflow-y-visible" ref={emblaRef}>
-          <div className="flex gap-3">
-            {items.map((item) => (
-              <div key={item.id} className="flex-shrink-0 w-[180px] sm:w-[200px] overflow-visible">
-                <MovieCard item={item} type={type} />
-              </div>
-            ))}
+          <div className="overflow-visible" ref={emblaRef}>
+            <div className="flex gap-3">
+              {items.map((item) => (
+                <div key={item.id} className="relative flex-shrink-0 w-[180px] sm:w-[200px] overflow-visible">
+                  <MovieCard 
+                    item={item} 
+                    type={type}
+                    canScrollPrev={canScrollPrev}
+                    canScrollNext={canScrollNext}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
