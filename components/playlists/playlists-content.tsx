@@ -86,7 +86,7 @@ export default function PlaylistsContent() {
             {playlists.length} {playlists.length === 1 ? "playlist" : "playlists"}
           </p>
         </div>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
+        <Button onClick={() => setIsCreateModalOpen(true)} className="cursor-pointer">
           <Plus className="h-4 w-4 mr-2" />
           Create Playlist
         </Button>
@@ -102,7 +102,7 @@ export default function PlaylistsContent() {
           <p className="text-muted-foreground max-w-md">
             Create your first playlist to organize your favorite movies and TV shows.
           </p>
-          <Button onClick={() => setIsCreateModalOpen(true)} className="mt-4">
+          <Button onClick={() => setIsCreateModalOpen(true)} className="mt-4 cursor-pointer">
             <Plus className="h-4 w-4 mr-2" />
             Create Playlist
           </Button>

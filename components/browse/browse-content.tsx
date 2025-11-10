@@ -46,7 +46,7 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
       {/* Content Rows - Full width, padding handled by ContentRow */}
       <div className="w-full py-8 overflow-hidden">
         {/* Personalized Section */}
-        {(favoriteGenres.length > 0 || isLoadingPersonalized) && (
+        {(personalizedContent.length > 0 || isLoadingPersonalized || favoriteGenres.length > 0) && (
           <ContentRow
             title="We Think You'll Love This"
             items={personalizedContent}

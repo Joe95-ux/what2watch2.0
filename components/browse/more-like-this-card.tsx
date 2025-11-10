@@ -8,19 +8,25 @@ import { CircleActionButton } from "./circle-action-button";
 import ContentDetailModal from "./content-detail-modal";
 import { useToggleFavorite } from "@/hooks/use-favorites";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface MoreLikeThisCardProps {
   item: TMDBMovie | TMDBSeries;
   type: "movie" | "tv";
+  parentItem?: TMDBMovie | TMDBSeries;
+  parentType?: "movie" | "tv";
+  onItemClick?: (item: TMDBMovie | TMDBSeries, itemType: "movie" | "tv") => void;
 }
 
-export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) {
+export default function MoreLikeThisCard({ item, type, parentItem, parentType, onItemClick }: MoreLikeThisCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [runtime, setRuntime] = useState<number | null>(null);
   const [isLoadingRuntime, setIsLoadingRuntime] = useState(false);
   const toggleFavorite = useToggleFavorite();
+  
+  const hasParent = !!parentItem && !!parentType;
 
   const title = "title" in item ? item.title : item.name;
   const posterPath = item.poster_path || item.backdrop_path;
@@ -83,8 +89,16 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
     setIsHovered(false);
   };
 
-  const handleCardClick = () => {
-    setIsDetailModalOpen(true);
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Only open modal if click is directly on the card, not on action buttons
+    const target = e.target as HTMLElement;
+    if (!target.closest('button') && !target.closest('[role="button"]')) {
+      if (onItemClick) {
+        onItemClick(item, type);
+      } else {
+        setIsDetailModalOpen(true);
+      }
+    }
   };
 
   return (
@@ -116,22 +130,29 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
 
           {/* Like Button - Top Left */}
           <div className="absolute top-2 left-2 z-20">
-            <CircleActionButton
-              size="sm"
-              onClick={async (e: React.MouseEvent) => {
-                e.preventDefault();
-                e.stopPropagation();
-                await toggleFavorite.toggle(item, type);
-              }}
-            >
-              <Heart 
-                className={`h-3 w-3 ${
-                  toggleFavorite.isFavorite(item.id, type)
-                    ? "text-red-500 fill-red-500"
-                    : "text-white"
-                }`} 
-              />
-            </CircleActionButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <CircleActionButton
+                  size="sm"
+                  onClick={async (e: React.MouseEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    await toggleFavorite.toggle(item, type);
+                  }}
+                >
+                  <Heart 
+                    className={`h-3 w-3 ${
+                      toggleFavorite.isFavorite(item.id, type)
+                        ? "text-red-500 fill-red-500"
+                        : "text-white"
+                    }`} 
+                  />
+                </CircleActionButton>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           {/* Runtime - Top Right */}
@@ -147,14 +168,18 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
               isHovered || isMobile ? "opacity-100" : "opacity-0"
             }`}
           >
-            <div className="bg-black/40 backdrop-blur-sm absolute inset-0" />
+            {!isMobile && <div className="bg-black/40 backdrop-blur-sm absolute inset-0" />}
             <CircleActionButton
-              size="md"
+              size="lg"
               onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
                 e.stopPropagation();
                 // Open details sheet instead of trailer modal
-                setIsDetailModalOpen(true);
+                if (onItemClick) {
+                  onItemClick(item, type);
+                } else {
+                  setIsDetailModalOpen(true);
+                }
               }}
               className="pointer-events-auto z-10"
             >
@@ -174,21 +199,30 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
                 {parentalRating}
               </span>
             </div>
-            <AddToPlaylistDropdown
-              item={item}
-              type={type}
-              trigger={
-                <CircleActionButton
-                  size="sm"
-                  onClick={(e: React.MouseEvent) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                >
-                  <Plus className="h-3 w-3 text-white" />
-                </CircleActionButton>
-              }
-            />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <AddToPlaylistDropdown
+                    item={item}
+                    type={type}
+                    trigger={
+                      <CircleActionButton
+                        size="sm"
+                        onClick={(e: React.MouseEvent) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                      >
+                        <Plus className="h-3 w-3 text-white" />
+                      </CircleActionButton>
+                    }
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Add to Playlist</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           {/* Bottom Row: Synopsis (Truncated to 4 lines) */}
@@ -201,12 +235,19 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
       </div>
 
       {/* Detail Modal */}
-      <ContentDetailModal
-        item={item}
-        type={type}
-        isOpen={isDetailModalOpen}
-        onClose={() => setIsDetailModalOpen(false)}
-      />
+      {!onItemClick && (
+        <ContentDetailModal
+          item={item}
+          type={type}
+          isOpen={isDetailModalOpen}
+          onClose={() => setIsDetailModalOpen(false)}
+          showBackButton={hasParent}
+          onBack={hasParent && parentItem && parentType ? () => {
+            setIsDetailModalOpen(false);
+            // This will be handled by parent component
+          } : undefined}
+        />
+      )}
     </>
   );
 }

@@ -9,6 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import TrailerModal from "./trailer-modal";
 import ContentDetailModal from "./content-detail-modal";
 import { useContentVideos } from "@/hooks/use-content-details";
+import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface HeroSectionProps {
   featuredItem: TMDBMovie | TMDBSeries | null;
@@ -76,9 +78,9 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
   }, [currentItem]);
 
   // Auto-rotate to next item after video playback (approximately 30-60 seconds)
-  // Pause rotation when trailer modal is open
+  // Pause rotation when trailer modal or details sheet is open
   useEffect(() => {
-    if (!featuredItems || featuredItems.length <= 1 || isRotationPaused) return;
+    if (!featuredItems || featuredItems.length <= 1 || isRotationPaused || isDetailModalOpen) return;
     
     const rotationInterval = setInterval(() => {
       setIsTransitioning(true);
@@ -89,7 +91,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
     }, 45000); // Rotate every 45 seconds (typical trailer length)
 
     return () => clearInterval(rotationInterval);
-  }, [featuredItems, isRotationPaused]);
+  }, [featuredItems, isRotationPaused, isDetailModalOpen]);
 
   if (isLoading || !currentItem) {
     return (
@@ -106,7 +108,8 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
   return (
     <div className="relative w-full h-[70vh] min-h-[600px] overflow-hidden dark:bg-background bg-black">
       {/* Trailer Video (if available) - Full width with autoplay */}
-      {trailer && !isLoadingTrailer && (
+      {/* Stop video when details sheet is open */}
+      {trailer && !isLoadingTrailer && !isDetailModalOpen && (
         <div className={`absolute inset-0 z-0 transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
           <iframe
             key={`${trailer.key}-${isMuted}`} // Force reload when trailer or mute state changes
@@ -206,28 +209,52 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
                 <Info className="mr-2.5 size-6" />
                 More Info
               </Button>
-              <Button
-                size="lg"
-                variant="ghost"
-                className="h-14 w-14 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 hover:border-white/60 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-white/10 cursor-pointer"
-              >
-                <Plus className="text-white size-6" />
-              </Button>
+              {currentItem && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <AddToPlaylistDropdown
+                        item={currentItem}
+                        type={currentItemType}
+                        trigger={
+                          <Button
+                            size="lg"
+                            variant="ghost"
+                            className="h-14 w-14 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 hover:border-white/60 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-white/10 cursor-pointer"
+                          >
+                            <Plus className="text-white size-6" />
+                          </Button>
+                        }
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Add to Playlist</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
               {/* Mute/Unmute Toggle - Only show when trailer is available, on extreme right */}
               {trailer && !isLoadingTrailer && (
-                <Button
-                  size="lg"
-                  variant="ghost"
-                  className="absolute right-8 bottom-20 h-14 w-14 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 hover:border-white/60 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-white/10 cursor-pointer ml-auto"
-                  onClick={() => setIsMuted(!isMuted)}
-                  aria-label={isMuted ? "Unmute" : "Mute"}
-                >
-                  {isMuted ? (
-                    <VolumeX className="text-white size-6" />
-                  ) : (
-                    <Volume2 className="text-white size-6" />
-                  )}
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="lg"
+                      variant="ghost"
+                      className="absolute right-8 bottom-20 h-14 w-14 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 hover:border-white/60 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-white/10 cursor-pointer ml-auto"
+                      onClick={() => setIsMuted(!isMuted)}
+                      aria-label={isMuted ? "Unmute" : "Mute"}
+                    >
+                      {isMuted ? (
+                        <VolumeX className="text-white size-6" />
+                      ) : (
+                        <Volume2 className="text-white size-6" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{isMuted ? "Unmute" : "Mute"}</p>
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
           </div>

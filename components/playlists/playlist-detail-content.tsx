@@ -103,7 +103,7 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-2">Playlist not found</h2>
           <p className="text-muted-foreground mb-4">This playlist doesn&apos;t exist or you don&apos;t have access to it.</p>
-          <Button onClick={() => router.push("/playlists")}>Back to Playlists</Button>
+          <Button onClick={() => router.push("/playlists")} className="cursor-pointer">Back to Playlists</Button>
         </div>
       </div>
     );
@@ -215,14 +215,14 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
                 <Button
                   variant="outline"
                   onClick={() => setIsShareDialogOpen(true)}
-                  className="gap-2"
+                  className="gap-2 cursor-pointer"
                 >
                   <Share2 className="h-4 w-4" />
                   Share
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon">
+                    <Button variant="outline" size="icon" className="cursor-pointer">
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -252,7 +252,7 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
         {itemsAsTMDB.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-muted-foreground mb-4">This playlist is empty.</p>
-            <Button onClick={() => router.push("/browse")}>Browse Content</Button>
+            <Button onClick={() => router.push("/browse")} className="cursor-pointer">Browse Content</Button>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">

@@ -10,7 +10,7 @@ interface LogoProps {
 export default function Logo({ fontSize, iconSize }: LogoProps) {
   return (
     <Link href="/" className="flex items-center">
-      <div style={{ height:"3rem", width:"230px" }}>
+      <div className="flex items-center" style={{ height:"3rem", width:"200px" }}>
         <img
           src="/what2watch-logo.png"
           alt="What2Watch"

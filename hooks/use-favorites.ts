@@ -70,8 +70,46 @@ export function useAddFavorite() {
 
   return useMutation({
     mutationFn: addFavorite,
+    onMutate: async (newFavorite) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["favorites"] });
+
+      // Snapshot the previous value
+      const previousFavorites = queryClient.getQueryData<Favorite[]>(["favorites"]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData<Favorite[]>(["favorites"], (old = []) => {
+        // Check if already exists to avoid duplicates
+        const exists = old.some(
+          (f) => f.tmdbId === newFavorite.tmdbId && f.mediaType === newFavorite.mediaType
+        );
+        if (exists) return old;
+        
+        // Create optimistic favorite
+        const optimisticFavorite: Favorite = {
+          id: `temp-${Date.now()}`,
+          tmdbId: newFavorite.tmdbId,
+          mediaType: newFavorite.mediaType,
+          title: newFavorite.title,
+          posterPath: newFavorite.posterPath || null,
+          backdropPath: newFavorite.backdropPath || null,
+          releaseDate: newFavorite.releaseDate || null,
+          firstAirDate: newFavorite.firstAirDate || null,
+          createdAt: new Date().toISOString(),
+        };
+        return [...old, optimisticFavorite];
+      });
+
+      return { previousFavorites };
+    },
+    onError: (err, newFavorite, context) => {
+      // Rollback on error
+      if (context?.previousFavorites) {
+        queryClient.setQueryData(["favorites"], context.previousFavorites);
+      }
+    },
     onSuccess: async () => {
-      // Invalidate favorites query
+      // Invalidate to get fresh data
       await queryClient.invalidateQueries({ queryKey: ["favorites"] });
       
       // Update preferences in the background (don't wait for it)
@@ -86,8 +124,30 @@ export function useRemoveFavorite() {
   return useMutation({
     mutationFn: ({ tmdbId, mediaType }: { tmdbId: number; mediaType: "movie" | "tv" }) =>
       removeFavorite(tmdbId, mediaType),
+    onMutate: async ({ tmdbId, mediaType }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["favorites"] });
+
+      // Snapshot the previous value
+      const previousFavorites = queryClient.getQueryData<Favorite[]>(["favorites"]);
+
+      // Optimistically update to remove the favorite
+      queryClient.setQueryData<Favorite[]>(["favorites"], (old = []) => {
+        return old.filter(
+          (f) => !(f.tmdbId === tmdbId && f.mediaType === mediaType)
+        );
+      });
+
+      return { previousFavorites };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousFavorites) {
+        queryClient.setQueryData(["favorites"], context.previousFavorites);
+      }
+    },
     onSuccess: async () => {
-      // Invalidate favorites query
+      // Invalidate to get fresh data
       await queryClient.invalidateQueries({ queryKey: ["favorites"] });
       
       // Update preferences in the background (don't wait for it)

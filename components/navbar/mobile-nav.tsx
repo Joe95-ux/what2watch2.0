@@ -31,22 +31,26 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
     <div className="flex flex-col gap-4 py-4">
       {/* Navigation Links */}
       <nav className="flex flex-col gap-1 px-4">
-        {navLinks.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            onClick={onLinkClick}
-            className={cn(
-              "px-3 py-2 text-sm font-medium transition-colors rounded-md",
-              "hover:bg-accent hover:text-accent-foreground",
-              pathname === link.href
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground"
-            )}
-          >
-            {link.label}
-          </Link>
-        ))}
+        {navLinks.map((link) => {
+          const isActive = pathname === link.href;
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={onLinkClick}
+              className={cn(
+                "relative px-3 py-2 text-sm font-medium transition-colors rounded-md",
+                "hover:bg-accent hover:text-accent-foreground",
+                isActive
+                  ? "text-foreground"
+                  : "text-muted-foreground",
+                isActive && "after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-[#E50914]"
+              )}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
       </nav>
 
       {/* User Menu Items (only shown when signed in) */}

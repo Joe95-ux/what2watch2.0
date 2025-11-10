@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { X, Play, Plus, Heart, Star, Clock, Calendar, Volume2, VolumeX } from "lucide-react";
+import { X, Play, Plus, Heart, Star, Clock, Calendar, Volume2, VolumeX, ArrowLeft } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getBackdropUrl, getPosterUrl, getYouTubeEmbedUrl, TMDBVideo } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,20 +26,69 @@ import MoreLikeThis from "./more-like-this";
 import { useAddRecentlyViewed } from "@/hooks/use-recently-viewed";
 import { useToggleFavorite } from "@/hooks/use-favorites";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ContentDetailModalProps {
   item: TMDBMovie | TMDBSeries;
   type: "movie" | "tv";
   isOpen: boolean;
   onClose: () => void;
+  showBackButton?: boolean;
+  onBack?: () => void;
+  onNavigate?: (item: TMDBMovie | TMDBSeries, type: "movie" | "tv") => void;
 }
 
 export default function ContentDetailModal({
-  item,
-  type,
+  item: initialItem,
+  type: initialType,
   isOpen,
   onClose,
+  showBackButton: externalShowBackButton = false,
+  onBack: externalOnBack,
+  onNavigate,
 }: ContentDetailModalProps) {
+  // Internal navigation state for More Like This
+  const [currentItem, setCurrentItem] = useState(initialItem);
+  const [currentType, setCurrentType] = useState(initialType);
+  const [parentItem, setParentItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
+  
+  // Update current item when prop changes
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentItem(initialItem);
+      setCurrentType(initialType);
+      setParentItem(null);
+    }
+  }, [initialItem, initialType, isOpen]);
+  
+  const item = currentItem;
+  const type = currentType;
+  const hasParent = !!parentItem;
+  const showBackButton = externalShowBackButton || hasParent;
+  
+  const handleBack = () => {
+    if (externalOnBack) {
+      externalOnBack();
+    } else if (parentItem) {
+      // Navigate back to parent item
+      setCurrentItem(parentItem.item);
+      setCurrentType(parentItem.type);
+      setParentItem(null);
+    }
+  };
+  
+  const handleNavigate = (newItem: TMDBMovie | TMDBSeries, newType: "movie" | "tv") => {
+    if (onNavigate) {
+      onNavigate(newItem, newType);
+    } else {
+      // Internal navigation: store current as parent and navigate to new item
+      setParentItem({ item: currentItem, type: currentType });
+      setCurrentItem(newItem);
+      setCurrentType(newType);
+      setSelectedSeason(null); // Reset season selection for new item
+    }
+  };
+  
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<TMDBVideo | null>(null);
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
@@ -160,13 +209,24 @@ export default function ContentDetailModal({
         side="right"
         className="!w-full sm:!w-[90vw] lg:!w-[80vw] xl:!max-w-[60rem] !h-full overflow-y-auto p-0 gap-0 [&>button]:hidden"
       >
-        {/* Close Button */}
+        {/* Back Button (when opened from More Like This) */}
+        {showBackButton && (
+          <button
+            onClick={handleBack}
+            className="absolute top-4 left-4 z-50 h-14 w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105"
+            aria-label="Back"
+          >
+            <ArrowLeft className="h-7 w-7 text-white" />
+          </button>
+        )}
+
+        {/* Close Button - More Prominent */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-50 h-12 w-12 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center transition-colors shadow-lg"
+          className="absolute top-4 right-4 z-50 h-14 w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105"
           aria-label="Close"
         >
-          <X className="h-6 w-6 text-white" />
+          <X className="h-7 w-7 text-white" />
         </button>
 
         {/* Hero Section with Trailer/Backdrop */}
@@ -256,50 +316,73 @@ export default function ContentDetailModal({
                       Play
                     </Link>
                   </Button>
-                  <AddToPlaylistDropdown
-                    item={item}
-                    type={type}
-                    trigger={
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div>
+                        <AddToPlaylistDropdown
+                          item={item}
+                          type={type}
+                          trigger={
+                            <Button
+                              size="lg"
+                              variant="outline"
+                              className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer"
+                            >
+                              <Plus className="size-6 text-white" />
+                            </Button>
+                          }
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Add to Playlist</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
                       <Button
                         size="lg"
                         variant="outline"
-                        className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105"
+                        className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer"
+                        onClick={async () => {
+                          await toggleFavorite.toggle(item, type);
+                        }}
                       >
-                        <Plus className="size-6 text-white" />
+                        <Heart 
+                          className={`size-6 ${
+                            toggleFavorite.isFavorite(item.id, type)
+                              ? "text-red-500 fill-red-500"
+                              : "text-white"
+                          }`} 
+                        />
                       </Button>
-                    }
-                  />
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105"
-                    onClick={async () => {
-                      await toggleFavorite.toggle(item, type);
-                    }}
-                  >
-                    <Heart 
-                      className={`size-6 ${
-                        toggleFavorite.isFavorite(item.id, type)
-                          ? "text-red-500 fill-red-500"
-                          : "text-white"
-                      }`} 
-                    />
-                  </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}</p>
+                    </TooltipContent>
+                  </Tooltip>
                   {/* Mute/Unmute Toggle - Only show when trailer is available, on extreme right */}
                   {trailer && videosData && (
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 ml-auto"
-                      onClick={() => setIsMuted(!isMuted)}
-                      aria-label={isMuted ? "Unmute" : "Mute"}
-                    >
-                      {isMuted ? (
-                        <VolumeX className="size-6 text-white" />
-                      ) : (
-                        <Volume2 className="size-6 text-white" />
-                      )}
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="lg"
+                          variant="outline"
+                          className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 ml-auto cursor-pointer"
+                          onClick={() => setIsMuted(!isMuted)}
+                          aria-label={isMuted ? "Unmute" : "Mute"}
+                        >
+                          {isMuted ? (
+                            <VolumeX className="size-6 text-white" />
+                          ) : (
+                            <Volume2 className="size-6 text-white" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{isMuted ? "Unmute" : "Mute"}</p>
+                      </TooltipContent>
+                    </Tooltip>
                   )}
                 </div>
               </div>
@@ -364,18 +447,6 @@ export default function ContentDetailModal({
                         setSelectedVideo(video);
                         setIsTrailerModalOpen(true);
                       }}
-                    />
-                  )}
-
-                  {/* TV Seasons & Episodes */}
-                  {type === "tv" && seasonsData && (
-                    <TVSeasonsSection
-                      tvId={item.id}
-                      seasons={seasonsData.seasons}
-                      selectedSeason={selectedSeason}
-                      onSeasonSelect={setSelectedSeason}
-                      seasonDetails={seasonDetails}
-                      isLoadingSeasonDetails={isLoadingSeasonDetails}
                     />
                   )}
 
@@ -472,13 +543,30 @@ export default function ContentDetailModal({
                 </div>
               </div>
 
+              {/* TV Seasons & Episodes - Full Width, Outside Grid */}
+              {type === "tv" && seasonsData && (
+                <div className="w-full mt-8 -mx-6 sm:-mx-8 lg:-mx-12 px-6 sm:px-8 lg:px-12">
+                  <TVSeasonsSection
+                    tvId={item.id}
+                    seasons={seasonsData.seasons}
+                    selectedSeason={selectedSeason}
+                    onSeasonSelect={setSelectedSeason}
+                    seasonDetails={seasonDetails}
+                    isLoadingSeasonDetails={isLoadingSeasonDetails}
+                  />
+                </div>
+              )}
+
               {/* More Like This Section - Full Width, Outside Grid */}
-              <div className="w-full mt-8">
+              <div className="w-full mt-8 -mx-6 sm:-mx-8 lg:-mx-12 px-6 sm:px-8 lg:px-12">
                 <MoreLikeThis
                   items={moreLikeThisItems}
                   type={type}
                   title="More Like This"
                   isLoading={isLoadingMoreLikeThis}
+                  parentItem={item}
+                  parentType={type}
+                  onItemClick={handleNavigate}
                 />
               </div>
               </>

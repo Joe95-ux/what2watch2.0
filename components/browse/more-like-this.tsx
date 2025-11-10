@@ -14,6 +14,9 @@ interface MoreLikeThisProps {
   isLoading?: boolean;
   onLoadMore?: () => void;
   hasMore?: boolean;
+  parentItem?: TMDBMovie | TMDBSeries;
+  parentType?: "movie" | "tv";
+  onItemClick?: (item: TMDBMovie | TMDBSeries, itemType: "movie" | "tv") => void;
 }
 
 const INITIAL_ITEMS = 8; // Show 8 items initially (half of max)
@@ -25,7 +28,10 @@ export default function MoreLikeThis({
   title = "More Like This", 
   isLoading,
   onLoadMore,
-  hasMore = false
+  hasMore = false,
+  parentItem,
+  parentType,
+  onItemClick,
 }: MoreLikeThisProps) {
   // Limit items to MAX_ITEMS
   const limitedItems = items.slice(0, MAX_ITEMS);
@@ -72,7 +78,14 @@ export default function MoreLikeThis({
       {/* Grid Layout - 3-4 columns responsive */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
         {displayedItems.map((item) => (
-          <MoreLikeThisCard key={item.id} item={item} type={type} />
+          <MoreLikeThisCard 
+            key={item.id} 
+            item={item} 
+            type={type}
+            parentItem={parentItem}
+            parentType={parentType}
+            onItemClick={onItemClick}
+          />
         ))}
       </div>
 
