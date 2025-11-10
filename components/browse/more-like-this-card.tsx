@@ -113,24 +113,43 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
             </div>
           )}
 
-          {/* Watch Time Indicator (Top Right) - Optional, can be removed if not needed */}
-          {/* <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-xs text-white flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            <span>2h 15m</span>
-          </div> */}
-
-          {/* Play Button - Centered, visible on hover (desktop) or always (mobile) */}
-          {(isHovered || isMobile) && trailer && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-              <Button
-                size="lg"
-                className="h-16 w-16 rounded-full bg-white/90 hover:bg-white text-black shadow-lg hover:shadow-xl transition-all"
-                onClick={handlePlayClick}
-              >
-                <Play className="h-8 w-8 fill-black" />
-              </Button>
+          {/* Hover Overlay with Action Buttons */}
+          <div
+            className={`absolute inset-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent pointer-events-none transition-opacity duration-300 ${
+              isHovered ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            {/* Action Buttons Row */}
+            <div className="absolute bottom-0 left-0 right-0 p-3">
+              <div className="flex items-center gap-1.5 mb-2 pointer-events-auto">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 rounded-full p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 cursor-pointer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Open details sheet instead of trailer modal
+                    setIsDetailModalOpen(true);
+                  }}
+                >
+                  <Play className="h-3 w-3 text-white size-3 fill-white" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 rounded-full p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 cursor-pointer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // TODO: Handle add to list
+                  }}
+                >
+                  <Plus className="h-3 w-3 text-white size-3" />
+                </Button>
+              </div>
             </div>
-          )}
+          </div>
 
           {/* Loading state for play button */}
           {isLoadingTrailer && !trailer && (
@@ -140,34 +159,20 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
           )}
         </div>
 
-        {/* Section 2: Movie Details */}
-        <div className="bg-card p-4 space-y-3">
-          {/* Top Row: Release Date + Parental Control (Left) | Add Button (Right) */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              {year && <span>{year}</span>}
-              {year && <span>•</span>}
-              <span className="px-1.5 py-0.5 bg-muted rounded text-xs font-medium">
-                {parentalRating}
-              </span>
-            </div>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 w-8 rounded-full p-0 bg-muted hover:bg-muted/80"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                // TODO: Handle add to playlist
-              }}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+        {/* Section 2: Movie Details - Reduced height */}
+        <div className="bg-card p-3 space-y-2">
+          {/* Top Row: Release Date + Parental Control */}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            {year && <span>{year}</span>}
+            {year && <span>•</span>}
+            <span className="px-1.5 py-0.5 bg-muted rounded text-xs font-medium">
+              {parentalRating}
+            </span>
           </div>
 
           {/* Bottom Row: Synopsis (Truncated) */}
           {item.overview && (
-            <p className="text-sm text-foreground line-clamp-2 leading-relaxed">
+            <p className="text-xs text-foreground line-clamp-2 leading-snug">
               {item.overview}
             </p>
           )}

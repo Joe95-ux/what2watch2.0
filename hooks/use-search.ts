@@ -22,7 +22,8 @@ export function useSearch(params: SearchParams) {
       if (params.year) searchParams.set("year", params.year);
       if (params.minRating) searchParams.set("minRating", params.minRating.toString());
       if (params.sortBy) searchParams.set("sortBy", params.sortBy);
-      if (params.page) searchParams.set("page", params.page.toString());
+      // Always include page, default to 1
+      searchParams.set("page", (params.page || 1).toString());
 
       const response = await fetch(`/api/search?${searchParams.toString()}`);
       if (!response.ok) {
@@ -30,7 +31,7 @@ export function useSearch(params: SearchParams) {
       }
       return response.json() as Promise<TMDBResponse<TMDBMovie | TMDBSeries>>;
     },
-    enabled: !!(params.query || params.genre || params.year || (params.minRating && params.minRating > 0)),
+    enabled: !!(params.query || params.genre || params.year || (params.minRating && params.minRating > 0) || params.page),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
   });

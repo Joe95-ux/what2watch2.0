@@ -91,8 +91,13 @@ function SearchResultsContent() {
     const params = new URLSearchParams();
     if (query) params.set("query", query);
     Object.entries(newParams).forEach(([key, value]) => {
-      if (value && value !== "all" && value !== "" && value !== 0) {
-        params.set(key, value.toString());
+      if (value !== undefined && value !== null) {
+        // Always include page, even if it's 1
+        if (key === "page") {
+          params.set(key, value.toString());
+        } else if (value && value !== "all" && value !== "" && value !== 0) {
+          params.set(key, value.toString());
+        }
       }
     });
     router.push(`/search?${params.toString()}`);
@@ -176,7 +181,7 @@ function SearchResultsContent() {
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[400px] sm:w-[540px]">
+            <SheetContent side="right" className="w-[400px] sm:w-[540px] flex flex-col">
               <FiltersSheet
                 filters={filters}
                 setFilters={setFilters}
@@ -311,15 +316,15 @@ function FiltersSheet({
   hasActiveFilters: boolean;
 }) {
   return (
-    <>
-      <SheetHeader className="px-6 pt-6 pb-4 border-b">
+    <div className="flex flex-col h-full">
+      <SheetHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
         <SheetTitle className="text-xl font-semibold">Filter</SheetTitle>
         <SheetDescription className="text-sm text-muted-foreground mt-1">
           Refine your search by genre, year, rating, and more to find exactly what you&apos;re looking for.
         </SheetDescription>
       </SheetHeader>
       
-      <ScrollArea className="flex-1 max-h-[calc(100vh-180px)]">
+      <ScrollArea className="flex-1">
         <div className="px-6 py-4 space-y-6">
           {/* Type Section */}
           <div className="space-y-3">
@@ -502,8 +507,8 @@ function FiltersSheet({
         </div>
       </ScrollArea>
 
-      {/* Footer with Action Buttons */}
-      <div className="border-t px-6 py-4">
+      {/* Footer with Action Buttons - Fixed at bottom */}
+      <div className="border-t px-6 py-4 bg-background flex-shrink-0">
         <div className="flex gap-3">
           <Button 
             variant="outline" 
@@ -529,7 +534,7 @@ function FiltersSheet({
           </Button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

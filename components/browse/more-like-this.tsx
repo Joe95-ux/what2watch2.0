@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import MoreLikeThisCard from "./more-like-this-card";
 
 interface MoreLikeThisProps {
@@ -15,7 +16,8 @@ interface MoreLikeThisProps {
   hasMore?: boolean;
 }
 
-const ITEMS_PER_PAGE = 12; // Show 12 items initially (3 rows x 4 columns on desktop)
+const INITIAL_ITEMS = 12; // Show 12 items initially (half of max)
+const MAX_ITEMS = 24; // Maximum items to show
 
 export default function MoreLikeThis({ 
   items, 
@@ -25,29 +27,32 @@ export default function MoreLikeThis({
   onLoadMore,
   hasMore = false
 }: MoreLikeThisProps) {
-  const [displayedItems, setDisplayedItems] = useState(items.slice(0, ITEMS_PER_PAGE));
+  // Limit items to MAX_ITEMS
+  const limitedItems = items.slice(0, MAX_ITEMS);
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  // Show 12 initially, or all if less than 12
+  const displayedItems = isExpanded 
+    ? limitedItems 
+    : limitedItems.slice(0, INITIAL_ITEMS);
 
-  // Update displayed items when items prop changes
-  useEffect(() => {
-    setDisplayedItems(items.slice(0, ITEMS_PER_PAGE));
-  }, [items]);
+  const canToggle = limitedItems.length > INITIAL_ITEMS;
+  const hasMoreToLoad = items.length > MAX_ITEMS || hasMore;
 
-  const handleLoadMore = () => {
-    const currentCount = displayedItems.length;
-    const nextItems = items.slice(0, currentCount + ITEMS_PER_PAGE);
-    setDisplayedItems(nextItems);
+  const handleToggle = () => {
+    setIsExpanded(!isExpanded);
     
-    // If we've shown all items and there might be more, call the onLoadMore callback
-    if (nextItems.length >= items.length && hasMore && onLoadMore) {
+    // If expanding and we've shown all limited items, call onLoadMore if available
+    if (!isExpanded && displayedItems.length >= limitedItems.length && hasMoreToLoad && onLoadMore) {
       onLoadMore();
     }
   };
 
-  if (isLoading && displayedItems.length === 0) {
+  if (isLoading && limitedItems.length === 0) {
     return (
       <div className="w-full space-y-6">
         <Skeleton className="h-7 w-48" />
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {[...Array(12)].map((_, i) => (
             <Skeleton key={i} className="aspect-[2/3] rounded-lg" />
           ))}
@@ -56,34 +61,45 @@ export default function MoreLikeThis({
     );
   }
 
-  if (!items || items.length === 0) {
+  if (!limitedItems || limitedItems.length === 0) {
     return null;
   }
-
-  const showLoadMore = displayedItems.length < items.length || hasMore;
 
   return (
     <div className="w-full space-y-6">
       <h3 className="text-xl font-semibold">{title}</h3>
       
-      {/* Grid Layout */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+      {/* Grid Layout - 3-4 columns responsive */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {displayedItems.map((item) => (
           <MoreLikeThisCard key={item.id} item={item} type={type} />
         ))}
       </div>
 
-      {/* Load More Button */}
-      {showLoadMore && (
-        <div className="flex justify-center pt-4">
-          <Button
-            variant="outline"
-            className="px-8 py-6 text-base font-medium"
-            onClick={handleLoadMore}
-            disabled={isLoading}
-          >
-            {isLoading ? "Loading..." : "Load More"}
-          </Button>
+      {/* Toggle Button - Netflix Style with Horizontal Line */}
+      {canToggle && (
+        <div className="relative pt-6">
+          {/* Horizontal Line with Subtle Overlay */}
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+          <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-background/80 to-transparent pointer-events-none" />
+          
+          {/* Circular Toggle Button */}
+          <div className="flex justify-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleToggle}
+              disabled={isLoading}
+              className="h-8 w-8 rounded-full p-0 bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer"
+              aria-label={isExpanded ? "Show less" : "Show more"}
+            >
+              {isExpanded ? (
+                <ChevronUp className="h-4 w-4 text-white size-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-white size-4" />
+              )}
+            </Button>
+          </div>
         </div>
       )}
     </div>

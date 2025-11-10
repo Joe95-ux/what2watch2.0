@@ -71,9 +71,10 @@ export default function ContentDetailModal({
   );
   
   // Combine similar and recommended content (prioritize recommendations)
+  // Fetch max 24 items for "More Like This" section
   const moreLikeThisItems = type === "movie"
-    ? [...(recommendedMovies?.results || []), ...(similarMovies?.results || [])].slice(0, 20)
-    : [...(recommendedTV?.results || []), ...(similarTV?.results || [])].slice(0, 20);
+    ? [...(recommendedMovies?.results || []), ...(similarMovies?.results || [])].slice(0, 24)
+    : [...(recommendedTV?.results || []), ...(similarTV?.results || [])].slice(0, 24);
   
   const isLoadingMoreLikeThis = type === "movie"
     ? isLoadingRecommendedMovies || isLoadingSimilarMovies
@@ -278,6 +279,7 @@ export default function ContentDetailModal({
                 <Skeleton className="h-4 w-3/4" />
               </div>
             ) : (
+              <>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Content */}
                 <div className="lg:col-span-2 space-y-6">
@@ -387,16 +389,6 @@ export default function ContentDetailModal({
                       </div>
                     </div>
                   )}
-
-                  {/* More Like This Section - Full Width */}
-                  <div className="w-full -mx-6 sm:-mx-8 lg:-mx-12 px-6 sm:px-8 lg:px-12">
-                    <MoreLikeThis
-                      items={moreLikeThisItems}
-                      type={type}
-                      title="More Like This"
-                      isLoading={isLoadingMoreLikeThis}
-                    />
-                  </div>
                 </div>
 
                 {/* Sidebar */}
@@ -441,6 +433,17 @@ export default function ContentDetailModal({
                   )}
                 </div>
               </div>
+
+              {/* More Like This Section - Full Width, Outside Grid */}
+              <div className="w-full -mx-6 sm:-mx-8 lg:-mx-12 px-6 sm:px-8 lg:px-12 mt-8">
+                <MoreLikeThis
+                  items={moreLikeThisItems}
+                  type={type}
+                  title="More Like This"
+                  isLoading={isLoadingMoreLikeThis}
+                />
+              </div>
+              </>
             )}
           </div>
         </div>
