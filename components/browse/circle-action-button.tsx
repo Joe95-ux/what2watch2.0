@@ -1,8 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { Button, type ButtonProps } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+type ButtonProps = React.ComponentProps<typeof Button>;
 
 type CircleActionButtonProps = Omit<ButtonProps, "size" | "variant"> & {
   size?: "sm" | "md" | "lg";
