@@ -1,0 +1,366 @@
+"use client";
+
+import { useState, useMemo } from "react";
+import { useFavorites, useRemoveFavorite } from "@/hooks/use-favorites";
+import { useAllGenres } from "@/hooks/use-genres";
+import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LayoutGrid, List, X, Plus } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import MovieCard from "@/components/browse/movie-card";
+import ContentDetailModal from "@/components/browse/content-detail-modal";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+type ViewMode = "grid" | "list";
+type FilterType = "all" | "movie" | "tv";
+type SortBy = "recent" | "title" | "year";
+
+export default function MyListContent() {
+  const { data: favorites = [], isLoading } = useFavorites();
+  const removeFavorite = useRemoveFavorite();
+  const { data: allGenres = [] } = useAllGenres();
+  
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [filterType, setFilterType] = useState<FilterType>("all");
+  const [selectedGenre, setSelectedGenre] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<SortBy>("recent");
+  const [itemToRemove, setItemToRemove] = useState<{ tmdbId: number; mediaType: string; title: string } | null>(null);
+  const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
+
+  // Convert favorites to TMDB format for display
+  const favoritesAsTMDB = useMemo(() => {
+    return favorites.map((fav) => {
+      if (fav.mediaType === "movie") {
+        const movie: TMDBMovie = {
+          id: fav.tmdbId,
+          title: fav.title,
+          overview: "",
+          poster_path: fav.posterPath,
+          backdrop_path: fav.backdropPath,
+          release_date: fav.releaseDate || "",
+          vote_average: 0,
+          vote_count: 0,
+          genre_ids: [],
+          popularity: 0,
+          adult: false,
+          original_language: "",
+          original_title: fav.title,
+        };
+        return { item: movie, type: "movie" as const, favoriteId: fav.id };
+      } else {
+        const tv: TMDBSeries = {
+          id: fav.tmdbId,
+          name: fav.title,
+          overview: "",
+          poster_path: fav.posterPath,
+          backdrop_path: fav.backdropPath,
+          first_air_date: fav.firstAirDate || "",
+          vote_average: 0,
+          vote_count: 0,
+          genre_ids: [],
+          popularity: 0,
+          original_language: "",
+          original_name: fav.title,
+        };
+        return { item: tv, type: "tv" as const, favoriteId: fav.id };
+      }
+    });
+  }, [favorites]);
+
+  // Filter and sort
+  const filteredAndSorted = useMemo(() => {
+    let filtered = favoritesAsTMDB;
+
+    // Filter by type
+    if (filterType !== "all") {
+      filtered = filtered.filter((f) => f.type === filterType);
+    }
+
+    // Filter by genre (would need genre data from API - simplified for now)
+    // This would require fetching genre data for each item
+
+    // Sort
+    filtered = [...filtered].sort((a, b) => {
+      if (sortBy === "recent") {
+        const aFav = favorites.find((f) => f.id === a.favoriteId);
+        const bFav = favorites.find((f) => f.id === b.favoriteId);
+        if (!aFav || !bFav) return 0;
+        return new Date(bFav.createdAt).getTime() - new Date(aFav.createdAt).getTime();
+      } else if (sortBy === "title") {
+        const aTitle = "title" in a.item ? a.item.title : a.item.name;
+        const bTitle = "title" in b.item ? b.item.title : b.item.name;
+        return aTitle.localeCompare(bTitle);
+      } else if (sortBy === "year") {
+        const aDate = a.type === "movie" ? a.item.release_date : a.item.first_air_date;
+        const bDate = b.type === "movie" ? b.item.release_date : b.item.first_air_date;
+        const aYear = aDate ? new Date(aDate).getFullYear() : 0;
+        const bYear = bDate ? new Date(bDate).getFullYear() : 0;
+        return bYear - aYear;
+      }
+      return 0;
+    });
+
+    return filtered;
+  }, [favoritesAsTMDB, filterType, selectedGenre, sortBy, favorites]);
+
+  const handleRemove = async () => {
+    if (!itemToRemove) return;
+    
+    try {
+      await removeFavorite.mutateAsync({
+        tmdbId: itemToRemove.tmdbId,
+        mediaType: itemToRemove.mediaType as "movie" | "tv",
+      });
+      toast.success(`Removed ${itemToRemove.title} from your list`);
+      setItemToRemove(null);
+    } catch (error) {
+      toast.error("Failed to remove item");
+      console.error(error);
+    }
+  };
+
+  const movieCount = favorites.filter((f) => f.mediaType === "movie").length;
+  const tvCount = favorites.filter((f) => f.mediaType === "tv").length;
+
+  if (isLoading) {
+    return (
+      <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Skeleton className="h-10 w-64 mb-6" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <Skeleton key={i} className="aspect-[2/3] rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (favorites.length === 0) {
+    return (
+      <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="flex flex-col items-center justify-center text-center space-y-4">
+          <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center">
+            <Plus className="h-12 w-12 text-muted-foreground" />
+          </div>
+          <h2 className="text-2xl font-semibold">Your list is empty</h2>
+          <p className="text-muted-foreground max-w-md">
+            Start building your list by clicking the heart icon on any movie or TV show you want to save.
+          </p>
+          <Button asChild className="mt-4">
+            <a href="/browse">Browse Content</a>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">My List</h1>
+            <p className="text-muted-foreground">
+              {favorites.length} {favorites.length === 1 ? "item" : "items"}
+              {movieCount > 0 && tvCount > 0 && ` • ${movieCount} movies • ${tvCount} TV shows`}
+            </p>
+          </div>
+        </div>
+
+        {/* Filters and View Toggle */}
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="flex flex-wrap gap-3">
+            {/* Type Filter */}
+            <Select value={filterType} onValueChange={(value) => setFilterType(value as FilterType)}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="movie">Movies</SelectItem>
+                <SelectItem value="tv">TV Shows</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Sort By */}
+            <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortBy)}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="recent">Recently Added</SelectItem>
+                <SelectItem value="title">Title (A-Z)</SelectItem>
+                <SelectItem value="year">Year (Newest)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* View Toggle */}
+          <div className="flex items-center gap-2 border rounded-md p-1">
+            <Button
+              variant={viewMode === "grid" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("grid")}
+              className="h-8 w-8 p-0"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+              className="h-8 w-8 p-0"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      {filteredAndSorted.length === 0 ? (
+        <div className="text-center py-16">
+          <p className="text-muted-foreground">No items match your filters.</p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => {
+              setFilterType("all");
+              setSelectedGenre("all");
+            }}
+          >
+            Clear Filters
+          </Button>
+        </div>
+      ) : viewMode === "grid" ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          {filteredAndSorted.map(({ item, type, favoriteId }) => (
+            <div key={favoriteId} className="relative group">
+              <div onClick={() => setSelectedItem({ item, type })} className="cursor-pointer">
+                <MovieCard item={item} type={type} />
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 hover:bg-black/80 rounded-full h-8 w-8"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const title = "title" in item ? item.title : item.name;
+                  setItemToRemove({
+                    tmdbId: item.id,
+                    mediaType: type,
+                    title,
+                  });
+                }}
+              >
+                <X className="h-4 w-4 text-white" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredAndSorted.map(({ item, type, favoriteId }) => {
+            const title = "title" in item ? item.title : item.name;
+            const releaseDate = type === "movie" ? item.release_date : item.first_air_date;
+            const year = releaseDate ? new Date(releaseDate).getFullYear() : null;
+            const posterPath = item.poster_path;
+
+            return (
+              <div
+                key={favoriteId}
+                className="flex items-center gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors group cursor-pointer"
+                onClick={() => setSelectedItem({ item, type })}
+              >
+                {posterPath ? (
+                  <img
+                    src={`https://image.tmdb.org/t/p/w92${posterPath}`}
+                    alt={title}
+                    className="w-16 h-24 object-cover rounded"
+                  />
+                ) : (
+                  <div className="w-16 h-24 bg-muted rounded flex items-center justify-center">
+                    <span className="text-xs text-muted-foreground">No Image</span>
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold truncate">{title}</h3>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                    <span className="uppercase">{type}</span>
+                    {year && (
+                      <>
+                        <span>•</span>
+                        <span>{year}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setItemToRemove({
+                      tmdbId: item.id,
+                      mediaType: type,
+                      title,
+                    });
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Remove Confirmation Dialog */}
+      <AlertDialog open={!!itemToRemove} onOpenChange={(open) => !open && setItemToRemove(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove from My List?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove <strong>{itemToRemove?.title}</strong> from your list? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRemove}
+              disabled={removeFavorite.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {removeFavorite.isPending ? "Removing..." : "Remove"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Detail Modal */}
+      {selectedItem && (
+        <ContentDetailModal
+          item={selectedItem.item}
+          type={selectedItem.type}
+          isOpen={!!selectedItem}
+          onClose={() => setSelectedItem(null)}
+        />
+      )}
+    </div>
+  );
+}
+

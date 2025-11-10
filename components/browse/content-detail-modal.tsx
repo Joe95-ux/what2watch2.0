@@ -24,6 +24,8 @@ import VideosCarousel from "./videos-carousel";
 import TrailerModal from "./trailer-modal";
 import MoreLikeThis from "./more-like-this";
 import { useAddRecentlyViewed } from "@/hooks/use-recently-viewed";
+import { useToggleFavorite } from "@/hooks/use-favorites";
+import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
 
 interface ContentDetailModalProps {
   item: TMDBMovie | TMDBSeries;
@@ -45,6 +47,7 @@ export default function ContentDetailModal({
   
   // Track recently viewed
   const addRecentlyViewed = useAddRecentlyViewed();
+  const toggleFavorite = useToggleFavorite();
 
   // Fetch details based on type
   const { data: movieDetails, isLoading: isLoadingMovie } = useMovieDetails(
@@ -253,19 +256,34 @@ export default function ContentDetailModal({
                       Play
                     </Link>
                   </Button>
+                  <AddToPlaylistDropdown
+                    item={item}
+                    type={type}
+                    trigger={
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105"
+                      >
+                        <Plus className="size-6 text-white" />
+                      </Button>
+                    }
+                  />
                   <Button
                     size="lg"
                     variant="outline"
                     className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105"
+                    onClick={async () => {
+                      await toggleFavorite.toggle(item, type);
+                    }}
                   >
-                    <Plus className="size-6 text-white" />
-                  </Button>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105"
-                  >
-                    <Heart className="size-6 text-white" />
+                    <Heart 
+                      className={`size-6 ${
+                        toggleFavorite.isFavorite(item.id, type)
+                          ? "text-red-500 fill-red-500"
+                          : "text-white"
+                      }`} 
+                    />
                   </Button>
                   {/* Mute/Unmute Toggle - Only show when trailer is available, on extreme right */}
                   {trailer && videosData && (

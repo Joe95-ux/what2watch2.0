@@ -10,6 +10,7 @@ import { CircleActionButton } from "./circle-action-button";
 import ContentDetailModal from "./content-detail-modal";
 import TrailerModal from "./trailer-modal";
 import { useToggleFavorite } from "@/hooks/use-favorites";
+import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
 
 interface MovieCardProps {
   item: TMDBMovie | TMDBSeries;
@@ -289,15 +290,20 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                   <Play className="h-3 w-3 mr-1 fill-black" />
                   Play
                 </Button>
-                <CircleActionButton
-                  onClick={(e: React.MouseEvent) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    // TODO: Handle add to list
-                  }}
-                >
-                  <Plus className="h-3 w-3 text-white" />
-                </CircleActionButton>
+                <AddToPlaylistDropdown
+                  item={item}
+                  type={type}
+                  trigger={
+                    <CircleActionButton
+                      onClick={(e: React.MouseEvent) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                    >
+                      <Plus className="h-3 w-3 text-white" />
+                    </CircleActionButton>
+                  }
+                />
                 <CircleActionButton
                   onClick={async (e: React.MouseEvent) => {
                     e.preventDefault();

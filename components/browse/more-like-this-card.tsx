@@ -7,6 +7,7 @@ import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
 import { CircleActionButton } from "./circle-action-button";
 import ContentDetailModal from "./content-detail-modal";
 import { useToggleFavorite } from "@/hooks/use-favorites";
+import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
 
 interface MoreLikeThisCardProps {
   item: TMDBMovie | TMDBSeries;
@@ -173,16 +174,21 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
                 {parentalRating}
               </span>
             </div>
-            <CircleActionButton
-              size="sm"
-              onClick={(e: React.MouseEvent) => {
-                e.preventDefault();
-                e.stopPropagation();
-                // TODO: Handle add to list
-              }}
-            >
-              <Plus className="h-3 w-3 text-white" />
-            </CircleActionButton>
+            <AddToPlaylistDropdown
+              item={item}
+              type={type}
+              trigger={
+                <CircleActionButton
+                  size="sm"
+                  onClick={(e: React.MouseEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                >
+                  <Plus className="h-3 w-3 text-white" />
+                </CircleActionButton>
+              }
+            />
           </div>
 
           {/* Bottom Row: Synopsis (Truncated to 4 lines) */}
