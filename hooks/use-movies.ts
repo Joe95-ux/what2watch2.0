@@ -191,10 +191,13 @@ export function usePersonalizedContent(
   favoriteGenres: number[],
   preferredTypes: ("movie" | "tv")[]
 ) {
+  // Ensure we have at least one preferred type (default to both if empty)
+  const types = preferredTypes.length > 0 ? preferredTypes : ["movie", "tv"];
+  
   return useQuery({
-    queryKey: ["personalized", favoriteGenres.join(","), preferredTypes.join(",")],
-    queryFn: () => fetchPersonalizedContent(favoriteGenres, preferredTypes),
-    enabled: favoriteGenres.length > 0 && preferredTypes.length > 0,
+    queryKey: ["personalized", favoriteGenres.join(","), types.join(",")],
+    queryFn: () => fetchPersonalizedContent(favoriteGenres, types),
+    enabled: favoriteGenres.length > 0,
     staleTime: 1000 * 60 * 30, // 30 minutes
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });

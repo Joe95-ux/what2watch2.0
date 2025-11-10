@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { CircleActionButton } from "./circle-action-button";
 import ContentDetailModal from "./content-detail-modal";
 import TrailerModal from "./trailer-modal";
+import { useToggleFavorite } from "@/hooks/use-favorites";
 
 interface MovieCardProps {
   item: TMDBMovie | TMDBSeries;
@@ -23,6 +24,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const [isHovered, setIsHovered] = useState(false);
   const [trailer, setTrailer] = useState<TMDBVideo | null>(null);
   const [allVideos, setAllVideos] = useState<TMDBVideo[]>([]);
+  const toggleFavorite = useToggleFavorite();
   const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
@@ -297,13 +299,19 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                   <Plus className="h-3 w-3 text-white" />
                 </CircleActionButton>
                 <CircleActionButton
-                  onClick={(e: React.MouseEvent) => {
+                  onClick={async (e: React.MouseEvent) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    // TODO: Handle like/favorite
+                    await toggleFavorite.toggle(item, type);
                   }}
                 >
-                  <Heart className="h-3 w-3 text-white" />
+                  <Heart 
+                    className={`h-3 w-3 ${
+                      toggleFavorite.isFavorite(item.id, type)
+                        ? "text-red-500 fill-red-500"
+                        : "text-white"
+                    }`} 
+                  />
                 </CircleActionButton>
               </div>
 

@@ -6,6 +6,7 @@ import { Play, Plus, Heart } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
 import { CircleActionButton } from "./circle-action-button";
 import ContentDetailModal from "./content-detail-modal";
+import { useToggleFavorite } from "@/hooks/use-favorites";
 
 interface MoreLikeThisCardProps {
   item: TMDBMovie | TMDBSeries;
@@ -18,6 +19,7 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
   const [isMobile, setIsMobile] = useState(false);
   const [runtime, setRuntime] = useState<number | null>(null);
   const [isLoadingRuntime, setIsLoadingRuntime] = useState(false);
+  const toggleFavorite = useToggleFavorite();
 
   const title = "title" in item ? item.title : item.name;
   const posterPath = item.poster_path || item.backdrop_path;
@@ -115,13 +117,19 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
           <div className="absolute top-2 left-2 z-20">
             <CircleActionButton
               size="sm"
-              onClick={(e: React.MouseEvent) => {
+              onClick={async (e: React.MouseEvent) => {
                 e.preventDefault();
                 e.stopPropagation();
-                // TODO: Handle like/favorite
+                await toggleFavorite.toggle(item, type);
               }}
             >
-              <Heart className="h-3 w-3 text-white" />
+              <Heart 
+                className={`h-3 w-3 ${
+                  toggleFavorite.isFavorite(item.id, type)
+                    ? "text-red-500 fill-red-500"
+                    : "text-white"
+                }`} 
+              />
             </CircleActionButton>
           </div>
 

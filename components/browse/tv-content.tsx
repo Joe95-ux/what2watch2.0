@@ -43,7 +43,7 @@ export default function TVContent({ favoriteGenres, preferredTypes }: TVContentP
       {/* Content Rows - Full width, padding handled by ContentRow */}
       <div className="w-full py-8 overflow-hidden">
         {/* Personalized Section */}
-        {personalizedTV.length > 0 && (
+        {(favoriteGenres.length > 0 || isLoadingPersonalized) && (
           <ContentRow
             title="We Think You'll Love This"
             items={personalizedTV}
