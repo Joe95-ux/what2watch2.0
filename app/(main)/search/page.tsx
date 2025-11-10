@@ -89,7 +89,15 @@ function SearchResultsContent() {
 
   const updateURL = (newParams: Record<string, string | number | undefined>) => {
     const params = new URLSearchParams();
+    // Preserve all existing URL parameters
     if (query) params.set("query", query);
+    if (type && type !== "all") params.set("type", type);
+    if (genre) params.set("genre", genre);
+    if (year) params.set("year", year);
+    if (minRating > 0) params.set("minRating", minRating.toString());
+    if (sortBy) params.set("sortBy", sortBy);
+    
+    // Apply new parameters (overriding existing ones)
     Object.entries(newParams).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         // Always include page, even if it's 1

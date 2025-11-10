@@ -94,9 +94,9 @@ export default function MoreLikeThis({
               aria-label={isExpanded ? "Show less" : "Show more"}
             >
               {isExpanded ? (
-                <ChevronUp className="h-4 w-4 text-white size-4" />
+                <ChevronUp className="size-6 text-white" />
               ) : (
-                <ChevronDown className="h-4 w-4 text-white size-4" />
+                <ChevronDown className="size-6 text-white" />
               )}
             </Button>
           </div>

@@ -31,7 +31,7 @@ export function useSearch(params: SearchParams) {
       }
       return response.json() as Promise<TMDBResponse<TMDBMovie | TMDBSeries>>;
     },
-    enabled: !!(params.query || params.genre || params.year || (params.minRating && params.minRating > 0) || params.page),
+    enabled: !!(params.query || params.genre || params.year || (params.minRating && params.minRating > 0)),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
   });

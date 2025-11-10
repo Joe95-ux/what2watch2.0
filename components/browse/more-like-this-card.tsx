@@ -27,6 +27,18 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
   const releaseDate = type === "movie" ? (item as TMDBMovie).release_date : (item as TMDBSeries).first_air_date;
   const year = releaseDate ? new Date(releaseDate).getFullYear() : null;
   
+  // Get runtime - check if available in item, otherwise format as "N/A"
+  const runtime = type === "movie" 
+    ? (item as TMDBMovie & { runtime?: number }).runtime 
+    : (item as TMDBSeries & { episode_run_time?: number[] }).episode_run_time?.[0];
+  const formatRuntime = (minutes: number | undefined) => {
+    if (!minutes) return null;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+  const runtimeText = formatRuntime(runtime);
+  
   // Get parental rating - TMDB doesn't always provide this, so we'll use a simple fallback
   const parentalRating = type === "movie" 
     ? ((item as TMDBMovie).adult ? "R" : "PG-13")
@@ -76,14 +88,6 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
     setIsHovered(false);
   };
 
-  const handlePlayClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (trailer) {
-      setIsTrailerModalOpen(true);
-    }
-  };
-
   const handleCardClick = () => {
     setIsDetailModalOpen(true);
   };
@@ -96,8 +100,8 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
         onMouseLeave={handleMouseLeave}
         onClick={handleCardClick}
       >
-        {/* Section 1: Movie Poster */}
-        <div className="relative aspect-[2/3] bg-muted">
+        {/* Section 1: Movie Poster - Reduced height */}
+        <div className="relative aspect-[4/5] bg-muted">
           {posterPath ? (
             <Image
               src={getPosterUrl(posterPath, "w500")}
@@ -113,42 +117,32 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
             </div>
           )}
 
-          {/* Hover Overlay with Action Buttons */}
+          {/* Runtime - Top Right */}
+          {runtimeText && (
+            <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-xs text-white font-medium">
+              {runtimeText}
+            </div>
+          )}
+
+          {/* Centered Play Button - Revealed on hover with animation */}
           <div
-            className={`absolute inset-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent pointer-events-none transition-opacity duration-300 ${
-              isHovered ? "opacity-100" : "opacity-0"
+            className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300 ${
+              isHovered || isMobile ? "opacity-100" : "opacity-0"
             }`}
           >
-            {/* Action Buttons Row */}
-            <div className="absolute bottom-0 left-0 right-0 p-3">
-              <div className="flex items-center gap-1.5 mb-2 pointer-events-auto">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 w-7 rounded-full p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 cursor-pointer"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    // Open details sheet instead of trailer modal
-                    setIsDetailModalOpen(true);
-                  }}
-                >
-                  <Play className="h-3 w-3 text-white size-3 fill-white" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 w-7 rounded-full p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 cursor-pointer"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    // TODO: Handle add to list
-                  }}
-                >
-                  <Plus className="h-3 w-3 text-white size-3" />
-                </Button>
-              </div>
-            </div>
+            <div className="bg-black/40 backdrop-blur-sm absolute inset-0" />
+            <Button
+              variant="ghost"
+              className="h-10 w-10 rounded-full p-0 bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 backdrop-blur-sm transition-all duration-300 hover:scale-105 pointer-events-auto cursor-pointer z-10"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // Open details sheet instead of trailer modal
+                setIsDetailModalOpen(true);
+              }}
+            >
+              <Play className="size-6 text-white fill-white" />
+            </Button>
           </div>
 
           {/* Loading state for play button */}
@@ -159,20 +153,34 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
           )}
         </div>
 
-        {/* Section 2: Movie Details - Reduced height */}
+        {/* Section 2: Movie Details */}
         <div className="bg-card p-3 space-y-2">
-          {/* Top Row: Release Date + Parental Control */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            {year && <span>{year}</span>}
-            {year && <span>•</span>}
-            <span className="px-1.5 py-0.5 bg-muted rounded text-xs font-medium">
-              {parentalRating}
-            </span>
+          {/* Top Row: Release Date + Parental Control + Add Button */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              {year && <span>{year}</span>}
+              {year && <span>•</span>}
+              <span className="px-1.5 py-0.5 bg-muted rounded text-xs font-medium">
+                {parentalRating}
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7 rounded-full p-0 bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 backdrop-blur-sm cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // TODO: Handle add to list
+              }}
+            >
+              <Plus className="h-3 w-3 text-white size-3" />
+            </Button>
           </div>
 
-          {/* Bottom Row: Synopsis (Truncated) */}
+          {/* Bottom Row: Synopsis (Truncated to 4 lines) */}
           {item.overview && (
-            <p className="text-xs text-foreground line-clamp-2 leading-snug">
+            <p className="text-xs text-foreground line-clamp-4 leading-snug">
               {item.overview}
             </p>
           )}
