@@ -192,7 +192,7 @@ export function usePersonalizedContent(
   preferredTypes: ("movie" | "tv")[]
 ) {
   // Ensure we have at least one preferred type (default to both if empty)
-  const types = preferredTypes.length > 0 ? preferredTypes : ["movie", "tv"];
+  const types: ("movie" | "tv")[] = preferredTypes.length > 0 ? preferredTypes : ["movie", "tv"];
   
   return useQuery({
     queryKey: ["personalized", favoriteGenres.join(","), types.join(",")],
