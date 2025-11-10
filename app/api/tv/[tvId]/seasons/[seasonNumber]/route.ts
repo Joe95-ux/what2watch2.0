@@ -35,16 +35,17 @@ export async function GET(
       // Handle 404 errors gracefully (season might not exist)
       if (error instanceof Error && error.message.includes('404')) {
         console.warn(`TV season ${seasonNum} not found for TV ${tvIdNum}`);
-        return NextResponse.json(
-          {
-            id: 0,
-            name: `Season ${seasonNum}`,
-            overview: "",
-            season_number: seasonNum,
-            episodes: [],
-            air_date: null,
-            poster_path: null,
-          },
+        const fallbackSeason: TMDBTVSeasonDetails = {
+          _id: "",
+          id: 0,
+          name: `Season ${seasonNum}`,
+          overview: "",
+          season_number: seasonNum,
+          episodes: [],
+          air_date: null,
+          poster_path: null,
+        };
+        return NextResponse.json(fallbackSeason,
           {
             status: 200,
             headers: {
@@ -54,16 +55,17 @@ export async function GET(
         );
       }
       console.warn("TV season details timeout or error:", error);
-      return NextResponse.json(
-        {
-          id: 0,
-          name: `Season ${seasonNum}`,
-          overview: "",
-          season_number: seasonNum,
-          episodes: [],
-          air_date: null,
-          poster_path: null,
-        },
+      const fallbackSeason: TMDBTVSeasonDetails = {
+        _id: "",
+        id: 0,
+        name: `Season ${seasonNum}`,
+        overview: "",
+        season_number: seasonNum,
+        episodes: [],
+        air_date: null,
+        poster_path: null,
+      };
+      return NextResponse.json(fallbackSeason,
         {
           status: 200,
           headers: {

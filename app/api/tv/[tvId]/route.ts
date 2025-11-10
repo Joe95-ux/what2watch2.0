@@ -48,25 +48,25 @@ export async function GET(
     } catch (error) {
       console.warn("TV details timeout or error:", error);
       // Return graceful fallback instead of 500 error
-      return NextResponse.json(
-        {
-          id: tvIdNum,
-          name: "",
-          overview: "",
-          poster_path: null,
-          backdrop_path: null,
-          first_air_date: "",
-          vote_average: 0,
-          vote_count: 0,
-          genre_ids: [],
-          popularity: 0,
-          original_language: "",
-          original_name: "",
-          genres: [],
-          number_of_seasons: 0,
-          number_of_episodes: 0,
-          episode_run_time: [],
-        } as TVDetails,
+      const fallbackDetails: TVDetails = {
+        id: tvIdNum,
+        name: "",
+        overview: "",
+        poster_path: null,
+        backdrop_path: null,
+        first_air_date: "",
+        vote_average: 0,
+        vote_count: 0,
+        genre_ids: [],
+        popularity: 0,
+        original_language: "",
+        original_name: "",
+        genres: [],
+        number_of_seasons: 0,
+        number_of_episodes: 0,
+        episode_run_time: [],
+      };
+      return NextResponse.json(fallbackDetails,
         {
           status: 200,
           headers: {
@@ -84,25 +84,25 @@ export async function GET(
   } catch (error) {
     console.error("TV details API error:", error);
     // Return graceful fallback instead of 500 error
-    return NextResponse.json(
-      {
-        id: tvIdNum || 0,
-        name: "",
-        overview: "",
-        poster_path: null,
-        backdrop_path: null,
-        first_air_date: "",
-        vote_average: 0,
-        vote_count: 0,
-        genre_ids: [],
-        popularity: 0,
-        original_language: "",
-        original_name: "",
-        genres: [],
-        number_of_seasons: 0,
-        number_of_episodes: 0,
-        episode_run_time: [],
-      } as TVDetails,
+    const fallbackDetails: TVDetails = {
+      id: tvIdNum || 0,
+      name: "",
+      overview: "",
+      poster_path: null,
+      backdrop_path: null,
+      first_air_date: "",
+      vote_average: 0,
+      vote_count: 0,
+      genre_ids: [],
+      popularity: 0,
+      original_language: "",
+      original_name: "",
+      genres: [],
+      number_of_seasons: 0,
+      number_of_episodes: 0,
+      episode_run_time: [],
+    };
+    return NextResponse.json(fallbackDetails,
       {
         status: 200,
         headers: {
