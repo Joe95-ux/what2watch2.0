@@ -70,10 +70,10 @@ export default function TrailerModal({
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-50 h-10 w-10 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-colors"
+          className="absolute top-4 right-4 z-50 h-14 w-14 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-colors cursor-pointer"
           aria-label="Close"
         >
-          <X className="h-5 w-5 text-white" />
+          <X className="h-7 w-7 text-white" />
         </button>
 
         {/* Navigation Buttons */}
@@ -85,14 +85,14 @@ export default function TrailerModal({
               onClick={handlePrev}
               disabled={!canGoPrev}
               className={cn(
-                "absolute left-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 rounded-full",
+                "absolute left-4 top-1/2 -translate-y-1/2 z-50 h-16 w-16 rounded-full",
                 "bg-black/60 hover:bg-black/80 text-white",
                 "transition-opacity duration-300",
-                !canGoPrev && "opacity-50 cursor-not-allowed"
+                !canGoPrev ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
               )}
               aria-label="Previous video"
             >
-              <ChevronLeft className="h-6 w-6" />
+              <ChevronLeft className="h-8 w-8" />
             </Button>
             <Button
               variant="ghost"
@@ -100,14 +100,14 @@ export default function TrailerModal({
               onClick={handleNext}
               disabled={!canGoNext}
               className={cn(
-                "absolute right-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 rounded-full",
+                "absolute right-4 top-1/2 -translate-y-1/2 z-50 h-16 w-16 rounded-full",
                 "bg-black/60 hover:bg-black/80 text-white",
                 "transition-opacity duration-300",
-                !canGoNext && "opacity-50 cursor-not-allowed"
+                !canGoNext ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
               )}
               aria-label="Next video"
             >
-              <ChevronRight className="h-6 w-6" />
+              <ChevronRight className="h-8 w-8" />
             </Button>
 
             {/* Video Counter */}

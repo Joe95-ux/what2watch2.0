@@ -3,9 +3,8 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Play, Plus, Heart } from "lucide-react";
-import { TMDBMovie, TMDBSeries, getPosterUrl, TMDBVideo } from "@/lib/tmdb";
+import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
 import { CircleActionButton } from "./circle-action-button";
-import TrailerModal from "./trailer-modal";
 import ContentDetailModal from "./content-detail-modal";
 
 interface MoreLikeThisCardProps {
@@ -15,10 +14,6 @@ interface MoreLikeThisCardProps {
 
 export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const [trailer, setTrailer] = useState<TMDBVideo | null>(null);
-  const [allVideos, setAllVideos] = useState<TMDBVideo[]>([]);
-  const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
-  const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [runtime, setRuntime] = useState<number | null>(null);
@@ -77,34 +72,8 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
     }
   }, [item.id, type, initialRuntime, runtime, isLoadingRuntime]);
 
-  // Fetch trailer on hover (with delay to avoid too many requests)
   const handleMouseEnter = () => {
     setIsHovered(true);
-    if (!trailer && !isLoadingTrailer) {
-      setTimeout(async () => {
-        setIsLoadingTrailer(true);
-        try {
-          const response = await fetch(`/api/${type === "movie" ? "movies" : "tv"}/${item.id}/videos`);
-          if (response.ok) {
-            const data = await response.json();
-            const videos = data.results || [];
-            setAllVideos(videos);
-            // Find first trailer
-            const officialTrailer = videos.find(
-              (v: TMDBVideo) => v.type === "Trailer" && v.official && v.site === "YouTube"
-            );
-            const anyTrailer = videos.find(
-              (v: TMDBVideo) => v.type === "Trailer" && v.site === "YouTube"
-            );
-            setTrailer(officialTrailer || anyTrailer || null);
-          }
-        } catch (error) {
-          console.error("Error fetching trailer:", error);
-        } finally {
-          setIsLoadingTrailer(false);
-        }
-      }, 300);
-    }
   };
 
   const handleMouseLeave = () => {
@@ -183,13 +152,6 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
               <Play className="size-6 text-white fill-white" />
             </CircleActionButton>
           </div>
-
-          {/* Loading state for play button */}
-          {isLoadingTrailer && !trailer && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-              <div className="h-8 w-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            </div>
-          )}
         </div>
 
         {/* Section 2: Movie Details */}
@@ -223,17 +185,6 @@ export default function MoreLikeThisCard({ item, type }: MoreLikeThisCardProps) 
           )}
         </div>
       </div>
-
-      {/* Trailer Modal */}
-      {trailer && (
-        <TrailerModal
-          video={trailer}
-          videos={allVideos}
-          isOpen={isTrailerModalOpen}
-          onClose={() => setIsTrailerModalOpen(false)}
-          title={title}
-        />
-      )}
 
       {/* Detail Modal */}
       <ContentDetailModal

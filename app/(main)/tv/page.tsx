@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-import BrowseContent from "@/components/browse/browse-content";
+import TVContent from "@/components/browse/tv-content";
 
-export default async function BrowsePage() {
+export default async function TVPage() {
   const { userId } = await auth();
 
   if (!userId) {
@@ -25,9 +25,9 @@ export default async function BrowsePage() {
   }
 
   return (
-    <BrowseContent
+    <TVContent
       favoriteGenres={user.preferences.favoriteGenres}
-      preferredTypes={(user.preferences.preferredTypes || []) as ("movie" | "tv")[]}
+      preferredTypes={(user.preferences.preferredTypes || ["tv"]) as ("movie" | "tv")[]}
     />
   );
 }

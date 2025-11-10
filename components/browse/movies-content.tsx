@@ -1,37 +1,35 @@
 "use client";
 
-import { usePopularMovies, useNowPlayingMovies, usePopularTV, useOnTheAirTV, usePersonalizedContent, useMoviesByGenre } from "@/hooks/use-movies";
+import { usePopularMovies, useNowPlayingMovies, usePersonalizedContent, useMoviesByGenre } from "@/hooks/use-movies";
 import { useAllGenres } from "@/hooks/use-genres";
 import ContentRow from "./content-row";
 import HeroSection from "./hero-section";
 import RecentlyViewed from "./recently-viewed";
-import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
+import { TMDBMovie } from "@/lib/tmdb";
 
-interface BrowseContentProps {
+interface MoviesContentProps {
   favoriteGenres: number[];
   preferredTypes: ("movie" | "tv")[];
 }
 
-export default function BrowseContent({ favoriteGenres, preferredTypes }: BrowseContentProps) {
+export default function MoviesContent({ favoriteGenres, preferredTypes }: MoviesContentProps) {
   // Fetch all data with TanStack Query
   const { data: popularMovies = [], isLoading: isLoadingPopularMovies } = usePopularMovies(1);
   const { data: nowPlayingMovies = [], isLoading: isLoadingNowPlaying } = useNowPlayingMovies(1);
-  const { data: popularTV = [], isLoading: isLoadingPopularTV } = usePopularTV(1);
-  const { data: onTheAirTV = [], isLoading: isLoadingOnTheAir } = useOnTheAirTV(1);
-  const { data: personalizedContent = [], isLoading: isLoadingPersonalized } = usePersonalizedContent(
+  // Filter personalized content to only movies
+  const { data: allPersonalized = [], isLoading: isLoadingPersonalized } = usePersonalizedContent(
     favoriteGenres,
-    preferredTypes.length > 0 ? preferredTypes : ["movie", "tv"] // Default to both if empty
+    preferredTypes.length > 0 ? preferredTypes.filter(t => t === "movie") : ["movie"]
   );
+  const personalizedMovies = allPersonalized.filter((item): item is TMDBMovie => "title" in item);
   const { data: allGenres = [] } = useAllGenres();
 
-  // Featured items for hero carousel (mix of popular movies and TV shows)
-  const featuredItems: (TMDBMovie | TMDBSeries)[] = [
-    ...(popularMovies.slice(0, 3) || []),
-    ...(popularTV.slice(0, 2) || []),
-  ].filter(Boolean);
+  // Featured items for hero carousel (only movies)
+  const featuredItems: TMDBMovie[] = popularMovies.slice(0, 5) || [];
   const featuredMovie: TMDBMovie | null = popularMovies[0] || null;
 
-  // Get top genres for genre sections (limit to 6 most common genres)
+  // Get movie genres only (filter out TV-only genres if needed)
+  // For simplicity, we'll use all genres but only show movie sections
   const topGenres = allGenres.slice(0, 6);
 
   return (
@@ -46,11 +44,11 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
       {/* Content Rows - Full width, padding handled by ContentRow */}
       <div className="w-full py-8 overflow-hidden">
         {/* Personalized Section */}
-        {personalizedContent.length > 0 && (
+        {personalizedMovies.length > 0 && (
           <ContentRow
             title="We Think You'll Love This"
-            items={personalizedContent}
-            type={preferredTypes.length === 1 ? preferredTypes[0] : "movie"} // Use first type or default to movie for mixed content
+            items={personalizedMovies}
+            type="movie"
             isLoading={isLoadingPersonalized}
             href="/browse/personalized"
           />
@@ -72,24 +70,6 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
           type="movie"
           isLoading={isLoadingNowPlaying}
           href="/browse/movies/latest"
-        />
-
-        {/* Popular TV Shows */}
-        <ContentRow
-          title="Popular TV Shows"
-          items={popularTV}
-          type="tv"
-          isLoading={isLoadingPopularTV}
-          href="/browse/tv/popular"
-        />
-
-        {/* Latest TV Shows */}
-        <ContentRow
-          title="Latest TV Shows"
-          items={onTheAirTV}
-          type="tv"
-          isLoading={isLoadingOnTheAir}
-          href="/browse/tv/latest"
         />
 
         {/* Genre Sections */}
@@ -122,3 +102,4 @@ function GenreRow({ genreId, genreName }: { genreId: number; genreName: string }
     />
   );
 }
+

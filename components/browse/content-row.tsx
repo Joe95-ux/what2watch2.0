@@ -277,7 +277,7 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
                 <div key={item.id} className="relative flex-shrink-0 w-[180px] sm:w-[200px] overflow-visible">
                   <MovieCard 
                     item={item} 
-                    type={type}
+                    type={"title" in item ? "movie" : "tv"}
                     canScrollPrev={canScrollPrev}
                     canScrollNext={canScrollNext}
                   />

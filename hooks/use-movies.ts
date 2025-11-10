@@ -55,11 +55,68 @@ const fetchPersonalizedMovies = async (genreId: number): Promise<TMDBMovie[]> =>
   return data.results || [];
 };
 
+// Fetch personalized content using multiple genres and preferred types
+const fetchPersonalizedContent = async (
+  favoriteGenres: number[],
+  preferredTypes: ("movie" | "tv")[]
+): Promise<(TMDBMovie | TMDBSeries)[]> => {
+  if (favoriteGenres.length === 0) {
+    return [];
+  }
+
+  // Use top 3-5 genres for better diversity
+  const topGenres = favoriteGenres.slice(0, 5);
+  
+  // Fetch content for each genre and type
+  const fetchPromises: Promise<(TMDBMovie | TMDBSeries)[]>[] = [];
+
+  for (const genreId of topGenres) {
+    if (preferredTypes.includes("movie")) {
+      fetchPromises.push(
+        fetch(`/api/search?genre=${genreId}&type=movie&sortBy=popularity.desc&page=1`)
+          .then((res) => res.json())
+          .then((data) => (data.results || []).slice(0, 4)) // Limit per genre
+          .catch(() => [])
+      );
+    }
+    if (preferredTypes.includes("tv")) {
+      fetchPromises.push(
+        fetch(`/api/search?genre=${genreId}&type=tv&sortBy=popularity.desc&page=1`)
+          .then((res) => res.json())
+          .then((data) => (data.results || []).slice(0, 4)) // Limit per genre
+          .catch(() => [])
+      );
+    }
+  }
+
+  const results = await Promise.all(fetchPromises);
+  const combined = results.flat();
+  
+  // Remove duplicates by id and type
+  const unique = combined.filter(
+    (item, index, self) =>
+      index === self.findIndex((t) => t.id === item.id && ("title" in item ? "title" : "name") === ("title" in t ? t.title : t.name))
+  );
+
+  // Shuffle and limit to 20 items
+  const shuffled = unique.sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 20);
+};
+
 const fetchMoviesByGenre = async (genreId: number, page: number = 1): Promise<TMDBMovie[]> => {
   const res = await fetch(
     `/api/search?genre=${genreId}&type=movie&sortBy=popularity.desc&page=${page}`
   );
   if (!res.ok) throw new Error("Failed to fetch movies by genre");
+  const data = await res.json();
+  return data.results || [];
+};
+
+const fetchTVByGenre = async (genreId: number, page: number = 1): Promise<TMDBSeries[]> => {
+  const res = await fetch(
+    `/api/search?genre=${genreId}&type=tv&sortBy=popularity.desc&page=${page}`
+  );
+  if (!res.ok) throw new Error("Failed to fetch TV shows by genre");
   const data = await res.json();
   return data.results || [];
 };
@@ -116,6 +173,29 @@ export function useMoviesByGenre(genreId: number, page: number = 1) {
     queryKey: movieQueryKeys.byGenre(genreId, page),
     queryFn: () => fetchMoviesByGenre(genreId, page),
     staleTime: 1000 * 60 * 60, // 1 hour
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
+  });
+}
+
+export function useTVByGenre(genreId: number, page: number = 1) {
+  return useQuery({
+    queryKey: tvQueryKeys.byGenre(genreId, page),
+    queryFn: () => fetchTVByGenre(genreId, page),
+    staleTime: 1000 * 60 * 60, // 1 hour
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
+  });
+}
+
+// Improved personalized content hook using multiple genres and preferred types
+export function usePersonalizedContent(
+  favoriteGenres: number[],
+  preferredTypes: ("movie" | "tv")[]
+) {
+  return useQuery({
+    queryKey: ["personalized", favoriteGenres.join(","), preferredTypes.join(",")],
+    queryFn: () => fetchPersonalizedContent(favoriteGenres, preferredTypes),
+    enabled: favoriteGenres.length > 0 && preferredTypes.length > 0,
+    staleTime: 1000 * 60 * 30, // 30 minutes
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }

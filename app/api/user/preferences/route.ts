@@ -14,7 +14,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
     }
 
     const body = await request.json();
-    const { favoriteGenres, onboardingCompleted } = body;
+    const { favoriteGenres, preferredTypes, onboardingCompleted } = body;
 
     // Find or create user
     let user = await db.user.findUnique({
@@ -46,10 +46,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
       create: {
         userId: user.id,
         favoriteGenres: favoriteGenres || [],
+        preferredTypes: preferredTypes || [],
         onboardingCompleted: onboardingCompleted ?? false,
       },
       update: {
         favoriteGenres: favoriteGenres || [],
+        preferredTypes: preferredTypes || [],
         onboardingCompleted: onboardingCompleted ?? false,
         updatedAt: new Date(),
       },
