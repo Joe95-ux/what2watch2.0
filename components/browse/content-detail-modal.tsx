@@ -207,15 +207,15 @@ export default function ContentDetailModal({
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent 
         side="right"
-        className="!w-full sm:!w-[90vw] lg:!w-[80vw] xl:!max-w-[60rem] !h-full overflow-y-auto p-0 gap-0 [&>button]:hidden relative"
+        className="!w-full sm:!w-[90vw] lg:!w-[80vw] xl:!max-w-[60rem] !h-full overflow-y-auto p-0 gap-0 [&>button]:hidden"
       >
-        {/* Control Buttons Container */}
-        <div className="absolute inset-0 pointer-events-none z-[100]">
+        {/* Control Buttons - Wrapped in div to avoid [&>button]:hidden selector */}
+        <div>
           {/* Back Button (when opened from More Like This) */}
           {showBackButton && (
             <button
               onClick={handleBack}
-              className="absolute top-4 left-4 h-14 w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105 pointer-events-auto"
+              className="absolute top-4 left-4 z-[100] h-14 w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105"
               aria-label="Back"
             >
               <ArrowLeft className="h-7 w-7 text-white" />
@@ -225,7 +225,7 @@ export default function ContentDetailModal({
           {/* Close Button - More Prominent */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 h-14 w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105 pointer-events-auto"
+            className="absolute top-4 right-4 z-[100] h-14 w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105"
             aria-label="Close"
           >
             <X className="h-7 w-7 text-white" />

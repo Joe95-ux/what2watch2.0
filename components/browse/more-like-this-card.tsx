@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Play, Plus, Heart } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
@@ -24,6 +24,7 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
   const [isMobile, setIsMobile] = useState(false);
   const [runtime, setRuntime] = useState<number | null>(null);
   const [isLoadingRuntime, setIsLoadingRuntime] = useState(false);
+  const attemptedRuntimeFetchRef = useRef<number | null>(null); // Track which item ID we've attempted to fetch
   const toggleFavorite = useToggleFavorite();
   
   const hasParent = !!parentItem && !!parentType;
@@ -63,20 +64,50 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // Reset fetch attempt tracking when item changes
+  useEffect(() => {
+    if (attemptedRuntimeFetchRef.current !== item.id) {
+      attemptedRuntimeFetchRef.current = null;
+      setRuntime(null);
+    }
+  }, [item.id]);
+
   // Fetch runtime if not available
   useEffect(() => {
-    if (!initialRuntime && !runtime && !isLoadingRuntime) {
+    // Only fetch if:
+    // 1. We don't have initial runtime
+    // 2. We don't have runtime yet
+    // 3. We're not currently loading
+    // 4. We haven't already attempted to fetch for this item (prevents infinite loops)
+    if (!initialRuntime && !runtime && !isLoadingRuntime && attemptedRuntimeFetchRef.current !== item.id) {
+      attemptedRuntimeFetchRef.current = item.id;
       setIsLoadingRuntime(true);
       fetch(`/api/${type === "movie" ? "movies" : "tv"}/${item.id}`)
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) {
+            // Request failed - mark as attempted so we don't retry
+            attemptedRuntimeFetchRef.current = item.id;
+            return null;
+          }
+          return res.json();
+        })
         .then((data) => {
-          if (type === "movie" && data.runtime) {
-            setRuntime(data.runtime);
-          } else if (type === "tv" && data.episode_run_time?.[0]) {
-            setRuntime(data.episode_run_time[0]);
+          if (data) {
+            if (type === "movie" && data.runtime) {
+              setRuntime(data.runtime);
+            } else if (type === "tv" && data.episode_run_time?.[0]) {
+              setRuntime(data.episode_run_time[0]);
+            } else {
+              // No runtime found - mark as attempted so we don't retry
+              attemptedRuntimeFetchRef.current = item.id;
+            }
           }
         })
-        .catch(console.error)
+        .catch((error) => {
+          console.error("Error fetching runtime:", error);
+          // Request failed - mark as attempted so we don't retry
+          attemptedRuntimeFetchRef.current = item.id;
+        })
         .finally(() => setIsLoadingRuntime(false));
     }
   }, [item.id, type, initialRuntime, runtime, isLoadingRuntime]);
