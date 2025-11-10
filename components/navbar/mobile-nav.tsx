@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Settings, LogOut, Moon, Sun, Monitor } from "lucide-react";
+import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MobileNavProps {
@@ -28,9 +28,9 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
   };
 
   return (
-    <div className="flex flex-col gap-4 py-4">
-      {/* Navigation Links */}
-      <nav className="flex flex-col gap-1 px-4">
+    <div className="flex flex-col">
+      {/* Navigation Links - Styled like DropdownMenu */}
+      <div className="p-1">
         {navLinks.map((link) => {
           const isActive = pathname === link.href;
           return (
@@ -39,67 +39,71 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               href={link.href}
               onClick={onLinkClick}
               className={cn(
-                "relative px-3 py-2 text-sm font-medium transition-colors rounded-md",
+                "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
+                "focus:bg-accent focus:text-accent-foreground",
                 "hover:bg-accent hover:text-accent-foreground",
                 isActive
-                  ? "text-foreground"
-                  : "text-muted-foreground",
-                isActive && "after:content-[''] after:absolute after:bottom-[-15px] after:left-0 after:right-0 after:h-[3px] after:bg-[#E50914] after:rounded-t-[15px]"
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground"
               )}
             >
               {link.label}
             </Link>
           );
         })}
-      </nav>
+      </div>
 
       {/* User Menu Items (only shown when signed in) */}
       {isSignedIn && (
         <>
-          <Separator />
-          <div className="flex flex-col gap-1 px-4">
+          <Separator className="my-1" />
+          <div className="p-1">
             <Link
               href="/settings"
               onClick={onLinkClick}
               className={cn(
-                "px-3 py-2 text-sm font-medium transition-colors rounded-md",
+                "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
+                "focus:bg-accent focus:text-accent-foreground",
                 "hover:bg-accent hover:text-accent-foreground",
-                "flex items-center gap-2",
                 pathname === "/settings"
                   ? "bg-accent text-accent-foreground"
                   : "text-muted-foreground"
               )}
             >
-              <Settings className="h-4 w-4" />
-              Settings
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Settings</span>
             </Link>
 
-            {/* Theme Toggle */}
-            <div className="px-3 py-2 text-sm font-medium text-muted-foreground">
-              <div className="flex items-center gap-2 mb-2">
+            {/* Theme Toggle - Styled like DropdownMenuSubTrigger */}
+            <div className="relative">
+              <div className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground hover:bg-accent hover:text-accent-foreground text-muted-foreground">
                 {theme === "light" ? (
-                  <Sun className="h-4 w-4" />
+                  <Sun className="mr-2 h-4 w-4" />
                 ) : theme === "dark" ? (
-                  <Moon className="h-4 w-4" />
+                  <Moon className="mr-2 h-4 w-4" />
                 ) : (
-                  <Monitor className="h-4 w-4" />
+                  <Monitor className="mr-2 h-4 w-4" />
                 )}
                 <span>Theme</span>
+                <ChevronRight className="ml-auto h-4 w-4" />
               </div>
-              <div className="flex flex-col gap-1 ml-6">
+              <div className="ml-4 mt-1 space-y-0.5">
                 <button
                   onClick={() => {
                     setTheme("light");
                     onLinkClick();
                   }}
                   className={cn(
-                    "text-left px-2 py-1.5 text-xs rounded-md transition-colors",
+                    "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
+                    "focus:bg-accent focus:text-accent-foreground",
+                    "hover:bg-accent hover:text-accent-foreground",
                     theme === "light"
                       ? "bg-accent text-accent-foreground"
-                      : "hover:bg-accent/50 text-muted-foreground"
+                      : "text-muted-foreground"
                   )}
                 >
-                  Light
+                  <Sun className="mr-2 h-4 w-4" />
+                  <span>Light</span>
                 </button>
                 <button
                   onClick={() => {
@@ -107,13 +111,16 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                     onLinkClick();
                   }}
                   className={cn(
-                    "text-left px-2 py-1.5 text-xs rounded-md transition-colors",
+                    "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
+                    "focus:bg-accent focus:text-accent-foreground",
+                    "hover:bg-accent hover:text-accent-foreground",
                     theme === "dark"
                       ? "bg-accent text-accent-foreground"
-                      : "hover:bg-accent/50 text-muted-foreground"
+                      : "text-muted-foreground"
                   )}
                 >
-                  Dark
+                  <Moon className="mr-2 h-4 w-4" />
+                  <span>Dark</span>
                 </button>
                 <button
                   onClick={() => {
@@ -121,42 +128,51 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                     onLinkClick();
                   }}
                   className={cn(
-                    "text-left px-2 py-1.5 text-xs rounded-md transition-colors",
+                    "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
+                    "focus:bg-accent focus:text-accent-foreground",
+                    "hover:bg-accent hover:text-accent-foreground",
                     theme === "system"
                       ? "bg-accent text-accent-foreground"
-                      : "hover:bg-accent/50 text-muted-foreground"
+                      : "text-muted-foreground"
                   )}
                 >
-                  System
+                  <Monitor className="mr-2 h-4 w-4" />
+                  <span>System</span>
                 </button>
               </div>
             </div>
 
+            <Separator className="my-1" />
+
             <button
               onClick={handleSignOut}
               className={cn(
-                "px-3 py-2 text-sm font-medium transition-colors rounded-md",
-                "hover:bg-destructive/10 text-destructive",
-                "flex items-center gap-2 w-full text-left"
+                "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
+                "focus:bg-accent focus:text-accent-foreground",
+                "hover:bg-accent hover:text-accent-foreground",
+                "text-destructive focus:text-destructive"
               )}
             >
-              <LogOut className="h-4 w-4" />
-              Logout
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Logout</span>
             </button>
           </div>
         </>
       )}
 
-      <Separator />
-
       {/* Auth Section */}
-      <div className="px-4">
-        {!isSignedIn && (
-          <SignInButton mode="modal">
-            <Button className="w-full" onClick={onLinkClick}>Sign In</Button>
-          </SignInButton>
-        )}
-      </div>
+      {!isSignedIn && (
+        <>
+          <Separator className="my-1" />
+          <div className="p-1">
+            <SignInButton mode="modal">
+              <Button className="w-full" onClick={onLinkClick} variant="default">
+                Sign In
+              </Button>
+            </SignInButton>
+          </div>
+        </>
+      )}
     </div>
   );
 }
