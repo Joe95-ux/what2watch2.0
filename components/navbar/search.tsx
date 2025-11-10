@@ -15,6 +15,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { TMDBMovie, TMDBSeries, TMDBResponse } from "@/lib/tmdb";
@@ -250,7 +251,21 @@ export default function Search() {
                     setFilters={setFilters}
                     genres={genres}
                     resetFilters={resetFilters}
-                    onClose={() => setFiltersOpen(false)}
+                    onApply={async () => {
+                      setFiltersOpen(false);
+                      // Build search URL with filters
+                      const params = new URLSearchParams();
+                      if (query.trim()) params.set("query", query.trim());
+                      if (filters.type !== "all") params.set("type", filters.type);
+                      if (filters.genre) params.set("genre", filters.genre);
+                      if (filters.year) params.set("year", filters.year);
+                      if (filters.minRating > 0) params.set("minRating", filters.minRating.toString());
+                      if (filters.sortBy) params.set("sortBy", filters.sortBy);
+                      
+                      // Redirect to search page
+                      router.push(`/search?${params.toString()}`);
+                    }}
+                    isLoading={isLoading}
                   />
                 </SheetContent>
               </Sheet>
@@ -271,8 +286,16 @@ export default function Search() {
             {(query || results.length > 0) && (
               <div className="max-h-[60vh] overflow-y-auto border-t">
                 {isLoading && (
-                  <div className="py-6 text-center text-sm text-muted-foreground">
-                    Searching...
+                  <div className="p-2 space-y-3">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="flex items-center gap-3 px-2">
+                        <Skeleton className="h-12 w-8 rounded flex-shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-4 w-3/4" />
+                          <Skeleton className="h-3 w-1/2" />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
                 {!isLoading && query && results.length === 0 && (
@@ -340,13 +363,27 @@ export default function Search() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[400px] sm:w-[540px]">
-              <FiltersSheet
-                filters={filters}
-                setFilters={setFilters}
-                genres={genres}
-                resetFilters={resetFilters}
-                onClose={() => setFiltersOpen(false)}
-              />
+                <FiltersSheet
+                  filters={filters}
+                  setFilters={setFilters}
+                  genres={genres}
+                  resetFilters={resetFilters}
+                  onApply={async () => {
+                    setFiltersOpen(false);
+                    // Build search URL with filters
+                    const params = new URLSearchParams();
+                    if (query.trim()) params.set("query", query.trim());
+                    if (filters.type !== "all") params.set("type", filters.type);
+                    if (filters.genre) params.set("genre", filters.genre);
+                    if (filters.year) params.set("year", filters.year);
+                    if (filters.minRating > 0) params.set("minRating", filters.minRating.toString());
+                    if (filters.sortBy) params.set("sortBy", filters.sortBy);
+                    
+                    // Redirect to search page
+                    router.push(`/search?${params.toString()}`);
+                  }}
+                  isLoading={isLoading}
+                />
             </SheetContent>
           </Sheet>
         </div>
@@ -356,8 +393,16 @@ export default function Search() {
       {isExpanded && (query || results.length > 0) && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-50 max-h-[400px] overflow-y-auto">
           {isLoading && (
-            <div className="py-6 text-center text-sm text-muted-foreground">
-              Searching...
+            <div className="p-2 space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center gap-3 px-2">
+                  <Skeleton className="h-12 w-8 rounded flex-shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                </div>
+              ))}
             </div>
           )}
           {!isLoading && query && results.length === 0 && (
@@ -439,13 +484,15 @@ function FiltersSheet({
   setFilters,
   genres,
   resetFilters,
-  onClose,
+  onApply,
+  isLoading,
 }: {
   filters: SearchFilters;
   setFilters: (filters: SearchFilters) => void;
   genres: Array<{ id: number; name: string }>;
   resetFilters: () => void;
-  onClose: () => void;
+  onApply: () => void;
+  isLoading?: boolean;
 }) {
   const hasActiveFilters = filters.type !== "all" || filters.genre || filters.year || filters.minRating > 0;
   const currentYear = new Date().getFullYear();
@@ -646,10 +693,20 @@ function FiltersSheet({
             Reset
           </Button>
           <Button
-            onClick={onClose}
+            onClick={() => {
+              onApply();
+            }}
             className="flex-1 h-10 text-sm"
+            disabled={isLoading}
           >
-            Apply
+            {isLoading ? (
+              <span className="flex items-center gap-2">
+                <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                Applying...
+              </span>
+            ) : (
+              "Apply"
+            )}
           </Button>
         </div>
       </div>

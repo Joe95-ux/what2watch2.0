@@ -388,13 +388,15 @@ export default function ContentDetailModal({
                     </div>
                   )}
 
-                  {/* More Like This Section */}
-                  <MoreLikeThis
-                    items={moreLikeThisItems}
-                    type={type}
-                    title="More Like This"
-                    isLoading={isLoadingMoreLikeThis}
-                  />
+                  {/* More Like This Section - Full Width */}
+                  <div className="w-full -mx-6 sm:-mx-8 lg:-mx-12 px-6 sm:px-8 lg:px-12">
+                    <MoreLikeThis
+                      items={moreLikeThisItems}
+                      type={type}
+                      title="More Like This"
+                      isLoading={isLoadingMoreLikeThis}
+                    />
+                  </div>
                 </div>
 
                 {/* Sidebar */}

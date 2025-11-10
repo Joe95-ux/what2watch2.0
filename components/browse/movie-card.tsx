@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { Star, Play, Plus, Info, Maximize2 } from "lucide-react";
+import { Star, Play, Plus, Heart, Maximize2 } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getPosterUrl, TMDBVideo, getYouTubeEmbedUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -267,10 +267,10 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    setIsModalOpen(true);
+                    // TODO: Handle like/favorite
                   }}
                 >
-                  <Info className="h-3 w-3 text-white" />
+                  <Heart className="h-3 w-3 text-white" />
                 </Button>
               </div>
 

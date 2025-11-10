@@ -105,7 +105,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
 
   return (
     <div className="relative w-full h-[70vh] min-h-[600px] overflow-hidden dark:bg-background bg-black">
-      {/* Trailer Video (if available) - Full screen with autoplay */}
+      {/* Trailer Video (if available) - Full width with autoplay */}
       {trailer && !isLoadingTrailer && (
         <div className={`absolute inset-0 z-0 transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
           <iframe
@@ -114,7 +114,11 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
             className="w-full h-full"
             allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
-            style={{ pointerEvents: "none" }}
+            style={{ 
+              pointerEvents: "none",
+              width: "100%",
+              height: "100%"
+            }}
             title="Trailer"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent pointer-events-none dark:from-background dark:via-background/60" />
