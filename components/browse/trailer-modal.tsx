@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { TMDBVideo, getYouTubeEmbedUrl } from "@/lib/tmdb";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -67,6 +67,15 @@ export default function TrailerModal({
         showCloseButton={false}
         className="!max-w-[90vw] !w-full !h-[90vh] !max-h-[90vh] !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 overflow-hidden p-0 gap-0 bg-black"
       >
+        {/* Accessibility: Hidden title and description for screen readers */}
+        <DialogTitle className="sr-only">
+          {title} - {currentVideo.name}
+        </DialogTitle>
+        <DialogDescription className="sr-only">
+          Video player for {title}. {currentVideo.official ? "Official" : ""} {currentVideo.type} video.
+          {hasMultipleVideos && ` Video ${currentVideoIndex + 1} of ${youtubeVideos.length}.`}
+        </DialogDescription>
+        
         {/* Close Button */}
         <button
           onClick={onClose}

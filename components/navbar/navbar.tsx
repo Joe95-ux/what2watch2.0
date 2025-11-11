@@ -37,15 +37,13 @@ export default function Navbar() {
   const shouldUseCollapsedNav = pathname === "/my-list" || pathname === "/playlists" || pathname?.startsWith("/playlists/");
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-black/95 backdrop-blur supports-[backdrop-filter]:bg-black/60 dark:bg-background/95 dark:supports-[backdrop-filter]:bg-background/60">
+    <nav className="sticky top-0 z-50 w-full border-b bg-black/95 backdrop-blur supports-[backdrop-filter]:bg-black/60">
       <div className={cn(
         "w-full flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8",
         shouldUseCollapsedNav && "max-w-7xl mx-auto"
       )}>
-        {/* Left side - Logo and Desktop Nav */}
+        {/* Left side - Desktop Nav and Logo */}
         <div className="flex items-center gap-8 flex-1">
-          <Logo fontSize="text-xl" iconSize={20} />
-          
           {/* Desktop Navigation - Show dropdown on my-list/playlists, regular nav elsewhere */}
           {shouldUseCollapsedNav ? (
             <div className="hidden md:block">
@@ -74,6 +72,8 @@ export default function Navbar() {
               })}
             </div>
           )}
+          
+          <Logo fontSize="text-xl" iconSize={20} />
         </div>
 
         {/* Right side - Search, User */}

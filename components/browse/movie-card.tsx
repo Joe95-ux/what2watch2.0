@@ -226,7 +226,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
         <div
           className={cn(
             "relative block aspect-[2/3] rounded-lg overflow-hidden",
-            isHovered && !isMobile && "z-[100] shadow-2xl"
+            isHovered && !isMobile && "z-[100]"
           )}
           style={{
             transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -339,17 +339,63 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                     "rounded-full bg-white text-black hover:bg-white/90 font-medium cursor-pointer",
                     isMobile ? "h-6 px-2 text-[10px]" : "h-7 px-3 text-xs"
                   )}
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    
+                    // If we have a trailer, open modal immediately
                     if (trailer) {
                       setIsTrailerModalOpen(true);
+                      return;
+                    }
+                    
+                    // If we're already loading, wait
+                    if (isLoadingTrailer) {
+                      return;
+                    }
+                    
+                    // Fetch videos if we haven't attempted yet
+                    if (attemptedFetchRef.current !== item.id) {
+                      attemptedFetchRef.current = item.id;
+                      setIsLoadingTrailer(true);
+                      try {
+                        const response = await fetch(`/api/${type}/${item.id}/videos`);
+                        if (response.ok) {
+                          const data = await response.json();
+                          const videos = data.results || [];
+                          setAllVideos(videos);
+                          // Find first trailer (prefer official trailers)
+                          const officialTrailer = videos.find(
+                            (v: TMDBVideo) => v.type === "Trailer" && v.official && v.site === "YouTube"
+                          );
+                          const anyTrailer = videos.find(
+                            (v: TMDBVideo) => v.type === "Trailer" && v.site === "YouTube"
+                          );
+                          const foundTrailer = officialTrailer || anyTrailer || null;
+                          setTrailer(foundTrailer);
+                          
+                          // Open modal if we found a trailer
+                          if (foundTrailer) {
+                            setIsTrailerModalOpen(true);
+                          }
+                        }
+                      } catch (error) {
+                        console.error("Error fetching trailer:", error);
+                      } finally {
+                        setIsLoadingTrailer(false);
+                      }
                     }
                   }}
-                  disabled={!trailer}
+                  disabled={isLoadingTrailer}
                 >
-                  <Play className={cn("fill-black", isMobile ? "h-2.5 w-2.5 mr-0.5" : "h-3 w-3 mr-1")} />
-                  {!isMobile && "Play"}
+                  {isLoadingTrailer ? (
+                    <span className={cn(isMobile ? "h-2.5 w-2.5" : "h-3 w-3")}>...</span>
+                  ) : (
+                    <>
+                      <Play className={cn("fill-black", isMobile ? "h-2.5 w-2.5 mr-0.5" : "h-3 w-3 mr-1")} />
+                      {!isMobile && "Play"}
+                    </>
+                  )}
                 </Button>
                 <Tooltip>
                   <TooltipTrigger asChild>

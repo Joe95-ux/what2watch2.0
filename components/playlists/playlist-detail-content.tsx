@@ -174,7 +174,7 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
 
         <div className="absolute inset-0 flex items-end">
           <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 w-full">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
               <div className="flex-1">
                 <Button
                   variant="ghost"
@@ -211,7 +211,7 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-end gap-2 ml-auto sm:ml-0">
                 <Button
                   variant="outline"
                   onClick={() => setIsShareDialogOpen(true)}

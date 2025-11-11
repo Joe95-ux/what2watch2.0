@@ -76,7 +76,13 @@ export default function AddToPlaylistDropdown({ item, type, trigger }: AddToPlay
         <DropdownMenuTrigger asChild>
           {trigger || defaultTrigger}
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuContent 
+          align="end" 
+          className="w-56"
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+        >
           <DropdownMenuLabel>Add to Playlist</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {isLoading ? (
@@ -85,7 +91,13 @@ export default function AddToPlaylistDropdown({ item, type, trigger }: AddToPlay
             <>
               <DropdownMenuItem disabled>No playlists yet</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setIsCreateModalOpen(true)}>
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsCreateModalOpen(true);
+                }}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Create Playlist
               </DropdownMenuItem>
@@ -97,7 +109,13 @@ export default function AddToPlaylistDropdown({ item, type, trigger }: AddToPlay
                 return (
                   <DropdownMenuItem
                     key={playlist.id}
-                    onClick={() => !isInPlaylist && handleAddToPlaylist(playlist.id)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!isInPlaylist) {
+                        handleAddToPlaylist(playlist.id);
+                      }
+                    }}
                     disabled={isInPlaylist || addItemToPlaylist.isPending}
                   >
                     {isInPlaylist ? (
@@ -113,7 +131,13 @@ export default function AddToPlaylistDropdown({ item, type, trigger }: AddToPlay
                 );
               })}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setIsCreateModalOpen(true)}>
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsCreateModalOpen(true);
+                }}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Create New Playlist
               </DropdownMenuItem>
