@@ -360,7 +360,9 @@ export default function Search() {
                 <FiltersSheet
                   filters={filters}
                   setFilters={setFilters}
-                  genres={genres}
+                  movieGenres={movieGenres}
+                  tvGenres={tvGenres}
+                  allGenres={allGenres}
                   resetFilters={resetFilters}
                   onApply={async () => {
                     setFiltersOpen(false);
@@ -368,7 +370,7 @@ export default function Search() {
                     const params = new URLSearchParams();
                     if (query.trim()) params.set("query", query.trim());
                     if (filters.type !== "all") params.set("type", filters.type);
-                    if (filters.genre) params.set("genre", filters.genre);
+                    if (filters.genre.length > 0) params.set("genre", filters.genre.join(","));
                     if (filters.year) params.set("year", filters.year);
                     if (filters.minRating > 0) params.set("minRating", filters.minRating.toString());
                     if (filters.sortBy) params.set("sortBy", filters.sortBy);
