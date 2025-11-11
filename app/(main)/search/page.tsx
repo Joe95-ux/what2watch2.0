@@ -85,9 +85,24 @@ function SearchResultsContent() {
   const updateURL = (newParams: Record<string, string | number | number[] | undefined>) => {
     const params = new URLSearchParams();
     
-    // Preserve query if it exists and not being overridden
+    // Preserve existing parameters if not being overridden
     if (query && !newParams.hasOwnProperty("query")) {
       params.set("query", query);
+    }
+    if (type && type !== "all" && !newParams.hasOwnProperty("type")) {
+      params.set("type", type);
+    }
+    if (genre.length > 0 && !newParams.hasOwnProperty("genre")) {
+      params.set("genre", genre.join(","));
+    }
+    if (year && !newParams.hasOwnProperty("year")) {
+      params.set("year", year);
+    }
+    if (minRating > 0 && !newParams.hasOwnProperty("minRating")) {
+      params.set("minRating", minRating.toString());
+    }
+    if (sortBy && !newParams.hasOwnProperty("sortBy")) {
+      params.set("sortBy", sortBy);
     }
     
     // Apply new parameters (these override existing ones)
