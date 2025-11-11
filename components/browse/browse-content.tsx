@@ -49,6 +49,8 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
   // Track seen items to reduce duplicates across rows
   const seenMovieIds = new Set<number>();
   const seenTVIds = new Set<number>();
+  // Separate Set for Latest TV Shows to avoid filtering out items that appear in Popular TV Shows
+  const seenLatestTVIds = new Set<number>();
 
   const filterMoviesUnique = (items: TMDBMovie[], limit?: number) => {
     const source = limit ? items.slice(0, limit) : items;
@@ -64,6 +66,16 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
     return source.filter((show) => {
       if (seenTVIds.has(show.id)) return false;
       seenTVIds.add(show.id);
+      return true;
+    });
+  };
+
+  // Filter Latest TV Shows separately to avoid conflicts with Popular TV Shows
+  const filterLatestTVUnique = (items: TMDBSeries[], limit?: number) => {
+    const source = limit ? items.slice(0, limit) : items;
+    return source.filter((show) => {
+      if (seenLatestTVIds.has(show.id)) return false;
+      seenLatestTVIds.add(show.id);
       return true;
     });
   };
@@ -88,7 +100,8 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
   const popularMoviesUnique = filterMoviesUnique(popularMovies);
   const popularTVUnique = filterTVUnique(popularTV);
   const nowPlayingMoviesUnique = filterMoviesUnique(nowPlayingMovies);
-  const onTheAirTVUnique = filterTVUnique(onTheAirTV);
+  // Use separate filter for Latest TV Shows to avoid conflicts with Popular TV Shows
+  const onTheAirTVUnique = filterLatestTVUnique(onTheAirTV);
 
   return (
     <div className="min-h-screen bg-background">

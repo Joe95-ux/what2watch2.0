@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
 import { Star, Play, Plus, Heart, Maximize2 } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getPosterUrl, TMDBVideo, getYouTubeEmbedUrl } from "@/lib/tmdb";
@@ -13,6 +13,7 @@ import { useToggleFavorite } from "@/hooks/use-favorites";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useContentVideos } from "@/hooks/use-content-details";
 
 interface MovieCardProps {
   item: TMDBMovie | TMDBSeries;
@@ -36,8 +37,10 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const originalRectRef = useRef<DOMRect | null>(null);
   const attemptedFetchRef = useRef<number | null>(null); // Track which item ID we've attempted to fetch
-  const [hasNoVideos, setHasNoVideos] = useState(false);
   const [trailerError, setTrailerError] = useState<string | null>(null);
+  
+  // Use React Query to get cached videos (same cache as detail modal uses)
+  const { data: cachedVideosData, isLoading: isLoadingCachedVideos } = useContentVideos(type, item.id);
   
   // On mobile/tablet, always show overlay with details (no hover/scaling needed)
   const shouldShowOverlay = isHovered || isMobile;
@@ -63,7 +66,6 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
     attemptedFetchRef.current = null;
     setTrailer(null);
     setAllVideos([]);
-    setHasNoVideos(false);
     setTrailerError(null);
     setIsLoadingTrailer(false);
   }, [item.id]);
@@ -77,13 +79,44 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
     }
   }, [isHovered]);
 
+  // Extract videos from cached data or local state
+  const videosFromCache = useMemo(() => {
+    if (cachedVideosData?.results && cachedVideosData.results.length > 0) {
+      return cachedVideosData.results;
+    }
+    return allVideos;
+  }, [cachedVideosData, allVideos]);
+
+  // Extract trailer from cached or local videos
+  const trailerFromCache = useMemo(() => {
+    if (videosFromCache.length === 0) return null;
+    const officialTrailer = videosFromCache.find(
+      (v: TMDBVideo) => v.type === "Trailer" && v.official && v.site === "YouTube"
+    );
+    const anyTrailer = videosFromCache.find(
+      (v: TMDBVideo) => v.type === "Trailer" && v.site === "YouTube"
+    );
+    return officialTrailer || anyTrailer || null;
+  }, [videosFromCache]);
+
+  // Use cached videos if available, otherwise use local state
+  const finalTrailer = trailerFromCache || trailer;
+  const finalAllVideos = videosFromCache.length > 0 ? videosFromCache : allVideos;
+  const finalIsLoading = isLoadingCachedVideos || isLoadingTrailer;
+  const finalHasNoVideos = !finalIsLoading && finalAllVideos.length === 0;
+  const finalError = trailerError && finalAllVideos.length === 0 ? trailerError : null;
+
   const fetchTrailerVideos = useCallback(async () => {
+    // If we have cached videos, use them instead of fetching
+    if (cachedVideosData?.results && cachedVideosData.results.length > 0) {
+      return;
+    }
+
     if (attemptedFetchRef.current === item.id) return;
 
     attemptedFetchRef.current = item.id;
     setIsLoadingTrailer(true);
     setTrailerError(null);
-    setHasNoVideos(false);
 
     try {
       const response = await fetch(`/api/${type}/${item.id}/videos`);
@@ -105,7 +138,6 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
       setTrailer(foundTrailer);
 
       const noVideosAvailable = videos.length === 0;
-      setHasNoVideos(noVideosAvailable);
       setTrailerError(
         noVideosAvailable ? "No trailers are available for this title yet." : null
       );
@@ -114,12 +146,14 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
       attemptedFetchRef.current = null;
       setTrailer(null);
       setAllVideos([]);
-      setHasNoVideos(false);
-      setTrailerError("Unable to load trailers right now. Please try again later.");
+      // Only set error if we don't have cached videos
+      if (!cachedVideosData?.results || cachedVideosData.results.length === 0) {
+        setTrailerError("Unable to load trailers right now. Please try again later.");
+      }
     } finally {
       setIsLoadingTrailer(false);
     }
-  }, [item.id, type]);
+  }, [item.id, type, cachedVideosData]);
 
   // Fetch trailer on hover or on mobile (with delay to avoid too many requests)
   useEffect(() => {
@@ -246,10 +280,10 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
           }}
         >
           {/* Trailer Preview (on hover or mobile) */}
-          {shouldShowOverlay && trailer && !isLoadingTrailer && (
+          {shouldShowOverlay && finalTrailer && !finalIsLoading && (
             <div className="absolute inset-0 z-0 pointer-events-none">
               <iframe
-                src={getYouTubeEmbedUrl(trailer.key)}
+                src={getYouTubeEmbedUrl(finalTrailer.key)}
                 className="w-full h-full"
                 allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
@@ -261,7 +295,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
           )}
 
           {/* Poster Image (fallback or when no trailer) */}
-          {(!shouldShowOverlay || !trailer) && (
+          {(!shouldShowOverlay || !finalTrailer) && (
             <>
               {posterPath ? (
                 <Image
@@ -358,7 +392,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                     e.stopPropagation();
                     setIsTrailerModalOpen(true);
 
-                    if (attemptedFetchRef.current !== item.id && !isLoadingTrailer) {
+                    // Only fetch if we don't have cached videos
+                    if (!cachedVideosData?.results && attemptedFetchRef.current !== item.id && !isLoadingTrailer) {
                       fetchTrailerVideos();
                     }
                   }}
@@ -470,14 +505,14 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
       {/* Trailer Modal */}
       {isTrailerModalOpen && (
         <TrailerModal
-          video={trailer}
-          videos={allVideos}
+          video={finalTrailer}
+          videos={finalAllVideos}
           isOpen={isTrailerModalOpen}
           onClose={() => setIsTrailerModalOpen(false)}
           title={title}
-          isLoading={isLoadingTrailer}
-          hasNoVideos={hasNoVideos}
-          errorMessage={trailerError}
+          isLoading={finalIsLoading}
+          hasNoVideos={finalHasNoVideos}
+          errorMessage={finalError}
           onOpenDetails={() => {
             setIsModalOpen(true);
           }}
