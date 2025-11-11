@@ -15,6 +15,7 @@ import ContentRow from "./content-row";
 import HeroSection from "./hero-section";
 import RecentlyViewed from "./recently-viewed";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
+import { useMemo } from "react";
 
 interface BrowseContentProps {
   favoriteGenres: number[];
@@ -175,7 +176,6 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
             key={genre.id}
             genreId={genre.id}
             genreName={genre.name}
-            seenMovieIds={seenMovieIds}
           />
         ))}
 
@@ -190,19 +190,20 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
 function GenreRow({
   genreId,
   genreName,
-  seenMovieIds,
 }: {
   genreId: number;
   genreName: string;
-  seenMovieIds: Set<number>;
 }) {
   const { data: genreMovies = [], isLoading } = useMoviesByGenre(genreId, 1);
 
-  const uniqueGenreMovies = genreMovies.filter((movie) => {
-    if (seenMovieIds.has(movie.id)) return false;
-    seenMovieIds.add(movie.id);
-    return true;
-  });
+  const uniqueGenreMovies = useMemo(() => {
+    const seenIds = new Set<number>();
+    return genreMovies.filter((movie) => {
+      if (seenIds.has(movie.id)) return false;
+      seenIds.add(movie.id);
+      return true;
+    });
+  }, [genreMovies]);
 
   if (uniqueGenreMovies.length === 0 && !isLoading) {
     return null;
