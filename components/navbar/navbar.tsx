@@ -35,7 +35,7 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Check if we're on a page that should use the collapsed nav and matched width
-  const shouldUseCollapsedNav = pathname === "/my-list" || pathname === "/playlists" || pathname?.startsWith("/playlists/");
+  const shouldUseCollapsedNav = pathname === "/my-list" || pathname === "/playlists" || pathname?.startsWith("/playlists/") || pathname === "/search" || pathname?.startsWith("/search");
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-black/95 backdrop-blur supports-[backdrop-filter]:bg-black/60">
@@ -45,7 +45,7 @@ export default function Navbar() {
       )}>
         {/* Left side - Desktop Nav and Logo */}
         <div className="flex items-center gap-8 flex-1">
-          {/* Desktop Navigation - Show dropdown on my-list/playlists (before logo), regular nav elsewhere (after logo) */}
+          {/* Desktop Navigation - Show dropdown on my-list/playlists/search (before logo), regular nav elsewhere (after logo) */}
           {shouldUseCollapsedNav ? (
             <>
               <div className="hidden md:block">
