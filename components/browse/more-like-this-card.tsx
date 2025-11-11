@@ -251,7 +251,7 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
                           e.stopPropagation();
                         }}
                       >
-                        <Plus className="h-3 w-3 text-white" />
+                        <Plus className="h-3 w-3 text-black dark:text-white" />
                       </CircleActionButton>
                     }
                   />

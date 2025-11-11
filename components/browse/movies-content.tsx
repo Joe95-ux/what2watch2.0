@@ -42,7 +42,7 @@ export default function MoviesContent({ favoriteGenres, preferredTypes }: Movies
       />
 
       {/* Content Rows - Full width, padding handled by ContentRow */}
-      <div className="w-full py-8 overflow-hidden">
+      <div className="w-full pt-0 pb-8 overflow-hidden -mt-32">
         {/* Personalized Section */}
         {(personalizedMovies.length > 0 || isLoadingPersonalized || favoriteGenres.length > 0) && (
           <ContentRow
