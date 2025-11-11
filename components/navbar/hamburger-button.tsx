@@ -6,10 +6,11 @@ import { cn } from "@/lib/utils";
 interface HamburgerButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   isOpen: boolean;
+  showMorph?: boolean;
 }
 
 const HamburgerButton = React.forwardRef<HTMLButtonElement, HamburgerButtonProps>(
-  ({ isOpen, className, ...props }, ref) => {
+  ({ isOpen, showMorph = true, className, ...props }, ref) => {
     return (
       <button
         ref={ref}
@@ -17,7 +18,7 @@ const HamburgerButton = React.forwardRef<HTMLButtonElement, HamburgerButtonProps
         aria-label={isOpen ? "Close menu" : "Open menu"}
         aria-pressed={isOpen}
         className={cn(
-          "relative flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-black",
+          "relative flex items-center justify-center text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
           className
         )}
         {...props}
@@ -26,19 +27,19 @@ const HamburgerButton = React.forwardRef<HTMLButtonElement, HamburgerButtonProps
           <span
             className={cn(
               "absolute left-0 top-0 h-[2px] w-full rounded-full bg-current transition-all duration-300 ease-in-out",
-              isOpen && "translate-y-[9px] rotate-45"
+              showMorph && isOpen && "translate-y-[9px] rotate-45"
             )}
           />
           <span
             className={cn(
               "absolute left-0 top-1/2 h-[2px] w-full -translate-y-1/2 rounded-full bg-current transition-all duration-200 ease-in-out",
-              isOpen && "opacity-0"
+              showMorph && isOpen && "opacity-0"
             )}
           />
           <span
             className={cn(
               "absolute bottom-0 left-0 h-[2px] w-[70%] rounded-full bg-current transition-all duration-300 ease-in-out",
-              isOpen && "bottom-[9px] w-full -rotate-45"
+              showMorph && isOpen && "bottom-[9px] w-full -rotate-45"
             )}
           />
         </span>

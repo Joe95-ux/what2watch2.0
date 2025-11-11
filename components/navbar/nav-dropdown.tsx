@@ -1,7 +1,6 @@
 "use client";
 
-import { Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +10,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { HamburgerButton } from "./hamburger-button";
 
 interface NavLink {
   href: string;
@@ -23,19 +23,22 @@ interface NavDropdownProps {
 
 export function NavDropdown({ navLinks }: NavDropdownProps) {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-9 w-9">
-          <Menu className="h-5 w-5" />
-          <span className="sr-only">Navigation menu</span>
-        </Button>
+        <HamburgerButton
+          isOpen={open}
+          className="h-10 w-10 text-muted-foreground hover:text-foreground transition-colors"
+        />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
         {navLinks.map((link) => {
           // Check if current path matches or starts with link href (for nested routes)
-          const isActive = pathname === link.href || (link.href !== "/" && pathname?.startsWith(link.href + "/"));
+          const isActive =
+            pathname === link.href ||
+            (link.href !== "/" && pathname?.startsWith(link.href + "/"));
           return (
             <Link key={link.href} href={link.href}>
               <DropdownMenuItem
@@ -43,6 +46,7 @@ export function NavDropdown({ navLinks }: NavDropdownProps) {
                   "cursor-pointer",
                   isActive && "bg-accent text-accent-foreground"
                 )}
+                onClick={() => setOpen(false)}
               >
                 <span>{link.label}</span>
               </DropdownMenuItem>

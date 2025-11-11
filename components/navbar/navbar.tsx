@@ -89,7 +89,11 @@ export default function Navbar() {
           {/* Mobile Menu Button */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild className="md:hidden">
-              <HamburgerButton isOpen={mobileMenuOpen} />
+              <HamburgerButton
+                isOpen={mobileMenuOpen}
+                showMorph={false}
+                className="h-9 w-9 text-white"
+              />
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[400px] pt-6">
               <MobileNav 
