@@ -24,6 +24,7 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
   const [isMobile, setIsMobile] = useState(false);
   const [runtime, setRuntime] = useState<number | null>(null);
   const [isLoadingRuntime, setIsLoadingRuntime] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const attemptedRuntimeFetchRef = useRef<number | null>(null); // Track which item ID we've attempted to fetch
   const toggleFavorite = useToggleFavorite();
   
@@ -230,13 +231,14 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
                 {parentalRating}
               </span>
             </div>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div>
-                  <AddToPlaylistDropdown
-                    item={item}
-                    type={type}
-                    trigger={
+            <AddToPlaylistDropdown
+              item={item}
+              type={type}
+              onOpenChange={setIsDropdownOpen}
+              trigger={
+                <Tooltip open={!isDropdownOpen ? undefined : false}>
+                  <TooltipTrigger asChild>
+                    <div>
                       <CircleActionButton
                         size="sm"
                         onClick={(e: React.MouseEvent) => {
@@ -246,14 +248,14 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
                       >
                         <Plus className="h-3 w-3 text-white" />
                       </CircleActionButton>
-                    }
-                  />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Add to Playlist</p>
-              </TooltipContent>
-            </Tooltip>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Add to Playlist</p>
+                  </TooltipContent>
+                </Tooltip>
+              }
+            />
           </div>
 
           {/* Bottom Row: Synopsis (Truncated to 4 lines) */}

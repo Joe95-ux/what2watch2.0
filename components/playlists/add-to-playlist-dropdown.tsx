@@ -20,12 +20,19 @@ interface AddToPlaylistDropdownProps {
   item: TMDBMovie | TMDBSeries;
   type: "movie" | "tv";
   trigger?: React.ReactNode;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export default function AddToPlaylistDropdown({ item, type, trigger }: AddToPlaylistDropdownProps) {
+export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChange }: AddToPlaylistDropdownProps) {
   const { data: playlists = [], isLoading } = usePlaylists();
   const addItemToPlaylist = useAddItemToPlaylist();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const handleOpenChange = (open: boolean) => {
+    setIsDropdownOpen(open);
+    onOpenChange?.(open);
+  };
 
   const handleAddToPlaylist = async (playlistId: string) => {
     try {
@@ -72,7 +79,7 @@ export default function AddToPlaylistDropdown({ item, type, trigger }: AddToPlay
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu open={isDropdownOpen} onOpenChange={handleOpenChange}>
         <DropdownMenuTrigger asChild>
           {trigger || defaultTrigger}
         </DropdownMenuTrigger>
@@ -95,6 +102,7 @@ export default function AddToPlaylistDropdown({ item, type, trigger }: AddToPlay
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  setIsDropdownOpen(false);
                   setIsCreateModalOpen(true);
                 }}
               >
@@ -109,11 +117,12 @@ export default function AddToPlaylistDropdown({ item, type, trigger }: AddToPlay
                 return (
                   <DropdownMenuItem
                     key={playlist.id}
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       if (!isInPlaylist) {
-                        handleAddToPlaylist(playlist.id);
+                        await handleAddToPlaylist(playlist.id);
+                        setIsDropdownOpen(false);
                       }
                     }}
                     disabled={isInPlaylist || addItemToPlaylist.isPending}
@@ -135,6 +144,7 @@ export default function AddToPlaylistDropdown({ item, type, trigger }: AddToPlay
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  setIsDropdownOpen(false);
                   setIsCreateModalOpen(true);
                 }}
               >

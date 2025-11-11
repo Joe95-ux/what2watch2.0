@@ -203,8 +203,14 @@ export default function ContentDetailModal({
     });
   };
 
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      onClose();
+    }
+  };
+
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
+    <Sheet open={isOpen} onOpenChange={handleOpenChange}>
       <SheetContent 
         side="right"
         className="!w-full sm:!w-[90vw] lg:!w-[80vw] xl:!max-w-[60rem] !h-full overflow-y-auto p-0 gap-0 [&>button]:hidden"
@@ -214,7 +220,11 @@ export default function ContentDetailModal({
           {/* Back Button (when opened from More Like This) */}
           {showBackButton && (
             <button
-              onClick={handleBack}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleBack();
+              }}
               className="absolute top-4 left-4 z-[100] h-14 w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105"
               aria-label="Back"
             >
@@ -224,7 +234,11 @@ export default function ContentDetailModal({
 
           {/* Close Button - More Prominent */}
           <button
-            onClick={onClose}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
+            }}
             className="absolute top-4 right-4 z-[100] h-14 w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105"
             aria-label="Close"
           >
