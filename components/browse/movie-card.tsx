@@ -297,7 +297,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
               fill
               className={cn(
                 "object-cover transition-opacity duration-300",
-                shouldShowOverlay && finalTrailer && !finalIsLoading ? "opacity-0" : "opacity-100"
+                shouldShowOverlay && finalTrailer && !finalIsLoading && finalTrailer.key ? "opacity-0" : "opacity-100"
               )}
               sizes="(max-width: 640px) 200px, 300px"
               unoptimized
@@ -309,7 +309,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
           )}
 
           {/* Trailer Preview (on hover or mobile) - Overlays poster when ready */}
-          {shouldShowOverlay && finalTrailer && !finalIsLoading && (
+          {shouldShowOverlay && finalTrailer && !finalIsLoading && finalTrailer.key && (
             <div className="absolute inset-0 z-0 pointer-events-none">
               <iframe
                 src={getYouTubeEmbedUrl(finalTrailer.key)}

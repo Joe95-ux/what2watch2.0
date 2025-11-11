@@ -42,8 +42,16 @@ export default function Navbar() {
 
   const shouldUseMaxSearchNav = pathname === "/search" || pathname?.startsWith("/search");
 
+  // Check if we're on a page with hero section (more transparent navbar needed)
+  const hasHeroSection = pathname === "/browse" || pathname === "/movies" || pathname === "/tv" || pathname?.startsWith("/browse/") || pathname?.startsWith("/movies/") || pathname?.startsWith("/tv/") || pathname?.startsWith("/playlists/");
+
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
+    <nav className={cn(
+      "sticky top-0 z-50 w-full border-b backdrop-blur-md",
+      hasHeroSection 
+        ? "bg-background/40 dark:bg-background/80 supports-[backdrop-filter]:bg-background/30 dark:supports-[backdrop-filter]:bg-background/60"
+        : "bg-background/80 dark:bg-background/80 supports-[backdrop-filter]:bg-background/60 dark:supports-[backdrop-filter]:bg-background/60"
+    )}>
       <div className={cn(
         "w-full flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8",
         shouldUseMaxWidth && "max-w-7xl mx-auto",
@@ -73,8 +81,8 @@ export default function Navbar() {
                         "relative px-3 py-2 text-sm font-medium transition-colors rounded-md",
                         "hover:bg-accent hover:text-accent-foreground",
                         isActive
-                          ? "text-foreground"
-                          : "text-muted-foreground",
+                          ? "text-foreground dark:text-foreground font-semibold"
+                          : "text-foreground/80 dark:text-muted-foreground",
                         isActive && "after:content-[''] after:absolute after:bottom-[-15px] after:left-0 after:right-0 after:h-[3px] after:bg-[#E50914] after:rounded-t-[15px]"
                       )}
                     >

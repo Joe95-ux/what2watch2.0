@@ -189,7 +189,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
               <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
                 <Button
                   size="lg"
-                  className="bg-white text-black hover:bg-white/90 h-10 sm:h-14 px-4 sm:px-10 text-sm sm:text-base font-medium transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:shadow-white/20 cursor-pointer"
+                  className="bg-white dark:bg-white text-black dark:text-black hover:bg-white/90 dark:hover:bg-white/90 h-10 sm:h-14 px-4 sm:px-10 text-sm sm:text-base font-medium transition-all duration-300 hover:scale-110 hover:shadow-2xl hover:shadow-white/20 dark:hover:shadow-white/20 cursor-pointer"
                   onClick={() => {
                     if (trailer) {
                       setIsRotationPaused(true);
@@ -198,7 +198,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
                   }}
                   disabled={!trailer}
                 >
-                  <Play className="mr-1.5 sm:mr-2.5 fill-black size-4 sm:size-6" />
+                  <Play className="mr-1.5 sm:mr-2.5 fill-black dark:fill-black size-4 sm:size-6" />
                   Play
                 </Button>
                 <Button

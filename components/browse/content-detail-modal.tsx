@@ -295,14 +295,14 @@ export default function ContentDetailModal({
           <div className="absolute inset-0 flex items-end z-10">
             <div className="w-full px-6 sm:px-8 lg:px-12 pb-12">
               <div className="max-w-3xl">
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-foreground drop-shadow-lg">
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-white drop-shadow-lg">
                   {title}
                 </h1>
                 <div className="flex items-center gap-4 mb-6 flex-wrap">
                   {item.vote_average > 0 && (
                     <div className="flex items-center gap-1.5">
                       <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
-                      <span className="text-white font-semibold">
+                      <span className="text-white/90 font-semibold">
                         {item.vote_average.toFixed(1)}
                       </span>
                     </div>
@@ -339,11 +339,11 @@ export default function ContentDetailModal({
                 <div className="flex items-center gap-3">
                   <Button
                     size="lg"
-                    className="bg-white text-black hover:bg-white/90 h-14 px-10 text-base font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg rounded-md"
+                    className="bg-white dark:bg-white text-black dark:text-black hover:bg-white/90 dark:hover:bg-white/90 h-14 px-10 text-base font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg rounded-md"
                     asChild
                   >
                     <Link href={`/${type}/${item.id}`}>
-                      <Play className="size-6 mr-2.5 fill-black" />
+                      <Play className="size-6 mr-2.5 fill-black dark:fill-black" />
                       Play
                     </Link>
                   </Button>
@@ -357,9 +357,9 @@ export default function ContentDetailModal({
                             <Button
                               size="lg"
                               variant="outline"
-                              className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer"
+                              className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer"
                             >
-                              <Plus className="size-6 text-white" />
+                              <Plus className="size-6 text-white dark:text-white" />
                             </Button>
                           }
                         />
@@ -374,7 +374,7 @@ export default function ContentDetailModal({
                       <Button
                         size="lg"
                         variant="outline"
-                        className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer"
+                        className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer"
                         onClick={async (e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -384,8 +384,8 @@ export default function ContentDetailModal({
                         <Heart 
                           className={`size-6 ${
                             toggleFavorite.isFavorite(item.id, type)
-                              ? "text-red-500 fill-red-500"
-                              : "text-white"
+                              ? "text-red-500 dark:text-red-500 fill-red-500 dark:fill-red-500"
+                              : "text-white dark:text-white"
                           }`} 
                         />
                       </Button>
@@ -401,7 +401,7 @@ export default function ContentDetailModal({
                         <Button
                           size="lg"
                           variant="outline"
-                          className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 ml-auto cursor-pointer"
+                          className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 ml-auto cursor-pointer"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -410,9 +410,9 @@ export default function ContentDetailModal({
                           aria-label={isMuted ? "Unmute" : "Mute"}
                         >
                           {isMuted ? (
-                            <VolumeX className="size-6 text-white" />
+                            <VolumeX className="size-6 text-white dark:text-white" />
                           ) : (
-                            <Volume2 className="size-6 text-white" />
+                            <Volume2 className="size-6 text-white dark:text-white" />
                           )}
                         </Button>
                       </TooltipTrigger>

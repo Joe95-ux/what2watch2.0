@@ -236,29 +236,31 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
                 {parentalRating}
               </span>
             </div>
-            <AddToPlaylistDropdown
-              item={item}
-              type={type}
-              onOpenChange={setIsDropdownOpen}
-              trigger={
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <CircleActionButton
-                      size="sm"
-                      onClick={(e: React.MouseEvent) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                    >
-                      <Plus className="h-3 w-3 text-white" />
-                    </CircleActionButton>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Add to Playlist</p>
-                  </TooltipContent>
-                </Tooltip>
-              }
-            />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <AddToPlaylistDropdown
+                    item={item}
+                    type={type}
+                    onOpenChange={setIsDropdownOpen}
+                    trigger={
+                      <CircleActionButton
+                        size="sm"
+                        onClick={(e: React.MouseEvent) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                      >
+                        <Plus className="h-3 w-3 text-white" />
+                      </CircleActionButton>
+                    }
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Add to Playlist</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           {/* Bottom Row: Synopsis (Truncated to 4 lines) */}
