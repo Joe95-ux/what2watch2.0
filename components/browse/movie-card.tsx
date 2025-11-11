@@ -333,13 +333,6 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                 "flex items-center mb-2",
                 isMobile ? "gap-1" : "gap-1.5"
               )}
-              style={{
-                // Counter-scale the buttons to prevent jumping when card scales
-                transform: isHovered && !isMobile 
-                  ? `scale(${variant === "more-like-this" ? 1 / 1.15 : 1 / 1.5})` 
-                  : undefined,
-                transformOrigin: "left center",
-              }}
               >
                 <Button
                   size="sm"

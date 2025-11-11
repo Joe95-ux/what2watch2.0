@@ -44,36 +44,40 @@ export default function Navbar() {
       )}>
         {/* Left side - Desktop Nav and Logo */}
         <div className="flex items-center gap-8 flex-1">
-          {/* Desktop Navigation - Show dropdown on my-list/playlists, regular nav elsewhere */}
+          {/* Desktop Navigation - Show dropdown on my-list/playlists (before logo), regular nav elsewhere (after logo) */}
           {shouldUseCollapsedNav ? (
-            <div className="hidden md:block">
-              <NavDropdown navLinks={navLinks} />
-            </div>
+            <>
+              <div className="hidden md:block">
+                <NavDropdown navLinks={navLinks} />
+              </div>
+              <Logo fontSize="text-xl" iconSize={20} />
+            </>
           ) : (
-            <div className="hidden md:flex items-center gap-1">
-              {navLinks.map((link) => {
-                const isActive = pathname === link.href;
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={cn(
-                      "relative px-3 py-2 text-sm font-medium transition-colors rounded-md",
-                      "hover:bg-accent hover:text-accent-foreground",
-                      isActive
-                        ? "text-foreground"
-                        : "text-muted-foreground",
-                      isActive && "after:content-[''] after:absolute after:bottom-[-15px] after:left-0 after:right-0 after:h-[3px] after:bg-[#E50914] after:rounded-t-[15px]"
-                    )}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-            </div>
+            <>
+              <Logo fontSize="text-xl" iconSize={20} />
+              <div className="hidden md:flex items-center gap-1">
+                {navLinks.map((link) => {
+                  const isActive = pathname === link.href;
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={cn(
+                        "relative px-3 py-2 text-sm font-medium transition-colors rounded-md",
+                        "hover:bg-accent hover:text-accent-foreground",
+                        isActive
+                          ? "text-foreground"
+                          : "text-muted-foreground",
+                        isActive && "after:content-[''] after:absolute after:bottom-[-15px] after:left-0 after:right-0 after:h-[3px] after:bg-[#E50914] after:rounded-t-[15px]"
+                      )}
+                    >
+                      {link.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </>
           )}
-          
-          <Logo fontSize="text-xl" iconSize={20} />
         </div>
 
         {/* Right side - Search, User */}
