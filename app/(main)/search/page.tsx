@@ -84,16 +84,13 @@ function SearchResultsContent() {
 
   const updateURL = (newParams: Record<string, string | number | number[] | undefined>) => {
     const params = new URLSearchParams();
-    // Preserve all existing URL parameters
-    if (query) params.set("query", query);
-    if (type && type !== "all") params.set("type", type);
-    // Handle genre array - convert to comma-separated string
-    if (genre.length > 0) params.set("genre", genre.join(","));
-    if (year) params.set("year", year);
-    if (minRating > 0) params.set("minRating", minRating.toString());
-    if (sortBy) params.set("sortBy", sortBy);
     
-    // Apply new parameters (overriding existing ones)
+    // Preserve query if it exists and not being overridden
+    if (query && !newParams.hasOwnProperty("query")) {
+      params.set("query", query);
+    }
+    
+    // Apply new parameters (these override existing ones)
     Object.entries(newParams).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         // Always include page, even if it's 1
@@ -108,11 +105,39 @@ function SearchResultsContent() {
           } else {
             params.set(key, value.toString());
           }
+        } else if (key === "type") {
+          // Always include type, even if "all" (we'll handle it)
+          if (value !== "all") {
+            params.set(key, value.toString());
+          } else {
+            params.delete(key);
+          }
+        } else if (key === "year") {
+          // Handle year - include if not empty
+          if (value && value !== "") {
+            params.set(key, value.toString());
+          } else {
+            params.delete(key);
+          }
+        } else if (key === "minRating") {
+          // Only include if greater than 0
+          if (value && Number(value) > 0) {
+            params.set(key, value.toString());
+          } else {
+            params.delete(key);
+          }
+        } else if (key === "sortBy") {
+          // Always include sortBy if provided
+          params.set(key, value.toString());
         } else if (value && value !== "all" && value !== "" && value !== 0) {
           params.set(key, value.toString());
         }
+      } else {
+        // Remove parameter if value is undefined/null
+        params.delete(key);
       }
     });
+    
     router.push(`/search?${params.toString()}`);
   };
 

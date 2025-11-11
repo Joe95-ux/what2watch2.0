@@ -105,7 +105,7 @@ export function FiltersSheet({
                     const validSelectedGenres = filters.genre.filter(id => validGenres.includes(id));
                     setFilters({ ...filters, type: newType, genre: validSelectedGenres });
                   }}
-                  className="w-4 h-4"
+                  className="w-4 h-4 cursor-pointer"
                 />
                 <span className="text-sm">All</span>
               </label>
@@ -127,7 +127,7 @@ export function FiltersSheet({
                     const validSelectedGenres = filters.genre.filter(id => validGenres.includes(id));
                     setFilters({ ...filters, type: newType, genre: validSelectedGenres });
                   }}
-                  className="w-4 h-4"
+                  className="w-4 h-4 cursor-pointer"
                 />
                 <span className="text-sm">Movies</span>
               </label>
@@ -149,7 +149,7 @@ export function FiltersSheet({
                     const validSelectedGenres = filters.genre.filter(id => validGenres.includes(id));
                     setFilters({ ...filters, type: newType, genre: validSelectedGenres });
                   }}
-                  className="w-4 h-4"
+                  className="w-4 h-4 cursor-pointer"
                 />
                 <span className="text-sm">TV Shows</span>
               </label>
@@ -167,7 +167,7 @@ export function FiltersSheet({
                   value="popularity.desc"
                   checked={filters.sortBy === "popularity.desc"}
                   onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
-                  className="w-4 h-4"
+                  className="w-4 h-4 cursor-pointer"
                 />
                 <span className="text-sm">Popular</span>
               </label>
@@ -178,7 +178,7 @@ export function FiltersSheet({
                   value="vote_average.desc"
                   checked={filters.sortBy === "vote_average.desc"}
                   onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
-                  className="w-4 h-4"
+                  className="w-4 h-4 cursor-pointer"
                 />
                 <span className="text-sm">Highest Rated</span>
               </label>
@@ -189,7 +189,7 @@ export function FiltersSheet({
                   value="release_date.desc"
                   checked={filters.sortBy === "release_date.desc"}
                   onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
-                  className="w-4 h-4"
+                  className="w-4 h-4 cursor-pointer"
                 />
                 <span className="text-sm">Newest</span>
               </label>
@@ -200,7 +200,7 @@ export function FiltersSheet({
                   value="release_date.asc"
                   checked={filters.sortBy === "release_date.asc"}
                   onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
-                  className="w-4 h-4"
+                  className="w-4 h-4 cursor-pointer"
                 />
                 <span className="text-sm">Oldest</span>
               </label>
@@ -318,14 +318,14 @@ export function FiltersSheet({
           <Button 
             variant="outline" 
             onClick={resetFilters} 
-            className="flex-1 h-10 text-sm"
+            className="flex-1 h-10 text-sm cursor-pointer"
             disabled={!hasActiveFilters}
           >
             Reset
           </Button>
           <Button
             onClick={onApply}
-            className="flex-1 h-10 text-sm"
+            className="flex-1 h-10 text-sm cursor-pointer bg-[#E50914] hover:bg-[#E50914]/90 text-white"
             disabled={isLoading}
           >
             {isLoading ? (

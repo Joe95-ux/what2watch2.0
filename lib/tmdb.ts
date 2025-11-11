@@ -277,6 +277,8 @@ export async function discoverMovies(filters: {
   page?: number;
   genre?: number | number[];
   year?: number;
+  yearFrom?: number;
+  yearTo?: number;
   sortBy?: string;
   minRating?: number;
   language?: string;
@@ -290,7 +292,17 @@ export async function discoverMovies(filters: {
       ? filters.genre.join(',') 
       : filters.genre;
   }
-  if (filters.year) params.primary_release_year = filters.year;
+  // Handle year range or single year
+  if (filters.yearFrom || filters.yearTo) {
+    if (filters.yearFrom) {
+      params['primary_release_date.gte'] = `${filters.yearFrom}-01-01`;
+    }
+    if (filters.yearTo) {
+      params['primary_release_date.lte'] = `${filters.yearTo}-12-31`;
+    }
+  } else if (filters.year) {
+    params.primary_release_year = filters.year;
+  }
   if (filters.sortBy) params.sort_by = filters.sortBy;
   if (filters.minRating) params['vote_average.gte'] = filters.minRating;
   if (filters.language) params.with_original_language = filters.language;
@@ -305,6 +317,8 @@ export async function discoverTV(filters: {
   page?: number;
   genre?: number | number[];
   year?: number;
+  yearFrom?: number;
+  yearTo?: number;
   sortBy?: string;
   minRating?: number;
   language?: string;
@@ -318,7 +332,17 @@ export async function discoverTV(filters: {
       ? filters.genre.join(',') 
       : filters.genre;
   }
-  if (filters.year) params.first_air_date_year = filters.year;
+  // Handle year range or single year
+  if (filters.yearFrom || filters.yearTo) {
+    if (filters.yearFrom) {
+      params['first_air_date.gte'] = `${filters.yearFrom}-01-01`;
+    }
+    if (filters.yearTo) {
+      params['first_air_date.lte'] = `${filters.yearTo}-12-31`;
+    }
+  } else if (filters.year) {
+    params.first_air_date_year = filters.year;
+  }
   if (filters.sortBy) params.sort_by = filters.sortBy;
   if (filters.minRating) params['vote_average.gte'] = filters.minRating;
   if (filters.language) params.with_original_language = filters.language;

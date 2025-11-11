@@ -26,13 +26,27 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
     const genre = genreParam 
       ? genreParam.split(",").map(id => parseInt(id, 10)).filter(id => !isNaN(id))
       : null;
-    const year = searchParams.get("year");
+    const yearParam = searchParams.get("year");
+    // Parse year - can be a single year or a range (e.g., "2018" or "2018-2019")
+    let year: number | undefined;
+    let yearFrom: number | undefined;
+    let yearTo: number | undefined;
+    if (yearParam) {
+      if (yearParam.includes("-")) {
+        const [from, to] = yearParam.split("-").map(y => parseInt(y.trim(), 10));
+        if (!isNaN(from)) yearFrom = from;
+        if (!isNaN(to)) yearTo = to;
+      } else {
+        const parsedYear = parseInt(yearParam, 10);
+        if (!isNaN(parsedYear)) year = parsedYear;
+      }
+    }
     const minRating = searchParams.get("minRating");
     const sortBy = searchParams.get("sortBy") || "popularity.desc";
 
     // Allow requests with filters even without query
     const hasQuery = query && query.trim().length > 0;
-    const hasFilters = !!(genre || year || minRating);
+    const hasFilters = !!(genre || year || yearFrom || yearTo || minRating);
     
     if (!hasQuery && !hasFilters) {
       return NextResponse.json(
@@ -57,31 +71,117 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
 
     try {
       // If filters are provided, use discover instead of search
-      if (genre || year || minRating) {
-        const filters = {
-          page,
-          ...(genre && genre.length > 0 && { genre: genre.length === 1 ? genre[0] : genre }),
-          ...(year && { year: parseInt(year, 10) }),
-          ...(minRating && { minRating: parseFloat(minRating) }),
-          sortBy,
-        };
+      if (genre || year || yearFrom || yearTo || minRating) {
+        // For multiple genres, use OR logic (search each genre separately and combine)
+        // TMDB's with_genres uses AND logic, which is too restrictive
+        if (genre && genre.length > 1) {
+          // Multiple genres: search each genre separately and combine results
+          const baseFilters = {
+            page: 1, // Get first page from each genre search
+            ...(year && { year }),
+            ...(yearFrom && { yearFrom }),
+            ...(yearTo && { yearTo }),
+            ...(minRating && { minRating: parseFloat(minRating) }),
+            sortBy,
+          };
 
-        if (type === "movie") {
-          results = await Promise.race([discoverMovies(filters), timeoutPromise]);
-        } else if (type === "tv") {
-          results = await Promise.race([discoverTV(filters), timeoutPromise]);
-        } else {
-          // Search both
-          const [movies, tv] = await Promise.race([
-            Promise.all([discoverMovies(filters), discoverTV(filters)]),
+          const genreSearches = genre.map(genreId => {
+            const filters = { ...baseFilters, genre: genreId };
+            if (type === "movie") {
+              return discoverMovies(filters);
+            } else if (type === "tv") {
+              return discoverTV(filters);
+            } else {
+              return Promise.all([discoverMovies(filters), discoverTV(filters)]);
+            }
+          });
+
+          const allResults = await Promise.race([
+            Promise.all(genreSearches),
             timeoutPromise,
           ]);
+
+          // Combine and deduplicate results
+          const seenIds = new Set<number>();
+          const combinedResults: (TMDBMovie | TMDBSeries)[] = [];
+
+          for (const result of allResults) {
+            if (Array.isArray(result)) {
+              // "all" type - result is [movies, tv]
+              const [movies, tv] = result;
+              [...movies.results, ...tv.results].forEach(item => {
+                if (!seenIds.has(item.id)) {
+                  seenIds.add(item.id);
+                  combinedResults.push(item);
+                }
+              });
+            } else {
+              // Single type - result is TMDBResponse
+              result.results.forEach(item => {
+                if (!seenIds.has(item.id)) {
+                  seenIds.add(item.id);
+                  combinedResults.push(item);
+                }
+              });
+            }
+          }
+
+          // Sort combined results by popularity (or other sortBy)
+          // Note: This is a simplified sort - for better results, we'd need to re-fetch with proper sorting
+          combinedResults.sort((a, b) => {
+            if (sortBy === "popularity.desc") {
+              return (b.popularity || 0) - (a.popularity || 0);
+            } else if (sortBy === "vote_average.desc") {
+              return (b.vote_average || 0) - (a.vote_average || 0);
+            } else if (sortBy === "release_date.desc") {
+              const aDate = "release_date" in a ? a.release_date : a.first_air_date;
+              const bDate = "release_date" in b ? b.release_date : b.first_air_date;
+              return (bDate || "").localeCompare(aDate || "");
+            }
+            return 0;
+          });
+
+          // Paginate combined results
+          const itemsPerPage = 20;
+          const startIndex = (page - 1) * itemsPerPage;
+          const paginatedResults = combinedResults.slice(startIndex, startIndex + itemsPerPage);
+          const totalPages = Math.ceil(combinedResults.length / itemsPerPage);
+
           results = {
             page,
-            results: [...movies.results, ...tv.results],
-            total_pages: Math.max(movies.total_pages, tv.total_pages),
-            total_results: movies.total_results + tv.total_results,
+            results: paginatedResults,
+            total_pages: totalPages,
+            total_results: combinedResults.length,
           };
+        } else {
+          // Single genre or no genre: use normal discover
+          const filters = {
+            page,
+            ...(genre && genre.length > 0 && { genre: genre[0] }),
+            ...(year && { year }),
+            ...(yearFrom && { yearFrom }),
+            ...(yearTo && { yearTo }),
+            ...(minRating && { minRating: parseFloat(minRating) }),
+            sortBy,
+          };
+
+          if (type === "movie") {
+            results = await Promise.race([discoverMovies(filters), timeoutPromise]);
+          } else if (type === "tv") {
+            results = await Promise.race([discoverTV(filters), timeoutPromise]);
+          } else {
+            // Search both
+            const [movies, tv] = await Promise.race([
+              Promise.all([discoverMovies(filters), discoverTV(filters)]),
+              timeoutPromise,
+            ]);
+            results = {
+              page,
+              results: [...movies.results, ...tv.results],
+              total_pages: Math.max(movies.total_pages, tv.total_pages),
+              total_results: movies.total_results + tv.total_results,
+            };
+          }
         }
       } else if (query) {
         // Regular search
