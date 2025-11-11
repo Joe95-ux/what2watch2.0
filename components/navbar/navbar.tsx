@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useUser, SignInButton, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, Bell } from "lucide-react";
+import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import Logo from "@/components/Logo";
@@ -12,6 +12,7 @@ import Search from "./search";
 import { UserMenu } from "./user-menu";
 import { NavDropdown } from "./nav-dropdown";
 import MobileNav from "./mobile-nav";
+import { HamburgerButton } from "./hamburger-button";
 import { cn } from "@/lib/utils";
 
 interface NavLink {
@@ -88,10 +89,7 @@ export default function Navbar() {
           {/* Mobile Menu Button */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild className="md:hidden">
-              <Button variant="ghost" size="icon">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle menu</span>
-              </Button>
+              <HamburgerButton isOpen={mobileMenuOpen} />
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[400px] pt-6">
               <MobileNav 
@@ -111,11 +109,11 @@ export default function Navbar() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 relative"
+                    className="relative hidden h-9 w-9 md:inline-flex"
                     aria-label="Notifications"
                   >
                     <Bell className="h-5 w-5" />
-                    {/* Badge indicator for future use */}
+                    {/* Future notification badge */}
                     {/* <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive"></span> */}
                   </Button>
                   <UserButton

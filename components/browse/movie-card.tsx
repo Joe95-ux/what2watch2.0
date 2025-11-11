@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { Star, Play, Plus, Heart, Maximize2 } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getPosterUrl, TMDBVideo, getYouTubeEmbedUrl } from "@/lib/tmdb";
@@ -36,6 +36,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const originalRectRef = useRef<DOMRect | null>(null);
   const attemptedFetchRef = useRef<number | null>(null); // Track which item ID we've attempted to fetch
+  const [hasNoVideos, setHasNoVideos] = useState(false);
+  const [trailerError, setTrailerError] = useState<string | null>(null);
   
   // On mobile/tablet, always show overlay with details (no hover/scaling needed)
   const shouldShowOverlay = isHovered || isMobile;
@@ -56,13 +58,14 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
     }
   }, [isModalOpen]);
 
-  // Reset fetch attempt tracking when item changes
+  // Reset fetch state when item changes
   useEffect(() => {
-    if (attemptedFetchRef.current !== item.id) {
-      attemptedFetchRef.current = null;
-      setTrailer(null);
-      setAllVideos([]);
-    }
+    attemptedFetchRef.current = null;
+    setTrailer(null);
+    setAllVideos([]);
+    setHasNoVideos(false);
+    setTrailerError(null);
+    setIsLoadingTrailer(false);
   }, [item.id]);
 
   // Store original rect when hover starts
@@ -74,44 +77,55 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
     }
   }, [isHovered]);
 
+  const fetchTrailerVideos = useCallback(async () => {
+    if (attemptedFetchRef.current === item.id) return;
+
+    attemptedFetchRef.current = item.id;
+    setIsLoadingTrailer(true);
+    setTrailerError(null);
+    setHasNoVideos(false);
+
+    try {
+      const response = await fetch(`/api/${type}/${item.id}/videos`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch trailers");
+      }
+
+      const data = await response.json();
+      const videos = data.results || [];
+      setAllVideos(videos);
+
+      const officialTrailer = videos.find(
+        (v: TMDBVideo) => v.type === "Trailer" && v.official && v.site === "YouTube"
+      );
+      const anyTrailer = videos.find(
+        (v: TMDBVideo) => v.type === "Trailer" && v.site === "YouTube"
+      );
+      const foundTrailer = officialTrailer || anyTrailer || null;
+      setTrailer(foundTrailer);
+
+      const noVideosAvailable = videos.length === 0;
+      setHasNoVideos(noVideosAvailable);
+      setTrailerError(
+        noVideosAvailable ? "No trailers are available for this title yet." : null
+      );
+    } catch (error) {
+      console.error("Error fetching trailer:", error);
+      attemptedFetchRef.current = null;
+      setTrailer(null);
+      setAllVideos([]);
+      setHasNoVideos(false);
+      setTrailerError("Unable to load trailers right now. Please try again later.");
+    } finally {
+      setIsLoadingTrailer(false);
+    }
+  }, [item.id, type]);
+
   // Fetch trailer on hover or on mobile (with delay to avoid too many requests)
   useEffect(() => {
-    // Only fetch if:
-    // 1. Overlay should be shown
-    // 2. We don't have a trailer yet
-    // 3. We're not currently loading
-    // 4. Modal is not open
-    // 5. We haven't already attempted to fetch for this item (prevents infinite loops)
-    if (shouldShowOverlay && !trailer && !isLoadingTrailer && !isModalOpen && attemptedFetchRef.current !== item.id) {
-      hoverTimeoutRef.current = setTimeout(async () => {
-        // Mark that we're attempting to fetch for this item
-        attemptedFetchRef.current = item.id;
-        setIsLoadingTrailer(true);
-        try {
-          const response = await fetch(`/api/${type}/${item.id}/videos`);
-          if (response.ok) {
-            const data = await response.json();
-            const videos = data.results || [];
-            setAllVideos(videos);
-            // Find first trailer (prefer official trailers)
-            const officialTrailer = videos.find(
-              (v: TMDBVideo) => v.type === "Trailer" && v.official && v.site === "YouTube"
-            );
-            const anyTrailer = videos.find(
-              (v: TMDBVideo) => v.type === "Trailer" && v.site === "YouTube"
-            );
-            setTrailer(officialTrailer || anyTrailer || null);
-          } else {
-            // Request failed - mark as attempted so we don't retry
-            attemptedFetchRef.current = item.id;
-          }
-        } catch (error) {
-          console.error("Error fetching trailer:", error);
-          // Request failed - mark as attempted so we don't retry
-          attemptedFetchRef.current = item.id;
-        } finally {
-          setIsLoadingTrailer(false);
-        }
+    if (shouldShowOverlay && !isModalOpen && attemptedFetchRef.current !== item.id) {
+      hoverTimeoutRef.current = setTimeout(() => {
+        fetchTrailerVideos();
       }, isMobile ? 0 : 500); // No delay on mobile, 500ms delay on desktop
     }
 
@@ -120,7 +134,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
         clearTimeout(hoverTimeoutRef.current);
       }
     };
-  }, [shouldShowOverlay, item.id, type, trailer, isLoadingTrailer, isModalOpen, isMobile]);
+  }, [shouldShowOverlay, isModalOpen, fetchTrailerVideos, isMobile, item.id]);
 
   // Calculate position to prevent card from going off-screen (desktop only)
   const getCardStyle = () => {
@@ -340,54 +354,15 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                     "rounded-full bg-white text-black hover:bg-white/90 font-medium cursor-pointer",
                     isMobile ? "h-6 px-2 text-[10px]" : "h-7 px-3 text-xs"
                   )}
-                  onClick={async (e) => {
+                  onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    
-                    // If we have a trailer, open modal immediately
-                    if (trailer) {
-                      setIsTrailerModalOpen(true);
-                      return;
-                    }
-                    
-                    // If we're already loading, wait
-                    if (isLoadingTrailer) {
-                      return;
-                    }
-                    
-                    // Fetch videos if we haven't attempted yet
-                    if (attemptedFetchRef.current !== item.id) {
-                      attemptedFetchRef.current = item.id;
-                      setIsLoadingTrailer(true);
-                      try {
-                        const response = await fetch(`/api/${type}/${item.id}/videos`);
-                        if (response.ok) {
-                          const data = await response.json();
-                          const videos = data.results || [];
-                          setAllVideos(videos);
-                          // Find first trailer (prefer official trailers)
-                          const officialTrailer = videos.find(
-                            (v: TMDBVideo) => v.type === "Trailer" && v.official && v.site === "YouTube"
-                          );
-                          const anyTrailer = videos.find(
-                            (v: TMDBVideo) => v.type === "Trailer" && v.site === "YouTube"
-                          );
-                          const foundTrailer = officialTrailer || anyTrailer || null;
-                          setTrailer(foundTrailer);
-                          
-                          // Open modal if we found a trailer
-                          if (foundTrailer) {
-                            setIsTrailerModalOpen(true);
-                          }
-                        }
-                      } catch (error) {
-                        console.error("Error fetching trailer:", error);
-                      } finally {
-                        setIsLoadingTrailer(false);
-                      }
+                    setIsTrailerModalOpen(true);
+
+                    if (attemptedFetchRef.current !== item.id && !isLoadingTrailer) {
+                      fetchTrailerVideos();
                     }
                   }}
-                  disabled={isLoadingTrailer}
                 >
                   {isLoadingTrailer ? (
                     <span className={cn(isMobile ? "h-2.5 w-2.5" : "h-3 w-3")}>...</span>
@@ -500,13 +475,19 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
       />
 
       {/* Trailer Modal */}
-      {trailer && (
+      {isTrailerModalOpen && (
         <TrailerModal
           video={trailer}
           videos={allVideos}
           isOpen={isTrailerModalOpen}
           onClose={() => setIsTrailerModalOpen(false)}
           title={title}
+          isLoading={isLoadingTrailer}
+          hasNoVideos={hasNoVideos}
+          errorMessage={trailerError}
+          onOpenDetails={() => {
+            setIsModalOpen(true);
+          }}
         />
       )}
     </>

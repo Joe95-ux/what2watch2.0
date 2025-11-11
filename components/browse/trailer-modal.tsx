@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { TMDBVideo, getYouTubeEmbedUrl } from "@/lib/tmdb";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,10 @@ interface TrailerModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
+  isLoading?: boolean;
+  hasNoVideos?: boolean;
+  errorMessage?: string | null;
+  onOpenDetails?: () => void;
 }
 
 export default function TrailerModal({
@@ -21,45 +25,87 @@ export default function TrailerModal({
   isOpen,
   onClose,
   title,
+  isLoading = false,
+  hasNoVideos = false,
+  errorMessage,
+  onOpenDetails,
 }: TrailerModalProps) {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
 
   // Filter to only YouTube videos - memoized to prevent unnecessary re-renders
   const youtubeVideos = useMemo(() => {
-    return videos
-      ? videos.filter((v) => v.site === "YouTube")
-      : video
-      ? [video]
-      : [];
+    const sourceVideos =
+      videos && videos.length > 0 ? videos : video ? [video] : [];
+
+    return sourceVideos.filter((v) => v.site === "YouTube");
   }, [videos, video]);
 
-  const currentVideo = youtubeVideos[currentVideoIndex] || video;
+  const hasVideos = youtubeVideos.length > 0;
+  const currentVideo = hasVideos
+    ? youtubeVideos[Math.min(currentVideoIndex, youtubeVideos.length - 1)]
+    : null;
 
-  // Reset to first video when modal opens
+  // Reset video index when modal opens or when selected video changes
   useEffect(() => {
-    if (isOpen && videos && video) {
+    if (!isOpen) {
+      setCurrentVideoIndex(0);
+      return;
+    }
+
+    if (video && youtubeVideos.length > 0) {
       const index = youtubeVideos.findIndex((v) => v.id === video.id);
       setCurrentVideoIndex(index >= 0 ? index : 0);
+    } else if (youtubeVideos.length === 0) {
+      setCurrentVideoIndex(0);
     }
-  }, [isOpen, video, videos, youtubeVideos]);
+  }, [isOpen, video, youtubeVideos]);
 
-  if (!currentVideo) return null;
+  // Ensure the index stays within bounds when the list of videos changes
+  useEffect(() => {
+    if (youtubeVideos.length === 0) {
+      setCurrentVideoIndex(0);
+    } else if (currentVideoIndex >= youtubeVideos.length) {
+      setCurrentVideoIndex(0);
+    }
+  }, [youtubeVideos.length, currentVideoIndex]);
 
   const hasMultipleVideos = youtubeVideos.length > 1;
   const canGoPrev = hasMultipleVideos && currentVideoIndex > 0;
-  const canGoNext = hasMultipleVideos && currentVideoIndex < youtubeVideos.length - 1;
+  const canGoNext =
+    hasMultipleVideos && currentVideoIndex < youtubeVideos.length - 1;
 
   const handlePrev = () => {
     if (canGoPrev) {
-      setCurrentVideoIndex(currentVideoIndex - 1);
+      setCurrentVideoIndex((index) => index - 1);
     }
   };
 
   const handleNext = () => {
     if (canGoNext) {
-      setCurrentVideoIndex(currentVideoIndex + 1);
+      setCurrentVideoIndex((index) => index + 1);
     }
   };
+
+  const modalTitle = currentVideo
+    ? `${title} - ${currentVideo.name}`
+    : `${title} Trailers`;
+
+  const descriptionText = hasVideos
+    ? `Video player for ${title}. ${currentVideo?.official ? "Official" : ""} ${
+        currentVideo?.type ?? ""
+      } video. ${
+        hasMultipleVideos
+          ? `Video ${currentVideoIndex + 1} of ${youtubeVideos.length}.`
+          : ""
+      }`
+    : errorMessage ??
+      "No trailers are available for this title at the moment.";
+
+  const emptyStateMessage =
+    errorMessage ??
+    (hasNoVideos
+      ? "Oops! Trailer not available. Enjoy the movie poster and details below."
+      : "We couldn't load trailers right now.");
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -68,12 +114,9 @@ export default function TrailerModal({
         className="!max-w-[90vw] !w-full !h-[90vh] !max-h-[90vh] !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 overflow-hidden p-0 gap-0 bg-black"
       >
         {/* Accessibility: Hidden title and description for screen readers */}
-        <DialogTitle className="sr-only">
-          {title} - {currentVideo.name}
-        </DialogTitle>
+        <DialogTitle className="sr-only">{modalTitle}</DialogTitle>
         <DialogDescription className="sr-only">
-          Video player for {title}. {currentVideo.official ? "Official" : ""} {currentVideo.type} video.
-          {hasMultipleVideos && ` Video ${currentVideoIndex + 1} of ${youtubeVideos.length}.`}
+          {descriptionText}
         </DialogDescription>
         
         {/* Close Button */}
@@ -86,7 +129,7 @@ export default function TrailerModal({
         </button>
 
         {/* Navigation Buttons */}
-        {hasMultipleVideos && (
+        {hasMultipleVideos && !isLoading && (
           <>
             <Button
               variant="ghost"
@@ -129,23 +172,59 @@ export default function TrailerModal({
         )}
 
         {/* Video Info */}
-        <div className="absolute top-4 left-4 z-50 bg-black/60 px-4 py-2 rounded-lg max-w-md">
-          <p className="text-white text-sm font-medium">{currentVideo.name}</p>
-          {currentVideo.official && (
-            <span className="text-white/80 text-xs">Official</span>
-          )}
-        </div>
+        {currentVideo && !isLoading && (
+          <div className="absolute top-4 left-4 z-50 bg-black/60 px-4 py-2 rounded-lg max-w-md">
+            <p className="text-white text-sm font-medium">{currentVideo.name}</p>
+            {currentVideo.official && (
+              <span className="text-white/80 text-xs">Official</span>
+            )}
+          </div>
+        )}
 
-        {/* Video Player */}
-        <div className="relative w-full h-full">
-          <iframe
-            key={currentVideo.id} // Force re-render when video changes
-            src={getYouTubeEmbedUrl(currentVideo.key, true)}
-            className="w-full h-full"
-            allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            title={`${title} - ${currentVideo.name}`}
-          />
+        {/* Video Player / States */}
+        <div className="relative w-full h-full flex items-center justify-center bg-black">
+          {isLoading ? (
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="h-10 w-10 animate-spin text-white" />
+              <p className="text-white/80 text-sm">Loading trailers...</p>
+            </div>
+          ) : currentVideo ? (
+            <div className="relative w-full h-full">
+              <iframe
+                key={currentVideo.id} // Force re-render when video changes
+                src={getYouTubeEmbedUrl(currentVideo.key, true)}
+                className="w-full h-full"
+                allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title={`${title} - ${currentVideo.name}`}
+              />
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-4 px-6 text-center">
+              <p className="text-white text-lg font-semibold">
+                {emptyStateMessage}
+              </p>
+              {hasNoVideos && (
+                <>
+                  <p className="text-white/70 text-sm max-w-sm">
+                    We couldn’t find any trailers for <span className="font-semibold">{title}</span> at the moment.
+                  </p>
+                  {onOpenDetails && (
+                    <Button
+                      size="sm"
+                      className="mt-2 cursor-pointer"
+                      onClick={() => {
+                        onClose();
+                        onOpenDetails();
+                      }}
+                    >
+                      View Movie Details
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
