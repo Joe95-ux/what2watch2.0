@@ -34,14 +34,17 @@ export default function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Check if we're on a page that should use the collapsed nav and matched width
+  // Check if we're on a page that should use the collapsed nav
   const shouldUseCollapsedNav = pathname === "/my-list" || pathname === "/playlists" || pathname?.startsWith("/playlists/") || pathname === "/search" || pathname?.startsWith("/search");
+  
+  // Check if we're on a page that should use max-w-7xl (my-list and playlists, but not search)
+  const shouldUseMaxWidth = pathname === "/my-list" || pathname === "/playlists" || pathname?.startsWith("/playlists/");
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-black/95 backdrop-blur supports-[backdrop-filter]:bg-black/60">
       <div className={cn(
         "w-full flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8",
-        shouldUseCollapsedNav && "max-w-7xl mx-auto"
+        shouldUseMaxWidth && "max-w-7xl mx-auto"
       )}>
         {/* Left side - Desktop Nav and Logo */}
         <div className="flex items-center gap-8 flex-1">
