@@ -38,12 +38,14 @@ export default function Search() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>({
     type: "all",
-    genre: "",
+    genre: [],
     year: "",
     minRating: 0,
     sortBy: "popularity.desc",
   });
-  const [genres, setGenres] = useState<Array<{ id: number; name: string }>>([]);
+  const [movieGenres, setMovieGenres] = useState<Array<{ id: number; name: string }>>([]);
+  const [tvGenres, setTVGenres] = useState<Array<{ id: number; name: string }>>([]);
+  const [allGenres, setAllGenres] = useState<Array<{ id: number; name: string }>>([]);
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -65,9 +67,9 @@ export default function Search() {
     fetch("/api/genres")
       .then((res) => res.json())
       .then((data) => {
-        if (data.all) {
-          setGenres(data.all);
-        }
+        if (data.movie) setMovieGenres(data.movie);
+        if (data.tv) setTVGenres(data.tv);
+        if (data.all) setAllGenres(data.all);
       })
       .catch(console.error);
   }, []);
@@ -119,7 +121,7 @@ export default function Search() {
       const params = new URLSearchParams({
         query: searchQuery,
         type: filters.type,
-        ...(filters.genre && { genre: filters.genre }),
+        ...(filters.genre.length > 0 && { genre: filters.genre.join(",") }),
         ...(filters.year && { year: filters.year }),
         ...(filters.minRating > 0 && { minRating: filters.minRating.toString() }),
         sortBy: filters.sortBy,
@@ -164,14 +166,14 @@ export default function Search() {
   const resetFilters = () => {
     setFilters({
       type: "all",
-      genre: "",
+      genre: [],
       year: "",
       minRating: 0,
       sortBy: "popularity.desc",
     });
   };
 
-  const hasActiveFilters = filters.type !== "all" || filters.genre || filters.year || filters.minRating > 0;
+  const hasActiveFilters = filters.type !== "all" || filters.genre.length > 0 || filters.year || filters.minRating > 0;
 
   // Mobile: Icon that expands to full-width search
   if (isMobile) {
@@ -239,7 +241,9 @@ export default function Search() {
                   <FiltersSheet
                     filters={filters}
                     setFilters={setFilters}
-                    genres={genres}
+                    movieGenres={movieGenres}
+                    tvGenres={tvGenres}
+                    allGenres={allGenres}
                     resetFilters={resetFilters}
                     onApply={async () => {
                       setFiltersOpen(false);
@@ -247,7 +251,7 @@ export default function Search() {
                       const params = new URLSearchParams();
                       if (query.trim()) params.set("query", query.trim());
                       if (filters.type !== "all") params.set("type", filters.type);
-                      if (filters.genre) params.set("genre", filters.genre);
+                      if (filters.genre.length > 0) params.set("genre", filters.genre.join(","));
                       if (filters.year) params.set("year", filters.year);
                       if (filters.minRating > 0) params.set("minRating", filters.minRating.toString());
                       if (filters.sortBy) params.set("sortBy", filters.sortBy);
