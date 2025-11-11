@@ -7,10 +7,11 @@ import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export interface SearchFilters {
   type: "all" | "movie" | "tv";
-  genre: string;
+  genre: number[]; // Changed to array for multiple selection
   year: string;
   minRating: number;
   sortBy: string;
@@ -19,7 +20,9 @@ export interface SearchFilters {
 interface FiltersSheetProps {
   filters: SearchFilters;
   setFilters: (filters: SearchFilters) => void;
-  genres: Array<{ id: number; name: string }>;
+  movieGenres: Array<{ id: number; name: string }>;
+  tvGenres: Array<{ id: number; name: string }>;
+  allGenres: Array<{ id: number; name: string }>;
   resetFilters: () => void;
   onApply: () => void;
   isLoading?: boolean;
@@ -34,7 +37,9 @@ interface FiltersSheetProps {
 export function FiltersSheet({
   filters,
   setFilters,
-  genres,
+  movieGenres,
+  tvGenres,
+  allGenres,
   resetFilters,
   onApply,
   isLoading,
@@ -52,7 +57,20 @@ export function FiltersSheet({
   
   const currentYear = externalCurrentYear ?? new Date().getFullYear();
   const startYear = externalStartYear ?? 1900;
-  const hasActiveFilters = externalHasActiveFilters ?? (filters.type !== "all" || filters.genre || filters.year || filters.minRating > 0);
+  
+  // Get the appropriate genres based on selected type
+  const genresToShow = filters.type === "movie" 
+    ? movieGenres 
+    : filters.type === "tv" 
+    ? tvGenres 
+    : allGenres;
+  
+  const hasActiveFilters = externalHasActiveFilters ?? (
+    filters.type !== "all" || 
+    filters.genre.length > 0 || 
+    filters.year || 
+    filters.minRating > 0
+  );
 
   return (
     <div className="flex flex-col h-full">
@@ -75,7 +93,18 @@ export function FiltersSheet({
                   name="type"
                   value="all"
                   checked={filters.type === "all"}
-                  onChange={(e) => setFilters({ ...filters, type: e.target.value as "all" | "movie" | "tv" })}
+                  onChange={(e) => {
+                    const newType = e.target.value as "all" | "movie" | "tv";
+                    // Get valid genre IDs for the new type
+                    const validGenres = newType === "movie" 
+                      ? movieGenres.map(g => g.id)
+                      : newType === "tv"
+                      ? tvGenres.map(g => g.id)
+                      : allGenres.map(g => g.id);
+                    // Filter out invalid genres
+                    const validSelectedGenres = filters.genre.filter(id => validGenres.includes(id));
+                    setFilters({ ...filters, type: newType, genre: validSelectedGenres });
+                  }}
                   className="w-4 h-4"
                 />
                 <span className="text-sm">All</span>
@@ -86,7 +115,18 @@ export function FiltersSheet({
                   name="type"
                   value="movie"
                   checked={filters.type === "movie"}
-                  onChange={(e) => setFilters({ ...filters, type: e.target.value as "all" | "movie" | "tv" })}
+                  onChange={(e) => {
+                    const newType = e.target.value as "all" | "movie" | "tv";
+                    // Get valid genre IDs for the new type
+                    const validGenres = newType === "movie" 
+                      ? movieGenres.map(g => g.id)
+                      : newType === "tv"
+                      ? tvGenres.map(g => g.id)
+                      : allGenres.map(g => g.id);
+                    // Filter out invalid genres
+                    const validSelectedGenres = filters.genre.filter(id => validGenres.includes(id));
+                    setFilters({ ...filters, type: newType, genre: validSelectedGenres });
+                  }}
                   className="w-4 h-4"
                 />
                 <span className="text-sm">Movies</span>
@@ -97,7 +137,18 @@ export function FiltersSheet({
                   name="type"
                   value="tv"
                   checked={filters.type === "tv"}
-                  onChange={(e) => setFilters({ ...filters, type: e.target.value as "all" | "movie" | "tv" })}
+                  onChange={(e) => {
+                    const newType = e.target.value as "all" | "movie" | "tv";
+                    // Get valid genre IDs for the new type
+                    const validGenres = newType === "movie" 
+                      ? movieGenres.map(g => g.id)
+                      : newType === "tv"
+                      ? tvGenres.map(g => g.id)
+                      : allGenres.map(g => g.id);
+                    // Filter out invalid genres
+                    const validSelectedGenres = filters.genre.filter(id => validGenres.includes(id));
+                    setFilters({ ...filters, type: newType, genre: validSelectedGenres });
+                  }}
                   className="w-4 h-4"
                 />
                 <span className="text-sm">TV Shows</span>
@@ -157,36 +208,51 @@ export function FiltersSheet({
           </div>
 
           {/* Genre Section */}
-          {genres && genres.length > 0 && (
+          {genresToShow && genresToShow.length > 0 && (
             <div className="space-y-3">
               <Label className="text-sm font-semibold uppercase tracking-wider">Genre</Label>
-              <div className="space-y-2">
-                {(showAllGenres ? genres : genres.slice(0, GENRES_TO_SHOW)).map((genre) => (
-                  <label key={genre.id} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={filters.genre === genre.id.toString()}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setFilters({ ...filters, genre: genre.id.toString() });
+              <div className="flex flex-wrap gap-2">
+                {(showAllGenres ? genresToShow : genresToShow.slice(0, GENRES_TO_SHOW)).map((genre) => {
+                  const isSelected = filters.genre.includes(genre.id);
+                  return (
+                    <Button
+                      key={genre.id}
+                      type="button"
+                      variant={isSelected ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        if (isSelected) {
+                          setFilters({ 
+                            ...filters, 
+                            genre: filters.genre.filter(id => id !== genre.id) 
+                          });
                         } else {
-                          setFilters({ ...filters, genre: "" });
+                          setFilters({ 
+                            ...filters, 
+                            genre: [...filters.genre, genre.id] 
+                          });
                         }
                       }}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-sm">{genre.name}</span>
-                  </label>
-                ))}
-                {genres.length > GENRES_TO_SHOW && (
-                  <button
-                    onClick={() => setShowAllGenres(!showAllGenres)}
-                    className="text-sm text-primary hover:underline mt-2"
-                  >
-                    {showAllGenres ? "Show less" : "Show more"}
-                  </button>
-                )}
+                      className={cn(
+                        "rounded-full h-8 px-4 text-sm font-normal transition-colors",
+                        isSelected 
+                          ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                          : "bg-background hover:bg-accent hover:text-accent-foreground"
+                      )}
+                    >
+                      {genre.name}
+                    </Button>
+                  );
+                })}
               </div>
+              {genresToShow.length > GENRES_TO_SHOW && (
+                <button
+                  onClick={() => setShowAllGenres(!showAllGenres)}
+                  className="text-sm text-primary hover:underline mt-2"
+                >
+                  {showAllGenres ? "Show less" : "Show more"}
+                </button>
+              )}
             </div>
           )}
 

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getAllGenres, TMDBGenre } from "@/lib/tmdb";
+import { getAllGenres, getMovieGenres, getTVGenres, TMDBGenre } from "@/lib/tmdb";
 
 // Fallback genres if TMDB API fails
-const FALLBACK_GENRES: TMDBGenre[] = [
+const FALLBACK_MOVIE_GENRES: TMDBGenre[] = [
   { id: 28, name: "Action" },
   { id: 12, name: "Adventure" },
   { id: 16, name: "Animation" },
@@ -24,14 +24,42 @@ const FALLBACK_GENRES: TMDBGenre[] = [
   { id: 37, name: "Western" },
 ];
 
+const FALLBACK_TV_GENRES: TMDBGenre[] = [
+  { id: 10759, name: "Action & Adventure" },
+  { id: 16, name: "Animation" },
+  { id: 35, name: "Comedy" },
+  { id: 80, name: "Crime" },
+  { id: 99, name: "Documentary" },
+  { id: 18, name: "Drama" },
+  { id: 10751, name: "Family" },
+  { id: 10762, name: "Kids" },
+  { id: 9648, name: "Mystery" },
+  { id: 10763, name: "News" },
+  { id: 10764, name: "Reality" },
+  { id: 10765, name: "Sci-Fi & Fantasy" },
+  { id: 10766, name: "Soap" },
+  { id: 10767, name: "Talk" },
+  { id: 10768, name: "War & Politics" },
+  { id: 37, name: "Western" },
+];
+
 export async function GET(): Promise<NextResponse<{ movie: TMDBGenre[]; tv: TMDBGenre[]; all: TMDBGenre[] }>> {
   try {
-    const allGenres = await getAllGenres();
+    const [movieGenres, tvGenres] = await Promise.all([
+      getMovieGenres(),
+      getTVGenres(),
+    ]);
+    
+    // Combine for "all" option
+    const allGenresMap = new Map<number, TMDBGenre>();
+    movieGenres.forEach(genre => allGenresMap.set(genre.id, genre));
+    tvGenres.forEach(genre => allGenresMap.set(genre.id, genre));
+    const allGenres = Array.from(allGenresMap.values());
     
     return NextResponse.json(
       {
-        movie: allGenres,
-        tv: allGenres,
+        movie: movieGenres,
+        tv: tvGenres,
         all: allGenres,
       },
       {
@@ -43,11 +71,16 @@ export async function GET(): Promise<NextResponse<{ movie: TMDBGenre[]; tv: TMDB
   } catch (error) {
     console.error("Genres API error:", error);
     // Return fallback genres on error
+    const allGenresMap = new Map<number, TMDBGenre>();
+    FALLBACK_MOVIE_GENRES.forEach(genre => allGenresMap.set(genre.id, genre));
+    FALLBACK_TV_GENRES.forEach(genre => allGenresMap.set(genre.id, genre));
+    const allGenres = Array.from(allGenresMap.values());
+    
     return NextResponse.json(
       {
-        movie: FALLBACK_GENRES,
-        tv: FALLBACK_GENRES,
-        all: FALLBACK_GENRES,
+        movie: FALLBACK_MOVIE_GENRES,
+        tv: FALLBACK_TV_GENRES,
+        all: allGenres,
       },
       {
         status: 200,

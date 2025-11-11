@@ -16,14 +16,18 @@ function SearchResultsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [genres, setGenres] = useState<Array<{ id: number; name: string }>>([]);
+  const [movieGenres, setMovieGenres] = useState<Array<{ id: number; name: string }>>([]);
+  const [tvGenres, setTVGenres] = useState<Array<{ id: number; name: string }>>([]);
+  const [allGenres, setAllGenres] = useState<Array<{ id: number; name: string }>>([]);
   const [showAllGenres, setShowAllGenres] = useState(false);
   const GENRES_TO_SHOW = 8;
 
   // Get params from URL
   const query = searchParams.get("query") || "";
   const type = (searchParams.get("type") || "all") as "all" | "movie" | "tv";
-  const genre = searchParams.get("genre") || "";
+  const genreParam = searchParams.get("genre") || "";
+  // Parse genre from comma-separated string to array
+  const genre = genreParam ? genreParam.split(",").map(id => parseInt(id, 10)).filter(id => !isNaN(id)) : [];
   const year = searchParams.get("year") || "";
   const minRating = searchParams.get("minRating") ? parseFloat(searchParams.get("minRating")!) : 0;
   const sortBy = searchParams.get("sortBy") || "popularity.desc";
@@ -39,9 +43,11 @@ function SearchResultsContent() {
 
   // Update filters when URL params change
   useEffect(() => {
+    const genreParam = searchParams.get("genre") || "";
+    const genreArray = genreParam ? genreParam.split(",").map(id => parseInt(id, 10)).filter(id => !isNaN(id)) : [];
     setFilters({
       type: (searchParams.get("type") || "all") as "all" | "movie" | "tv",
-      genre: searchParams.get("genre") || "",
+      genre: genreArray,
       year: searchParams.get("year") || "",
       minRating: searchParams.get("minRating") ? parseFloat(searchParams.get("minRating")!) : 0,
       sortBy: searchParams.get("sortBy") || "popularity.desc",
@@ -53,9 +59,9 @@ function SearchResultsContent() {
     fetch("/api/genres")
       .then((res) => res.json())
       .then((data) => {
-        if (data.all) {
-          setGenres(data.all);
-        }
+        if (data.movie) setMovieGenres(data.movie);
+        if (data.tv) setTVGenres(data.tv);
+        if (data.all) setAllGenres(data.all);
       })
       .catch(console.error);
   }, []);
@@ -64,7 +70,7 @@ function SearchResultsContent() {
   const { data, isLoading, error } = useSearch({
     query: query || undefined,
     type,
-    genre: genre || undefined,
+    genre: genre.length > 0 ? genre : undefined,
     year: year || undefined,
     minRating: minRating > 0 ? minRating : undefined,
     sortBy,
@@ -76,13 +82,13 @@ function SearchResultsContent() {
   const totalResults = data?.total_results || 0;
   const currentPage = data?.page || 1;
 
-  const updateURL = (newParams: Record<string, string | number | undefined>) => {
+  const updateURL = (newParams: Record<string, string | number | number[] | undefined>) => {
     const params = new URLSearchParams();
     // Preserve all existing URL parameters
     if (query) params.set("query", query);
     if (type && type !== "all") params.set("type", type);
-    // Always include genre if it's set (even if empty string, we need to handle it)
-    if (genre) params.set("genre", genre);
+    // Handle genre array - convert to comma-separated string
+    if (genre.length > 0) params.set("genre", genre.join(","));
     if (year) params.set("year", year);
     if (minRating > 0) params.set("minRating", minRating.toString());
     if (sortBy) params.set("sortBy", sortBy);
@@ -94,8 +100,14 @@ function SearchResultsContent() {
         if (key === "page") {
           params.set(key, value.toString());
         } else if (key === "genre") {
-          // Always include genre if it's provided, even if empty (to clear it)
-          params.set(key, value.toString());
+          // Handle genre array - convert to comma-separated string or remove if empty
+          if (Array.isArray(value) && value.length > 0) {
+            params.set(key, value.join(","));
+          } else if (Array.isArray(value) && value.length === 0) {
+            params.delete(key);
+          } else {
+            params.set(key, value.toString());
+          }
         } else if (value && value !== "all" && value !== "" && value !== 0) {
           params.set(key, value.toString());
         }
@@ -107,7 +119,7 @@ function SearchResultsContent() {
   const handleApplyFilters = () => {
     updateURL({
       type: filters.type,
-      genre: filters.genre || "", // Always include genre, even if empty
+      genre: filters.genre.length > 0 ? filters.genre : undefined,
       year: filters.year || "",
       minRating: filters.minRating > 0 ? filters.minRating : undefined,
       sortBy: filters.sortBy,
@@ -119,7 +131,7 @@ function SearchResultsContent() {
   const resetFilters = () => {
     const resetFilters: SearchFilters = {
       type: "all",
-      genre: "",
+      genre: [],
       year: "",
       minRating: 0,
       sortBy: "popularity.desc",
@@ -135,7 +147,7 @@ function SearchResultsContent() {
     });
   };
 
-  const hasActiveFilters: boolean = filters.type !== "all" || !!filters.genre || !!filters.year || filters.minRating > 0;
+  const hasActiveFilters: boolean = filters.type !== "all" || filters.genre.length > 0 || !!filters.year || filters.minRating > 0;
   const currentYear = new Date().getFullYear();
   const startYear = 1900;
 
@@ -174,7 +186,7 @@ function SearchResultsContent() {
                   <span className="ml-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
                     {[
                       filters.type !== "all",
-                      !!filters.genre,
+                      filters.genre.length > 0,
                       !!filters.year,
                       filters.minRating > 0,
                     ].filter(Boolean).length}
@@ -186,7 +198,9 @@ function SearchResultsContent() {
               <FiltersSheet
                 filters={filters}
                 setFilters={setFilters}
-                genres={genres}
+                movieGenres={movieGenres}
+                tvGenres={tvGenres}
+                allGenres={allGenres}
                 resetFilters={resetFilters}
                 onApply={handleApplyFilters}
                 isLoading={isLoading}

@@ -10,6 +10,12 @@ export interface Playlist {
   createdAt: string;
   updatedAt: string;
   items?: PlaylistItem[];
+  user?: {
+    id: string;
+    username: string | null;
+    displayName: string | null;
+    avatarUrl: string | null;
+  };
   _count?: {
     items: number;
   };
@@ -213,6 +219,24 @@ export function useRemoveItemFromPlaylist() {
       queryClient.invalidateQueries({ queryKey: ["playlists"] });
       queryClient.invalidateQueries({ queryKey: ["playlist", variables.playlistId] });
     },
+  });
+}
+
+// Fetch public playlists (no authentication required)
+const fetchPublicPlaylists = async (limit?: number): Promise<Playlist[]> => {
+  const url = limit ? `/api/playlists/public?limit=${limit}` : "/api/playlists/public";
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to fetch public playlists");
+  const data = await res.json();
+  return data.playlists || [];
+};
+
+export function usePublicPlaylists(limit?: number) {
+  return useQuery({
+    queryKey: ["public-playlists", limit],
+    queryFn: () => fetchPublicPlaylists(limit),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 60, // 1 hour
   });
 }
 

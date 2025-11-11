@@ -4,7 +4,7 @@ import { TMDBMovie, TMDBSeries, TMDBResponse } from "@/lib/tmdb";
 interface SearchParams {
   query?: string;
   type?: "all" | "movie" | "tv";
-  genre?: string;
+  genre?: number | number[]; // Changed to support array
   year?: string;
   minRating?: number;
   sortBy?: string;
@@ -18,7 +18,16 @@ export function useSearch(params: SearchParams) {
       const searchParams = new URLSearchParams();
       if (params.query) searchParams.set("query", params.query);
       if (params.type && params.type !== "all") searchParams.set("type", params.type);
-      if (params.genre) searchParams.set("genre", params.genre);
+      // Handle genre as array or single number
+      if (params.genre) {
+        if (Array.isArray(params.genre)) {
+          if (params.genre.length > 0) {
+            searchParams.set("genre", params.genre.join(","));
+          }
+        } else {
+          searchParams.set("genre", params.genre.toString());
+        }
+      }
       if (params.year) searchParams.set("year", params.year);
       if (params.minRating) searchParams.set("minRating", params.minRating.toString());
       if (params.sortBy) searchParams.set("sortBy", params.sortBy);

@@ -11,7 +11,9 @@ import {
   useTrendingTV,
 } from "@/hooks/use-movies";
 import { useAllGenres } from "@/hooks/use-genres";
+import { usePublicPlaylists } from "@/hooks/use-playlists";
 import ContentRow from "./content-row";
+import PlaylistRow from "./playlist-row";
 import HeroSection from "./hero-section";
 import RecentlyViewed from "./recently-viewed";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
@@ -35,6 +37,7 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
     preferredTypes.length > 0 ? preferredTypes : ["movie", "tv"] // Default to both if empty
   );
   const { data: allGenres = [] } = useAllGenres();
+  const { data: publicPlaylists = [], isLoading: isLoadingPublicPlaylists } = usePublicPlaylists(20);
 
   // Featured items for hero carousel (mix of popular movies and TV shows)
   const featuredItems: (TMDBMovie | TMDBSeries)[] = [
@@ -122,6 +125,16 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
             type={preferredTypes.length === 1 ? preferredTypes[0] : "movie"} // Use first type or default to movie for mixed content
             isLoading={isLoadingPersonalized}
             href="/browse/personalized"
+          />
+        )}
+
+        {/* Explore Public Playlists */}
+        {publicPlaylists.length > 0 && (
+          <PlaylistRow
+            title="Explore Public Playlists"
+            playlists={publicPlaylists}
+            isLoading={isLoadingPublicPlaylists}
+            href="/playlists"
           />
         )}
 

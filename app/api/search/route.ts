@@ -21,7 +21,11 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
     const type = (searchParams.get("type") || "all") as SearchType;
     const pageParam = searchParams.get("page");
     const page = pageParam ? parseInt(pageParam, 10) : 1;
-    const genre = searchParams.get("genre");
+    const genreParam = searchParams.get("genre");
+    // Parse genre from comma-separated string to array
+    const genre = genreParam 
+      ? genreParam.split(",").map(id => parseInt(id, 10)).filter(id => !isNaN(id))
+      : null;
     const year = searchParams.get("year");
     const minRating = searchParams.get("minRating");
     const sortBy = searchParams.get("sortBy") || "popularity.desc";
@@ -56,7 +60,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
       if (genre || year || minRating) {
         const filters = {
           page,
-          ...(genre && { genre: parseInt(genre, 10) }),
+          ...(genre && genre.length > 0 && { genre: genre.length === 1 ? genre[0] : genre }),
           ...(year && { year: parseInt(year, 10) }),
           ...(minRating && { minRating: parseFloat(minRating) }),
           sortBy,
