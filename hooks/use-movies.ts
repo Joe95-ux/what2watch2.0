@@ -6,6 +6,8 @@ export const movieQueryKeys = {
   all: ["movies"] as const,
   popular: (page: number) => [...movieQueryKeys.all, "popular", page] as const,
   nowPlaying: (page: number) => [...movieQueryKeys.all, "now-playing", page] as const,
+  trending: (timeWindow: "day" | "week", page: number) =>
+    [...movieQueryKeys.all, "trending", timeWindow, page] as const,
   personalized: (genreId: number) => [...movieQueryKeys.all, "personalized", genreId] as const,
   byGenre: (genreId: number, page: number) => [...movieQueryKeys.all, "genre", genreId, page] as const,
 };
@@ -14,6 +16,8 @@ export const tvQueryKeys = {
   all: ["tv"] as const,
   popular: (page: number) => [...tvQueryKeys.all, "popular", page] as const,
   onTheAir: (page: number) => [...tvQueryKeys.all, "on-the-air", page] as const,
+  trending: (timeWindow: "day" | "week", page: number) =>
+    [...tvQueryKeys.all, "trending", timeWindow, page] as const,
   byGenre: (genreId: number, page: number) => [...tvQueryKeys.all, "genre", genreId, page] as const,
 };
 
@@ -32,9 +36,37 @@ const fetchNowPlayingMovies = async (page: number = 1): Promise<TMDBMovie[]> => 
   return data.results || [];
 };
 
+const fetchTrendingMovies = async (
+  timeWindow: "day" | "week" = "week",
+  page: number = 1
+): Promise<TMDBMovie[]> => {
+  const params = new URLSearchParams({
+    timeWindow,
+    page: String(page),
+  });
+  const res = await fetch(`/api/movies/trending?${params.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch trending movies");
+  const data = await res.json();
+  return data.results || [];
+};
+
 const fetchPopularTV = async (page: number = 1): Promise<TMDBSeries[]> => {
   const res = await fetch(`/api/tv/popular?page=${page}`);
   if (!res.ok) throw new Error("Failed to fetch popular TV shows");
+  const data = await res.json();
+  return data.results || [];
+};
+
+const fetchTrendingTV = async (
+  timeWindow: "day" | "week" = "week",
+  page: number = 1
+): Promise<TMDBSeries[]> => {
+  const params = new URLSearchParams({
+    timeWindow,
+    page: String(page),
+  });
+  const res = await fetch(`/api/tv/trending?${params.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch trending TV shows");
   const data = await res.json();
   return data.results || [];
 };
@@ -140,11 +172,35 @@ export function useNowPlayingMovies(page: number = 1) {
   });
 }
 
+export function useTrendingMovies(
+  timeWindow: "day" | "week" = "week",
+  page: number = 1
+) {
+  return useQuery({
+    queryKey: movieQueryKeys.trending(timeWindow, page),
+    queryFn: () => fetchTrendingMovies(timeWindow, page),
+    staleTime: 1000 * 60 * 30, // 30 minutes
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
+  });
+}
+
 export function usePopularTV(page: number = 1) {
   return useQuery({
     queryKey: tvQueryKeys.popular(page),
     queryFn: () => fetchPopularTV(page),
     staleTime: 1000 * 60 * 60, // 1 hour
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
+  });
+}
+
+export function useTrendingTV(
+  timeWindow: "day" | "week" = "week",
+  page: number = 1
+) {
+  return useQuery({
+    queryKey: tvQueryKeys.trending(timeWindow, page),
+    queryFn: () => fetchTrendingTV(timeWindow, page),
+    staleTime: 1000 * 60 * 30, // 30 minutes
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }

@@ -226,13 +226,9 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
         }}
         onClick={(e) => {
           const target = e.target as HTMLElement;
-          const interactive = target.closest(
-            'button, [role="button"], [data-prevent-detail]'
-          );
-          if (interactive) {
-            return;
+          if (!target.closest("button") && !target.closest('[role="button"]')) {
+            setIsModalOpen(true);
           }
-          setIsModalOpen(true);
         }}
         style={{
           ...(isHovered && !isMobile ? getCardStyle() : {}),
@@ -352,7 +348,6 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
               )}
               >
                 <Button
-                  data-prevent-detail
                   size="sm"
                   className={cn(
                     "rounded-full bg-white text-black hover:bg-white/90 font-medium cursor-pointer",

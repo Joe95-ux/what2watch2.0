@@ -182,6 +182,19 @@ export async function getNowPlayingMovies(page: number = 1): Promise<TMDBRespons
 }
 
 /**
+ * Get trending movies
+ */
+export async function getTrendingMovies(
+  timeWindow: "day" | "week" = "week",
+  page: number = 1
+): Promise<TMDBResponse<TMDBMovie>> {
+  return fetchTMDB<TMDBResponse<TMDBMovie>>(
+    `/trending/movie/${timeWindow}`,
+    { page }
+  );
+}
+
+/**
  * Get upcoming movies
  */
 export async function getUpcomingMovies(page: number = 1): Promise<TMDBResponse<TMDBMovie>> {
@@ -193,6 +206,19 @@ export async function getUpcomingMovies(page: number = 1): Promise<TMDBResponse<
  */
 export async function getPopularTV(page: number = 1): Promise<TMDBResponse<TMDBSeries>> {
   return fetchTMDB<TMDBResponse<TMDBSeries>>('/tv/popular', { page });
+}
+
+/**
+ * Get trending TV shows
+ */
+export async function getTrendingTV(
+  timeWindow: "day" | "week" = "week",
+  page: number = 1
+): Promise<TMDBResponse<TMDBSeries>> {
+  return fetchTMDB<TMDBResponse<TMDBSeries>>(
+    `/trending/tv/${timeWindow}`,
+    { page }
+  );
 }
 
 /**
