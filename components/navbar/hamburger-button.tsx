@@ -18,7 +18,7 @@ const HamburgerButton = React.forwardRef<HTMLButtonElement, HamburgerButtonProps
         aria-label={isOpen ? "Close menu" : "Open menu"}
         aria-pressed={isOpen}
         className={cn(
-          "relative flex items-center justify-center text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
+          "relative cursor-pointer flex items-center justify-center text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           className
         )}
         {...props}

@@ -214,6 +214,20 @@ export default function ContentDetailModal({
       <SheetContent 
         side="right"
         className="!w-full sm:!w-[90vw] lg:!w-[80vw] xl:!max-w-[60rem] !h-full overflow-y-auto p-0 gap-0 [&>button]:hidden"
+        onPointerDownOutside={(e) => {
+          // Prevent closing when clicking on interactive elements
+          const target = e.target as HTMLElement;
+          if (target.closest('button') || target.closest('[role="button"]')) {
+            e.preventDefault();
+          }
+        }}
+        onInteractOutside={(e) => {
+          // Prevent closing when clicking on interactive elements
+          const target = e.target as HTMLElement;
+          if (target.closest('button') || target.closest('[role="button"]')) {
+            e.preventDefault();
+          }
+        }}
       >
         {/* Control Buttons - Wrapped in div to avoid [&>button]:hidden selector */}
         <div>
@@ -259,7 +273,7 @@ export default function ContentDetailModal({
                 style={{ pointerEvents: "none" }}
                 title="Trailer"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent pointer-events-none dark:from-black/90 dark:via-black/60" />
             </div>
           ) : backdropPath ? (
             <>
@@ -271,7 +285,7 @@ export default function ContentDetailModal({
                 priority
                 unoptimized
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/80 to-transparent dark:from-black/90 dark:via-black/80" />
             </>
           ) : (
             <div className="absolute inset-0 bg-muted" />
@@ -281,7 +295,7 @@ export default function ContentDetailModal({
           <div className="absolute inset-0 flex items-end z-10">
             <div className="w-full px-6 sm:px-8 lg:px-12 pb-12">
               <div className="max-w-3xl">
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-white drop-shadow-lg">
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-foreground drop-shadow-lg">
                   {title}
                 </h1>
                 <div className="flex items-center gap-4 mb-6 flex-wrap">
@@ -361,7 +375,9 @@ export default function ContentDetailModal({
                         size="lg"
                         variant="outline"
                         className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer"
-                        onClick={async () => {
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           await toggleFavorite.toggle(item, type);
                         }}
                       >
@@ -386,7 +402,11 @@ export default function ContentDetailModal({
                           size="lg"
                           variant="outline"
                           className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 ml-auto cursor-pointer"
-                          onClick={() => setIsMuted(!isMuted)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setIsMuted(!isMuted);
+                          }}
                           aria-label={isMuted ? "Unmute" : "Mute"}
                         >
                           {isMuted ? (

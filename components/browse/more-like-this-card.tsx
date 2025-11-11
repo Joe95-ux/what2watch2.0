@@ -122,9 +122,14 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Only open modal if click is directly on the card, not on action buttons
+    // Only open modal if click is directly on the card, not on action buttons or dropdowns
     const target = e.target as HTMLElement;
-    if (!target.closest('button') && !target.closest('[role="button"]')) {
+    if (
+      !target.closest('button') && 
+      !target.closest('[role="button"]') && 
+      !target.closest('[data-radix-dropdown-trigger]') &&
+      !target.closest('[data-radix-dropdown-content]')
+    ) {
       if (onItemClick) {
         onItemClick(item, type);
       } else {
@@ -236,19 +241,17 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
               type={type}
               onOpenChange={setIsDropdownOpen}
               trigger={
-                <Tooltip open={!isDropdownOpen ? undefined : false}>
+                <Tooltip>
                   <TooltipTrigger asChild>
-                    <div>
-                      <CircleActionButton
-                        size="sm"
-                        onClick={(e: React.MouseEvent) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }}
-                      >
-                        <Plus className="h-3 w-3 text-white" />
-                      </CircleActionButton>
-                    </div>
+                    <CircleActionButton
+                      size="sm"
+                      onClick={(e: React.MouseEvent) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                    >
+                      <Plus className="h-3 w-3 text-white" />
+                    </CircleActionButton>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Add to Playlist</p>

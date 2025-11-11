@@ -70,14 +70,24 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
     setIsLoadingTrailer(false);
   }, [item.id]);
 
-  // Store original rect when hover starts
-  useEffect(() => {
-    if (isHovered && cardRef.current && !originalRectRef.current) {
+  // Store original rect when hover starts - capture synchronously before transforms
+  const handleMouseEnter = (e: React.MouseEvent) => {
+    if (!isMobile && cardRef.current) {
+      e.stopPropagation();
+      // Capture rect synchronously before setting hover state to prevent jumpiness
       originalRectRef.current = cardRef.current.getBoundingClientRect();
-    } else if (!isHovered) {
+      setIsHovered(true);
+    }
+  };
+
+  const handleMouseLeave = (e: React.MouseEvent) => {
+    if (!isMobile) {
+      e.stopPropagation();
+      setIsHovered(false);
+      setTrailer(null); // Clear trailer when not hovering
       originalRectRef.current = null;
     }
-  }, [isHovered]);
+  };
 
   // Extract videos from cached data or local state
   const videosFromCache = useMemo(() => {
@@ -176,7 +186,12 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
     if (isMobile || !isHovered || !cardRef.current) return {};
     
     // Use original rect (before scaling) to prevent feedback loop
-    const rect = originalRectRef.current || cardRef.current.getBoundingClientRect();
+    // If we don't have originalRect yet, don't apply transform to avoid jumpiness
+    const rect = originalRectRef.current;
+    if (!rect) {
+      // Wait for originalRect to be captured before applying transform
+      return {};
+    }
     const viewportWidth = window.innerWidth;
     
     // Check if card is under gradient area (first 64px from viewport edges)
@@ -251,13 +266,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
           isHovered && !isMobile && "z-[100]",
           className
         )}
-        onMouseEnter={() => !isMobile && setIsHovered(true)}
-        onMouseLeave={() => {
-          if (!isMobile) {
-            setIsHovered(false);
-            setTrailer(null); // Clear trailer when not hovering
-          }
-        }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         onClick={(e) => {
           const target = e.target as HTMLElement;
           if (!target.closest("button") && !target.closest('[role="button"]')) {
@@ -279,7 +289,26 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
             transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         >
-          {/* Trailer Preview (on hover or mobile) */}
+          {/* Poster Image - Always visible as fallback */}
+          {posterPath ? (
+            <Image
+              src={getPosterUrl(posterPath, "w500")}
+              alt={title}
+              fill
+              className={cn(
+                "object-cover transition-opacity duration-300",
+                shouldShowOverlay && finalTrailer && !finalIsLoading ? "opacity-0" : "opacity-100"
+              )}
+              sizes="(max-width: 640px) 200px, 300px"
+              unoptimized
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">
+              <span className="text-muted-foreground text-sm">No Image</span>
+            </div>
+          )}
+
+          {/* Trailer Preview (on hover or mobile) - Overlays poster when ready */}
           {shouldShowOverlay && finalTrailer && !finalIsLoading && (
             <div className="absolute inset-0 z-0 pointer-events-none">
               <iframe
@@ -292,26 +321,6 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none" />
             </div>
-          )}
-
-          {/* Poster Image (fallback or when no trailer) */}
-          {(!shouldShowOverlay || !finalTrailer) && (
-            <>
-              {posterPath ? (
-                <Image
-                  src={getPosterUrl(posterPath, "w500")}
-                  alt={title}
-                  fill
-                  className="object-cover transition-transform duration-300"
-                  sizes="(max-width: 640px) 200px, 300px"
-                  unoptimized
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">
-                  <span className="text-muted-foreground text-sm">No Image</span>
-                </div>
-              )}
-            </>
           )}
 
           {/* Hover Overlay with Info - Always visible on mobile, hover on desktop */}

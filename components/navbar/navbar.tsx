@@ -43,7 +43,7 @@ export default function Navbar() {
   const shouldUseMaxSearchNav = pathname === "/search" || pathname?.startsWith("/search");
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-black/95 backdrop-blur supports-[backdrop-filter]:bg-black/60">
+    <nav className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
       <div className={cn(
         "w-full flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8",
         shouldUseMaxWidth && "max-w-7xl mx-auto",
@@ -98,7 +98,7 @@ export default function Navbar() {
               <HamburgerButton
                 isOpen={mobileMenuOpen}
                 showMorph={false}
-                className="h-9 w-9 text-white"
+                className="h-9 w-9"
               />
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[400px] pt-6">
