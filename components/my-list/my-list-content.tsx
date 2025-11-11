@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useFavorites, useRemoveFavorite } from "@/hooks/use-favorites";
 import { useAllGenres } from "@/hooks/use-genres";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LayoutGrid, List, X, Plus, Star } from "lucide-react";
+import { LayoutGrid, List, X, Plus, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
@@ -38,6 +38,7 @@ export default function MyListContent() {
   const [sortBy, setSortBy] = useState<SortBy>("recent");
   const [itemToRemove, setItemToRemove] = useState<{ tmdbId: number; mediaType: string; title: string } | null>(null);
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Convert favorites to TMDB format for display
   const favoritesAsTMDB = useMemo(() => {
@@ -114,6 +115,39 @@ export default function MyListContent() {
 
     return filtered;
   }, [favoritesAsTMDB, filterType, selectedGenre, sortBy, favorites]);
+
+  const itemsPerPage = viewMode === "grid" ? 24 : 12;
+  const totalPages = filteredAndSorted.length > 0 ? Math.ceil(filteredAndSorted.length / itemsPerPage) : 1;
+
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredAndSorted.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredAndSorted, currentPage, itemsPerPage]);
+
+  const pageNumbers = useMemo(() => {
+    const maxButtons = 5;
+    if (totalPages <= maxButtons) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    if (currentPage <= 3) {
+      return [1, 2, 3, 4, 5];
+    }
+    if (currentPage >= totalPages - 2) {
+      return Array.from({ length: maxButtons }, (_, i) => totalPages - 4 + i);
+    }
+    return [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2];
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterType, selectedGenre, sortBy, viewMode]);
+
+  useEffect(() => {
+    const maxPage = filteredAndSorted.length > 0 ? Math.ceil(filteredAndSorted.length / itemsPerPage) : 1;
+    if (currentPage > maxPage) {
+      setCurrentPage(maxPage);
+    }
+  }, [filteredAndSorted.length, currentPage, itemsPerPage]);
 
   const handleRemove = async () => {
     if (!itemToRemove) return;
@@ -247,7 +281,7 @@ export default function MyListContent() {
         </div>
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {filteredAndSorted.map(({ item, type, favoriteId }) => (
+          {paginatedItems.map(({ item, type, favoriteId }) => (
             <div key={favoriteId} className="relative group">
               <div onClick={() => setSelectedItem({ item, type })} className="cursor-pointer">
                 <MovieCard item={item} type={type} />
@@ -295,7 +329,7 @@ export default function MyListContent() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filteredAndSorted.map(({ item, type, favoriteId }) => {
+                {paginatedItems.map(({ item, type, favoriteId }) => {
                   const title = "title" in item ? item.title : item.name;
                   const releaseDate = type === "movie" ? item.release_date : item.first_air_date;
                   const year = releaseDate ? new Date(releaseDate).getFullYear() : null;
@@ -373,6 +407,42 @@ export default function MyListContent() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {filteredAndSorted.length > 0 && totalPages > 1 && (
+        <div className="mt-8 flex items-center justify-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Previous
+          </Button>
+          <div className="flex items-center gap-1">
+            {pageNumbers.map((page) => (
+              <Button
+                key={page}
+                variant={currentPage === page ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCurrentPage(page)}
+                className="min-w-[40px]"
+              >
+                {page}
+              </Button>
+            ))}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
         </div>
       )}
 

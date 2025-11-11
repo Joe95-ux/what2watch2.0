@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { usePlaylist, useDeletePlaylist, useRemoveItemFromPlaylist, type Playlist } from "@/hooks/use-playlists";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Edit2, Trash2, MoreVertical, X, Share2 } from "lucide-react";
+import { ArrowLeft, Edit2, Trash2, MoreVertical, X, Share2, ChevronLeft, ChevronRight } from "lucide-react";
 import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import CreatePlaylistModal from "./create-playlist-modal";
@@ -55,6 +55,7 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const handleDeletePlaylist = async () => {
     try {
@@ -83,6 +84,82 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
     }
   };
 
+  // Convert playlist items to TMDB format - must be before early returns
+  const itemsAsTMDB = useMemo(() => {
+    if (!playlist) return [];
+    return (playlist.items || []).map((playlistItem) => {
+      if (playlistItem.mediaType === "movie") {
+        const movie: TMDBMovie = {
+          id: playlistItem.tmdbId,
+          title: playlistItem.title,
+          overview: "",
+          poster_path: playlistItem.posterPath,
+          backdrop_path: playlistItem.backdropPath,
+          release_date: playlistItem.releaseDate || "",
+          vote_average: 0,
+          vote_count: 0,
+          genre_ids: [],
+          popularity: 0,
+          adult: false,
+          original_language: "",
+          original_title: playlistItem.title,
+        };
+        return { item: movie, type: "movie" as const, playlistItemId: playlistItem.id };
+      } else {
+        const tv: TMDBSeries = {
+          id: playlistItem.tmdbId,
+          name: playlistItem.title,
+          overview: "",
+          poster_path: playlistItem.posterPath,
+          backdrop_path: playlistItem.backdropPath,
+          first_air_date: playlistItem.firstAirDate || "",
+          vote_average: 0,
+          vote_count: 0,
+          genre_ids: [],
+          popularity: 0,
+          original_language: "",
+          original_name: playlistItem.title,
+        };
+        return { item: tv, type: "tv" as const, playlistItemId: playlistItem.id };
+      }
+    });
+  }, [playlist]);
+
+  const itemsPerPage = 24;
+  const totalPages = useMemo(() => {
+    return itemsAsTMDB.length > 0 ? Math.ceil(itemsAsTMDB.length / itemsPerPage) : 1;
+  }, [itemsAsTMDB.length, itemsPerPage]);
+
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return itemsAsTMDB.slice(startIndex, startIndex + itemsPerPage);
+  }, [itemsAsTMDB, currentPage, itemsPerPage]);
+
+  const pageNumbers = useMemo(() => {
+    const maxButtons = 5;
+    if (totalPages <= maxButtons) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    if (currentPage <= 3) {
+      return [1, 2, 3, 4, 5];
+    }
+    if (currentPage >= totalPages - 2) {
+      return Array.from({ length: maxButtons }, (_, i) => totalPages - 4 + i);
+    }
+    return [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2];
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [playlistId]);
+
+  useEffect(() => {
+    const maxPage = itemsAsTMDB.length > 0 ? Math.ceil(itemsAsTMDB.length / itemsPerPage) : 1;
+    if (currentPage > maxPage) {
+      setCurrentPage(maxPage);
+    }
+  }, [itemsAsTMDB.length, currentPage, itemsPerPage]);
+
   if (isLoading) {
     return (
       <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -110,44 +187,6 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
   }
 
   const playlistWithUser = playlist as PlaylistWithUser;
-
-  // Convert playlist items to TMDB format
-  const itemsAsTMDB = (playlist.items || []).map((playlistItem) => {
-    if (playlistItem.mediaType === "movie") {
-      const movie: TMDBMovie = {
-        id: playlistItem.tmdbId,
-        title: playlistItem.title,
-        overview: "",
-        poster_path: playlistItem.posterPath,
-        backdrop_path: playlistItem.backdropPath,
-        release_date: playlistItem.releaseDate || "",
-        vote_average: 0,
-        vote_count: 0,
-        genre_ids: [],
-        popularity: 0,
-        adult: false,
-        original_language: "",
-        original_title: playlistItem.title,
-      };
-      return { item: movie, type: "movie" as const, playlistItemId: playlistItem.id };
-    } else {
-      const tv: TMDBSeries = {
-        id: playlistItem.tmdbId,
-        name: playlistItem.title,
-        overview: "",
-        poster_path: playlistItem.posterPath,
-        backdrop_path: playlistItem.backdropPath,
-        first_air_date: playlistItem.firstAirDate || "",
-        vote_average: 0,
-        vote_count: 0,
-        genre_ids: [],
-        popularity: 0,
-        original_language: "",
-        original_name: playlistItem.title,
-      };
-      return { item: tv, type: "tv" as const, playlistItemId: playlistItem.id };
-    }
-  });
 
   const coverImage = playlist.coverImage
     ? playlist.coverImage
@@ -256,7 +295,7 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {itemsAsTMDB.map(({ item, type, playlistItemId }) => (
+            {paginatedItems.map(({ item, type, playlistItemId }) => (
               <div key={playlistItemId} className="relative group">
                 <div onClick={() => setSelectedItem({ item, type })} className="cursor-pointer">
                   <MovieCard item={item} type={type} />
@@ -278,6 +317,41 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
                 </Button>
               </div>
             ))}
+          </div>
+        )}
+        {itemsAsTMDB.length > 0 && totalPages > 1 && (
+          <div className="mt-8 flex items-center justify-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Previous
+            </Button>
+            <div className="flex items-center gap-1">
+              {pageNumbers.map((page) => (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCurrentPage(page)}
+                  className="min-w-[40px]"
+                >
+                  {page}
+                </Button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
           </div>
         )}
       </div>
