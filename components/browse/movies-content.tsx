@@ -40,7 +40,7 @@ export default function MoviesContent({ favoriteGenres, preferredTypes }: Movies
         <div className="absolute inset-0 h-full bg-gradient-to-b from-transparent via-transparent to-background/20 dark:block hidden" />
       </div>
       
-      {/* Hero Section - 75vh */}
+      {/* Hero Section - 80vh */}
       <HeroSection
         featuredItem={featuredMovie}
         featuredItems={featuredItems.length > 0 ? featuredItems : undefined}

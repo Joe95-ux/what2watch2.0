@@ -95,7 +95,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
 
   if (isLoading || !currentItem) {
     return (
-      <div className="relative w-full h-[75vh] bg-muted">
+      <div className="relative w-full h-[80vh] -mt-[65px] bg-muted">
         <Skeleton className="absolute inset-0 w-full h-full" />
       </div>
     );
@@ -106,7 +106,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
   const backdropPath = currentItem.backdrop_path;
 
   return (
-    <div className="relative w-full h-[75vh] overflow-hidden bg-background">
+    <div className="relative w-full h-[80vh] -mt-[65px] overflow-hidden bg-background">
       {/* Trailer Video (if available) - Full width with autoplay */}
       {/* Stop video when details sheet is open */}
       {trailer && !isLoadingTrailer && !isDetailModalOpen && (

@@ -18,19 +18,15 @@ import {
   Check,
   Zap,
   TrendingUp,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
 } from "lucide-react";
 import { SignInButton } from "@clerk/nextjs";
 import Navbar from "@/components/navbar/navbar";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-  type CarouselApi,
-} from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
 import TrailerModal from "@/components/browse/trailer-modal";
+import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
 import {
   useTrendingMovies,
   useTrendingTV,
@@ -106,20 +102,57 @@ export default function LandingPage() {
     return [...movieSlides, ...tvSlides];
   }, [trendingMovies, trendingTV]);
 
-  const [carouselApi, setCarouselApi] = useState<CarouselApi | null>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [selectedSlideIndex, setSelectedSlideIndex] = useState(0);
+  const [slideRuntimes, setSlideRuntimes] = useState<Record<string, number>>({});
+  
+  const selectedSlide = slides[selectedSlideIndex] || null;
 
+  // Fetch runtime for all slides on mount
   useEffect(() => {
-    if (!carouselApi) return;
-    const onSelect = () => {
-      setActiveIndex(carouselApi.selectedScrollSnap());
+    if (slides.length === 0) return;
+
+    const fetchAllRuntimes = async () => {
+      const promises = slides.map(async (slide) => {
+        const key = `${slide.type}-${slide.id}`;
+        
+        try {
+          const response = await fetch(`/api/${slide.type === "movie" ? "movies" : "tv"}/${slide.id}`);
+          if (response.ok) {
+            const data = await response.json();
+            const runtime = slide.type === "movie" 
+              ? data.runtime 
+              : data.episode_run_time?.[0] || 0;
+            return { key, runtime };
+          }
+        } catch (error) {
+          console.error(`Failed to fetch runtime for ${slide.title}:`, error);
+        }
+        return null;
+      });
+
+      const results = await Promise.all(promises);
+      const newRuntimes: Record<string, number> = {};
+      results.forEach(result => {
+        if (result) {
+          newRuntimes[result.key] = result.runtime;
+        }
+      });
+      
+      if (Object.keys(newRuntimes).length > 0) {
+        setSlideRuntimes(prev => {
+          const updated = { ...prev };
+          Object.keys(newRuntimes).forEach(key => {
+            if (!updated[key]) {
+              updated[key] = newRuntimes[key];
+            }
+          });
+          return updated;
+        });
+      }
     };
-    onSelect();
-    carouselApi.on("select", onSelect);
-    return () => {
-      carouselApi.off("select", onSelect);
-    };
-  }, [carouselApi]);
+
+    fetchAllRuntimes();
+  }, [slides.length]); // Only run when slides change
 
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
   const [activeTrailerKey, setActiveTrailerKey] = useState<string | null>(null);
@@ -260,56 +293,55 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Trending Carousel */}
-          <div className="mx-auto mt-16 max-w-6xl">
+          {/* Trending Carousel - YouTube Style */}
+          <div className="mx-auto mt-16 max-w-7xl">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-xl font-semibold">Trending Now</h2>
               <Link href="/browse" className="text-sm text-muted-foreground hover:text-foreground">
                 View all →
               </Link>
             </div>
-            <div className="rounded-xl border bg-card p-4 shadow-sm">
-              <Carousel
-                opts={{ align: "start", loop: true }}
-                setApi={setCarouselApi}
-                className="w-full"
-              >
-                <CarouselContent className="-ml-2 md:-ml-4">
-                  {heroIsLoading && (
-                    <CarouselItem className="pl-2 md:pl-4">
-                      <div className="flex h-[400px] items-center justify-center rounded-lg border bg-muted">
-                        <div className="text-center">
-                          <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
-                          <p className="text-sm text-muted-foreground">Loading trending content...</p>
-                        </div>
-                      </div>
-                    </CarouselItem>
-                  )}
-                  {slides.map((slide, index) => (
-                    <CarouselItem key={`${slide.type}-${slide.id}-${index}`} className="pl-2 md:pl-4">
-                      <HeroSlideCard slide={slide} onPlay={handlePlay} />
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-                <CarouselPrevious className="hidden sm:flex" />
-                <CarouselNext className="hidden sm:flex" />
-              </Carousel>
-              {slides.length > 0 && (
-                <div className="mt-4 flex items-center justify-center gap-2">
-                  {slides.slice(0, 8).map((_, idx) => (
-                    <span
-                      key={idx}
-                      className={cn(
-                        "h-1.5 rounded-full transition-all",
-                        activeIndex === idx
-                          ? "w-8 bg-primary"
-                          : "w-1.5 bg-muted-foreground/30"
-                      )}
-                    />
-                  ))}
+            {heroIsLoading ? (
+              <div className="flex h-[600px] items-center justify-center rounded-lg bg-muted">
+                <div className="text-center">
+                  <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+                  <p className="text-sm text-muted-foreground">Loading trending content...</p>
                 </div>
-              )}
-            </div>
+              </div>
+            ) : slides.length > 0 ? (
+              <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
+                {/* Left Column - Featured Content */}
+                <div className="relative overflow-hidden rounded-lg bg-muted">
+                  <FeaturedContent
+                    slide={selectedSlide}
+                    onPlay={handlePlay}
+                    runtime={selectedSlide ? slideRuntimes[`${selectedSlide.type}-${selectedSlide.id}`] : undefined}
+                    onPrevious={() => setSelectedSlideIndex(prev => (prev - 1 + slides.length) % slides.length)}
+                    onNext={() => setSelectedSlideIndex(prev => (prev + 1) % slides.length)}
+                    canGoPrevious={slides.length > 1}
+                    canGoNext={slides.length > 1}
+                  />
+                </div>
+
+                {/* Right Column - Playlist */}
+                <div className="space-y-2 overflow-y-auto max-h-[600px] pr-2">
+                  {slides.map((slide, index) => {
+                    const isSelected = index === selectedSlideIndex;
+                    const runtime = slideRuntimes[`${slide.type}-${slide.id}`];
+                    return (
+                      <PlaylistItem
+                        key={`${slide.type}-${slide.id}-${index}`}
+                        slide={slide}
+                        isSelected={isSelected}
+                        runtime={runtime}
+                        onClick={() => setSelectedSlideIndex(index)}
+                        onPlay={handlePlay}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </section>
@@ -341,11 +373,11 @@ export default function LandingPage() {
               Powerful features designed to help you find, organize, and share your favorite entertainment.
             </p>
           </div>
-          <div className="mx-auto mt-16 grid max-w-5xl gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mx-auto mt-16 grid max-w-7xl gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="group rounded-lg border bg-card p-6 transition-all hover:shadow-md"
+                className="rounded-lg border bg-card p-6"
               >
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <feature.icon className="h-6 w-6" />
@@ -499,8 +531,29 @@ export default function LandingPage() {
               </ul>
             </div>
           </div>
-          <div className="mt-12 border-t pt-8 text-center text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} What2Watch. All rights reserved.
+          <div className="mt-12 border-t pt-8">
+            <div className="flex justify-end items-center">
+              <div className="text-sm text-muted-foreground mx-auto">
+                &copy; {new Date().getFullYear()} What2Watch. All rights reserved.
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>Powered by</span>
+                <Link
+                  href="https://www.themoviedb.org"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center hover:opacity-80 transition-opacity"
+                >
+                  <Image
+                    src="/moviedb-logo2.svg"
+                    alt="The Movie Database"
+                    width={100}
+                    height={20}
+                    className="h-5 w-auto"
+                  />
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </footer>
@@ -520,54 +573,221 @@ export default function LandingPage() {
   );
 }
 
-type HeroSlideCardProps = {
+type FeaturedContentProps = {
   slide: HeroSlide;
+  onPlay: (slide: HeroSlide) => void;
+  runtime?: number;
+  onPrevious: () => void;
+  onNext: () => void;
+  canGoPrevious: boolean;
+  canGoNext: boolean;
+};
+
+function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrevious, canGoNext }: FeaturedContentProps) {
+  const formatRuntime = (minutes?: number) => {
+    if (!minutes) return "";
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+
+  // Convert slide to TMDBMovie or TMDBSeries for AddToPlaylistDropdown
+  const item: TMDBMovie | TMDBSeries = slide.type === "movie"
+    ? {
+        id: slide.id,
+        title: slide.title,
+        overview: slide.overview,
+        poster_path: slide.poster,
+        backdrop_path: slide.backdrop,
+        release_date: slide.year || "",
+        vote_average: slide.rating,
+        vote_count: slide.voteCount,
+        genre_ids: [],
+        popularity: slide.popularity,
+        original_language: "en",
+        original_title: slide.title,
+      } as TMDBMovie
+    : {
+        id: slide.id,
+        name: slide.title,
+        overview: slide.overview,
+        poster_path: slide.poster,
+        backdrop_path: slide.backdrop,
+        first_air_date: slide.year || "",
+        vote_average: slide.rating,
+        vote_count: slide.voteCount,
+        genre_ids: [],
+        popularity: slide.popularity,
+        original_language: "en",
+        original_name: slide.title,
+      } as TMDBSeries;
+
+  return (
+    <div className="relative h-[600px]">
+      {/* Wallpaper Background */}
+      {slide.backdrop ? (
+        <Image
+          src={getBackdropUrl(slide.backdrop, "w1280")}
+          alt={slide.title}
+          fill
+          className="object-cover"
+          sizes="(max-width: 1024px) 100vw, 60vw"
+          priority
+        />
+      ) : (
+        <div className="h-full w-full bg-gradient-to-br from-muted to-muted/50" />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+
+      {/* Large Carousel Control Buttons */}
+      {canGoPrevious && (
+        <Button
+          size="icon"
+          variant="ghost"
+          className="absolute left-4 top-1/2 z-20 h-12 w-12 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
+          onClick={onPrevious}
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </Button>
+      )}
+      {canGoNext && (
+        <Button
+          size="icon"
+          variant="ghost"
+          className="absolute right-4 top-1/2 z-20 h-12 w-12 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
+          onClick={onNext}
+        >
+          <ChevronRight className="h-6 w-6" />
+        </Button>
+      )}
+
+      {/* Bottom Section - Poster and Details */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 p-6">
+        <div className="grid gap-6 md:grid-cols-[200px_1fr]">
+          {/* Poster Column */}
+          {slide.poster && (
+            <div className="relative aspect-[2/3] w-full max-w-[200px] overflow-hidden rounded-lg">
+              <Image
+                src={getPosterUrl(slide.poster, "w500")}
+                alt={slide.title}
+                fill
+                className="object-cover"
+                sizes="200px"
+              />
+              {/* Add to Playlist Button - Top Left */}
+              <div className="absolute left-2 top-2">
+                <AddToPlaylistDropdown
+                  item={item}
+                  type={slide.type}
+                  trigger={
+                    <Button
+                      size="icon"
+                      className="h-9 w-9 rounded-full bg-background/90 backdrop-blur-sm hover:bg-background"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  }
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Details Column */}
+          <div className="flex flex-col justify-end">
+            <Button
+              size="lg"
+              onClick={() => onPlay(slide)}
+              className="mb-4 w-fit bg-primary hover:bg-primary/90"
+            >
+              <Play className="mr-2 h-5 w-5 fill-current" />
+              Play Trailer
+            </Button>
+            <h3 className="mb-2 text-3xl font-bold sm:text-4xl">{slide.title}</h3>
+            <p className="mb-2 text-sm text-muted-foreground">Watch the trailer</p>
+            {runtime && (
+              <p className="text-sm font-medium text-foreground">{formatRuntime(runtime)}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type PlaylistItemProps = {
+  slide: HeroSlide;
+  isSelected: boolean;
+  runtime?: number;
+  onClick: () => void;
   onPlay: (slide: HeroSlide) => void;
 };
 
-function HeroSlideCard({ slide, onPlay }: HeroSlideCardProps) {
+function PlaylistItem({ slide, isSelected, runtime, onClick, onPlay }: PlaylistItemProps) {
+  const formatRuntime = (minutes?: number) => {
+    if (!minutes) return "";
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}:${mins.toString().padStart(2, "0")}` : `0:${mins.toString().padStart(2, "0")}`;
+  };
+
   return (
-    <div className="group relative overflow-hidden rounded-lg border bg-card">
-      <div className="relative aspect-video w-full">
-        {slide.backdrop ? (
+    <div
+      className={cn(
+        "group flex cursor-pointer gap-3 rounded-lg p-3 transition-colors",
+        isSelected
+          ? "bg-primary/10"
+          : "bg-card hover:bg-muted/50"
+      )}
+      onClick={onClick}
+    >
+      {/* Thumbnail */}
+      <div className="relative h-20 w-[140px] flex-shrink-0 overflow-hidden rounded">
+        {slide.poster ? (
           <Image
-            src={getBackdropUrl(slide.backdrop, "w1280")}
+            src={getPosterUrl(slide.poster, "w300")}
             alt={slide.title}
             fill
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover"
+            sizes="140px"
           />
         ) : (
-          <div className="h-full w-full bg-gradient-to-br from-muted to-muted/50" />
+          <div className="h-full w-full bg-muted" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/50 to-transparent" />
-        <div className="absolute inset-0 flex items-end p-6">
-          <div className="w-full">
-            <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1 rounded-full border bg-background/80 px-2 py-1">
-                {slide.type === "movie" ? (
-                  <Film className="h-3 w-3" />
-                ) : (
-                  <span className="text-xs">TV</span>
-                )}
-                {slide.type === "movie" ? "Movie" : "TV Show"}
-              </span>
-              {slide.year && <span>{slide.year}</span>}
-              <span className="flex items-center gap-1">
-                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                {slide.rating.toFixed(1)}
-              </span>
-            </div>
-            <h3 className="mb-2 text-xl font-bold sm:text-2xl">{slide.title}</h3>
-            <p className="mb-4 line-clamp-2 text-sm text-muted-foreground">
-              {slide.overview || "A must-watch currently captivating viewers worldwide."}
-            </p>
-            <Button onClick={() => onPlay(slide)} size="sm">
-              <Play className="mr-2 h-4 w-4" />
-              Play Trailer
-            </Button>
-          </div>
+        {/* Play Button Overlay */}
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-10 w-10 rounded-full bg-background/90 hover:bg-background"
+            onClick={(e) => {
+              e.stopPropagation();
+              onPlay(slide);
+            }}
+          >
+            <Play className="h-4 w-4 fill-current" />
+          </Button>
         </div>
+        {/* Playtime Badge */}
+        {runtime && (
+          <div className="absolute bottom-1 right-1 rounded bg-black/80 px-1.5 py-0.5 text-xs font-medium text-white">
+            {formatRuntime(runtime)}
+          </div>
+        )}
+      </div>
+
+      {/* Title */}
+      <div className="flex-1 overflow-hidden">
+        <h4 className={cn(
+          "line-clamp-2 font-medium",
+          isSelected ? "text-primary" : "text-foreground"
+        )}>
+          {slide.title}
+        </h4>
+        {!runtime && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {slide.year || "N/A"}
+          </p>
+        )}
       </div>
     </div>
   );
