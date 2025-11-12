@@ -604,6 +604,7 @@ function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrev
         vote_count: slide.voteCount,
         genre_ids: [],
         popularity: slide.popularity,
+        adult: false,
         original_language: "en",
         original_title: slide.title,
       } as TMDBMovie
