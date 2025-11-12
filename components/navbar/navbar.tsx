@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useUser, SignInButton, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -33,7 +33,6 @@ export default function Navbar() {
   const { isSignedIn, isLoaded } = useUser();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
 
   // Check if we're on a page that should use the collapsed nav
   const shouldUseCollapsedNav = pathname === "/my-list" || pathname === "/playlists" || pathname?.startsWith("/playlists/") || pathname === "/search" || pathname?.startsWith("/search");
@@ -43,43 +42,15 @@ export default function Navbar() {
 
   const shouldUseMaxSearchNav = pathname === "/search" || pathname?.startsWith("/search");
 
-  // Check if we're on a page with hero section (more transparent navbar needed)
+  // Check if we're on a page with hero section (dark navbar needed)
   const hasHeroSection = pathname === "/browse" || pathname === "/movies" || pathname === "/tv" || pathname?.startsWith("/browse/") || pathname?.startsWith("/movies/") || pathname?.startsWith("/tv/") || pathname?.startsWith("/playlists/");
-
-  // Handle scroll for hero pages - navbar becomes sticky on scroll
-  useEffect(() => {
-    if (!hasHeroSection) {
-      setIsScrolled(false);
-      return;
-    }
-
-    let ticking = false;
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const scrollY = window.scrollY;
-          setIsScrolled(scrollY > 50);
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-
-    // Check initial scroll position
-    handleScroll();
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [hasHeroSection]);
 
   return (
     <nav className={cn(
-      "z-50 w-full backdrop-blur-md",
+      "sticky top-0 z-50 w-full backdrop-blur-md transition-all duration-300 ease-in-out",
       hasHeroSection 
-        ? isScrolled
-          ? "sticky top-0 bg-black/60 border-b border-[rgba(255,255,255,0.1)] shadow-sm transition-[background-color,box-shadow] duration-500 ease-out"
-          : "absolute top-0 bg-black/40 border-b border-[rgba(255,255,255,0.1)] transition-[background-color] duration-500 ease-out"
-        : "sticky top-0 bg-background/80 dark:bg-background/80 border-b border-border/50 supports-[backdrop-filter]:bg-background/60 dark:supports-[backdrop-filter]:bg-background/60 transition-all duration-300 ease-in-out"
+        ? "bg-black/60 border-b border-[rgba(255,255,255,0.1)] shadow-sm"
+        : "bg-background/80 dark:bg-background/80 border-b border-border/50 supports-[backdrop-filter]:bg-background/60 dark:supports-[backdrop-filter]:bg-background/60"
     )}>
       <div className={cn(
         "w-full flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8",
