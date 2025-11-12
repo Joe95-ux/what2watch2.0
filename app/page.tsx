@@ -178,6 +178,7 @@ export default function LandingPage() {
   const [slideRuntimes, setSlideRuntimes] = useState<Record<string, number>>({});
   const [isPaused, setIsPaused] = useState(false);
   const playlistScrollRef = useRef<HTMLDivElement>(null);
+  const isAutoScrollingRef = useRef(false);
   
   const selectedSlide = slides[selectedSlideIndex] || null;
 
@@ -186,7 +187,12 @@ export default function LandingPage() {
     if (slides.length <= 1 || isPaused) return;
     
     const interval = setInterval(() => {
+      isAutoScrollingRef.current = true;
       setSelectedSlideIndex(prev => (prev + 1) % slides.length);
+      // Reset flag after a short delay
+      setTimeout(() => {
+        isAutoScrollingRef.current = false;
+      }, 100);
     }, 8000);
 
     return () => clearInterval(interval);
@@ -203,9 +209,9 @@ export default function LandingPage() {
     return () => clearTimeout(timeout);
   }, [isPaused]);
 
-  // Scroll to selected item in playlist
+  // Scroll to selected item in playlist (only if not auto-scrolling)
   useEffect(() => {
-    if (!playlistScrollRef.current) return;
+    if (!playlistScrollRef.current || isAutoScrollingRef.current) return;
     
     const selectedElement = playlistScrollRef.current.querySelector(
       `[data-slide-index="${selectedSlideIndex}"]`
@@ -218,7 +224,7 @@ export default function LandingPage() {
     }
   }, [selectedSlideIndex]);
 
-  // Fetch runtime for all slides on mount
+  // Fetch runtime for all slides on mount (for playlist items)
   useEffect(() => {
     if (slides.length === 0) return;
 
@@ -233,7 +239,10 @@ export default function LandingPage() {
             const runtime = slide.type === "movie" 
               ? data.runtime 
               : data.episode_run_time?.[0] || 0;
-            return { key, runtime };
+            // Only return if runtime is valid (greater than 0)
+            if (runtime && runtime > 0) {
+              return { key, runtime };
+            }
           }
         } catch (error) {
           console.error(`Failed to fetch runtime for ${slide.title}:`, error);
@@ -244,7 +253,7 @@ export default function LandingPage() {
       const results = await Promise.all(promises);
       const newRuntimes: Record<string, number> = {};
       results.forEach(result => {
-        if (result) {
+        if (result && result.runtime > 0) {
           newRuntimes[result.key] = result.runtime;
         }
       });
@@ -315,6 +324,9 @@ export default function LandingPage() {
           loading: false,
         },
       }));
+      
+      // Store trailer duration if available (YouTube API would be needed for actual duration)
+      // For now, we'll leave it empty as TMDB doesn't provide video duration
     } catch (error) {
       console.error("Failed to load trailer", error);
       setTrailers((prev) => ({
@@ -426,7 +438,7 @@ export default function LandingPage() {
                   <FeaturedContent
                     slide={selectedSlide}
                     onPlay={handlePlay}
-                    runtime={selectedSlide ? slideRuntimes[`${selectedSlide.type}-${selectedSlide.id}`] : undefined}
+                    trailerDuration={undefined}
                     onPrevious={() => {
                       setIsPaused(true);
                       setSelectedSlideIndex(prev => (prev - 1 + slides.length) % slides.length);
@@ -626,7 +638,81 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* Main Footer */}
+      <footer className="border-t bg-muted/30 py-12">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <h3 className="mb-4 font-semibold">What2Watch</h3>
+              <p className="text-sm text-muted-foreground">
+                Your personal watchlist companion for discovering great movies and TV shows.
+              </p>
+            </div>
+            <div>
+              <h4 className="mb-4 text-sm font-semibold">Discover</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <Link href="/browse" className="text-muted-foreground hover:text-foreground">
+                    Browse
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/movies" className="text-muted-foreground hover:text-foreground">
+                    Movies
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/tv" className="text-muted-foreground hover:text-foreground">
+                    TV Shows
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="mb-4 text-sm font-semibold">Platform</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <Link href="/my-list" className="text-muted-foreground hover:text-foreground">
+                    My List
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/playlists" className="text-muted-foreground hover:text-foreground">
+                    Playlists
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/forums" className="text-muted-foreground hover:text-foreground">
+                    Forums
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="mb-4 text-sm font-semibold">Company</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <Link href="/about" className="text-muted-foreground hover:text-foreground">
+                    About
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/privacy" className="text-muted-foreground hover:text-foreground">
+                    Privacy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/terms" className="text-muted-foreground hover:text-foreground">
+                    Terms
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      {/* Bottom Footer */}
       <footer className="border-t bg-muted/30 py-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-center gap-4">
@@ -674,19 +760,19 @@ export default function LandingPage() {
 type FeaturedContentProps = {
   slide: HeroSlide;
   onPlay: (slide: HeroSlide) => void;
-  runtime?: number;
+  trailerDuration?: number;
   onPrevious: () => void;
   onNext: () => void;
   canGoPrevious: boolean;
   canGoNext: boolean;
 };
 
-function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrevious, canGoNext }: FeaturedContentProps) {
-  const formatRuntime = (minutes?: number) => {
-    if (!minutes || minutes === 0) return "";
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+function FeaturedContent({ slide, onPlay, trailerDuration, onPrevious, onNext, canGoPrevious, canGoNext }: FeaturedContentProps) {
+  const formatDuration = (seconds?: number) => {
+    if (!seconds || seconds === 0) return "";
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return minutes > 0 ? `${minutes}:${secs.toString().padStart(2, "0")}` : `0:${secs.toString().padStart(2, "0")}`;
   };
 
   // Convert slide to TMDBMovie or TMDBSeries for AddToPlaylistDropdown
@@ -796,12 +882,12 @@ function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrev
               <Button
                 size="icon"
                 onClick={() => onPlay(slide)}
-                className="h-12 w-12 sm:h-14 sm:w-14 cursor-pointer rounded-full bg-primary hover:bg-primary/90 transition-all duration-300 ease-in-out"
+                className="h-12 w-12 sm:h-14 sm:w-14 cursor-pointer rounded-full bg-black/60 backdrop-blur-sm hover:bg-black/80 border border-white/20 transition-all duration-300 ease-in-out"
               >
-                <Play className="h-5 w-5 sm:h-6 sm:w-6 fill-current text-white transition-transform duration-300" />
+                <Play className="size-7 fill-current text-white transition-transform duration-300" />
               </Button>
-              {runtime && formatRuntime(runtime) && (
-                <span className="text-xs sm:text-sm font-medium text-white">{formatRuntime(runtime)}</span>
+              {trailerDuration && formatDuration(trailerDuration) && (
+                <span className="text-xs sm:text-sm font-medium text-white">{formatDuration(trailerDuration)}</span>
               )}
             </div>
             <h3 className="mb-1 text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white transition-opacity duration-500 line-clamp-2">{slide.title}</h3>
@@ -824,7 +910,7 @@ type PlaylistItemProps = {
 
 function PlaylistItem({ slide, isSelected, runtime, onClick, onPlay, index }: PlaylistItemProps) {
   const formatRuntime = (minutes?: number) => {
-    if (!minutes) return "";
+    if (!minutes || minutes === 0) return "";
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return hours > 0 ? `${hours}:${mins.toString().padStart(2, "0")}` : `0:${mins.toString().padStart(2, "0")}`;
@@ -870,7 +956,7 @@ function PlaylistItem({ slide, isSelected, runtime, onClick, onPlay, index }: Pl
           >
             <Play className="h-3.5 w-3.5 fill-current transition-transform duration-300" />
           </Button>
-          {runtime && (
+          {runtime && formatRuntime(runtime) && (
             <span className="text-xs font-medium text-muted-foreground">{formatRuntime(runtime)}</span>
           )}
         </div>
