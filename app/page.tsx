@@ -577,7 +577,7 @@ export default function LandingPage() {
       </section>
 
       {/* Public Playlists Section */}
-      <section className="border-t py-20 sm:py-24">
+      <section className="border-t py-20 sm:py-24 overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8 flex items-center justify-between">
             <div>
@@ -592,7 +592,7 @@ export default function LandingPage() {
               View all →
             </Link>
           </div>
-          <div className="overflow-hidden">
+          <div className="overflow-visible">
             <PublicPlaylistsCarousel />
           </div>
         </div>

@@ -19,9 +19,10 @@ interface NavLink {
 
 interface NavDropdownProps {
   navLinks: NavLink[];
+  hasHeroSection?: boolean;
 }
 
-export function NavDropdown({ navLinks }: NavDropdownProps) {
+export function NavDropdown({ navLinks, hasHeroSection = false }: NavDropdownProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -30,7 +31,12 @@ export function NavDropdown({ navLinks }: NavDropdownProps) {
       <DropdownMenuTrigger asChild>
         <HamburgerButton
           isOpen={open}
-          className="h-10 w-10 text-muted-foreground hover:text-foreground transition-colors"
+          className={cn(
+            "h-10 w-10 transition-colors",
+            hasHeroSection
+              ? "text-white hover:bg-black/20"
+              : "text-muted-foreground hover:text-foreground"
+          )}
         />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
