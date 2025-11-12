@@ -27,6 +27,7 @@ import Navbar from "@/components/navbar/navbar";
 import { Button } from "@/components/ui/button";
 import TrailerModal from "@/components/browse/trailer-modal";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   useTrendingMovies,
   useTrendingTV,
@@ -104,8 +105,31 @@ export default function LandingPage() {
 
   const [selectedSlideIndex, setSelectedSlideIndex] = useState(0);
   const [slideRuntimes, setSlideRuntimes] = useState<Record<string, number>>({});
+  const [isPaused, setIsPaused] = useState(false);
   
   const selectedSlide = slides[selectedSlideIndex] || null;
+
+  // Autoplay carousel - rotate every 8 seconds (paused when user interacts)
+  useEffect(() => {
+    if (slides.length <= 1 || isPaused) return;
+    
+    const interval = setInterval(() => {
+      setSelectedSlideIndex(prev => (prev + 1) % slides.length);
+    }, 8000);
+
+    return () => clearInterval(interval);
+  }, [slides.length, isPaused]);
+
+  // Reset pause after 10 seconds of inactivity
+  useEffect(() => {
+    if (!isPaused) return;
+    
+    const timeout = setTimeout(() => {
+      setIsPaused(false);
+    }, 10000);
+
+    return () => clearTimeout(timeout);
+  }, [isPaused]);
 
   // Fetch runtime for all slides on mount
   useEffect(() => {
@@ -316,29 +340,64 @@ export default function LandingPage() {
                     slide={selectedSlide}
                     onPlay={handlePlay}
                     runtime={selectedSlide ? slideRuntimes[`${selectedSlide.type}-${selectedSlide.id}`] : undefined}
-                    onPrevious={() => setSelectedSlideIndex(prev => (prev - 1 + slides.length) % slides.length)}
-                    onNext={() => setSelectedSlideIndex(prev => (prev + 1) % slides.length)}
-                    canGoPrevious={slides.length > 1}
-                    canGoNext={slides.length > 1}
                   />
                 </div>
 
                 {/* Right Column - Playlist */}
-                <div className="space-y-2 overflow-y-auto max-h-[600px] pr-2">
-                  {slides.map((slide, index) => {
-                    const isSelected = index === selectedSlideIndex;
-                    const runtime = slideRuntimes[`${slide.type}-${slide.id}`];
-                    return (
-                      <PlaylistItem
-                        key={`${slide.type}-${slide.id}-${index}`}
-                        slide={slide}
-                        isSelected={isSelected}
-                        runtime={runtime}
-                        onClick={() => setSelectedSlideIndex(index)}
-                        onPlay={handlePlay}
-                      />
-                    );
-                  })}
+                <div className="relative">
+                  {/* Carousel Controls - Positioned at middle of left/right edges */}
+                  {slides.length > 1 && (
+                    <>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="absolute left-0 top-1/2 z-20 h-10 w-10 -translate-y-1/2 -translate-x-1/2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background border"
+                        onClick={() => {
+                          setIsPaused(true);
+                          setSelectedSlideIndex(prev => (prev - 1 + slides.length) % slides.length);
+                        }}
+                      >
+                        <ChevronLeft className="h-7 w-7" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="absolute right-0 top-1/2 z-20 h-10 w-10 -translate-y-1/2 translate-x-1/2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background border"
+                        onClick={() => {
+                          setIsPaused(true);
+                          setSelectedSlideIndex(prev => (prev + 1) % slides.length);
+                        }}
+                      >
+                        <ChevronRight className="h-7 w-7" />
+                      </Button>
+                    </>
+                  )}
+                  
+                  <div className="mb-3">
+                    <h3 className="text-sm font-semibold text-foreground">Up Next</h3>
+                  </div>
+                  
+                  <ScrollArea className="h-[600px] pr-4">
+                    <div className="space-y-2">
+                      {slides.map((slide, index) => {
+                        const isSelected = index === selectedSlideIndex;
+                        const runtime = slideRuntimes[`${slide.type}-${slide.id}`];
+                        return (
+                          <PlaylistItem
+                            key={`${slide.type}-${slide.id}-${index}`}
+                            slide={slide}
+                            isSelected={isSelected}
+                            runtime={runtime}
+                            onClick={() => {
+                              setIsPaused(true);
+                              setSelectedSlideIndex(index);
+                            }}
+                            onPlay={handlePlay}
+                          />
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
                 </div>
               </div>
             ) : null}
@@ -577,13 +636,9 @@ type FeaturedContentProps = {
   slide: HeroSlide;
   onPlay: (slide: HeroSlide) => void;
   runtime?: number;
-  onPrevious: () => void;
-  onNext: () => void;
-  canGoPrevious: boolean;
-  canGoNext: boolean;
 };
 
-function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrevious, canGoNext }: FeaturedContentProps) {
+function FeaturedContent({ slide, onPlay, runtime }: FeaturedContentProps) {
   const formatRuntime = (minutes?: number) => {
     if (!minutes) return "";
     const hours = Math.floor(minutes / 60);
@@ -640,28 +695,6 @@ function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrev
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
 
-      {/* Large Carousel Control Buttons */}
-      {canGoPrevious && (
-        <Button
-          size="icon"
-          variant="ghost"
-          className="absolute left-4 top-1/2 z-20 h-12 w-12 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
-          onClick={onPrevious}
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </Button>
-      )}
-      {canGoNext && (
-        <Button
-          size="icon"
-          variant="ghost"
-          className="absolute right-4 top-1/2 z-20 h-12 w-12 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
-          onClick={onNext}
-        >
-          <ChevronRight className="h-6 w-6" />
-        </Button>
-      )}
-
       {/* Bottom Section - Poster and Details */}
       <div className="absolute bottom-0 left-0 right-0 z-10 p-6">
         <div className="grid gap-6 md:grid-cols-[200px_1fr]">
@@ -675,8 +708,8 @@ function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrev
                 className="object-cover"
                 sizes="200px"
               />
-              {/* Add to Playlist Button - Top Left */}
-              <div className="absolute left-2 top-2">
+              {/* Add to Playlist Button - Top Right */}
+              <div className="absolute right-2 top-2">
                 <AddToPlaylistDropdown
                   item={item}
                   type={slide.type}
@@ -695,19 +728,21 @@ function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrev
 
           {/* Details Column */}
           <div className="flex flex-col justify-end">
-            <Button
-              size="lg"
-              onClick={() => onPlay(slide)}
-              className="mb-4 w-fit bg-primary hover:bg-primary/90"
-            >
-              <Play className="mr-2 h-5 w-5 fill-current" />
-              Play Trailer
-            </Button>
-            <h3 className="mb-2 text-3xl font-bold sm:text-4xl">{slide.title}</h3>
-            <p className="mb-2 text-sm text-muted-foreground">Watch the trailer</p>
-            {runtime && (
-              <p className="text-sm font-medium text-foreground">{formatRuntime(runtime)}</p>
-            )}
+            <div className="mb-4 flex items-center gap-3">
+              <Button
+                size="lg"
+                onClick={() => onPlay(slide)}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Play className="mr-2 h-5 w-5 fill-current" />
+                Play
+              </Button>
+              {runtime && (
+                <span className="text-sm font-medium text-foreground">{formatRuntime(runtime)}</span>
+              )}
+            </div>
+            <h3 className="mb-1 text-3xl font-bold sm:text-4xl">{slide.title}</h3>
+            <p className="text-sm text-muted-foreground">Watch the trailer</p>
           </div>
         </div>
       </div>
@@ -754,41 +789,33 @@ function PlaylistItem({ slide, isSelected, runtime, onClick, onPlay }: PlaylistI
         ) : (
           <div className="h-full w-full bg-muted" />
         )}
-        {/* Play Button Overlay */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+      </div>
+
+      {/* Details */}
+      <div className="flex flex-1 flex-col justify-between overflow-hidden">
+        <div className="flex items-center gap-2">
           <Button
             size="icon"
             variant="ghost"
-            className="h-10 w-10 rounded-full bg-background/90 hover:bg-background"
+            className="h-8 w-8 flex-shrink-0 rounded-full bg-background/90 hover:bg-background"
             onClick={(e) => {
               e.stopPropagation();
               onPlay(slide);
             }}
           >
-            <Play className="h-4 w-4 fill-current" />
+            <Play className="h-3.5 w-3.5 fill-current" />
           </Button>
+          {runtime && (
+            <span className="text-xs font-medium text-muted-foreground">{formatRuntime(runtime)}</span>
+          )}
         </div>
-        {/* Playtime Badge */}
-        {runtime && (
-          <div className="absolute bottom-1 right-1 rounded bg-black/80 px-1.5 py-0.5 text-xs font-medium text-white">
-            {formatRuntime(runtime)}
-          </div>
-        )}
-      </div>
-
-      {/* Title */}
-      <div className="flex-1 overflow-hidden">
         <h4 className={cn(
           "line-clamp-2 font-medium",
           isSelected ? "text-primary" : "text-foreground"
         )}>
           {slide.title}
         </h4>
-        {!runtime && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            {slide.year || "N/A"}
-          </p>
-        )}
+        <p className="text-xs text-muted-foreground">Watch the trailer</p>
       </div>
     </div>
   );
