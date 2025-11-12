@@ -453,12 +453,12 @@ export default function LandingPage() {
                 </div>
 
                 {/* Right Column - Playlist (hidden below xl breakpoint) */}
-                <div className="relative hidden xl:block">
+                <div className="relative hidden xl:block overflow-hidden">
                   <div className="mb-3">
                     <h3 className="text-sm font-semibold text-foreground">Up Next</h3>
                   </div>
                   
-                  <ScrollArea className="h-[600px] pr-4">
+                  <ScrollArea className="h-[570px] pr-4">
                     <div ref={playlistScrollRef} className="space-y-2">
                       {slides.map((slide, index) => {
                         const isSelected = index === selectedSlideIndex;
@@ -592,7 +592,9 @@ export default function LandingPage() {
               View all →
             </Link>
           </div>
-          <PublicPlaylistsCarousel />
+          <div className="overflow-hidden">
+            <PublicPlaylistsCarousel />
+          </div>
         </div>
       </section>
 

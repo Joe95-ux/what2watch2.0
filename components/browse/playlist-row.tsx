@@ -147,20 +147,22 @@ export default function PlaylistRow({ title, playlists, isLoading, href }: Playl
 
   return (
     <div className="mb-12">
-      {/* Title with padding */}
-      <div className="px-4 sm:px-6 lg:px-8 mb-6 flex items-center justify-between">
-        <Link 
-          href={titleHref}
-          className="group/title inline-flex items-center gap-2 transition-all duration-300"
-        >
-          <h2 className="text-2xl font-medium text-foreground group-hover/title:text-primary transition-colors">
-            {title}
-          </h2>
-          <CaretRight 
-            className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover/title:opacity-100 group-hover/title:translate-x-0 transition-all duration-300" 
-          />
-        </Link>
-      </div>
+      {/* Title with padding - only render if title is provided */}
+      {title && (
+        <div className="px-4 sm:px-6 lg:px-8 mb-6 flex items-center justify-between">
+          <Link 
+            href={titleHref}
+            className="group/title inline-flex items-center gap-2 transition-all duration-300"
+          >
+            <h2 className="text-2xl font-medium text-foreground group-hover/title:text-primary transition-colors">
+              {title}
+            </h2>
+            <CaretRight 
+              className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover/title:opacity-100 group-hover/title:translate-x-0 transition-all duration-300" 
+            />
+          </Link>
+        </div>
+      )}
       
       {/* Carousel container */}
       <div ref={rowRef} className="relative group">
