@@ -107,8 +107,14 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
   const onTheAirTVUnique = filterLatestTVUnique(onTheAirTV);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Section - 75vh with 100vh dark overlay */}
+    <div className="min-h-screen bg-background relative">
+      {/* 100vh dark overlay for blending (positioned at page level) */}
+      <div className="absolute top-0 left-0 right-0 h-screen pointer-events-none z-0">
+        <div className="h-full bg-gradient-to-b from-black via-black/80 to-transparent" />
+        <div className="absolute inset-0 h-full bg-gradient-to-b from-transparent via-transparent to-background/20 dark:block hidden" />
+      </div>
+      
+      {/* Hero Section - 75vh */}
       <HeroSection
         featuredItem={featuredMovie}
         featuredItems={featuredItems.length > 0 ? featuredItems : undefined}

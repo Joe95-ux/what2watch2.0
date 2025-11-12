@@ -16,8 +16,13 @@ import {
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
-export function UserMenu() {
+interface UserMenuProps {
+  hasHeroSection?: boolean;
+}
+
+export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
   const { setTheme, theme } = useTheme();
   const router = useRouter();
   const { signOut } = useClerk();
@@ -30,8 +35,14 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-9 w-9">
-          <MoreVertical className="h-5 w-5" />
+        <Button variant="ghost" size="icon" className={cn(
+          "h-9 w-9 transition-colors duration-300",
+          hasHeroSection && "hover:bg-black/20"
+        )}>
+          <MoreVertical className={cn(
+            "h-5 w-5 transition-colors duration-300",
+            hasHeroSection && "text-white"
+          )} />
           <span className="sr-only">User menu</span>
         </Button>
       </DropdownMenuTrigger>

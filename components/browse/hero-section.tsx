@@ -95,13 +95,9 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
 
   if (isLoading || !currentItem) {
     return (
-      <>
-        {/* 100vh dark overlay for blending */}
-        <div className="fixed inset-0 h-screen bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none z-0" />
-        <div className="relative w-full h-[75vh] bg-muted">
-          <Skeleton className="absolute inset-0 w-full h-full" />
-        </div>
-      </>
+      <div className="relative w-full h-[75vh] bg-muted">
+        <Skeleton className="absolute inset-0 w-full h-full" />
+      </div>
     );
   }
 
@@ -110,10 +106,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
   const backdropPath = currentItem.backdrop_path;
 
   return (
-    <>
-      {/* 100vh dark overlay for blending with content (consistent across themes) */}
-      <div className="fixed inset-0 h-screen bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none z-0" />
-      <div className="relative w-full h-[75vh] overflow-hidden bg-background">
+    <div className="relative w-full h-[75vh] overflow-hidden bg-background">
       {/* Trailer Video (if available) - Full width with autoplay */}
       {/* Stop video when details sheet is open */}
       {trailer && !isLoadingTrailer && !isDetailModalOpen && (
@@ -211,7 +204,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
                 <Button
                   size="lg"
                   variant="outline"
-                  className="bg-white/10 text-white border-white/30 hover:bg-white/25 hover:border-white/60 h-10 sm:h-14 px-4 sm:px-10 text-sm sm:text-base font-medium backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl cursor-pointer"
+                  className="bg-white/10 text-white border-white/30 hover:bg-white/25 hover:border-white/60 h-10 sm:h-14 px-4 sm:px-10 text-sm sm:text-base font-medium backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl cursor-pointer dark:border-white/30"
                   onClick={() => setIsDetailModalOpen(true)}
                 >
                   <Info className="mr-1.5 sm:mr-2.5 size-4 sm:size-6" />
@@ -228,7 +221,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
                             <Button
                               size="lg"
                               variant="ghost"
-                              className="h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 hover:border-white/60 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl cursor-pointer"
+                              className="h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 hover:border-white/60 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl cursor-pointer dark:border-white/30"
                             >
                               <Plus className="text-white size-4 sm:size-6" />
                             </Button>
@@ -249,7 +242,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
                     <Button
                       size="lg"
                       variant="ghost"
-                      className="h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 hover:border-white/60 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl cursor-pointer sm:absolute sm:right-8 sm:bottom-20"
+                      className="h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 hover:border-white/60 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl cursor-pointer sm:absolute sm:right-8 sm:bottom-20 dark:border-white/30"
                       onClick={() => setIsMuted(!isMuted)}
                       aria-label={isMuted ? "Unmute" : "Mute"}
                     >
@@ -292,6 +285,5 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
         onClose={() => setIsDetailModalOpen(false)}
       />
     </div>
-    </>
   );
 }

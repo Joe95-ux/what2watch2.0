@@ -205,7 +205,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
     }
     
     // Different scale for "more-like-this" variant (smaller scale like Netflix)
-    const scale = variant === "more-like-this" ? 1.15 : 1.5;
+    const scale = variant === "more-like-this" ? 1.15 : 1.4;
     
     // Calculate scaled dimensions
     const scaledWidth = rect.width * scale;
@@ -276,7 +276,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
         }}
         style={{
           ...(isHovered && !isMobile ? getCardStyle() : {}),
-          transition: isMobile ? "none" : "transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+          transition: isMobile ? "none" : "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
           willChange: isMobile ? "auto" : "transform",
         }}
       >

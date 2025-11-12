@@ -222,7 +222,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
                   onChange={(e) => setQuery(e.target.value)}
                   className={cn(
                     "pl-9 pr-20 h-10 transition-colors duration-300",
-                    hasHeroSection && "bg-white/10 border-[rgba(255,255,255,0.2)] text-white placeholder:text-white/60 focus:border-white/40 focus:ring-white/20"
+                    hasHeroSection && "bg-white/10 border-white/30 text-white placeholder:text-white/60 focus:border-white/50 focus:ring-white/20"
                   )}
                   autoFocus
                 />
@@ -359,7 +359,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
           onFocus={() => setIsExpanded(true)}
           className={cn(
             "pl-9 pr-20 h-9 transition-colors duration-300",
-            hasHeroSection && "bg-white/10 border-[rgba(255,255,255,0.2)] text-white placeholder:text-white/60 focus:border-white/40 focus:ring-white/20"
+            hasHeroSection && "bg-white/10 border-white/30 text-white placeholder:text-white/60 focus:border-white/50 focus:ring-white/20"
           )}
         />
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
