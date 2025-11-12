@@ -8,15 +8,9 @@ import {
   Play,
   ArrowRight,
   Sparkles,
-  Film,
   Users,
-  MessageSquare,
   Clapperboard,
-  Star,
-  ShieldCheck,
   Compass,
-  Check,
-  Zap,
   TrendingUp,
   ChevronLeft,
   ChevronRight,
@@ -349,9 +343,9 @@ export default function LandingPage() {
                 </div>
               </div>
             ) : slides.length > 0 ? (
-              <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
+              <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[1fr_400px]">
                 {/* Left Column - Featured Content */}
-                <div className="relative h-[600px] overflow-hidden rounded-lg bg-muted">
+                <div className="relative overflow-hidden rounded-lg bg-muted">
                   <FeaturedContent
                     slide={selectedSlide}
                     onPlay={handlePlay}
@@ -696,32 +690,31 @@ function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrev
       ) : (
         <div className="h-full w-full bg-gradient-to-br from-muted to-muted/50" />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-
-      {/* Carousel Controls - Positioned at middle of left/right edges */}
-      {canGoPrevious && (
-        <Button
-          size="icon"
-          variant="ghost"
-          className="absolute left-0 top-1/2 z-20 h-10 w-10 -translate-y-1/2 -translate-x-1/2 cursor-pointer rounded-full bg-background/80 backdrop-blur-sm hover:bg-background border transition-all duration-300"
-          onClick={onPrevious}
-        >
-          <ChevronLeft className="h-7 w-7" />
-        </Button>
-      )}
-      {canGoNext && (
-        <Button
-          size="icon"
-          variant="ghost"
-          className="absolute right-0 top-1/2 z-20 h-10 w-10 -translate-y-1/2 translate-x-1/2 cursor-pointer rounded-full bg-background/80 backdrop-blur-sm hover:bg-background border transition-all duration-300"
-          onClick={onNext}
-        >
-          <ChevronRight className="h-7 w-7" />
-        </Button>
-      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent dark:from-black dark:via-black/80" />
 
       {/* Bottom Section - Poster and Details */}
       <div className="absolute bottom-0 left-0 right-0 z-10 p-6">
+        {/* Carousel Controls - Positioned slightly above poster */}
+        {canGoPrevious && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="absolute left-4 bottom-[340px] z-20 h-11 w-11 cursor-pointer rounded-full bg-background/80 backdrop-blur-sm hover:bg-background border transition-all duration-300 ease-in-out"
+            onClick={onPrevious}
+          >
+            <ChevronLeft className="size-7 transition-transform duration-300" />
+          </Button>
+        )}
+        {canGoNext && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="absolute right-4 bottom-[340px] z-20 h-11 w-11 cursor-pointer rounded-full bg-background/80 backdrop-blur-sm hover:bg-background border transition-all duration-300 ease-in-out"
+            onClick={onNext}
+          >
+            <ChevronRight className="size-7 transition-transform duration-300" />
+          </Button>
+        )}
         <div className="grid gap-6 md:grid-cols-[200px_1fr]">
           {/* Poster Column */}
           {slide.poster && (
@@ -741,9 +734,9 @@ function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrev
                   trigger={
                     <Button
                       size="icon"
-                      className="h-9 w-9 cursor-pointer rounded-full bg-background/90 dark:bg-background/90 backdrop-blur-sm hover:bg-background dark:hover:bg-background border border-border/50"
+                      className="h-9 w-9 cursor-pointer rounded-full bg-background/90 dark:bg-background/90 backdrop-blur-sm hover:bg-background dark:hover:bg-background border border-border/50 transition-all duration-300 ease-in-out"
                     >
-                      <Plus className="h-4 w-4 text-foreground" />
+                      <Plus className="h-4 w-4 text-foreground transition-transform duration-300" />
                     </Button>
                   }
                 />
@@ -757,9 +750,9 @@ function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrev
               <Button
                 size="lg"
                 onClick={() => onPlay(slide)}
-                className="cursor-pointer bg-primary hover:bg-primary/90 transition-all duration-300"
+                className="cursor-pointer bg-primary hover:bg-primary/90 transition-all duration-300 ease-in-out"
               >
-                <Play className="mr-2 h-5 w-5 fill-current" />
+                <Play className="mr-2 h-5 w-5 fill-current transition-transform duration-300" />
                 Play
               </Button>
               {runtime && (
@@ -824,13 +817,13 @@ function PlaylistItem({ slide, isSelected, runtime, onClick, onPlay, index }: Pl
           <Button
             size="icon"
             variant="ghost"
-            className="h-8 w-8 flex-shrink-0 rounded-full bg-background/90 hover:bg-background"
+            className="h-8 w-8 flex-shrink-0 cursor-pointer rounded-full bg-background/90 hover:bg-background transition-all duration-300 ease-in-out"
             onClick={(e) => {
               e.stopPropagation();
               onPlay(slide);
             }}
           >
-            <Play className="h-3.5 w-3.5 fill-current" />
+            <Play className="h-3.5 w-3.5 fill-current transition-transform duration-300" />
           </Button>
           {runtime && (
             <span className="text-xs font-medium text-muted-foreground">{formatRuntime(runtime)}</span>
