@@ -23,9 +23,17 @@ import TrailerModal from "@/components/browse/trailer-modal";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   useTrendingMovies,
   useTrendingTV,
 } from "@/hooks/use-movies";
+import { usePublicPlaylists } from "@/hooks/use-playlists";
+import PlaylistRow from "@/components/browse/playlist-row";
 import {
   getBackdropUrl,
   getPosterUrl,
@@ -54,6 +62,75 @@ type TrailerState = {
   loading: boolean;
   error?: string;
 };
+
+function PublicPlaylistsCarousel() {
+  const { data: playlists = [], isLoading } = usePublicPlaylists(20);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[300px] items-center justify-center rounded-lg bg-muted">
+        <div className="text-center">
+          <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+          <p className="text-sm text-muted-foreground">Loading playlists...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (playlists.length === 0) {
+    return null;
+  }
+
+  return <PlaylistRow title="" playlists={playlists} href="/playlists" />;
+}
+
+const faqData = [
+  {
+    question: "What is What2Watch?",
+    answer: "What2Watch is a personal watchlist companion that helps you discover, organize, and share your favorite movies and TV shows. With AI-powered recommendations and a vibrant community, you'll never run out of great content to watch.",
+  },
+  {
+    question: "How do I create a playlist?",
+    answer: "Creating a playlist is easy! Simply browse our library, find movies or TV shows you want to save, and click the 'Add to Playlist' button. You can create multiple playlists for different moods, genres, or occasions. Playlists can be private or shared publicly with the community.",
+  },
+  {
+    question: "Is What2Watch free to use?",
+    answer: "Yes! What2Watch is completely free to use. Sign up with your account to start creating playlists, discovering content, and connecting with other film enthusiasts. No credit card required.",
+  },
+  {
+    question: "How does the recommendation system work?",
+    answer: "Our recommendation system uses your viewing preferences, favorite genres, and ratings to suggest content you'll love. The more you interact with the platform—rating movies, creating playlists, and exploring content—the better our recommendations become.",
+  },
+  {
+    question: "Can I share my playlists with others?",
+    answer: "Absolutely! When creating a playlist, you can choose to make it public. Public playlists are visible to the entire What2Watch community, allowing others to discover and enjoy your curated collections. You can also share direct links to your playlists.",
+  },
+  {
+    question: "What data sources does What2Watch use?",
+    answer: "What2Watch is powered by The Movie Database (TMDB) API, which provides comprehensive and up-to-date information about movies and TV shows, including ratings, cast, crew, trailers, and more. This ensures you have access to accurate and current entertainment data.",
+  },
+];
+
+function FAQAccordion() {
+  return (
+    <Accordion type="single" collapsible className="w-full space-y-2">
+      {faqData.map((faq, index) => (
+        <AccordionItem
+          key={index}
+          value={`item-${index}`}
+          className="rounded-lg border bg-card px-6"
+        >
+          <AccordionTrigger className="text-left font-semibold hover:no-underline">
+            {faq.question}
+          </AccordionTrigger>
+          <AccordionContent className="pb-6 text-muted-foreground">
+            {faq.answer}
+          </AccordionContent>
+        </AccordionItem>
+      ))}
+    </Accordion>
+  );
+}
 
 export default function LandingPage() {
   const router = useRouter();
@@ -343,9 +420,9 @@ export default function LandingPage() {
                 </div>
               </div>
             ) : slides.length > 0 ? (
-              <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[1fr_400px]">
+              <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[1fr_400px]">
                 {/* Left Column - Featured Content */}
-                <div className="relative overflow-hidden rounded-lg bg-muted">
+                <div className="relative h-[400px] sm:h-[500px] md:h-[600px] w-full overflow-hidden rounded-lg bg-muted">
                   <FeaturedContent
                     slide={selectedSlide}
                     onPlay={handlePlay}
@@ -363,8 +440,8 @@ export default function LandingPage() {
                   />
                 </div>
 
-                {/* Right Column - Playlist */}
-                <div className="relative">
+                {/* Right Column - Playlist (hidden below xl breakpoint) */}
+                <div className="relative hidden xl:block">
                   <div className="mb-3">
                     <h3 className="text-sm font-semibold text-foreground">Up Next</h3>
                   </div>
@@ -487,6 +564,26 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Public Playlists Section */}
+      <section className="border-t py-20 sm:py-24">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                Explore User Playlists
+              </h2>
+              <p className="mt-2 text-lg text-muted-foreground">
+                Discover curated collections from our community
+              </p>
+            </div>
+            <Link href="/playlists" className="hidden text-sm text-muted-foreground hover:text-foreground sm:block">
+              View all →
+            </Link>
+          </div>
+          <PublicPlaylistsCarousel />
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="border-t py-20 sm:py-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -512,100 +609,49 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t bg-muted/30 py-12">
+      {/* FAQ Section */}
+      <section className="border-t bg-muted/20 py-20 sm:py-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <h3 className="mb-4 font-semibold">What2Watch</h3>
-              <p className="text-sm text-muted-foreground">
-                Your personal watchlist companion for discovering great movies and TV shows.
+          <div className="mx-auto max-w-3xl">
+            <div className="mb-12 text-center">
+              <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
+                Frequently Asked Questions
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                Everything you need to know about What2Watch
               </p>
             </div>
-            <div>
-              <h4 className="mb-4 text-sm font-semibold">Discover</h4>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <Link href="/browse" className="text-muted-foreground hover:text-foreground">
-                    Browse
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/movies" className="text-muted-foreground hover:text-foreground">
-                    Movies
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/tv" className="text-muted-foreground hover:text-foreground">
-                    TV Shows
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="mb-4 text-sm font-semibold">Platform</h4>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <Link href="/my-list" className="text-muted-foreground hover:text-foreground">
-                    My List
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/playlists" className="text-muted-foreground hover:text-foreground">
-                    Playlists
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/forums" className="text-muted-foreground hover:text-foreground">
-                    Forums
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="mb-4 text-sm font-semibold">Company</h4>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <Link href="/about" className="text-muted-foreground hover:text-foreground">
-                    About
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/privacy" className="text-muted-foreground hover:text-foreground">
-                    Privacy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/terms" className="text-muted-foreground hover:text-foreground">
-                    Terms
-                  </Link>
-                </li>
-              </ul>
-            </div>
+            <FAQAccordion />
           </div>
-          <div className="mt-12 border-t pt-8">
-            <div className="flex justify-end items-center">
-              <div className="text-sm text-muted-foreground mx-auto">
-                &copy; {new Date().getFullYear()} What2Watch. All rights reserved.
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>Powered by</span>
-                <Link
-                  href="https://www.themoviedb.org"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center hover:opacity-80 transition-opacity"
-                >
-                  <Image
-                    src="/moviedb-logo2.svg"
-                    alt="The Movie Database"
-                    width={100}
-                    height={20}
-                    className="h-5 w-auto"
-                  />
-                </Link>
-              </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t bg-muted/30 py-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col items-center justify-center gap-4">
+            {/* Powered by TMDB */}
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-xs text-muted-foreground">Powered by</p>
+              <Link
+                href="https://www.themoviedb.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center hover:opacity-80 transition-opacity"
+              >
+                <Image
+                  src="/moviedb-logo2.svg"
+                  alt="The Movie Database"
+                  width={80}
+                  height={16}
+                  className="h-4 w-auto"
+                />
+              </Link>
             </div>
+            {/* Copyright */}
+            <p className="text-xs text-muted-foreground">
+              &copy; {new Date().getFullYear()} What2Watch. All rights reserved.
+            </p>
           </div>
         </div>
       </footer>
@@ -637,7 +683,7 @@ type FeaturedContentProps = {
 
 function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrevious, canGoNext }: FeaturedContentProps) {
   const formatRuntime = (minutes?: number) => {
-    if (!minutes) return "";
+    if (!minutes || minutes === 0) return "";
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
@@ -693,29 +739,29 @@ function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrev
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent dark:from-black dark:via-black/80" />
 
       {/* Bottom Section - Poster and Details */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 p-6">
+      <div className="absolute bottom-0 left-0 right-0 z-10 p-4 sm:p-6">
         {/* Carousel Controls - Positioned slightly above poster */}
         {canGoPrevious && (
           <Button
             size="icon"
             variant="ghost"
-            className="absolute left-4 bottom-[340px] z-20 h-11 w-11 cursor-pointer rounded-full bg-black/60 backdrop-blur-sm hover:bg-black/80 border border-white/20 transition-all duration-300 ease-in-out"
+            className="absolute left-2 sm:left-4 bottom-[calc(100%-280px)] sm:bottom-[340px] z-20 h-10 w-10 sm:h-11 sm:w-11 cursor-pointer rounded-full bg-black/60 backdrop-blur-sm hover:bg-black/80 border border-white/20 transition-all duration-300 ease-in-out"
             onClick={onPrevious}
           >
-            <ChevronLeft className="size-7 text-white transition-transform duration-300" />
+            <ChevronLeft className="size-6 sm:size-7 text-white transition-transform duration-300" />
           </Button>
         )}
         {canGoNext && (
           <Button
             size="icon"
             variant="ghost"
-            className="absolute right-4 bottom-[340px] z-20 h-11 w-11 cursor-pointer rounded-full bg-black/60 backdrop-blur-sm hover:bg-black/80 border border-white/20 transition-all duration-300 ease-in-out"
+            className="absolute right-2 sm:right-4 bottom-[calc(100%-280px)] sm:bottom-[340px] z-20 h-10 w-10 sm:h-11 sm:w-11 cursor-pointer rounded-full bg-black/60 backdrop-blur-sm hover:bg-black/80 border border-white/20 transition-all duration-300 ease-in-out"
             onClick={onNext}
           >
-            <ChevronRight className="size-7 text-white transition-transform duration-300" />
+            <ChevronRight className="size-6 sm:size-7 text-white transition-transform duration-300" />
           </Button>
         )}
-        <div className="grid gap-6 md:grid-cols-[200px_1fr]">
+        <div className="grid gap-4 sm:gap-6 grid-cols-[120px_1fr] sm:grid-cols-[150px_1fr] md:grid-cols-[200px_1fr]">
           {/* Poster Column */}
           {slide.poster && (
             <div className="relative aspect-[2/3] w-full max-w-[200px] overflow-hidden rounded-lg">
@@ -724,19 +770,19 @@ function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrev
                 alt={slide.title}
                 fill
                 className="object-cover"
-                sizes="200px"
+                sizes="(max-width: 640px) 120px, (max-width: 768px) 150px, 200px"
               />
               {/* Add to Playlist Button - Top Right */}
-              <div className="absolute right-2 top-2">
+              <div className="absolute right-1.5 sm:right-2 top-1.5 sm:top-2">
                 <AddToPlaylistDropdown
                   item={item}
                   type={slide.type}
                   trigger={
                     <Button
                       size="icon"
-                      className="h-9 w-9 cursor-pointer rounded-full bg-black/60 backdrop-blur-sm hover:bg-black/80 border border-white/20 transition-all duration-300 ease-in-out"
+                      className="h-8 w-8 sm:h-9 sm:w-9 cursor-pointer rounded-full bg-black/60 backdrop-blur-sm hover:bg-black/80 border border-white/20 transition-all duration-300 ease-in-out"
                     >
-                      <Plus className="h-4 w-4 text-white transition-transform duration-300" />
+                      <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white transition-transform duration-300" />
                     </Button>
                   }
                 />
@@ -746,21 +792,20 @@ function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrev
 
           {/* Details Column */}
           <div className="flex flex-col justify-end">
-            <div className="mb-4 flex items-center gap-3">
+            <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
               <Button
-                size="lg"
+                size="icon"
                 onClick={() => onPlay(slide)}
-                className="cursor-pointer bg-primary hover:bg-primary/90 transition-all duration-300 ease-in-out"
+                className="h-12 w-12 sm:h-14 sm:w-14 cursor-pointer rounded-full bg-primary hover:bg-primary/90 transition-all duration-300 ease-in-out"
               >
-                <Play className="mr-2 h-5 w-5 fill-current transition-transform duration-300" />
-                Play
+                <Play className="h-5 w-5 sm:h-6 sm:w-6 fill-current text-white transition-transform duration-300" />
               </Button>
-              {runtime && (
-                <span className="text-sm font-medium text-white">{formatRuntime(runtime)}</span>
+              {runtime && formatRuntime(runtime) && (
+                <span className="text-xs sm:text-sm font-medium text-white">{formatRuntime(runtime)}</span>
               )}
             </div>
-            <h3 className="mb-1 text-3xl font-bold sm:text-4xl text-white transition-opacity duration-500">{slide.title}</h3>
-            <p className="text-sm text-white/80 transition-opacity duration-500">Watch the trailer</p>
+            <h3 className="mb-1 text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white transition-opacity duration-500 line-clamp-2">{slide.title}</h3>
+            <p className="text-xs sm:text-sm text-white/80 transition-opacity duration-500">Watch the trailer</p>
           </div>
         </div>
       </div>
