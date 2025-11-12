@@ -158,7 +158,7 @@ export function usePopularMovies(page: number = 1) {
   return useQuery({
     queryKey: movieQueryKeys.popular(page),
     queryFn: () => fetchPopularMovies(page),
-    staleTime: 1000 * 60 * 60, // 1 hour
+    staleTime: 1000 * 60 * 60 * 2, // 2 hours (popular content doesn't change often)
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }
@@ -179,7 +179,7 @@ export function useTrendingMovies(
   return useQuery({
     queryKey: movieQueryKeys.trending(timeWindow, page),
     queryFn: () => fetchTrendingMovies(timeWindow, page),
-    staleTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: 1000 * 60 * 60, // 1 hour (trending updates less frequently than expected)
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }
@@ -188,7 +188,7 @@ export function usePopularTV(page: number = 1) {
   return useQuery({
     queryKey: tvQueryKeys.popular(page),
     queryFn: () => fetchPopularTV(page),
-    staleTime: 1000 * 60 * 60, // 1 hour
+    staleTime: 1000 * 60 * 60 * 2, // 2 hours (popular content doesn't change often)
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }
@@ -200,7 +200,7 @@ export function useTrendingTV(
   return useQuery({
     queryKey: tvQueryKeys.trending(timeWindow, page),
     queryFn: () => fetchTrendingTV(timeWindow, page),
-    staleTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: 1000 * 60 * 60, // 1 hour (trending updates less frequently than expected)
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }
@@ -228,7 +228,7 @@ export function useMoviesByGenre(genreId: number, page: number = 1) {
   return useQuery({
     queryKey: movieQueryKeys.byGenre(genreId, page),
     queryFn: () => fetchMoviesByGenre(genreId, page),
-    staleTime: 1000 * 60 * 60, // 1 hour
+    staleTime: 1000 * 60 * 60 * 2, // 2 hours (genre content is relatively stable)
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }
@@ -237,7 +237,7 @@ export function useTVByGenre(genreId: number, page: number = 1) {
   return useQuery({
     queryKey: tvQueryKeys.byGenre(genreId, page),
     queryFn: () => fetchTVByGenre(genreId, page),
-    staleTime: 1000 * 60 * 60, // 1 hour
+    staleTime: 1000 * 60 * 60 * 2, // 2 hours (genre content is relatively stable)
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }
@@ -254,7 +254,7 @@ export function usePersonalizedContent(
     queryKey: ["personalized", favoriteGenres.join(","), types.join(",")],
     queryFn: () => fetchPersonalizedContent(favoriteGenres, types),
     enabled: favoriteGenres.length > 0,
-    staleTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: 1000 * 60 * 60, // 1 hour (personalized content based on stable user preferences)
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }

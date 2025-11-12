@@ -165,12 +165,13 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
     }
   }, [item.id, type, cachedVideosData]);
 
-  // Fetch trailer on hover or on mobile (with delay to avoid too many requests)
+  // Fetch trailer on desktop hover only (not on mobile to save data)
   useEffect(() => {
-    if (shouldShowOverlay && !isModalOpen && attemptedFetchRef.current !== item.id) {
+    // Only fetch on desktop hover, not on mobile
+    if (isHovered && !isMobile && !isModalOpen && attemptedFetchRef.current !== item.id) {
       hoverTimeoutRef.current = setTimeout(() => {
         fetchTrailerVideos();
-      }, isMobile ? 0 : 500); // No delay on mobile, 500ms delay on desktop
+      }, 500); // 500ms delay on desktop hover
     }
 
     return () => {
@@ -178,7 +179,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
         clearTimeout(hoverTimeoutRef.current);
       }
     };
-  }, [shouldShowOverlay, isModalOpen, fetchTrailerVideos, isMobile, item.id]);
+  }, [isHovered, isModalOpen, fetchTrailerVideos, isMobile, item.id]);
 
   // Calculate position to prevent card from going off-screen (desktop only)
   const getCardStyle = () => {
@@ -263,7 +264,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
         ref={cardRef}
         className={cn(
           "relative group flex-shrink-0 cursor-pointer",
-          isHovered && !isMobile && "z-[100]",
+          isHovered && !isMobile && "z-40",
           className
         )}
         onMouseEnter={handleMouseEnter}
@@ -283,7 +284,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
         <div
           className={cn(
             "relative block aspect-[2/3] rounded-lg overflow-hidden",
-            isHovered && !isMobile && "z-[100]"
+            isHovered && !isMobile && "z-40"
           )}
           style={{
             transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -297,7 +298,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
               fill
               className={cn(
                 "object-cover transition-opacity duration-300",
-                shouldShowOverlay && finalTrailer && !finalIsLoading && finalTrailer.key ? "opacity-0" : "opacity-100"
+                // Only fade out poster on desktop when trailer is ready, never on mobile
+                !isMobile && shouldShowOverlay && finalTrailer && !finalIsLoading && finalTrailer.key ? "opacity-0" : "opacity-100"
               )}
               sizes="(max-width: 640px) 200px, 300px"
               unoptimized
@@ -308,8 +310,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
             </div>
           )}
 
-          {/* Trailer Preview (on hover or mobile) - Overlays poster when ready */}
-          {shouldShowOverlay && finalTrailer && !finalIsLoading && finalTrailer.key && (
+          {/* Trailer Preview (desktop hover only - no autoplay on mobile) - Overlays poster when ready */}
+          {shouldShowOverlay && !isMobile && finalTrailer && !finalIsLoading && finalTrailer.key && (
             <div className="absolute inset-0 z-0 pointer-events-none">
               <iframe
                 src={getYouTubeEmbedUrl(finalTrailer.key)}

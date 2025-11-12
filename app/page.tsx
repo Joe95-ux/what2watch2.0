@@ -19,6 +19,7 @@ import {
 import { SignInButton } from "@clerk/nextjs";
 import Navbar from "@/components/navbar/navbar";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import TrailerModal from "@/components/browse/trailer-modal";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -217,10 +218,29 @@ export default function LandingPage() {
       `[data-slide-index="${selectedSlideIndex}"]`
     ) as HTMLElement;
     if (selectedElement) {
-      selectedElement.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-      });
+      // Find the ScrollArea viewport (parent of the ref element)
+      const scrollAreaViewport = playlistScrollRef.current.closest('[data-slot="scroll-area-viewport"]') as HTMLElement;
+      if (scrollAreaViewport) {
+        const elementTop = selectedElement.offsetTop;
+        const elementHeight = selectedElement.offsetHeight;
+        const containerTop = scrollAreaViewport.scrollTop;
+        const containerHeight = scrollAreaViewport.clientHeight;
+        
+        // Check if element is not fully visible
+        if (elementTop < containerTop || elementTop + elementHeight > containerTop + containerHeight) {
+          // Scroll to center the element in the viewport
+          scrollAreaViewport.scrollTo({
+            top: elementTop - (containerHeight / 2) + (elementHeight / 2),
+            behavior: 'smooth',
+          });
+        }
+      } else {
+        // Fallback: use scrollIntoView with preventScroll option if available
+        selectedElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+        });
+      }
     }
   }, [selectedSlideIndex]);
 
@@ -425,20 +445,60 @@ export default function LandingPage() {
               </Link>
             </div>
             {heroIsLoading ? (
-              <div className="flex h-[600px] items-center justify-center rounded-lg bg-muted">
-                <div className="text-center">
-                  <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
-                  <p className="text-sm text-muted-foreground">Loading trending content...</p>
+              <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[1fr_400px]">
+                {/* Left Column - Featured Content Skeleton */}
+                <div className="relative h-[400px] sm:h-[500px] md:h-[600px] w-full overflow-hidden rounded-lg bg-muted">
+                  <Skeleton className="absolute inset-0 w-full h-full !bg-gray-200 dark:!bg-accent" />
+                  <div className="absolute bottom-0 left-0 right-0 z-10 p-4 sm:p-6">
+                    <div className="grid gap-4 sm:gap-6 grid-cols-[120px_1fr] sm:grid-cols-[150px_1fr] md:grid-cols-[200px_1fr]">
+                      {/* Poster Skeleton */}
+                      <Skeleton className="aspect-[2/3] w-full max-w-[200px] rounded-lg !bg-gray-200 dark:!bg-accent" />
+                      {/* Details Skeleton */}
+                      <div className="flex flex-col justify-end gap-3 sm:gap-4">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <Skeleton className="h-12 w-12 sm:h-14 sm:w-14 rounded-full !bg-gray-200 dark:!bg-accent" />
+                          <Skeleton className="h-4 w-16 !bg-gray-200 dark:!bg-accent" />
+                        </div>
+                        <Skeleton className="h-6 sm:h-8 md:h-10 w-3/4 !bg-gray-200 dark:!bg-accent" />
+                        <Skeleton className="h-4 w-32 !bg-gray-200 dark:!bg-accent" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column - Playlist Skeleton */}
+                <div className="relative hidden xl:block overflow-hidden">
+                  <Skeleton className="h-5 w-20 mb-3 !bg-gray-200 dark:!bg-accent" />
+                  <div className="space-y-2">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="flex gap-3 rounded-lg p-3">
+                        <Skeleton className="h-20 w-[140px] flex-shrink-0 rounded !bg-gray-200 dark:!bg-accent" />
+                        <div className="flex flex-1 flex-col justify-between gap-2">
+                          <Skeleton className="h-8 w-8 rounded-full !bg-gray-200 dark:!bg-accent" />
+                          <Skeleton className="h-4 w-3/4 !bg-gray-200 dark:!bg-accent" />
+                          <Skeleton className="h-3 w-1/2 !bg-gray-200 dark:!bg-accent" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             ) : slides.length > 0 ? (
               <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[1fr_400px]">
                 {/* Left Column - Featured Content */}
-                <div className="relative h-[400px] sm:h-[500px] md:h-[600px] w-full overflow-hidden rounded-lg bg-muted">
+                <div 
+                  className="relative h-[400px] sm:h-[500px] md:h-[600px] w-full overflow-hidden rounded-lg bg-muted"
+                  onMouseEnter={() => setIsPaused(true)}
+                  onMouseLeave={() => setIsPaused(false)}
+                >
                   <FeaturedContent
                     slide={selectedSlide}
                     onPlay={handlePlay}
-                    trailerDuration={undefined}
+                    trailerDuration={selectedSlide ? (() => {
+                      const runtime = slideRuntimes[`${selectedSlide.type}-${selectedSlide.id}`];
+                      // Return runtime in minutes (will be formatted appropriately)
+                      return runtime && runtime > 0 ? runtime : undefined;
+                    })() : undefined}
                     onPrevious={() => {
                       setIsPaused(true);
                       setSelectedSlideIndex(prev => (prev - 1 + slides.length) % slides.length);
@@ -578,7 +638,7 @@ export default function LandingPage() {
 
       {/* Public Playlists Section */}
       <section className="border-t py-20 sm:py-24 overflow-hidden">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 overflow-hidden">
           <div className="mb-8 flex items-center justify-between">
             <div>
               <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
@@ -592,7 +652,7 @@ export default function LandingPage() {
               View all →
             </Link>
           </div>
-          <div className="overflow-visible">
+          <div className="overflow-hidden sm:overflow-visible">
             <PublicPlaylistsCarousel />
           </div>
         </div>
@@ -770,11 +830,12 @@ type FeaturedContentProps = {
 };
 
 function FeaturedContent({ slide, onPlay, trailerDuration, onPrevious, onNext, canGoPrevious, canGoNext }: FeaturedContentProps) {
-  const formatDuration = (seconds?: number) => {
-    if (!seconds || seconds === 0) return "";
-    const minutes = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return minutes > 0 ? `${minutes}:${secs.toString().padStart(2, "0")}` : `0:${secs.toString().padStart(2, "0")}`;
+  const formatDuration = (minutes?: number) => {
+    if (!minutes || minutes === 0) return "";
+    // Format runtime in minutes as HH:MM or MM:MM
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}:${mins.toString().padStart(2, "0")}` : `${mins}:00`;
   };
 
   // Convert slide to TMDBMovie or TMDBSeries for AddToPlaylistDropdown
