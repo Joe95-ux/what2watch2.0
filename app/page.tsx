@@ -699,20 +699,20 @@ function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrev
           <Button
             size="icon"
             variant="ghost"
-            className="absolute left-4 bottom-[340px] z-20 h-11 w-11 cursor-pointer rounded-full bg-background/80 backdrop-blur-sm hover:bg-background border transition-all duration-300 ease-in-out"
+            className="absolute left-4 bottom-[340px] z-20 h-11 w-11 cursor-pointer rounded-full bg-black/60 backdrop-blur-sm hover:bg-black/80 border border-white/20 transition-all duration-300 ease-in-out"
             onClick={onPrevious}
           >
-            <ChevronLeft className="size-7 transition-transform duration-300" />
+            <ChevronLeft className="size-7 text-white transition-transform duration-300" />
           </Button>
         )}
         {canGoNext && (
           <Button
             size="icon"
             variant="ghost"
-            className="absolute right-4 bottom-[340px] z-20 h-11 w-11 cursor-pointer rounded-full bg-background/80 backdrop-blur-sm hover:bg-background border transition-all duration-300 ease-in-out"
+            className="absolute right-4 bottom-[340px] z-20 h-11 w-11 cursor-pointer rounded-full bg-black/60 backdrop-blur-sm hover:bg-black/80 border border-white/20 transition-all duration-300 ease-in-out"
             onClick={onNext}
           >
-            <ChevronRight className="size-7 transition-transform duration-300" />
+            <ChevronRight className="size-7 text-white transition-transform duration-300" />
           </Button>
         )}
         <div className="grid gap-6 md:grid-cols-[200px_1fr]">
@@ -734,9 +734,9 @@ function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrev
                   trigger={
                     <Button
                       size="icon"
-                      className="h-9 w-9 cursor-pointer rounded-full bg-background/90 dark:bg-background/90 backdrop-blur-sm hover:bg-background dark:hover:bg-background border border-border/50 transition-all duration-300 ease-in-out"
+                      className="h-9 w-9 cursor-pointer rounded-full bg-black/60 backdrop-blur-sm hover:bg-black/80 border border-white/20 transition-all duration-300 ease-in-out"
                     >
-                      <Plus className="h-4 w-4 text-foreground transition-transform duration-300" />
+                      <Plus className="h-4 w-4 text-white transition-transform duration-300" />
                     </Button>
                   }
                 />
@@ -756,11 +756,11 @@ function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrev
                 Play
               </Button>
               {runtime && (
-                <span className="text-sm font-medium text-foreground">{formatRuntime(runtime)}</span>
+                <span className="text-sm font-medium text-white">{formatRuntime(runtime)}</span>
               )}
             </div>
-            <h3 className="mb-1 text-3xl font-bold sm:text-4xl transition-opacity duration-500">{slide.title}</h3>
-            <p className="text-sm text-muted-foreground transition-opacity duration-500">Watch the trailer</p>
+            <h3 className="mb-1 text-3xl font-bold sm:text-4xl text-white transition-opacity duration-500">{slide.title}</h3>
+            <p className="text-sm text-white/80 transition-opacity duration-500">Watch the trailer</p>
           </div>
         </div>
       </div>
