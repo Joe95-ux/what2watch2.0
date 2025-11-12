@@ -34,30 +34,25 @@ export default function MoviesContent({ favoriteGenres, preferredTypes }: Movies
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero Section - 100vh */}
+      {/* Hero Section - 75vh with 100vh dark overlay */}
       <HeroSection
         featuredItem={featuredMovie}
         featuredItems={featuredItems.length > 0 ? featuredItems : undefined}
         isLoading={isLoadingPopularMovies}
       />
 
-      {/* Content Rows - First section overlaps with hero */}
-      <div className="w-full overflow-hidden">
-        {/* Personalized Section - Overlaps with hero at bottom */}
+      {/* Content Rows - Normal positioning */}
+      <div className="w-full py-8 overflow-hidden relative z-10">
+        {/* Personalized Section */}
         {favoriteGenres && favoriteGenres.length > 0 && (personalizedMovies.length > 0 || isLoadingPersonalized) && (
-          <div className="-mt-32 relative z-30">
-            <ContentRow
-              title="We Think You'll Love This"
-              items={personalizedMovies}
-              type="movie"
-              isLoading={isLoadingPersonalized}
-              href="/browse/personalized"
-            />
-          </div>
+          <ContentRow
+            title="We Think You'll Love This"
+            items={personalizedMovies}
+            type="movie"
+            isLoading={isLoadingPersonalized}
+            href="/browse/personalized"
+          />
         )}
-        
-        {/* Spacing for subsequent sections */}
-        <div className={favoriteGenres && favoriteGenres.length > 0 && (personalizedMovies.length > 0 || isLoadingPersonalized) ? "pt-8" : "-mt-32 relative z-30 pt-8"}>
 
         {/* Popular Movies */}
         <ContentRow
@@ -84,7 +79,6 @@ export default function MoviesContent({ favoriteGenres, preferredTypes }: Movies
 
         {/* Recently Viewed Section */}
         <RecentlyViewed />
-        </div>
       </div>
     </div>
   );

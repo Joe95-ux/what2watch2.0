@@ -95,9 +95,13 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
 
   if (isLoading || !currentItem) {
     return (
-      <div className="relative w-full h-screen bg-muted">
-        <Skeleton className="absolute inset-0 w-full h-full" />
-      </div>
+      <>
+        {/* 100vh dark overlay for blending */}
+        <div className="fixed inset-0 h-screen bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none z-0" />
+        <div className="relative w-full h-[75vh] bg-muted">
+          <Skeleton className="absolute inset-0 w-full h-full" />
+        </div>
+      </>
     );
   }
 
@@ -106,7 +110,10 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
   const backdropPath = currentItem.backdrop_path;
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-background">
+    <>
+      {/* 100vh dark overlay for blending with content (consistent across themes) */}
+      <div className="fixed inset-0 h-screen bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none z-0" />
+      <div className="relative w-full h-[75vh] overflow-hidden bg-background">
       {/* Trailer Video (if available) - Full width with autoplay */}
       {/* Stop video when details sheet is open */}
       {trailer && !isLoadingTrailer && !isDetailModalOpen && (
@@ -169,21 +176,19 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
         </>
       )}
 
-      {/* Gradient Overlay - Netflix-style dark overlay that blends with page (consistent across themes) */}
+      {/* Gradient Overlay - Additional overlays on hero section */}
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/90 to-transparent z-10" />
       <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-transparent z-10" />
-      {/* Additional dark overlay at bottom for seamless blend */}
-      <div className="absolute bottom-0 left-0 right-0 h-[40%] bg-gradient-to-t from-black to-transparent z-10 pointer-events-none" />
 
       {/* Content - Positioned at bottom of hero */}
       <div className={`relative z-20 h-full flex items-end transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-        <div className="relative w-full px-4 sm:px-6 lg:px-8 pb-32">
+        <div className="relative w-full px-4 sm:px-6 lg:px-8 pb-20">
           <div className="max-w-2xl">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-foreground drop-shadow-lg">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-white drop-shadow-lg">
               {title}
             </h1>
             {overview && (
-              <p className="text-base md:text-lg text-foreground/90 mb-6 line-clamp-3 drop-shadow-md">
+              <p className="text-base md:text-lg text-white/90 mb-6 line-clamp-3 drop-shadow-md">
                 {overview}
               </p>
             )}
@@ -206,7 +211,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
                 <Button
                   size="lg"
                   variant="outline"
-                  className="bg-background/10 text-foreground border-border/30 hover:bg-background/25 hover:border-border/60 h-10 sm:h-14 px-4 sm:px-10 text-sm sm:text-base font-medium backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl cursor-pointer"
+                  className="bg-white/10 text-white border-white/30 hover:bg-white/25 hover:border-white/60 h-10 sm:h-14 px-4 sm:px-10 text-sm sm:text-base font-medium backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl cursor-pointer"
                   onClick={() => setIsDetailModalOpen(true)}
                 >
                   <Info className="mr-1.5 sm:mr-2.5 size-4 sm:size-6" />
@@ -223,9 +228,9 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
                             <Button
                               size="lg"
                               variant="ghost"
-                              className="h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-background/10 hover:bg-background/25 border border-border/30 hover:border-border/60 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl cursor-pointer"
+                              className="h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 hover:border-white/60 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl cursor-pointer"
                             >
-                              <Plus className="text-foreground size-4 sm:size-6" />
+                              <Plus className="text-white size-4 sm:size-6" />
                             </Button>
                           }
                         />
@@ -244,14 +249,14 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
                     <Button
                       size="lg"
                       variant="ghost"
-                      className="h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-background/10 hover:bg-background/25 border border-border/30 hover:border-border/60 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl cursor-pointer sm:absolute sm:right-8 sm:bottom-20"
+                      className="h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 hover:border-white/60 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl cursor-pointer sm:absolute sm:right-8 sm:bottom-20"
                       onClick={() => setIsMuted(!isMuted)}
                       aria-label={isMuted ? "Unmute" : "Mute"}
                     >
                       {isMuted ? (
-                        <VolumeX className="text-foreground size-4 sm:size-6" />
+                        <VolumeX className="text-white size-4 sm:size-6" />
                       ) : (
-                        <Volume2 className="text-foreground size-4 sm:size-6" />
+                        <Volume2 className="text-white size-4 sm:size-6" />
                       )}
                     </Button>
                   </TooltipTrigger>
@@ -287,5 +292,6 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
         onClose={() => setIsDetailModalOpen(false)}
       />
     </div>
+    </>
   );
 }

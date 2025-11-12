@@ -53,9 +53,16 @@ export default function Navbar() {
       return;
     }
 
+    let ticking = false;
     const handleScroll = () => {
-      const scrollY = window.scrollY;
-      setIsScrolled(scrollY > 50);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const scrollY = window.scrollY;
+          setIsScrolled(scrollY > 50);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
 
     // Check initial scroll position
@@ -67,12 +74,12 @@ export default function Navbar() {
 
   return (
     <nav className={cn(
-      "z-50 w-full backdrop-blur-md transition-all duration-300 ease-in-out",
+      "z-50 w-full backdrop-blur-md",
       hasHeroSection 
         ? isScrolled
-          ? "sticky top-0 bg-black/60 border-b border-[rgba(255,255,255,0.2)] shadow-sm"
-          : "absolute top-0 bg-black/40"
-        : "sticky top-0 bg-background/80 dark:bg-background/80 border-b supports-[backdrop-filter]:bg-background/60 dark:supports-[backdrop-filter]:bg-background/60"
+          ? "sticky top-0 bg-black/60 border-b border-[rgba(255,255,255,0.2)] shadow-sm transition-[background-color,box-shadow] duration-500 ease-out"
+          : "sticky top-0 bg-black/40 border-b border-[rgba(255,255,255,0.2)] transition-[background-color] duration-500 ease-out"
+        : "sticky top-0 bg-background/80 dark:bg-background/80 border-b supports-[backdrop-filter]:bg-background/60 dark:supports-[backdrop-filter]:bg-background/60 transition-all duration-300 ease-in-out"
     )}>
       <div className={cn(
         "w-full flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8",
