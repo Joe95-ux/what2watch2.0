@@ -77,8 +77,8 @@ export default function Navbar() {
       "z-50 w-full backdrop-blur-md",
       hasHeroSection 
         ? isScrolled
-          ? "sticky top-0 bg-black/60 border-b border-white/30 shadow-sm transition-[background-color,box-shadow] duration-500 ease-out"
-          : "sticky top-0 bg-black/40 border-b border-white/30 transition-[background-color] duration-500 ease-out"
+          ? "sticky top-0 bg-black/60 border-b border-[rgba(255,255,255,0.1)] shadow-sm transition-[background-color,box-shadow] duration-500 ease-out"
+          : "absolute top-0 bg-black/40 border-b border-[rgba(255,255,255,0.1)] transition-[background-color] duration-500 ease-out"
         : "sticky top-0 bg-background/80 dark:bg-background/80 border-b border-border/50 supports-[backdrop-filter]:bg-background/60 dark:supports-[backdrop-filter]:bg-background/60 transition-all duration-300 ease-in-out"
     )}>
       <div className={cn(
