@@ -26,7 +26,7 @@ export default async function TVPage() {
 
   return (
     <TVContent
-      favoriteGenres={user.preferences.favoriteGenres}
+      favoriteGenres={user.preferences.favoriteGenres || []}
       preferredTypes={(user.preferences.preferredTypes || ["tv"]) as ("movie" | "tv")[]}
     />
   );

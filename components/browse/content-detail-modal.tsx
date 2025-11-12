@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { X, Play, Plus, Heart, Star, Clock, Calendar, Volume2, VolumeX, ArrowLeft } from "lucide-react";
@@ -93,6 +93,7 @@ export default function ContentDetailModal({
   const [selectedVideo, setSelectedVideo] = useState<TMDBVideo | null>(null);
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay compatibility
+  const isClosingRef = useRef(false);
   
   // Track recently viewed
   const addRecentlyViewed = useAddRecentlyViewed();
@@ -205,7 +206,13 @@ export default function ContentDetailModal({
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
+      // Mark as closing to prevent immediate reopening
+      isClosingRef.current = true;
       onClose();
+      // Reset the flag after a short delay to allow normal interactions again
+      setTimeout(() => {
+        isClosingRef.current = false;
+      }, 100);
     }
   };
 
@@ -219,14 +226,24 @@ export default function ContentDetailModal({
           const target = e.target as HTMLElement;
           if (target.closest('button') || target.closest('[role="button"]')) {
             e.preventDefault();
+            return;
           }
+          // Allow normal close behavior for clicks outside
         }}
         onInteractOutside={(e) => {
           // Prevent closing when clicking on interactive elements
           const target = e.target as HTMLElement;
           if (target.closest('button') || target.closest('[role="button"]')) {
             e.preventDefault();
+            return;
           }
+          // Stop the event from propagating to elements behind the sheet
+          // This prevents the click from triggering onClick handlers on cards
+          e.preventDefault();
+          // Manually close the sheet since we prevented the default close behavior
+          setTimeout(() => {
+            onClose();
+          }, 0);
         }}
       >
         {/* Control Buttons - Wrapped in div to avoid [&>button]:hidden selector */}

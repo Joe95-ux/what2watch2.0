@@ -33,25 +33,30 @@ export default function TVContent({ favoriteGenres, preferredTypes }: TVContentP
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero Section */}
+      {/* Hero Section - 100vh */}
       <HeroSection
         featuredItem={featuredTV}
         featuredItems={featuredItems.length > 0 ? featuredItems : undefined}
         isLoading={isLoadingPopularTV}
       />
 
-      {/* Content Rows - Full width, padding handled by ContentRow */}
-      <div className="w-full pt-0 pb-8 overflow-hidden -mt-32">
-        {/* Personalized Section */}
-        {(personalizedTV.length > 0 || isLoadingPersonalized || favoriteGenres.length > 0) && (
-          <ContentRow
-            title="We Think You'll Love This"
-            items={personalizedTV}
-            type="tv"
-            isLoading={isLoadingPersonalized}
-            href="/browse/personalized"
-          />
+      {/* Content Rows - First section overlaps with hero */}
+      <div className="w-full overflow-hidden">
+        {/* Personalized Section - Overlaps with hero at bottom */}
+        {favoriteGenres && favoriteGenres.length > 0 && (personalizedTV.length > 0 || isLoadingPersonalized) && (
+          <div className="-mt-32 relative z-30">
+            <ContentRow
+              title="We Think You'll Love This"
+              items={personalizedTV}
+              type="tv"
+              isLoading={isLoadingPersonalized}
+              href="/browse/personalized"
+            />
+          </div>
         )}
+        
+        {/* Spacing for subsequent sections */}
+        <div className={favoriteGenres && favoriteGenres.length > 0 && (personalizedTV.length > 0 || isLoadingPersonalized) ? "pt-8" : "-mt-32 relative z-30 pt-8"}>
 
         {/* Popular TV Shows */}
         <ContentRow
@@ -78,6 +83,7 @@ export default function TVContent({ favoriteGenres, preferredTypes }: TVContentP
 
         {/* Recently Viewed Section */}
         <RecentlyViewed />
+        </div>
       </div>
     </div>
   );

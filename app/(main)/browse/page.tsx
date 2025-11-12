@@ -26,7 +26,7 @@ export default async function BrowsePage() {
 
   return (
     <BrowseContent
-      favoriteGenres={user.preferences.favoriteGenres}
+      favoriteGenres={user.preferences.favoriteGenres || []}
       preferredTypes={(user.preferences.preferredTypes || []) as ("movie" | "tv")[]}
     />
   );

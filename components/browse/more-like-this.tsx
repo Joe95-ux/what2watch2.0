@@ -93,8 +93,8 @@ export default function MoreLikeThis({
       {canToggle && (
         <div className="relative pt-6">
           {/* Horizontal Line with Subtle Overlay */}
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-          <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-background/80 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border to-transparent dark:via-slate-700" />
+          <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-background/80 to-transparent pointer-events-none dark:from-background/80 dark:to-transparent" />
           
           {/* Circular Toggle Button */}
           <div className="flex justify-center">
@@ -103,13 +103,13 @@ export default function MoreLikeThis({
               size="sm"
               onClick={handleToggle}
               disabled={isLoading}
-              className="h-12 w-12 rounded-full p-0 bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer"
+              className="h-12 w-12 rounded-full p-0 bg-white/10 text-black dark:text-white border-slate-300 dark:border-white/30 hover:bg-white/20 hover:border-slate-400 dark:hover:border-white/50 backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer"
               aria-label={isExpanded ? "Show less" : "Show more"}
             >
               {isExpanded ? (
-                <ChevronUp className="size-6 text-white" />
+                <ChevronUp className="size-6 text-black dark:text-white" />
               ) : (
-                <ChevronDown className="size-6 text-white" />
+                <ChevronDown className="size-6 text-black dark:text-white" />
               )}
             </Button>
           </div>

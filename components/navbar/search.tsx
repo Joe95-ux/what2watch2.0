@@ -30,7 +30,11 @@ interface SearchResult {
   first_air_date?: string;
 }
 
-export default function Search() {
+interface SearchProps {
+  hasHeroSection?: boolean;
+}
+
+export default function Search({ hasHeroSection = false }: SearchProps = {}) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -183,13 +187,19 @@ export default function Search() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9"
+              className={cn(
+                "h-9 w-9 transition-colors duration-300",
+                hasHeroSection && "hover:bg-black/20 text-white"
+              )}
             onClick={() => {
               setIsExpanded(true);
               setTimeout(() => inputRef.current?.focus(), 100);
             }}
           >
-            <SearchIcon className="h-5 w-5" />
+            <SearchIcon className={cn(
+              "h-5 w-5 transition-colors duration-300",
+              hasHeroSection && "text-white"
+            )} />
           </Button>
         ) : (
           <div
@@ -201,26 +211,38 @@ export default function Search() {
           >
             <div className="flex items-center gap-2 px-4 py-3 h-16">
               <div className="relative flex-1">
-                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <SearchIcon className={cn(
+                  "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors duration-300",
+                  hasHeroSection ? "text-white/80" : "text-muted-foreground"
+                )} />
                 <Input
                   ref={inputRef}
                   placeholder="Search movies and TV shows..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  className="pl-9 pr-20 h-10"
+                  className={cn(
+                    "pl-9 pr-20 h-10 transition-colors duration-300",
+                    hasHeroSection && "bg-white/10 border-[rgba(255,255,255,0.2)] text-white placeholder:text-white/60 focus:border-white/40 focus:ring-white/20"
+                  )}
                   autoFocus
                 />
                 {query && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6"
+                    className={cn(
+                      "absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 transition-colors duration-300",
+                      hasHeroSection && "hover:bg-white/10 text-white"
+                    )}
                     onClick={() => {
                       setQuery("");
                       setResults([]);
                     }}
                   >
-                    <X className="h-4 w-4" />
+                    <X className={cn(
+                      "h-4 w-4 transition-colors duration-300",
+                      hasHeroSection && "text-white"
+                    )} />
                   </Button>
                 )}
               </div>
@@ -230,11 +252,16 @@ export default function Search() {
                     variant="ghost"
                     size="icon"
                     className={cn(
-                      "h-10 w-10 cursor-pointer",
-                      hasActiveFilters && "bg-primary/10 text-primary"
+                      "h-10 w-10 cursor-pointer transition-colors duration-300",
+                      hasHeroSection 
+                        ? "hover:bg-black/20 text-white"
+                        : hasActiveFilters && "bg-primary/10 text-primary"
                     )}
                   >
-                    <SlidersHorizontal className="h-5 w-5" />
+                    <SlidersHorizontal className={cn(
+                      "h-5 w-5 transition-colors duration-300",
+                      hasHeroSection && "text-white"
+                    )} />
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="bottom" className="h-[80vh]">
@@ -320,27 +347,39 @@ export default function Search() {
   return (
     <div ref={containerRef} className="relative w-64 lg:w-80">
       <div className="relative">
-        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <SearchIcon className={cn(
+          "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none transition-colors duration-300",
+          hasHeroSection ? "text-white/80" : "text-muted-foreground"
+        )} />
         <Input
           ref={inputRef}
           placeholder="Search movies and TV shows..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsExpanded(true)}
-          className="pl-9 pr-20 h-9"
+          className={cn(
+            "pl-9 pr-20 h-9 transition-colors duration-300",
+            hasHeroSection && "bg-white/10 border-[rgba(255,255,255,0.2)] text-white placeholder:text-white/60 focus:border-white/40 focus:ring-white/20"
+          )}
         />
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
           {query && (
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6"
+              className={cn(
+                "h-6 w-6 transition-colors duration-300",
+                hasHeroSection && "hover:bg-black/20 text-white"
+              )}
               onClick={() => {
                 setQuery("");
                 setResults([]);
               }}
             >
-              <X className="h-4 w-4" />
+              <X className={cn(
+                "h-4 w-4 transition-colors duration-300",
+                hasHeroSection && "text-white"
+              )} />
             </Button>
           )}
           <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
@@ -348,12 +387,17 @@ export default function Search() {
               <Button
                 variant="ghost"
                 size="icon"
-                className={cn(
-                  "h-7 w-7 cursor-pointer",
-                  hasActiveFilters && "bg-primary/10 text-primary"
-                )}
+                    className={cn(
+                      "h-7 w-7 cursor-pointer transition-colors duration-300",
+                      hasHeroSection 
+                        ? "hover:bg-black/20 text-white"
+                        : hasActiveFilters && "bg-primary/10 text-primary"
+                    )}
               >
-                <SlidersHorizontal className="h-4 w-4" />
+                <SlidersHorizontal className={cn(
+                  "h-4 w-4 transition-colors duration-300",
+                  hasHeroSection && "text-white"
+                )} />
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[400px] sm:w-[540px]">

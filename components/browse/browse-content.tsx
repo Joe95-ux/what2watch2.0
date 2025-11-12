@@ -108,35 +108,42 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero Section */}
+      {/* Hero Section - 100vh */}
       <HeroSection
         featuredItem={featuredMovie}
         featuredItems={featuredItems.length > 0 ? featuredItems : undefined}
         isLoading={isLoadingPopularMovies}
       />
 
-      {/* Content Rows - Full width, padding handled by ContentRow */}
-      <div className="w-full pt-0 pb-8 overflow-hidden -mt-32">
-        {/* Personalized Section */}
-        {(uniquePersonalizedContent.length > 0 || isLoadingPersonalized || favoriteGenres.length > 0) && (
-          <ContentRow
-            title="We Think You'll Love This"
-            items={uniquePersonalizedContent}
-            type={preferredTypes.length === 1 ? preferredTypes[0] : "movie"} // Use first type or default to movie for mixed content
-            isLoading={isLoadingPersonalized}
-            href="/browse/personalized"
-          />
+      {/* Content Rows - First section overlaps with hero */}
+      <div className="w-full overflow-hidden">
+        {/* Personalized Section - Overlaps with hero at bottom */}
+        {favoriteGenres && favoriteGenres.length > 0 && (uniquePersonalizedContent.length > 0 || isLoadingPersonalized) && (
+          <div className="-mt-32 relative z-30">
+            <ContentRow
+              title="We Think You'll Love This"
+              items={uniquePersonalizedContent}
+              type={preferredTypes.length === 1 ? preferredTypes[0] : "movie"} // Use first type or default to movie for mixed content
+              isLoading={isLoadingPersonalized}
+              href="/browse/personalized"
+            />
+          </div>
         )}
 
         {/* Explore Public Playlists */}
         {publicPlaylists.length > 0 && (
-          <PlaylistRow
-            title="Explore Public Playlists"
-            playlists={publicPlaylists}
-            isLoading={isLoadingPublicPlaylists}
-            href="/playlists"
-          />
+          <div className={favoriteGenres && favoriteGenres.length > 0 && (uniquePersonalizedContent.length > 0 || isLoadingPersonalized) ? "" : "-mt-32 relative z-30"}>
+            <PlaylistRow
+              title="Explore Public Playlists"
+              playlists={publicPlaylists}
+              isLoading={isLoadingPublicPlaylists}
+              href="/playlists"
+            />
+          </div>
         )}
+        
+        {/* Spacing for subsequent sections */}
+        <div className="pt-8">
 
         {/* Trending Movies */}
         {(trendingMoviesUnique.length > 0 || isLoadingTrendingMovies) && (
@@ -207,6 +214,7 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
 
         {/* Recently Viewed Section */}
         <RecentlyViewed />
+        </div>
       </div>
     </div>
   );

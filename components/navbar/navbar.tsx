@@ -58,18 +58,21 @@ export default function Navbar() {
       setIsScrolled(scrollY > 50);
     };
 
+    // Check initial scroll position
+    handleScroll();
+
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, [hasHeroSection]);
 
   return (
     <nav className={cn(
-      "z-50 w-full border-b backdrop-blur-md transition-all duration-300",
+      "z-50 w-full backdrop-blur-md transition-all duration-300 ease-in-out",
       hasHeroSection 
         ? isScrolled
-          ? "sticky top-0 bg-black/80 supports-[backdrop-filter]:bg-black/60"
-          : "absolute top-0 bg-transparent border-transparent"
-        : "sticky top-0 bg-background/80 dark:bg-background/80 supports-[backdrop-filter]:bg-background/60 dark:supports-[backdrop-filter]:bg-background/60"
+          ? "sticky top-0 bg-black/60 border-b border-[rgba(255,255,255,0.2)] shadow-sm"
+          : "absolute top-0 bg-black/40"
+        : "sticky top-0 bg-background/80 dark:bg-background/80 border-b supports-[backdrop-filter]:bg-background/60 dark:supports-[backdrop-filter]:bg-background/60"
     )}>
       <div className={cn(
         "w-full flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8",
@@ -98,10 +101,12 @@ export default function Navbar() {
                       href={link.href}
                       className={cn(
                         "relative px-3 py-2 text-sm font-medium transition-colors rounded-md",
-                        "hover:bg-accent hover:text-accent-foreground",
+                        hasHeroSection 
+                          ? "hover:bg-white/10 hover:text-white"
+                          : "hover:bg-accent hover:text-accent-foreground",
                         isActive
-                          ? hasHeroSection && !isScrolled ? "text-white font-semibold" : "text-foreground dark:text-foreground font-semibold"
-                          : hasHeroSection && !isScrolled ? "text-white/80" : "text-foreground/80 dark:text-muted-foreground",
+                          ? hasHeroSection ? "text-white font-semibold" : "text-foreground dark:text-foreground font-semibold"
+                          : hasHeroSection ? "text-white/90" : "text-foreground/80 dark:text-muted-foreground",
                         isActive && "after:content-[''] after:absolute after:bottom-[-15px] after:left-0 after:right-0 after:h-[3px] after:bg-[#E50914] after:rounded-t-[15px]"
                       )}
                     >
@@ -117,7 +122,7 @@ export default function Navbar() {
         {/* Right side - Search, User */}
         <div className="flex items-center gap-3 flex-shrink-0">
           {/* Search - Always visible, expands on mobile */}
-          <Search />
+          <Search hasHeroSection={hasHeroSection} />
 
           {/* Mobile Menu Button */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -126,8 +131,8 @@ export default function Navbar() {
                 isOpen={mobileMenuOpen}
                 showMorph={false}
                 className={cn(
-                  "h-9 w-9",
-                  hasHeroSection && !isScrolled && "text-white"
+                  "h-9 w-9 transition-colors duration-300",
+                  hasHeroSection && "text-white hover:bg-black/20"
                 )}
               />
             </SheetTrigger>
@@ -149,12 +154,15 @@ export default function Navbar() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="relative hidden h-9 w-9 md:inline-flex"
+                    className={cn(
+                      "relative hidden h-9 w-9 md:inline-flex transition-colors duration-300",
+                      hasHeroSection && "hover:bg-black/20 text-white"
+                    )}
                     aria-label="Notifications"
                   >
                     <Bell className={cn(
-                      "h-5 w-5",
-                      hasHeroSection && !isScrolled ? "text-white" : ""
+                      "h-5 w-5 transition-colors duration-300",
+                      hasHeroSection && "text-white"
                     )} />
                     {/* Future notification badge */}
                     {/* <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive"></span> */}
