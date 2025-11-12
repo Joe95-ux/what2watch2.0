@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -106,6 +106,7 @@ export default function LandingPage() {
   const [selectedSlideIndex, setSelectedSlideIndex] = useState(0);
   const [slideRuntimes, setSlideRuntimes] = useState<Record<string, number>>({});
   const [isPaused, setIsPaused] = useState(false);
+  const playlistScrollRef = useRef<HTMLDivElement>(null);
   
   const selectedSlide = slides[selectedSlideIndex] || null;
 
@@ -130,6 +131,21 @@ export default function LandingPage() {
 
     return () => clearTimeout(timeout);
   }, [isPaused]);
+
+  // Scroll to selected item in playlist
+  useEffect(() => {
+    if (!playlistScrollRef.current) return;
+    
+    const selectedElement = playlistScrollRef.current.querySelector(
+      `[data-slide-index="${selectedSlideIndex}"]`
+    ) as HTMLElement;
+    if (selectedElement) {
+      selectedElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
+    }
+  }, [selectedSlideIndex]);
 
   // Fetch runtime for all slides on mount
   useEffect(() => {
@@ -335,50 +351,32 @@ export default function LandingPage() {
             ) : slides.length > 0 ? (
               <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
                 {/* Left Column - Featured Content */}
-                <div className="relative overflow-hidden rounded-lg bg-muted">
+                <div className="relative h-[600px] overflow-hidden rounded-lg bg-muted">
                   <FeaturedContent
                     slide={selectedSlide}
                     onPlay={handlePlay}
                     runtime={selectedSlide ? slideRuntimes[`${selectedSlide.type}-${selectedSlide.id}`] : undefined}
+                    onPrevious={() => {
+                      setIsPaused(true);
+                      setSelectedSlideIndex(prev => (prev - 1 + slides.length) % slides.length);
+                    }}
+                    onNext={() => {
+                      setIsPaused(true);
+                      setSelectedSlideIndex(prev => (prev + 1) % slides.length);
+                    }}
+                    canGoPrevious={slides.length > 1}
+                    canGoNext={slides.length > 1}
                   />
                 </div>
 
                 {/* Right Column - Playlist */}
                 <div className="relative">
-                  {/* Carousel Controls - Positioned at middle of left/right edges */}
-                  {slides.length > 1 && (
-                    <>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="absolute left-0 top-1/2 z-20 h-10 w-10 -translate-y-1/2 -translate-x-1/2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background border"
-                        onClick={() => {
-                          setIsPaused(true);
-                          setSelectedSlideIndex(prev => (prev - 1 + slides.length) % slides.length);
-                        }}
-                      >
-                        <ChevronLeft className="h-7 w-7" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="absolute right-0 top-1/2 z-20 h-10 w-10 -translate-y-1/2 translate-x-1/2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background border"
-                        onClick={() => {
-                          setIsPaused(true);
-                          setSelectedSlideIndex(prev => (prev + 1) % slides.length);
-                        }}
-                      >
-                        <ChevronRight className="h-7 w-7" />
-                      </Button>
-                    </>
-                  )}
-                  
                   <div className="mb-3">
                     <h3 className="text-sm font-semibold text-foreground">Up Next</h3>
                   </div>
                   
                   <ScrollArea className="h-[600px] pr-4">
-                    <div className="space-y-2">
+                    <div ref={playlistScrollRef} className="space-y-2">
                       {slides.map((slide, index) => {
                         const isSelected = index === selectedSlideIndex;
                         const runtime = slideRuntimes[`${slide.type}-${slide.id}`];
@@ -393,6 +391,7 @@ export default function LandingPage() {
                               setSelectedSlideIndex(index);
                             }}
                             onPlay={handlePlay}
+                            index={index}
                           />
                         );
                       })}
@@ -636,9 +635,13 @@ type FeaturedContentProps = {
   slide: HeroSlide;
   onPlay: (slide: HeroSlide) => void;
   runtime?: number;
+  onPrevious: () => void;
+  onNext: () => void;
+  canGoPrevious: boolean;
+  canGoNext: boolean;
 };
 
-function FeaturedContent({ slide, onPlay, runtime }: FeaturedContentProps) {
+function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrevious, canGoNext }: FeaturedContentProps) {
   const formatRuntime = (minutes?: number) => {
     if (!minutes) return "";
     const hours = Math.floor(minutes / 60);
@@ -679,14 +682,14 @@ function FeaturedContent({ slide, onPlay, runtime }: FeaturedContentProps) {
       } as TMDBSeries;
 
   return (
-    <div className="relative h-[600px]">
+    <div className="relative h-full w-full">
       {/* Wallpaper Background */}
       {slide.backdrop ? (
         <Image
           src={getBackdropUrl(slide.backdrop, "w1280")}
           alt={slide.title}
           fill
-          className="object-cover"
+          className="object-cover transition-opacity duration-500"
           sizes="(max-width: 1024px) 100vw, 60vw"
           priority
         />
@@ -694,6 +697,28 @@ function FeaturedContent({ slide, onPlay, runtime }: FeaturedContentProps) {
         <div className="h-full w-full bg-gradient-to-br from-muted to-muted/50" />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+
+      {/* Carousel Controls - Positioned at middle of left/right edges */}
+      {canGoPrevious && (
+        <Button
+          size="icon"
+          variant="ghost"
+          className="absolute left-0 top-1/2 z-20 h-10 w-10 -translate-y-1/2 -translate-x-1/2 cursor-pointer rounded-full bg-background/80 backdrop-blur-sm hover:bg-background border transition-all duration-300"
+          onClick={onPrevious}
+        >
+          <ChevronLeft className="h-7 w-7" />
+        </Button>
+      )}
+      {canGoNext && (
+        <Button
+          size="icon"
+          variant="ghost"
+          className="absolute right-0 top-1/2 z-20 h-10 w-10 -translate-y-1/2 translate-x-1/2 cursor-pointer rounded-full bg-background/80 backdrop-blur-sm hover:bg-background border transition-all duration-300"
+          onClick={onNext}
+        >
+          <ChevronRight className="h-7 w-7" />
+        </Button>
+      )}
 
       {/* Bottom Section - Poster and Details */}
       <div className="absolute bottom-0 left-0 right-0 z-10 p-6">
@@ -716,9 +741,9 @@ function FeaturedContent({ slide, onPlay, runtime }: FeaturedContentProps) {
                   trigger={
                     <Button
                       size="icon"
-                      className="h-9 w-9 rounded-full bg-background/90 backdrop-blur-sm hover:bg-background"
+                      className="h-9 w-9 cursor-pointer rounded-full bg-background/90 dark:bg-background/90 backdrop-blur-sm hover:bg-background dark:hover:bg-background border border-border/50"
                     >
-                      <Plus className="h-4 w-4" />
+                      <Plus className="h-4 w-4 text-foreground" />
                     </Button>
                   }
                 />
@@ -732,7 +757,7 @@ function FeaturedContent({ slide, onPlay, runtime }: FeaturedContentProps) {
               <Button
                 size="lg"
                 onClick={() => onPlay(slide)}
-                className="bg-primary hover:bg-primary/90"
+                className="cursor-pointer bg-primary hover:bg-primary/90 transition-all duration-300"
               >
                 <Play className="mr-2 h-5 w-5 fill-current" />
                 Play
@@ -741,8 +766,8 @@ function FeaturedContent({ slide, onPlay, runtime }: FeaturedContentProps) {
                 <span className="text-sm font-medium text-foreground">{formatRuntime(runtime)}</span>
               )}
             </div>
-            <h3 className="mb-1 text-3xl font-bold sm:text-4xl">{slide.title}</h3>
-            <p className="text-sm text-muted-foreground">Watch the trailer</p>
+            <h3 className="mb-1 text-3xl font-bold sm:text-4xl transition-opacity duration-500">{slide.title}</h3>
+            <p className="text-sm text-muted-foreground transition-opacity duration-500">Watch the trailer</p>
           </div>
         </div>
       </div>
@@ -756,9 +781,10 @@ type PlaylistItemProps = {
   runtime?: number;
   onClick: () => void;
   onPlay: (slide: HeroSlide) => void;
+  index: number;
 };
 
-function PlaylistItem({ slide, isSelected, runtime, onClick, onPlay }: PlaylistItemProps) {
+function PlaylistItem({ slide, isSelected, runtime, onClick, onPlay, index }: PlaylistItemProps) {
   const formatRuntime = (minutes?: number) => {
     if (!minutes) return "";
     const hours = Math.floor(minutes / 60);
@@ -769,12 +795,13 @@ function PlaylistItem({ slide, isSelected, runtime, onClick, onPlay }: PlaylistI
   return (
     <div
       className={cn(
-        "group flex cursor-pointer gap-3 rounded-lg p-3 transition-colors",
+        "group flex cursor-pointer gap-3 rounded-lg p-3 transition-all duration-300",
         isSelected
           ? "bg-primary/10"
           : "bg-card hover:bg-muted/50"
       )}
       onClick={onClick}
+      data-slide-index={index}
     >
       {/* Thumbnail */}
       <div className="relative h-20 w-[140px] flex-shrink-0 overflow-hidden rounded">

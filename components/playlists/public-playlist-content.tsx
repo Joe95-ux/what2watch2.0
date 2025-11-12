@@ -137,7 +137,7 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
   return (
     <div className="min-h-screen bg-background">
       {/* Header with Cover */}
-      <div className="relative h-[40vh] min-h-[300px] max-h-[565px] overflow-hidden">
+      <div className="relative -mt-[65px] h-[40vh] min-h-[300px] max-h-[565px] overflow-hidden">
         {coverImage ? (
           <>
             <img
