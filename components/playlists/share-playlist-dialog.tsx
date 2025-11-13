@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -36,11 +36,28 @@ export default function SharePlaylistDialog({ playlist, isOpen, onClose }: Share
     setIsPublic(playlist.isPublic);
   }, [playlist.isPublic]);
 
+  const recordShareEvent = useCallback(async (source: string) => {
+    try {
+      await fetch("/api/analytics/playlist-events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          playlistId: playlist.id,
+          type: "SHARE",
+          source,
+        }),
+      });
+    } catch (logError) {
+      console.error("Failed to log share event", logError);
+    }
+  }, [playlist.id]);
+
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       toast.success("Link copied to clipboard!");
+      recordShareEvent("copy_link");
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       toast.error("Failed to copy link");
@@ -76,6 +93,7 @@ export default function SharePlaylistDialog({ playlist, isOpen, onClose }: Share
     }
 
     if (shareUrl_platform) {
+      recordShareEvent(platform);
       window.open(shareUrl_platform, "_blank", "width=600,height=400");
     }
   };

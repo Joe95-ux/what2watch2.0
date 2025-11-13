@@ -9,7 +9,8 @@ import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import DashboardRow from "@/components/dashboard/dashboard-row";
 import PlaylistCard from "@/components/browse/playlist-card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, Heart, Clock, Film } from "lucide-react";
+import { BookOpen, Heart, Clock, Film, Share2 } from "lucide-react";
+import { usePlaylistAnalytics } from "@/hooks/use-playlist-analytics";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ export default function DashboardContent() {
   const { data: favorites = [], isLoading: isLoadingFavorites } = useFavorites();
   const { data: playlists = [], isLoading: isLoadingPlaylists } = usePlaylists();
   const { data: recentlyViewed = [], isLoading: isLoadingRecentlyViewed } = useRecentlyViewed();
+  const { data: playlistAnalytics, isLoading: isLoadingPlaylistAnalytics } = usePlaylistAnalytics({ range: 30 });
 
   // Convert recently viewed to TMDB format
   const recentlyViewedItems = useMemo(() => {
@@ -61,13 +63,21 @@ export default function DashboardContent() {
 
   // Calculate stats
   const stats = useMemo(() => {
+    const shares = playlistAnalytics?.totals.shares ?? 0;
+    const visits = playlistAnalytics?.totals.visits ?? 0;
+
     return {
       watchlistCount: favorites.length,
       playlistCount: playlists.length,
       recentlyViewedCount: recentlyViewed.length,
       totalItems: favorites.length + playlists.reduce((acc, p) => acc + (p._count?.items || 0), 0),
+      playlistReach: {
+        total: playlistAnalytics?.totals.totalEngagement ?? shares + visits,
+        shares,
+        visits,
+      },
     };
-  }, [favorites, playlists, recentlyViewed]);
+  }, [favorites, playlists, recentlyViewed, playlistAnalytics]);
 
   const displayName = user?.fullName || user?.firstName || "User";
   const greeting = useMemo(() => {
@@ -91,7 +101,7 @@ export default function DashboardContent() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 md:mb-8 max-w-5xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 md:mb-8 max-w-6xl">
           <StatCard
             icon={Heart}
             label="Watchlist"
@@ -117,6 +127,14 @@ export default function DashboardContent() {
             label="Total Items"
             value={stats.totalItems}
             isLoading={isLoadingFavorites || isLoadingPlaylists}
+          />
+          <StatCard
+            icon={Share2}
+            label="Playlist Reach"
+            value={stats.playlistReach.total}
+            helper={`${stats.playlistReach.visits.toLocaleString()} visits • ${stats.playlistReach.shares.toLocaleString()} shares`}
+            isLoading={isLoadingPlaylistAnalytics}
+            href="/dashboard/my-stats"
           />
         </div>
 
@@ -231,9 +249,10 @@ interface StatCardProps {
   value: number;
   isLoading?: boolean;
   href?: string;
+  helper?: string;
 }
 
-function StatCard({ icon: Icon, label, value, isLoading, href }: StatCardProps) {
+function StatCard({ icon: Icon, label, value, isLoading, href, helper }: StatCardProps) {
   // Different gradient backgrounds for each icon type
   // Use icon component reference for comparison
   const isHeart = Icon === Heart;
@@ -277,9 +296,16 @@ function StatCard({ icon: Icon, label, value, isLoading, href }: StatCardProps) 
       {isLoading ? (
         <Skeleton className="h-8 w-16 !bg-gray-200 dark:!bg-accent" />
       ) : (
-        <div className="text-2xl sm:text-3xl font-bold break-words">{value}</div>
+        <div className="text-2xl sm:text-3xl font-bold break-words">
+          {Number.isFinite(value) ? value.toLocaleString() : "0"}
+        </div>
       )}
       <div className="text-xs sm:text-sm text-muted-foreground mt-1 break-words">{label}</div>
+      {helper ? (
+        <div className="text-[0.7rem] sm:text-xs text-muted-foreground/80 mt-0.5 break-words">
+          {helper}
+        </div>
+      ) : null}
     </div>
   );
 

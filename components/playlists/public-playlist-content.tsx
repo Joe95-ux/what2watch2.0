@@ -30,6 +30,7 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasLoggedVisit, setHasLoggedVisit] = useState(false);
 
   useEffect(() => {
     const fetchPlaylist = async () => {
@@ -53,6 +54,38 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
 
     fetchPlaylist();
   }, [playlistId]);
+
+  useEffect(() => {
+    if (!playlist || hasLoggedVisit) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const logVisit = async () => {
+      try {
+        await fetch("/api/analytics/playlist-events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            playlistId,
+            type: "VISIT",
+            source: "public_view",
+          }),
+          signal: controller.signal,
+        });
+        setHasLoggedVisit(true);
+      } catch (logError) {
+        if ((logError as Error).name !== "AbortError") {
+          console.error("Failed to log playlist visit", logError);
+        }
+      }
+    };
+
+    logVisit();
+
+    return () => controller.abort();
+  }, [playlist, hasLoggedVisit, playlistId]);
 
   if (isLoading) {
     return (

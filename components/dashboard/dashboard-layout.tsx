@@ -29,6 +29,8 @@ import {
   LayoutDashboard,
   Settings,
   Palette,
+  BarChart3,
+  Plus,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -39,10 +41,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useUser } from "@clerk/nextjs";
 import { useFavorites } from "@/hooks/use-favorites";
 import { usePlaylists } from "@/hooks/use-playlists";
-import { useRecentlyViewed } from "@/hooks/use-recently-viewed";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface DashboardLayoutProps {
@@ -52,10 +52,8 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
   const { setTheme, theme } = useTheme();
-  const { user } = useUser();
   const { data: favorites = [] } = useFavorites();
   const { data: playlists = [] } = usePlaylists();
-  const { data: recentlyViewed = [] } = useRecentlyViewed();
 
   // General navigation items
   const generalNavItems = [
@@ -70,6 +68,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/my-list", label: "My List", icon: Heart, badge: favorites.length },
     { href: "/playlists", label: "Playlists", icon: List, badge: playlists.length },
+    { href: "/dashboard/my-stats", label: "My Stats", icon: BarChart3 },
   ];
 
   return (
@@ -195,19 +194,22 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
         <SidebarFooter className="flex-shrink-0">
           {/* Create Playlist CTA */}
-          <div className="p-4 bg-gradient-to-br from-purple-500/20 via-purple-500/10 to-transparent rounded-lg mx-2 mb-2 group-data-[collapsible=icon]:hidden">
-            <Link href="/playlists" className="block">
-              <Button className="w-full bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white cursor-pointer">
-                <List className="h-4 w-4" />
-                <span className="ml-2">Create Playlist</span>
-              </Button>
-            </Link>
-          </div>
+          <Link href="/playlists" className="group block">
+            <Button
+              className="cta-shine animate-gradient-slow relative w-full overflow-hidden bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white transition-all duration-300 ease-out shadow-[0_18px_42px_-24px_rgba(168,85,247,0.7)] hover:-translate-y-1 hover:shadow-[0_22px_48px_-18px_rgba(236,72,153,0.75)] focus-visible:scale-[1.02] active:translate-y-0"
+            >
+              <Plus className="size-5 mr-2 transition-transform duration-300 group-hover:rotate-90" />
+              <span className="font-semibold tracking-wide">Create Playlist</span>
+            </Button>
+          </Link>
           {/* Collapsed CTA - icon only */}
           <div className="hidden group-data-[collapsible=icon]:block p-2">
             <Link href="/playlists" className="block">
-              <Button className="w-8 h-8 p-0 bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white cursor-pointer aspect-square">
-                <List className="h-4 w-4" />
+              <Button
+                size="icon"
+                className="cta-shine animate-gradient-slow group relative h-10 w-10 overflow-hidden rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white transition-all duration-300 ease-out shadow-[0_18px_42px_-24px_rgba(168,85,247,0.7)] hover:-translate-y-1 hover:shadow-[0_22px_48px_-18px_rgba(236,72,153,0.75)] focus-visible:scale-[1.05] active:translate-y-0"
+              >
+                <Plus className="size-5 transition-transform duration-300 group-hover:rotate-90" />
               </Button>
             </Link>
           </div>

@@ -31,6 +31,8 @@ model User {
   forumReplies  ForumReply[]
   sharedPlaylists SharedPlaylist[]
   recentlyViewed RecentlyViewed[]
+  playlistEngagements PlaylistEngagementEvent[] @relation("UserPlaylistEngagementOwnership")
+  playlistEngagementActions PlaylistEngagementEvent[] @relation("UserPlaylistEngagementActor")
 
   @@map("users")
 }
@@ -98,6 +100,7 @@ model Playlist {
   
   items         PlaylistItem[]
   sharedPlaylists SharedPlaylist[]
+  engagementEvents PlaylistEngagementEvent[]
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -130,6 +133,31 @@ model PlaylistItem {
   @@map("playlist_items")
   @@index([playlistId])
   @@unique([playlistId, tmdbId, mediaType])
+}
+
+enum PlaylistEngagementType {
+  SHARE
+  VISIT
+}
+
+model PlaylistEngagementEvent {
+  id           String                   @id @default(auto()) @map("_id") @db.ObjectId
+  playlistId   String                   @db.ObjectId
+  playlist     Playlist                 @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  ownerId      String                   @db.ObjectId
+  owner        User                     @relation("UserPlaylistEngagementOwnership", fields: [ownerId], references: [id], onDelete: Cascade)
+  actorId      String?                  @db.ObjectId
+  actor        User?                    @relation("UserPlaylistEngagementActor", fields: [actorId], references: [id])
+  type         PlaylistEngagementType
+  source       String?
+  visitorToken String?
+  metadata     Json?
+  createdAt    DateTime                 @default(now())
+
+  @@map("playlist_engagement_events")
+  @@index([playlistId])
+  @@index([ownerId, type])
+  @@index([visitorToken])
 }
 
 // Reviews - user reviews for movies/TV shows
