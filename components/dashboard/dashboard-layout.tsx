@@ -192,25 +192,22 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </ScrollArea>
         </SidebarContent>
 
+        <SidebarSeparator className="group-data-[collapsible=icon]:hidden" />
+
         <SidebarFooter className="flex-shrink-0">
           {/* Create Playlist CTA */}
-          <Link href="/playlists" className="group block">
+          <Link href="/playlists" className="group block cursor-pointer group-data-[collapsible=icon]:hidden">
             <Button
-              className="cta-shine animate-gradient-slow relative w-full overflow-hidden bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white transition-all duration-300 ease-out shadow-[0_18px_42px_-24px_rgba(168,85,247,0.7)] hover:-translate-y-1 hover:shadow-[0_22px_48px_-18px_rgba(236,72,153,0.75)] focus-visible:scale-[1.02] active:translate-y-0"
+              className="cta-shine animate-gradient-slow relative w-full overflow-hidden bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white transition-all duration-300 ease-out shadow-[0_18px_42px_-24px_rgba(168,85,247,0.7)] hover:scale-[1.02] hover:shadow-[0_22px_48px_-18px_rgba(236,72,153,0.75)] focus-visible:scale-[1.02] active:scale-[0.98]"
             >
               <Plus className="size-5 mr-2 transition-transform duration-300 group-hover:rotate-90" />
               <span className="font-semibold tracking-wide">Create Playlist</span>
             </Button>
           </Link>
           {/* Collapsed CTA - icon only */}
-          <div className="hidden group-data-[collapsible=icon]:block p-2">
-            <Link href="/playlists" className="block">
-              <Button
-                size="icon"
-                className="cta-shine animate-gradient-slow group relative h-10 w-10 overflow-hidden rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white transition-all duration-300 ease-out shadow-[0_18px_42px_-24px_rgba(168,85,247,0.7)] hover:-translate-y-1 hover:shadow-[0_22px_48px_-18px_rgba(236,72,153,0.75)] focus-visible:scale-[1.05] active:translate-y-0"
-              >
-                <Plus className="size-5 transition-transform duration-300 group-hover:rotate-90" />
-              </Button>
+          <div className="hidden group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2">
+            <Link href="/playlists" className="cursor-pointer">
+              <Plus className="size-6 text-purple-600 dark:text-purple-400 transition-all duration-300 hover:rotate-90 hover:scale-110" />
             </Link>
           </div>
         </SidebarFooter>

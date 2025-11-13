@@ -92,7 +92,7 @@ export default function DashboardContent() {
       <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         {/* Header with Greeting */}
         <div className="mb-4 sm:mb-6 md:mb-8">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 sm:mb-2">
+          <h1 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">
             {greeting}, {displayName}
           </h1>
           <p className="text-sm sm:text-base text-muted-foreground">
@@ -101,7 +101,7 @@ export default function DashboardContent() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 md:mb-8 max-w-6xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 md:mb-8 max-w-7xl">
           <StatCard
             icon={Heart}
             label="Watchlist"
@@ -282,7 +282,7 @@ function StatCard({ icon: Icon, label, value, isLoading, href, helper }: StatCar
 
   const content = (
     <div className={cn(
-      "bg-card border rounded-lg p-4 sm:p-6 transition-colors w-full overflow-hidden",
+      "bg-card border rounded-lg p-4 sm:p-6 transition-colors w-full h-full flex flex-col overflow-hidden",
       href && "hover:bg-accent/50 cursor-pointer"
     )}>
       <div className="flex items-center justify-between mb-2">
@@ -296,13 +296,13 @@ function StatCard({ icon: Icon, label, value, isLoading, href, helper }: StatCar
       {isLoading ? (
         <Skeleton className="h-8 w-16 !bg-gray-200 dark:!bg-accent" />
       ) : (
-        <div className="text-2xl sm:text-3xl font-bold break-words">
+        <div className="text-xl sm:text-2xl font-bold break-words">
           {Number.isFinite(value) ? value.toLocaleString() : "0"}
         </div>
       )}
-      <div className="text-xs sm:text-sm text-muted-foreground mt-1 break-words">{label}</div>
+      <div className="text-xs sm:text-sm text-muted-foreground mt-1 break-words flex-shrink-0">{label}</div>
       {helper ? (
-        <div className="text-[0.7rem] sm:text-xs text-muted-foreground/80 mt-0.5 break-words">
+        <div className="text-[0.7rem] sm:text-xs text-muted-foreground/80 mt-0.5 break-words flex-shrink-0">
           {helper}
         </div>
       ) : null}
@@ -311,7 +311,7 @@ function StatCard({ icon: Icon, label, value, isLoading, href, helper }: StatCar
 
   if (href) {
     return (
-      <Link href={href}>
+      <Link href={href} className="h-full">
         {content}
       </Link>
     );
