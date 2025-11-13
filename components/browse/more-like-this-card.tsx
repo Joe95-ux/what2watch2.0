@@ -263,9 +263,14 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
             </Tooltip>
           </div>
 
-          {/* Bottom Row: Synopsis (Truncated to 4 lines) */}
+          {/* Title */}
+          <h3 className="text-sm font-semibold text-foreground line-clamp-1">
+            {title}
+          </h3>
+
+          {/* Synopsis (Truncated to 3 lines) */}
           {item.overview && (
-            <p className="text-xs text-foreground line-clamp-4 leading-snug">
+            <p className="text-xs text-foreground line-clamp-3 leading-snug">
               {item.overview}
             </p>
           )}

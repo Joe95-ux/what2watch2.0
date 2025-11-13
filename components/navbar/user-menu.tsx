@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreVertical, Settings, LogOut, Moon, Sun, Monitor } from "lucide-react";
+import { MoreVertical, Settings, LogOut, Moon, Sun, Monitor, LayoutDashboard } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
@@ -47,6 +47,12 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
+        <Link href="/dashboard">
+          <DropdownMenuItem className="cursor-pointer">
+            <LayoutDashboard className="mr-2 h-4 w-4" />
+            <span>Dashboard</span>
+          </DropdownMenuItem>
+        </Link>
         <Link href="/settings">
           <DropdownMenuItem className="cursor-pointer">
             <Settings className="mr-2 h-4 w-4" />

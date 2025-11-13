@@ -69,10 +69,22 @@ function PublicPlaylistsCarousel() {
 
   if (isLoading) {
     return (
-      <div className="flex h-[300px] items-center justify-center rounded-lg bg-muted">
-        <div className="text-center">
-          <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
-          <p className="text-sm text-muted-foreground">Loading playlists...</p>
+      <div className="mb-12">
+        <div className="relative">
+          <div className="overflow-x-hidden">
+            <div className="flex gap-3 px-4 sm:px-6 lg:px-8">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="flex-shrink-0">
+                  <Skeleton className="w-[180px] sm:w-[200px] aspect-[3/4] rounded-lg !bg-gray-200 dark:!bg-accent" />
+                  {/* Mobile title skeleton */}
+                  <div className="mt-2 md:hidden">
+                    <Skeleton className="h-4 w-32 mb-1 !bg-gray-200 dark:!bg-accent" />
+                    <Skeleton className="h-3 w-20 !bg-gray-200 dark:!bg-accent" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
