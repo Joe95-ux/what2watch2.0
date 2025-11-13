@@ -75,10 +75,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <SidebarProvider>
       <Sidebar topOffset={65} collapsible="icon">
-        <SidebarHeader className="group-data-[collapsible=icon]:p-2">
-          <div className="flex items-center gap-2 px-2 py-2 group-data-[collapsible=icon]:justify-center">
-            <SidebarTrigger className="group-data-[collapsible=icon]:flex" />
-          </div>
+        <SidebarHeader>
+          <SidebarTrigger />
         </SidebarHeader>
         <SidebarContent className="flex flex-col overflow-hidden">
           <ScrollArea className="flex-1 overflow-x-hidden">
@@ -93,7 +91,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
                       return (
                         <SidebarMenuItem key={item.href}>
-                          <SidebarMenuButton asChild isActive={isActive}>
+                          <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
                             <Link href={item.href}>
                               <Icon />
                               <span>{item.label}</span>
@@ -118,12 +116,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
                       return (
                         <SidebarMenuItem key={item.href}>
-                          <SidebarMenuButton asChild isActive={isActive}>
+                          <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
                             <Link href={item.href} className="flex items-center w-full">
                               <Icon />
                               <span>{item.label}</span>
                               {item.badge !== undefined && item.badge > 0 && (
-                                <span className="ml-auto text-xs font-medium bg-primary text-primary-foreground rounded-full px-2 py-0.5 min-w-[1.5rem] text-center">
+                                <span className="ml-auto text-xs font-medium bg-primary text-primary-foreground rounded-full px-2 py-0.5 min-w-[1.5rem] text-center group-data-[collapsible=icon]:hidden">
                                   {item.badge}
                                 </span>
                               )}
@@ -144,7 +142,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <SidebarGroupContent>
                   <SidebarMenu>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={pathname === "/settings"}>
+                      <SidebarMenuButton asChild isActive={pathname === "/settings"} tooltip="Settings">
                         <Link href="/settings">
                           <Settings />
                           <span>Settings</span>
@@ -154,7 +152,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     <SidebarMenuItem>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <SidebarMenuButton>
+                          <SidebarMenuButton tooltip="Theme">
                             {theme === "light" ? (
                               <Sun />
                             ) : theme === "dark" ? (
@@ -182,10 +180,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       </DropdownMenu>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                      <SidebarMenuButton disabled>
+                      <SidebarMenuButton disabled tooltip="Customize">
                         <Palette />
                         <span>Customize</span>
-                        <span className="ml-auto text-xs text-muted-foreground">Soon</span>
+                        <span className="ml-auto text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">Soon</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   </SidebarMenu>
@@ -197,18 +195,20 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
         <SidebarFooter className="flex-shrink-0">
           {/* Create Playlist CTA */}
-          <div className="p-4 bg-gradient-to-br from-[#E50914]/20 via-[#E50914]/10 to-transparent rounded-lg mx-2 mb-2">
-            <Link href="/playlists">
-              <Button className="w-full bg-[#E50914] hover:bg-[#E50914]/90 text-white">
-                <List className="mr-2 h-4 w-4" />
-                Create Playlist
+          <div className="p-4 bg-gradient-to-br from-[#E50914]/20 via-[#E50914]/10 to-transparent rounded-lg mx-2 mb-2 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:mx-auto">
+            <Link href="/playlists" className="block">
+              <Button className="w-full bg-[#E50914] hover:bg-[#E50914]/90 text-white group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:aspect-square">
+                <List className="h-4 w-4" />
+                <span className="ml-2 group-data-[collapsible=icon]:hidden">Create Playlist</span>
               </Button>
             </Link>
           </div>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset>
-        {children}
+      <SidebarInset className="overflow-x-hidden min-w-0">
+        <div className="w-full min-w-0">
+          {children}
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

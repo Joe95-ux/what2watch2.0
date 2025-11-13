@@ -234,13 +234,42 @@ interface StatCardProps {
 }
 
 function StatCard({ icon: Icon, label, value, isLoading, href }: StatCardProps) {
+  // Different gradient backgrounds for each icon type
+  // Use icon component reference for comparison
+  const isHeart = Icon === Heart;
+  const isBookOpen = Icon === BookOpen;
+  const isClock = Icon === Clock;
+  const isFilm = Icon === Film;
+
+  const bgClass = isHeart
+    ? "bg-gradient-to-br from-pink-500/20 to-rose-500/20 dark:from-pink-500/30 dark:to-rose-500/30"
+    : isBookOpen
+    ? "bg-gradient-to-br from-blue-500/20 to-cyan-500/20 dark:from-blue-500/30 dark:to-cyan-500/30"
+    : isClock
+    ? "bg-gradient-to-br from-purple-500/20 to-indigo-500/20 dark:from-purple-500/30 dark:to-indigo-500/30"
+    : isFilm
+    ? "bg-gradient-to-br from-orange-500/20 to-amber-500/20 dark:from-orange-500/30 dark:to-amber-500/30"
+    : "bg-gradient-to-br from-primary/20 to-primary/10";
+
+  const colorClass = isHeart
+    ? "text-pink-600 dark:text-pink-400"
+    : isBookOpen
+    ? "text-blue-600 dark:text-blue-400"
+    : isClock
+    ? "text-purple-600 dark:text-purple-400"
+    : isFilm
+    ? "text-orange-600 dark:text-orange-400"
+    : "text-primary";
+
   const content = (
     <div className={cn(
       "bg-card border rounded-lg p-4 sm:p-6 transition-colors w-full overflow-hidden",
       href && "hover:bg-accent/50 cursor-pointer"
     )}>
       <div className="flex items-center justify-between mb-2">
-        <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+        <div className={cn("p-2 rounded-lg", bgClass)}>
+          <Icon className={cn("h-5 w-5", colorClass)} />
+        </div>
         {href && (
           <span className="text-xs text-muted-foreground flex-shrink-0 ml-auto">View →</span>
         )}
