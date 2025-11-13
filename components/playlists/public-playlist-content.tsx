@@ -343,7 +343,7 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
           <CreatePlaylistModal
             isOpen={isEditModalOpen}
             onClose={() => setIsEditModalOpen(false)}
-            playlistToEdit={playlist}
+            playlist={playlist}
           />
           <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
             <AlertDialogContent>
