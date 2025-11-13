@@ -180,7 +180,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
         clearTimeout(hoverTimeoutRef.current);
       }
     };
-  }, [isHovered, isModalOpen, fetchTrailerVideos, isMobile, item.id]);
+  }, [isHovered, isModalOpen, fetchTrailerVideos, isMobile, item.id, variant]);
 
   // Calculate position to prevent card from going off-screen (desktop only)
   const getCardStyle = () => {
@@ -301,7 +301,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
               className={cn(
                 "object-cover transition-opacity duration-300",
                 // Only fade out poster on desktop when trailer is ready, never on mobile
-                !isMobile && shouldShowOverlay && finalTrailer && !finalIsLoading && finalTrailer.key ? "opacity-0" : "opacity-100"
+                !isMobile && variant !== "dashboard" && shouldShowOverlay && finalTrailer && !finalIsLoading && finalTrailer.key ? "opacity-0" : "opacity-100"
               )}
               sizes="(max-width: 640px) 200px, 300px"
               unoptimized
@@ -312,8 +312,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
             </div>
           )}
 
-          {/* Trailer Preview (desktop hover only - no autoplay on mobile) - Overlays poster when ready */}
-          {shouldShowOverlay && !isMobile && finalTrailer && !finalIsLoading && finalTrailer.key && (
+          {/* Trailer Preview (desktop hover only - no autoplay on mobile or dashboard) - Overlays poster when ready */}
+          {shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && (
             <div className="absolute inset-0 z-0 pointer-events-none">
               <iframe
                 src={getYouTubeEmbedUrl(finalTrailer.key)}

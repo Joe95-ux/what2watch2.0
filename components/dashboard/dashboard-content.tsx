@@ -91,7 +91,7 @@ export default function DashboardContent() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 md:mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 md:mb-8 max-w-4xl">
           <StatCard
             icon={Heart}
             label="Watchlist"
@@ -236,21 +236,21 @@ interface StatCardProps {
 function StatCard({ icon: Icon, label, value, isLoading, href }: StatCardProps) {
   const content = (
     <div className={cn(
-      "bg-card border rounded-lg p-4 sm:p-6 transition-colors min-w-0",
+      "bg-card border rounded-lg p-4 sm:p-6 transition-colors w-full overflow-hidden",
       href && "hover:bg-accent/50 cursor-pointer"
     )}>
       <div className="flex items-center justify-between mb-2">
         <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
         {href && (
-          <span className="text-xs text-muted-foreground flex-shrink-0">View →</span>
+          <span className="text-xs text-muted-foreground flex-shrink-0 ml-auto">View →</span>
         )}
       </div>
       {isLoading ? (
         <Skeleton className="h-8 w-16 !bg-gray-200 dark:!bg-accent" />
       ) : (
-        <div className="text-2xl sm:text-3xl font-bold truncate">{value}</div>
+        <div className="text-2xl sm:text-3xl font-bold break-words">{value}</div>
       )}
-      <div className="text-xs sm:text-sm text-muted-foreground mt-1 truncate">{label}</div>
+      <div className="text-xs sm:text-sm text-muted-foreground mt-1 break-words">{label}</div>
     </div>
   );
 
