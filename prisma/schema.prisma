@@ -33,6 +33,7 @@ model User {
   recentlyViewed RecentlyViewed[]
   playlistEngagements PlaylistEngagementEvent[] @relation("UserPlaylistEngagementOwnership")
   playlistEngagementActions PlaylistEngagementEvent[] @relation("UserPlaylistEngagementActor")
+  aiChatEvents AiChatEvent[]
 
   @@map("users")
 }
@@ -284,4 +285,52 @@ model RecentlyViewed {
   @@index([userId])
   @@index([userId, viewedAt])
   @@unique([userId, tmdbId, mediaType])
+}
+
+enum AiChatIntent {
+  RECOMMENDATION
+  INFORMATION
+}
+
+model AiChatEvent {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String        @db.ObjectId
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Chat session tracking
+  sessionId     String        // Unique session identifier for grouping messages
+  
+  // User message
+  userMessage   String        // The user's query/message
+  intent        AiChatIntent  // RECOMMENDATION or INFORMATION
+  
+  // AI response metadata
+  aiResponse    String?       // The AI's text response
+  responseTime  Int?          // Response time in milliseconds
+  
+  // Results data
+  resultsCount  Int           @default(0) // Number of movies/TV shows returned
+  resultIds     Int[]         @default([]) // TMDB IDs of results
+  resultTypes   String[]      @default([]) // "movie" or "tv" for each result
+  
+  // Query metadata
+  extractedGenres    Int[]    @default([]) // Genres extracted from query
+  extractedKeywords  String[] @default([]) // Keywords extracted from query
+  extractedYear      Int?     // Year filter if extracted
+  extractedType      String?  // "movie" or "tv" if specified
+  
+  // User interaction
+  resultsClicked   Int       @default(0) // How many results user clicked
+  resultsAddedToPlaylist Int @default(0) // How many results added to playlist
+  
+  // Error tracking
+  errorMessage  String?
+  
+  createdAt     DateTime      @default(now())
+
+  @@map("ai_chat_events")
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([sessionId])
+  @@index([intent])
 }

@@ -31,6 +31,8 @@ import {
   Palette,
   BarChart3,
   Plus,
+  Sparkles,
+  Activity,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -133,6 +135,41 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                         </SidebarMenuItem>
                       );
                     })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+
+              <SidebarSeparator />
+
+              {/* AI Assistant Group */}
+              <SidebarGroup>
+                <SidebarGroupLabel>AI Assistant</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname === "/dashboard/ai/discover" || pathname?.startsWith("/dashboard/ai/discover")}
+                        tooltip="Discover"
+                      >
+                        <Link href="/dashboard/ai/discover">
+                          <Sparkles />
+                          <span>Discover</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname === "/dashboard/ai/usage" || pathname?.startsWith("/dashboard/ai/usage")}
+                        tooltip="AI Usage"
+                      >
+                        <Link href="/dashboard/ai/usage">
+                          <Activity />
+                          <span>AI Usage</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
