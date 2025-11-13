@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   Area,
   AreaChart,
@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -75,7 +76,7 @@ export default function MyStatsContent() {
 
   const trendData = useMemo(() => data?.trend ?? [], [data?.trend]);
   const leaderboard = useMemo(
-    () => data?.leaderboard?.slice(0, 5) ?? [],
+    () => data?.leaderboard ?? [],
     [data?.leaderboard]
   );
   const sources = useMemo(() => data?.sources ?? [], [data?.sources]);
@@ -448,6 +449,9 @@ function MetricCard({
   );
 }
 
+type SortField = "name" | "visits" | "shares" | "total";
+type SortDirection = "asc" | "desc";
+
 function Leaderboard({
   leaderboard,
 }: {
@@ -460,6 +464,86 @@ function Leaderboard({
     updatedAt: Date | string | null;
   }>;
 }) {
+  const [sortField, setSortField] = useState<SortField>("total");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile vs desktop
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1280); // xl breakpoint
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  const itemsPerPage = isMobile ? 20 : 5;
+
+  // Sort leaderboard
+  const sortedLeaderboard = useMemo(() => {
+    const sorted = [...leaderboard].sort((a, b) => {
+      let aValue: string | number;
+      let bValue: string | number;
+
+      switch (sortField) {
+        case "name":
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case "visits":
+          aValue = a.visits;
+          bValue = b.visits;
+          break;
+        case "shares":
+          aValue = a.shares;
+          bValue = b.shares;
+          break;
+        case "total":
+          aValue = a.total;
+          bValue = b.total;
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }, [leaderboard, sortField, sortDirection]);
+
+  // Paginate
+  const totalPages = Math.ceil(sortedLeaderboard.length / itemsPerPage);
+  const paginatedLeaderboard = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return sortedLeaderboard.slice(start, end);
+  }, [sortedLeaderboard, currentPage, itemsPerPage]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("desc");
+    }
+    setCurrentPage(1); // Reset to first page when sorting changes
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) {
+      return <span className="ml-1 text-muted-foreground/50">↕</span>;
+    }
+    return (
+      <span className="ml-1">
+        {sortDirection === "asc" ? "↑" : "↓"}
+      </span>
+    );
+  };
+
   return (
     <Card>
       <CardHeader className="pb-4">
@@ -472,15 +556,47 @@ function Leaderboard({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Playlist</TableHead>
-              <TableHead className="text-right">Visits</TableHead>
-              <TableHead className="text-right">Shares</TableHead>
-              <TableHead className="text-right">Total Engagement</TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-accent/50 select-none"
+                onClick={() => handleSort("name")}
+              >
+                <div className="flex items-center">
+                  Playlist
+                  <SortIcon field="name" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="text-right cursor-pointer hover:bg-accent/50 select-none"
+                onClick={() => handleSort("visits")}
+              >
+                <div className="flex items-center justify-end">
+                  Visits
+                  <SortIcon field="visits" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="text-right cursor-pointer hover:bg-accent/50 select-none"
+                onClick={() => handleSort("shares")}
+              >
+                <div className="flex items-center justify-end">
+                  Shares
+                  <SortIcon field="shares" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="text-right cursor-pointer hover:bg-accent/50 select-none font-semibold"
+                onClick={() => handleSort("total")}
+              >
+                <div className="flex items-center justify-end">
+                  Total Engagement
+                  <SortIcon field="total" />
+                </div>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {leaderboard.length ? (
-              leaderboard.map((entry) => (
+            {paginatedLeaderboard.length ? (
+              paginatedLeaderboard.map((entry) => (
                 <TableRow key={entry.playlistId}>
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
@@ -512,6 +628,38 @@ function Leaderboard({
             )}
           </TableBody>
         </Table>
+        
+        {/* Pagination */}
+        {sortedLeaderboard.length > itemsPerPage && (
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <div className="text-sm text-muted-foreground">
+              Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+              {Math.min(currentPage * itemsPerPage, sortedLeaderboard.length)} of{" "}
+              {sortedLeaderboard.length} playlists
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <div className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

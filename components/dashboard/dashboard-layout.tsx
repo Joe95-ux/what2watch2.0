@@ -196,9 +196,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </ScrollArea>
         </SidebarContent>
 
-        <SidebarSeparator className="group-data-[collapsible=icon]:hidden mb-0" />
 
-        <SidebarFooter className="flex-shrink-0 pt-2">
+        <SidebarFooter className="flex-shrink-0 pt-2 border-t">
           {/* Create Playlist CTA */}
           <Link href="/playlists" className="group block cursor-pointer group-data-[collapsible=icon]:hidden">
             <Button
