@@ -93,11 +93,13 @@ const fetchPersonalizedContent = async (
   preferredTypes: ("movie" | "tv")[]
 ): Promise<(TMDBMovie | TMDBSeries)[]> => {
   if (favoriteGenres.length === 0) {
+    console.warn("[PersonalizedContent] No favoriteGenres provided");
     return [];
   }
 
   // Use top 3-5 genres for better diversity
   const topGenres = favoriteGenres.slice(0, 5);
+  console.log(`[PersonalizedContent] Fetching for genres:`, topGenres, `types:`, preferredTypes);
   
   // Fetch content for each genre and type
   const fetchPromises: Promise<(TMDBMovie | TMDBSeries)[]>[] = [];
@@ -107,22 +109,37 @@ const fetchPersonalizedContent = async (
       fetchPromises.push(
         fetch(`/api/search?genre=${genreId}&type=movie&sortBy=popularity.desc&page=1`)
           .then((res) => res.json())
-          .then((data) => (data.results || []).slice(0, 4)) // Limit per genre
-          .catch(() => [])
+          .then((data) => {
+            const results = (data.results || []).slice(0, 4);
+            console.log(`[PersonalizedContent] Genre ${genreId} (movie): ${results.length} results`);
+            return results;
+          })
+          .catch((err) => {
+            console.error(`[PersonalizedContent] Error fetching genre ${genreId} (movie):`, err);
+            return [];
+          })
       );
     }
     if (preferredTypes.includes("tv")) {
       fetchPromises.push(
         fetch(`/api/search?genre=${genreId}&type=tv&sortBy=popularity.desc&page=1`)
           .then((res) => res.json())
-          .then((data) => (data.results || []).slice(0, 4)) // Limit per genre
-          .catch(() => [])
+          .then((data) => {
+            const results = (data.results || []).slice(0, 4);
+            console.log(`[PersonalizedContent] Genre ${genreId} (tv): ${results.length} results`);
+            return results;
+          })
+          .catch((err) => {
+            console.error(`[PersonalizedContent] Error fetching genre ${genreId} (tv):`, err);
+            return [];
+          })
       );
     }
   }
 
   const results = await Promise.all(fetchPromises);
   const combined = results.flat();
+  console.log(`[PersonalizedContent] Combined results: ${combined.length} items`);
   
   // Remove duplicates by id and type
   const unique = combined.filter(
@@ -132,7 +149,9 @@ const fetchPersonalizedContent = async (
 
   // Shuffle and limit to 20 items
   const shuffled = unique.sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, 20);
+  const final = shuffled.slice(0, 20);
+  console.log(`[PersonalizedContent] Final unique results: ${final.length} items`);
+  return final;
 };
 
 const fetchMoviesByGenre = async (genreId: number, page: number = 1): Promise<TMDBMovie[]> => {

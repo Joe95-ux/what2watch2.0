@@ -5,10 +5,13 @@ const isPublicRoute = createRouteMatcher([
   '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
+  '/playlists/.*/public', // Public playlist sharing pages (e.g., /playlists/[id]/public)
   '/api/webhooks(.*)',
   '/api/movies(.*)', // Public movie data endpoints
   '/api/tv(.*)', // Public TV data endpoints
   '/api/genres(.*)', // Public genre endpoints
+  '/api/playlists(.*)', // Playlist API endpoints (handles auth internally)
+  '/api/analytics/playlist-events', // Allow unauthenticated visit tracking
 ]);
 
 // Routes that require auth but have special handling

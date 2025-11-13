@@ -16,8 +16,6 @@ type RawNumber =
 
 type RawObjectId = string | { $oid?: string };
 
-type ObjectIdMatch = { $oid: string };
-
 type TotalsRawRow = { _id?: unknown; count?: RawNumber };
 type TrendRawRow = {
   _id?: { day?: string; type?: string };
@@ -129,13 +127,17 @@ export async function GET(request: NextRequest) {
       startDate = new Date(now.getTime() - fallbackDays * 24 * 60 * 60 * 1000);
     }
 
+    // Use string ObjectId directly - Prisma stores ObjectIds as strings in MongoDB
     const matchStage = {
-      ownerId: { $oid: user.id } as ObjectIdMatch,
+      ownerId: user.id,
       createdAt: {
         $gte: startDate,
         $lte: now,
       },
     };
+
+    // Debug: Log the query parameters
+    console.log(`[Analytics] Querying events for ownerId: ${user.id}, range: ${startDate.toISOString()} to ${now.toISOString()}`);
 
     const [
       totalsRawResult,
@@ -241,6 +243,9 @@ export async function GET(request: NextRequest) {
       uniqueVisitorsRawResult
     );
 
+    // Debug: Log raw totals
+    console.log(`[Analytics] Raw totals results:`, JSON.stringify(totalsRaw, null, 2));
+
     const totals = totalsRaw.reduce(
       (acc, row) => {
         const type = typeof row._id === "string" ? row._id : null;
@@ -257,6 +262,9 @@ export async function GET(request: NextRequest) {
       },
       { shares: 0, visits: 0, totalEngagement: 0 }
     );
+
+    // Debug: Log computed totals
+    console.log(`[Analytics] Computed totals:`, totals);
 
     const uniqueVisitors = uniqueVisitorsRaw.length
       ? toNumber(uniqueVisitorsRaw[0]?.count)

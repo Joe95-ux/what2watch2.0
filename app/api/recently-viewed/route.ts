@@ -59,39 +59,62 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Check if this item already exists for this user
-    const existing = await db.recentlyViewed.findUnique({
-      where: {
-        userId_tmdbId_mediaType: {
-          userId: user.id,
-          tmdbId: parseInt(tmdbId.toString(), 10),
-          mediaType: mediaType as string,
-        },
-      },
-    });
+    // Use upsert to atomically create or update - prevents write conflicts
+    // Retry logic for MongoDB transaction conflicts (P2034)
+    const maxRetries = 3;
 
-    if (existing) {
-      // Update the viewedAt timestamp
-      await db.recentlyViewed.update({
-        where: { id: existing.id },
-        data: { viewedAt: new Date() },
-      });
-    } else {
-      // Create new entry
-      await db.recentlyViewed.create({
-        data: {
-          userId: user.id,
-          tmdbId: parseInt(tmdbId.toString(), 10),
-          mediaType: mediaType as string,
-          title: title as string,
-          posterPath: posterPath || null,
-          backdropPath: backdropPath || null,
-          releaseDate: releaseDate || null,
-          firstAirDate: firstAirDate || null,
-        },
-      });
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        await db.recentlyViewed.upsert({
+          where: {
+            userId_tmdbId_mediaType: {
+              userId: user.id,
+              tmdbId: parseInt(tmdbId.toString(), 10),
+              mediaType: mediaType as string,
+            },
+          },
+          update: {
+            viewedAt: new Date(),
+            // Also update metadata in case it changed
+            title: title as string,
+            posterPath: posterPath || null,
+            backdropPath: backdropPath || null,
+            releaseDate: releaseDate || null,
+            firstAirDate: firstAirDate || null,
+          },
+          create: {
+            userId: user.id,
+            tmdbId: parseInt(tmdbId.toString(), 10),
+            mediaType: mediaType as string,
+            title: title as string,
+            posterPath: posterPath || null,
+            backdropPath: backdropPath || null,
+            releaseDate: releaseDate || null,
+            firstAirDate: firstAirDate || null,
+          },
+        });
+        // Success - return early
+        return NextResponse.json({ success: true });
+      } catch (error: unknown) {
+        // Check if it's a transaction conflict error (P2034)
+        const isConflictError =
+          error &&
+          typeof error === "object" &&
+          "code" in error &&
+          error.code === "P2034";
+
+        if (isConflictError && attempt < maxRetries - 1) {
+          // Exponential backoff: 50ms, 100ms, 200ms
+          const delay = Math.min(50 * Math.pow(2, attempt), 200);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          continue;
+        }
+        // If it's not a P2034 error or we've exhausted retries, throw
+        throw error;
+      }
     }
 
+    // This should never be reached, but TypeScript needs it
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error adding recently viewed:", error);
