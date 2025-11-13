@@ -28,6 +28,7 @@ export default function ContentSelection({
   const [isLoading, setIsLoading] = useState(true);
   const [interacted, setInteracted] = useState<Set<number>>(new Set());
   const [cardKey, setCardKey] = useState(0); // Force re-render for animation
+  const [isTransitioning, setIsTransitioning] = useState(false); // Prevent multiple rapid clicks
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -54,43 +55,71 @@ export default function ContentSelection({
   }, [phase]);
 
   const handleLike = () => {
-    if (currentIndex >= content.length) return;
+    if (isTransitioning || currentIndex >= content.length) return;
 
     const item = content[currentIndex];
-    if (interacted.has(item.id)) return;
+    if (interacted.has(item.id)) {
+      // If already interacted, just move to next
+      moveToNext();
+      return;
+    }
 
+    setIsTransitioning(true);
     setInteracted(new Set([...interacted, item.id]));
 
-    const genreIds = "genre_ids" in item ? item.genre_ids : [];
+    try {
+      const genreIds = "genre_ids" in item ? item.genre_ids : [];
 
-    onContentLiked({
-      id: item.id,
-      type: item.type,
-      genreIds,
-    });
+      onContentLiked({
+        id: item.id,
+        type: item.type,
+        genreIds,
+      });
 
-    moveToNext();
+      moveToNext();
+    } catch (error) {
+      console.error("Error handling like:", error);
+      // Still move to next even if callback fails
+      moveToNext();
+    } finally {
+      // Reset transitioning state after a short delay to allow animation
+      setTimeout(() => setIsTransitioning(false), 300);
+    }
   };
 
   const handleDislike = () => {
-    if (currentIndex >= content.length) return;
+    if (isTransitioning || currentIndex >= content.length) return;
 
     const item = content[currentIndex];
-    if (interacted.has(item.id)) return;
+    if (interacted.has(item.id)) {
+      // If already interacted, just move to next
+      moveToNext();
+      return;
+    }
 
+    setIsTransitioning(true);
     setInteracted(new Set([...interacted, item.id]));
 
-    onContentDisliked({
-      id: item.id,
-      type: item.type,
-    });
+    try {
+      onContentDisliked({
+        id: item.id,
+        type: item.type,
+      });
 
-    moveToNext();
+      moveToNext();
+    } catch (error) {
+      console.error("Error handling dislike:", error);
+      // Still move to next even if callback fails
+      moveToNext();
+    } finally {
+      // Reset transitioning state after a short delay to allow animation
+      setTimeout(() => setIsTransitioning(false), 300);
+    }
   };
 
   const moveToNext = () => {
     if (currentIndex < content.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+      setCurrentIndex((prev) => prev + 1);
       setCardKey((prev) => prev + 1); // Trigger animation
     } else {
       onPhaseComplete();
@@ -98,7 +127,10 @@ export default function ContentSelection({
   };
 
   const handleSkip = () => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
     moveToNext();
+    setTimeout(() => setIsTransitioning(false), 300);
   };
 
   if (isLoading) {
@@ -201,7 +233,8 @@ export default function ContentSelection({
       <div className="flex items-center justify-center gap-4">
         <button
           onClick={handleDislike}
-          className="flex items-center justify-center w-16 h-16 rounded-full bg-background border-2 border-border hover:border-destructive hover:bg-destructive/10 transition-all hover:scale-110 active:scale-95"
+          disabled={isTransitioning}
+          className="flex items-center justify-center w-16 h-16 rounded-full bg-background border-2 border-border hover:border-destructive hover:bg-destructive/10 transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Dislike"
         >
           <X className="h-6 w-6 text-destructive" />
@@ -209,14 +242,16 @@ export default function ContentSelection({
 
         <button
           onClick={handleSkip}
-          className="px-6 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          disabled={isTransitioning}
+          className="px-6 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Skip
         </button>
 
         <button
           onClick={handleLike}
-          className="flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-[#066f72] to-[#0d9488] hover:from-[#055a5d] hover:to-[#0a7a6e] transition-all hover:scale-110 active:scale-95 shadow-lg"
+          disabled={isTransitioning}
+          className="flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-[#066f72] to-[#0d9488] hover:from-[#055a5d] hover:to-[#0a7a6e] transition-all hover:scale-110 active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Like"
         >
           <Heart className="h-6 w-6 text-white fill-white" />

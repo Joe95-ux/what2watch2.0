@@ -112,6 +112,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Log for debugging (can be removed in production)
+    if (type === PlaylistEngagementType.SHARE) {
+      console.log(`Share event recorded: playlistId=${playlist.id}, ownerId=${playlist.userId}, source=${source || 'unknown'}`);
+    }
+
     const response = NextResponse.json({ success: true });
     if (shouldSetCookie && visitorToken) {
       response.cookies.set({

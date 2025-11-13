@@ -50,7 +50,7 @@ export default function MoviesContent({ favoriteGenres, preferredTypes }: Movies
       {/* Content Rows - Normal positioning */}
       <div className="w-full py-8 overflow-hidden relative z-10">
         {/* Personalized Section */}
-        {favoriteGenres && favoriteGenres.length > 0 && (personalizedMovies.length > 0 || isLoadingPersonalized) && (
+        {favoriteGenres && favoriteGenres.length > 0 && (
           <ContentRow
             title="We Think You'll Love This"
             items={personalizedMovies}

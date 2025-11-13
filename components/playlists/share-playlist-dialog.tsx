@@ -38,7 +38,7 @@ export default function SharePlaylistDialog({ playlist, isOpen, onClose }: Share
 
   const recordShareEvent = useCallback(async (source: string) => {
     try {
-      await fetch("/api/analytics/playlist-events", {
+      const response = await fetch("/api/analytics/playlist-events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -47,6 +47,11 @@ export default function SharePlaylistDialog({ playlist, isOpen, onClose }: Share
           source,
         }),
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Failed to log share event:", errorData.error || response.statusText);
+      }
     } catch (logError) {
       console.error("Failed to log share event", logError);
     }
@@ -57,7 +62,8 @@ export default function SharePlaylistDialog({ playlist, isOpen, onClose }: Share
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       toast.success("Link copied to clipboard!");
-      recordShareEvent("copy_link");
+      // Record share event - await to ensure it completes
+      await recordShareEvent("copy_link");
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       toast.error("Failed to copy link");
@@ -80,7 +86,7 @@ export default function SharePlaylistDialog({ playlist, isOpen, onClose }: Share
     }
   };
 
-  const handleSocialShare = (platform: "facebook" | "twitter") => {
+  const handleSocialShare = async (platform: "facebook" | "twitter") => {
     const encodedUrl = encodeURIComponent(shareUrl);
     const encodedTitle = encodeURIComponent(playlist.name);
     const encodedDescription = encodeURIComponent(playlist.description || "");
@@ -93,7 +99,8 @@ export default function SharePlaylistDialog({ playlist, isOpen, onClose }: Share
     }
 
     if (shareUrl_platform) {
-      recordShareEvent(platform);
+      // Record share event before opening - await to ensure it completes
+      await recordShareEvent(platform);
       window.open(shareUrl_platform, "_blank", "width=600,height=400");
     }
   };
