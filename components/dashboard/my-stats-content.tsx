@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/table";
 
 const dateRangeOptions = [
+  { value: "all", label: "All time" },
   { value: "7", label: "Last 7 days" },
   { value: "30", label: "Last 30 days" },
   { value: "90", label: "Last 90 days" },
@@ -67,9 +68,9 @@ const trendChartConfig = {
 };
 
 export default function MyStatsContent() {
-  const [range, setRange] = useState<string>("30");
+  const [range, setRange] = useState<string | undefined>(undefined); // Show all data by default
   const { data, isLoading, isError, error } = usePlaylistAnalytics({
-    range,
+    range: range ? parseInt(range, 10) : undefined, // Only pass range if user selects one
   });
 
   const trendData = useMemo(() => data?.trend ?? [], [data?.trend]);
@@ -112,7 +113,10 @@ export default function MyStatsContent() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Select value={range} onValueChange={setRange}>
+            <Select 
+              value={range ?? "all"} 
+              onValueChange={(value) => setRange(value === "all" ? undefined : value)}
+            >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Select range" />
               </SelectTrigger>
