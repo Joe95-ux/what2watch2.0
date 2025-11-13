@@ -5,7 +5,7 @@ const isPublicRoute = createRouteMatcher([
   '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
-  '/playlists/.*/public', // Public playlist sharing pages (e.g., /playlists/[id]/public)
+  '/playlists/:id/public', // Public playlist sharing pages (e.g., /playlists/[id]/public)
   '/api/webhooks(.*)',
   '/api/movies(.*)', // Public movie data endpoints
   '/api/tv(.*)', // Public TV data endpoints
