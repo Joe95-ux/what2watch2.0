@@ -6,7 +6,7 @@ import { useFavorites } from "@/hooks/use-favorites";
 import { usePlaylists } from "@/hooks/use-playlists";
 import { useRecentlyViewed, recentlyViewedToTMDBItem } from "@/hooks/use-recently-viewed";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
-import ContentRow from "@/components/browse/content-row";
+import DashboardRow from "@/components/dashboard/dashboard-row";
 import PlaylistCard from "@/components/browse/playlist-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BookOpen, Heart, Clock, Film } from "lucide-react";
@@ -79,7 +79,7 @@ export default function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
         {/* Header with Greeting */}
         <div className="mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold mb-2">
@@ -131,13 +131,11 @@ export default function DashboardContent() {
             </div>
           </div>
         ) : recentlyViewedItems.length > 0 ? (
-          <div className="mb-12">
-            <ContentRow
-              title="Continue Watching"
-              items={recentlyViewedItems}
-              type={recentlyViewedItems.length > 0 ? ("title" in recentlyViewedItems[0] ? "movie" : "tv") : "movie"}
-            />
-          </div>
+          <DashboardRow
+            title="Continue Watching"
+            items={recentlyViewedItems}
+            type={recentlyViewedItems.length > 0 ? ("title" in recentlyViewedItems[0] ? "movie" : "tv") : "movie"}
+          />
         ) : null}
 
         {/* My Watchlist Section */}
@@ -154,18 +152,16 @@ export default function DashboardContent() {
             </div>
           </div>
         ) : favoriteItems.length > 0 ? (
-          <div className="mb-12">
-            <ContentRow
-              title="My Watchlist"
-              items={favoriteItems}
-              type={favoriteItems.length > 0 ? ("title" in favoriteItems[0] ? "movie" : "tv") : "movie"}
-              href="/my-list"
-            />
-          </div>
+          <DashboardRow
+            title="My Watchlist"
+            items={favoriteItems}
+            type={favoriteItems.length > 0 ? ("title" in favoriteItems[0] ? "movie" : "tv") : "movie"}
+            href="/my-list"
+          />
         ) : (
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold">My Watchlist</h2>
+              <h2 className="text-2xl font-medium">My Watchlist</h2>
               <Link href="/browse" className="text-sm text-muted-foreground hover:text-foreground">
                 Browse →
               </Link>
@@ -195,21 +191,23 @@ export default function DashboardContent() {
         ) : playlists.length > 0 ? (
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold">My Playlists</h2>
+              <h2 className="text-2xl font-medium">My Playlists</h2>
               <Link href="/playlists" className="text-sm text-muted-foreground hover:text-foreground">
                 View all →
               </Link>
             </div>
-            <div className="flex gap-4 overflow-x-auto pb-4">
-              {playlists.slice(0, 10).map((playlist) => (
-                <PlaylistCard key={playlist.id} playlist={playlist} />
-              ))}
+            <div className="overflow-hidden">
+              <div className="flex gap-4 overflow-x-auto pb-4">
+                {playlists.slice(0, 10).map((playlist) => (
+                  <PlaylistCard key={playlist.id} playlist={playlist} />
+                ))}
+              </div>
             </div>
           </div>
         ) : (
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold">My Playlists</h2>
+              <h2 className="text-2xl font-medium">My Playlists</h2>
               <Link href="/playlists" className="text-sm text-muted-foreground hover:text-foreground">
                 Create one →
               </Link>

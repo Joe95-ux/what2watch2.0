@@ -21,7 +21,7 @@ interface MovieCardProps {
   className?: string;
   canScrollPrev?: boolean;
   canScrollNext?: boolean;
-  variant?: "default" | "more-like-this"; // Variant for different card styles
+  variant?: "default" | "more-like-this" | "dashboard"; // Variant for different card styles
 }
 
 export default function MovieCard({ item, type, className, canScrollPrev = false, canScrollNext = false, variant = "default" }: MovieCardProps) {
@@ -43,7 +43,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const { data: cachedVideosData, isLoading: isLoadingCachedVideos } = useContentVideos(type, item.id);
   
   // On mobile/tablet, always show overlay with details (no hover/scaling needed)
-  const shouldShowOverlay = isHovered || isMobile;
+  // Dashboard variant also always shows overlay
+  const shouldShowOverlay = isHovered || isMobile || variant === "dashboard";
 
   const title = "title" in item ? item.title : item.name;
   const posterPath = item.poster_path || item.backdrop_path;
@@ -184,7 +185,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   // Calculate position to prevent card from going off-screen (desktop only)
   const getCardStyle = () => {
     // No scaling on mobile/tablet
-    if (isMobile || !isHovered || !cardRef.current) return {};
+    if (isMobile || variant === "dashboard" || !isHovered || !cardRef.current) return {};
     
     // Use original rect (before scaling) to prevent feedback loop
     // If we don't have originalRect yet, don't apply transform to avoid jumpiness
@@ -206,6 +207,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
     }
     
     // Different scale for "more-like-this" variant (smaller scale like Netflix)
+    // Dashboard variant already returned early, so we only handle default and more-like-this here
     const scale = variant === "more-like-this" ? 1.15 : 1.4;
     
     // Calculate scaled dimensions
@@ -277,8 +279,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
         }}
         style={{
           ...(isHovered && !isMobile ? getCardStyle() : {}),
-          transition: isMobile ? "none" : "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
-          willChange: isMobile ? "auto" : "transform",
+          transition: (isMobile || variant === "dashboard") ? "none" : "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+          willChange: (isMobile || variant === "dashboard") ? "auto" : "transform",
         }}
       >
         <div
