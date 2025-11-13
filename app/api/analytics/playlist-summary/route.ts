@@ -166,11 +166,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Build match stage - only include date filter if user provided one
+    // For aggregateRaw, we need to use MongoDB ObjectId format for ObjectId fields
     const matchStage: {
-      ownerId: string;
+      ownerId: { $oid: string } | string;
       createdAt?: { $gte: Date; $lte: Date };
     } = {
-      ownerId: user.id,
+      // Use ObjectId format for aggregateRaw queries
+      ownerId: { $oid: user.id },
     };
 
     if (hasDateFilter && startDate && now) {
