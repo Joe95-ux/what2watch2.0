@@ -25,7 +25,7 @@ interface ExtractedParams {
   count?: number; // Exact number of results requested
 }
 
-const SYSTEM_PROMPT = `You are a helpful AI assistant specialized in movies and TV shows. Your job is to understand user queries and extract search parameters.
+const SYSTEM_PROMPT_RECOMMENDATION = `You are a helpful AI assistant specialized in movies and TV shows. Your job is to understand user queries and extract search parameters for recommendations.
 
 When a user asks for recommendations (e.g., "I want something scary", "Show me 8 action movies from the 90s"), extract:
 - intent: "RECOMMENDATION"
@@ -35,24 +35,20 @@ When a user asks for recommendations (e.g., "I want something scary", "Show me 8
 - keywords: important descriptive words
 - count: exact number if user specifies (e.g., "8 movies" = 8, "show me 5" = 5)
 
-When a user asks for information about a specific title (e.g., "Tell me about Inception", "What's the plot of Breaking Bad?"), extract:
-- intent: "INFORMATION"
-- title: the movie/TV show name
-- query: the title for searching
-
 Always respond with valid JSON in this format:
 {
-  "intent": "RECOMMENDATION" | "INFORMATION",
+  "intent": "RECOMMENDATION",
   "query": "search query if needed",
   "genres": [28, 35],
   "year": 2010,
   "type": "movie" | "tv" | "all",
   "keywords": ["scary", "thriller"],
-  "title": "Inception",
   "count": 8
 }
 
 Only include fields that are relevant.`;
+
+const SYSTEM_PROMPT_INFORMATION = `You are a helpful AI assistant specialized in movies and TV shows. Answer user questions about movies, TV shows, actors, directors, and entertainment industry facts. Use your knowledge and available information to provide accurate, detailed answers. If you need current information, use your knowledge cutoff and reasoning abilities.`;
 
 export async function POST(request: NextRequest) {
   try {
@@ -72,7 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { message, sessionId, conversationHistory = [] } = body;
+    const { message, sessionId, conversationHistory = [], mode = "recommendation" } = body;
 
     if (!message || typeof message !== "string" || !message.trim()) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
@@ -80,9 +76,63 @@ export async function POST(request: NextRequest) {
 
     const startTime = Date.now();
 
+    // Handle INFORMATION mode differently - direct conversation with GPT-4o
+    if (mode === "information") {
+      const messages: ChatMessage[] = [
+        { role: "assistant", content: SYSTEM_PROMPT_INFORMATION },
+        ...conversationHistory.slice(-20), // Keep last 20 messages for context
+        { role: "user", content: message },
+      ];
+
+      try {
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o", // Use GPT-4o for information queries
+          messages: messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+          temperature: 0.7,
+          max_tokens: 1000,
+        });
+
+        const aiResponseText = completion.choices[0]?.message?.content || "";
+        const responseTime = Date.now() - startTime;
+
+        // Log the event
+        try {
+          await db.aiChatEvent.create({
+            data: {
+              userId: user.id,
+              sessionId: sessionId || `session-${Date.now()}`,
+              userMessage: message,
+              intent: AiChatIntent.INFORMATION,
+              aiResponse: aiResponseText,
+              responseTime,
+              resultsCount: 0,
+              resultIds: [],
+              resultTypes: [],
+            },
+          });
+        } catch (dbError) {
+          console.error("Failed to log AI chat event:", dbError);
+        }
+
+        return NextResponse.json({
+          intent: "INFORMATION",
+          message: aiResponseText,
+          results: [],
+          metadata: {},
+        });
+      } catch (error) {
+        console.error("OpenAI error:", error);
+        return NextResponse.json(
+          { error: "Failed to process information query" },
+          { status: 500 }
+        );
+      }
+    }
+
+    // RECOMMENDATION mode - extract parameters and search TMDB
     // Prepare conversation history for OpenAI
     const messages: ChatMessage[] = [
-      { role: "assistant", content: SYSTEM_PROMPT },
+      { role: "assistant", content: SYSTEM_PROMPT_RECOMMENDATION },
       ...conversationHistory.slice(-10), // Keep last 10 messages for context
       { role: "user", content: message },
     ];
@@ -103,22 +153,19 @@ export async function POST(request: NextRequest) {
       aiResponseText = completion.choices[0]?.message?.content || "";
       const parsed = JSON.parse(aiResponseText);
       extractedParams = {
-        intent: parsed.intent === "INFORMATION" ? "INFORMATION" : "RECOMMENDATION",
+        intent: "RECOMMENDATION",
         query: parsed.query,
         genres: parsed.genres || [],
         year: parsed.year,
         type: parsed.type || "all",
         keywords: parsed.keywords || [],
-        title: parsed.title,
         count: parsed.count,
       };
     } catch (openaiError) {
       console.error("OpenAI error:", openaiError);
       // Fallback: try to extract basic info
       extractedParams = {
-        intent: message.toLowerCase().includes("tell me about") || message.toLowerCase().includes("what is") || message.toLowerCase().includes("info about")
-          ? "INFORMATION"
-          : "RECOMMENDATION",
+        intent: "RECOMMENDATION",
         query: message,
         type: "all",
       };
@@ -126,35 +173,17 @@ export async function POST(request: NextRequest) {
 
     const responseTime = Date.now() - startTime;
 
-    // Fetch results based on intent
+    // Fetch results for RECOMMENDATION mode
     let results: (TMDBMovie | TMDBSeries)[] = [];
     let resultIds: number[] = [];
     let resultTypes: string[] = [];
 
-    if (extractedParams.intent === "INFORMATION") {
-      // Search for specific title
-      const searchQuery = extractedParams.title || extractedParams.query || message;
-      const [movieResults, tvResults] = await Promise.all([
-        searchMovies(searchQuery, 1),
-        searchTV(searchQuery, 1),
-      ]);
+    // RECOMMENDATION: Use discover API with extracted parameters
+    const type = extractedParams.type || "all";
+    const genres = extractedParams.genres || [];
+    const year = extractedParams.year;
 
-      // Combine and take top 5 most relevant
-      const combined = [
-        ...movieResults.results.slice(0, 3).map((m) => ({ ...m, _type: "movie" as const })),
-        ...tvResults.results.slice(0, 3).map((t) => ({ ...t, _type: "tv" as const })),
-      ];
-
-      results = combined.slice(0, 5) as (TMDBMovie | TMDBSeries)[];
-      resultIds = results.map((r) => r.id);
-      resultTypes = combined.slice(0, 5).map((r) => r._type);
-    } else {
-      // RECOMMENDATION: Use discover API with extracted parameters
-      const type = extractedParams.type || "all";
-      const genres = extractedParams.genres || [];
-      const year = extractedParams.year;
-
-      if (genres.length > 0 || year) {
+    if (genres.length > 0 || year) {
         // Use discover with filters
         const discoverPromises: Promise<{ results: (TMDBMovie | TMDBSeries)[] }>[] = [];
 
@@ -217,7 +246,6 @@ export async function POST(request: NextRequest) {
         resultIds = results.map((r) => r.id);
         resultTypes = results.map((r) => ("title" in r ? "movie" : "tv"));
       }
-    }
 
     // Log the event
     try {
@@ -243,25 +271,14 @@ export async function POST(request: NextRequest) {
       // Don't fail the request if logging fails
     }
 
-    // Generate natural language response
+    // Generate natural language response for RECOMMENDATION mode
     let responseMessage = "";
-    if (extractedParams.intent === "INFORMATION") {
-      if (results.length > 0) {
-        const firstResult = results[0];
-        const title = "title" in firstResult ? firstResult.title : firstResult.name;
-        responseMessage = `Here's information about "${title}".`;
-      } else {
-        responseMessage = "I couldn't find that title. Could you try a different search?";
-      }
+    if (results.length > 0) {
+      const count = extractedParams.count ? ` ${extractedParams.count}` : "";
+      const type = extractedParams.type === "movie" ? "movies" : extractedParams.type === "tv" ? "TV shows" : "titles";
+      responseMessage = `Found${count} ${type} matching your preferences.`;
     } else {
-      // RECOMMENDATION mode
-      if (results.length > 0) {
-        const count = extractedParams.count ? ` ${extractedParams.count}` : "";
-        const type = extractedParams.type === "movie" ? "movies" : extractedParams.type === "tv" ? "TV shows" : "titles";
-        responseMessage = `Found${count} ${type} matching your preferences.`;
-      } else {
-        responseMessage = "I couldn't find any matches. Try adjusting your criteria or be more specific.";
-      }
+      responseMessage = "I couldn't find any matches. Try adjusting your criteria or be more specific.";
     }
 
     return NextResponse.json({

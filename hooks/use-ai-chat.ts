@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 
 export interface ChatMessage {
@@ -28,15 +28,15 @@ export interface ChatResponse {
 }
 
 export function useAiChat(sessionId: string) {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async ({
       message,
       conversationHistory,
+      mode = "recommendation",
     }: {
       message: string;
       conversationHistory: ChatMessage[];
+      mode?: "recommendation" | "information";
     }): Promise<ChatResponse> => {
       const response = await fetch("/api/ai/chat", {
         method: "POST",
@@ -50,6 +50,7 @@ export function useAiChat(sessionId: string) {
             role: msg.role,
             content: msg.content,
           })),
+          mode,
         }),
       });
 

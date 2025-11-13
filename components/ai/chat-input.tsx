@@ -50,24 +50,9 @@ export function ChatInput({
 
   return (
     <div className="w-full">
-      {/* Suggestions */}
-      {showSuggestions && suggestions.length > 0 && (
-        <div className="flex flex-wrap gap-2 justify-center mb-4">
-          {suggestions.map((suggestion, index) => (
-            <button
-              key={index}
-              onClick={() => onSuggestionClick?.(suggestion)}
-              className="px-4 py-2 text-sm rounded-full border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
-            >
-              {suggestion}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Chat Input Container */}
       <div className="relative w-full">
-        <div className="relative flex items-end gap-2 p-4 rounded-2xl border border-border bg-background shadow-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+        <div className="relative flex items-end gap-2 p-5 rounded-2xl border border-border bg-background shadow-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
           <textarea
             ref={textareaRef}
             value={value}
@@ -80,7 +65,7 @@ export function ChatInput({
               "flex-1 resize-none border-0 bg-transparent outline-none",
               "placeholder:text-muted-foreground",
               "text-sm md:text-base",
-              "min-h-[24px] max-h-[200px]",
+              "min-h-[32px] max-h-[200px]",
               "overflow-y-auto",
               "disabled:cursor-not-allowed disabled:opacity-50"
             )}
