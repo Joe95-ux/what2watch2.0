@@ -34,6 +34,7 @@ model User {
   playlistEngagements PlaylistEngagementEvent[] @relation("UserPlaylistEngagementOwnership")
   playlistEngagementActions PlaylistEngagementEvent[] @relation("UserPlaylistEngagementActor")
   aiChatEvents AiChatEvent[]
+  aiChatSessions AiChatSession[]
 
   @@map("users")
 }
@@ -333,4 +334,24 @@ model AiChatEvent {
   @@index([userId, createdAt])
   @@index([sessionId])
   @@index([intent])
+}
+
+// Chat sessions for persisting conversation history
+model AiChatSession {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String        @db.ObjectId
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  sessionId     String        @unique // Unique session identifier
+  mode          String        // "recommendation" or "information"
+  title         String?       // Auto-generated or user-provided title
+  messages      Json          // Array of chat messages
+  metadata      Json?         // Additional metadata (results, etc.)
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("ai_chat_sessions")
+  @@index([userId])
+  @@index([userId, updatedAt])
 }

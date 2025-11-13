@@ -2,16 +2,25 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useAiChat, type ChatMessage } from "@/hooks/use-ai-chat";
+import { useChatSessions, useSaveChatSession, useDeleteChatSession } from "@/hooks/use-ai-chat-sessions";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Info } from "lucide-react";
+import { Loader2, Info, History, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ChatInput } from "@/components/ai/chat-input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { formatDistanceToNow } from "date-fns";
 
 const RECOMMENDATION_PROMPTS = [
   "I want something scary but not too gory",
@@ -25,7 +34,7 @@ const RECOMMENDATION_PROMPTS = [
 ];
 
 export default function DiscoverContent() {
-  const [sessionId] = useState(() => `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  const [sessionId, setSessionId] = useState(() => `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const [mode, setMode] = useState<"recommendation" | "information">("recommendation");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -35,8 +44,96 @@ export default function DiscoverContent() {
   const itemsPerPage = 12;
   const infoScrollAreaRef = useRef<HTMLDivElement>(null);
   const chatMutation = useAiChat(sessionId);
+  const saveSessionMutation = useSaveChatSession();
+  const deleteSessionMutation = useDeleteChatSession();
+  const { data: sessionsData } = useChatSessions();
 
-  // Reset when mode changes
+  // Load session when selected
+  const loadSession = async (targetSessionId: string) => {
+    try {
+      const response = await fetch(`/api/ai/chat/sessions/${targetSessionId}`);
+      if (!response.ok) return;
+      const data = await response.json();
+      const session = data.session;
+
+      setSessionId(session.sessionId);
+      setMode(session.mode as "recommendation" | "information");
+      
+      // Parse messages
+      if (Array.isArray(session.messages)) {
+        const parsedMessages: ChatMessage[] = session.messages.map((msg: {
+          role: "user" | "assistant";
+          content: string;
+          results?: (TMDBMovie | TMDBSeries)[];
+          intent?: "RECOMMENDATION" | "INFORMATION";
+          metadata?: unknown;
+          timestamp?: string;
+        }) => ({
+          role: msg.role,
+          content: msg.content,
+          results: msg.results,
+          intent: msg.intent,
+          metadata: msg.metadata,
+          timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date(),
+        }));
+        setMessages(parsedMessages);
+      }
+
+      // Load results for recommendation mode
+      if (session.mode === "recommendation" && session.metadata && typeof session.metadata === "object" && "results" in session.metadata) {
+        const metadata = session.metadata as { results?: (TMDBMovie | TMDBSeries)[] };
+        const results = metadata.results;
+        if (Array.isArray(results)) {
+          setCurrentResults(results);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading session:", error);
+    }
+  };
+
+  // Save session after messages change
+  useEffect(() => {
+    if (mode === "information" && messages.length > 0) {
+      const saveData = {
+        sessionId,
+        mode,
+        messages: messages.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+          results: msg.results,
+          intent: msg.intent,
+          metadata: msg.metadata,
+          timestamp: msg.timestamp.toISOString(),
+        })),
+        metadata: {},
+      };
+
+      // Debounce saves
+      const timeoutId = setTimeout(() => {
+        saveSessionMutation.mutate(saveData);
+      }, 1000);
+
+      return () => clearTimeout(timeoutId);
+    } else if (mode === "recommendation" && currentResults.length > 0) {
+      const saveData = {
+        sessionId,
+        mode,
+        messages: [],
+        metadata: {
+          results: currentResults,
+        },
+      };
+
+      const timeoutId = setTimeout(() => {
+        saveSessionMutation.mutate(saveData);
+      }, 1000);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [messages, currentResults, mode, sessionId, saveSessionMutation]);
+
+  // Reset when mode changes (but keep sessionId)
   useEffect(() => {
     if (mode === "information") {
       setCurrentResults([]);
@@ -75,6 +172,7 @@ export default function DiscoverContent() {
       const response = await chatMutation.mutateAsync({
         message: userMessage.content,
         conversationHistory: mode === "information" ? messages : [],
+        mode,
       });
 
       if (mode === "recommendation") {
@@ -109,6 +207,28 @@ export default function DiscoverContent() {
     setInput(prompt);
   };
 
+  const handleNewChat = () => {
+    const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    setSessionId(newSessionId);
+    setMessages([]);
+    setCurrentResults([]);
+    setInput("");
+  };
+
+  const handleDeleteSession = async (targetSessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm("Are you sure you want to delete this chat?")) {
+      try {
+        await deleteSessionMutation.mutateAsync(targetSessionId);
+        if (targetSessionId === sessionId) {
+          handleNewChat();
+        }
+      } catch (error) {
+        console.error("Error deleting session:", error);
+      }
+    }
+  };
+
   // Pagination for recommendation results
   const totalPages = Math.ceil(currentResults.length / itemsPerPage);
   const paginatedResults = currentResults.slice(
@@ -123,15 +243,76 @@ export default function DiscoverContent() {
     ? "min-h-[300px]" 
     : "min-h-[500px] max-h-[calc(100vh-300px)]";
 
+  const sessions = sessionsData?.sessions || [];
+  const filteredSessions = sessions.filter((s) => s.mode === mode);
+
   return (
     <div className="flex flex-col h-[calc(100vh-65px)] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <Tabs value={mode} onValueChange={(v) => setMode(v as "recommendation" | "information")} className="flex-1 flex flex-col min-h-0">
         <div className="flex-1 flex flex-col items-center justify-center min-h-0">
-          <TabsContent value="recommendation" className="flex-1 flex flex-col w-full max-w-6xl min-h-0 mt-0">
-            {/* Results Display */}
+          {/* Header with History */}
+          <div className="w-full flex items-center justify-center gap-4 mb-4">
+            {/* Tabs - Centered */}
+            <TabsList className="grid w-fit grid-cols-2 bg-muted dark:bg-muted/90 border border-border shadow-sm">
+              <TabsTrigger value="recommendation" className="data-[state=active]:bg-background dark:data-[state=active]:bg-background/90 data-[state=active]:border-border">Recommendation</TabsTrigger>
+              <TabsTrigger value="information" className="data-[state=active]:bg-background dark:data-[state=active]:bg-background/90 data-[state=active]:border-border">Information</TabsTrigger>
+            </TabsList>
+
+            {/* Chat History Dropdown */}
+            {filteredSessions.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <History className="h-4 w-4" />
+                    <span className="hidden sm:inline">History</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64 max-h-[400px] overflow-y-auto">
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                    Chat History
+                  </div>
+                  <DropdownMenuSeparator />
+                  {filteredSessions.map((session) => (
+                    <DropdownMenuItem
+                      key={session.id}
+                      className="flex items-center justify-between cursor-pointer group"
+                      onClick={() => loadSession(session.sessionId)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">
+                          {session.title || "Untitled Chat"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(session.updatedAt), { addSuffix: true })}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => handleDeleteSession(session.sessionId, e)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            {/* New Chat Button */}
+            {(messages.length > 0 || currentResults.length > 0) && (
+              <Button variant="outline" size="sm" onClick={handleNewChat}>
+                New Chat
+              </Button>
+            )}
+          </div>
+
+          <TabsContent value="recommendation" className="flex-1 flex flex-col items-center justify-center w-full max-w-6xl min-h-0 mt-0">
+            {/* Results Display - Centered */}
             {currentResults.length > 0 ? (
-              <div className="flex-1 flex flex-col min-h-0 mb-4">
-                <ScrollArea className="flex-1">
+              <div className="flex-1 flex flex-col items-center justify-center min-h-0 mb-4 w-full">
+                <ScrollArea className="flex-1 w-full">
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 pb-4 pr-4">
                     {paginatedResults.map((item) => (
                       <div
@@ -154,7 +335,7 @@ export default function DiscoverContent() {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t w-full">
                     <Button
                       variant="outline"
                       size="sm"
@@ -181,13 +362,8 @@ export default function DiscoverContent() {
               </div>
             ) : null}
 
-            {/* Tabs and Input Container - Centered */}
+            {/* Input Container - Centered */}
             <div className="w-full max-w-4xl mx-auto space-y-4">
-              <TabsList className="grid w-full grid-cols-2 bg-muted/80">
-                <TabsTrigger value="recommendation">Recommendation</TabsTrigger>
-                <TabsTrigger value="information">Information</TabsTrigger>
-              </TabsList>
-
               {/* Input Area */}
               <div className="space-y-4">
                 <ChatInput
@@ -219,14 +395,6 @@ export default function DiscoverContent() {
 
           <TabsContent value="information" className="flex-1 flex flex-col w-full max-w-4xl min-h-0 mt-0">
             <div className="flex-1 flex flex-col items-center justify-center min-h-0">
-              {/* Tabs */}
-              <div className="w-full mb-4">
-                <TabsList className="grid w-full grid-cols-2 bg-muted/80">
-                  <TabsTrigger value="recommendation">Recommendation</TabsTrigger>
-                  <TabsTrigger value="information">Information</TabsTrigger>
-                </TabsList>
-              </div>
-
               {/* Chat Container - Grows with messages */}
               <div className={cn(
                 "w-full flex flex-col border rounded-lg bg-card transition-all duration-300",
