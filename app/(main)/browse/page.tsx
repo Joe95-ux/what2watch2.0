@@ -51,13 +51,6 @@ export default async function BrowsePage() {
 
   const favoriteGenres = normalizeGenres(user.preferences?.favoriteGenres || []);
 
-  // Debug logging
-  if (favoriteGenres.length > 0) {
-    console.log(`[Browse] Normalized favoriteGenres:`, favoriteGenres);
-  } else {
-    console.warn(`[Browse] No favoriteGenres found after normalization. Raw data:`, user.preferences?.favoriteGenres);
-  }
-
   return (
     <BrowseContent
       favoriteGenres={favoriteGenres}

@@ -141,15 +141,23 @@ const fetchPersonalizedContent = async (
   const combined = results.flat();
   console.log(`[PersonalizedContent] Combined results: ${combined.length} items`);
   
-  // Remove duplicates by id and type
-  const unique = combined.filter(
-    (item, index, self) =>
-      index === self.findIndex((t) => t.id === item.id && ("title" in item ? "title" : "name") === ("title" in t ? t.title : t.name))
-  );
+  // Remove duplicates by id and media type (movie vs tv)
+  // Movies have "title" property, TV shows have "name" property
+  const seen = new Set<string>();
+  const unique = combined.filter((item) => {
+    const type = "title" in item ? "movie" : "tv";
+    const key = `${type}-${item.id}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
 
-  // Shuffle and limit to 20 items
-  const shuffled = unique.sort(() => Math.random() - 0.5);
-  const final = shuffled.slice(0, 20);
+  // Sort by popularity (deterministic) instead of random shuffle to avoid hydration issues
+  // This ensures consistent ordering between server and client
+  const sorted = unique.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+  const final = sorted.slice(0, 20);
   console.log(`[PersonalizedContent] Final unique results: ${final.length} items`);
   return final;
 };

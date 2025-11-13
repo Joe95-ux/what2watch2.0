@@ -138,6 +138,40 @@ export async function GET(request: NextRequest) {
 
     // Debug: Log the query parameters
     console.log(`[Analytics] Querying events for ownerId: ${user.id}, range: ${startDate.toISOString()} to ${now.toISOString()}`);
+    console.log(`[Analytics] Match stage:`, JSON.stringify(matchStage, null, 2));
+    
+    // First, let's check if there are ANY events for this user (without date filter)
+    const totalEventsCount = await db.playlistEngagementEvent.count({
+      where: { ownerId: user.id },
+    });
+    console.log(`[Analytics] Total events for ownerId ${user.id} (no date filter): ${totalEventsCount}`);
+    
+    // Check events in the date range
+    const rangeEventsCount = await db.playlistEngagementEvent.count({
+      where: {
+        ownerId: user.id,
+        createdAt: {
+          gte: startDate,
+          lte: now,
+        },
+      },
+    });
+    console.log(`[Analytics] Events in date range: ${rangeEventsCount}`);
+    
+    // Sample a few events to see their structure
+    const sampleEvents = await db.playlistEngagementEvent.findMany({
+      where: { ownerId: user.id },
+      take: 3,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        ownerId: true,
+        type: true,
+        createdAt: true,
+        playlistId: true,
+      },
+    });
+    console.log(`[Analytics] Sample events:`, JSON.stringify(sampleEvents, null, 2));
 
     const [
       totalsRawResult,
@@ -243,8 +277,12 @@ export async function GET(request: NextRequest) {
       uniqueVisitorsRawResult
     );
 
-    // Debug: Log raw totals
+    // Debug: Log all raw aggregation results
     console.log(`[Analytics] Raw totals results:`, JSON.stringify(totalsRaw, null, 2));
+    console.log(`[Analytics] Raw trend results:`, JSON.stringify(trendRaw, null, 2));
+    console.log(`[Analytics] Raw topPlaylists results:`, JSON.stringify(topPlaylistsRaw, null, 2));
+    console.log(`[Analytics] Raw sources results:`, JSON.stringify(sourcesRaw, null, 2));
+    console.log(`[Analytics] Raw uniqueVisitors results:`, JSON.stringify(uniqueVisitorsRaw, null, 2));
 
     const totals = totalsRaw.reduce(
       (acc, row) => {
@@ -385,6 +423,9 @@ export async function GET(request: NextRequest) {
         end: now.toISOString(),
       },
     };
+
+    // Debug: Log final response payload
+    console.log(`[Analytics] Final response payload:`, JSON.stringify(responsePayload, null, 2));
 
     return NextResponse.json(responsePayload);
   } catch (error) {
