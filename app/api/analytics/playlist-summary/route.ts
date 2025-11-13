@@ -101,43 +101,91 @@ export async function GET(request: NextRequest) {
     const startParam = searchParams.get("startDate");
     const endParam = searchParams.get("endDate");
 
-    const now = endParam ? new Date(endParam) : new Date();
-    if (Number.isNaN(now.getTime())) {
-      return NextResponse.json(
-        { error: "Invalid endDate parameter" },
-        { status: 400 }
-      );
+    // By default, show all data (no date filter)
+    // Only apply date filter if user explicitly provides range, startDate, or endDate
+    const hasDateFilter = !!(rangeDaysParam || startParam || endParam);
+
+    let startDate: Date | null = null;
+    let now: Date | null = null;
+
+    if (hasDateFilter) {
+      // User wants to filter by date - process the date parameters
+      now = endParam ? new Date(endParam) : new Date();
+      if (Number.isNaN(now.getTime())) {
+        return NextResponse.json(
+          { error: "Invalid endDate parameter" },
+          { status: 400 }
+        );
+      }
+
+      // Debug: Log current date
+      console.log(`[Analytics] Current date (now): ${now.toISOString()}, timestamp: ${now.getTime()}`);
+
+      startDate = startParam ? new Date(startParam) : null;
+      if (startDate && Number.isNaN(startDate.getTime())) {
+        return NextResponse.json(
+          { error: "Invalid startDate parameter" },
+          { status: 400 }
+        );
+      }
+
+      if (!startDate) {
+        const days = rangeDaysParam ?? DEFAULT_RANGE_DAYS;
+        const millisecondsToSubtract = days * 24 * 60 * 60 * 1000;
+        startDate = new Date(now.getTime() - millisecondsToSubtract);
+        console.log(`[Analytics] Calculated startDate: ${startDate.toISOString()} (subtracted ${days} days, ${millisecondsToSubtract} ms)`);
+      }
+
+      // Ensure dates are reasonable - if now is in the future or startDate > now, fix it
+      const actualNow = new Date();
+      if (now.getTime() > actualNow.getTime() + 24 * 60 * 60 * 1000) {
+        // If 'now' is more than 1 day in the future, use actual current date
+        console.warn(`[Analytics] WARNING: 'now' date (${now.toISOString()}) is in the future. Using actual current date: ${actualNow.toISOString()}`);
+        now = actualNow;
+      }
+
+      if (startDate > now) {
+        console.warn(`[Analytics] WARNING: startDate (${startDate.toISOString()}) is greater than now (${now.toISOString()}). Using fallback.`);
+        const fallbackDays = rangeDaysParam ?? DEFAULT_RANGE_DAYS;
+        startDate = new Date(now.getTime() - fallbackDays * 24 * 60 * 60 * 1000);
+        console.log(`[Analytics] Fallback startDate: ${startDate.toISOString()}`);
+      }
+
+      // Ensure startDate is not too far in the past (more than 1 year ago) - might indicate date issues
+      const oneYearAgo = new Date(actualNow.getTime() - 365 * 24 * 60 * 60 * 1000);
+      if (startDate < oneYearAgo) {
+        console.warn(`[Analytics] WARNING: startDate (${startDate.toISOString()}) is more than 1 year ago. Using 30 days ago instead.`);
+        startDate = new Date(actualNow.getTime() - 30 * 24 * 60 * 60 * 1000);
+        now = actualNow;
+      }
+    } else {
+      // No date filter - use current date for range display only
+      now = new Date();
+      startDate = null; // Will be set to a very old date or omitted from query
+      console.log(`[Analytics] No date filter provided - showing all data`);
     }
 
-    let startDate = startParam ? new Date(startParam) : null;
-    if (startDate && Number.isNaN(startDate.getTime())) {
-      return NextResponse.json(
-        { error: "Invalid startDate parameter" },
-        { status: 400 }
-      );
-    }
-
-    if (!startDate) {
-      const days = rangeDaysParam ?? DEFAULT_RANGE_DAYS;
-      startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-    }
-
-    if (startDate > now) {
-      const fallbackDays = rangeDaysParam ?? DEFAULT_RANGE_DAYS;
-      startDate = new Date(now.getTime() - fallbackDays * 24 * 60 * 60 * 1000);
-    }
-
-    // Use string ObjectId directly - Prisma stores ObjectIds as strings in MongoDB
-    const matchStage = {
+    // Build match stage - only include date filter if user provided one
+    const matchStage: {
+      ownerId: string;
+      createdAt?: { $gte: Date; $lte: Date };
+    } = {
       ownerId: user.id,
-      createdAt: {
-        $gte: startDate,
-        $lte: now,
-      },
     };
 
+    if (hasDateFilter && startDate && now) {
+      matchStage.createdAt = {
+        $gte: startDate,
+        $lte: now,
+      };
+    }
+
     // Debug: Log the query parameters
-    console.log(`[Analytics] Querying events for ownerId: ${user.id}, range: ${startDate.toISOString()} to ${now.toISOString()}`);
+    if (hasDateFilter && startDate && now) {
+      console.log(`[Analytics] Querying events for ownerId: ${user.id}, range: ${startDate.toISOString()} to ${now.toISOString()}`);
+    } else {
+      console.log(`[Analytics] Querying ALL events for ownerId: ${user.id} (no date filter)`);
+    }
     console.log(`[Analytics] Match stage:`, JSON.stringify(matchStage, null, 2));
     
     // First, let's check if there are ANY events for this user (without date filter)
@@ -146,16 +194,18 @@ export async function GET(request: NextRequest) {
     });
     console.log(`[Analytics] Total events for ownerId ${user.id} (no date filter): ${totalEventsCount}`);
     
-    // Check events in the date range
-    const rangeEventsCount = await db.playlistEngagementEvent.count({
-      where: {
-        ownerId: user.id,
-        createdAt: {
-          gte: startDate,
-          lte: now,
-        },
-      },
-    });
+    // Check events in the date range (if date filter is applied)
+    const rangeEventsCount = hasDateFilter && startDate && now
+      ? await db.playlistEngagementEvent.count({
+          where: {
+            ownerId: user.id,
+            createdAt: {
+              gte: startDate,
+              lte: now,
+            },
+          },
+        })
+      : totalEventsCount; // If no date filter, same as total
     console.log(`[Analytics] Events in date range: ${rangeEventsCount}`);
     
     // Sample a few events to see their structure
@@ -418,10 +468,15 @@ export async function GET(request: NextRequest) {
       trend,
       leaderboard: leaderboardWithNames,
       sources: sourceBreakdown,
-      range: {
-        start: startDate.toISOString(),
-        end: now.toISOString(),
-      },
+      range: hasDateFilter && startDate && now
+        ? {
+            start: startDate.toISOString(),
+            end: now.toISOString(),
+          }
+        : {
+            start: null, // All time - no start date
+            end: new Date().toISOString(), // Current date as end
+          },
     };
 
     // Debug: Log final response payload

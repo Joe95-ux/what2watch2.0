@@ -19,7 +19,7 @@ export default function DashboardContent() {
   const { data: favorites = [], isLoading: isLoadingFavorites } = useFavorites();
   const { data: playlists = [], isLoading: isLoadingPlaylists } = usePlaylists();
   const { data: recentlyViewed = [], isLoading: isLoadingRecentlyViewed } = useRecentlyViewed();
-  const { data: playlistAnalytics, isLoading: isLoadingPlaylistAnalytics } = usePlaylistAnalytics({ range: 30 });
+  const { data: playlistAnalytics, isLoading: isLoadingPlaylistAnalytics } = usePlaylistAnalytics(); // Show all data by default
 
   // Convert recently viewed to TMDB format
   const recentlyViewedItems = useMemo(() => {

@@ -39,7 +39,7 @@ export interface PlaylistAnalyticsSummary {
   leaderboard: PlaylistAnalyticsLeaderboardEntry[];
   sources: PlaylistAnalyticsSourceBreakdown[];
   range: {
-    start: string;
+    start: string | null; // null means "all time"
     end: string;
   };
 }

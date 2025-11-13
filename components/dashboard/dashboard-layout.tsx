@@ -112,7 +112,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <SidebarMenu>
                     {userLinks.map((item) => {
                       const Icon = item.icon;
-                      const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
+                      // For Dashboard, only match exactly /dashboard, not /dashboard/*
+                      // For other routes, match exact path or paths starting with href + "/"
+                      const isActive = item.href === "/dashboard"
+                        ? pathname === item.href
+                        : pathname === item.href || pathname?.startsWith(item.href + "/");
                       return (
                         <SidebarMenuItem key={item.href}>
                           <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
@@ -192,9 +196,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </ScrollArea>
         </SidebarContent>
 
-        <SidebarSeparator className="group-data-[collapsible=icon]:hidden" />
+        <SidebarSeparator className="group-data-[collapsible=icon]:hidden mb-0" />
 
-        <SidebarFooter className="flex-shrink-0">
+        <SidebarFooter className="flex-shrink-0 pt-2">
           {/* Create Playlist CTA */}
           <Link href="/playlists" className="group block cursor-pointer group-data-[collapsible=icon]:hidden">
             <Button

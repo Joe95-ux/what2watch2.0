@@ -71,7 +71,7 @@ export default function Navbar() {
         ) : (
           <>
             {/* Left side - Desktop Nav (non-dashboard) */}
-            <div className="flex items-center gap-8 flex-1">
+            <div className="flex items-center gap-8 flex-1 ml-3">
               {/* Navigation Dropdown - Show on md to xl (768px to 1280px, close to 1290px) */}
               <div className="hidden md:block xl:hidden">
                 <NavDropdown navLinks={navLinks} hasHeroSection={hasHeroSection} />
