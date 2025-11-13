@@ -157,11 +157,13 @@ function Sidebar({
   collapsible = "offcanvas",
   className,
   children,
+  topOffset,
   ...props
 }: React.ComponentProps<"div"> & {
   side?: "left" | "right"
   variant?: "sidebar" | "floating" | "inset"
   collapsible?: "offcanvas" | "icon" | "none"
+  topOffset?: number
 }) {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
@@ -229,7 +231,7 @@ function Sidebar({
       <div
         data-slot="sidebar-container"
         className={cn(
-          "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
+          "fixed z-10 hidden w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
           side === "left"
             ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
             : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
@@ -239,6 +241,16 @@ function Sidebar({
             : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
           className
         )}
+        style={{
+          ...(topOffset !== undefined ? {
+            top: `${topOffset}px`,
+            height: `calc(100vh - ${topOffset}px)`,
+          } : {
+            top: 0,
+            height: "100vh",
+          }),
+          ...(props.style as React.CSSProperties),
+        }}
         {...props}
       >
         <div

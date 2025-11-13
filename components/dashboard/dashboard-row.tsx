@@ -63,9 +63,9 @@ export default function DashboardRow({ title, items, type, isLoading, href }: Da
   const titleHref = href || "#";
 
   return (
-    <div className="mb-12">
+    <div className="mb-6 sm:mb-8 md:mb-12">
       {/* Title and Controls Row */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-3 sm:mb-4 md:mb-6">
         <Link 
           href={titleHref}
           className="group/title inline-flex items-center gap-2 transition-all duration-300"
@@ -100,7 +100,7 @@ export default function DashboardRow({ title, items, type, isLoading, href }: Da
       
       {/* Carousel container with overflow-hidden */}
       <div className="relative overflow-hidden">
-        <div ref={emblaRef} className="overflow-hidden">
+        <div ref={emblaRef} className="overflow-hidden w-full">
           <div className="flex gap-3">
             {items.map((item) => (
               <div key={item.id} className="relative flex-shrink-0 w-[180px] sm:w-[200px]">

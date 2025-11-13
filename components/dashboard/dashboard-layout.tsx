@@ -61,7 +61,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <SidebarProvider>
-      <Sidebar>
+      <Sidebar topOffset={65}>
         <SidebarHeader>
           <div className="flex items-center gap-2 px-2 py-2">
             <SidebarTrigger />

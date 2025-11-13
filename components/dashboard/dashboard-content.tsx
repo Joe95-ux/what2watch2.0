@@ -79,19 +79,19 @@ export default function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         {/* Header with Greeting */}
-        <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">
+        <div className="mb-4 sm:mb-6 md:mb-8">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 sm:mb-2">
             {greeting}, {displayName}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground">
             Here&apos;s what&apos;s happening with your watchlist
           </p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 md:mb-8">
           <StatCard
             icon={Heart}
             label="Watchlist"
@@ -236,21 +236,21 @@ interface StatCardProps {
 function StatCard({ icon: Icon, label, value, isLoading, href }: StatCardProps) {
   const content = (
     <div className={cn(
-      "bg-card border rounded-lg p-4 sm:p-6 transition-colors",
+      "bg-card border rounded-lg p-4 sm:p-6 transition-colors min-w-0",
       href && "hover:bg-accent/50 cursor-pointer"
     )}>
       <div className="flex items-center justify-between mb-2">
-        <Icon className="h-5 w-5 text-muted-foreground" />
+        <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
         {href && (
-          <span className="text-xs text-muted-foreground">View →</span>
+          <span className="text-xs text-muted-foreground flex-shrink-0">View →</span>
         )}
       </div>
       {isLoading ? (
         <Skeleton className="h-8 w-16 !bg-gray-200 dark:!bg-accent" />
       ) : (
-        <div className="text-2xl sm:text-3xl font-bold">{value}</div>
+        <div className="text-2xl sm:text-3xl font-bold truncate">{value}</div>
       )}
-      <div className="text-xs sm:text-sm text-muted-foreground mt-1">{label}</div>
+      <div className="text-xs sm:text-sm text-muted-foreground mt-1 truncate">{label}</div>
     </div>
   );
 

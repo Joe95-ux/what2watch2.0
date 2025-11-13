@@ -169,7 +169,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   // Fetch trailer on desktop hover only (not on mobile to save data)
   useEffect(() => {
     // Only fetch on desktop hover, not on mobile
-    if (isHovered && !isMobile && !isModalOpen && attemptedFetchRef.current !== item.id) {
+    if (isHovered && !isMobile && variant !== "dashboard" && !isModalOpen && attemptedFetchRef.current !== item.id) {
       hoverTimeoutRef.current = setTimeout(() => {
         fetchTrailerVideos();
       }, 500); // 500ms delay on desktop hover
