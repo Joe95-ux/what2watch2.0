@@ -195,11 +195,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
         <SidebarFooter className="flex-shrink-0">
           {/* Create Playlist CTA */}
-          <div className="p-4 bg-gradient-to-br from-[#E50914]/20 via-[#E50914]/10 to-transparent rounded-lg mx-2 mb-2 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:mx-auto">
+          <div className="p-4 bg-gradient-to-br from-purple-500/20 via-purple-500/10 to-transparent rounded-lg mx-2 mb-2 group-data-[collapsible=icon]:hidden">
             <Link href="/playlists" className="block">
-              <Button className="w-full bg-[#E50914] hover:bg-[#E50914]/90 text-white group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:aspect-square">
+              <Button className="w-full bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white cursor-pointer">
                 <List className="h-4 w-4" />
-                <span className="ml-2 group-data-[collapsible=icon]:hidden">Create Playlist</span>
+                <span className="ml-2">Create Playlist</span>
+              </Button>
+            </Link>
+          </div>
+          {/* Collapsed CTA - icon only */}
+          <div className="hidden group-data-[collapsible=icon]:block p-2">
+            <Link href="/playlists" className="block">
+              <Button className="w-8 h-8 p-0 bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white cursor-pointer aspect-square">
+                <List className="h-4 w-4" />
               </Button>
             </Link>
           </div>
