@@ -281,15 +281,17 @@ export default function ContentDetailModal({
         <div className="relative w-full h-[70vh] min-h-[500px] overflow-hidden">
           {trailer && isOpen && videosData ? (
             <div className="absolute inset-0">
-              <iframe
-                key={`${trailer.key}-${isMuted}`}
-                src={getYouTubeEmbedUrl(trailer.key, true, isMuted)}
-                className="w-full h-full"
-                allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                style={{ pointerEvents: "none" }}
-                title="Trailer"
-              />
+              {isOpen && (
+                <iframe
+                  key={`${trailer.key}-${isMuted}`}
+                  src={getYouTubeEmbedUrl(trailer.key, true, isMuted)}
+                  className="w-full h-full"
+                  allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  style={{ pointerEvents: "none" }}
+                  title="Trailer"
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent pointer-events-none dark:from-black/90 dark:via-black/60" />
             </div>
           ) : backdropPath ? (

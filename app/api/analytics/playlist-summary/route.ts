@@ -168,17 +168,19 @@ export async function GET(request: NextRequest) {
     // Build match stage - only include date filter if user provided one
     // For aggregateRaw, we need to use MongoDB ObjectId format for ObjectId fields
     const matchStage: {
-      ownerId: { $oid: string } | string;
-      createdAt?: { $gte: Date; $lte: Date };
+      ownerId: { $oid: string };
+      createdAt?: { $gte: { $date: string }; $lte: { $date: string } };
     } = {
       // Use ObjectId format for aggregateRaw queries
       ownerId: { $oid: user.id },
     };
 
     if (hasDateFilter && startDate && now) {
+      // For MongoDB aggregateRaw, dates need to be in Extended JSON format
+      // Use $date with ISO string for proper MongoDB date comparison
       matchStage.createdAt = {
-        $gte: startDate,
-        $lte: now,
+        $gte: { $date: startDate.toISOString() },
+        $lte: { $date: now.toISOString() },
       };
     }
 
@@ -210,10 +212,10 @@ export async function GET(request: NextRequest) {
       : totalEventsCount; // If no date filter, same as total
     console.log(`[Analytics] Events in date range: ${rangeEventsCount}`);
     
-    // Sample a few events to see their structure
+    // Sample a few events to see their structure and dates
     const sampleEvents = await db.playlistEngagementEvent.findMany({
       where: { ownerId: user.id },
-      take: 3,
+      take: 5,
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -223,7 +225,21 @@ export async function GET(request: NextRequest) {
         playlistId: true,
       },
     });
-    console.log(`[Analytics] Sample events:`, JSON.stringify(sampleEvents, null, 2));
+    console.log(`[Analytics] Sample events (latest 5):`, JSON.stringify(sampleEvents, null, 2));
+    
+    // If date filter is applied, check if any sample events fall within the range
+    if (hasDateFilter && startDate && now && sampleEvents.length > 0) {
+      const eventsInRange = sampleEvents.filter(event => {
+        const eventDate = new Date(event.createdAt);
+        return eventDate >= startDate && eventDate <= now;
+      });
+      console.log(`[Analytics] Sample events in date range: ${eventsInRange.length} of ${sampleEvents.length}`);
+      if (eventsInRange.length === 0 && sampleEvents.length > 0) {
+        const firstEventDate = new Date(sampleEvents[0].createdAt);
+        console.log(`[Analytics] WARNING: No sample events in range. First event date: ${firstEventDate.toISOString()}, Range: ${startDate.toISOString()} to ${now.toISOString()}`);
+        console.log(`[Analytics] First event is ${firstEventDate < startDate ? 'BEFORE' : 'AFTER'} the start date`);
+      }
+    }
 
     const [
       totalsRawResult,

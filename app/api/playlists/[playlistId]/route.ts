@@ -18,6 +18,18 @@ export async function GET(
 
     // For public view, allow unauthenticated access
     if (isPublicView) {
+      const { userId: clerkUserId } = await auth();
+      let currentUserId: string | null = null;
+
+      // If user is authenticated, get their database ID for owner check
+      if (clerkUserId) {
+        const currentUser = await db.user.findUnique({
+          where: { clerkId: clerkUserId },
+          select: { id: true },
+        });
+        currentUserId = currentUser?.id || null;
+      }
+
       const playlist = await db.playlist.findUnique({
         where: { id: playlistId },
         include: {
@@ -52,7 +64,10 @@ export async function GET(
         );
       }
 
-      return NextResponse.json({ playlist });
+      return NextResponse.json({ 
+        playlist,
+        currentUserId, // Include current user ID if authenticated
+      });
     }
 
     // For authenticated requests, require auth

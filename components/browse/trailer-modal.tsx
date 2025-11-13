@@ -188,7 +188,7 @@ export default function TrailerModal({
               <Loader2 className="h-10 w-10 animate-spin text-white" />
               <p className="text-white/80 text-sm">Loading trailers...</p>
             </div>
-          ) : currentVideo ? (
+          ) : currentVideo && isOpen ? (
             <div className="relative w-full h-full">
               <iframe
                 key={currentVideo.id} // Force re-render when video changes

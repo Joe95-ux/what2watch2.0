@@ -5,11 +5,32 @@ import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Share2, Edit2, Trash2, MoreVertical } from "lucide-react";
 import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { getPosterUrl } from "@/lib/tmdb";
 import type { Playlist } from "@/hooks/use-playlists";
+import SharePlaylistDialog from "./share-playlist-dialog";
+import CreatePlaylistModal from "./create-playlist-modal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useDeletePlaylist } from "@/hooks/use-playlists";
+import { toast } from "sonner";
 
 type PlaylistWithUser = Playlist & {
   user?: {
@@ -26,11 +47,16 @@ interface PublicPlaylistContentProps {
 
 export default function PublicPlaylistContent({ playlistId }: PublicPlaylistContentProps) {
   const router = useRouter();
+  const deletePlaylist = useDeletePlaylist();
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasLoggedVisit, setHasLoggedVisit] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchPlaylist = async () => {
@@ -44,6 +70,12 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
         }
         const data = await res.json();
         setPlaylist(data.playlist);
+        // Set current user ID from API response if authenticated
+        if (data.currentUserId) {
+          setCurrentUserId(data.currentUserId);
+        } else {
+          setCurrentUserId(null);
+        }
       } catch (err) {
         setError("Failed to load playlist");
         console.error(err);
@@ -122,6 +154,18 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
   }
 
   const playlistWithUser = playlist as PlaylistWithUser;
+  const isOwner = currentUserId && playlist && currentUserId === playlist.userId;
+
+  const handleDeletePlaylist = async () => {
+    try {
+      await deletePlaylist.mutateAsync(playlistId);
+      toast.success("Playlist deleted");
+      router.push("/playlists");
+    } catch (error) {
+      toast.error("Failed to delete playlist");
+      console.error(error);
+    }
+  };
 
   // Convert playlist items to TMDB format
   const itemsAsTMDB = (playlist.items || []).map((playlistItem) => {
@@ -217,6 +261,41 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
                   )}
                 </div>
               </div>
+              
+              {/* Owner Actions */}
+              {isOwner && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsShareDialogOpen(true)}
+                    className="gap-2 cursor-pointer"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    Share
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon" className="cursor-pointer">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>
+                        <Edit2 className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => setIsDeleteDialogOpen(true)}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -251,6 +330,41 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
           isOpen={!!selectedItem}
           onClose={() => setSelectedItem(null)}
         />
+      )}
+
+      {/* Owner Modals/Dialogs */}
+      {isOwner && playlist && (
+        <>
+          <SharePlaylistDialog
+            playlist={playlist}
+            isOpen={isShareDialogOpen}
+            onClose={() => setIsShareDialogOpen(false)}
+          />
+          <CreatePlaylistModal
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            playlistToEdit={playlist}
+          />
+          <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Playlist</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete &quot;{playlist.name}&quot;? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeletePlaylist}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
       )}
     </div>
   );
