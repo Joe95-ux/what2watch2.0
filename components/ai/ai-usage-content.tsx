@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useAiAnalytics } from "@/hooks/use-ai-analytics";
+import { useAllGenres } from "@/hooks/use-genres";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,6 +14,16 @@ export default function AiUsageContent() {
   const { data, isLoading, isError, error } = useAiAnalytics({
     range: range ? parseInt(range, 10) : undefined,
   });
+  const { data: allGenres = [] } = useAllGenres();
+
+  // Create genre ID to name map
+  const genreMap = useMemo(() => {
+    const map = new Map<number, string>();
+    allGenres.forEach((genre) => {
+      map.set(genre.id, genre.name);
+    });
+    return map;
+  }, [allGenres]);
 
   const trendData = useMemo(() => {
     if (!data?.trend) return [];
@@ -143,10 +154,16 @@ export default function AiUsageContent() {
               <Skeleton className="h-[300px] w-full" />
             ) : data?.topGenres && data.topGenres.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={data.topGenres} layout="vertical">
+                <BarChart
+                  data={data.topGenres.map((g) => ({
+                    ...g,
+                    genreName: genreMap.get(g.genreId) || `Genre ${g.genreId}`,
+                  }))}
+                  layout="vertical"
+                >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" />
-                  <YAxis dataKey="genreId" type="category" width={60} />
+                  <YAxis dataKey="genreName" type="category" width={120} />
                   <Tooltip />
                   <Bar dataKey="count" fill="#8884d8" />
                 </BarChart>

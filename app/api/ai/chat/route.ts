@@ -22,16 +22,18 @@ interface ExtractedParams {
   type?: "movie" | "tv" | "all";
   keywords?: string[];
   title?: string; // For information queries
+  count?: number; // Exact number of results requested
 }
 
 const SYSTEM_PROMPT = `You are a helpful AI assistant specialized in movies and TV shows. Your job is to understand user queries and extract search parameters.
 
-When a user asks for recommendations (e.g., "I want something scary", "Show me action movies from the 90s"), extract:
+When a user asks for recommendations (e.g., "I want something scary", "Show me 8 action movies from the 90s"), extract:
 - intent: "RECOMMENDATION"
 - genres: array of genre IDs (use TMDB genre IDs: Action=28, Comedy=35, Drama=18, Horror=27, Romance=10749, Sci-Fi=878, Thriller=53, etc.)
 - year: if mentioned
 - type: "movie", "tv", or "all" if specified
 - keywords: important descriptive words
+- count: exact number if user specifies (e.g., "8 movies" = 8, "show me 5" = 5)
 
 When a user asks for information about a specific title (e.g., "Tell me about Inception", "What's the plot of Breaking Bad?"), extract:
 - intent: "INFORMATION"
@@ -46,7 +48,8 @@ Always respond with valid JSON in this format:
   "year": 2010,
   "type": "movie" | "tv" | "all",
   "keywords": ["scary", "thriller"],
-  "title": "Inception"
+  "title": "Inception",
+  "count": 8
 }
 
 Only include fields that are relevant.`;
@@ -107,6 +110,7 @@ export async function POST(request: NextRequest) {
         type: parsed.type || "all",
         keywords: parsed.keywords || [],
         title: parsed.title,
+        count: parsed.count,
       };
     } catch (openaiError) {
       console.error("OpenAI error:", openaiError);
@@ -179,13 +183,14 @@ export async function POST(request: NextRequest) {
         const discoverResults = await Promise.all(discoverPromises);
         const combined = discoverResults.flatMap((r) => r.results);
         
-        // Deduplicate by ID
+        // Deduplicate by ID and limit to requested count
         const seen = new Set<number>();
+        const maxResults = extractedParams.count || 20;
         results = combined.filter((item) => {
           if (seen.has(item.id)) return false;
           seen.add(item.id);
           return true;
-        }).slice(0, 20);
+        }).slice(0, maxResults);
 
         resultIds = results.map((r) => r.id);
         resultTypes = results.map((r) => ("title" in r ? "movie" : "tv"));
@@ -202,11 +207,12 @@ export async function POST(request: NextRequest) {
         ];
 
         const seen = new Set<number>();
+        const maxResults = extractedParams.count || 20;
         results = combined.filter((item) => {
           if (seen.has(item.id)) return false;
           seen.add(item.id);
           return true;
-        }).slice(0, 20);
+        }).slice(0, maxResults);
 
         resultIds = results.map((r) => r.id);
         resultTypes = results.map((r) => ("title" in r ? "movie" : "tv"));
@@ -237,9 +243,30 @@ export async function POST(request: NextRequest) {
       // Don't fail the request if logging fails
     }
 
+    // Generate natural language response
+    let responseMessage = "";
+    if (extractedParams.intent === "INFORMATION") {
+      if (results.length > 0) {
+        const firstResult = results[0];
+        const title = "title" in firstResult ? firstResult.title : firstResult.name;
+        responseMessage = `Here's information about "${title}".`;
+      } else {
+        responseMessage = "I couldn't find that title. Could you try a different search?";
+      }
+    } else {
+      // RECOMMENDATION mode
+      if (results.length > 0) {
+        const count = extractedParams.count ? ` ${extractedParams.count}` : "";
+        const type = extractedParams.type === "movie" ? "movies" : extractedParams.type === "tv" ? "TV shows" : "titles";
+        responseMessage = `Found${count} ${type} matching your preferences.`;
+      } else {
+        responseMessage = "I couldn't find any matches. Try adjusting your criteria or be more specific.";
+      }
+    }
+
     return NextResponse.json({
       intent: extractedParams.intent,
-      message: aiResponseText || `Found ${results.length} results for your query.`,
+      message: responseMessage,
       results,
       metadata: {
         genres: extractedParams.genres,
