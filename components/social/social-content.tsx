@@ -40,14 +40,13 @@ export default function SocialContent() {
   return (
     <div className="flex-1 space-y-6 p-6">
       <div className="container max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold tracking-tight">Social</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage who you follow and see who follows you
-          </p>
-        </div>
-
         <div className="max-w-4xl mx-auto">
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold tracking-tight">Social</h1>
+            <p className="text-muted-foreground mt-2">
+              Manage who you follow and see who follows you
+            </p>
+          </div>
           {/* Mobile: Select Dropdown */}
           {isMobile ? (
             <div className="mb-6">
