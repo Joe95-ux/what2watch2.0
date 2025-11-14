@@ -375,10 +375,10 @@ export default function DiscoverContent() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-64 p-0">
-                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground sticky top-0 z-10 border-b">
+                  <div className="px-2 py-2 text-xs font-semibold text-muted-foreground sticky top-0 z-10 border-b">
                     Chat History
                   </div>
-                  <ScrollArea className="max-h-[400px]">
+                  <ScrollArea className="h-[400px] w-64">
                     <div className="p-1">
                       {filteredSessions.map((session) => (
                         <DropdownMenuItem
