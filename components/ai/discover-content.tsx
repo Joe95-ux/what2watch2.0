@@ -623,7 +623,7 @@ export default function DiscoverContent() {
             {currentResults.length > 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center min-h-0 mb-4 w-full">
                 <ScrollArea className="flex-1 w-full max-h-[calc(100vh-400px)]">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 md:gap-4 pb-4 pr-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4 pb-4 pr-4">
                     {paginatedResults.map((item) => (
                       <div
                         key={item.id}
