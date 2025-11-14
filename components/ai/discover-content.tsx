@@ -375,7 +375,7 @@ export default function DiscoverContent() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-64 p-0">
-                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground sticky top-0 bg-background z-10 border-b">
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground sticky top-0 z-10 border-b">
                     Chat History
                   </div>
                   <ScrollArea className="max-h-[400px]">
@@ -390,14 +390,14 @@ export default function DiscoverContent() {
                             <div className="text-sm font-medium truncate">
                               {session.title || "Untitled Chat"}
                             </div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="text-xs text-muted-foreground truncate">
                               {formatDistanceToNow(new Date(session.updatedAt), { addSuffix: true })}
                             </div>
                           </div>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                             onClick={(e) => handleDeleteSession(session.sessionId, e)}
                           >
                             <Trash2 className="h-3 w-3" />
