@@ -58,14 +58,14 @@ export default function Navbar() {
         "w-full flex h-16 items-center px-4 sm:px-6 lg:px-8",
         shouldUseMaxWidth && "max-w-7xl mx-auto",
         shouldUseMaxSearchNav && "container mx-auto",
-        isDashboard ? "grid grid-cols-[auto_1fr_auto] gap-4" : "justify-between",
+        isDashboard ? "grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_auto] gap-2 md:gap-4" : "justify-between",
         isDiscoverPage && "justify-between"
       )}>
-        {/* Left side - Hamburger (below 1300px) and Logo */}
+        {/* Left side - Hamburger (below 1280px) and Logo */}
         <div className="flex items-center gap-3">
-          {/* Navigation Dropdown - Show below 1300px */}
-          {!isDiscoverPage && (
-            <div className="[1285px]:hidden">
+          {/* Navigation Dropdown - Show between md (768px) and 1280px, hidden on dashboard */}
+          {!isDashboard && !isDiscoverPage && (
+            <div className="hidden md:block [1280px]:hidden">
               <NavDropdown navLinks={navLinks} hasHeroSection={hasHeroSection} />
             </div>
           )}
@@ -74,14 +74,14 @@ export default function Navbar() {
 
         {/* Center - Search (only on dashboard, not discover page) */}
         {isDashboard ? (
-          <div className="flex items-center justify-center">
+          <div className="flex items-center justify-center min-w-0">
             <Search hasHeroSection={hasHeroSection} />
           </div>
         ) : (
           <>
-            {/* Center - Desktop Nav (non-dashboard and discover page, 1300px and above) */}
-            {!isDiscoverPage && (
-              <div className="hidden [1285px]:flex items-center gap-1 flex-1 ml-3">
+            {/* Center - Desktop Nav (non-dashboard and discover page, 1280px and above) */}
+            {!isDashboard && !isDiscoverPage && (
+              <div className="hidden [1280px]:flex items-center gap-1 flex-1 ml-3">
                 {navLinks.map((link) => {
                   const isActive = pathname === link.href;
                   return (

@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useDeletePlaylist } from "@/hooks/use-playlists";
 import { toast } from "sonner";
+import { FollowButton } from "@/components/social/follow-button";
 
 type PlaylistWithUser = Playlist & {
   user?: {
@@ -154,7 +155,7 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
   }
 
   const playlistWithUser = playlist as PlaylistWithUser;
-  const isOwner = currentUserId && playlist && currentUserId === playlist.userId;
+  const isOwner = Boolean(currentUserId && playlist && currentUserId === playlist.userId);
 
   const handleDeletePlaylist = async () => {
     try {
@@ -256,14 +257,22 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
                   {playlistWithUser.user && (
                     <>
                       <span>•</span>
-                      <span>By {playlistWithUser.user.displayName || playlistWithUser.user.username || "Unknown"}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/users/${playlistWithUser.user?.id}`);
+                        }}
+                        className="hover:text-primary transition-colors cursor-pointer"
+                      >
+                        By {playlistWithUser.user.displayName || playlistWithUser.user.username || "Unknown"}
+                      </button>
                     </>
                   )}
                 </div>
               </div>
               
-              {/* Owner Actions */}
-              {isOwner && (
+              {/* Actions */}
+              {isOwner ? (
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
@@ -295,6 +304,20 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
+              ) : (
+                playlistWithUser.user && (
+                  <div className="flex items-center gap-2">
+                    <FollowButton userId={playlistWithUser.user.id} />
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsShareDialogOpen(true)}
+                      className="gap-2 cursor-pointer"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      Share
+                    </Button>
+                  </div>
+                )
               )}
             </div>
           </div>
@@ -332,14 +355,19 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
         />
       )}
 
+      {/* Share Dialog - Available for all users */}
+      {playlist && (
+        <SharePlaylistDialog
+          playlist={playlist}
+          isOpen={isShareDialogOpen}
+          onClose={() => setIsShareDialogOpen(false)}
+          isOwnPlaylist={isOwner}
+        />
+      )}
+
       {/* Owner Modals/Dialogs */}
       {isOwner && playlist && (
         <>
-          <SharePlaylistDialog
-            playlist={playlist}
-            isOpen={isShareDialogOpen}
-            onClose={() => setIsShareDialogOpen(false)}
-          />
           <CreatePlaylistModal
             isOpen={isEditModalOpen}
             onClose={() => setIsEditModalOpen(false)}

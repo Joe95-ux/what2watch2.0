@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 
 // GET - Fetch public playlists (no authentication required)
-export async function GET(request: NextRequest): Promise<NextResponse<{ playlists: unknown[] } | { error: string }>> {
+export async function GET(request: NextRequest): Promise<NextResponse<{ playlists: unknown[]; currentUserId?: string } | { error: string }>> {
   try {
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get("limit");
     const limitNum = limit ? parseInt(limit, 10) : 20;
+
+    // Get current user if authenticated (for ownership checks)
+    const { userId: clerkUserId } = await auth();
+    let currentUserId: string | undefined;
+    if (clerkUserId) {
+      const user = await db.user.findUnique({
+        where: { clerkId: clerkUserId },
+        select: { id: true },
+      });
+      currentUserId = user?.id;
+    }
 
     // Fetch public playlists, ordered by most recently updated
     // Only include playlists that have at least one item
@@ -42,7 +54,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ playlist
     });
 
     return NextResponse.json(
-      { playlists },
+      { playlists, currentUserId },
       {
         headers: {
           'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',

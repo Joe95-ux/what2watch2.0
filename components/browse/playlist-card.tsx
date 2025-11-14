@@ -6,10 +6,10 @@ import { Playlist } from "@/hooks/use-playlists";
 import { getPosterUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
 import { useIsLiked, useLikePlaylist, useUnlikePlaylist } from "@/hooks/use-playlist-likes";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useUser } from "@clerk/nextjs";
 
 interface PlaylistCardProps {
   playlist: Playlist;
@@ -19,13 +19,13 @@ interface PlaylistCardProps {
 
 export default function PlaylistCard({ playlist, className, showLikeButton = true }: PlaylistCardProps) {
   const router = useRouter();
-  const { user: clerkUser } = useUser();
+  const { data: currentUser } = useCurrentUser();
   const { data: likeStatus } = useIsLiked(playlist.id);
   const likeMutation = useLikePlaylist();
   const unlikeMutation = useUnlikePlaylist();
   
   const isLiked = likeStatus?.isLiked ?? false;
-  const isOwner = clerkUser && playlist.userId === clerkUser.id;
+  const isOwner = currentUser && playlist.userId === currentUser.id;
   const canLike = showLikeButton && !isOwner && playlist.user;
 
   const getPlaylistCover = () => {
@@ -83,9 +83,15 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
             {itemCount} {itemCount === 1 ? "item" : "items"}
           </p>
           {playlist.user && (
-            <p className="text-xs text-white/80 mt-1 drop-shadow">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/users/${playlist.user?.id}`);
+              }}
+              className="text-xs text-white/80 mt-1 drop-shadow hover:text-white transition-colors cursor-pointer"
+            >
               by {displayName}
-            </p>
+            </button>
           )}
         </div>
 
@@ -134,7 +140,20 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
         <h3 className="font-semibold text-sm line-clamp-1">{playlist.name}</h3>
         <p className="text-xs text-muted-foreground">
           {itemCount} {itemCount === 1 ? "item" : "items"}
-          {playlist.user && ` • by ${displayName}`}
+          {playlist.user && (
+            <>
+              {" • "}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/users/${playlist.user?.id}`);
+                }}
+                className="hover:text-foreground transition-colors cursor-pointer"
+              >
+                by {displayName}
+              </button>
+            </>
+          )}
         </p>
       </div>
     </div>

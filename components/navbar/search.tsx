@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { TMDBMovie, TMDBSeries, TMDBResponse } from "@/lib/tmdb";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useIsMobile } from "@/hooks/use-mobile";
 import Image from "next/image";
 import Link from "next/link";
 import { FiltersSheet, type SearchFilters } from "@/components/filters/filters-sheet";
@@ -55,16 +56,8 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const debouncedQuery = useDebounce(query, 300);
 
-  // Check if mobile
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
-    };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+  // Check if mobile (using standard md breakpoint: 768px)
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     // Fetch genres for filter dropdown

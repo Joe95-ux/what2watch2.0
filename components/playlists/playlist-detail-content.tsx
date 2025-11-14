@@ -261,7 +261,15 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
                   {playlistWithUser.user && (
                     <>
                       <span>•</span>
-                      <span>By {playlistWithUser.user.displayName || playlistWithUser.user.username || "Unknown"}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/users/${playlistWithUser.user?.id}`);
+                        }}
+                        className="hover:text-primary transition-colors cursor-pointer"
+                      >
+                        By {playlistWithUser.user.displayName || playlistWithUser.user.username || "Unknown"}
+                      </button>
                     </>
                   )}
                 </div>
