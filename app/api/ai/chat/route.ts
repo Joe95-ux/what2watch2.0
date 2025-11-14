@@ -25,32 +25,63 @@ interface ExtractedParams {
   count?: number; // Exact number of results requested
 }
 
-const SYSTEM_PROMPT_RECOMMENDATION = `You are a helpful AI assistant specialized in movies and TV shows. Your job is to understand user queries and extract search parameters for recommendations.
+const SYSTEM_PROMPT_RECOMMENDATION = `You are a precise AI assistant specialized in movies and TV shows. Your job is to accurately extract search parameters from user queries for movie/TV show recommendations.
 
-When a user asks for recommendations (e.g., "I want something scary", "Show me 8 action movies from the 90s"), extract:
-- intent: "RECOMMENDATION"
-- genres: array of genre IDs (use TMDB genre IDs: Action=28, Comedy=35, Drama=18, Horror=27, Romance=10749, Sci-Fi=878, Thriller=53, etc.)
-- year: if mentioned
-- type: "movie", "tv", or "all" if specified
-- keywords: important descriptive words
-- count: exact number if user specifies (e.g., "8 movies" = 8, "show me 5" = 5)
+EXTRACTION RULES:
+1. QUERY field: Use for:
+   - Actor/actress names (e.g., "Tom Cruise", "Meryl Streep")
+   - Director names (e.g., "Christopher Nolan", "Quentin Tarantino")
+   - Movie/TV show titles (e.g., "The Matrix", "Breaking Bad")
+   - Character names if searching for specific roles
+   - Extract ONLY the name/title, not descriptive words
 
-Always respond with valid JSON in this format:
-{
-  "intent": "RECOMMENDATION",
-  "query": "search query if needed",
-  "genres": [28, 35],
-  "year": 2010,
-  "type": "movie" | "tv" | "all",
-  "keywords": ["scary", "thriller"],
-  "count": 8
-}
+2. GENRES field: Use ONLY when user explicitly mentions a genre:
+   - Action=28, Adventure=12, Animation=16, Comedy=35, Crime=80, Documentary=99, Drama=18, Family=10751, Fantasy=14, History=36, Horror=27, Music=10402, Mystery=9648, Romance=10749, Sci-Fi=878, Thriller=53, War=10752, Western=37
+   - TV genres: Action & Adventure=10759, Animation=16, Comedy=35, Crime=80, Documentary=99, Drama=18, Family=10751, Kids=10762, Mystery=9648, News=10763, Reality=10764, Sci-Fi & Fantasy=10765, Soap=10766, Talk=10767, War & Politics=10768, Western=37
 
-Only include fields that are relevant.`;
+3. YEAR field: Extract if user mentions a specific year or decade (e.g., "90s" = 1990, "2020s" = 2020)
 
-const SYSTEM_PROMPT_INFORMATION = `You are a helpful AI assistant specialized in movies and TV shows. Answer user questions about movies, TV shows, actors, directors, and entertainment industry facts. Use your knowledge and available information to provide accurate, detailed answers. 
+4. TYPE field: 
+   - "movie" if user says "movies", "film", "cinema"
+   - "tv" if user says "TV shows", "series", "television"
+   - "all" if not specified or user says "movies and TV shows"
 
-Note: You have access to a knowledge base that includes information up to your training cutoff date. For questions about recent releases, box office numbers, or current industry events, provide the best answer based on your knowledge and reasoning, but acknowledge if the information might be outdated.`;
+5. COUNT field: Extract exact number if specified (e.g., "10 movies" = 10, "show me 5" = 5, "a few" = 5, "several" = 8)
+
+6. KEYWORDS field: Use for descriptive terms that aren't actors/directors/titles (e.g., "scary", "romantic", "thrilling")
+
+EXAMPLES:
+- "Give me 10 movies starring Tom Cruise" → {"query": "Tom Cruise", "type": "movie", "count": 10}
+- "Show me action movies from the 90s" → {"genres": [28], "year": 1990, "type": "movie"}
+- "Horror TV shows" → {"genres": [27], "type": "tv"}
+- "Movies directed by Christopher Nolan" → {"query": "Christopher Nolan", "type": "movie"}
+
+CRITICAL: Be precise. If unsure about a genre ID, don't include it. Always prioritize accuracy over completeness.
+
+Respond with valid JSON only, no other text.`;
+
+const SYSTEM_PROMPT_INFORMATION = `You are a knowledgeable and accurate AI assistant specialized in movies and TV shows. Your goal is to provide precise, factual information about:
+
+- Movie and TV show details (plots, cast, directors, release dates)
+- Actor and director filmographies and careers
+- Entertainment industry facts and history
+- Awards, box office performance, and critical reception
+
+ACCURACY GUIDELINES:
+1. Only provide information you are confident about
+2. If uncertain, clearly state "I'm not certain, but..." or "Based on my knowledge..."
+3. For recent information (last 1-2 years), acknowledge potential limitations
+4. Cite specific details when possible (e.g., "released in 1994", "directed by...")
+5. If asked about specific numbers (e.g., "how many movies"), be precise or indicate if the number is approximate
+6. Distinguish between facts and opinions
+
+RESPONSE STYLE:
+- Be concise but informative
+- Use clear, structured answers
+- If the question is ambiguous, ask for clarification or provide the most likely interpretation
+- For filmography questions, list notable works but note if the list is not exhaustive
+
+Remember: Accuracy is more important than completeness. It's better to say "I don't have that specific information" than to guess.`;
 
 export async function POST(request: NextRequest) {
   try {
@@ -147,30 +178,43 @@ export async function POST(request: NextRequest) {
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini", // Using cheaper model for cost efficiency
         messages: messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-        temperature: 0.3,
+        temperature: 0.2, // Lower temperature for more consistent, accurate extraction
         max_tokens: 500,
         response_format: { type: "json_object" },
       });
 
       aiResponseText = completion.choices[0]?.message?.content || "";
       const parsed = JSON.parse(aiResponseText);
+      
+      // Validate and clean extracted parameters
       extractedParams = {
         intent: "RECOMMENDATION",
-        query: parsed.query,
-        genres: parsed.genres || [],
-        year: parsed.year,
-        type: parsed.type || "all",
-        keywords: parsed.keywords || [],
-        count: parsed.count,
+        query: parsed.query?.trim() || undefined,
+        genres: Array.isArray(parsed.genres) ? parsed.genres.filter((g: unknown) => typeof g === "number" && g > 0) : [],
+        year: typeof parsed.year === "number" && parsed.year > 1900 && parsed.year <= new Date().getFullYear() + 1 ? parsed.year : undefined,
+        type: parsed.type === "movie" || parsed.type === "tv" ? parsed.type : "all",
+        keywords: Array.isArray(parsed.keywords) ? parsed.keywords.filter((k: unknown) => typeof k === "string") : [],
+        count: typeof parsed.count === "number" && parsed.count > 0 && parsed.count <= 50 ? parsed.count : undefined,
       };
+      
+      console.log("[AI Chat] Validated extracted params:", extractedParams);
     } catch (openaiError) {
       console.error("OpenAI error:", openaiError);
-      // Fallback: try to extract basic info
+      // Fallback: try to extract basic info from message
+      const lowerMessage = message.toLowerCase();
+      let fallbackType: "movie" | "tv" | "all" = "all";
+      if (lowerMessage.includes("movie") || lowerMessage.includes("film")) {
+        fallbackType = "movie";
+      } else if (lowerMessage.includes("tv") || lowerMessage.includes("show") || lowerMessage.includes("series")) {
+        fallbackType = "tv";
+      }
+      
       extractedParams = {
         intent: "RECOMMENDATION",
-        query: message,
-        type: "all",
+        query: message, // Use full message as query for fallback
+        type: fallbackType,
       };
+      console.log("[AI Chat] Using fallback params:", extractedParams);
     }
 
     const responseTime = Date.now() - startTime;
@@ -184,70 +228,120 @@ export async function POST(request: NextRequest) {
     const type = extractedParams.type || "all";
     const genres = extractedParams.genres || [];
     const year = extractedParams.year;
+    const query = extractedParams.query?.trim();
 
-    if (genres.length > 0 || year) {
-        // Use discover with filters
-        const discoverPromises: Promise<{ results: (TMDBMovie | TMDBSeries)[] }>[] = [];
+    console.log("[AI Chat] Extracted params:", { query, genres, year, type, count: extractedParams.count });
 
-        if (type === "movie" || type === "all") {
-          discoverPromises.push(
-            discoverMovies({
-              page: 1,
-              genre: genres.length > 0 ? genres : undefined,
-              year,
-              sortBy: "popularity.desc",
-            }).then((r) => ({ results: r.results }))
+    // Priority: If there's a query (actor, director, title), use search
+    // Otherwise, if there are genres or year, use discover
+    if (query) {
+      // Use search API for actor/director/title queries
+      console.log("[AI Chat] Using search API with query:", query);
+      const searchType = type === "movie" ? "movie" : type === "tv" ? "tv" : "all";
+      
+      const searchPromises: Promise<{ results: (TMDBMovie | TMDBSeries)[] }>[] = [];
+      
+      // Search multiple pages if we need more results
+      const pagesToSearch = extractedParams.count && extractedParams.count > 20 ? 2 : 1;
+      
+      if (searchType === "movie" || searchType === "all") {
+        for (let page = 1; page <= pagesToSearch; page++) {
+          searchPromises.push(
+            searchMovies(query, page).then((r) => ({ results: r.results }))
           );
         }
-
-        if (type === "tv" || type === "all") {
-          discoverPromises.push(
-            discoverTV({
-              page: 1,
-              genre: genres.length > 0 ? genres : undefined,
-              year,
-              sortBy: "popularity.desc",
-            }).then((r) => ({ results: r.results }))
-          );
-        }
-
-        const discoverResults = await Promise.all(discoverPromises);
-        const combined = discoverResults.flatMap((r) => r.results);
-        
-        // Deduplicate by ID and limit to requested count
-        const seen = new Set<number>();
-        const maxResults = extractedParams.count || 20;
-        results = combined.filter((item) => {
-          if (seen.has(item.id)) return false;
-          seen.add(item.id);
-          return true;
-        }).slice(0, maxResults);
-
-        resultIds = results.map((r) => r.id);
-        resultTypes = results.map((r) => ("title" in r ? "movie" : "tv"));
-      } else if (extractedParams.query) {
-        // Fallback to search if no filters
-        const [movieResults, tvResults] = await Promise.all([
-          searchMovies(extractedParams.query, 1),
-          searchTV(extractedParams.query, 1),
-        ]);
-
-        const combined = [
-          ...movieResults.results.slice(0, 10),
-          ...tvResults.results.slice(0, 10),
-        ];
-
-        const seen = new Set<number>();
-        const maxResults = extractedParams.count || 20;
-        results = combined.filter((item) => {
-          if (seen.has(item.id)) return false;
-          seen.add(item.id);
-          return true;
-        }).slice(0, maxResults);
-
-        resultIds = results.map((r) => r.id);
-        resultTypes = results.map((r) => ("title" in r ? "movie" : "tv"));
       }
+      
+      if (searchType === "tv" || searchType === "all") {
+        for (let page = 1; page <= pagesToSearch; page++) {
+          searchPromises.push(
+            searchTV(query, page).then((r) => ({ results: r.results }))
+          );
+        }
+      }
+
+      const searchResults = await Promise.all(searchPromises);
+      const combined = searchResults.flatMap((r) => r.results);
+      
+      // Deduplicate by ID and limit to requested count
+      const seen = new Set<number>();
+      const maxResults = extractedParams.count || 20;
+      results = combined.filter((item) => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+      }).slice(0, maxResults);
+
+      console.log("[AI Chat] Search results:", results.length, "from", pagesToSearch, "page(s)");
+      resultIds = results.map((r) => r.id);
+      resultTypes = results.map((r) => ("title" in r ? "movie" : "tv"));
+    } else if (genres.length > 0 || year) {
+      // Use discover with filters
+      console.log("[AI Chat] Using discover API with filters:", { genres, year });
+      const discoverPromises: Promise<{ results: (TMDBMovie | TMDBSeries)[] }>[] = [];
+
+      if (type === "movie" || type === "all") {
+        discoverPromises.push(
+          discoverMovies({
+            page: 1,
+            genre: genres.length > 0 ? genres : undefined,
+            year,
+            sortBy: "popularity.desc",
+          }).then((r) => ({ results: r.results }))
+        );
+      }
+
+      if (type === "tv" || type === "all") {
+        discoverPromises.push(
+          discoverTV({
+            page: 1,
+            genre: genres.length > 0 ? genres : undefined,
+            year,
+            sortBy: "popularity.desc",
+          }).then((r) => ({ results: r.results }))
+        );
+      }
+
+      const discoverResults = await Promise.all(discoverPromises);
+      const combined = discoverResults.flatMap((r) => r.results);
+      
+      // Deduplicate by ID and limit to requested count
+      const seen = new Set<number>();
+      const maxResults = extractedParams.count || 20;
+      results = combined.filter((item) => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+      }).slice(0, maxResults);
+
+      console.log("[AI Chat] Discover results:", results.length);
+      resultIds = results.map((r) => r.id);
+      resultTypes = results.map((r) => ("title" in r ? "movie" : "tv"));
+    } else {
+      // Fallback: use the original message as query
+      console.log("[AI Chat] No query or filters, using message as fallback query");
+      const [movieResults, tvResults] = await Promise.all([
+        searchMovies(message, 1),
+        searchTV(message, 1),
+      ]);
+
+      const combined = [
+        ...movieResults.results.slice(0, 10),
+        ...tvResults.results.slice(0, 10),
+      ];
+
+      const seen = new Set<number>();
+      const maxResults = extractedParams.count || 20;
+      results = combined.filter((item) => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+      }).slice(0, maxResults);
+
+      console.log("[AI Chat] Fallback search results:", results.length);
+      resultIds = results.map((r) => r.id);
+      resultTypes = results.map((r) => ("title" in r ? "movie" : "tv"));
+    }
 
     // Log the event
     try {

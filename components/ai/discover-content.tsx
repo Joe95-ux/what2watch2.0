@@ -557,6 +557,13 @@ export default function DiscoverContent() {
           onClose={() => setSelectedItem(null)}
         />
       )}
+
+      {/* AI Disclaimer */}
+      <div className="mt-6 text-center">
+        <p className="text-xs text-muted-foreground">
+          ⚠️ Results are AI-generated and may contain inaccuracies. Please verify information independently.
+        </p>
+      </div>
     </div>
   );
 }
