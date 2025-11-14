@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 // GET - Get list of users a specific user is following
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     const { userId: clerkUserId } = await auth();
@@ -16,7 +16,7 @@ export async function GET(
         })
       : null;
 
-    const targetUserId = params.userId;
+    const { userId: targetUserId } = await params;
 
     // Get all users being followed
     const follows = await db.follow.findMany({

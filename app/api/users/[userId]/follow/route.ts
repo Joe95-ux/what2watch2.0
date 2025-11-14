@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 // POST - Follow a user
 export async function POST(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     const { userId: clerkUserId } = await auth();
@@ -23,7 +23,7 @@ export async function POST(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const targetUserId = params.userId;
+    const { userId: targetUserId } = await params;
 
     // Can't follow yourself
     if (currentUser.id === targetUserId) {
@@ -84,7 +84,7 @@ export async function POST(
 // DELETE - Unfollow a user
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     const { userId: clerkUserId } = await auth();
@@ -102,7 +102,7 @@ export async function DELETE(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const targetUserId = params.userId;
+    const { userId: targetUserId } = await params;
 
     // Delete follow relationship
     const deleted = await db.follow.deleteMany({
@@ -132,7 +132,7 @@ export async function DELETE(
 // GET - Check if current user is following target user
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     const { userId: clerkUserId } = await auth();
@@ -150,7 +150,7 @@ export async function GET(
       return NextResponse.json({ isFollowing: false });
     }
 
-    const targetUserId = params.userId;
+    const { userId: targetUserId } = await params;
 
     const follow = await db.follow.findUnique({
       where: {
