@@ -53,8 +53,8 @@ export default function PlaylistsContent() {
 
   // Combine and filter playlists
   const allPlaylists = useMemo(() => {
-    const own = ownPlaylists.map((p) => ({ ...p, isOwn: true, isLiked: false }));
-    const liked = likedPlaylists.map((p) => ({ ...p, isOwn: false, isLiked: true }));
+    const own = ownPlaylists.map((p: Playlist) => ({ ...p, isOwn: true, isLiked: false }));
+    const liked = likedPlaylists.map((p: Playlist) => ({ ...p, isOwn: false, isLiked: true }));
     
     // Remove duplicates (if a playlist is both own and liked, prioritize own)
     const playlistMap = new Map<string, Playlist & { isOwn: boolean; isLiked: boolean }>();
