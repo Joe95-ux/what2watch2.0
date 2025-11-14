@@ -5,14 +5,28 @@ import Image from "next/image";
 import { Playlist } from "@/hooks/use-playlists";
 import { getPosterUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
+import { useIsLiked, useLikePlaylist, useUnlikePlaylist } from "@/hooks/use-playlist-likes";
+import { Heart } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { useUser } from "@clerk/nextjs";
 
 interface PlaylistCardProps {
   playlist: Playlist;
   className?: string;
+  showLikeButton?: boolean;
 }
 
-export default function PlaylistCard({ playlist, className }: PlaylistCardProps) {
+export default function PlaylistCard({ playlist, className, showLikeButton = true }: PlaylistCardProps) {
   const router = useRouter();
+  const { user: clerkUser } = useUser();
+  const { data: likeStatus } = useIsLiked(playlist.id);
+  const likeMutation = useLikePlaylist();
+  const unlikeMutation = useUnlikePlaylist();
+  
+  const isLiked = likeStatus?.isLiked ?? false;
+  const isOwner = clerkUser && playlist.userId === clerkUser.id;
+  const canLike = showLikeButton && !isOwner && playlist.user;
 
   const getPlaylistCover = () => {
     if (playlist.coverImage) {
@@ -81,6 +95,38 @@ export default function PlaylistCard({ playlist, className }: PlaylistCardProps)
             {itemCount}
           </span>
         </div>
+
+        {/* Like Button */}
+        {canLike && (
+          <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm border-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isLiked) {
+                  unlikeMutation.mutate(playlist.id, {
+                    onSuccess: () => toast.success("Removed from your library"),
+                    onError: () => toast.error("Failed to remove playlist"),
+                  });
+                } else {
+                  likeMutation.mutate(playlist.id, {
+                    onSuccess: () => toast.success("Added to your library"),
+                    onError: () => toast.error("Failed to add playlist"),
+                  });
+                }
+              }}
+            >
+              <Heart
+                className={cn(
+                  "h-4 w-4",
+                  isLiked ? "fill-red-500 text-red-500" : "text-white"
+                )}
+              />
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Title below card (visible on mobile, hidden on desktop where overlay shows) */}
@@ -88,6 +134,7 @@ export default function PlaylistCard({ playlist, className }: PlaylistCardProps)
         <h3 className="font-semibold text-sm line-clamp-1">{playlist.name}</h3>
         <p className="text-xs text-muted-foreground">
           {itemCount} {itemCount === 1 ? "item" : "items"}
+          {playlist.user && ` • by ${displayName}`}
         </p>
       </div>
     </div>

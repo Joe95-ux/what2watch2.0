@@ -6,7 +6,9 @@ export interface Playlist {
   name: string;
   description: string | null;
   isPublic: boolean;
+  visibility?: "PUBLIC" | "FOLLOWERS_ONLY" | "PRIVATE";
   coverImage: string | null;
+  likesCount?: number;
   createdAt: string;
   updatedAt: string;
   items?: PlaylistItem[];
@@ -18,6 +20,13 @@ export interface Playlist {
   };
   _count?: {
     items: number;
+  };
+  isReadOnly?: boolean;
+  createdBy?: {
+    id: string;
+    username: string | null;
+    displayName: string | null;
+    avatarUrl: string | null;
   };
 }
 

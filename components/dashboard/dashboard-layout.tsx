@@ -33,6 +33,8 @@ import {
   Plus,
   Sparkles,
   Activity,
+  Users,
+  UserPlus,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -135,6 +137,41 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                         </SidebarMenuItem>
                       );
                     })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+
+              <SidebarSeparator />
+
+              {/* Social Group */}
+              <SidebarGroup>
+                <SidebarGroupLabel>Social</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname === "/dashboard/social" || pathname?.startsWith("/dashboard/social")}
+                        tooltip="Following"
+                      >
+                        <Link href="/dashboard/social">
+                          <Users />
+                          <span>Following</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname === "/dashboard/social/friends-playlists" || pathname?.startsWith("/dashboard/social/friends-playlists")}
+                        tooltip="Friends' Playlists"
+                      >
+                        <Link href="/dashboard/social/friends-playlists">
+                          <UserPlus />
+                          <span>Friends&apos; Playlists</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>

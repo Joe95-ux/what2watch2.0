@@ -35,6 +35,11 @@ model User {
   playlistEngagementActions PlaylistEngagementEvent[] @relation("UserPlaylistEngagementActor")
   aiChatEvents AiChatEvent[]
   aiChatSessions AiChatSession[]
+  
+  // Social features
+  followers     Follow[] @relation("UserFollowers")
+  following     Follow[] @relation("UserFollowing")
+  likedPlaylists LikedPlaylist[]
 
   @@map("users")
 }
@@ -89,6 +94,12 @@ model Favorite {
   @@index([userId])
 }
 
+enum PlaylistVisibility {
+  PUBLIC
+  FOLLOWERS_ONLY
+  PRIVATE
+}
+
 // Playlists - user-created collections
 model Playlist {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
@@ -97,12 +108,15 @@ model Playlist {
   
   name          String
   description   String?
-  isPublic      Boolean  @default(false)
+  isPublic      Boolean  @default(false) // Deprecated, use visibility instead
+  visibility    PlaylistVisibility @default(PRIVATE)
   coverImage    String?  // URL to cover image
+  likesCount    Int      @default(0) // Number of users who liked this playlist
   
   items         PlaylistItem[]
   sharedPlaylists SharedPlaylist[]
   engagementEvents PlaylistEngagementEvent[]
+  likedBy       LikedPlaylist[]
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -110,6 +124,8 @@ model Playlist {
   @@map("playlists")
   @@index([userId])
   @@index([isPublic])
+  @@index([visibility])
+  @@index([likesCount])
 }
 
 // Items in a playlist
@@ -354,4 +370,41 @@ model AiChatSession {
   @@map("ai_chat_sessions")
   @@index([userId])
   @@index([userId, updatedAt])
+}
+
+// Follow system - users following each other
+model Follow {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  followerId    String   @db.ObjectId
+  follower      User     @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId   String   @db.ObjectId
+  following     User     @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@map("follows")
+  @@index([followerId])
+  @@index([followingId])
+  @@index([createdAt])
+}
+
+// Liked playlists - playlists users have liked (auto-saved to their library)
+model LikedPlaylist {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  playlistId    String   @db.ObjectId
+  playlist      Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  
+  // Read-only flag (always true for liked playlists from others)
+  isReadOnly    Boolean  @default(true)
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, playlistId])
+  @@map("liked_playlists")
+  @@index([userId])
+  @@index([playlistId])
+  @@index([createdAt])
 }

@@ -65,7 +65,7 @@ export default function Navbar() {
         <div className="flex items-center gap-3">
           {/* Navigation Dropdown - Show below 1300px */}
           {!isDiscoverPage && (
-            <div className="[1290px]:hidden">
+            <div className="[1285px]:hidden">
               <NavDropdown navLinks={navLinks} hasHeroSection={hasHeroSection} />
             </div>
           )}
@@ -81,7 +81,7 @@ export default function Navbar() {
           <>
             {/* Center - Desktop Nav (non-dashboard and discover page, 1300px and above) */}
             {!isDiscoverPage && (
-              <div className="hidden [1290px]:flex items-center gap-1 flex-1 ml-3">
+              <div className="hidden [1285px]:flex items-center gap-1 flex-1 ml-3">
                 {navLinks.map((link) => {
                   const isActive = pathname === link.href;
                   return (
