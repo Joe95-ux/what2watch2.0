@@ -201,35 +201,47 @@ export default function DiscoverContent() {
 
     try {
       // Use current sessionId for the API call
+      const requestBody = {
+        message: userMessage.content,
+        sessionId: currentSessionId,
+        conversationHistory: mode === "information" ? messages.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        })) : [],
+        mode,
+      };
+
+      console.log("Sending request:", { mode, message: userMessage.content.substring(0, 50) });
+
       const response = await fetch("/api/ai/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          message: userMessage.content,
-          sessionId: currentSessionId,
-          conversationHistory: mode === "information" ? messages.map((msg) => ({
-            role: msg.role,
-            content: msg.content,
-          })) : [],
-          mode,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({ error: "Failed to process chat message" }));
+        console.error("API error:", error);
         throw new Error(error.error || "Failed to process chat message");
       }
 
       const responseData = await response.json();
+      console.log("Response received:", { mode, resultsCount: responseData.results?.length || 0 });
 
       if (mode === "recommendation") {
         // Store results for pagination
-        setCurrentResults(responseData.results);
-        setCurrentPage(1);
-        // Store user prompt for session title
-        setLastUserPrompt(userMessage.content);
+        if (responseData.results && Array.isArray(responseData.results)) {
+          setCurrentResults(responseData.results);
+          setCurrentPage(1);
+          // Store user prompt for session title
+          setLastUserPrompt(userMessage.content);
+          console.log("Results set:", responseData.results.length);
+        } else {
+          console.warn("No results in response:", responseData);
+          throw new Error("No results returned from the API");
+        }
       } else {
         // Information mode: show conversation (no movie cards)
         const assistantMessage: ChatMessage = {
@@ -243,13 +255,19 @@ export default function DiscoverContent() {
       }
     } catch (error) {
       console.error("Chat error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Sorry, I encountered an error processing your request. Please try again.";
+      
       if (mode === "information") {
-        const errorMessage: ChatMessage = {
+        const errorChatMessage: ChatMessage = {
           role: "assistant",
-          content: "Sorry, I encountered an error processing your request. Please try again.",
+          content: errorMessage,
           timestamp: new Date(),
         };
-        setMessages((prev) => [...prev, errorMessage]);
+        setMessages((prev) => [...prev, errorChatMessage]);
+      } else {
+        // For recommendation mode, show error in console and reset
+        console.error("Recommendation error:", errorMessage);
+        // Could show a toast notification here if needed
       }
     } finally {
       setIsLoading(false);
@@ -307,9 +325,9 @@ export default function DiscoverContent() {
           {/* Header with History */}
           <div className="w-full flex items-center justify-center gap-4 mb-6">
             {/* Tabs - Centered */}
-            <TabsList className="grid w-fit grid-cols-2 bg-muted/90 dark:bg-muted/80 border border-border shadow-sm">
-              <TabsTrigger value="recommendation" className="bg-muted/60 dark:bg-muted/50 data-[state=active]:bg-background/90 dark:data-[state=active]:bg-background/80">Recommendation</TabsTrigger>
-              <TabsTrigger value="information" className="bg-muted/60 dark:bg-muted/50 data-[state=active]:bg-background/90 dark:data-[state=active]:bg-background/80">Information</TabsTrigger>
+            <TabsList className="grid w-fit grid-cols-2">
+              <TabsTrigger value="recommendation">Recommendation</TabsTrigger>
+              <TabsTrigger value="information">Information</TabsTrigger>
             </TabsList>
 
             {/* Chat History Dropdown */}
