@@ -422,7 +422,7 @@ export default function LandingPage() {
 
   // Get backdrop image from first trending movie for glassy background
   const backdropImage = slides.length > 0 && slides[0].backdrop 
-    ? getBackdropUrl(slides[0].backdrop, "w1920")
+    ? getBackdropUrl(slides[0].backdrop, "original")
     : null;
 
   return (
