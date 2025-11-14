@@ -60,10 +60,10 @@ export default function PlaylistsContent() {
     const playlistMap = new Map<string, Playlist & { isOwn: boolean; isLiked: boolean }>();
     
     // Add own playlists first
-    own.forEach((p) => playlistMap.set(p.id, p));
+    own.forEach((p: Playlist & { isOwn: boolean; isLiked: boolean }) => playlistMap.set(p.id, p));
     
     // Add liked playlists (won't overwrite own)
-    liked.forEach((p) => {
+    liked.forEach((p: Playlist & { isOwn: boolean; isLiked: boolean }) => {
       if (!playlistMap.has(p.id)) {
         playlistMap.set(p.id, p);
       }
