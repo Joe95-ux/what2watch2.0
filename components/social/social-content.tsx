@@ -101,7 +101,7 @@ export default function SocialContent() {
         {/* Tab Content */}
         <div className={isMobile ? "" : "mt-6"}>
           {activeTab === "following" && (
-            <div>
+            <>
             {isLoadingFollowing ? (
               <div className="border rounded-lg">
                 <Table>
@@ -198,11 +198,11 @@ export default function SocialContent() {
                 </Table>
               </div>
             )}
-            </div>
+            </>
           )}
 
           {activeTab === "followers" && (
-            <div className={isMobile ? "" : "mt-6"}>
+            <>
             {isLoadingFollowers ? (
               <div className="border rounded-lg">
                 <Table>
@@ -287,7 +287,7 @@ export default function SocialContent() {
                 </Table>
               </div>
             )}
-            </div>
+            </>
           )}
         </div>
       </div>
