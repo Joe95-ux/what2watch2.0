@@ -104,11 +104,11 @@ export default function MyStatsContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-6 sm:py-8 md:py-10">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+      <div className="w-full px-2 sm:px-3 md:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 md:py-8 lg:py-10">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold mb-1">My Stats</h1>
-            <p className="text-sm sm:text-base text-muted-foreground max-w-2xl">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1">My Stats</h1>
+            <p className="text-xs sm:text-sm md:text-base text-muted-foreground max-w-2xl">
               Track how your playlists are performing across shares, visits,
               and audience engagement.
             </p>
@@ -118,7 +118,7 @@ export default function MyStatsContent() {
               value={range ?? "all"} 
               onValueChange={(value) => setRange(value === "all" ? undefined : value)}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Select range" />
               </SelectTrigger>
               <SelectContent>

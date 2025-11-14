@@ -46,14 +46,14 @@ export default function AiUsageContent() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 sm:mb-6">
         <div className="flex items-center gap-2">
-          <Activity className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl sm:text-3xl font-semibold">AI Usage</h1>
+          <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold">AI Usage</h1>
         </div>
         <Select value={range ?? "all"} onValueChange={(value) => setRange(value === "all" ? undefined : value)}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Select range" />
           </SelectTrigger>
           <SelectContent>
@@ -66,7 +66,7 @@ export default function AiUsageContent() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <MetricCard
           title="Total Queries"
           value={data?.totals.totalQueries ?? 0}
@@ -93,7 +93,7 @@ export default function AiUsageContent() {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <MetricCard
           title="Total Results"
           value={data?.totals.totalResults ?? 0}
@@ -121,7 +121,7 @@ export default function AiUsageContent() {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
         <Card>
           <CardHeader>
             <CardTitle>Query Trends</CardTitle>
@@ -129,9 +129,9 @@ export default function AiUsageContent() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <Skeleton className="h-[300px] w-full" />
+              <Skeleton className="h-[250px] sm:h-[300px] w-full" />
             ) : (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={250}>
                 <AreaChart data={trendData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
@@ -151,9 +151,9 @@ export default function AiUsageContent() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <Skeleton className="h-[300px] w-full" />
+              <Skeleton className="h-[250px] sm:h-[300px] w-full" />
             ) : data?.topGenres && data.topGenres.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={250}>
                 <BarChart
                   data={data.topGenres.map((g) => ({
                     ...g,
@@ -169,7 +169,7 @@ export default function AiUsageContent() {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+              <div className="h-[250px] sm:h-[300px] flex items-center justify-center text-muted-foreground">
                 No genre data available
               </div>
             )}

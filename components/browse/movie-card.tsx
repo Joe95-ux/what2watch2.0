@@ -22,9 +22,11 @@ interface MovieCardProps {
   canScrollPrev?: boolean;
   canScrollNext?: boolean;
   variant?: "default" | "more-like-this" | "dashboard"; // Variant for different card styles
+  onCardClick?: () => void; // Callback when card is clicked
+  onAddToPlaylist?: () => void; // Callback when item is added to playlist
 }
 
-export default function MovieCard({ item, type, className, canScrollPrev = false, canScrollNext = false, variant = "default" }: MovieCardProps) {
+export default function MovieCard({ item, type, className, canScrollPrev = false, canScrollNext = false, variant = "default", onCardClick, onAddToPlaylist }: MovieCardProps) {
   const isMobile = useIsMobile();
   const [isHovered, setIsHovered] = useState(false);
   const [trailer, setTrailer] = useState<TMDBVideo | null>(null);
@@ -275,6 +277,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
           const target = e.target as HTMLElement;
           if (!target.closest("button") && !target.closest('[role="button"]')) {
             setIsModalOpen(true);
+            onCardClick?.(); // Call callback when card is clicked
           }
         }}
         style={{
@@ -420,6 +423,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                       <AddToPlaylistDropdown
                         item={item}
                         type={type}
+                        onAddSuccess={onAddToPlaylist}
                         trigger={
                           <CircleActionButton
                             size={isMobile ? "sm" : "sm"}

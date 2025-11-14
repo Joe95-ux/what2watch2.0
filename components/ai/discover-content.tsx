@@ -40,6 +40,7 @@ export default function DiscoverContent() {
   const [input, setInput] = useState("");
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
   const [currentResults, setCurrentResults] = useState<(TMDBMovie | TMDBSeries)[]>([]);
+  const [currentResultsSessionId, setCurrentResultsSessionId] = useState<string>(""); // Store sessionId for current results
   const [currentPage, setCurrentPage] = useState(1);
   const [lastUserPrompt, setLastUserPrompt] = useState<string>(""); // Store last user prompt for recommendation mode
   const itemsPerPage = 12;
@@ -91,6 +92,7 @@ export default function DiscoverContent() {
         const results = metadata.results;
         if (Array.isArray(results)) {
           setCurrentResults(results);
+          setCurrentResultsSessionId(session.sessionId); // Store sessionId for loaded results
         }
       }
 
@@ -234,6 +236,7 @@ export default function DiscoverContent() {
         // Store results for pagination
         if (responseData.results && Array.isArray(responseData.results)) {
           setCurrentResults(responseData.results);
+          setCurrentResultsSessionId(currentSessionId); // Store sessionId for these results
           setCurrentPage(1);
           // Store user prompt for session title
           setLastUserPrompt(userMessage.content);
@@ -283,6 +286,7 @@ export default function DiscoverContent() {
     setSessionId(newSessionId);
     setMessages([]);
     setCurrentResults([]);
+    setCurrentResultsSessionId("");
     setInput("");
     setLastUserPrompt("");
   };
@@ -298,6 +302,31 @@ export default function DiscoverContent() {
       } catch (error) {
         console.error("Error deleting session:", error);
       }
+    }
+  };
+
+  // Track AI chat interactions
+  const trackInteraction = async (interactionType: "click" | "add_to_playlist") => {
+    if (mode !== "recommendation") return;
+    
+    // Use the sessionId associated with the current results
+    const trackingSessionId = currentResultsSessionId || sessionId;
+    if (!trackingSessionId) return;
+    
+    try {
+      await fetch("/api/ai/chat/track-interaction", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sessionId: trackingSessionId,
+          interactionType,
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to track interaction:", error);
+      // Don't show error to user, just log it
     }
   };
 
@@ -319,62 +348,71 @@ export default function DiscoverContent() {
   const filteredSessions = sessions.filter((s) => s.mode === mode);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-65px)] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="flex flex-col h-[calc(100vh-65px)] max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
       <Tabs value={mode} onValueChange={(v) => setMode(v as "recommendation" | "information")} className="flex-1 flex flex-col min-h-0">
         <div className="flex-1 flex flex-col items-center justify-center min-h-0">
           {/* Header with History */}
-          <div className="w-full flex items-center justify-center gap-4 mb-6">
+          <div className="w-full flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-4 sm:mb-6 px-2">
             {/* Tabs - Centered */}
-            <TabsList className="grid w-fit grid-cols-2">
-              <TabsTrigger value="recommendation">Recommendation</TabsTrigger>
-              <TabsTrigger value="information">Information</TabsTrigger>
+            <TabsList className="grid w-full sm:w-fit grid-cols-2">
+              <TabsTrigger value="recommendation" className="text-xs sm:text-sm">
+                <span className="hidden sm:inline">Recommendation</span>
+                <span className="sm:hidden">Recommend</span>
+              </TabsTrigger>
+              <TabsTrigger value="information" className="text-xs sm:text-sm">
+                Information
+              </TabsTrigger>
             </TabsList>
 
             {/* Chat History Dropdown */}
             {filteredSessions.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
+                  <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto">
                     <History className="h-4 w-4" />
                     <span className="hidden sm:inline">History</span>
+                    <span className="sm:hidden">Chats</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64 max-h-[400px] overflow-y-auto">
-                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                <DropdownMenuContent align="end" className="w-64 p-0">
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground sticky top-0 bg-background z-10 border-b">
                     Chat History
                   </div>
-                  <DropdownMenuSeparator />
-                  {filteredSessions.map((session) => (
-                    <DropdownMenuItem
-                      key={session.id}
-                      className="flex items-center justify-between cursor-pointer group"
-                      onClick={() => loadSession(session.sessionId)}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate">
-                          {session.title || "Untitled Chat"}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(session.updatedAt), { addSuffix: true })}
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => handleDeleteSession(session.sessionId, e)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </DropdownMenuItem>
-                  ))}
+                  <ScrollArea className="max-h-[400px]">
+                    <div className="p-1">
+                      {filteredSessions.map((session) => (
+                        <DropdownMenuItem
+                          key={session.id}
+                          className="flex items-center justify-between cursor-pointer group"
+                          onClick={() => loadSession(session.sessionId)}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate">
+                              {session.title || "Untitled Chat"}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(new Date(session.updatedAt), { addSuffix: true })}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => handleDeleteSession(session.sessionId, e)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuItem>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
 
             {/* New Chat Button */}
             {(messages.length > 0 || currentResults.length > 0) && (
-              <Button variant="outline" size="sm" onClick={handleNewChat}>
+              <Button variant="outline" size="sm" onClick={handleNewChat} className="w-full sm:w-auto">
                 New Chat
               </Button>
             )}
@@ -385,20 +423,24 @@ export default function DiscoverContent() {
             {currentResults.length > 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center min-h-0 mb-4 w-full">
                 <ScrollArea className="flex-1 w-full max-h-[calc(100vh-400px)]">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 pb-4 pr-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 md:gap-4 pb-4 pr-4">
                     {paginatedResults.map((item) => (
                       <div
                         key={item.id}
                         className="cursor-pointer"
-                        onClick={() => setSelectedItem({
-                          item,
-                          type: "title" in item ? "movie" : "tv",
-                        })}
                       >
                         <MovieCard
                           item={item}
                           type={"title" in item ? "movie" : "tv"}
                           variant="dashboard"
+                          onCardClick={() => {
+                            setSelectedItem({
+                              item,
+                              type: "title" in item ? "movie" : "tv",
+                            });
+                            trackInteraction("click");
+                          }}
+                          onAddToPlaylist={() => trackInteraction("add_to_playlist")}
                         />
                       </div>
                     ))}
@@ -407,17 +449,18 @@ export default function DiscoverContent() {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t w-full">
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t w-full gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
+                      className="flex-1 sm:flex-initial"
                     >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Previous
+                      <ChevronLeft className="h-4 w-4 sm:mr-1" />
+                      <span className="hidden sm:inline">Previous</span>
                     </Button>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
                       Page {currentPage} of {totalPages}
                     </div>
                     <Button
@@ -425,9 +468,10 @@ export default function DiscoverContent() {
                       size="sm"
                       onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                       disabled={currentPage === totalPages}
+                      className="flex-1 sm:flex-initial"
                     >
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
+                      <span className="hidden sm:inline">Next</span>
+                      <ChevronRight className="h-4 w-4 sm:ml-1" />
                     </Button>
                   </div>
                 )}
@@ -449,12 +493,12 @@ export default function DiscoverContent() {
 
                 {/* Suggestions below input */}
                 {currentResults.length === 0 && (
-                  <div className="flex flex-wrap gap-2 justify-center">
+                  <div className="flex flex-wrap gap-2 justify-center px-2">
                     {RECOMMENDATION_PROMPTS.map((prompt, index) => (
                       <button
                         key={index}
                         onClick={() => handlePromptClick(prompt)}
-                        className="px-4 py-2 text-sm rounded-full border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+                        className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-full border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
                       >
                         {prompt}
                       </button>
@@ -473,7 +517,7 @@ export default function DiscoverContent() {
                 infoChatHeight
               )}>
                 {/* Messages Area */}
-                <ScrollArea ref={infoScrollAreaRef} className="flex-1 p-4 max-h-[calc(100vh-400px)]">
+                <ScrollArea ref={infoScrollAreaRef} className="flex-1 p-3 sm:p-4 max-h-[calc(100vh-400px)]">
                   <div className="space-y-4">
                     {messages.length === 0 && (
                       <div className="text-center py-8 text-muted-foreground">
@@ -499,13 +543,13 @@ export default function DiscoverContent() {
                         )}
                         <div
                           className={cn(
-                            "rounded-lg px-4 py-2 max-w-[80%] sm:max-w-[70%]",
+                            "rounded-lg px-3 sm:px-4 py-2 max-w-[85%] sm:max-w-[70%]",
                             message.role === "user"
                               ? "bg-primary text-primary-foreground"
                               : "bg-muted"
                           )}
                         >
-                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          <p className="text-xs sm:text-sm whitespace-pre-wrap break-words">{message.content}</p>
                         </div>
                         {message.role === "user" && (
                           <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -532,7 +576,7 @@ export default function DiscoverContent() {
                 </ScrollArea>
 
                 {/* Input Area */}
-                <div className="border-t p-4 space-y-4">
+                <div className="border-t p-3 sm:p-4 space-y-4">
                   <ChatInput
                     value={input}
                     onChange={setInput}

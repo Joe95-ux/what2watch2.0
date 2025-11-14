@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { AiChatIntent } from "@prisma/client";
 import OpenAI from "openai";
-import { searchMovies, searchTV, discoverMovies, discoverTV, TMDBMovie, TMDBSeries } from "@/lib/tmdb";
+import { searchMovies, searchTV, searchPerson, getPersonMovieCredits, getPersonTVCredits, discoverMovies, discoverTV, TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -33,7 +33,8 @@ EXTRACTION RULES:
    - Director names (e.g., "Christopher Nolan", "Quentin Tarantino")
    - Movie/TV show titles (e.g., "The Matrix", "Breaking Bad")
    - Character names if searching for specific roles
-   - Extract ONLY the name/title, not descriptive words
+   - Extract ONLY the name/title, not descriptive words like "movies", "films", "starring", etc.
+   - For actor queries like "Tom Cruise movies" or "40 Arnold Schwarzenegger movies", extract just the name: "Tom Cruise" or "Arnold Schwarzenegger"
 
 2. GENRES field: Use ONLY when user explicitly mentions a genre:
    - Action=28, Adventure=12, Animation=16, Comedy=35, Crime=80, Documentary=99, Drama=18, Family=10751, Fantasy=14, History=36, Horror=27, Music=10402, Mystery=9648, Romance=10749, Sci-Fi=878, Thriller=53, War=10752, Western=37
@@ -52,6 +53,8 @@ EXTRACTION RULES:
 
 EXAMPLES:
 - "Give me 10 movies starring Tom Cruise" → {"query": "Tom Cruise", "type": "movie", "count": 10}
+- "Tom Cruise movies" → {"query": "Tom Cruise", "type": "movie"}
+- "40 Arnold Schwarzenegger movies" → {"query": "Arnold Schwarzenegger", "type": "movie", "count": 40}
 - "Show me action movies from the 90s" → {"genres": [28], "year": 1990, "type": "movie"}
 - "Horror TV shows" → {"genres": [27], "type": "tv"}
 - "Movies directed by Christopher Nolan" → {"query": "Christopher Nolan", "type": "movie"}
@@ -235,46 +238,156 @@ export async function POST(request: NextRequest) {
     // Priority: If there's a query (actor, director, title), use search
     // Otherwise, if there are genres or year, use discover
     if (query) {
-      // Use search API for actor/director/title queries
-      console.log("[AI Chat] Using search API with query:", query);
-      const searchType = type === "movie" ? "movie" : type === "tv" ? "tv" : "all";
+      // First, try to find if this is a person (actor/director) query
+      // Check if query looks like a person name (contains common name patterns)
+      const trimmedQuery = query.trim();
+      const words = trimmedQuery.split(/\s+/);
+      const looksLikePersonName = 
+        words.length >= 2 && 
+        words.every(word => /^[A-Z][a-z]+/.test(word)) && 
+        !trimmedQuery.toLowerCase().includes('movie') &&
+        !trimmedQuery.toLowerCase().includes('film') &&
+        !trimmedQuery.toLowerCase().includes('show') &&
+        !trimmedQuery.toLowerCase().includes('series');
       
-      const searchPromises: Promise<{ results: (TMDBMovie | TMDBSeries)[] }>[] = [];
-      
-      // Search multiple pages if we need more results
-      const pagesToSearch = extractedParams.count && extractedParams.count > 20 ? 2 : 1;
-      
-      if (searchType === "movie" || searchType === "all") {
-        for (let page = 1; page <= pagesToSearch; page++) {
-          searchPromises.push(
-            searchMovies(query, page).then((r) => ({ results: r.results }))
-          );
+      if (looksLikePersonName) {
+        console.log("[AI Chat] Query looks like a person name, searching for person first:", query);
+        try {
+          // Search for the person
+          const personSearchResults = await searchPerson(query, 1);
+          
+          if (personSearchResults.results.length > 0) {
+            // Use the first (most popular) matching person
+            const person = personSearchResults.results[0];
+            console.log("[AI Chat] Found person:", person.name, "ID:", person.id);
+            
+            // Get their filmography
+            const filmographyPromises: Promise<{ results: (TMDBMovie | TMDBSeries)[] }>[] = [];
+            
+            if (type === "movie" || type === "all") {
+              filmographyPromises.push(
+                getPersonMovieCredits(person.id).then((credits) => ({
+                  results: credits.cast.map((credit) => ({
+                    id: credit.id,
+                    title: credit.title,
+                    overview: "",
+                    poster_path: credit.poster_path,
+                    backdrop_path: credit.backdrop_path,
+                    release_date: credit.release_date,
+                    vote_average: credit.vote_average,
+                    vote_count: 0,
+                    genre_ids: [],
+                    popularity: 0,
+                    adult: false,
+                    original_language: "en",
+                    original_title: credit.title,
+                  } as TMDBMovie)),
+                }))
+              );
+            }
+            
+            if (type === "tv" || type === "all") {
+              filmographyPromises.push(
+                getPersonTVCredits(person.id).then((credits) => ({
+                  results: credits.cast.map((credit) => ({
+                    id: credit.id,
+                    name: credit.name,
+                    overview: "",
+                    poster_path: credit.poster_path,
+                    backdrop_path: credit.backdrop_path,
+                    first_air_date: credit.first_air_date,
+                    vote_average: credit.vote_average,
+                    vote_count: 0,
+                    genre_ids: [],
+                    popularity: 0,
+                    original_language: "en",
+                    original_name: credit.name,
+                  } as TMDBSeries)),
+                }))
+              );
+            }
+            
+            const filmographyResults = await Promise.all(filmographyPromises);
+            const combined = filmographyResults.flatMap((r) => r.results);
+            
+            // Sort by release date (newest first) and deduplicate
+            const seen = new Set<number>();
+            const maxResults = extractedParams.count || 20;
+            results = combined
+              .filter((item) => {
+                if (seen.has(item.id)) return false;
+                seen.add(item.id);
+                return true;
+              })
+              .sort((a, b) => {
+                // Sort by release date (newest first)
+                const dateA = "title" in a ? a.release_date : a.first_air_date;
+                const dateB = "title" in b ? b.release_date : b.first_air_date;
+                if (dateA && dateB) {
+                  return new Date(dateB).getTime() - new Date(dateA).getTime();
+                }
+                return 0;
+              })
+              .slice(0, maxResults);
+            
+            console.log("[AI Chat] Person filmography results:", results.length);
+            resultIds = results.map((r) => r.id);
+            resultTypes = results.map((r) => ("title" in r ? "movie" : "tv"));
+          } else {
+            // Person not found, fall through to regular search
+            console.log("[AI Chat] Person not found, falling back to regular search");
+            throw new Error("Person not found");
+          }
+        } catch (personError) {
+          // If person search fails, fall back to regular movie/TV search
+          console.log("[AI Chat] Person search failed, using regular search:", personError);
+          // Fall through to regular search below
         }
       }
       
-      if (searchType === "tv" || searchType === "all") {
-        for (let page = 1; page <= pagesToSearch; page++) {
-          searchPromises.push(
-            searchTV(query, page).then((r) => ({ results: r.results }))
-          );
+      // If person search didn't work or query doesn't look like a person name, use regular search
+      if (results.length === 0) {
+        console.log("[AI Chat] Using regular search API with query:", query);
+        const searchType = type === "movie" ? "movie" : type === "tv" ? "tv" : "all";
+        
+        const searchPromises: Promise<{ results: (TMDBMovie | TMDBSeries)[] }>[] = [];
+        
+        // Calculate how many pages we need based on requested count
+        // Each page typically has 20 results, so for 40 results we need at least 2 pages
+        const maxResults = extractedParams.count || 20;
+        const pagesToSearch = Math.min(Math.ceil(maxResults / 20) + 1, 5); // Search up to 5 pages max
+        
+        if (searchType === "movie" || searchType === "all") {
+          for (let page = 1; page <= pagesToSearch; page++) {
+            searchPromises.push(
+              searchMovies(query, page).then((r) => ({ results: r.results }))
+            );
+          }
         }
+        
+        if (searchType === "tv" || searchType === "all") {
+          for (let page = 1; page <= pagesToSearch; page++) {
+            searchPromises.push(
+              searchTV(query, page).then((r) => ({ results: r.results }))
+            );
+          }
+        }
+
+        const searchResults = await Promise.all(searchPromises);
+        const combined = searchResults.flatMap((r) => r.results);
+        
+        // Deduplicate by ID and limit to requested count
+        const seen = new Set<number>();
+        results = combined.filter((item) => {
+          if (seen.has(item.id)) return false;
+          seen.add(item.id);
+          return true;
+        }).slice(0, maxResults);
+
+        console.log("[AI Chat] Regular search results:", results.length, "from", pagesToSearch, "page(s)");
+        resultIds = results.map((r) => r.id);
+        resultTypes = results.map((r) => ("title" in r ? "movie" : "tv"));
       }
-
-      const searchResults = await Promise.all(searchPromises);
-      const combined = searchResults.flatMap((r) => r.results);
-      
-      // Deduplicate by ID and limit to requested count
-      const seen = new Set<number>();
-      const maxResults = extractedParams.count || 20;
-      results = combined.filter((item) => {
-        if (seen.has(item.id)) return false;
-        seen.add(item.id);
-        return true;
-      }).slice(0, maxResults);
-
-      console.log("[AI Chat] Search results:", results.length, "from", pagesToSearch, "page(s)");
-      resultIds = results.map((r) => r.id);
-      resultTypes = results.map((r) => ("title" in r ? "movie" : "tv"));
     } else if (genres.length > 0 || year) {
       // Use discover with filters
       console.log("[AI Chat] Using discover API with filters:", { genres, year });

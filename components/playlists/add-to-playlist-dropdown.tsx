@@ -21,9 +21,10 @@ interface AddToPlaylistDropdownProps {
   type: "movie" | "tv";
   trigger?: React.ReactNode;
   onOpenChange?: (open: boolean) => void;
+  onAddSuccess?: () => void; // Callback when item is successfully added
 }
 
-export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChange }: AddToPlaylistDropdownProps) {
+export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChange, onAddSuccess }: AddToPlaylistDropdownProps) {
   const { data: playlists = [], isLoading } = usePlaylists();
   const addItemToPlaylist = useAddItemToPlaylist();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -53,6 +54,7 @@ export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChang
         },
       });
       toast.success(`Added to "${playlists.find((p) => p.id === playlistId)?.name}"`);
+      onAddSuccess?.(); // Call callback after successful addition
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to add to playlist";
       if (errorMessage.includes("already in playlist")) {

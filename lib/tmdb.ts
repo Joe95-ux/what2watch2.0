@@ -257,6 +257,72 @@ export async function searchTV(query: string, page: number = 1): Promise<TMDBRes
 }
 
 /**
+ * Search for people (actors, directors, etc.)
+ */
+export interface TMDBSearchPerson {
+  id: number;
+  name: string;
+  known_for_department: string;
+  profile_path: string | null;
+  popularity: number;
+}
+
+export interface TMDBSearchPersonResponse {
+  page: number;
+  results: TMDBSearchPerson[];
+  total_pages: number;
+  total_results: number;
+}
+
+export async function searchPerson(query: string, page: number = 1): Promise<TMDBSearchPersonResponse> {
+  return fetchTMDB<TMDBSearchPersonResponse>('/search/person', { query, page });
+}
+
+/**
+ * Get person movie credits
+ */
+export interface TMDBPersonMovieCredit {
+  id: number;
+  title: string;
+  character?: string;
+  release_date: string;
+  vote_average: number;
+  poster_path: string | null;
+  backdrop_path: string | null;
+}
+
+export interface TMDBPersonMovieCredits {
+  cast: TMDBPersonMovieCredit[];
+  crew: TMDBPersonMovieCredit[];
+}
+
+export async function getPersonMovieCredits(personId: number): Promise<TMDBPersonMovieCredits> {
+  return fetchTMDB<TMDBPersonMovieCredits>(`/person/${personId}/movie_credits`);
+}
+
+/**
+ * Get person TV credits
+ */
+export interface TMDBPersonTVCredit {
+  id: number;
+  name: string;
+  character?: string;
+  first_air_date: string;
+  vote_average: number;
+  poster_path: string | null;
+  backdrop_path: string | null;
+}
+
+export interface TMDBPersonTVCredits {
+  cast: TMDBPersonTVCredit[];
+  crew: TMDBPersonTVCredit[];
+}
+
+export async function getPersonTVCredits(personId: number): Promise<TMDBPersonTVCredits> {
+  return fetchTMDB<TMDBPersonTVCredits>(`/person/${personId}/tv_credits`);
+}
+
+/**
  * Get movie details
  */
 export async function getMovieDetails(movieId: number): Promise<TMDBMovie & { genres: TMDBGenre[]; runtime: number; budget: number; revenue: number }> {
