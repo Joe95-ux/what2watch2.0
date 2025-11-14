@@ -275,7 +275,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
         onMouseLeave={handleMouseLeave}
         onClick={(e) => {
           const target = e.target as HTMLElement;
-          if (!target.closest("button") && !target.closest('[role="button"]')) {
+          // Don't open details modal if clicking on buttons or if trailer modal is open
+          if (!target.closest("button") && !target.closest('[role="button"]') && !isTrailerModalOpen) {
             setIsModalOpen(true);
             onCardClick?.(); // Call callback when card is clicked
           }
@@ -406,6 +407,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    // Prevent details modal from opening
+                    setIsModalOpen(false);
                     setIsTrailerModalOpen(true);
 
                     // Only fetch if we don't have cached videos

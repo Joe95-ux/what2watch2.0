@@ -925,7 +925,8 @@ function FeaturedContent({ slide, onPlay, trailerDuration, onPrevious, onNext, c
       ) : (
         <div className="h-full w-full bg-gradient-to-br from-muted to-muted/50" />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent dark:from-black dark:via-black/80" />
+      {/* Dark gradient overlay - more intense as you go down (JustWatch style) */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/90 via-black/60 to-transparent" />
 
       {/* Bottom Section - Poster and Details */}
       <div className="absolute bottom-0 left-0 right-0 z-10 p-4 sm:p-6">

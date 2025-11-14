@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { TMDBVideo, getYouTubeEmbedUrl } from "@/lib/tmdb";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -31,6 +31,7 @@ export default function TrailerModal({
   onOpenDetails,
 }: TrailerModalProps) {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   // Filter to only YouTube videos - memoized to prevent unnecessary re-renders
   const youtubeVideos = useMemo(() => {
@@ -49,6 +50,11 @@ export default function TrailerModal({
   useEffect(() => {
     if (!isOpen) {
       setCurrentVideoIndex(0);
+      // Stop video playback when modal closes
+      if (iframeRef.current) {
+        // Remove iframe src to stop playback
+        iframeRef.current.src = "";
+      }
       return;
     }
 
@@ -107,8 +113,16 @@ export default function TrailerModal({
       ? "Oops! Trailer not available. Enjoy the movie poster and details below."
       : "We couldn't load trailers right now.");
 
+  const handleClose = () => {
+    // Stop video playback immediately
+    if (iframeRef.current) {
+      iframeRef.current.src = "";
+    }
+    onClose();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent
         showCloseButton={false}
         className="!max-w-[90vw] !w-full !h-[90vh] !max-h-[90vh] !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 overflow-hidden p-0 gap-0 bg-black !border-gray-800 dark:!border-gray-800"
@@ -121,7 +135,7 @@ export default function TrailerModal({
         
         {/* Close Button */}
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute top-4 right-4 z-50 h-14 w-14 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-colors cursor-pointer"
           aria-label="Close"
         >
@@ -191,6 +205,7 @@ export default function TrailerModal({
           ) : currentVideo && isOpen ? (
             <div className="relative w-full h-full">
               <iframe
+                ref={iframeRef}
                 key={currentVideo.id} // Force re-render when video changes
                 src={getYouTubeEmbedUrl(currentVideo.key, true)}
                 className="w-full h-full"

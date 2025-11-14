@@ -34,12 +34,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Get playlists from followed users (PUBLIC or FOLLOWERS_ONLY)
+    // Support both visibility enum and legacy isPublic field
     const playlists = await db.playlist.findMany({
       where: {
         userId: { in: followingIds },
         OR: [
           { visibility: PlaylistVisibility.PUBLIC },
           { visibility: PlaylistVisibility.FOLLOWERS_ONLY },
+          { isPublic: true }, // Support legacy isPublic field
         ],
       },
       include: {

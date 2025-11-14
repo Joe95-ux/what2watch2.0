@@ -15,9 +15,10 @@ interface PlaylistCardProps {
   playlist: Playlist;
   className?: string;
   showLikeButton?: boolean;
+  variant?: "carousel" | "grid";
 }
 
-export default function PlaylistCard({ playlist, className, showLikeButton = true }: PlaylistCardProps) {
+export default function PlaylistCard({ playlist, className, showLikeButton = true, variant = "carousel" }: PlaylistCardProps) {
   const router = useRouter();
   const { data: currentUser } = useCurrentUser();
   const { data: likeStatus } = useIsLiked(playlist.id);
@@ -49,13 +50,15 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
   return (
     <div
       className={cn(
-        "group relative flex-shrink-0 cursor-pointer",
+        "group relative cursor-pointer",
         "transition-transform duration-300 hover:scale-105",
+        variant === "carousel" && "flex-shrink-0 w-[180px] sm:w-[200px]",
+        variant === "grid" && "w-full",
         className
       )}
       onClick={() => router.push(`/playlists/${playlist.id}/public`)}
     >
-      <div className="relative w-[180px] sm:w-[200px] aspect-[3/4] rounded-lg overflow-hidden bg-muted border border-border hover:border-primary/50 transition-colors">
+      <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-muted border border-border hover:border-primary/50 transition-colors">
         {/* Cover Image */}
         {coverImage ? (
           <Image

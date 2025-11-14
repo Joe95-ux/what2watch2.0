@@ -291,6 +291,7 @@ export default function PlaylistsContent() {
                 key={playlist.id}
                 playlist={playlist}
                 showLikeButton={!playlist.isOwn}
+                variant="grid"
               />
             ))}
           </div>

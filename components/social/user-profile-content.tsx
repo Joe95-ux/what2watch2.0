@@ -2,16 +2,25 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FollowButton } from "./follow-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useUserFollowers, useUserFollowing } from "@/hooks/use-follow";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import PlaylistRow from "@/components/browse/playlist-row";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import PlaylistCard from "@/components/browse/playlist-card";
 import { Playlist } from "@/hooks/use-playlists";
-import { Users, UserCheck, List, ArrowLeft } from "lucide-react";
+import { Users, UserCheck, List, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface UserProfileContentProps {
   userId?: string;
@@ -23,6 +32,8 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   const userId = propUserId || (params?.userId as string) || "";
   const { data: currentUser } = useCurrentUser();
   const isOwnProfile = currentUser?.id === userId;
+  const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState<"playlists" | "followers" | "following">("playlists");
 
   // Fetch user data
   const { data: userData, isLoading: isLoadingUser } = useQuery({
@@ -52,9 +63,28 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   });
 
   const user = userData?.user;
-  const playlists = playlistsData?.playlists || [];
+  const playlists = useMemo(() => (playlistsData?.playlists || []) as Playlist[], [playlistsData?.playlists]);
   const followers = followersData?.followers || [];
   const following = followingData?.following || [];
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 24;
+
+  // Pagination calculations
+  const totalPages = useMemo(() => {
+    return Math.ceil(playlists.length / itemsPerPage);
+  }, [playlists.length, itemsPerPage]);
+
+  const paginatedPlaylists = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return playlists.slice(startIndex, startIndex + itemsPerPage);
+  }, [playlists, currentPage, itemsPerPage]);
+
+  // Reset to page 1 when playlists change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [playlists.length]);
 
   if (isLoadingUser) {
     return (
@@ -176,25 +206,80 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
 
       {/* Content */}
       <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs defaultValue="playlists" className="w-full">
-          <TabsList>
-            <TabsTrigger value="playlists" className="flex items-center gap-2">
-              <List className="h-4 w-4" />
-              Playlists ({playlists.length})
-            </TabsTrigger>
-            <TabsTrigger value="followers" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Followers ({followers.length})
-            </TabsTrigger>
-            <TabsTrigger value="following" className="flex items-center gap-2">
-              <UserCheck className="h-4 w-4" />
-              Following ({following.length})
-            </TabsTrigger>
-          </TabsList>
+        {/* Mobile: Select Dropdown */}
+        {isMobile ? (
+          <div className="mb-6">
+            <Select value={activeTab} onValueChange={(v) => setActiveTab(v as "playlists" | "followers" | "following")}>
+              <SelectTrigger className="w-full">
+                <SelectValue>
+                  {activeTab === "playlists" && (
+                    <span className="flex items-center gap-2">
+                      <List className="h-4 w-4" />
+                      Playlists ({playlists.length})
+                    </span>
+                  )}
+                  {activeTab === "followers" && (
+                    <span className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Followers ({followers.length})
+                    </span>
+                  )}
+                  {activeTab === "following" && (
+                    <span className="flex items-center gap-2">
+                      <UserCheck className="h-4 w-4" />
+                      Following ({following.length})
+                    </span>
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="playlists">
+                  <span className="flex items-center gap-2">
+                    <List className="h-4 w-4" />
+                    Playlists ({playlists.length})
+                  </span>
+                </SelectItem>
+                <SelectItem value="followers">
+                  <span className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Followers ({followers.length})
+                  </span>
+                </SelectItem>
+                <SelectItem value="following">
+                  <span className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4" />
+                    Following ({following.length})
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        ) : (
+          /* Desktop: Tabs */
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "playlists" | "followers" | "following")} className="w-full">
+            <TabsList>
+              <TabsTrigger value="playlists" className="flex items-center gap-2">
+                <List className="h-4 w-4" />
+                Playlists ({playlists.length})
+              </TabsTrigger>
+              <TabsTrigger value="followers" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Followers ({followers.length})
+              </TabsTrigger>
+              <TabsTrigger value="following" className="flex items-center gap-2">
+                <UserCheck className="h-4 w-4" />
+                Following ({following.length})
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
 
-          <TabsContent value="playlists" className="mt-6">
+        {/* Tab Content */}
+        <div className={isMobile ? "" : "mt-6"}>
+          {activeTab === "playlists" && (
+            <>
             {isLoadingPlaylists ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Skeleton key={i} className="aspect-[3/4] w-full rounded-lg" />
                 ))}
@@ -206,11 +291,49 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
                 <p className="text-muted-foreground">This user hasn&apos;t created any playlists.</p>
               </div>
             ) : (
-              <PlaylistRow title="" playlists={playlists as Playlist[]} href="/playlists" />
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
+                  {paginatedPlaylists.map((playlist: Playlist) => (
+                    <PlaylistCard
+                      key={playlist.id}
+                      playlist={playlist}
+                      showLikeButton={!isOwnProfile}
+                      variant="grid"
+                    />
+                  ))}
+                </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-6">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Previous
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
-          </TabsContent>
+            </>
+          )}
 
-          <TabsContent value="followers" className="mt-6">
+          {activeTab === "followers" && (
+            <div className={isMobile ? "" : "mt-6"}>
             {followers.length === 0 ? (
               <div className="text-center py-12">
                 <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -219,28 +342,37 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
               </div>
             ) : (
               <div className="space-y-4">
-                {followers.map((follower) => (
-                  <div key={follower.id} className="flex items-center gap-4 p-4 rounded-lg border bg-card">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={follower.avatarUrl || undefined} alt={follower.displayName || ""} />
-                      <AvatarFallback>
-                        {(follower.displayName || follower.username || "U")[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{follower.displayName || follower.username || "Unknown"}</p>
-                      {follower.username && (
-                        <p className="text-sm text-muted-foreground truncate">@{follower.username}</p>
+                {followers.map((follower) => {
+                  const isCurrentUser = currentUser?.id === follower.id;
+                  return (
+                    <div key={follower.id} className="flex items-center gap-4 p-4 rounded-lg border bg-card">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={follower.avatarUrl || undefined} alt={follower.displayName || ""} />
+                        <AvatarFallback>
+                          {(follower.displayName || follower.username || "U")[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold truncate">{follower.displayName || follower.username || "Unknown"}</p>
+                        {follower.username && (
+                          <p className="text-sm text-muted-foreground truncate">@{follower.username}</p>
+                        )}
+                      </div>
+                      {isCurrentUser ? (
+                        <span className="text-sm text-muted-foreground px-3 py-1.5">You</span>
+                      ) : (
+                        <FollowButton userId={follower.id} size="sm" />
                       )}
                     </div>
-                    <FollowButton userId={follower.id} size="sm" />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
-          </TabsContent>
+            </div>
+          )}
 
-          <TabsContent value="following" className="mt-6">
+          {activeTab === "following" && (
+            <div className={isMobile ? "" : "mt-6"}>
             {following.length === 0 ? (
               <div className="text-center py-12">
                 <UserCheck className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -268,8 +400,9 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
                 ))}
               </div>
             )}
-          </TabsContent>
-        </Tabs>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

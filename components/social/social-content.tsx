@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useFollowing, useFollowers } from "@/hooks/use-follow";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, UserCheck } from "lucide-react";
@@ -17,38 +24,84 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FollowButton } from "./follow-button";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function SocialContent() {
   const [activeTab, setActiveTab] = useState<"following" | "followers">("following");
   const { data: followingData, isLoading: isLoadingFollowing } = useFollowing();
   const { data: followersData, isLoading: isLoadingFollowers } = useFollowers();
+  const isMobile = useIsMobile();
 
   const following = followingData?.following || [];
   const followers = followersData?.followers || [];
 
   return (
     <div className="flex-1 space-y-6 p-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Social</h1>
-        <p className="text-muted-foreground mt-2">
-          Manage who you follow and see who follows you
-        </p>
-      </div>
+      <div className="container max-w-7xl mx-auto">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold tracking-tight">Social</h1>
+          <p className="text-muted-foreground mt-2">
+            Manage who you follow and see who follows you
+          </p>
+        </div>
 
-      <div className="max-w-4xl">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "following" | "followers")}>
-          <TabsList>
-            <TabsTrigger value="following" className="flex items-center gap-2">
-              <UserCheck className="h-4 w-4" />
-              Following ({following.length})
-            </TabsTrigger>
-            <TabsTrigger value="followers" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Followers ({followers.length})
-            </TabsTrigger>
-          </TabsList>
+        <div className="max-w-4xl mx-auto">
+        {/* Mobile: Select Dropdown */}
+        {isMobile ? (
+          <div className="mb-6">
+            <Select value={activeTab} onValueChange={(v) => setActiveTab(v as "following" | "followers")}>
+              <SelectTrigger className="w-full">
+                <SelectValue>
+                  {activeTab === "following" && (
+                    <span className="flex items-center gap-2">
+                      <UserCheck className="h-4 w-4" />
+                      Following ({following.length})
+                    </span>
+                  )}
+                  {activeTab === "followers" && (
+                    <span className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Followers ({followers.length})
+                    </span>
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="following">
+                  <span className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4" />
+                    Following ({following.length})
+                  </span>
+                </SelectItem>
+                <SelectItem value="followers">
+                  <span className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Followers ({followers.length})
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        ) : (
+          /* Desktop: Tabs */
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "following" | "followers")}>
+            <TabsList>
+              <TabsTrigger value="following" className="flex items-center gap-2">
+                <UserCheck className="h-4 w-4" />
+                Following ({following.length})
+              </TabsTrigger>
+              <TabsTrigger value="followers" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Followers ({followers.length})
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
 
-          <TabsContent value="following" className="mt-6">
+        {/* Tab Content */}
+        <div className={isMobile ? "" : "mt-6"}>
+          {activeTab === "following" && (
+            <div>
             {isLoadingFollowing ? (
               <div className="border rounded-lg">
                 <Table>
@@ -145,9 +198,11 @@ export default function SocialContent() {
                 </Table>
               </div>
             )}
-          </TabsContent>
+            </div>
+          )}
 
-          <TabsContent value="followers" className="mt-6">
+          {activeTab === "followers" && (
+            <div className={isMobile ? "" : "mt-6"}>
             {isLoadingFollowers ? (
               <div className="border rounded-lg">
                 <Table>
@@ -232,8 +287,9 @@ export default function SocialContent() {
                 </Table>
               </div>
             )}
-          </TabsContent>
-        </Tabs>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
