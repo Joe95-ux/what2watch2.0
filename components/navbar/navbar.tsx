@@ -61,11 +61,11 @@ export default function Navbar() {
         isDashboard ? "grid grid-cols-[auto_1fr_auto] gap-4" : "justify-between",
         isDiscoverPage && "justify-between"
       )}>
-        {/* Left side - Hamburger (below xl) and Logo */}
+        {/* Left side - Hamburger (below 1300px) and Logo */}
         <div className="flex items-center gap-3">
-          {/* Navigation Dropdown - Show below xl (below 1280px) */}
+          {/* Navigation Dropdown - Show below 1300px */}
           {!isDiscoverPage && (
-            <div className="xl:hidden">
+            <div className="[1300px]:hidden">
               <NavDropdown navLinks={navLinks} hasHeroSection={hasHeroSection} />
             </div>
           )}
@@ -79,9 +79,9 @@ export default function Navbar() {
           </div>
         ) : (
           <>
-            {/* Center - Desktop Nav (non-dashboard and discover page, xl and above) */}
+            {/* Center - Desktop Nav (non-dashboard and discover page, 1300px and above) */}
             {!isDiscoverPage && (
-              <div className="hidden xl:flex items-center gap-1 flex-1 ml-3">
+              <div className="hidden [1300px]:flex items-center gap-1 flex-1 ml-3">
                 {navLinks.map((link) => {
                   const isActive = pathname === link.href;
                   return (

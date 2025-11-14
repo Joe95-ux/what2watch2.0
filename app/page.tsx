@@ -420,13 +420,41 @@ export default function LandingPage() {
     router.push("/browse");
   }, [router]);
 
+  // Get backdrop image from first trending movie for glassy background
+  const backdropImage = slides.length > 0 && slides[0].backdrop 
+    ? getBackdropUrl(slides[0].backdrop, "w1920")
+    : null;
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden border-b bg-gradient-to-b from-background to-muted/20 py-20 sm:py-28 lg:py-32">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Hero Section with Glassy Backdrop */}
+      <section className="relative overflow-hidden border-b py-20 sm:py-28 lg:py-32">
+        {/* Glassy Backdrop Layer */}
+        {backdropImage && (
+          <div className="absolute inset-0 z-0">
+            {/* Background Image */}
+            <Image
+              src={backdropImage}
+              alt="Background"
+              fill
+              className="object-cover"
+              sizes="100vw"
+              priority
+              quality={85}
+            />
+            {/* Dark Overlay for Contrast */}
+            <div className="absolute inset-0 bg-black/60 dark:bg-black/70" />
+            {/* Glassmorphism Effect */}
+            <div className="absolute inset-0 backdrop-blur-[2px] bg-white/5 dark:bg-white/5" />
+            {/* Gradient Fade at Bottom */}
+            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
+          </div>
+        )}
+        
+        {/* Content Layer - No Glass Effects */}
+        <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-4xl text-center">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border bg-muted/50 px-4 py-1.5 text-sm font-medium text-muted-foreground">
               <Sparkles className="h-4 w-4 text-primary" />
