@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useUser } from "@clerk/nextjs";
 import { type ChatMessage } from "@/hooks/use-ai-chat";
 import { useChatSessions, useSaveChatSession, useDeleteChatSession } from "@/hooks/use-ai-chat-sessions";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Info, History, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,16 +45,20 @@ export default function DiscoverContent() {
   const [currentResultsSessionId, setCurrentResultsSessionId] = useState<string>(""); // Store sessionId for current results
   const [currentPage, setCurrentPage] = useState(1);
   const [lastUserPrompt, setLastUserPrompt] = useState<string>(""); // Store last user prompt for recommendation mode
+  const [streamingMessage, setStreamingMessage] = useState<string>(""); // For typing animation
+  const [isStreaming, setIsStreaming] = useState(false); // Track if currently streaming
   const itemsPerPage = 12;
   const infoScrollAreaRef = useRef<HTMLDivElement>(null);
   const sessionIdRef = useRef(sessionId);
   const hasAutoLoadedRef = useRef(false);
   const lastSavedDataRef = useRef<string>(""); // Track last saved data to prevent duplicate saves
+  const typingIntervalRef = useRef<NodeJS.Timeout | null>(null); // Track typing interval for cleanup
   
   // Keep ref in sync with state
   useEffect(() => {
     sessionIdRef.current = sessionId;
   }, [sessionId]);
+  const { user } = useUser();
   const queryClient = useQueryClient();
   const saveSessionMutation = useSaveChatSession();
   const deleteSessionMutation = useDeleteChatSession();
@@ -193,9 +199,25 @@ export default function DiscoverContent() {
       setMessages([]);
       setCurrentResults([]);
     }
+    // Cleanup typing interval on mode change
+    if (typingIntervalRef.current) {
+      clearInterval(typingIntervalRef.current);
+      typingIntervalRef.current = null;
+    }
+    setIsStreaming(false);
+    setStreamingMessage("");
   }, [mode]);
+  
+  // Cleanup typing interval on unmount
+  useEffect(() => {
+    return () => {
+      if (typingIntervalRef.current) {
+        clearInterval(typingIntervalRef.current);
+      }
+    };
+  }, []);
 
-  // Auto-scroll to bottom when new messages arrive (information mode)
+  // Auto-scroll to bottom when new messages arrive or when streaming (information mode)
   useEffect(() => {
     if (mode === "information" && infoScrollAreaRef.current) {
       const scrollContainer = infoScrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
@@ -203,7 +225,7 @@ export default function DiscoverContent() {
         scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }
     }
-  }, [messages, mode]);
+  }, [messages, mode, streamingMessage]);
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -277,18 +299,51 @@ export default function DiscoverContent() {
           throw new Error("No results returned from the API");
         }
       } else {
-        // Information mode: show conversation (no movie cards)
-        const assistantMessage: ChatMessage = {
-          role: "assistant",
-          content: responseData.message,
-          intent: responseData.intent,
-          metadata: responseData.metadata,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
+        // Information mode: show conversation with typing animation
+        const fullMessage = responseData.message;
+        setIsStreaming(true);
+        setStreamingMessage("");
+        
+        // Clear any existing interval
+        if (typingIntervalRef.current) {
+          clearInterval(typingIntervalRef.current);
+        }
+        
+        // Simulate typing animation
+        let currentIndex = 0;
+        typingIntervalRef.current = setInterval(() => {
+          if (currentIndex < fullMessage.length) {
+            setStreamingMessage(fullMessage.substring(0, currentIndex + 1));
+            currentIndex++;
+          } else {
+            if (typingIntervalRef.current) {
+              clearInterval(typingIntervalRef.current);
+              typingIntervalRef.current = null;
+            }
+            setIsStreaming(false);
+            // Add complete message to messages array
+            const assistantMessage: ChatMessage = {
+              role: "assistant",
+              content: fullMessage,
+              intent: responseData.intent,
+              metadata: responseData.metadata,
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, assistantMessage]);
+            setStreamingMessage("");
+          }
+        }, 20); // Adjust speed: lower = faster typing
       }
     } catch (error) {
       console.error("Chat error:", error);
+      // Clear typing interval on error
+      if (typingIntervalRef.current) {
+        clearInterval(typingIntervalRef.current);
+        typingIntervalRef.current = null;
+      }
+      setIsStreaming(false);
+      setStreamingMessage("");
+      
       const errorMessage = error instanceof Error ? error.message : "Sorry, I encountered an error processing your request. Please try again.";
       
       if (mode === "information") {
@@ -590,21 +645,51 @@ export default function DiscoverContent() {
                           className={cn(
                             "rounded-lg px-3 sm:px-4 py-2 max-w-[85%] sm:max-w-[70%]",
                             message.role === "user"
-                              ? "bg-primary text-primary-foreground"
+                              ? "bg-muted/80 dark:bg-muted/60 text-foreground"
                               : "bg-muted"
                           )}
                         >
                           <p className="text-xs sm:text-sm whitespace-pre-wrap break-words">{message.content}</p>
                         </div>
                         {message.role === "user" && (
-                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                            <span className="text-xs font-medium text-primary">U</span>
+                          <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden border-2 border-border">
+                            {user?.imageUrl ? (
+                              <Image
+                                src={user.imageUrl}
+                                alt={user.firstName || "User"}
+                                width={32}
+                                height={32}
+                                className="w-full h-full object-cover"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+                                <span className="text-xs font-medium text-primary">
+                                  {user?.firstName?.[0] || user?.emailAddresses?.[0]?.emailAddress?.[0]?.toUpperCase() || "U"}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
                     ))}
 
-                    {isLoading && (
+                    {/* Streaming message display */}
+                    {isStreaming && streamingMessage && (
+                      <div className="flex gap-3 justify-start">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Info className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="rounded-lg px-3 sm:px-4 py-2 max-w-[85%] sm:max-w-[70%] bg-muted">
+                          <p className="text-xs sm:text-sm whitespace-pre-wrap break-words">
+                            {streamingMessage}
+                            <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse">|</span>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {isLoading && !isStreaming && (
                       <div className="flex gap-3 justify-start">
                         <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                           <Info className="h-4 w-4 text-primary" />
