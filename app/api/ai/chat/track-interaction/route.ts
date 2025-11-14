@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { AiChatIntent } from "@prisma/client";
 
 // POST - Track user interaction with AI chat results
 export async function POST(request: NextRequest) {
@@ -37,11 +38,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find the most recent AI chat event for this session
+    // Find the most recent RECOMMENDATION event for this session
     const latestEvent = await db.aiChatEvent.findFirst({
       where: {
         userId: user.id,
         sessionId: sessionId,
+        intent: AiChatIntent.RECOMMENDATION, // Only track interactions for recommendation events
       },
       orderBy: {
         createdAt: "desc",
@@ -49,13 +51,17 @@ export async function POST(request: NextRequest) {
     });
 
     if (!latestEvent) {
+      console.error(`[Track Interaction] No RECOMMENDATION event found for sessionId: ${sessionId}, userId: ${user.id}`);
       return NextResponse.json(
         { error: "No chat event found for this session" },
         { status: 404 }
       );
     }
 
+    console.log(`[Track Interaction] Found event ${latestEvent.id} for session ${sessionId}, current clicks: ${latestEvent.resultsClicked || 0}, current adds: ${latestEvent.resultsAddedToPlaylist || 0}`);
+
     // Update the event with the interaction
+    // Use increment to handle concurrent updates properly
     const updateData: {
       resultsClicked?: { increment: number };
       resultsAddedToPlaylist?: { increment: number };
@@ -67,10 +73,12 @@ export async function POST(request: NextRequest) {
       updateData.resultsAddedToPlaylist = { increment: 1 };
     }
 
-    await db.aiChatEvent.update({
+    const updated = await db.aiChatEvent.update({
       where: { id: latestEvent.id },
       data: updateData,
     });
+
+    console.log(`[Track Interaction] Updated ${interactionType} for event ${latestEvent.id}: clicks=${updated.resultsClicked || 0}, adds=${updated.resultsAddedToPlaylist || 0}`);
 
     return NextResponse.json({ success: true });
   } catch (error) {

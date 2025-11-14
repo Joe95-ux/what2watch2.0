@@ -9,6 +9,57 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+const STOP_WORDS = new Set<string>([
+  "a",
+  "about",
+  "all",
+  "am",
+  "an",
+  "and",
+  "are",
+  "as",
+  "at",
+  "be",
+  "best",
+  "can",
+  "could",
+  "for",
+  "from",
+  "good",
+  "great",
+  "have",
+  "highest",
+  "i",
+  "in",
+  "is",
+  "it",
+  "its",
+  "let",
+  "like",
+  "me",
+  "movie",
+  "movies",
+  "of",
+  "on",
+  "please",
+  "recommend",
+  "show",
+  "shows",
+  "series",
+  "some",
+  "suggest",
+  "that",
+  "the",
+  "this",
+  "time",
+  "to",
+  "top",
+  "tv",
+  "want",
+  "which",
+  "with",
+]);
+
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
@@ -110,6 +161,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
     }
 
+    const lowerMessage = message.toLowerCase();
+
     const startTime = Date.now();
 
     // Handle INFORMATION mode differently - direct conversation with GPT-4o
@@ -204,7 +257,6 @@ export async function POST(request: NextRequest) {
     } catch (openaiError) {
       console.error("OpenAI error:", openaiError);
       // Fallback: try to extract basic info from message
-      const lowerMessage = message.toLowerCase();
       let fallbackType: "movie" | "tv" | "all" = "all";
       if (lowerMessage.includes("movie") || lowerMessage.includes("film")) {
         fallbackType = "movie";
@@ -231,9 +283,39 @@ export async function POST(request: NextRequest) {
     const type = extractedParams.type || "all";
     const genres = extractedParams.genres || [];
     const year = extractedParams.year;
-    const query = extractedParams.query?.trim();
+    let query = extractedParams.query?.trim();
+    let keywords = Array.isArray(extractedParams.keywords)
+      ? [...extractedParams.keywords]
+      : [];
+    const wantsHighQuality = /\b(best|top|highest rated|greatest|must[-\s]?watch|critically acclaimed|award[-\s]?winning)\b/i.test(
+      lowerMessage,
+    );
 
-    console.log("[AI Chat] Extracted params:", { query, genres, year, type, count: extractedParams.count });
+    if (query) {
+      const genericQueryPattern =
+        /(best|top|movie|movies|film|films|tv|show|shows|series|of all time|holiday|christmas|tech|technology|romance|thriller|inspiring|feel|mood|recommend)/i;
+      if (genericQueryPattern.test(query.toLowerCase())) {
+        const derivedKeywords = query
+          .toLowerCase()
+          .split(/\s+/)
+          .map((word) => word.replace(/[^a-z0-9]/g, ""))
+          .filter((word) => word && !STOP_WORDS.has(word));
+        if (derivedKeywords.length > 0) {
+          keywords = Array.from(new Set([...(keywords || []), ...derivedKeywords])).slice(0, 6);
+          query = undefined;
+        }
+      }
+    }
+
+    extractedParams = {
+      ...extractedParams,
+      query,
+      keywords,
+    };
+
+    console.log("[AI Chat] Extracted params:", { query, keywords, genres, year, type, count: extractedParams.count });
+
+    const searchKeywords = keywords || [];
 
     // Priority: If there's a query (actor, director, title), use search
     // Otherwise, if there are genres or year, use discover
@@ -378,16 +460,89 @@ export async function POST(request: NextRequest) {
         
         // Deduplicate by ID and limit to requested count
         const seen = new Set<number>();
-        results = combined.filter((item) => {
-          if (seen.has(item.id)) return false;
-          seen.add(item.id);
-          return true;
-        }).slice(0, maxResults);
+        results = combined
+          .filter((item) => {
+            if (seen.has(item.id)) return false;
+            seen.add(item.id);
+            return true;
+          })
+          .filter((item) => {
+            if (!wantsHighQuality) return true;
+            const votes = item.vote_count || 0;
+            return (item.vote_average || 0) >= 6.5 && votes >= 200;
+          })
+          .sort((a, b) => {
+            if (wantsHighQuality) {
+              const ratingDiff = (b.vote_average || 0) - (a.vote_average || 0);
+              if (ratingDiff !== 0) return ratingDiff;
+              return (b.vote_count || 0) - (a.vote_count || 0);
+            }
+            return 0;
+          })
+          .slice(0, maxResults);
 
         console.log("[AI Chat] Regular search results:", results.length, "from", pagesToSearch, "page(s)");
         resultIds = results.map((r) => r.id);
         resultTypes = results.map((r) => ("title" in r ? "movie" : "tv"));
       }
+    } else if (searchKeywords.length > 0) {
+      console.log("[AI Chat] Using keyword-based search:", searchKeywords);
+      const searchType = type === "movie" ? "movie" : type === "tv" ? "tv" : "all";
+      const maxResults = extractedParams.count || 20;
+      const keywordTerms = searchKeywords.slice(0, 5);
+      const keywordPromises: Promise<{ results: (TMDBMovie | TMDBSeries)[] }>[] = [];
+
+      keywordTerms.forEach((keyword) => {
+        const sanitized = keyword.trim();
+        if (!sanitized) return;
+        const pagesToSearch = wantsHighQuality ? 3 : 2;
+
+        if (searchType === "movie" || searchType === "all") {
+          for (let page = 1; page <= pagesToSearch; page++) {
+            keywordPromises.push(
+              searchMovies(sanitized, page).then((r) => ({ results: r.results }))
+            );
+          }
+        }
+
+        if (searchType === "tv" || searchType === "all") {
+          for (let page = 1; page <= pagesToSearch; page++) {
+            keywordPromises.push(
+              searchTV(sanitized, page).then((r) => ({ results: r.results }))
+            );
+          }
+        }
+      });
+
+      const keywordResults = await Promise.all(keywordPromises);
+      const combined = keywordResults.flatMap((r) => r.results);
+      const seen = new Set<number>();
+
+      results = combined
+        .filter((item) => {
+          if (!item || !item.id) return false;
+          if (seen.has(item.id)) return false;
+          seen.add(item.id);
+          return true;
+        })
+        .filter((item) => {
+          if (!wantsHighQuality) return true;
+          const votes = item.vote_count || 0;
+          return (item.vote_average || 0) >= 6.5 && votes >= 200;
+        })
+        .sort((a, b) => {
+          if (wantsHighQuality) {
+            const ratingDiff = (b.vote_average || 0) - (a.vote_average || 0);
+            if (ratingDiff !== 0) return ratingDiff;
+            return (b.vote_count || 0) - (a.vote_count || 0);
+          }
+          return (b.popularity || 0) - (a.popularity || 0);
+        })
+        .slice(0, maxResults);
+
+      console.log("[AI Chat] Keyword search results:", results.length);
+      resultIds = results.map((r) => r.id);
+      resultTypes = results.map((r) => ("title" in r ? "movie" : "tv"));
     } else if (genres.length > 0 || year) {
       // Use discover with filters
       console.log("[AI Chat] Using discover API with filters:", { genres, year });
@@ -399,7 +554,8 @@ export async function POST(request: NextRequest) {
             page: 1,
             genre: genres.length > 0 ? genres : undefined,
             year,
-            sortBy: "popularity.desc",
+            sortBy: wantsHighQuality ? "vote_average.desc" : "popularity.desc",
+            minRating: wantsHighQuality ? 6.5 : undefined,
           }).then((r) => ({ results: r.results }))
         );
       }
@@ -410,7 +566,8 @@ export async function POST(request: NextRequest) {
             page: 1,
             genre: genres.length > 0 ? genres : undefined,
             year,
-            sortBy: "popularity.desc",
+            sortBy: wantsHighQuality ? "vote_average.desc" : "popularity.desc",
+            minRating: wantsHighQuality ? 6.5 : undefined,
           }).then((r) => ({ results: r.results }))
         );
       }

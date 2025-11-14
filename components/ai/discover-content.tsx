@@ -326,10 +326,15 @@ export default function DiscoverContent() {
     
     // Use the sessionId associated with the current results
     const trackingSessionId = currentResultsSessionId || sessionId;
-    if (!trackingSessionId) return;
+    if (!trackingSessionId) {
+      console.warn("[Track Interaction] No sessionId available for tracking");
+      return;
+    }
+    
+    console.log(`[Track Interaction] Tracking ${interactionType} for sessionId: ${trackingSessionId}`);
     
     try {
-      await fetch("/api/ai/chat/track-interaction", {
+      const response = await fetch("/api/ai/chat/track-interaction", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -339,8 +344,15 @@ export default function DiscoverContent() {
           interactionType,
         }),
       });
+      
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: "Unknown error" }));
+        console.error(`[Track Interaction] Failed to track ${interactionType}:`, error);
+      } else {
+        console.log(`[Track Interaction] Successfully tracked ${interactionType} for session ${trackingSessionId}`);
+      }
     } catch (error) {
-      console.error("Failed to track interaction:", error);
+      console.error("[Track Interaction] Error tracking interaction:", error);
       // Don't show error to user, just log it
     }
   };

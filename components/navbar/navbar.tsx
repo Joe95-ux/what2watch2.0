@@ -35,7 +35,9 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Check if we're on dashboard page
-  const isDashboard = pathname === "/dashboard" || pathname?.startsWith("/dashboard/");
+  // Exclude /dashboard/ai/discover from dashboard layout (search should be on right)
+  const isDiscoverPage = pathname === "/dashboard/ai/discover" || pathname?.startsWith("/dashboard/ai/discover");
+  const isDashboard = (pathname === "/dashboard" || pathname?.startsWith("/dashboard/")) && !isDiscoverPage;
 
   // Check if we're on a page that should use max-w-7xl (my-list and playlists, but not search)
   const shouldUseMaxWidth = pathname === "/my-list" || pathname === "/playlists" || pathname?.startsWith("/playlists/");
@@ -56,54 +58,57 @@ export default function Navbar() {
         "w-full flex h-16 items-center px-4 sm:px-6 lg:px-8",
         shouldUseMaxWidth && "max-w-7xl mx-auto",
         shouldUseMaxSearchNav && "container mx-auto",
-        isDashboard ? "grid grid-cols-[auto_1fr_auto] gap-4" : "justify-between"
+        isDashboard ? "grid grid-cols-[auto_1fr_auto] gap-4" : "justify-between",
+        isDiscoverPage && "justify-between"
       )}>
         {/* Left side - Logo */}
         <div className="flex items-center">
           <Logo fontSize="text-xl" iconSize={20} />
         </div>
 
-        {/* Center - Search (only on dashboard) */}
+        {/* Center - Search (only on dashboard, not discover page) */}
         {isDashboard ? (
           <div className="flex items-center justify-center">
             <Search hasHeroSection={hasHeroSection} />
           </div>
         ) : (
           <>
-            {/* Left side - Desktop Nav (non-dashboard) */}
-            <div className="flex items-center gap-8 flex-1 ml-3">
-              {/* Navigation Dropdown - Show on md to xl (768px to 1280px, close to 1290px) */}
-              <div className="hidden md:block xl:hidden">
-                <NavDropdown navLinks={navLinks} hasHeroSection={hasHeroSection} />
+            {/* Left side - Desktop Nav (non-dashboard and discover page) */}
+            {!isDiscoverPage && (
+              <div className="flex items-center gap-8 flex-1 ml-3">
+                {/* Navigation Dropdown - Show on md to xl (768px to 1280px, close to 1290px) */}
+                <div className="hidden md:block xl:hidden">
+                  <NavDropdown navLinks={navLinks} hasHeroSection={hasHeroSection} />
+                </div>
+                
+                {/* Full Navigation - Show above xl (above 1280px, close to 1290px) */}
+                <div className="hidden xl:flex items-center gap-1">
+                  {navLinks.map((link) => {
+                    const isActive = pathname === link.href;
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className={cn(
+                          "relative px-3 py-2 text-sm font-medium transition-colors rounded-md",
+                          hasHeroSection 
+                            ? "hover:bg-white/10 hover:text-white"
+                            : "hover:bg-accent hover:text-accent-foreground",
+                          isActive
+                            ? hasHeroSection ? "text-white font-semibold" : "text-foreground dark:text-foreground font-semibold"
+                            : hasHeroSection ? "text-white/90" : "text-foreground/80 dark:text-muted-foreground",
+                          isActive && "after:content-[''] after:absolute after:bottom-[-15px] after:left-0 after:right-0 after:h-[3px] after:bg-[#E50914] after:rounded-t-[15px]"
+                        )}
+                      >
+                        {link.label}
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
-              
-              {/* Full Navigation - Show above xl (above 1280px, close to 1290px) */}
-              <div className="hidden xl:flex items-center gap-1">
-                {navLinks.map((link) => {
-                  const isActive = pathname === link.href;
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className={cn(
-                        "relative px-3 py-2 text-sm font-medium transition-colors rounded-md",
-                        hasHeroSection 
-                          ? "hover:bg-white/10 hover:text-white"
-                          : "hover:bg-accent hover:text-accent-foreground",
-                        isActive
-                          ? hasHeroSection ? "text-white font-semibold" : "text-foreground dark:text-foreground font-semibold"
-                          : hasHeroSection ? "text-white/90" : "text-foreground/80 dark:text-muted-foreground",
-                        isActive && "after:content-[''] after:absolute after:bottom-[-15px] after:left-0 after:right-0 after:h-[3px] after:bg-[#E50914] after:rounded-t-[15px]"
-                      )}
-                    >
-                      {link.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
+            )}
 
-            {/* Right side - Search, User (non-dashboard) */}
+            {/* Right side - Search, User (non-dashboard and discover page) */}
             <div className="flex items-center gap-3 flex-shrink-0">
               {/* Search - Always visible, expands on mobile */}
               <Search hasHeroSection={hasHeroSection} />
