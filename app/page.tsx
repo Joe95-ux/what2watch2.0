@@ -439,9 +439,9 @@ export default function LandingPage() {
             quality={90}
           />
           {/* Dark Overlay for Contrast */}
-          <div className="absolute inset-0 bg-black/70" />
-          {/* Glassmorphism Effect - Increased Intensity */}
-          <div className="absolute inset-0 backdrop-blur-[12px] bg-white/10" />
+          <div className="absolute inset-0 bg-black/80" />
+          {/* Glassmorphism Effect - Reduced Intensity */}
+          <div className="absolute inset-0 backdrop-blur-[8px] bg-white/5" />
           {/* Gradient Fade at Bottom */}
           <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
         </div>
