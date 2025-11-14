@@ -35,7 +35,7 @@ export default function FriendsPlaylistsContent() {
 
   const paginatedPlaylists = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return playlists.slice(startIndex, startIndex + itemsPerPage);
+    return playlists.slice(startIndex, startIndex + itemsPerPage) as Playlist[];
   }, [playlists, currentPage, itemsPerPage]);
 
   // Reset to page 1 when playlists change
@@ -148,7 +148,7 @@ export default function FriendsPlaylistsContent() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedPlaylists.map((playlist) => {
+                {paginatedPlaylists.map((playlist: Playlist) => {
                   const coverImage = getPlaylistCover(playlist);
                   const itemCount = playlist._count?.items || playlist.items?.length || 0;
                   const authorName = playlist.user?.displayName || playlist.user?.username || "Unknown";
@@ -213,7 +213,7 @@ export default function FriendsPlaylistsContent() {
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
-            {paginatedPlaylists.map((playlist) => (
+            {paginatedPlaylists.map((playlist: Playlist) => (
               <PlaylistCard
                 key={playlist.id}
                 playlist={playlist}
