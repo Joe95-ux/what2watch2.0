@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { usePlaylist, useDeletePlaylist, useRemoveItemFromPlaylist, type Playlist } from "@/hooks/use-playlists";
+import { useUser } from "@clerk/nextjs";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,6 +13,7 @@ import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import CreatePlaylistModal from "./create-playlist-modal";
 import SharePlaylistDialog from "./share-playlist-dialog";
+import { FollowButton } from "@/components/social/follow-button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +48,7 @@ type PlaylistWithUser = Playlist & {
 
 export default function PlaylistDetailContent({ playlistId }: PlaylistDetailContentProps) {
   const { data: playlist, isLoading } = usePlaylist(playlistId);
+  const { user: clerkUser } = useUser();
   const deletePlaylist = useDeletePlaylist();
   const removeItem = useRemoveItemFromPlaylist();
   const router = useRouter();
@@ -56,6 +59,18 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Check if playlist is owned by current user
+  const isOwnPlaylist = useMemo(() => {
+    if (!playlist) return false;
+    // Use the currentUserId from the API response if available, otherwise fallback to comparison
+    const currentUserId = (playlist as any)._currentUserId;
+    if (currentUserId) {
+      return playlist.userId === currentUserId;
+    }
+    // Fallback: this shouldn't happen in normal flow
+    return false;
+  }, [playlist]);
 
   const handleDeletePlaylist = async () => {
     try {
@@ -251,35 +266,53 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
 
               {/* Actions */}
               <div className="flex items-center justify-end gap-2 ml-auto sm:ml-0">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsShareDialogOpen(true)}
-                  className="gap-2 cursor-pointer"
-                >
-                  <Share2 className="h-4 w-4" />
-                  Share
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon" className="cursor-pointer">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>
-                      <Edit2 className="h-4 w-4 mr-2" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => setIsDeleteDialogOpen(true)}
-                      className="text-destructive"
+                {isOwnPlaylist ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsShareDialogOpen(true)}
+                      className="gap-2 cursor-pointer"
                     >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      <Share2 className="h-4 w-4" />
+                      Share
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="icon" className="cursor-pointer">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>
+                          <Edit2 className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => setIsDeleteDialogOpen(true)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </>
+                ) : (
+                  playlistWithUser.user && (
+                    <>
+                      <FollowButton userId={playlistWithUser.user.id} />
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsShareDialogOpen(true)}
+                        className="gap-2 cursor-pointer"
+                      >
+                        <Share2 className="h-4 w-4" />
+                        Share
+                      </Button>
+                    </>
+                  )
+                )}
               </div>
             </div>
           </div>
@@ -300,21 +333,23 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
                 <div onClick={() => setSelectedItem({ item, type })} className="cursor-pointer">
                   <MovieCard item={item} type={type} />
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 hover:bg-black/80 rounded-full h-8 w-8"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const title = "title" in item ? item.title : item.name;
-                    setItemToRemove({
-                      itemId: playlistItemId,
-                      title,
-                    });
-                  }}
-                >
-                  <X className="h-4 w-4 text-white" />
-                </Button>
+                {isOwnPlaylist && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 hover:bg-black/80 rounded-full h-8 w-8"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const title = "title" in item ? item.title : item.name;
+                      setItemToRemove({
+                        itemId: playlistItemId,
+                        title,
+                      });
+                    }}
+                  >
+                    <X className="h-4 w-4 text-white" />
+                  </Button>
+                )}
               </div>
             ))}
           </div>
@@ -413,6 +448,7 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
           playlist={playlist}
           isOpen={isShareDialogOpen}
           onClose={() => setIsShareDialogOpen(false)}
+          isOwnPlaylist={isOwnPlaylist}
         />
       )}
 

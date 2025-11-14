@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { usePlaylists, useDeletePlaylist, type Playlist } from "@/hooks/use-playlists";
+import { useLikedPlaylists } from "@/hooks/use-playlist-likes";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreVertical, Trash2, Edit2, Eye } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,23 +19,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CreatePlaylistModal from "./create-playlist-modal";
-import { getPosterUrl } from "@/lib/tmdb";
+import PlaylistCard from "@/components/browse/playlist-card";
+
+type FilterType = "all" | "created" | "shared";
 
 export default function PlaylistsContent() {
-  const { data: playlists = [], isLoading } = usePlaylists();
+  const { user: clerkUser } = useUser();
+  const { data: ownPlaylists = [], isLoading: isLoadingOwn } = usePlaylists();
+  const { data: likedPlaylists = [], isLoading: isLoadingLiked } = useLikedPlaylists();
   const deletePlaylist = useDeletePlaylist();
   const router = useRouter();
   const [playlistToDelete, setPlaylistToDelete] = useState<Playlist | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [playlistToEdit, setPlaylistToEdit] = useState<Playlist | null>(null);
+  const [filter, setFilter] = useState<FilterType>("all");
+
+  const isLoading = isLoadingOwn || isLoadingLiked;
 
   const handleDelete = async () => {
     if (!playlistToDelete) return;
@@ -49,32 +51,39 @@ export default function PlaylistsContent() {
     }
   };
 
-  const getPlaylistCover = (playlist: Playlist) => {
-    if (playlist.coverImage) {
-      return playlist.coverImage;
-    }
-    // Use first item's poster as cover
-    if (playlist.items && playlist.items.length > 0) {
-      const firstItem = playlist.items[0];
-      if (firstItem.posterPath) {
-        return getPosterUrl(firstItem.posterPath, "w500");
+  // Combine and filter playlists
+  const allPlaylists = useMemo(() => {
+    const own = ownPlaylists.map((p) => ({ ...p, isOwn: true, isLiked: false }));
+    const liked = likedPlaylists.map((p) => ({ ...p, isOwn: false, isLiked: true }));
+    
+    // Remove duplicates (if a playlist is both own and liked, prioritize own)
+    const playlistMap = new Map<string, Playlist & { isOwn: boolean; isLiked: boolean }>();
+    
+    // Add own playlists first
+    own.forEach((p) => playlistMap.set(p.id, p));
+    
+    // Add liked playlists (won't overwrite own)
+    liked.forEach((p) => {
+      if (!playlistMap.has(p.id)) {
+        playlistMap.set(p.id, p);
       }
-    }
-    return null;
-  };
+    });
+    
+    return Array.from(playlistMap.values());
+  }, [ownPlaylists, likedPlaylists]);
 
-  if (isLoading) {
-    return (
-      <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Skeleton className="h-10 w-64 mb-6" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="aspect-[3/4] rounded-lg" />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const filteredPlaylists = useMemo(() => {
+    if (!clerkUser?.id) return allPlaylists;
+    
+    switch (filter) {
+      case "created":
+        return allPlaylists.filter((p) => p.isOwn);
+      case "shared":
+        return allPlaylists.filter((p) => p.isLiked && !p.isOwn);
+      default:
+        return allPlaylists;
+    }
+  }, [allPlaylists, filter, clerkUser?.id]);
 
   return (
     <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -83,7 +92,7 @@ export default function PlaylistsContent() {
         <div>
           <h1 className="text-3xl font-bold mb-2">Playlists</h1>
           <p className="text-muted-foreground">
-            {playlists.length} {playlists.length === 1 ? "playlist" : "playlists"}
+            {filteredPlaylists.length} {filteredPlaylists.length === 1 ? "playlist" : "playlists"}
           </p>
         </div>
         <Button onClick={() => setIsCreateModalOpen(true)} className="cursor-pointer">
@@ -92,116 +101,53 @@ export default function PlaylistsContent() {
         </Button>
       </div>
 
+      {/* Filter Tabs */}
+      <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterType)} className="mb-6">
+        <TabsList>
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="created">Created by you</TabsTrigger>
+          <TabsTrigger value="shared">Shared</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {/* Playlists Grid */}
-      {playlists.length === 0 ? (
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="aspect-[3/4] rounded-lg" />
+          ))}
+        </div>
+      ) : filteredPlaylists.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-center space-y-4 py-16">
           <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center">
             <Plus className="h-12 w-12 text-muted-foreground" />
           </div>
           <h2 className="text-2xl font-semibold">No playlists yet</h2>
           <p className="text-muted-foreground max-w-md">
-            Create your first playlist to organize your favorite movies and TV shows.
+            {filter === "created"
+              ? "Create your first playlist to organize your favorite movies and TV shows."
+              : filter === "shared"
+              ? "Like playlists from other users to see them here."
+              : "Create your first playlist or like playlists from other users."}
           </p>
-          <Button onClick={() => setIsCreateModalOpen(true)} className="mt-4 cursor-pointer">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Playlist
-          </Button>
+          {filter === "created" && (
+            <Button onClick={() => setIsCreateModalOpen(true)} className="mt-4 cursor-pointer">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Playlist
+            </Button>
+          )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {playlists.map((playlist) => {
-            const coverImage = getPlaylistCover(playlist);
-            const itemCount = playlist._count?.items || playlist.items?.length || 0;
-
-            return (
-              <div
+        <div className="overflow-hidden">
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {filteredPlaylists.map((playlist) => (
+              <PlaylistCard
                 key={playlist.id}
-                className="group relative bg-card rounded-lg border overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => router.push(`/playlists/${playlist.id}`)}
-              >
-                {/* Cover Image */}
-                <div className="aspect-[3/4] bg-muted relative overflow-hidden">
-                  {coverImage ? (
-                    <img
-                      src={coverImage}
-                      alt={playlist.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-muted-foreground text-sm">No Cover</span>
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-
-                {/* Playlist Info */}
-                <div className="p-4">
-                  <h3 className="font-semibold truncate mb-1">{playlist.name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {itemCount} {itemCount === 1 ? "item" : "items"}
-                    {playlist.isPublic && (
-                      <>
-                        {" • "}
-                        <span className="text-primary">Public</span>
-                      </>
-                    )}
-                  </p>
-                  {playlist.description && (
-                    <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                      {playlist.description}
-                    </p>
-                  )}
-                </div>
-
-                {/* Actions Menu */}
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 bg-black/60 hover:bg-black/80 rounded-full"
-                      >
-                        <MoreVertical className="h-4 w-4 text-white" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/playlists/${playlist.id}`);
-                        }}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPlaylistToEdit(playlist);
-                        }}
-                      >
-                        <Edit2 className="h-4 w-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPlaylistToDelete(playlist);
-                        }}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            );
-          })}
+                playlist={playlist}
+                showLikeButton={!playlist.isOwn}
+              />
+            ))}
+          </div>
         </div>
       )}
 

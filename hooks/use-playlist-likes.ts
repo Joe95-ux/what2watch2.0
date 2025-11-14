@@ -14,6 +14,35 @@ export function useLikePlaylist() {
       }
       return response.json();
     },
+    onMutate: async (playlistId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["playlist", playlistId, "like"] });
+
+      // Snapshot the previous value
+      const previousStatus = queryClient.getQueryData<{ isLiked: boolean }>([
+        "playlist",
+        playlistId,
+        "like",
+      ]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData<{ isLiked: boolean }>(
+        ["playlist", playlistId, "like"],
+        { isLiked: true }
+      );
+
+      // Return a context object with the snapshotted value
+      return { previousStatus };
+    },
+    onError: (err, playlistId, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousStatus) {
+        queryClient.setQueryData(
+          ["playlist", playlistId, "like"],
+          context.previousStatus
+        );
+      }
+    },
     onSuccess: (_, playlistId) => {
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ["playlist", playlistId, "like"] });
@@ -37,6 +66,35 @@ export function useUnlikePlaylist() {
         throw new Error(error.error || "Failed to unlike playlist");
       }
       return response.json();
+    },
+    onMutate: async (playlistId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["playlist", playlistId, "like"] });
+
+      // Snapshot the previous value
+      const previousStatus = queryClient.getQueryData<{ isLiked: boolean }>([
+        "playlist",
+        playlistId,
+        "like",
+      ]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData<{ isLiked: boolean }>(
+        ["playlist", playlistId, "like"],
+        { isLiked: false }
+      );
+
+      // Return a context object with the snapshotted value
+      return { previousStatus };
+    },
+    onError: (err, playlistId, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousStatus) {
+        queryClient.setQueryData(
+          ["playlist", playlistId, "like"],
+          context.previousStatus
+        );
+      }
     },
     onSuccess: (_, playlistId) => {
       // Invalidate relevant queries

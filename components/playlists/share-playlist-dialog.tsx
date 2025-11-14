@@ -21,9 +21,10 @@ interface SharePlaylistDialogProps {
   playlist: Playlist;
   isOpen: boolean;
   onClose: () => void;
+  isOwnPlaylist?: boolean;
 }
 
-export default function SharePlaylistDialog({ playlist, isOpen, onClose }: SharePlaylistDialogProps) {
+export default function SharePlaylistDialog({ playlist, isOpen, onClose, isOwnPlaylist = true }: SharePlaylistDialogProps) {
   const [copied, setCopied] = useState(false);
   const [isPublic, setIsPublic] = useState(playlist.isPublic);
   const updatePlaylist = useUpdatePlaylist();
@@ -116,25 +117,27 @@ export default function SharePlaylistDialog({ playlist, isOpen, onClose }: Share
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Public/Private Toggle */}
-          <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/50">
-            <div className="space-y-0.5">
-              <Label htmlFor="public-toggle" className="text-base font-medium">
-                Make playlist public
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                {isPublic
-                  ? "Anyone with the link can view this playlist"
-                  : "Only you can view this playlist"}
-              </p>
+          {/* Public/Private Toggle - Only for own playlists */}
+          {isOwnPlaylist && (
+            <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/50">
+              <div className="space-y-0.5">
+                <Label htmlFor="public-toggle" className="text-base font-medium">
+                  Make playlist public
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  {isPublic
+                    ? "Anyone with the link can view this playlist"
+                    : "Only you can view this playlist"}
+                </p>
+              </div>
+              <Switch
+                id="public-toggle"
+                checked={isPublic}
+                onCheckedChange={handleTogglePublic}
+                disabled={updatePlaylist.isPending}
+              />
             </div>
-            <Switch
-              id="public-toggle"
-              checked={isPublic}
-              onCheckedChange={handleTogglePublic}
-              disabled={updatePlaylist.isPending}
-            />
-          </div>
+          )}
 
           {isPublic && (
             <>
@@ -187,11 +190,20 @@ export default function SharePlaylistDialog({ playlist, isOpen, onClose }: Share
             </>
           )}
 
-          {!isPublic && (
+          {!isPublic && isOwnPlaylist && (
             <div className="p-4 rounded-lg border bg-muted/50 text-center">
               <Link2 className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
                 Make the playlist public to generate a shareable link
+              </p>
+            </div>
+          )}
+          
+          {!isPublic && !isOwnPlaylist && (
+            <div className="p-4 rounded-lg border bg-muted/50 text-center">
+              <Link2 className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                This playlist is private and cannot be shared
               </p>
             </div>
           )}

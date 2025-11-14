@@ -3,7 +3,7 @@
 import { useFollowingPlaylists } from "@/hooks/use-playlist-likes";
 import { Skeleton } from "@/components/ui/skeleton";
 import PlaylistRow from "@/components/browse/playlist-row";
-import { Music } from "lucide-react";
+import { Film } from "lucide-react";
 import { Playlist } from "@/hooks/use-playlists";
 
 export default function FriendsPlaylistsContent() {
@@ -41,7 +41,7 @@ export default function FriendsPlaylistsContent() {
           </p>
         </div>
         <div className="text-center py-12">
-          <Music className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <Film className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">No playlists yet</h3>
           <p className="text-muted-foreground">
             Start following users to see their playlists here

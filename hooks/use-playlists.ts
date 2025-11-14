@@ -53,11 +53,11 @@ const fetchPlaylists = async (includePublic: boolean = false): Promise<Playlist[
 };
 
 // Fetch a single playlist
-const fetchPlaylist = async (playlistId: string): Promise<Playlist> => {
+const fetchPlaylist = async (playlistId: string): Promise<{ playlist: Playlist; currentUserId?: string }> => {
   const res = await fetch(`/api/playlists/${playlistId}`);
   if (!res.ok) throw new Error("Failed to fetch playlist");
   const data = await res.json();
-  return data.playlist;
+  return { playlist: data.playlist, currentUserId: data.currentUserId };
 };
 
 // Create a playlist
@@ -167,6 +167,10 @@ export function usePlaylist(playlistId: string) {
     enabled: !!playlistId,
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 60, // 1 hour
+    select: (data) => ({
+      ...data.playlist,
+      _currentUserId: data.currentUserId, // Attach current user ID to playlist for ownership checks
+    }),
   });
 }
 

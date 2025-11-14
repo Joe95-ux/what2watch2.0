@@ -102,7 +102,7 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm border-0"
+              className="h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm border-0 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 if (isLiked) {

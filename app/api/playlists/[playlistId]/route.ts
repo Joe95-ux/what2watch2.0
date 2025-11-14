@@ -126,7 +126,10 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ playlist });
+    return NextResponse.json({ 
+      playlist,
+      currentUserId: user.id, // Include current user's database ID for ownership checks
+    });
   } catch (error) {
     console.error("Get playlist API error:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to fetch playlist";
