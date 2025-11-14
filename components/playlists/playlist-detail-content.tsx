@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { usePlaylist, useDeletePlaylist, useRemoveItemFromPlaylist, type Playlist } from "@/hooks/use-playlists";
-import { useUser } from "@clerk/nextjs";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -46,9 +45,12 @@ type PlaylistWithUser = Playlist & {
   } | null;
 };
 
+type PlaylistWithCurrentUser = Playlist & {
+  _currentUserId?: string;
+};
+
 export default function PlaylistDetailContent({ playlistId }: PlaylistDetailContentProps) {
   const { data: playlist, isLoading } = usePlaylist(playlistId);
-  const { user: clerkUser } = useUser();
   const deletePlaylist = useDeletePlaylist();
   const removeItem = useRemoveItemFromPlaylist();
   const router = useRouter();
@@ -64,7 +66,8 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
   const isOwnPlaylist = useMemo(() => {
     if (!playlist) return false;
     // Use the currentUserId from the API response if available, otherwise fallback to comparison
-    const currentUserId = (playlist as any)._currentUserId;
+    const playlistWithUser = playlist as PlaylistWithCurrentUser;
+    const currentUserId = playlistWithUser._currentUserId;
     if (currentUserId) {
       return playlist.userId === currentUserId;
     }
