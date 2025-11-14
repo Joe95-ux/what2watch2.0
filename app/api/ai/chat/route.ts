@@ -82,10 +82,11 @@ EXTRACTION RULES:
 1. QUERY field: Use for:
    - Actor/actress names (e.g., "Tom Cruise", "Meryl Streep")
    - Director names (e.g., "Christopher Nolan", "Quentin Tarantino")
-   - Movie/TV show titles (e.g., "The Matrix", "Breaking Bad")
+   - Movie/TV show titles (e.g., "The Matrix", "Breaking Bad", "Lord of the Rings")
    - Character names if searching for specific roles
-   - Extract ONLY the name/title, not descriptive words like "movies", "films", "starring", etc.
+   - Extract ONLY the name/title, not descriptive words like "movies", "films", "starring", "all", etc.
    - For actor queries like "Tom Cruise movies" or "40 Arnold Schwarzenegger movies", extract just the name: "Tom Cruise" or "Arnold Schwarzenegger"
+   - For title queries like "All Lord of the Rings movies", extract just the title: "Lord of the Rings" (ignore "All" and "movies")
 
 2. GENRES field: Use ONLY when user explicitly mentions a genre:
    - Action=28, Adventure=12, Animation=16, Comedy=35, Crime=80, Documentary=99, Drama=18, Family=10751, Fantasy=14, History=36, Horror=27, Music=10402, Mystery=9648, Romance=10749, Sci-Fi=878, Thriller=53, War=10752, Western=37
@@ -100,7 +101,11 @@ EXTRACTION RULES:
 
 5. COUNT field: Extract exact number if specified (e.g., "10 movies" = 10, "show me 5" = 5, "a few" = 5, "several" = 8)
 
-6. KEYWORDS field: Use for descriptive terms that aren't actors/directors/titles (e.g., "scary", "romantic", "thrilling")
+6. KEYWORDS field: Use for descriptive terms that aren't actors/directors/titles:
+   - Themes: "tech", "technology", "christmas", "holiday", "romance", "thriller", "inspiring", "feel-good"
+   - Moods: "scary", "romantic", "thrilling", "uplifting", "dark", "cozy"
+   - Topics: "startup", "hacker", "AI", "space", "war", "crime"
+   - Extract ALL relevant keywords from the query
 
 EXAMPLES:
 - "Give me 10 movies starring Tom Cruise" → {"query": "Tom Cruise", "type": "movie", "count": 10}
@@ -109,6 +114,9 @@ EXAMPLES:
 - "Show me action movies from the 90s" → {"genres": [28], "year": 1990, "type": "movie"}
 - "Horror TV shows" → {"genres": [27], "type": "tv"}
 - "Movies directed by Christopher Nolan" → {"query": "Christopher Nolan", "type": "movie"}
+- "Best tech movies of all time" → {"keywords": ["tech", "technology"], "type": "movie"}
+- "Christmas movies" → {"keywords": ["christmas", "holiday"], "type": "movie"}
+- "I want inspiring movies" → {"keywords": ["inspiring", "uplifting"], "type": "movie"}
 
 CRITICAL: Be precise. If unsure about a genre ID, don't include it. Always prioritize accuracy over completeness.
 
@@ -292,18 +300,34 @@ export async function POST(request: NextRequest) {
     );
 
     if (query) {
-      const genericQueryPattern =
-        /(best|top|movie|movies|film|films|tv|show|shows|series|of all time|holiday|christmas|tech|technology|romance|thriller|inspiring|feel|mood|recommend)/i;
-      if (genericQueryPattern.test(query.toLowerCase())) {
-        const derivedKeywords = query
-          .toLowerCase()
-          .split(/\s+/)
-          .map((word) => word.replace(/[^a-z0-9]/g, ""))
-          .filter((word) => word && !STOP_WORDS.has(word));
-        if (derivedKeywords.length > 0) {
-          keywords = Array.from(new Set([...(keywords || []), ...derivedKeywords])).slice(0, 6);
-          query = undefined;
+      // Remove "All" from the beginning of the query if present (e.g., "All Lord of the rings" -> "Lord of the rings")
+      query = query.replace(/^all\s+/i, "").trim();
+      
+      // Check if query looks like a specific title (has proper capitalization, multiple words, or known patterns)
+      // Don't convert known titles to keywords
+      const looksLikeTitle = 
+        query.split(/\s+/).length >= 2 && // Multiple words
+        (query.split(/\s+/).some(word => /^[A-Z]/.test(word)) || // Has capitalized words
+         /^(the|a|an)\s+/i.test(query)); // Starts with article
+      
+      // Only convert to keywords if it doesn't look like a specific title
+      if (!looksLikeTitle) {
+        const genericQueryPattern =
+          /(best|top|movie|movies|film|films|tv|show|shows|series|of all time|holiday|christmas|tech|technology|romance|thriller|inspiring|feel|mood|recommend)/i;
+        if (genericQueryPattern.test(query.toLowerCase())) {
+          const derivedKeywords = query
+            .toLowerCase()
+            .split(/\s+/)
+            .map((word) => word.replace(/[^a-z0-9]/g, ""))
+            .filter((word) => word && !STOP_WORDS.has(word));
+          if (derivedKeywords.length > 0) {
+            keywords = Array.from(new Set([...(keywords || []), ...derivedKeywords])).slice(0, 6);
+            query = undefined;
+          }
         }
+      } else {
+        // For title queries, remove common words like "movies", "films" from the end
+        query = query.replace(/\s+(movies|films|movie|film|shows|show|series)$/i, "").trim();
       }
     }
 
@@ -486,36 +510,74 @@ export async function POST(request: NextRequest) {
         resultTypes = results.map((r) => ("title" in r ? "movie" : "tv"));
       }
     } else if (searchKeywords.length > 0) {
-      console.log("[AI Chat] Using keyword-based search:", searchKeywords);
+      console.log("[AI Chat] Using keyword-based search with discover API:", searchKeywords);
       const searchType = type === "movie" ? "movie" : type === "tv" ? "tv" : "all";
       const maxResults = extractedParams.count || 20;
-      const keywordTerms = searchKeywords.slice(0, 5);
-      const keywordPromises: Promise<{ results: (TMDBMovie | TMDBSeries)[] }>[] = [];
+      
+      // For keyword searches, use discover API to get a large pool of results
+      // Then filter by checking if keywords appear in title/overview
+      const discoverPromises: Promise<{ results: (TMDBMovie | TMDBSeries)[] }>[] = [];
+      const searchPromises: Promise<{ results: (TMDBMovie | TMDBSeries)[] }>[] = [];
 
+      // Get multiple pages from discover API for better coverage
+      const pagesToSearch = wantsHighQuality ? 5 : 3;
+
+      // Use discover API for better keyword-based discovery
+      if (searchType === "movie" || searchType === "all") {
+        for (let page = 1; page <= pagesToSearch; page++) {
+          discoverPromises.push(
+            discoverMovies({
+              page,
+              sortBy: wantsHighQuality ? "vote_average.desc" : "popularity.desc",
+              minRating: wantsHighQuality ? 6.5 : undefined,
+            }).then((r) => ({ results: r.results }))
+          );
+        }
+      }
+
+      if (searchType === "tv" || searchType === "all") {
+        for (let page = 1; page <= pagesToSearch; page++) {
+          discoverPromises.push(
+            discoverTV({
+              page,
+              sortBy: wantsHighQuality ? "vote_average.desc" : "popularity.desc",
+              minRating: wantsHighQuality ? 6.5 : undefined,
+            }).then((r) => ({ results: r.results }))
+          );
+        }
+      }
+
+      // Also search by keyword terms (in case they match titles directly)
+      const keywordTerms = searchKeywords.slice(0, 3);
       keywordTerms.forEach((keyword) => {
         const sanitized = keyword.trim();
         if (!sanitized) return;
-        const pagesToSearch = wantsHighQuality ? 3 : 2;
 
         if (searchType === "movie" || searchType === "all") {
-          for (let page = 1; page <= pagesToSearch; page++) {
-            keywordPromises.push(
-              searchMovies(sanitized, page).then((r) => ({ results: r.results }))
-            );
-          }
+          searchPromises.push(
+            searchMovies(sanitized, 1).then((r) => ({ results: r.results }))
+          );
         }
 
         if (searchType === "tv" || searchType === "all") {
-          for (let page = 1; page <= pagesToSearch; page++) {
-            keywordPromises.push(
-              searchTV(sanitized, page).then((r) => ({ results: r.results }))
-            );
-          }
+          searchPromises.push(
+            searchTV(sanitized, 1).then((r) => ({ results: r.results }))
+          );
         }
       });
 
-      const keywordResults = await Promise.all(keywordPromises);
-      const combined = keywordResults.flatMap((r) => r.results);
+      const [discoverResults, searchResults] = await Promise.all([
+        Promise.all(discoverPromises),
+        Promise.all(searchPromises),
+      ]);
+
+      const combined = [
+        ...discoverResults.flatMap((r) => r.results),
+        ...searchResults.flatMap((r) => r.results),
+      ];
+
+      // Filter results that match keywords in title or overview
+      const keywordLower = searchKeywords.map((k) => k.toLowerCase());
       const seen = new Set<number>();
 
       results = combined
@@ -523,7 +585,14 @@ export async function POST(request: NextRequest) {
           if (!item || !item.id) return false;
           if (seen.has(item.id)) return false;
           seen.add(item.id);
-          return true;
+          
+          // Check if item matches keywords
+          const title = ("title" in item ? item.title : item.name || "").toLowerCase();
+          const overview = (item.overview || "").toLowerCase();
+          const text = `${title} ${overview}`;
+          
+          // At least one keyword should match
+          return keywordLower.some((keyword) => text.includes(keyword));
         })
         .filter((item) => {
           if (!wantsHighQuality) return true;
@@ -540,7 +609,7 @@ export async function POST(request: NextRequest) {
         })
         .slice(0, maxResults);
 
-      console.log("[AI Chat] Keyword search results:", results.length);
+      console.log("[AI Chat] Keyword search results:", results.length, "from", combined.length, "total candidates");
       resultIds = results.map((r) => r.id);
       resultTypes = results.map((r) => ("title" in r ? "movie" : "tv"));
     } else if (genres.length > 0 || year) {

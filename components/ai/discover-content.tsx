@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { type ChatMessage } from "@/hooks/use-ai-chat";
 import { useChatSessions, useSaveChatSession, useDeleteChatSession } from "@/hooks/use-ai-chat-sessions";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
@@ -46,11 +47,13 @@ export default function DiscoverContent() {
   const infoScrollAreaRef = useRef<HTMLDivElement>(null);
   const sessionIdRef = useRef(sessionId);
   const hasAutoLoadedRef = useRef(false);
+  const lastSavedDataRef = useRef<string>(""); // Track last saved data to prevent duplicate saves
   
   // Keep ref in sync with state
   useEffect(() => {
     sessionIdRef.current = sessionId;
   }, [sessionId]);
+  const queryClient = useQueryClient();
   const saveSessionMutation = useSaveChatSession();
   const deleteSessionMutation = useDeleteChatSession();
   const { data: sessionsData } = useChatSessions();
@@ -123,10 +126,18 @@ export default function DiscoverContent() {
     }
   }, [sessionsData, mode, loadSession]); // Only run when sessions data or mode changes
 
-  // Save session after messages change
+  // Save session after messages change (debounced and only when data actually changes)
   useEffect(() => {
+    let saveData: {
+      sessionId: string;
+      mode: "recommendation" | "information";
+      messages: unknown[];
+      metadata?: unknown;
+      title?: string;
+    } | null = null;
+
     if (mode === "information" && messages.length > 0) {
-      const saveData = {
+      saveData = {
         sessionId,
         mode,
         messages: messages.map((msg) => ({
@@ -139,15 +150,8 @@ export default function DiscoverContent() {
         })),
         metadata: {},
       };
-
-      // Debounce saves
-      const timeoutId = setTimeout(() => {
-        saveSessionMutation.mutate(saveData);
-      }, 1000);
-
-      return () => clearTimeout(timeoutId);
     } else if (mode === "recommendation" && currentResults.length > 0 && lastUserPrompt) {
-      const saveData = {
+      saveData = {
         sessionId,
         mode,
         messages: [{
@@ -160,14 +164,26 @@ export default function DiscoverContent() {
         },
         title: lastUserPrompt.length > 50 ? lastUserPrompt.substring(0, 50) + "..." : lastUserPrompt,
       };
+    }
 
+    // Only save if we have data and it's different from the last saved data
+    if (saveData) {
+      const dataString = JSON.stringify(saveData);
+      if (dataString === lastSavedDataRef.current) {
+        // Data hasn't changed, skip save
+        return;
+      }
+
+      // Debounce saves
       const timeoutId = setTimeout(() => {
-        saveSessionMutation.mutate(saveData);
+        lastSavedDataRef.current = dataString;
+        saveSessionMutation.mutate(saveData!);
       }, 1000);
 
       return () => clearTimeout(timeoutId);
     }
-  }, [messages, currentResults, mode, sessionId, saveSessionMutation, lastUserPrompt]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, currentResults, mode, sessionId, lastUserPrompt]); // saveSessionMutation is stable from React Query
 
   // Reset when mode changes (but keep sessionId)
   useEffect(() => {
@@ -350,6 +366,8 @@ export default function DiscoverContent() {
         console.error(`[Track Interaction] Failed to track ${interactionType}:`, error);
       } else {
         console.log(`[Track Interaction] Successfully tracked ${interactionType} for session ${trackingSessionId}`);
+        // Invalidate analytics query to refresh the data
+        queryClient.invalidateQueries({ queryKey: ["ai-analytics"] });
       }
     } catch (error) {
       console.error("[Track Interaction] Error tracking interaction:", error);

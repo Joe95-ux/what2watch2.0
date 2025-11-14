@@ -348,6 +348,7 @@ export async function discoverMovies(filters: {
   sortBy?: string;
   minRating?: number;
   language?: string;
+  keywords?: number | number[];
 }): Promise<TMDBResponse<TMDBMovie>> {
   const params: Record<string, string | number> = {
     page: filters.page || 1,
@@ -372,6 +373,11 @@ export async function discoverMovies(filters: {
   if (filters.sortBy) params.sort_by = filters.sortBy;
   if (filters.minRating) params['vote_average.gte'] = filters.minRating;
   if (filters.language) params.with_original_language = filters.language;
+  if (filters.keywords) {
+    params.with_keywords = Array.isArray(filters.keywords)
+      ? filters.keywords.join(',')
+      : filters.keywords;
+  }
   
   return fetchTMDB<TMDBResponse<TMDBMovie>>('/discover/movie', params);
 }
@@ -388,6 +394,7 @@ export async function discoverTV(filters: {
   sortBy?: string;
   minRating?: number;
   language?: string;
+  keywords?: number | number[];
 }): Promise<TMDBResponse<TMDBSeries>> {
   const params: Record<string, string | number> = {
     page: filters.page || 1,
@@ -412,6 +419,11 @@ export async function discoverTV(filters: {
   if (filters.sortBy) params.sort_by = filters.sortBy;
   if (filters.minRating) params['vote_average.gte'] = filters.minRating;
   if (filters.language) params.with_original_language = filters.language;
+  if (filters.keywords) {
+    params.with_keywords = Array.isArray(filters.keywords)
+      ? filters.keywords.join(',')
+      : filters.keywords;
+  }
   
   return fetchTMDB<TMDBResponse<TMDBSeries>>('/discover/tv', params);
 }
