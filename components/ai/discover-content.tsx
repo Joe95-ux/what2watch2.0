@@ -191,6 +191,56 @@ export default function DiscoverContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, currentResults, mode, sessionId, lastUserPrompt]); // saveSessionMutation is stable from React Query
 
+  // Save session before mode changes (cleanup runs with old values when mode changes)
+  const prevModeRef = useRef(mode);
+  useEffect(() => {
+    const prevMode = prevModeRef.current;
+    prevModeRef.current = mode;
+    
+    // If mode changed, save the previous mode's data
+    if (prevMode !== mode && prevMode) {
+      if (prevMode === "information" && messages.length > 0) {
+        const saveData = {
+          sessionId,
+          mode: prevMode,
+          messages: messages.map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+            results: msg.results,
+            intent: msg.intent,
+            metadata: msg.metadata,
+            timestamp: msg.timestamp.toISOString(),
+          })),
+          metadata: {},
+        };
+        const dataString = JSON.stringify(saveData);
+        if (dataString !== lastSavedDataRef.current) {
+          lastSavedDataRef.current = dataString;
+          saveSessionMutation.mutate(saveData);
+        }
+      } else if (prevMode === "recommendation" && currentResults.length > 0 && lastUserPrompt) {
+        const saveData = {
+          sessionId,
+          mode: prevMode,
+          messages: [{
+            role: "user" as const,
+            content: lastUserPrompt,
+            timestamp: new Date().toISOString(),
+          }],
+          metadata: {
+            results: currentResults,
+          },
+          title: lastUserPrompt.length > 50 ? lastUserPrompt.substring(0, 50) + "..." : lastUserPrompt,
+        };
+        const dataString = JSON.stringify(saveData);
+        if (dataString !== lastSavedDataRef.current) {
+          lastSavedDataRef.current = dataString;
+          saveSessionMutation.mutate(saveData);
+        }
+      }
+    }
+  }, [mode, sessionId, messages, currentResults, lastUserPrompt, saveSessionMutation]);
+
   // Reset when mode changes (but keep sessionId)
   useEffect(() => {
     if (mode === "information") {
@@ -294,6 +344,7 @@ export default function DiscoverContent() {
           // Store user prompt for session title
           setLastUserPrompt(userMessage.content);
           console.log("Results set:", responseData.results.length);
+          console.log("[Track Interaction] Set currentResultsSessionId to:", currentSessionId, "for tracking clicks");
         } else {
           console.warn("No results in response:", responseData);
           throw new Error("No results returned from the API");
@@ -332,7 +383,7 @@ export default function DiscoverContent() {
             setMessages((prev) => [...prev, assistantMessage]);
             setStreamingMessage("");
           }
-        }, 20); // Adjust speed: lower = faster typing
+        }, 5); // Adjust speed: lower = faster typing (5ms = very fast)
       }
     } catch (error) {
       console.error("Chat error:", error);
@@ -393,16 +444,20 @@ export default function DiscoverContent() {
 
   // Track AI chat interactions
   const trackInteraction = async (interactionType: "click" | "add_to_playlist") => {
-    if (mode !== "recommendation") return;
+    if (mode !== "recommendation") {
+      console.warn("[Track Interaction] Not in recommendation mode, skipping tracking");
+      return;
+    }
     
     // Use the sessionId associated with the current results
     const trackingSessionId = currentResultsSessionId || sessionId;
     if (!trackingSessionId) {
-      console.warn("[Track Interaction] No sessionId available for tracking");
+      console.warn("[Track Interaction] No sessionId available for tracking. currentResultsSessionId:", currentResultsSessionId, "sessionId:", sessionId);
       return;
     }
     
     console.log(`[Track Interaction] Tracking ${interactionType} for sessionId: ${trackingSessionId}`);
+    console.log(`[Track Interaction] Current state - mode: ${mode}, currentResultsSessionId: ${currentResultsSessionId}, sessionId: ${sessionId}, currentResults.length: ${currentResults.length}`);
     
     try {
       const response = await fetch("/api/ai/chat/track-interaction", {
@@ -419,8 +474,10 @@ export default function DiscoverContent() {
       if (!response.ok) {
         const error = await response.json().catch(() => ({ error: "Unknown error" }));
         console.error(`[Track Interaction] Failed to track ${interactionType}:`, error);
+        console.error(`[Track Interaction] Response status: ${response.status}, statusText: ${response.statusText}`);
       } else {
-        console.log(`[Track Interaction] Successfully tracked ${interactionType} for session ${trackingSessionId}`);
+        const result = await response.json();
+        console.log(`[Track Interaction] Successfully tracked ${interactionType} for session ${trackingSessionId}`, result);
         // Invalidate analytics query to refresh the data
         queryClient.invalidateQueries({ queryKey: ["ai-analytics"] });
       }
@@ -449,7 +506,50 @@ export default function DiscoverContent() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-65px)] max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
-      <Tabs value={mode} onValueChange={(v) => setMode(v as "recommendation" | "information")} className="flex-1 flex flex-col min-h-0">
+      <Tabs value={mode} onValueChange={(v) => {
+        // Save current state before switching tabs
+        const newMode = v as "recommendation" | "information";
+        if (mode === "information" && messages.length > 0) {
+          const saveData = {
+            sessionId,
+            mode: "information" as "recommendation" | "information",
+            messages: messages.map((msg) => ({
+              role: msg.role,
+              content: msg.content,
+              results: msg.results,
+              intent: msg.intent,
+              metadata: msg.metadata,
+              timestamp: msg.timestamp.toISOString(),
+            })),
+            metadata: {},
+          };
+          const dataString = JSON.stringify(saveData);
+          if (dataString !== lastSavedDataRef.current) {
+            lastSavedDataRef.current = dataString;
+            saveSessionMutation.mutate(saveData);
+          }
+        } else if (mode === "recommendation" && currentResults.length > 0 && lastUserPrompt) {
+          const saveData = {
+            sessionId,
+            mode: "recommendation" as "recommendation" | "information",
+            messages: [{
+              role: "user" as const,
+              content: lastUserPrompt,
+              timestamp: new Date().toISOString(),
+            }],
+            metadata: {
+              results: currentResults,
+            },
+            title: lastUserPrompt.length > 50 ? lastUserPrompt.substring(0, 50) + "..." : lastUserPrompt,
+          };
+          const dataString = JSON.stringify(saveData);
+          if (dataString !== lastSavedDataRef.current) {
+            lastSavedDataRef.current = dataString;
+            saveSessionMutation.mutate(saveData);
+          }
+        }
+        setMode(newMode);
+      }} className="flex-1 flex flex-col min-h-0">
         <div className="flex-1 flex flex-col items-center justify-center min-h-0">
           {/* Header with History */}
           <div className="w-full flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-4 sm:mb-6 px-2">

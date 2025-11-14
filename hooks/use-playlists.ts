@@ -225,8 +225,15 @@ export function useRemoveItemFromPlaylist() {
 // Fetch public playlists (no authentication required)
 const fetchPublicPlaylists = async (limit?: number): Promise<Playlist[]> => {
   const url = limit ? `/api/playlists/public?limit=${limit}` : "/api/playlists/public";
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("Failed to fetch public playlists");
+  const res = await fetch(url, {
+    // Explicitly don't send credentials to ensure it works for unauthenticated users
+    credentials: 'omit',
+    cache: 'no-store', // Ensure fresh data
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(errorData.error || `Failed to fetch public playlists: ${res.status}`);
+  }
   const data = await res.json();
   return data.playlists || [];
 };
@@ -237,6 +244,9 @@ export function usePublicPlaylists(limit?: number) {
     queryFn: () => fetchPublicPlaylists(limit),
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 60, // 1 hour
+    retry: 2, // Retry failed requests
+    retryOnMount: true, // Retry when component mounts
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 }
 

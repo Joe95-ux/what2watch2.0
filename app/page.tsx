@@ -65,7 +65,7 @@ type TrailerState = {
 };
 
 function PublicPlaylistsCarousel() {
-  const { data: playlists = [], isLoading } = usePublicPlaylists(20);
+  const { data: playlists = [], isLoading, isError, error } = usePublicPlaylists(20);
 
   if (isLoading) {
     return (
@@ -88,6 +88,13 @@ function PublicPlaylistsCarousel() {
         </div>
       </div>
     );
+  }
+
+  // Show error state but don't hide the section
+  if (isError) {
+    console.error("Error fetching public playlists:", error);
+    // Return empty state instead of null to keep section visible
+    return null;
   }
 
   if (playlists.length === 0) {
