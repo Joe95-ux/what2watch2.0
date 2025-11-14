@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { type ChatMessage } from "@/hooks/use-ai-chat";
 import { useChatSessions, useSaveChatSession, useDeleteChatSession } from "@/hooks/use-ai-chat-sessions";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
@@ -18,7 +18,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { formatDistanceToNow } from "date-fns";
 
@@ -46,6 +45,7 @@ export default function DiscoverContent() {
   const itemsPerPage = 12;
   const infoScrollAreaRef = useRef<HTMLDivElement>(null);
   const sessionIdRef = useRef(sessionId);
+  const hasAutoLoadedRef = useRef(false);
   
   // Keep ref in sync with state
   useEffect(() => {
@@ -56,7 +56,7 @@ export default function DiscoverContent() {
   const { data: sessionsData } = useChatSessions();
 
   // Load session when selected
-  const loadSession = async (targetSessionId: string) => {
+  const loadSession = useCallback(async (targetSessionId: string) => {
     try {
       const response = await fetch(`/api/ai/chat/sessions/${targetSessionId}`);
       if (!response.ok) return;
@@ -106,7 +106,22 @@ export default function DiscoverContent() {
     } catch (error) {
       console.error("Error loading session:", error);
     }
-  };
+  }, []);
+
+  // Load most recent session on mount (only once)
+  useEffect(() => {
+    if (sessionsData?.sessions && sessionsData.sessions.length > 0 && !hasAutoLoadedRef.current) {
+      // Find the most recent session for the current mode
+      const recentSession = sessionsData.sessions
+        .filter((s) => s.mode === mode)
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
+      
+      if (recentSession) {
+        hasAutoLoadedRef.current = true;
+        loadSession(recentSession.sessionId);
+      }
+    }
+  }, [sessionsData, mode, loadSession]); // Only run when sessions data or mode changes
 
   // Save session after messages change
   useEffect(() => {
@@ -379,7 +394,7 @@ export default function DiscoverContent() {
                     Chat History
                   </div>
                   <ScrollArea className="h-[400px] w-64">
-                    <div className="p-1">
+                    <div className="p-1 max-w-64">
                       {filteredSessions.map((session) => (
                         <DropdownMenuItem
                           key={session.id}
