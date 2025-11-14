@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 // POST - Like a playlist (auto-saves to user's library)
 export async function POST(
   request: NextRequest,
-  { params }: { params: { playlistId: string } }
+  { params }: { params: Promise<{ playlistId: string }> }
 ) {
   try {
     const { userId: clerkUserId } = await auth();
@@ -23,7 +23,7 @@ export async function POST(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const playlistId = params.playlistId;
+    const { playlistId } = await params;
 
     // Check if playlist exists
     const playlist = await db.playlist.findUnique({
@@ -95,7 +95,7 @@ export async function POST(
 // DELETE - Unlike a playlist (removes from user's library)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { playlistId: string } }
+  { params }: { params: Promise<{ playlistId: string }> }
 ) {
   try {
     const { userId: clerkUserId } = await auth();
@@ -113,7 +113,7 @@ export async function DELETE(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const playlistId = params.playlistId;
+    const { playlistId } = await params;
 
     // Delete liked playlist entry and decrement likes count
     const deleted = await db.likedPlaylist.deleteMany({
@@ -153,7 +153,7 @@ export async function DELETE(
 // GET - Check if current user has liked the playlist
 export async function GET(
   request: NextRequest,
-  { params }: { params: { playlistId: string } }
+  { params }: { params: Promise<{ playlistId: string }> }
 ) {
   try {
     const { userId: clerkUserId } = await auth();
@@ -171,7 +171,7 @@ export async function GET(
       return NextResponse.json({ isLiked: false });
     }
 
-    const playlistId = params.playlistId;
+    const { playlistId } = await params;
 
     const liked = await db.likedPlaylist.findUnique({
       where: {
