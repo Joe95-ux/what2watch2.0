@@ -23,11 +23,11 @@ const HamburgerButton = React.forwardRef<HTMLButtonElement, HamburgerButtonProps
         )}
         {...props}
       >
-        <span className="relative block h-5 w-7">
+        <span className="relative block h-5 w-7 max-[412px]:h-4 max-[412px]:w-5">
           <span
             className={cn(
               "absolute left-0 top-0 h-[2px] w-full rounded-full bg-current transition-all duration-300 ease-in-out",
-              showMorph && isOpen && "translate-y-[9px] rotate-45"
+              showMorph && isOpen && "translate-y-[9px] rotate-45 max-[412px]:translate-y-[7px]"
             )}
           />
           <span
@@ -39,7 +39,7 @@ const HamburgerButton = React.forwardRef<HTMLButtonElement, HamburgerButtonProps
           <span
             className={cn(
               "absolute bottom-0 left-0 h-[2px] w-[70%] rounded-full bg-current transition-all duration-300 ease-in-out",
-              showMorph && isOpen && "bottom-[9px] w-full -rotate-45"
+              showMorph && isOpen && "bottom-[9px] w-full -rotate-45 max-[412px]:bottom-[7px]"
             )}
           />
         </span>

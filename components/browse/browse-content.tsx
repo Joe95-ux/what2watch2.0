@@ -18,6 +18,7 @@ import HeroSection from "./hero-section";
 import RecentlyViewed from "./recently-viewed";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { useMemo } from "react";
+import { useUser } from "@clerk/nextjs";
 
 interface BrowseContentProps {
   favoriteGenres: number[];
@@ -25,6 +26,9 @@ interface BrowseContentProps {
 }
 
 export default function BrowseContent({ favoriteGenres, preferredTypes }: BrowseContentProps) {
+  const { user } = useUser();
+  const displayName = user?.fullName || user?.firstName || "You";
+  
   // Fetch all data with TanStack Query
   const { data: popularMovies = [], isLoading: isLoadingPopularMovies } = usePopularMovies(1);
   const { data: nowPlayingMovies = [], isLoading: isLoadingNowPlaying } = useNowPlayingMovies(1);
@@ -123,10 +127,10 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
 
       {/* Content Rows - Normal positioning */}
       <div className="w-full py-8 overflow-hidden relative z-10">
-        {/* Personalized Section */}
+        {/* Made for [Username] Section */}
         {favoriteGenres && favoriteGenres.length > 0 && (
           <ContentRow
-            title="We Think You'll Love This"
+            title={`Made for ${displayName}`}
             items={uniquePersonalizedContent}
             type={preferredTypes.length === 1 ? preferredTypes[0] : "movie"} // Use first type or default to movie for mixed content
             isLoading={isLoadingPersonalized}

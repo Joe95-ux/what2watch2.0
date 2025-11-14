@@ -11,6 +11,8 @@ import PlaylistCard from "@/components/browse/playlist-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BookOpen, Heart, Clock, Film, Share2 } from "lucide-react";
 import { usePlaylistAnalytics } from "@/hooks/use-playlist-analytics";
+import { useUserPreferences } from "@/hooks/use-user-preferences";
+import { usePersonalizedContent } from "@/hooks/use-movies";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +22,46 @@ export default function DashboardContent() {
   const { data: playlists = [], isLoading: isLoadingPlaylists } = usePlaylists();
   const { data: recentlyViewed = [], isLoading: isLoadingRecentlyViewed } = useRecentlyViewed();
   const { data: playlistAnalytics, isLoading: isLoadingPlaylistAnalytics } = usePlaylistAnalytics(); // Show all data by default
+  const { data: preferences } = useUserPreferences();
+  
+  // Normalize favoriteGenres - handle Extended JSON format from MongoDB
+  const normalizeGenres = (genres: unknown[]): number[] => {
+    return genres
+      .map((g) => {
+        // Handle Extended JSON format: {"$numberLong":"18"} or {"$numberInt":"18"}
+        if (typeof g === "object" && g !== null) {
+          const obj = g as Record<string, unknown>;
+          if ("$numberLong" in obj && typeof obj.$numberLong === "string") {
+            return Number.parseInt(obj.$numberLong, 10);
+          }
+          if ("$numberInt" in obj && typeof obj.$numberInt === "string") {
+            return Number.parseInt(obj.$numberInt, 10);
+          }
+        }
+        // Handle regular numbers or string numbers
+        if (typeof g === "number") return g;
+        if (typeof g === "string") {
+          const parsed = Number.parseInt(g, 10);
+          return Number.isNaN(parsed) ? null : parsed;
+        }
+        return null;
+      })
+      .filter((g): g is number => g !== null && !Number.isNaN(g));
+  };
+
+  const favoriteGenres = useMemo(() => {
+    if (!preferences?.favoriteGenres) return [];
+    return normalizeGenres(preferences.favoriteGenres as unknown[]);
+  }, [preferences]);
+
+  const preferredTypes = useMemo(() => {
+    return (preferences?.preferredTypes || []) as ("movie" | "tv")[];
+  }, [preferences]);
+
+  const { data: personalizedContent = [], isLoading: isLoadingPersonalized } = usePersonalizedContent(
+    favoriteGenres,
+    preferredTypes.length > 0 ? preferredTypes : ["movie", "tv"]
+  );
 
   // Convert recently viewed to TMDB format
   const recentlyViewedItems = useMemo(() => {
@@ -155,6 +197,26 @@ export default function DashboardContent() {
             type={recentlyViewedItems.length > 0 ? ("title" in recentlyViewedItems[0] ? "movie" : "tv") : "movie"}
           />
         ) : null}
+
+        {/* Made for [Username] Section */}
+        {favoriteGenres.length > 0 && (
+          isLoadingPersonalized ? (
+            <div className="mb-12">
+              <Skeleton className="h-7 w-48 mb-6 !bg-gray-200 dark:!bg-accent" />
+              <div className="flex gap-4 overflow-x-hidden">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="aspect-[2/3] w-[200px] flex-shrink-0 rounded-lg !bg-gray-200 dark:!bg-accent" />
+                ))}
+              </div>
+            </div>
+          ) : personalizedContent.length > 0 ? (
+            <DashboardRow
+              title={`Made for ${displayName}`}
+              items={personalizedContent.slice(0, 20)}
+              type={preferredTypes.length === 1 ? preferredTypes[0] : "movie"}
+            />
+          ) : null
+        )}
 
         {/* My Watchlist Section */}
         {isLoadingFavorites ? (

@@ -90,7 +90,10 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
     return (
       <div className="min-h-screen bg-background">
         <div className="relative -mt-[65px] h-[43vh] min-h-[300px] max-h-[500px] overflow-hidden">
-          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5" />
+          {/* Gradient background */}
+          <div className="w-full h-full" style={{ background: '#061E1C' }} />
+          {/* Dark overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/90 to-transparent" />
           <div className="absolute inset-0 flex items-end">
             <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 w-full">
               <div className="flex items-center gap-6">
@@ -128,25 +131,14 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
     .toUpperCase()
     .slice(0, 2);
 
-  // Use avatar as cover image or gradient
-  const coverImage = user.avatarUrl;
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header with Cover */}
       <div className="relative -mt-[65px] h-[43vh] min-h-[300px] max-h-[500px] overflow-hidden">
-        {coverImage ? (
-          <>
-            <img
-              src={coverImage}
-              alt={displayName}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
-          </>
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5" />
-        )}
+        {/* Gradient background */}
+        <div className="w-full h-full" style={{ background: '#061E1C' }} />
+        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/90 to-transparent" />
 
         <div className="absolute inset-0 flex items-end">
           <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 w-full">
@@ -381,23 +373,30 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
               </div>
             ) : (
               <div className="space-y-4">
-                {following.map((user) => (
-                  <div key={user.id} className="flex items-center gap-4 p-4 rounded-lg border bg-card">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={user.avatarUrl || undefined} alt={user.displayName || ""} />
-                      <AvatarFallback>
-                        {(user.displayName || user.username || "U")[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{user.displayName || user.username || "Unknown"}</p>
-                      {user.username && (
-                        <p className="text-sm text-muted-foreground truncate">@{user.username}</p>
+                {following.map((user) => {
+                  const isCurrentUser = currentUser?.id === user.id;
+                  return (
+                    <div key={user.id} className="flex items-center gap-4 p-4 rounded-lg border bg-card">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={user.avatarUrl || undefined} alt={user.displayName || ""} />
+                        <AvatarFallback>
+                          {(user.displayName || user.username || "U")[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold truncate">{user.displayName || user.username || "Unknown"}</p>
+                        {user.username && (
+                          <p className="text-sm text-muted-foreground truncate">@{user.username}</p>
+                        )}
+                      </div>
+                      {isCurrentUser ? (
+                        <span className="text-sm text-muted-foreground px-3 py-1.5">You</span>
+                      ) : (
+                        <FollowButton userId={user.id} size="sm" />
                       )}
                     </div>
-                    <FollowButton userId={user.id} size="sm" />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
             </div>

@@ -25,6 +25,7 @@ import { FollowButton } from "./follow-button";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 export default function SocialContent() {
   const [activeTab, setActiveTab] = useState<"following" | "followers">(
@@ -33,6 +34,7 @@ export default function SocialContent() {
   const { data: followingData, isLoading: isLoadingFollowing } = useFollowing();
   const { data: followersData, isLoading: isLoadingFollowers } = useFollowers();
   const isMobile = useIsMobile();
+  const { data: currentUser } = useCurrentUser();
 
   const following = followingData?.following || [];
   const followers = followersData?.followers || [];
@@ -174,6 +176,7 @@ export default function SocialContent() {
                       </TableHeader>
                       <TableBody>
                         {following.map((user) => {
+                          const isCurrentUser = currentUser?.id === user.id;
                           const displayName =
                             user.displayName || user.username || "Unknown User";
                           const initials = displayName
@@ -222,7 +225,11 @@ export default function SocialContent() {
                                 )}
                               </TableCell>
                               <TableCell className="text-right">
-                                <FollowButton userId={user.id} size="sm" />
+                                {isCurrentUser ? (
+                                  <span className="text-sm text-muted-foreground px-3 py-1.5">You</span>
+                                ) : (
+                                  <FollowButton userId={user.id} size="sm" />
+                                )}
                               </TableCell>
                             </TableRow>
                           );

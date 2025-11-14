@@ -371,7 +371,7 @@ function StatsOverview({ totals }: { totals?: PlaylistAnalyticsTotals }) {
     totals.visits === 0 ? 0 : (totals.shares / totals.visits) * 100;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-6 mb-6 lg:mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
       <MetricCard
         icon={<Users className="h-5 w-5 text-blue-500" />}
         label="Total Visits"

@@ -118,7 +118,7 @@ export default function Navbar() {
                     isOpen={mobileMenuOpen}
                     showMorph={false}
                     className={cn(
-                      "h-9 w-9 transition-colors duration-300",
+                      "h-9 w-9 max-[412px]:h-7 max-[412px]:w-7 transition-colors duration-300",
                       hasHeroSection && "text-white hover:bg-black/20"
                     )}
                   />
@@ -188,7 +188,7 @@ export default function Navbar() {
                   isOpen={mobileMenuOpen}
                   showMorph={false}
                   className={cn(
-                    "h-9 w-9 transition-colors duration-300",
+                    "h-9 w-9 max-[412px]:h-7 max-[412px]:w-7 transition-colors duration-300",
                     hasHeroSection && "text-white hover:bg-black/20"
                   )}
                 />
