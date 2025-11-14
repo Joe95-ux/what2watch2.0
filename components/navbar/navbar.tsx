@@ -63,9 +63,9 @@ export default function Navbar() {
       )}>
         {/* Left side - Hamburger (below 1280px) and Logo */}
         <div className="flex items-center gap-3">
-          {/* Navigation Dropdown - Show between md (768px) and 1280px, hidden on dashboard */}
+          {/* Navigation Dropdown - Show between md (768px) and xl (1280px), hidden on dashboard */}
           {!isDashboard && !isDiscoverPage && (
-            <div className="hidden md:block [1280px]:hidden">
+            <div className="hidden md:block xl:hidden">
               <NavDropdown navLinks={navLinks} hasHeroSection={hasHeroSection} />
             </div>
           )}
@@ -79,9 +79,9 @@ export default function Navbar() {
           </div>
         ) : (
           <>
-            {/* Center - Desktop Nav (non-dashboard and discover page, 1280px and above) */}
+            {/* Center - Desktop Nav (non-dashboard and discover page, xl (1280px) and above) */}
             {!isDashboard && !isDiscoverPage && (
-              <div className="hidden [1280px]:flex items-center gap-1 flex-1 ml-3">
+              <div className="hidden xl:flex items-center gap-1 flex-1 ml-3">
                 {navLinks.map((link) => {
                   const isActive = pathname === link.href;
                   return (

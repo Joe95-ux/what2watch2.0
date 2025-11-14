@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
       ...liked.playlist,
       isReadOnly: liked.isReadOnly,
       likedAt: liked.createdAt,
+      user: liked.playlist.user,
       createdBy: liked.playlist.user,
     }));
 

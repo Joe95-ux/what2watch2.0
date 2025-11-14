@@ -151,7 +151,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     <SidebarMenuItem>
                       <SidebarMenuButton
                         asChild
-                        isActive={pathname === "/dashboard/social" || pathname?.startsWith("/dashboard/social")}
+                        isActive={
+                          pathname === "/dashboard/social" ||
+                          (pathname?.startsWith("/dashboard/social/") &&
+                            !pathname?.startsWith("/dashboard/social/friends-playlists"))
+                        }
                         tooltip="Following"
                       >
                         <Link href="/dashboard/social">
@@ -163,7 +167,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     <SidebarMenuItem>
                       <SidebarMenuButton
                         asChild
-                        isActive={pathname === "/dashboard/social/friends-playlists" || pathname?.startsWith("/dashboard/social/friends-playlists")}
+                        isActive={
+                          pathname === "/dashboard/social/friends-playlists" ||
+                          pathname?.startsWith("/dashboard/social/friends-playlists/")
+                        }
                         tooltip="Friends' Playlists"
                       >
                         <Link href="/dashboard/social/friends-playlists">

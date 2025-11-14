@@ -41,6 +41,14 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ playlist
         items: {
           orderBy: { order: "asc" },
         },
+        user: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+          },
+        },
         _count: {
           select: { items: true },
         },

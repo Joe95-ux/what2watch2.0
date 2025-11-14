@@ -33,29 +33,39 @@ export async function GET(
       isFollowing = !!follow;
     }
 
-    // Build visibility filter
-    const visibilityFilter: Array<{ visibility: PlaylistVisibility }> = [
-      { visibility: PlaylistVisibility.PUBLIC },
-    ];
-
+    // Build visibility filter - support both visibility enum and isPublic boolean
     // If current user is the owner, show all playlists
-    if (currentUser && currentUser.id === targetUserId) {
-      // Show all playlists for own profile
-    } else if (isFollowing) {
-      // If following, show PUBLIC and FOLLOWERS_ONLY
-      visibilityFilter.push({ visibility: PlaylistVisibility.FOLLOWERS_ONLY });
-    }
-    // If not following, only show PUBLIC
+    const whereClause: {
+      userId: string;
+      OR?: Array<{ visibility: PlaylistVisibility } | { isPublic: true }>;
+    } =
+      currentUser && currentUser.id === targetUserId
+        ? {
+            userId: targetUserId,
+            // Show all playlists for own profile - no visibility filter needed
+          }
+        : {
+            userId: targetUserId,
+            // For other users, filter by visibility
+            OR: (() => {
+              const conditions: Array<
+                { visibility: PlaylistVisibility } | { isPublic: true }
+              > = [
+                { visibility: PlaylistVisibility.PUBLIC },
+                { isPublic: true }, // Support legacy isPublic field
+              ];
+
+              if (isFollowing) {
+                // If following, also show FOLLOWERS_ONLY
+                conditions.push({ visibility: PlaylistVisibility.FOLLOWERS_ONLY });
+              }
+
+              return conditions;
+            })(),
+          };
 
     const playlists = await db.playlist.findMany({
-      where: {
-        userId: targetUserId,
-        OR: currentUser?.id === targetUserId
-          ? undefined
-          : visibilityFilter.length > 0
-          ? visibilityFilter
-          : [{ visibility: PlaylistVisibility.PUBLIC }],
-      },
+      where: whereClause,
       include: {
         user: {
           select: {

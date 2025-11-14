@@ -88,6 +88,16 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
     fetchPlaylist();
   }, [playlistId]);
 
+  const playlistWithUser = playlist as PlaylistWithUser;
+  const isOwner = Boolean(currentUserId && playlist && currentUserId === playlist.userId);
+
+  // Redirect owner to regular playlist page for better UX
+  useEffect(() => {
+    if (isOwner && playlist && !isLoading) {
+      router.replace(`/playlists/${playlist.id}`);
+    }
+  }, [isOwner, playlist, isLoading, router]);
+
   useEffect(() => {
     if (!playlist || hasLoggedVisit) {
       return;
@@ -154,9 +164,6 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
     );
   }
 
-  const playlistWithUser = playlist as PlaylistWithUser;
-  const isOwner = Boolean(currentUserId && playlist && currentUserId === playlist.userId);
-
   const handleDeletePlaylist = async () => {
     try {
       await deletePlaylist.mutateAsync(playlistId);
@@ -215,7 +222,7 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
   return (
     <div className="min-h-screen bg-background">
       {/* Header with Cover */}
-      <div className="relative -mt-[65px] h-[40vh] min-h-[300px] max-h-[565px] overflow-hidden">
+      <div className="relative -mt-[65px] h-[43vh] min-h-[300px] max-h-[500px] overflow-hidden">
         {coverImage ? (
           <>
             <img
@@ -231,7 +238,7 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
 
         <div className="absolute inset-0 flex items-end">
           <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 w-full">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
               <div className="flex-1">
                 <Button
                   variant="ghost"
