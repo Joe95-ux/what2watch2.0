@@ -345,7 +345,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
 
   // Desktop: Inline search with dropdown
   return (
-    <div ref={containerRef} className="relative w-64 lg:w-80">
+    <div ref={containerRef} className="relative w-72 lg:w-96">
       <div className="relative">
         <SearchIcon className={cn(
           "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none transition-colors duration-300",

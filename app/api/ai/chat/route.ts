@@ -48,7 +48,9 @@ Always respond with valid JSON in this format:
 
 Only include fields that are relevant.`;
 
-const SYSTEM_PROMPT_INFORMATION = `You are a helpful AI assistant specialized in movies and TV shows. Answer user questions about movies, TV shows, actors, directors, and entertainment industry facts. Use your knowledge and available information to provide accurate, detailed answers. If you need current information, use your knowledge cutoff and reasoning abilities.`;
+const SYSTEM_PROMPT_INFORMATION = `You are a helpful AI assistant specialized in movies and TV shows. Answer user questions about movies, TV shows, actors, directors, and entertainment industry facts. Use your knowledge and available information to provide accurate, detailed answers. 
+
+Note: You have access to a knowledge base that includes information up to your training cutoff date. For questions about recent releases, box office numbers, or current industry events, provide the best answer based on your knowledge and reasoning, but acknowledge if the information might be outdated.`;
 
 export async function POST(request: NextRequest) {
   try {

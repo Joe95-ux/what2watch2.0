@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useAiChat, type ChatMessage } from "@/hooks/use-ai-chat";
+import { type ChatMessage } from "@/hooks/use-ai-chat";
 import { useChatSessions, useSaveChatSession, useDeleteChatSession } from "@/hooks/use-ai-chat-sessions";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
@@ -41,9 +41,15 @@ export default function DiscoverContent() {
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
   const [currentResults, setCurrentResults] = useState<(TMDBMovie | TMDBSeries)[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [lastUserPrompt, setLastUserPrompt] = useState<string>(""); // Store last user prompt for recommendation mode
   const itemsPerPage = 12;
   const infoScrollAreaRef = useRef<HTMLDivElement>(null);
-  const chatMutation = useAiChat(sessionId);
+  const sessionIdRef = useRef(sessionId);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+  }, [sessionId]);
   const saveSessionMutation = useSaveChatSession();
   const deleteSessionMutation = useDeleteChatSession();
   const { data: sessionsData } = useChatSessions();
@@ -87,6 +93,14 @@ export default function DiscoverContent() {
           setCurrentResults(results);
         }
       }
+
+      // Load last user prompt for recommendation mode
+      if (session.mode === "recommendation" && Array.isArray(session.messages) && session.messages.length > 0) {
+        const firstMessage = session.messages[0] as { role?: string; content?: string };
+        if (firstMessage && firstMessage.role === "user" && firstMessage.content) {
+          setLastUserPrompt(firstMessage.content);
+        }
+      }
     } catch (error) {
       console.error("Error loading session:", error);
     }
@@ -115,14 +129,19 @@ export default function DiscoverContent() {
       }, 1000);
 
       return () => clearTimeout(timeoutId);
-    } else if (mode === "recommendation" && currentResults.length > 0) {
+    } else if (mode === "recommendation" && currentResults.length > 0 && lastUserPrompt) {
       const saveData = {
         sessionId,
         mode,
-        messages: [],
+        messages: [{
+          role: "user" as const,
+          content: lastUserPrompt,
+          timestamp: new Date().toISOString(),
+        }],
         metadata: {
           results: currentResults,
         },
+        title: lastUserPrompt.length > 50 ? lastUserPrompt.substring(0, 50) + "..." : lastUserPrompt,
       };
 
       const timeoutId = setTimeout(() => {
@@ -131,7 +150,7 @@ export default function DiscoverContent() {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [messages, currentResults, mode, sessionId, saveSessionMutation]);
+  }, [messages, currentResults, mode, sessionId, saveSessionMutation, lastUserPrompt]);
 
   // Reset when mode changes (but keep sessionId)
   useEffect(() => {
@@ -153,8 +172,12 @@ export default function DiscoverContent() {
     }
   }, [messages, mode]);
 
+  const [isLoading, setIsLoading] = useState(false);
+
   const handleSend = async () => {
-    if (!input.trim() || chatMutation.isPending) return;
+    if (!input.trim() || isLoading) return;
+    
+    setIsLoading(true);
 
     const userMessage: ChatMessage = {
       role: "user",
@@ -168,24 +191,52 @@ export default function DiscoverContent() {
 
     setInput("");
 
+    // For recommendation mode, create a new session for each query
+    let currentSessionId = sessionId;
+    if (mode === "recommendation") {
+      currentSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      setSessionId(currentSessionId);
+      sessionIdRef.current = currentSessionId;
+    }
+
     try {
-      const response = await chatMutation.mutateAsync({
-        message: userMessage.content,
-        conversationHistory: mode === "information" ? messages : [],
-        mode,
+      // Use current sessionId for the API call
+      const response = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: userMessage.content,
+          sessionId: currentSessionId,
+          conversationHistory: mode === "information" ? messages.map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+          })) : [],
+          mode,
+        }),
       });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: "Failed to process chat message" }));
+        throw new Error(error.error || "Failed to process chat message");
+      }
+
+      const responseData = await response.json();
 
       if (mode === "recommendation") {
         // Store results for pagination
-        setCurrentResults(response.results);
+        setCurrentResults(responseData.results);
         setCurrentPage(1);
+        // Store user prompt for session title
+        setLastUserPrompt(userMessage.content);
       } else {
         // Information mode: show conversation (no movie cards)
         const assistantMessage: ChatMessage = {
           role: "assistant",
-          content: response.message,
-          intent: response.intent,
-          metadata: response.metadata,
+          content: responseData.message,
+          intent: responseData.intent,
+          metadata: responseData.metadata,
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, assistantMessage]);
@@ -200,6 +251,8 @@ export default function DiscoverContent() {
         };
         setMessages((prev) => [...prev, errorMessage]);
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -213,6 +266,7 @@ export default function DiscoverContent() {
     setMessages([]);
     setCurrentResults([]);
     setInput("");
+    setLastUserPrompt("");
   };
 
   const handleDeleteSession = async (targetSessionId: string, e: React.MouseEvent) => {
@@ -251,11 +305,11 @@ export default function DiscoverContent() {
       <Tabs value={mode} onValueChange={(v) => setMode(v as "recommendation" | "information")} className="flex-1 flex flex-col min-h-0">
         <div className="flex-1 flex flex-col items-center justify-center min-h-0">
           {/* Header with History */}
-          <div className="w-full flex items-center justify-center gap-4 mb-4">
+          <div className="w-full flex items-center justify-center gap-4 mb-6">
             {/* Tabs - Centered */}
-            <TabsList className="grid w-fit grid-cols-2 bg-muted dark:bg-muted/90 border border-border shadow-sm">
-              <TabsTrigger value="recommendation" className="data-[state=active]:bg-background dark:data-[state=active]:bg-background/90 data-[state=active]:border-border">Recommendation</TabsTrigger>
-              <TabsTrigger value="information" className="data-[state=active]:bg-background dark:data-[state=active]:bg-background/90 data-[state=active]:border-border">Information</TabsTrigger>
+            <TabsList className="grid w-fit grid-cols-2 bg-muted/90 dark:bg-muted/80 border border-border shadow-sm">
+              <TabsTrigger value="recommendation" className="bg-muted/60 dark:bg-muted/50 data-[state=active]:bg-background/90 dark:data-[state=active]:bg-background/80">Recommendation</TabsTrigger>
+              <TabsTrigger value="information" className="bg-muted/60 dark:bg-muted/50 data-[state=active]:bg-background/90 dark:data-[state=active]:bg-background/80">Information</TabsTrigger>
             </TabsList>
 
             {/* Chat History Dropdown */}
@@ -312,7 +366,7 @@ export default function DiscoverContent() {
             {/* Results Display - Centered */}
             {currentResults.length > 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center min-h-0 mb-4 w-full">
-                <ScrollArea className="flex-1 w-full">
+                <ScrollArea className="flex-1 w-full max-h-[calc(100vh-400px)]">
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 pb-4 pr-4">
                     {paginatedResults.map((item) => (
                       <div
@@ -370,9 +424,9 @@ export default function DiscoverContent() {
                   value={input}
                   onChange={setInput}
                   onSubmit={handleSend}
-                  isLoading={chatMutation.isPending}
+                  isLoading={isLoading}
                   placeholder="Ask for movie or TV show recommendations..."
-                  disabled={chatMutation.isPending}
+                  disabled={isLoading}
                 />
 
                 {/* Suggestions below input */}
@@ -401,7 +455,7 @@ export default function DiscoverContent() {
                 infoChatHeight
               )}>
                 {/* Messages Area */}
-                <ScrollArea ref={infoScrollAreaRef} className="flex-1 p-4">
+                <ScrollArea ref={infoScrollAreaRef} className="flex-1 p-4 max-h-[calc(100vh-400px)]">
                   <div className="space-y-4">
                     {messages.length === 0 && (
                       <div className="text-center py-8 text-muted-foreground">
@@ -443,7 +497,7 @@ export default function DiscoverContent() {
                       </div>
                     ))}
 
-                    {chatMutation.isPending && (
+                    {isLoading && (
                       <div className="flex gap-3 justify-start">
                         <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                           <Info className="h-4 w-4 text-primary" />
@@ -465,9 +519,9 @@ export default function DiscoverContent() {
                     value={input}
                     onChange={setInput}
                     onSubmit={handleSend}
-                    isLoading={chatMutation.isPending}
+                    isLoading={isLoading}
                     placeholder="Ask about movies, TV shows, actors, or entertainment..."
-                    disabled={chatMutation.isPending}
+                    disabled={isLoading}
                   />
                 </div>
               </div>
