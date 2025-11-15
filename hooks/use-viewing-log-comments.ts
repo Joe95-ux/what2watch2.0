@@ -1,5 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+export interface CommentReaction {
+  id: string;
+  commentId: string;
+  userId: string;
+  user: {
+    id: string;
+    username: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+  };
+  reactionType: string; // "like" or emoji
+  createdAt: string;
+}
+
 export interface ViewingLogComment {
   id: string;
   viewingLogId: string;
@@ -14,6 +28,7 @@ export interface ViewingLogComment {
   parentCommentId: string | null;
   replies: ViewingLogComment[];
   likes: number;
+  reactions?: CommentReaction[];
   createdAt: string;
   updatedAt: string;
 }
@@ -22,6 +37,12 @@ interface CreateCommentParams {
   logId: string;
   content: string;
   parentCommentId?: string | null;
+}
+
+interface UpdateCommentParams {
+  logId: string;
+  commentId: string;
+  content: string;
 }
 
 // Fetch comments for a viewing log
@@ -42,6 +63,21 @@ const createComment = async ({ logId, content, parentCommentId }: CreateCommentP
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.error || "Failed to create comment");
+  }
+  const data = await res.json();
+  return data.comment;
+};
+
+// Update a comment
+const updateComment = async ({ logId, commentId, content }: UpdateCommentParams): Promise<ViewingLogComment> => {
+  const res = await fetch(`/api/viewing-logs/${logId}/comments/${commentId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to update comment");
   }
   const data = await res.json();
   return data.comment;
@@ -78,12 +114,93 @@ export function useCreateComment() {
   });
 }
 
+export function useUpdateComment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateComment,
+    onSuccess: (_, variables) => {
+      // Invalidate comments for this log
+      queryClient.invalidateQueries({ queryKey: ["viewing-log-comments", variables.logId] });
+    },
+  });
+}
+
 export function useDeleteComment() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ logId, commentId }: { logId: string; commentId: string }) =>
       deleteComment(logId, commentId),
+    onSuccess: (_, variables) => {
+      // Invalidate comments for this log
+      queryClient.invalidateQueries({ queryKey: ["viewing-log-comments", variables.logId] });
+    },
+  });
+}
+
+// Add reaction to a comment
+const addReaction = async ({
+  logId,
+  commentId,
+  reactionType,
+}: {
+  logId: string;
+  commentId: string;
+  reactionType: string;
+}): Promise<CommentReaction> => {
+  const res = await fetch(`/api/viewing-logs/${logId}/comments/${commentId}/reactions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reactionType }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to add reaction");
+  }
+  const data = await res.json();
+  return data.reaction;
+};
+
+// Remove reaction from a comment
+const removeReaction = async ({
+  logId,
+  commentId,
+  reactionType,
+}: {
+  logId: string;
+  commentId: string;
+  reactionType: string;
+}): Promise<void> => {
+  const res = await fetch(
+    `/api/viewing-logs/${logId}/comments/${commentId}/reactions?reactionType=${encodeURIComponent(reactionType)}`,
+    {
+      method: "DELETE",
+    }
+  );
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to remove reaction");
+  }
+};
+
+export function useAddReaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: addReaction,
+    onSuccess: (_, variables) => {
+      // Invalidate comments for this log
+      queryClient.invalidateQueries({ queryKey: ["viewing-log-comments", variables.logId] });
+    },
+  });
+}
+
+export function useRemoveReaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: removeReaction,
     onSuccess: (_, variables) => {
       // Invalidate comments for this log
       queryClient.invalidateQueries({ queryKey: ["viewing-log-comments", variables.logId] });

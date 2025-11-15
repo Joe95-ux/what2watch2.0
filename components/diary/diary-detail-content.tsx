@@ -5,8 +5,9 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useViewingLogs, useUpdateViewingLog, useDeleteViewingLog, useLogViewing, type ViewingLog } from "@/hooks/use-viewing-logs";
 import { useToggleFavorite, useAddFavorite, useRemoveFavorite } from "@/hooks/use-favorites";
-import { useViewingLogComments, useCreateComment, useDeleteComment, type ViewingLogComment } from "@/hooks/use-viewing-log-comments";
+import { useViewingLogComments, useCreateComment, useUpdateComment, useDeleteComment, useAddReaction, useRemoveReaction, type ViewingLogComment } from "@/hooks/use-viewing-log-comments";
 import { useMovieDetails, useTVDetails, useContentVideos } from "@/hooks/use-content-details";
+import { usePlaylists, useAddItemToPlaylist, type Playlist } from "@/hooks/use-playlists";
 import { getPosterUrl, getBackdropUrl, getYouTubeEmbedUrl, type TMDBVideo, type TMDBMovie, type TMDBSeries } from "@/lib/tmdb";
 import { format } from "date-fns";
 import Image from "next/image";
@@ -14,8 +15,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Heart, Star, CalendarIcon, Play, Edit, Trash2, Share2, Plus, 
-  MessageSquare, Film, Tv, Clock, ArrowLeft, BookOpen, Check, Reply, MoreVertical, Filter, ChevronDown
+  MessageSquare, Film, Tv, Clock, ArrowLeft, BookOpen, Check, Reply, MoreVertical, Filter, ChevronDown, ChevronUp, Smile
 } from "lucide-react";
+import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { 
@@ -31,10 +33,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
+import CreatePlaylistModal from "@/components/playlists/create-playlist-modal";
 import TrailerModal from "@/components/browse/trailer-modal";
 
 interface DiaryDetailContentProps {
@@ -61,7 +74,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
   const [selectedVideo, setSelectedVideo] = useState<TMDBVideo | null>(null);
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
   const [commentFilter, setCommentFilter] = useState("newest");
-  const addToPlaylistButtonRef = useRef<HTMLButtonElement>(null);
+  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
   
   const updateLog = useUpdateViewingLog();
   const deleteLog = useDeleteViewingLog();
@@ -70,6 +83,8 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
   const isLiked = toggleFavorite.isFavorite(log.tmdbId, log.mediaType);
   const { data: comments = [], isLoading: commentsLoading } = useViewingLogComments(log.id, commentFilter);
   const deleteComment = useDeleteComment();
+  const { data: playlists = [], isLoading: playlistsLoading } = usePlaylists();
+  const addItemToPlaylist = useAddItemToPlaylist();
   
   // Fetch movie/TV details
   const { data: movieDetails } = useMovieDetails(log.mediaType === "movie" ? log.tmdbId : null);
@@ -132,7 +147,40 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
     navigator.clipboard.writeText(url);
     toast.success("Link copied to clipboard!");
   };
-  
+
+  const isItemInPlaylist = (playlist: Playlist) => {
+    if (!playlist.items) return false;
+    return playlist.items.some(
+      (playlistItem) => playlistItem.tmdbId === log.tmdbId && playlistItem.mediaType === log.mediaType
+    );
+  };
+
+  const handleAddToPlaylist = async (playlistId: string) => {
+    try {
+      await addItemToPlaylist.mutateAsync({
+        playlistId,
+        item: {
+          tmdbId: log.tmdbId,
+          mediaType: log.mediaType,
+          title: log.title,
+          posterPath: log.posterPath ?? undefined,
+          backdropPath: log.backdropPath ?? undefined,
+          releaseDate: log.releaseDate ?? undefined,
+          firstAirDate: log.firstAirDate ?? undefined,
+        },
+      });
+      const playlistName = playlists.find((p) => p.id === playlistId)?.name;
+      toast.success(`Added to "${playlistName}"`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to add to playlist";
+      if (errorMessage.includes("already in playlist")) {
+        toast.error("Item is already in this playlist");
+      } else {
+        toast.error("Failed to add to playlist");
+      }
+    }
+  };
+
   const handleDelete = async () => {
     try {
       await deleteLog.mutateAsync(log.id);
@@ -397,19 +445,70 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                       <ChevronDown className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onSelect={(e) => {
-                        e.preventDefault();
-                        // Trigger the AddToPlaylistDropdown button click
-                        setTimeout(() => {
-                          addToPlaylistButtonRef.current?.click();
-                        }, 0);
-                      }}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add to Playlist
-                    </DropdownMenuItem>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add to Playlist
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        {playlistsLoading ? (
+                          <DropdownMenuItem disabled>Loading playlists...</DropdownMenuItem>
+                        ) : playlists.length === 0 ? (
+                          <>
+                            <DropdownMenuItem disabled>No playlists yet</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setIsCreatePlaylistModalOpen(true);
+                              }}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Create Playlist
+                            </DropdownMenuItem>
+                          </>
+                        ) : (
+                          <>
+                            {playlists.map((playlist) => {
+                              const isInPlaylist = isItemInPlaylist(playlist);
+                              return (
+                                <DropdownMenuItem
+                                  key={playlist.id}
+                                  onClick={async (e) => {
+                                    e.preventDefault();
+                                    if (!isInPlaylist) {
+                                      await handleAddToPlaylist(playlist.id);
+                                    }
+                                  }}
+                                  disabled={isInPlaylist || addItemToPlaylist.isPending}
+                                >
+                                  {isInPlaylist ? (
+                                    <>
+                                      <Check className="h-4 w-4 mr-2" />
+                                      <span className="flex-1">{playlist.name}</span>
+                                      <span className="text-xs text-muted-foreground">Added</span>
+                                    </>
+                                  ) : (
+                                    <span>{playlist.name}</span>
+                                  )}
+                                </DropdownMenuItem>
+                              );
+                            })}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setIsCreatePlaylistModalOpen(true);
+                              }}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Create New Playlist
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
                     <DropdownMenuItem onClick={handleShare}>
                       <Share2 className="h-4 w-4 mr-2" />
                       Share
@@ -424,25 +523,6 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                     type={log.mediaType}
                     trigger={
                       <Button variant="outline" size="sm">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add to Playlist
-                      </Button>
-                    }
-                  />
-                </div>
-                
-                {/* Mobile AddToPlaylistDropdown - hidden but clickable via ref */}
-                <div className="sm:hidden absolute opacity-0 pointer-events-none">
-                  <AddToPlaylistDropdown
-                    item={mockItem}
-                    type={log.mediaType}
-                    trigger={
-                      <Button
-                        ref={addToPlaylistButtonRef}
-                        variant="outline"
-                        size="sm"
-                        className="invisible"
-                      >
                         <Plus className="h-4 w-4 mr-2" />
                         Add to Playlist
                       </Button>
@@ -549,6 +629,12 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
           title={title}
         />
       )}
+
+      {/* Create Playlist Modal */}
+      <CreatePlaylistModal
+        isOpen={isCreatePlaylistModalOpen}
+        onClose={() => setIsCreatePlaylistModalOpen(false)}
+      />
     </div>
   );
 }
@@ -995,7 +1081,40 @@ function CommentsSection({
   const [newComment, setNewComment] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
+  const [showAllComments, setShowAllComments] = useState(false);
   const createComment = useCreateComment();
+  const updateComment = useUpdateComment();
+
+  // Filter primary comments (top-level comments without parentCommentId)
+  const primaryComments = comments.filter(comment => !comment.parentCommentId);
+  
+  // Reset showAllComments when filter changes
+  useEffect(() => {
+    setShowAllComments(false);
+  }, [filter]);
+  
+  // Determine how many comments to show
+  const COMMENTS_PER_PAGE = 10;
+  const shouldShowToggle = primaryComments.length > COMMENTS_PER_PAGE;
+  const displayedComments = showAllComments 
+    ? primaryComments 
+    : primaryComments.slice(0, COMMENTS_PER_PAGE);
+  
+  const remainingCount = primaryComments.length - COMMENTS_PER_PAGE;
+
+  const handleEditComment = async (commentId: string, content: string) => {
+    try {
+      await updateComment.mutateAsync({
+        logId,
+        commentId,
+        content,
+      });
+      toast.success("Comment updated");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to update comment";
+      toast.error(errorMessage);
+    }
+  };
 
   const handlePostComment = async () => {
     if (!newComment.trim() || !currentUser) return;
@@ -1008,7 +1127,8 @@ function CommentsSection({
       setNewComment("");
       toast.success("Comment posted");
     } catch (error) {
-      toast.error("Failed to post comment");
+      const errorMessage = error instanceof Error ? error.message : "Failed to post comment";
+      toast.error(errorMessage);
     }
   };
 
@@ -1025,7 +1145,8 @@ function CommentsSection({
       setReplyingTo(null);
       toast.success("Reply posted");
     } catch (error) {
-      toast.error("Failed to post reply");
+      const errorMessage = error instanceof Error ? error.message : "Failed to post reply";
+      toast.error(errorMessage);
     }
   };
 
@@ -1119,13 +1240,14 @@ function CommentsSection({
           </div>
         ) : (
           <div className="space-y-6">
-            {comments.map((comment) => (
+            {displayedComments.map((comment) => (
               <CommentItem
                 key={comment.id}
                 comment={comment}
                 logId={logId}
                 currentUser={currentUser}
                 onDelete={onDeleteComment}
+                onEdit={handleEditComment}
                 onReply={(commentId) => {
                   setReplyingTo(commentId);
                   setReplyContent("");
@@ -1141,6 +1263,30 @@ function CommentsSection({
                 formatTimeAgo={formatTimeAgo}
               />
             ))}
+            
+            {/* Show more/less toggle */}
+            {shouldShowToggle && (
+              <div className="flex justify-center pt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAllComments(!showAllComments)}
+                  className="flex items-center gap-2"
+                >
+                  {showAllComments ? (
+                    <>
+                      <ChevronUp className="h-4 w-4" />
+                      Show Less
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-4 w-4" />
+                      Show More ({remainingCount} more)
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1154,6 +1300,7 @@ interface CommentItemProps {
   logId: string;
   currentUser: { id: string; username: string; displayName: string | null; avatarUrl: string | null } | null;
   onDelete: (commentId: string) => void;
+  onEdit: (commentId: string, content: string) => Promise<void>;
   onReply: (commentId: string) => void;
   replyingTo: string | null;
   replyContent: string;
@@ -1168,6 +1315,7 @@ function CommentItem({
   logId,
   currentUser,
   onDelete,
+  onEdit,
   onReply,
   replyingTo,
   replyContent,
@@ -1178,6 +1326,139 @@ function CommentItem({
 }: CommentItemProps) {
   const isOwner = currentUser?.id === comment.userId;
   const isReplying = replyingTo === comment.id;
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(comment.content);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const addReaction = useAddReaction();
+  const removeReaction = useRemoveReaction();
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    if (showEmojiPicker) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showEmojiPicker]);
+
+  // Group reactions by type
+  const reactions = comment.reactions || [];
+  const reactionsByType = reactions.reduce((acc, reaction) => {
+    if (!acc[reaction.reactionType]) {
+      acc[reaction.reactionType] = [];
+    }
+    acc[reaction.reactionType]!.push(reaction);
+    return acc;
+  }, {} as Record<string, typeof reactions>);
+
+  // Check if current user has reacted
+  const userReactions = currentUser
+    ? (comment.reactions || []).filter((r) => r.userId === currentUser.id)
+    : [];
+  const hasLiked = userReactions.some((r) => r.reactionType === "like");
+  const userEmojiReactions = userReactions.filter((r) => r.reactionType !== "like");
+
+  const handleToggleLike = async () => {
+    if (!currentUser) return;
+    
+    try {
+      if (hasLiked) {
+        await removeReaction.mutateAsync({
+          logId,
+          commentId: comment.id,
+          reactionType: "like",
+        });
+      } else {
+        await addReaction.mutateAsync({
+          logId,
+          commentId: comment.id,
+          reactionType: "like",
+        });
+      }
+    } catch {
+      toast.error("Failed to toggle like");
+    }
+  };
+
+  const handleEmojiClick = async (emojiData: EmojiClickData) => {
+    if (!currentUser) return;
+    
+    const emoji = emojiData.emoji;
+    const existingReaction = userEmojiReactions.find((r) => r.reactionType === emoji);
+    
+    try {
+      if (existingReaction) {
+        // Remove emoji reaction
+        await removeReaction.mutateAsync({
+          logId,
+          commentId: comment.id,
+          reactionType: emoji,
+        });
+      } else {
+        // Add emoji reaction
+        await addReaction.mutateAsync({
+          logId,
+          commentId: comment.id,
+          reactionType: emoji,
+        });
+      }
+      setShowEmojiPicker(false);
+    } catch {
+      toast.error("Failed to add reaction");
+    }
+  };
+
+  const handleRemoveEmojiReaction = async (reactionType: string) => {
+    if (!currentUser) return;
+    
+    try {
+      await removeReaction.mutateAsync({
+        logId,
+        commentId: comment.id,
+        reactionType,
+      });
+    } catch {
+      toast.error("Failed to remove reaction");
+    }
+  };
+
+  // Update editContent when comment changes (e.g., after successful edit)
+  useEffect(() => {
+    if (!isEditing) {
+      setEditContent(comment.content);
+    }
+  }, [comment.content, isEditing]);
+
+  const handleStartEdit = () => {
+    setIsEditing(true);
+    setEditContent(comment.content);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditContent(comment.content);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editContent.trim() || isSaving) return;
+    
+    setIsSaving(true);
+    try {
+      await onEdit(comment.id, editContent.trim());
+      setIsEditing(false);
+    } catch {
+      // Error is handled by the parent component
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-3">
@@ -1220,6 +1501,10 @@ function CommentItem({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleStartEdit}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => {
                       if (confirm("Are you sure you want to delete this comment?")) {
@@ -1228,6 +1513,7 @@ function CommentItem({
                     }}
                     className="text-destructive"
                   >
+                    <Trash2 className="h-4 w-4 mr-2" />
                     Delete
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -1235,26 +1521,117 @@ function CommentItem({
             )}
           </div>
 
-          <p className="text-sm leading-relaxed whitespace-pre-wrap mb-2">{comment.content}</p>
+          {/* Comment content or edit textarea */}
+          {isEditing ? (
+            <div className="space-y-2 mb-2">
+              <Textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                rows={3}
+                className="resize-none text-sm"
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  disabled={isSaving}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSaveEdit}
+                  disabled={!editContent.trim() || isSaving}
+                >
+                  {isSaving ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap mb-2">{comment.content}</p>
 
-          {/* Actions */}
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            {currentUser && (
-              <button
-                onClick={() => onReply(comment.id)}
-                className="flex items-center gap-1 hover:text-foreground transition-colors"
-              >
-                <Reply className="h-3.5 w-3.5" />
-                Reply
-              </button>
-            )}
-            {comment.likes > 0 && (
-              <span className="flex items-center gap-1">
-                <Heart className="h-3.5 w-3.5" />
-                {comment.likes}
-              </span>
-            )}
-          </div>
+              {/* Actions */}
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                {currentUser && (
+                  <button
+                    onClick={() => onReply(comment.id)}
+                    className="flex items-center gap-1 hover:text-foreground transition-colors"
+                  >
+                    <Reply className="h-3.5 w-3.5" />
+                    Reply
+                  </button>
+                )}
+                
+                {/* Reactions */}
+                <div className="flex items-center gap-2">
+                  {/* Like button */}
+                  {currentUser && (
+                    <button
+                      onClick={handleToggleLike}
+                      className={cn(
+                        "flex items-center gap-1 hover:text-foreground transition-colors",
+                        hasLiked && "text-red-500"
+                      )}
+                      disabled={addReaction.isPending || removeReaction.isPending}
+                    >
+                      <Heart className={cn("h-3.5 w-3.5", hasLiked && "fill-current")} />
+                      {comment.likes > 0 && <span>{comment.likes}</span>}
+                    </button>
+                  )}
+                  
+                  {/* Emoji picker button */}
+                  {currentUser && (
+                    <div className="relative" ref={emojiPickerRef}>
+                      <button
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        className="flex items-center gap-1 hover:text-foreground transition-colors"
+                      >
+                        <Smile className="h-3.5 w-3.5" />
+                      </button>
+                      {showEmojiPicker && (
+                        <div className="absolute bottom-full left-0 mb-2 z-50">
+                          <div className="relative">
+                            <EmojiPicker
+                              onEmojiClick={handleEmojiClick}
+                              width={300}
+                              height={400}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Display emoji reactions */}
+                  {Object.entries(reactionsByType)
+                    .filter(([type]) => type !== "like")
+                    .map(([emoji, reactions]) => {
+                      const userHasReacted = userEmojiReactions.some((r) => r.reactionType === emoji);
+                      return (
+                        <button
+                          key={emoji}
+                          onClick={() =>
+                            userHasReacted
+                              ? handleRemoveEmojiReaction(emoji)
+                              : handleEmojiClick({ emoji } as EmojiClickData)
+                          }
+                          className={cn(
+                            "flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs hover:bg-muted transition-colors",
+                            userHasReacted && "bg-muted"
+                          )}
+                          title={`${reactions.length} ${emoji}`}
+                        >
+                          <span>{emoji}</span>
+                          {reactions.length > 1 && <span>{reactions.length}</span>}
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Reply input */}
           {isReplying && currentUser && (
@@ -1325,6 +1702,7 @@ function CommentItem({
                   logId={logId}
                   currentUser={currentUser}
                   onDelete={onDelete}
+                  onEdit={onEdit}
                   onReply={onReply}
                   replyingTo={replyingTo}
                   replyContent={replyContent}

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { moderateContent } from "@/lib/moderation";
+import { checkRateLimit, COMMENT_RATE_LIMIT } from "@/lib/rate-limit";
 
 // GET - Fetch comments for a viewing log
 export async function GET(
@@ -26,6 +28,18 @@ export async function GET(
             avatarUrl: true,
           },
         },
+        reactions: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
         replies: {
           include: {
             user: {
@@ -36,6 +50,18 @@ export async function GET(
                 avatarUrl: true,
               },
             },
+            reactions: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    username: true,
+                    displayName: true,
+                    avatarUrl: true,
+                  },
+                },
+              },
+            },
             replies: {
               include: {
                 user: {
@@ -44,6 +70,18 @@ export async function GET(
                     username: true,
                     displayName: true,
                     avatarUrl: true,
+                  },
+                },
+                reactions: {
+                  include: {
+                    user: {
+                      select: {
+                        id: true,
+                        username: true,
+                        displayName: true,
+                        avatarUrl: true,
+                      },
+                    },
                   },
                 },
               },
@@ -97,6 +135,42 @@ export async function POST(
       return NextResponse.json({ error: "Comment content is required" }, { status: 400 });
     }
 
+    // Rate limiting - check if user has exceeded comment limit
+    const rateLimitResult = checkRateLimit(
+      user.id,
+      COMMENT_RATE_LIMIT.maxRequests,
+      COMMENT_RATE_LIMIT.windowMs
+    );
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: rateLimitResult.error || "Rate limit exceeded. Please try again later." },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": COMMENT_RATE_LIMIT.maxRequests.toString(),
+            "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+            "X-RateLimit-Reset": new Date(rateLimitResult.resetTime).toISOString(),
+          },
+        }
+      );
+    }
+
+    // Content moderation
+    const moderationResult = moderateContent(content, {
+      minLength: 1,
+      maxLength: 5000,
+      allowProfanity: false,
+      sanitizeHtml: true,
+    });
+
+    if (!moderationResult.allowed) {
+      return NextResponse.json(
+        { error: moderationResult.error || "Comment does not meet our content guidelines." },
+        { status: 400 }
+      );
+    }
+
     // Verify viewing log exists
     const viewingLog = await db.viewingLog.findUnique({
       where: { id: logId },
@@ -124,7 +198,7 @@ export async function POST(
       data: {
         viewingLogId: logId,
         userId: user.id,
-        content: content.trim(),
+        content: moderationResult.sanitized || content.trim(),
         parentCommentId: parentCommentId || null,
       },
       include: {
@@ -151,7 +225,17 @@ export async function POST(
       },
     });
 
-    return NextResponse.json({ comment }, { status: 201 });
+    return NextResponse.json(
+      { comment },
+      {
+        status: 201,
+        headers: {
+          "X-RateLimit-Limit": COMMENT_RATE_LIMIT.maxRequests.toString(),
+          "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+          "X-RateLimit-Reset": new Date(rateLimitResult.resetTime).toISOString(),
+        },
+      }
+    );
   } catch (error) {
     console.error("Create comment API error:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to create comment";

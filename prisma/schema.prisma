@@ -42,6 +42,7 @@ model User {
   following     Follow[] @relation("UserFollowing")
   likedPlaylists LikedPlaylist[]
   viewingLogComments ViewingLogComment[]
+  commentReactions CommentReaction[]
 
   @@map("users")
 }
@@ -354,14 +355,36 @@ model ViewingLogComment {
   replies         ViewingLogComment[] @relation("CommentReplies")
   
   likes         Int      @default(0)
+  reactions     CommentReaction[]
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  
+
   @@map("viewing_log_comments")
   @@index([viewingLogId])
   @@index([userId])
   @@index([parentCommentId])
+  @@index([createdAt])
+}
+
+// Comment reactions - likes and emoji reactions
+model CommentReaction {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  commentId     String   @db.ObjectId
+  comment       ViewingLogComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Reaction type: "like" or emoji string (e.g., "👍", "❤️", "😂")
+  reactionType  String   // "like" or emoji unicode
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([commentId, userId, reactionType])
+  @@map("comment_reactions")
+  @@index([commentId])
+  @@index([userId])
+  @@index([reactionType])
   @@index([createdAt])
 }
 
