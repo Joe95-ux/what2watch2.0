@@ -1,21 +1,20 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { useViewingLogs, useUpdateViewingLog, useDeleteViewingLog, useLogViewing, type ViewingLog } from "@/hooks/use-viewing-logs";
+import { useUpdateViewingLog, useDeleteViewingLog, useLogViewing, type ViewingLog } from "@/hooks/use-viewing-logs";
 import { useToggleFavorite, useAddFavorite, useRemoveFavorite } from "@/hooks/use-favorites";
 import { useViewingLogComments, useCreateComment, useUpdateComment, useDeleteComment, useAddReaction, useRemoveReaction, type ViewingLogComment } from "@/hooks/use-viewing-log-comments";
 import { useMovieDetails, useTVDetails, useContentVideos } from "@/hooks/use-content-details";
-import { usePlaylists, useAddItemToPlaylist, type Playlist } from "@/hooks/use-playlists";
-import { getPosterUrl, getBackdropUrl, getYouTubeEmbedUrl, type TMDBVideo, type TMDBMovie, type TMDBSeries } from "@/lib/tmdb";
+import { getPosterUrl, getBackdropUrl, type TMDBVideo, type TMDBMovie, type TMDBSeries } from "@/lib/tmdb";
 import { format } from "date-fns";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Heart, Star, CalendarIcon, Play, Edit, Trash2, Share2, Plus, 
-  MessageSquare, Film, Tv, Clock, ArrowLeft, BookOpen, Check, Reply, MoreVertical, Filter, ChevronDown, ChevronUp, Smile
+  MessageSquare, ArrowLeft, BookOpen, Reply, MoreVertical, Filter, ChevronDown, ChevronUp, Smile
 } from "lucide-react";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import { cn } from "@/lib/utils";
@@ -38,11 +37,6 @@ import {
   DropdownMenuContent, 
   DropdownMenuItem, 
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -61,9 +55,7 @@ interface DiaryDetailContentProps {
 }
 
 export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetailContentProps) {
-  const params = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { data: currentUser } = useCurrentUser();
   const isOwner = currentUser?.id === user.id;
   
@@ -83,8 +75,6 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
   const isLiked = toggleFavorite.isFavorite(log.tmdbId, log.mediaType);
   const { data: comments = [], isLoading: commentsLoading } = useViewingLogComments(log.id, commentFilter);
   const deleteComment = useDeleteComment();
-  const { data: playlists = [], isLoading: playlistsLoading } = usePlaylists();
-  const addItemToPlaylist = useAddItemToPlaylist();
   
   // Fetch movie/TV details
   const { data: movieDetails } = useMovieDetails(log.mediaType === "movie" ? log.tmdbId : null);
@@ -148,38 +138,6 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
     toast.success("Link copied to clipboard!");
   };
 
-  const isItemInPlaylist = (playlist: Playlist) => {
-    if (!playlist.items) return false;
-    return playlist.items.some(
-      (playlistItem) => playlistItem.tmdbId === log.tmdbId && playlistItem.mediaType === log.mediaType
-    );
-  };
-
-  const handleAddToPlaylist = async (playlistId: string) => {
-    try {
-      await addItemToPlaylist.mutateAsync({
-        playlistId,
-        item: {
-          tmdbId: log.tmdbId,
-          mediaType: log.mediaType,
-          title: log.title,
-          posterPath: log.posterPath ?? undefined,
-          backdropPath: log.backdropPath ?? undefined,
-          releaseDate: log.releaseDate ?? undefined,
-          firstAirDate: log.firstAirDate ?? undefined,
-        },
-      });
-      const playlistName = playlists.find((p) => p.id === playlistId)?.name;
-      toast.success(`Added to "${playlistName}"`);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to add to playlist";
-      if (errorMessage.includes("already in playlist")) {
-        toast.error("Item is already in this playlist");
-      } else {
-        toast.error("Failed to add to playlist");
-      }
-    }
-  };
 
   const handleDelete = async () => {
     try {
@@ -278,7 +236,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Review by [username] Section */}
-            <div className="sm:bg-card sm:border sm:rounded-lg p-0 sm:p-6">
+            <div className="sm:bg-card sm:border sm:rounded-lg p-0 sm:p-6 overflow-hidden">
               <div className="flex items-center gap-3 mb-4">
                 {user.avatarUrl ? (
                   <div className="relative w-10 h-10 rounded-full overflow-hidden">
@@ -347,177 +305,63 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
               
               {/* Actions */}
               {isOwner && (
-                <div className="flex items-center gap-2 pt-4 border-t">
-                  {/* Primary button - always visible */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsEditDialogOpen(true)}
-                    className="flex-1 sm:flex-initial"
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
-                  
-                  {/* Mobile dropdown for additional actions */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="sm:hidden"
-                      >
-                        <ChevronDown className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setIsLogAgainDialogOpen(true)}>
-                        <BookOpen className="h-4 w-4 mr-2" />
-                        Log Again
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setIsDeleteDialogOpen(true)}
-                        variant="destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  
-                  {/* Desktop buttons - hidden on mobile */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsLogAgainDialogOpen(true)}
-                    className="hidden sm:flex"
-                  >
-                    <BookOpen className="h-4 w-4 mr-2" />
-                    Log Again
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsDeleteDialogOpen(true)}
-                    className="text-destructive hover:text-destructive hidden sm:flex"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
+                <div className="pt-4 border-t overflow-x-auto">
+                  <div className="flex items-center gap-2 min-w-max">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsEditDialogOpen(true)}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsLogAgainDialogOpen(true)}
+                    >
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      Log Again
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsDeleteDialogOpen(true)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </div>
                 </div>
               )}
               
               {/* Actions for all users */}
-              <div className="flex items-center gap-2 pt-4 border-t mt-4">
-                {/* Primary button - always visible */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={async () => {
-                    if (log.mediaType === "movie") {
-                      await toggleFavorite.toggle(mockMovieItem, "movie");
-                    } else {
-                      await toggleFavorite.toggle(mockTVItem, "tv");
-                    }
-                  }}
-                  className={cn(
-                    "flex-1 sm:flex-initial",
-                    isLiked && "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
-                  )}
-                >
-                  <Heart 
+              <div className="pt-4 border-t mt-4 overflow-x-auto">
+                <div className="flex items-center gap-2 min-w-max">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      if (log.mediaType === "movie") {
+                        await toggleFavorite.toggle(mockMovieItem, "movie");
+                      } else {
+                        await toggleFavorite.toggle(mockTVItem, "tv");
+                      }
+                    }}
                     className={cn(
-                      "h-4 w-4 mr-2",
-                      isLiked ? "text-red-500 fill-red-500" : "text-muted-foreground"
-                    )} 
-                  />
-                  {isLiked ? "Liked" : "Like"}
-                </Button>
-                
-                {/* Mobile dropdown for additional actions */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="sm:hidden"
-                    >
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add to Playlist
-                      </DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        {playlistsLoading ? (
-                          <DropdownMenuItem disabled>Loading playlists...</DropdownMenuItem>
-                        ) : playlists.length === 0 ? (
-                          <>
-                            <DropdownMenuItem disabled>No playlists yet</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setIsCreatePlaylistModalOpen(true);
-                              }}
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              Create Playlist
-                            </DropdownMenuItem>
-                          </>
-                        ) : (
-                          <>
-                            {playlists.map((playlist) => {
-                              const isInPlaylist = isItemInPlaylist(playlist);
-                              return (
-                                <DropdownMenuItem
-                                  key={playlist.id}
-                                  onClick={async (e) => {
-                                    e.preventDefault();
-                                    if (!isInPlaylist) {
-                                      await handleAddToPlaylist(playlist.id);
-                                    }
-                                  }}
-                                  disabled={isInPlaylist || addItemToPlaylist.isPending}
-                                >
-                                  {isInPlaylist ? (
-                                    <>
-                                      <Check className="h-4 w-4 mr-2" />
-                                      <span className="flex-1">{playlist.name}</span>
-                                      <span className="text-xs text-muted-foreground">Added</span>
-                                    </>
-                                  ) : (
-                                    <span>{playlist.name}</span>
-                                  )}
-                                </DropdownMenuItem>
-                              );
-                            })}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setIsCreatePlaylistModalOpen(true);
-                              }}
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              Create New Playlist
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-                    <DropdownMenuItem onClick={handleShare}>
-                      <Share2 className="h-4 w-4 mr-2" />
-                      Share
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                
-                {/* AddToPlaylistDropdown - hidden on mobile, visible on desktop */}
-                <div className="hidden sm:block">
+                      isLiked && "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
+                    )}
+                  >
+                    <Heart 
+                      className={cn(
+                        "h-4 w-4 mr-2",
+                        isLiked ? "text-red-500 fill-red-500" : "text-muted-foreground"
+                      )} 
+                    />
+                    {isLiked ? "Liked" : "Like"}
+                  </Button>
+                  
                   <AddToPlaylistDropdown
                     item={mockItem}
                     type={log.mediaType}
@@ -528,16 +372,16 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                       </Button>
                     }
                   />
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleShare}
+                  >
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Share
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleShare}
-                  className="hidden sm:flex"
-                >
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share
-                </Button>
               </div>
             </div>
             

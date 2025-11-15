@@ -238,8 +238,87 @@ export function useAddReaction() {
 
   return useMutation({
     mutationFn: addReaction,
-    onSuccess: (_, variables) => {
-      // Invalidate comments for this log
+    onMutate: async (variables) => {
+      // Cancel any outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ["viewing-log-comments", variables.logId] });
+
+      // Snapshot the previous value for rollback
+      const previousComments = queryClient.getQueryData<ViewingLogComment[]>([
+        "viewing-log-comments",
+        variables.logId,
+      ]);
+
+      // Get current user from cache if available (try to find any current-user query)
+      const currentUserQueries = queryClient.getQueriesData<{ id: string; username: string; displayName: string | null; avatarUrl: string | null } | null>({
+        queryKey: ["current-user"],
+        exact: false,
+      });
+      const currentUser = currentUserQueries[0]?.[1] || null;
+
+      // Optimistically update the cache
+      if (previousComments) {
+        const updateCommentWithReaction = (comment: ViewingLogComment): ViewingLogComment => {
+          if (comment.id === variables.commentId) {
+            // Create optimistic reaction with current user info if available
+            const optimisticReaction: CommentReaction = {
+              id: `temp-${Date.now()}`,
+              commentId: comment.id,
+              userId: currentUser?.id || "",
+              user: currentUser
+                ? {
+                    id: currentUser.id,
+                    username: currentUser.username,
+                    displayName: currentUser.displayName,
+                    avatarUrl: currentUser.avatarUrl,
+                  }
+                : {
+                    id: "",
+                    username: null,
+                    displayName: null,
+                    avatarUrl: null,
+                  },
+              reactionType: variables.reactionType,
+              createdAt: new Date().toISOString(),
+            };
+
+            return {
+              ...comment,
+              reactions: [...(comment.reactions || []), optimisticReaction],
+              likes: variables.reactionType === "like" ? comment.likes + 1 : comment.likes,
+            };
+          }
+          // Recursively update replies
+          if (comment.replies && comment.replies.length > 0) {
+            return {
+              ...comment,
+              replies: comment.replies.map(updateCommentWithReaction),
+            };
+          }
+          return comment;
+        };
+
+        const optimisticComments = previousComments.map(updateCommentWithReaction);
+
+        // Update all filter variants
+        queryClient.setQueryData<ViewingLogComment[]>(["viewing-log-comments", variables.logId, "newest"], optimisticComments);
+        queryClient.setQueryData<ViewingLogComment[]>(["viewing-log-comments", variables.logId, "oldest"], optimisticComments);
+        queryClient.setQueryData<ViewingLogComment[]>(["viewing-log-comments", variables.logId, "most-liked"], optimisticComments);
+      }
+
+      // Return context with previous comments for rollback
+      return { previousComments };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousComments) {
+        queryClient.setQueryData<ViewingLogComment[]>(["viewing-log-comments", variables.logId], context.previousComments);
+        queryClient.setQueryData<ViewingLogComment[]>(["viewing-log-comments", variables.logId, "newest"], context.previousComments);
+        queryClient.setQueryData<ViewingLogComment[]>(["viewing-log-comments", variables.logId, "oldest"], context.previousComments);
+        queryClient.setQueryData<ViewingLogComment[]>(["viewing-log-comments", variables.logId, "most-liked"], context.previousComments);
+      }
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate to get fresh data with server response (replaces optimistic update)
       queryClient.invalidateQueries({ queryKey: ["viewing-log-comments", variables.logId] });
     },
   });
@@ -250,8 +329,70 @@ export function useRemoveReaction() {
 
   return useMutation({
     mutationFn: removeReaction,
+    onMutate: async (variables) => {
+      // Cancel any outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ["viewing-log-comments", variables.logId] });
+
+      // Snapshot the previous value for rollback
+      const previousComments = queryClient.getQueryData<ViewingLogComment[]>([
+        "viewing-log-comments",
+        variables.logId,
+      ]);
+
+      // Optimistically update the cache
+      if (previousComments) {
+        const updateCommentWithRemovedReaction = (comment: ViewingLogComment): ViewingLogComment => {
+          if (comment.id === variables.commentId) {
+            // Remove the first matching reaction of this type (user's own reaction)
+            // The server will ensure we remove the correct one
+            const reactions = comment.reactions || [];
+            const reactionIndex = reactions.findIndex(
+              (r) => r.reactionType === variables.reactionType
+            );
+            
+            const updatedReactions =
+              reactionIndex >= 0
+                ? [...reactions.slice(0, reactionIndex), ...reactions.slice(reactionIndex + 1)]
+                : reactions;
+
+            return {
+              ...comment,
+              reactions: updatedReactions,
+              likes: variables.reactionType === "like" ? Math.max(0, comment.likes - 1) : comment.likes,
+            };
+          }
+          // Recursively update replies
+          if (comment.replies && comment.replies.length > 0) {
+            return {
+              ...comment,
+              replies: comment.replies.map(updateCommentWithRemovedReaction),
+            };
+          }
+          return comment;
+        };
+
+        const optimisticComments = previousComments.map(updateCommentWithRemovedReaction);
+
+        // Update all filter variants
+        queryClient.setQueryData<ViewingLogComment[]>(["viewing-log-comments", variables.logId, "newest"], optimisticComments);
+        queryClient.setQueryData<ViewingLogComment[]>(["viewing-log-comments", variables.logId, "oldest"], optimisticComments);
+        queryClient.setQueryData<ViewingLogComment[]>(["viewing-log-comments", variables.logId, "most-liked"], optimisticComments);
+      }
+
+      // Return context with previous comments for rollback
+      return { previousComments };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousComments) {
+        queryClient.setQueryData<ViewingLogComment[]>(["viewing-log-comments", variables.logId], context.previousComments);
+        queryClient.setQueryData<ViewingLogComment[]>(["viewing-log-comments", variables.logId, "newest"], context.previousComments);
+        queryClient.setQueryData<ViewingLogComment[]>(["viewing-log-comments", variables.logId, "oldest"], context.previousComments);
+        queryClient.setQueryData<ViewingLogComment[]>(["viewing-log-comments", variables.logId, "most-liked"], context.previousComments);
+      }
+    },
     onSuccess: (_, variables) => {
-      // Invalidate comments for this log
+      // Invalidate to get fresh data with server response (replaces optimistic update)
       queryClient.invalidateQueries({ queryKey: ["viewing-log-comments", variables.logId] });
     },
   });
