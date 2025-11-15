@@ -122,7 +122,7 @@ function PublicPlaylistsCarousel() {
         }}
         className="w-full"
       >
-        <CarouselContent className="-ml-2 md:-ml-4">
+        <CarouselContent className="-ml-2 md:-ml-4 gap-3">
           {playlists.map((playlist) => (
             <CarouselItem key={playlist.id} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px]">
               <PlaylistCard playlist={playlist} variant="carousel" />
@@ -130,10 +130,10 @@ function PublicPlaylistsCarousel() {
           ))}
         </CarouselContent>
         <CarouselPrevious 
-          className="left-0 h-full w-[45px] rounded-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center"
+          className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
         />
         <CarouselNext 
-          className="right-0 h-full w-[45px] rounded-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center"
+          className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
         />
       </Carousel>
     </div>

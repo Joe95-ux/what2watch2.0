@@ -521,13 +521,9 @@ export default function DashboardProfileContent() {
         </DialogContent>
       </Dialog>
       
-      {/* Clerk User Profile Modal */}
+      {/* Clerk User Profile - Opens in its own modal */}
       {isClerkProfileOpen && (
-        <Dialog open={isClerkProfileOpen} onOpenChange={setIsClerkProfileOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <UserProfile />
-          </DialogContent>
-        </Dialog>
+        <UserProfile />
       )}
     </>
   );
