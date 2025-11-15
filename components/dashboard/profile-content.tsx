@@ -1,13 +1,10 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useState, useMemo, useEffect } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { FollowButton } from "./follow-button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { useUserFollowers, useUserFollowing, type User } from "@/hooks/use-follow";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -16,61 +13,52 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import PlaylistCard from "@/components/browse/playlist-card";
 import MovieCard from "@/components/browse/movie-card";
 import { Playlist } from "@/hooks/use-playlists";
-import { Users, UserCheck, List, Star, Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, UserCheck, List, Star, Heart, Edit, Image as ImageIcon, KeyRound, User as UserIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useUserFollowers, useUserFollowing, type User } from "@/hooks/use-follow";
 import { useFavorites } from "@/hooks/use-favorites";
-import ProfileLayout from "./profile-layout";
+import { usePlaylists } from "@/hooks/use-playlists";
+import ProfileLayout from "@/components/social/profile-layout";
+import BannerGradientSelector, { BANNER_GRADIENTS } from "@/components/social/banner-gradient-selector";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { FollowButton } from "@/components/social/follow-button";
+import { toast } from "sonner";
 
-interface UserProfileContentProps {
-  userId?: string;
-}
-
-export default function UserProfileContent({ userId: propUserId }: UserProfileContentProps = {}) {
-  const params = useParams();
+export default function DashboardProfileContent() {
   const router = useRouter();
-  const userId = propUserId || (params?.userId as string) || "";
-  const { data: currentUser } = useCurrentUser();
-  const isOwnProfile = currentUser?.id === userId;
+  const { user: clerkUser } = useUser();
+  const { data: currentUser, isLoading: isLoadingCurrentUser } = useCurrentUser();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState<"playlists" | "reviews" | "my-list" | "followers" | "following">("playlists");
-  
-  // Fetch favorites for My List tab (only if viewing own profile)
-  const { data: favorites = [], isLoading: isLoadingFavorites } = useFavorites();
+  const [isEditBannerOpen, setIsEditBannerOpen] = useState(false);
+  const [selectedBannerGradient, setSelectedBannerGradient] = useState<string>("gradient-1");
 
-  // Fetch user data
-  const { data: userData, isLoading: isLoadingUser } = useQuery({
-    queryKey: ["user", userId, "profile"],
-    queryFn: async () => {
-      const response = await fetch(`/api/users/${userId}/profile`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch user profile");
-      }
-      return response.json();
-    },
-    enabled: !!userId,
-  });
+  // Fetch user data (current user's own profile)
+  const userId = currentUser?.id || "";
 
   const { data: followersData } = useUserFollowers(userId);
   const { data: followingData } = useUserFollowing(userId);
-  const { data: playlistsData, isLoading: isLoadingPlaylists } = useQuery({
-    queryKey: ["user", userId, "playlists"],
-    queryFn: async () => {
-      const response = await fetch(`/api/users/${userId}/playlists`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch playlists");
-      }
-      return response.json();
-    },
-    enabled: !!userId,
-  });
+  const { data: playlists = [], isLoading: isLoadingPlaylists } = usePlaylists();
+  const { data: favorites = [], isLoading: isLoadingFavorites } = useFavorites();
 
-  const user = userData?.user;
-  const playlists = useMemo(() => (playlistsData?.playlists || []) as Playlist[], [playlistsData?.playlists]);
   const followers = followersData?.followers || [];
   const following = followingData?.following || [];
 
@@ -82,11 +70,11 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   const totalPages = useMemo(() => {
     if (activeTab === "playlists") {
       return Math.ceil(playlists.length / itemsPerPage);
-    } else if (activeTab === "my-list" && isOwnProfile) {
+    } else if (activeTab === "my-list") {
       return Math.ceil(favorites.length / itemsPerPage);
     }
     return 1;
-  }, [playlists.length, favorites.length, activeTab, itemsPerPage, isOwnProfile]);
+  }, [playlists.length, favorites.length, activeTab, itemsPerPage]);
 
   const paginatedPlaylists = useMemo(() => {
     if (activeTab !== "playlists") return [];
@@ -145,7 +133,13 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
     setCurrentPage(1);
   }, [activeTab, playlists.length, favorites.length]);
 
-  if (isLoadingUser) {
+  // Get banner gradient
+  const bannerGradient = useMemo(() => {
+    const gradient = BANNER_GRADIENTS.find((g) => g.id === selectedBannerGradient);
+    return gradient?.gradient || "#061E1C";
+  }, [selectedBannerGradient]);
+
+  if (isLoadingCurrentUser || !currentUser) {
     return (
       <div className="min-h-screen bg-background">
         <div className="relative h-[200px] sm:h-[250px] overflow-hidden">
@@ -160,19 +154,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
     );
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">User not found</h2>
-          <p className="text-muted-foreground mb-4">The user you&apos;re looking for doesn&apos;t exist.</p>
-          <Button onClick={() => router.push("/browse")} className="cursor-pointer">Back to Browse</Button>
-        </div>
-      </div>
-    );
-  }
-
-  const displayName = user.displayName || user.username || "Unknown User";
+  const displayName = currentUser.displayName || currentUser.username || "User";
   const initials = displayName
     .split(" ")
     .map((n: string) => n[0])
@@ -180,8 +162,56 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
     .toUpperCase()
     .slice(0, 2);
 
-  // Action button (Follow button for other users, nothing for own profile)
-  const actionButton = !isOwnProfile ? <FollowButton userId={userId} /> : undefined;
+  // Edit button with dropdown
+  const editButton = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Edit className="h-4 w-4 mr-2" />
+          Edit
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => setIsEditBannerOpen(true)}>
+          <ImageIcon className="h-4 w-4 mr-2" />
+          Change Banner
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => {
+          // Redirect to Clerk user management for username
+          if (clerkUser) {
+            window.open(`https://dashboard.clerk.com/users/${clerkUser.id}`, "_blank");
+          } else {
+            toast.error("Unable to open user settings");
+          }
+        }}>
+          <UserIcon className="h-4 w-4 mr-2" />
+          Edit Username
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => {
+          // Redirect to Clerk user management for profile picture
+          if (clerkUser) {
+            window.open(`https://dashboard.clerk.com/users/${clerkUser.id}`, "_blank");
+          } else {
+            toast.error("Unable to open user settings");
+          }
+        }}>
+          <ImageIcon className="h-4 w-4 mr-2" />
+          Edit Profile Picture
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => {
+          // Redirect to Clerk user management for password
+          if (clerkUser) {
+            window.open(`https://dashboard.clerk.com/users/${clerkUser.id}`, "_blank");
+          } else {
+            toast.error("Unable to open user settings");
+          }
+        }}>
+          <KeyRound className="h-4 w-4 mr-2" />
+          Change Password
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   // Tabs component
   const tabs = isMobile ? (
@@ -234,14 +264,12 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
               Reviews
             </span>
           </SelectItem>
-          {isOwnProfile && (
-            <SelectItem value="my-list">
-              <span className="flex items-center gap-2">
-                <Heart className="h-4 w-4" />
-                My List ({favorites.length})
-              </span>
-            </SelectItem>
-          )}
+          <SelectItem value="my-list">
+            <span className="flex items-center gap-2">
+              <Heart className="h-4 w-4" />
+              My List ({favorites.length})
+            </span>
+          </SelectItem>
           <SelectItem value="followers">
             <span className="flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -268,12 +296,10 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
           <Star className="h-4 w-4" />
           Reviews
         </TabsTrigger>
-        {isOwnProfile && (
-          <TabsTrigger value="my-list" className="flex items-center gap-2">
-            <Heart className="h-4 w-4" />
-            My List ({favorites.length})
-          </TabsTrigger>
-        )}
+        <TabsTrigger value="my-list" className="flex items-center gap-2">
+          <Heart className="h-4 w-4" />
+          My List ({favorites.length})
+        </TabsTrigger>
         <TabsTrigger value="followers" className="flex items-center gap-2">
           <Users className="h-4 w-4" />
           Followers ({followers.length})
@@ -301,7 +327,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
             <div className="text-center py-12">
               <List className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No playlists yet</h3>
-              <p className="text-muted-foreground">This user hasn&apos;t created any playlists.</p>
+              <p className="text-muted-foreground">You haven&apos;t created any playlists.</p>
             </div>
           ) : (
             <>
@@ -310,7 +336,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
                   <PlaylistCard
                     key={playlist.id}
                     playlist={playlist}
-                    showLikeButton={!isOwnProfile}
+                    showLikeButton={false}
                     variant="grid"
                   />
                 ))}
@@ -353,7 +379,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
         </div>
       )}
 
-      {activeTab === "my-list" && isOwnProfile && (
+      {activeTab === "my-list" && (
         <>
           {isLoadingFavorites ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -416,34 +442,27 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
             <div className="text-center py-12">
               <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No followers yet</h3>
-              <p className="text-muted-foreground">This user doesn&apos;t have any followers.</p>
+              <p className="text-muted-foreground">You don&apos;t have any followers.</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {followers.map((follower: User) => {
-                const isCurrentUser = currentUser?.id === follower.id;
-                return (
-                  <div key={follower.id} className="flex items-center gap-4 p-4 rounded-lg border bg-card">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={follower.avatarUrl || undefined} alt={follower.displayName || ""} />
-                      <AvatarFallback>
-                        {(follower.displayName || follower.username || "U")[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{follower.displayName || follower.username || "Unknown"}</p>
-                      {follower.username && (
-                        <p className="text-sm text-muted-foreground truncate">@{follower.username}</p>
-                      )}
-                    </div>
-                    {isCurrentUser ? (
-                      <span className="text-sm text-muted-foreground px-3 py-1.5">You</span>
-                    ) : (
-                      <FollowButton userId={follower.id} size="sm" />
+              {followers.map((follower: User) => (
+                <div key={follower.id} className="flex items-center gap-4 p-4 rounded-lg border bg-card">
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage src={follower.avatarUrl || undefined} alt={follower.displayName || ""} />
+                    <AvatarFallback>
+                      {(follower.displayName || follower.username || "U")[0].toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate">{follower.displayName || follower.username || "Unknown"}</p>
+                    {follower.username && (
+                      <p className="text-sm text-muted-foreground truncate">@{follower.username}</p>
                     )}
                   </div>
-                );
-              })}
+                  <FollowButton userId={follower.id} size="sm" />
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -455,34 +474,27 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
             <div className="text-center py-12">
               <UserCheck className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">Not following anyone</h3>
-              <p className="text-muted-foreground">This user isn&apos;t following anyone yet.</p>
+              <p className="text-muted-foreground">You aren&apos;t following anyone yet.</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {following.map((user: User) => {
-                const isCurrentUser = currentUser?.id === user.id;
-                return (
-                  <div key={user.id} className="flex items-center gap-4 p-4 rounded-lg border bg-card">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={user.avatarUrl || undefined} alt={user.displayName || ""} />
-                      <AvatarFallback>
-                        {(user.displayName || user.username || "U")[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{user.displayName || user.username || "Unknown"}</p>
-                      {user.username && (
-                        <p className="text-sm text-muted-foreground truncate">@{user.username}</p>
-                      )}
-                    </div>
-                    {isCurrentUser ? (
-                      <span className="text-sm text-muted-foreground px-3 py-1.5">You</span>
-                    ) : (
-                      <FollowButton userId={user.id} size="sm" />
+              {following.map((user: User) => (
+                <div key={user.id} className="flex items-center gap-4 p-4 rounded-lg border bg-card">
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage src={user.avatarUrl || undefined} alt={user.displayName || ""} />
+                    <AvatarFallback>
+                      {(user.displayName || user.username || "U")[0].toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate">{user.displayName || user.username || "Unknown"}</p>
+                    {user.username && (
+                      <p className="text-sm text-muted-foreground truncate">@{user.username}</p>
                     )}
                   </div>
-                );
-              })}
+                  <FollowButton userId={user.id} size="sm" />
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -491,21 +503,43 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   );
 
   return (
-    <ProfileLayout
-      bannerGradient="#061E1C"
-      displayName={displayName}
-      username={user.username || undefined}
-      bio={user.bio || undefined}
-      avatarUrl={user.avatarUrl || undefined}
-      initials={initials}
-      followersCount={followers.length}
-      followingCount={following.length}
-      playlistsCount={playlists.length}
-      actionButton={actionButton}
-      tabs={tabs}
-      tabContent={tabContent}
-      showBackButton={true}
-      onBack={() => router.back()}
-    />
+    <>
+      <ProfileLayout
+        bannerGradient={bannerGradient}
+        displayName={displayName}
+        username={currentUser.username || undefined}
+        avatarUrl={currentUser.avatarUrl || undefined}
+        initials={initials}
+        followersCount={followers.length}
+        followingCount={following.length}
+        playlistsCount={playlists.length}
+        actionButton={editButton}
+        tabs={tabs}
+        tabContent={tabContent}
+        showBackButton={false}
+      />
+
+      {/* Edit Banner Dialog */}
+      <Dialog open={isEditBannerOpen} onOpenChange={setIsEditBannerOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Banner</DialogTitle>
+            <DialogDescription>
+              Choose a gradient for your profile banner
+            </DialogDescription>
+          </DialogHeader>
+          <BannerGradientSelector
+            selectedGradient={selectedBannerGradient}
+            onSelect={(gradientId) => {
+              setSelectedBannerGradient(gradientId);
+              // TODO: Save to database
+              toast.success("Banner updated!");
+              setIsEditBannerOpen(false);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
+

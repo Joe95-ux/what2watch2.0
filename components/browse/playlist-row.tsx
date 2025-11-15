@@ -28,11 +28,9 @@ export default function PlaylistRow({ title, playlists, isLoading, href }: Playl
 
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
-  const rowRef = useRef<HTMLDivElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [currentPadding, setCurrentPadding] = useState(16);
-  const [rowPosition, setRowPosition] = useState<{ top: number; height: number } | null>(null);
 
   const scrollPrev = () => emblaApi?.scrollPrev();
   const scrollNext = () => emblaApi?.scrollNext();
@@ -55,35 +53,6 @@ export default function PlaylistRow({ title, playlists, isLoading, href }: Playl
     return () => window.removeEventListener('resize', updatePadding);
   }, []);
 
-  // Update row position for gradient positioning
-  useEffect(() => {
-    if (!rowRef.current) return;
-
-    const updatePosition = () => {
-      const rect = rowRef.current?.getBoundingClientRect();
-      if (rect) {
-        setRowPosition({ top: rect.top, height: rect.height });
-      }
-    };
-
-    updatePosition();
-
-    const intersectionObserver = new IntersectionObserver(
-      () => updatePosition(),
-      { threshold: [0, 1] }
-    );
-    intersectionObserver.observe(rowRef.current);
-
-    const resizeObserver = new ResizeObserver(updatePosition);
-    resizeObserver.observe(rowRef.current);
-    window.addEventListener('resize', updatePosition);
-
-    return () => {
-      intersectionObserver.disconnect();
-      resizeObserver.disconnect();
-      window.removeEventListener('resize', updatePosition);
-    };
-  }, []);
 
   // Track scroll progress
   useEffect(() => {
@@ -165,68 +134,38 @@ export default function PlaylistRow({ title, playlists, isLoading, href }: Playl
       )}
       
       {/* Carousel container */}
-      <div ref={rowRef} className="relative group">
-        {/* Left Gradient Fade */}
-        {canScrollPrev && rowPosition && (
-          <div
-            className={cn(
-              "fixed left-0 w-16 z-30 pointer-events-none transition-opacity duration-300",
-              "bg-gradient-to-r from-[#EEEFE9] via-[#EEEFE9]/80 to-transparent dark:from-background dark:via-background/80",
-              "opacity-100",
-              "hidden md:block"
-            )}
-            style={{
-              top: `${rowPosition.top}px`,
-              height: `${rowPosition.height}px`,
-            }}
-          />
-        )}
-
-        {/* Right Gradient Fade */}
-        {canScrollNext && rowPosition && (
-          <div
-            className={cn(
-              "fixed right-0 w-16 z-30 pointer-events-none transition-opacity duration-300",
-              "bg-gradient-to-l from-[#EEEFE9] via-[#EEEFE9]/80 to-transparent dark:from-background dark:via-background/80",
-              "opacity-100",
-              "hidden md:block"
-            )}
-            style={{
-              top: `${rowPosition.top}px`,
-              height: `${rowPosition.height}px`,
-            }}
-          />
-        )}
-
-        {/* Left Arrow Button */}
+      <div className="relative">
+        {/* Left Control Button - Anchored to left edge of carousel */}
         {canScrollPrev && (
           <button
             onClick={scrollPrev}
             className={cn(
-              "absolute left-2 top-1/2 -translate-y-1/2 z-40 h-full w-12 flex items-center justify-center",
-              "opacity-0 group-hover:opacity-100 transition-opacity duration-300",
-              "hover:bg-black/10 rounded cursor-pointer",
+              "absolute left-2 top-1/2 -translate-y-1/2 z-40",
+              "h-12 w-12 flex items-center justify-center",
+              "bg-black/60 hover:bg-black/80 backdrop-blur-sm",
+              "rounded-full cursor-pointer transition-all duration-200",
               "hidden md:flex"
             )}
             aria-label="Scroll left"
           >
-            <ChevronLeft className="h-8 w-8 text-white drop-shadow-lg" />
+            <ChevronLeft className="h-6 w-6 text-white" />
           </button>
         )}
 
-        {/* Right Arrow Button */}
+        {/* Right Control Button - Anchored to right edge of carousel */}
         {canScrollNext && (
           <button
             onClick={scrollNext}
             className={cn(
-              "absolute right-2 top-1/2 -translate-y-1/2 z-40 h-full w-12 flex items-center justify-center",
-              "opacity-0 group-hover:opacity-100 transition-opacity duration-300",
-              "hover:bg-black/10 rounded cursor-pointer",
+              "absolute right-2 top-1/2 -translate-y-1/2 z-40",
+              "h-12 w-12 flex items-center justify-center",
+              "bg-black/60 hover:bg-black/80 backdrop-blur-sm",
+              "rounded-full cursor-pointer transition-all duration-200",
               "hidden md:flex"
             )}
             aria-label="Scroll right"
           >
-            <ChevronRight className="h-8 w-8 text-white drop-shadow-lg" />
+            <ChevronRight className="h-6 w-6 text-white" />
           </button>
         )}
 

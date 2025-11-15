@@ -35,6 +35,7 @@ import {
   Activity,
   Users,
   UserPlus,
+  UserRound,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -225,6 +226,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <SidebarGroupLabel>Settings</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={pathname === "/dashboard/profile"} tooltip="Profile">
+                        <Link href="/dashboard/profile">
+                          <UserRound />
+                          <span>Profile</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={pathname === "/settings"} tooltip="Settings">
                         <Link href="/settings">
