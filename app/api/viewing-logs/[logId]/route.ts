@@ -96,6 +96,7 @@ export async function PATCH(
     const updateData: {
       watchedAt?: Date;
       notes?: string | null;
+      rating?: number | null;
     } = {};
 
     if (body.watchedAt) {
@@ -104,6 +105,19 @@ export async function PATCH(
 
     if (body.notes !== undefined) {
       updateData.notes = body.notes || null;
+    }
+
+    if (body.rating !== undefined) {
+      if (body.rating === null) {
+        updateData.rating = null;
+      } else if (Number.isInteger(body.rating) && body.rating >= 1 && body.rating <= 5) {
+        updateData.rating = body.rating;
+      } else {
+        return NextResponse.json(
+          { error: "Rating must be between 1 and 5" },
+          { status: 400 }
+        );
+      }
     }
 
     const log = await db.viewingLog.update({

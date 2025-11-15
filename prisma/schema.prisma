@@ -324,6 +324,7 @@ model ViewingLog {
   // Diary entry
   watchedAt     DateTime // When the user watched it (can be in the past)
   notes         String?  // Optional notes about this viewing
+  rating        Int?     // 1-5 star rating (optional)
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

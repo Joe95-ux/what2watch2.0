@@ -64,7 +64,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
     }
 
     const body = await request.json();
-    const { tmdbId, mediaType, title, posterPath, backdropPath, releaseDate, firstAirDate, watchedAt, notes } = body;
+    const { tmdbId, mediaType, title, posterPath, backdropPath, releaseDate, firstAirDate, watchedAt, notes, rating } = body;
 
     if (!tmdbId || !mediaType || !title) {
       return NextResponse.json(
@@ -75,6 +75,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
 
     // watchedAt can be a date string or default to now
     const watchedDate = watchedAt ? new Date(watchedAt) : new Date();
+
+    // Validate rating if provided (1-5)
+    if (rating !== undefined && rating !== null) {
+      if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+        return NextResponse.json(
+          { error: "Rating must be between 1 and 5" },
+          { status: 400 }
+        );
+      }
+    }
 
     // Check for existing log with same tmdbId and mediaType (optional: prevent duplicates)
     // Note: We allow multiple logs for the same film (user can watch it multiple times)
@@ -108,6 +118,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
         firstAirDate: firstAirDate || null,
         watchedAt: watchedDate,
         notes: notes || null,
+        rating: rating || null,
       },
     });
 

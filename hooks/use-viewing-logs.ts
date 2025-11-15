@@ -12,6 +12,7 @@ export interface ViewingLog {
   firstAirDate: string | null;
   watchedAt: string; // ISO date string
   notes: string | null;
+  rating: number | null; // 1-5 star rating
   createdAt: string;
   updatedAt: string;
 }
@@ -26,12 +27,14 @@ interface CreateViewingLogParams {
   firstAirDate?: string | null;
   watchedAt?: string; // ISO date string, defaults to now
   notes?: string | null;
+  rating?: number | null; // 1-5 star rating
 }
 
 interface UpdateViewingLogParams {
   logId: string;
   watchedAt?: string;
   notes?: string | null;
+  rating?: number | null;
 }
 
 // Fetch viewing logs

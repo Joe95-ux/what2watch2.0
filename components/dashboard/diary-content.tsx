@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useViewingLogs, useDeleteViewingLog, useUpdateViewingLog, type ViewingLog } from "@/hooks/use-viewing-logs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Trash2, Film, Tv, Edit, Table2, Grid3x3 } from "lucide-react";
+import { Trash2, Film, Tv, Edit, Table2, Grid3x3, CalendarIcon } from "lucide-react";
 import Image from "next/image";
 import { getPosterUrl } from "@/lib/tmdb";
 import { format } from "date-fns";
@@ -22,7 +22,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function DiaryContent() {
@@ -147,32 +146,49 @@ export default function DiaryContent() {
           </p>
         </div>
       ) : viewMode === "grid" ? (
-        <div className="space-y-8">
+        <div className="space-y-12">
           {sortedDates.map((dateKey) => {
             const dateLogs = groupedLogs[dateKey];
             const date = new Date(dateKey);
-            const formattedDate = format(date, "EEEE, MMMM d, yyyy");
+            const formattedDate = format(date, "MMM d, yyyy");
+            const dayName = format(date, "EEEE");
 
             return (
-              <div key={dateKey} className="space-y-4">
-                <h2 className="text-xl font-semibold text-foreground border-b pb-2">
-                  {formattedDate}
-                </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+              <div key={dateKey} className="relative">
+                {/* Timeline line - horizontal line connecting all dates */}
+                <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-border hidden md:block" />
+                
+                {/* Date header with calendar icon */}
+                <div className="flex items-center gap-4 mb-6 relative z-10">
+                  <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 border-2 border-primary/20 flex-shrink-0">
+                    <CalendarIcon className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground">{dayName}</h2>
+                    <p className="text-sm text-muted-foreground">{formattedDate}</p>
+                  </div>
+                </div>
+
+                {/* Horizontal card row - cards hang from the date */}
+                <div className="flex flex-wrap gap-4 ml-20 md:ml-24">
                   {dateLogs.map((log) => (
                     <div
                       key={log.id}
-                      className="group relative bg-card border rounded-lg overflow-hidden hover:shadow-lg transition-all cursor-pointer"
+                      className="group relative bg-card border rounded-lg overflow-hidden hover:shadow-lg transition-all cursor-pointer flex-shrink-0"
                       onClick={() => handleLogClick(log)}
+                      style={{ width: "160px" }}
                     >
-                      <div className="relative aspect-[3/4] bg-muted rounded-lg overflow-hidden">
+                      {/* Connection line from date to card */}
+                      <div className="absolute -left-6 top-1/2 -translate-y-1/2 w-6 h-0.5 bg-border hidden md:block" />
+                      
+                      <div className="relative aspect-[2/3] bg-muted rounded-lg overflow-hidden">
                         {log.posterPath ? (
                           <Image
                             src={getPosterUrl(log.posterPath)}
                             alt={log.title}
                             fill
                             className="object-cover"
-                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+                            sizes="160px"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
@@ -205,23 +221,23 @@ export default function DiaryContent() {
                           </Button>
                         </div>
                       </div>
-                      <div className="p-3">
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <h3 className="font-semibold text-sm line-clamp-2 flex-1">{log.title}</h3>
+                      <div className="p-2">
+                        <div className="flex items-start justify-between gap-1 mb-1">
+                          <h3 className="font-semibold text-xs line-clamp-2 flex-1">{log.title}</h3>
                           <span className="text-xs text-muted-foreground flex-shrink-0">
                             {log.mediaType === "movie" ? (
-                              <Film className="h-4 w-4" />
+                              <Film className="h-3 w-3" />
                             ) : (
-                              <Tv className="h-4 w-4" />
+                              <Tv className="h-3 w-3" />
                             )}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                          <Calendar className="h-3 w-3" />
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <CalendarIcon className="h-3 w-3" />
                           <span>{format(new Date(log.watchedAt), "h:mm a")}</span>
                         </div>
                         {log.notes && (
-                          <p className="text-xs text-muted-foreground line-clamp-2">{log.notes}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-1 mt-1">{log.notes}</p>
                         )}
                       </div>
                     </div>
@@ -294,7 +310,7 @@ export default function DiaryContent() {
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
+                        <CalendarIcon className="h-4 w-4" />
                         <span>{format(new Date(log.watchedAt), "MMM d, yyyy h:mm a")}</span>
                       </div>
                     </td>
