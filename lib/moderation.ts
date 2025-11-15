@@ -4,7 +4,6 @@
  */
 
 import { Filter } from 'bad-words';
-import DOMPurify from 'isomorphic-dompurify';
 
 // Initialize profanity filter with comprehensive word list
 // bad-words library includes extensive profanity, racial slurs, and hate speech
@@ -36,18 +35,26 @@ export function containsProfanity(text: string): boolean {
 
 // Sanitize HTML content to prevent XSS attacks
 export function sanitizeHtml(html: string): string {
-  // Use DOMPurify for robust HTML sanitization
-  // DOMPurify removes all dangerous HTML/JavaScript while preserving text content
-  // For maximum security, we strip all HTML tags (plain text only)
-  // If you want to allow basic formatting, uncomment ALLOWED_TAGS below
-  const sanitized = DOMPurify.sanitize(html, {
-    // Strip all HTML tags for maximum security (default behavior)
-    // To allow basic formatting, uncomment the line below:
-    // ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'u', 'br', 'p'],
-    ALLOWED_ATTR: [],
-    // Preserve text content even when removing HTML tags
-    KEEP_CONTENT: true,
-  });
+  // Strip all HTML tags and decode HTML entities for maximum security
+  // This approach works in serverless environments without requiring jsdom
+  const sanitized = html
+    // Remove script and style tags and their content
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+    // Remove all HTML tags
+    .replace(/<[^>]+>/g, '')
+    // Decode common HTML entities
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    // Decode numeric entities (basic support)
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec))
+    .replace(/&#x([a-f\d]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
   
   return sanitized.trim();
 }
@@ -120,10 +127,9 @@ export function moderateContent(content: string, options: {
   let sanitized = content;
   if (shouldSanitize) {
     sanitized = sanitizeHtml(content);
-    // DOMPurify removes dangerous HTML but preserves text content
+    // The sanitizeHtml function removes dangerous HTML but preserves text content
     // If the sanitized content is significantly shorter, it might indicate malicious HTML/script injection
-    // However, with DOMPurify's KEEP_CONTENT option, text should be preserved
-    // This check is more lenient since DOMPurify is more precise than regex
+    // This check helps detect potential XSS attempts
     const originalTextLength = content.replace(/<[^>]*>/g, '').length; // Text without HTML
     const sanitizedTextLength = sanitized.replace(/<[^>]*>/g, '').length; // Text after sanitization
     

@@ -48,7 +48,16 @@ interface UpdateCommentParams {
 // Fetch comments for a viewing log
 const fetchComments = async (logId: string, filter: string = "newest"): Promise<ViewingLogComment[]> => {
   const res = await fetch(`/api/viewing-logs/${logId}/comments?filter=${filter}`);
-  if (!res.ok) throw new Error("Failed to fetch comments");
+  if (!res.ok) {
+    let errorMessage = "Failed to fetch comments";
+    try {
+      const error = await res.json();
+      errorMessage = error.error || errorMessage;
+    } catch {
+      errorMessage = res.statusText || errorMessage;
+    }
+    throw new Error(errorMessage);
+  }
   const data = await res.json();
   return data.comments || [];
 };
@@ -61,10 +70,20 @@ const createComment = async ({ logId, content, parentCommentId }: CreateCommentP
     body: JSON.stringify({ content, parentCommentId: parentCommentId || null }),
   });
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || "Failed to create comment");
+    let errorMessage = "Failed to create comment";
+    try {
+      const error = await res.json();
+      errorMessage = error.error || errorMessage;
+    } catch {
+      // If response is not JSON, use status text
+      errorMessage = res.statusText || errorMessage;
+    }
+    throw new Error(errorMessage);
   }
   const data = await res.json();
+  if (!data.comment) {
+    throw new Error("Invalid response from server");
+  }
   return data.comment;
 };
 
@@ -76,10 +95,19 @@ const updateComment = async ({ logId, commentId, content }: UpdateCommentParams)
     body: JSON.stringify({ content }),
   });
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || "Failed to update comment");
+    let errorMessage = "Failed to update comment";
+    try {
+      const error = await res.json();
+      errorMessage = error.error || errorMessage;
+    } catch {
+      errorMessage = res.statusText || errorMessage;
+    }
+    throw new Error(errorMessage);
   }
   const data = await res.json();
+  if (!data.comment) {
+    throw new Error("Invalid response from server");
+  }
   return data.comment;
 };
 
@@ -89,8 +117,14 @@ const deleteComment = async (logId: string, commentId: string): Promise<void> =>
     method: "DELETE",
   });
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || "Failed to delete comment");
+    let errorMessage = "Failed to delete comment";
+    try {
+      const error = await res.json();
+      errorMessage = error.error || errorMessage;
+    } catch {
+      errorMessage = res.statusText || errorMessage;
+    }
+    throw new Error(errorMessage);
   }
 };
 
@@ -155,10 +189,19 @@ const addReaction = async ({
     body: JSON.stringify({ reactionType }),
   });
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || "Failed to add reaction");
+    let errorMessage = "Failed to add reaction";
+    try {
+      const error = await res.json();
+      errorMessage = error.error || errorMessage;
+    } catch {
+      errorMessage = res.statusText || errorMessage;
+    }
+    throw new Error(errorMessage);
   }
   const data = await res.json();
+  if (!data.reaction) {
+    throw new Error("Invalid response from server");
+  }
   return data.reaction;
 };
 
@@ -179,8 +222,14 @@ const removeReaction = async ({
     }
   );
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || "Failed to remove reaction");
+    let errorMessage = "Failed to remove reaction";
+    try {
+      const error = await res.json();
+      errorMessage = error.error || errorMessage;
+    } catch {
+      errorMessage = res.statusText || errorMessage;
+    }
+    throw new Error(errorMessage);
   }
 };
 

@@ -128,7 +128,12 @@ export async function POST(
     }
 
     const { logId } = await params;
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
     const { content, parentCommentId } = body;
 
     if (!content || !content.trim()) {
