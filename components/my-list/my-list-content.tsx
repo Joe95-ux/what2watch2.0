@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
 import { useFavorites, useRemoveFavorite } from "@/hooks/use-favorites";
 import { useAllGenres } from "@/hooks/use-genres";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
@@ -193,7 +194,7 @@ export default function MyListContent() {
             Start building your list by clicking the heart icon on any movie or TV show you want to save.
           </p>
           <Button asChild className="mt-4 cursor-pointer">
-            <a href="/browse">Browse Content</a>
+            <Link href="/browse">Browse Content</Link>
           </Button>
         </div>
       </div>
