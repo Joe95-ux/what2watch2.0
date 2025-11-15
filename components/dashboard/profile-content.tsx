@@ -1,8 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useMemo, useEffect } from "react";
-import { useUser } from "@clerk/nextjs";
+import { UserProfile } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,13 +42,12 @@ import { FollowButton } from "@/components/social/follow-button";
 import { toast } from "sonner";
 
 export default function DashboardProfileContent() {
-  const router = useRouter();
-  const { user: clerkUser } = useUser();
   const { data: currentUser, isLoading: isLoadingCurrentUser } = useCurrentUser();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState<"playlists" | "reviews" | "my-list" | "followers" | "following">("playlists");
   const [isEditBannerOpen, setIsEditBannerOpen] = useState(false);
   const [selectedBannerGradient, setSelectedBannerGradient] = useState<string>("gradient-1");
+  const [isClerkProfileOpen, setIsClerkProfileOpen] = useState(false);
 
   // Fetch user data (current user's own profile)
   const userId = currentUser?.id || "";
@@ -166,46 +164,25 @@ export default function DashboardProfileContent() {
   const editButton = (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" className="cursor-pointer">
           <Edit className="h-4 w-4 mr-2" />
           Edit
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setIsEditBannerOpen(true)}>
+        <DropdownMenuItem onClick={() => setIsEditBannerOpen(true)} className="cursor-pointer">
           <ImageIcon className="h-4 w-4 mr-2" />
           Change Banner
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => {
-          // Redirect to Clerk user management for username
-          if (clerkUser) {
-            window.open(`https://dashboard.clerk.com/users/${clerkUser.id}`, "_blank");
-          } else {
-            toast.error("Unable to open user settings");
-          }
-        }}>
+        <DropdownMenuItem onClick={() => setIsClerkProfileOpen(true)} className="cursor-pointer">
           <UserIcon className="h-4 w-4 mr-2" />
           Edit Username
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => {
-          // Redirect to Clerk user management for profile picture
-          if (clerkUser) {
-            window.open(`https://dashboard.clerk.com/users/${clerkUser.id}`, "_blank");
-          } else {
-            toast.error("Unable to open user settings");
-          }
-        }}>
+        <DropdownMenuItem onClick={() => setIsClerkProfileOpen(true)} className="cursor-pointer">
           <ImageIcon className="h-4 w-4 mr-2" />
           Edit Profile Picture
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => {
-          // Redirect to Clerk user management for password
-          if (clerkUser) {
-            window.open(`https://dashboard.clerk.com/users/${clerkUser.id}`, "_blank");
-          } else {
-            toast.error("Unable to open user settings");
-          }
-        }}>
+        <DropdownMenuItem onClick={() => setIsClerkProfileOpen(true)} className="cursor-pointer">
           <KeyRound className="h-4 w-4 mr-2" />
           Change Password
         </DropdownMenuItem>
@@ -286,8 +263,8 @@ export default function DashboardProfileContent() {
       </Select>
     </div>
   ) : (
-    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="w-full">
-      <TabsList className="w-full justify-start overflow-x-auto">
+    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
+      <TabsList className="justify-start overflow-x-auto">
         <TabsTrigger value="playlists" className="flex items-center gap-2">
           <List className="h-4 w-4" />
           Playlists ({playlists.length})
@@ -318,7 +295,7 @@ export default function DashboardProfileContent() {
       {activeTab === "playlists" && (
         <>
           {isLoadingPlaylists ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5 md:gap-6">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="aspect-[3/4] w-full rounded-lg" />
               ))}
@@ -331,7 +308,7 @@ export default function DashboardProfileContent() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5 md:gap-6">
                 {paginatedPlaylists.map((playlist: Playlist) => (
                   <PlaylistCard
                     key={playlist.id}
@@ -348,6 +325,7 @@ export default function DashboardProfileContent() {
                     size="sm"
                     onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
+                    className="cursor-pointer"
                   >
                     <ChevronLeft className="h-4 w-4 mr-1" />
                     Previous
@@ -360,6 +338,7 @@ export default function DashboardProfileContent() {
                     size="sm"
                     onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
+                    className="cursor-pointer"
                   >
                     Next
                     <ChevronRight className="h-4 w-4 ml-1" />
@@ -382,7 +361,7 @@ export default function DashboardProfileContent() {
       {activeTab === "my-list" && (
         <>
           {isLoadingFavorites ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5 md:gap-6">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="aspect-[2/3] w-full rounded-lg" />
               ))}
@@ -395,8 +374,8 @@ export default function DashboardProfileContent() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {paginatedFavorites.map(({ item, type }) => (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5 md:gap-6">
+                        {paginatedFavorites.map(({ item, type }) => (
                   <div key={item.id} className="relative">
                     <MovieCard
                       item={item}
@@ -413,6 +392,7 @@ export default function DashboardProfileContent() {
                     size="sm"
                     onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
+                    className="cursor-pointer"
                   >
                     <ChevronLeft className="h-4 w-4 mr-1" />
                     Previous
@@ -425,6 +405,7 @@ export default function DashboardProfileContent() {
                     size="sm"
                     onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
+                    className="cursor-pointer"
                   >
                     Next
                     <ChevronRight className="h-4 w-4 ml-1" />
@@ -539,6 +520,15 @@ export default function DashboardProfileContent() {
           />
         </DialogContent>
       </Dialog>
+      
+      {/* Clerk User Profile Modal */}
+      {isClerkProfileOpen && (
+        <Dialog open={isClerkProfileOpen} onOpenChange={setIsClerkProfileOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <UserProfile />
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }

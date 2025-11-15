@@ -34,7 +34,14 @@ import {
   useTrendingTV,
 } from "@/hooks/use-movies";
 import { usePublicPlaylists } from "@/hooks/use-playlists";
-import PlaylistRow from "@/components/browse/playlist-row";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import PlaylistCard from "@/components/browse/playlist-card";
 import {
   getBackdropUrl,
   getPosterUrl,
@@ -101,7 +108,36 @@ function PublicPlaylistsCarousel() {
     return null;
   }
 
-  return <PlaylistRow title="" playlists={playlists} href="/playlists" />;
+  return (
+    <div className="relative group">
+      <Carousel
+        opts={{
+          align: "start",
+          slidesToScroll: 5,
+          breakpoints: {
+            "(max-width: 640px)": { slidesToScroll: 2 },
+            "(max-width: 1024px)": { slidesToScroll: 3 },
+            "(max-width: 1280px)": { slidesToScroll: 4 },
+          },
+        }}
+        className="w-full"
+      >
+        <CarouselContent className="-ml-2 md:-ml-4">
+          {playlists.map((playlist) => (
+            <CarouselItem key={playlist.id} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px]">
+              <PlaylistCard playlist={playlist} variant="carousel" />
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        <CarouselPrevious 
+          className="left-0 h-full w-[45px] rounded-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center"
+        />
+        <CarouselNext 
+          className="right-0 h-full w-[45px] rounded-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center"
+        />
+      </Carousel>
+    </div>
+  );
 }
 
 const faqData = [
@@ -692,7 +728,7 @@ export default function LandingPage() {
               View all →
             </Link>
           </div>
-          <div className="overflow-hidden sm:overflow-visible">
+          <div className="overflow-hidden sm:overflow-visible group">
             <PublicPlaylistsCarousel />
           </div>
         </div>

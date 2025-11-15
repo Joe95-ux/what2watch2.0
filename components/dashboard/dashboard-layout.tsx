@@ -138,6 +138,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                         </SidebarMenuItem>
                       );
                     })}
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={pathname === "/dashboard/profile"} tooltip="Profile">
+                        <Link href="/dashboard/profile">
+                          <UserRound />
+                          <span>Profile</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
@@ -226,14 +234,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <SidebarGroupLabel>Settings</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={pathname === "/dashboard/profile"} tooltip="Profile">
-                        <Link href="/dashboard/profile">
-                          <UserRound />
-                          <span>Profile</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={pathname === "/settings"} tooltip="Settings">
                         <Link href="/settings">

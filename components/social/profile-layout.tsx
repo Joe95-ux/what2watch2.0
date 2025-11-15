@@ -62,8 +62,8 @@ export default function ProfileLayout({
           className="w-full h-full" 
           style={{ background: bannerGradient }}
         />
-        {/* Dark overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/90 to-transparent" />
+        {/* Dark overlay - reduced opacity */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/40 to-transparent" />
         
         {/* Back Button - Positioned on cover */}
         {showBackButton && (
@@ -71,7 +71,7 @@ export default function ProfileLayout({
             variant="ghost"
             size="icon"
             onClick={onBack || (() => router.back())}
-            className="absolute top-4 left-4 h-10 w-10 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm border-0 text-white"
+            className="absolute top-4 left-4 h-10 w-10 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm border-0 text-white cursor-pointer"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -79,7 +79,7 @@ export default function ProfileLayout({
       </div>
 
       {/* Profile Info Section - Constrained width, centered */}
-      <div className="container max-w-4xl mx-auto px-4 sm:px-6">
+      <div className="container max-w-[70rem] mx-auto px-4 sm:px-6">
         {/* Avatar - Overlapping banner, positioned to the left */}
         <div className="relative -mt-16 sm:-mt-20 mb-4">
           <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-background">
@@ -125,7 +125,7 @@ export default function ProfileLayout({
         </div>
 
         {/* Tabs Section */}
-        <div className="border-b border-border">
+        <div className="w-fit">
           {tabs}
         </div>
 
