@@ -41,6 +41,7 @@ model User {
   followers     Follow[] @relation("UserFollowers")
   following     Follow[] @relation("UserFollowing")
   likedPlaylists LikedPlaylist[]
+  viewingLogComments ViewingLogComment[]
 
   @@map("users")
 }
@@ -329,10 +330,39 @@ model ViewingLog {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   
+  comments      ViewingLogComment[]
+  
   @@map("viewing_logs")
   @@index([userId])
   @@index([userId, watchedAt])
   @@index([tmdbId, mediaType])
+}
+
+// Comments on viewing logs (reviews)
+model ViewingLogComment {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  viewingLogId  String   @db.ObjectId
+  viewingLog    ViewingLog @relation(fields: [viewingLogId], references: [id], onDelete: Cascade)
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  content       String
+  
+  // Nested replies
+  parentCommentId String? @db.ObjectId
+  parentComment   ViewingLogComment? @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies         ViewingLogComment[] @relation("CommentReplies")
+  
+  likes         Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@map("viewing_log_comments")
+  @@index([viewingLogId])
+  @@index([userId])
+  @@index([parentCommentId])
+  @@index([createdAt])
 }
 
 enum AiChatIntent {
