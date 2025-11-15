@@ -29,6 +29,8 @@ export default function LogFilmDialog({ isOpen, onClose, item, type }: LogFilmDi
   const logViewing = useLogViewing();
 
   const handleSubmit = async () => {
+    if (logViewing.isPending) return; // Prevent double submission
+    
     try {
       const title = "title" in item ? item.title : item.name;
       await logViewing.mutateAsync({
@@ -47,7 +49,8 @@ export default function LogFilmDialog({ isOpen, onClose, item, type }: LogFilmDi
       setWatchedDate(new Date());
       onClose();
     } catch (error) {
-      toast.error("Failed to log film. Please try again.");
+      const errorMessage = error instanceof Error ? error.message : "Failed to log film";
+      toast.error(errorMessage.includes("already") ? errorMessage : "Failed to log film. Please try again.");
       console.error("Error logging film:", error);
     }
   };

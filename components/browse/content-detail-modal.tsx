@@ -27,6 +27,12 @@ import { useAddRecentlyViewed } from "@/hooks/use-recently-viewed";
 import { useToggleFavorite } from "@/hooks/use-favorites";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import LogFilmDialog from "./log-film-dialog";
 
 interface ContentDetailModalProps {
@@ -316,7 +322,7 @@ export default function ContentDetailModal({
           <div className="absolute inset-0 flex items-end z-10">
             <div className="w-full px-6 sm:px-8 lg:px-12 pb-12">
               <div className="max-w-3xl">
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-white drop-shadow-lg">
+                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-white drop-shadow-lg">
                   {title}
                 </h1>
                 <div className="flex items-center gap-4 mb-6 flex-wrap">
@@ -415,8 +421,8 @@ export default function ContentDetailModal({
                       <p>{toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}</p>
                     </TooltipContent>
                   </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
                       <Button
                         size="lg"
                         variant="outline"
@@ -424,16 +430,30 @@ export default function ContentDetailModal({
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          setIsLogFilmDialogOpen(true);
                         }}
                       >
                         <BookOpen className="size-6 text-white dark:text-white" />
                       </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Log to Diary</p>
-                    </TooltipContent>
-                  </Tooltip>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      className="z-[110]"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    >
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setIsLogFilmDialogOpen(true);
+                        }}
+                      >
+                        <BookOpen className="h-4 w-4 mr-2" />
+                        Log to Diary
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   {/* Mute/Unmute Toggle - Only show when trailer is available, on extreme right */}
                   {trailer && videosData && (
                     <Tooltip>

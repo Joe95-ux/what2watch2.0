@@ -76,6 +76,26 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
     // watchedAt can be a date string or default to now
     const watchedDate = watchedAt ? new Date(watchedAt) : new Date();
 
+    // Check for existing log with same tmdbId and mediaType (optional: prevent duplicates)
+    // Note: We allow multiple logs for the same film (user can watch it multiple times)
+    // If you want to prevent duplicates, uncomment the following:
+    /*
+    const existingLog = await db.viewingLog.findFirst({
+      where: {
+        userId: user.id,
+        tmdbId,
+        mediaType,
+      },
+    });
+
+    if (existingLog) {
+      return NextResponse.json(
+        { error: "This film has already been logged" },
+        { status: 400 }
+      );
+    }
+    */
+
     const log = await db.viewingLog.create({
       data: {
         userId: user.id,
