@@ -158,7 +158,7 @@ export default function TrailerModal({
               )}
               aria-label="Previous video"
             >
-              <ChevronLeft className="h-8 w-8" />
+              <ChevronLeft className="size-6" />
             </Button>
             <Button
               variant="ghost"
@@ -173,7 +173,7 @@ export default function TrailerModal({
               )}
               aria-label="Next video"
             >
-              <ChevronRight className="h-8 w-8" />
+              <ChevronRight className="size-6" />
             </Button>
 
             {/* Video Counter */}
@@ -189,9 +189,6 @@ export default function TrailerModal({
         {currentVideo && !isLoading && (
           <div className="absolute top-4 left-4 z-50 bg-black/60 px-4 py-2 rounded-lg max-w-md">
             <p className="text-white text-sm font-medium">{currentVideo.name}</p>
-            {currentVideo.official && (
-              <span className="text-white/80 text-xs">Official</span>
-            )}
           </div>
         )}
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { X, Play, Plus, Heart, Star, Clock, Calendar, Volume2, VolumeX, ArrowLeft } from "lucide-react";
+import { X, Play, Plus, Heart, Star, Clock, Calendar, Volume2, VolumeX, ArrowLeft, BookOpen } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getBackdropUrl, getPosterUrl, getYouTubeEmbedUrl, TMDBVideo } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,6 +27,7 @@ import { useAddRecentlyViewed } from "@/hooks/use-recently-viewed";
 import { useToggleFavorite } from "@/hooks/use-favorites";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import LogFilmDialog from "./log-film-dialog";
 
 interface ContentDetailModalProps {
   item: TMDBMovie | TMDBSeries;
@@ -93,6 +94,7 @@ export default function ContentDetailModal({
   const [selectedVideo, setSelectedVideo] = useState<TMDBVideo | null>(null);
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay compatibility
+  const [isLogFilmDialogOpen, setIsLogFilmDialogOpen] = useState(false);
   const isClosingRef = useRef(false);
   
   // Track recently viewed
@@ -413,6 +415,25 @@ export default function ContentDetailModal({
                       <p>{toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}</p>
                     </TooltipContent>
                   </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setIsLogFilmDialogOpen(true);
+                        }}
+                      >
+                        <BookOpen className="size-6 text-white dark:text-white" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Log to Diary</p>
+                    </TooltipContent>
+                  </Tooltip>
                   {/* Mute/Unmute Toggle - Only show when trailer is available, on extreme right */}
                   {trailer && videosData && (
                     <Tooltip>
@@ -643,6 +664,14 @@ export default function ContentDetailModal({
             title={title}
           />
         )}
+
+        {/* Log Film Dialog */}
+        <LogFilmDialog
+          isOpen={isLogFilmDialogOpen}
+          onClose={() => setIsLogFilmDialogOpen(false)}
+          item={item}
+          type={type}
+        />
       </SheetContent>
     </Sheet>
   );

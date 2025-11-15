@@ -36,6 +36,7 @@ import {
   Users,
   UserPlus,
   UserRound,
+  BookOpen,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -73,6 +74,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/my-list", label: "My List", icon: Heart, badge: favorites.length },
     { href: "/playlists", label: "Playlists", icon: List, badge: playlists.length },
+    { href: "/dashboard/diary", label: "Diary", icon: BookOpen },
     { href: "/dashboard/my-stats", label: "My Stats", icon: BarChart3 },
   ];
 
