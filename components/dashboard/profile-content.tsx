@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { UserProfile } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -44,10 +44,10 @@ import { toast } from "sonner";
 export default function DashboardProfileContent() {
   const { data: currentUser, isLoading: isLoadingCurrentUser } = useCurrentUser();
   const isMobile = useIsMobile();
+  const { openUserProfile } = useClerk();
   const [activeTab, setActiveTab] = useState<"playlists" | "reviews" | "my-list" | "followers" | "following">("playlists");
   const [isEditBannerOpen, setIsEditBannerOpen] = useState(false);
   const [selectedBannerGradient, setSelectedBannerGradient] = useState<string>("gradient-1");
-  const [isClerkProfileOpen, setIsClerkProfileOpen] = useState(false);
 
   // Fetch user data (current user's own profile)
   const userId = currentUser?.id || "";
@@ -174,15 +174,15 @@ export default function DashboardProfileContent() {
           <ImageIcon className="h-4 w-4 mr-2" />
           Change Banner
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setIsClerkProfileOpen(true)} className="cursor-pointer">
+        <DropdownMenuItem onClick={() => openUserProfile()} className="cursor-pointer">
           <UserIcon className="h-4 w-4 mr-2" />
           Edit Username
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setIsClerkProfileOpen(true)} className="cursor-pointer">
+        <DropdownMenuItem onClick={() => openUserProfile()} className="cursor-pointer">
           <ImageIcon className="h-4 w-4 mr-2" />
           Edit Profile Picture
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setIsClerkProfileOpen(true)} className="cursor-pointer">
+        <DropdownMenuItem onClick={() => openUserProfile()} className="cursor-pointer">
           <KeyRound className="h-4 w-4 mr-2" />
           Change Password
         </DropdownMenuItem>
@@ -521,10 +521,6 @@ export default function DashboardProfileContent() {
         </DialogContent>
       </Dialog>
       
-      {/* Clerk User Profile - Opens in its own modal */}
-      {isClerkProfileOpen && (
-        <UserProfile />
-      )}
     </>
   );
 }
