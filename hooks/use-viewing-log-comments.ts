@@ -267,13 +267,13 @@ export function useAddReaction() {
               user: currentUser
                 ? {
                     id: currentUser.id,
-                    username: currentUser.username,
+                    username: currentUser.username || "",
                     displayName: currentUser.displayName,
                     avatarUrl: currentUser.avatarUrl,
                   }
                 : {
                     id: "",
-                    username: null,
+                    username: "",
                     displayName: null,
                     avatarUrl: null,
                   },
