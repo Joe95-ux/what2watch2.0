@@ -228,7 +228,8 @@ export default function ContentDetailModal({
         firstAirDate: "first_air_date" in item ? item.first_air_date || null : null,
       });
     }
-  }, [isOpen, item, type, addRecentlyViewed]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, item.id, type]); // Only depend on isOpen, item.id, and type - mutation function is stable
 
   const details = type === "movie" ? movieDetails : tvDetails;
   const isLoading = type === "movie" ? isLoadingMovie : isLoadingTV;
@@ -586,8 +587,8 @@ export default function ContentDetailModal({
                                   "w-full justify-start text-left font-normal",
                                   !watchedDate && "text-muted-foreground"
                                 )}
-                                onClick={(e) => {
-                                  e.preventDefault();
+                                onMouseDown={(e) => {
+                                  // Prevent closing the dropdown when clicking the date picker button
                                   e.stopPropagation();
                                 }}
                               >

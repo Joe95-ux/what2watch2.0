@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useViewingLogs, useDeleteViewingLog, useUpdateViewingLog, type ViewingLog } from "@/hooks/use-viewing-logs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Trash2, Film, Tv, Edit, Table2, Grid3x3, CalendarIcon } from "lucide-react";
+import { Trash2, Film, Tv, Edit, Table2, Grid3x3, CalendarIcon, Heart, Star, FileText } from "lucide-react";
 import Image from "next/image";
 import { getPosterUrl } from "@/lib/tmdb";
 import { format } from "date-fns";
@@ -23,12 +23,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { useToggleFavorite, useAddFavorite, useRemoveFavorite } from "@/hooks/use-favorites";
 
 export default function DiaryContent() {
   const { data: logs = [], isLoading } = useViewingLogs();
   const deleteLog = useDeleteViewingLog();
   const updateLog = useUpdateViewingLog();
   const router = useRouter();
+  const { data: currentUser } = useCurrentUser();
+  const toggleFavorite = useToggleFavorite();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [logToDelete, setLogToDelete] = useState<ViewingLog | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -69,8 +73,18 @@ export default function DiaryContent() {
     }
   };
 
-  const handleLogClick = (log: ViewingLog) => {
-    router.push(`/${log.mediaType}/${log.tmdbId}`);
+  const handleLogClick = (log: ViewingLog, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    if (currentUser?.username) {
+      // Create URL-friendly film title slug
+      const filmTitleSlug = log.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      router.push(`/${currentUser.username}/film/${filmTitleSlug}?tmdbId=${log.tmdbId}&mediaType=${log.mediaType}&logId=${log.id}`);
+    }
   };
 
   const handleEditClick = (log: ViewingLog, e: React.MouseEvent) => {
@@ -79,14 +93,16 @@ export default function DiaryContent() {
     setEditDialogOpen(true);
   };
 
-  const handleEditSubmit = async (watchedDate: Date, notes: string) => {
+  const handleEditSubmit = async (watchedDate: Date, notes: string, rating: number | null) => {
     if (!logToEdit) return;
     try {
       await updateLog.mutateAsync({
         logId: logToEdit.id,
         watchedAt: watchedDate.toISOString(),
         notes: notes.trim() || null,
+        rating: rating || null,
       });
+      
       toast.success("Entry updated");
       setEditDialogOpen(false);
       setLogToEdit(null);
@@ -257,13 +273,22 @@ export default function DiaryContent() {
                     Film
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Type
+                    Month
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Date Watched
+                    Day
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Notes
+                    Year Released
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Rating
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Like
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Note
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Actions
@@ -271,79 +296,137 @@ export default function DiaryContent() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {logs.map((log) => (
-                  <tr
-                    key={log.id}
-                    className="hover:bg-muted/20 transition-colors cursor-pointer group"
-                    onClick={() => handleLogClick(log)}
-                  >
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-3">
-                        {log.posterPath ? (
-                          <div className="relative w-16 h-24 rounded overflow-hidden flex-shrink-0 bg-muted">
-                            <Image
-                              src={getPosterUrl(log.posterPath)}
-                              alt={log.title}
-                              fill
-                              className="object-cover"
-                              sizes="64px"
-                            />
+                {logs.map((log) => {
+                  const watchedDate = new Date(log.watchedAt);
+                  const releaseYear = log.releaseDate 
+                    ? new Date(log.releaseDate).getFullYear() 
+                    : log.firstAirDate 
+                    ? new Date(log.firstAirDate).getFullYear() 
+                    : "—";
+                  const isLiked = toggleFavorite.isFavorite(log.tmdbId, log.mediaType);
+                  
+                  return (
+                    <tr
+                      key={log.id}
+                      className="hover:bg-muted/20 transition-colors group"
+                    >
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-3">
+                          {log.posterPath ? (
+                            <div 
+                              className="relative w-16 h-24 rounded overflow-hidden flex-shrink-0 bg-muted cursor-pointer"
+                              onClick={(e) => handleLogClick(log, e)}
+                            >
+                              <Image
+                                src={getPosterUrl(log.posterPath)}
+                                alt={log.title}
+                                fill
+                                className="object-cover"
+                                sizes="64px"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-16 h-24 rounded bg-muted flex-shrink-0 flex items-center justify-center">
+                              {log.mediaType === "movie" ? (
+                                <Film className="h-6 w-6 text-muted-foreground" />
+                              ) : (
+                                <Tv className="h-6 w-6 text-muted-foreground" />
+                              )}
+                            </div>
+                          )}
+                          <div 
+                            className="flex-1 min-w-0 cursor-pointer"
+                            onClick={(e) => handleLogClick(log, e)}
+                          >
+                            <p className="font-semibold text-sm group-hover:text-primary transition-colors">
+                              {log.title}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2 text-sm">
+                          <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">
+                            {format(watchedDate, "MMM yyyy")}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="text-sm text-muted-foreground">
+                          {format(watchedDate, "d")}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="text-sm text-muted-foreground">
+                          {releaseYear}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        {log.rating ? (
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={cn(
+                                  "h-4 w-4",
+                                  star <= log.rating!
+                                    ? "text-yellow-400 fill-yellow-400"
+                                    : "text-muted-foreground"
+                                )}
+                              />
+                            ))}
                           </div>
                         ) : (
-                          <div className="w-16 h-24 rounded bg-muted flex-shrink-0 flex items-center justify-center">
-                            {log.mediaType === "movie" ? (
-                              <Film className="h-6 w-6 text-muted-foreground" />
-                            ) : (
-                              <Tv className="h-6 w-6 text-muted-foreground" />
-                            )}
-                          </div>
+                          <span className="text-sm text-muted-foreground">—</span>
                         )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm group-hover:text-primary transition-colors">
-                            {log.title}
-                          </p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <Heart
+                          className={cn(
+                            "h-4 w-4",
+                            isLiked
+                              ? "text-red-500 fill-red-500"
+                              : "text-muted-foreground"
+                          )}
+                        />
+                      </td>
+                      <td className="px-4 py-4">
+                        {log.notes ? (
+                          <FileText 
+                            className="h-4 w-4 text-primary cursor-pointer"
+                            onClick={(e) => handleLogClick(log, e)}
+                          />
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => handleEditClick(log, e)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteClick(log);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="text-sm text-muted-foreground capitalize">{log.mediaType}</span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <CalendarIcon className="h-4 w-4" />
-                        <span>{format(new Date(log.watchedAt), "MMM d, yyyy h:mm a")}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <p className="text-sm text-muted-foreground line-clamp-2 max-w-md">
-                        {log.notes || "—"}
-                      </p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => handleEditClick(log, e)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteClick(log);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -392,25 +475,47 @@ interface EditLogDialogProps {
   isOpen: boolean;
   onClose: () => void;
   log: ViewingLog;
-  onSubmit: (watchedDate: Date, notes: string) => void;
+  onSubmit: (watchedDate: Date, notes: string, rating: number | null) => void;
   isPending: boolean;
 }
 
 function EditLogDialog({ isOpen, onClose, log, onSubmit, isPending }: EditLogDialogProps) {
   const [watchedDate, setWatchedDate] = useState<Date>(new Date(log.watchedAt));
   const [notes, setNotes] = useState(log.notes || "");
+  const [rating, setRating] = useState<number | null>(log.rating || null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const toggleFavorite = useToggleFavorite();
+  const addFavorite = useAddFavorite();
+  const removeFavorite = useRemoveFavorite();
+  const isLiked = toggleFavorite.isFavorite(log.tmdbId, log.mediaType);
 
   // Reset form when log changes
   useEffect(() => {
     if (isOpen && log) {
       setWatchedDate(new Date(log.watchedAt));
       setNotes(log.notes || "");
+      setRating(log.rating || null);
     }
   }, [isOpen, log]);
 
+  const handleLikeToggle = async () => {
+    if (isLiked) {
+      await removeFavorite.mutateAsync({ tmdbId: log.tmdbId, mediaType: log.mediaType });
+    } else {
+      await addFavorite.mutateAsync({
+        tmdbId: log.tmdbId,
+        mediaType: log.mediaType,
+        title: log.title,
+        posterPath: log.posterPath ?? undefined,
+        backdropPath: log.backdropPath ?? undefined,
+        releaseDate: log.releaseDate || undefined,
+        firstAirDate: log.firstAirDate || undefined,
+      });
+    }
+  };
+
   const handleSubmit = () => {
-    onSubmit(watchedDate, notes);
+    onSubmit(watchedDate, notes, rating);
   };
 
   return (
@@ -423,6 +528,61 @@ function EditLogDialog({ isOpen, onClose, log, onSubmit, isPending }: EditLogDia
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          {/* Like Button */}
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className={cn(
+                "flex items-center gap-2",
+                isLiked && "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
+              )}
+              onClick={handleLikeToggle}
+            >
+              <Heart 
+                className={cn(
+                  "h-4 w-4",
+                  isLiked 
+                    ? "text-red-500 fill-red-500" 
+                    : "text-muted-foreground"
+                )} 
+              />
+              <span className="text-sm">
+                {isLiked ? "Liked" : "Like"}
+              </span>
+            </Button>
+          </div>
+          
+          {/* Star Rating */}
+          <div className="space-y-2">
+            <Label className="text-sm">Rating (Optional)</Label>
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setRating(rating === star ? null : star)}
+                  className="focus:outline-none"
+                >
+                  <Star
+                    className={cn(
+                      "h-5 w-5 transition-colors",
+                      rating && star <= rating
+                        ? "text-yellow-400 fill-yellow-400"
+                        : "text-muted-foreground"
+                    )}
+                  />
+                </button>
+              ))}
+              {rating && (
+                <span className="ml-2 text-sm text-muted-foreground">
+                  {rating}/5
+                </span>
+              )}
+            </div>
+          </div>
+          
           <div className="space-y-2">
             <Label htmlFor="watched-date">Date Watched</Label>
             <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
