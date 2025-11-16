@@ -576,7 +576,7 @@ export default function DiaryContent() {
               return (
                 <div key={dateKey} className="relative">
                   {/* Timeline line - horizontal line connecting all dates */}
-                  <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-border hidden md:block" />
+                  <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-border" />
                   
                   {/* Date header with calendar icon */}
                   <div className="flex items-center gap-4 mb-6 relative z-10">
@@ -599,7 +599,7 @@ export default function DiaryContent() {
                       style={{ width: "160px" }}
                     >
                       {/* Connection line from date to card */}
-                      <div className="absolute -left-6 top-1/2 -translate-y-1/2 w-6 h-0.5 bg-border hidden md:block" />
+                      <div className="absolute -left-6 top-1/2 -translate-y-1/2 w-6 h-0.5 bg-border" />
                       
                       <div className="relative aspect-[2/3] bg-muted rounded-lg overflow-hidden">
                         {log.posterPath ? (

@@ -22,7 +22,6 @@ import { useToggleFavorite } from "@/hooks/use-favorites";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import { toast } from "sonner";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface LogToDiaryDropdownProps {
   item: TMDBMovie | TMDBSeries;
@@ -93,15 +92,17 @@ export default function LogToDiaryDropdown({ item, type, trigger }: LogToDiaryDr
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="z-[110] w-80 p-4"
+        className="z-[110] w-80 h-auto overflow-hidden"
         onClick={(e) => {
           e.stopPropagation();
         }}
       >
-        <DropdownMenuLabel>Log to Diary</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <ScrollArea className="max-h-[500px] pr-4">
-          <div className="space-y-4 mt-4" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 z-10 bg-background">
+          <DropdownMenuLabel className="p-4 pb-2">Log to Diary</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+        </div>
+        <div className="p-4 pt-2 max-h-[500px] overflow-y-auto scrollbar-thin">
+          <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
           {/* Like and Watchlist Buttons */}
           <div className="flex items-center gap-2">
             <Button
@@ -287,7 +288,7 @@ export default function LogToDiaryDropdown({ item, type, trigger }: LogToDiaryDr
             </Button>
           </div>
           </div>
-        </ScrollArea>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );

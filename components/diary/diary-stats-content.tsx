@@ -44,11 +44,11 @@ import { Badge } from "@/components/ui/badge";
 const COLORS = {
   movie: "hsl(221 83% 53%)",
   tv: "hsl(142 72% 45%)",
-  rating5: "hsl(142 72% 45%)",
-  rating4: "hsl(142 72% 45%)",
-  rating3: "hsl(45 93% 47%)",
-  rating2: "hsl(0 84% 60%)",
-  rating1: "hsl(0 72% 51%)",
+  rating5: "hsl(142 72% 45%)", // Green
+  rating4: "hsl(200 90% 50%)", // Blue
+  rating3: "hsl(45 93% 47%)", // Yellow
+  rating2: "hsl(30 90% 55%)", // Orange
+  rating1: "hsl(0 72% 51%)", // Red
 };
 
 export default function DiaryStatsContent() {
@@ -235,12 +235,22 @@ export default function DiaryStatsContent() {
   if (isLoading) {
     return (
       <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Skeleton className="h-10 w-48 mb-8" />
+        <Skeleton className="h-10 w-48 mb-6" />
+        {/* Stats Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-32" />
           ))}
         </div>
+        {/* Charts Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Skeleton className="h-[400px]" />
+          <Skeleton className="h-[400px]" />
+        </div>
+        {/* Heatmap */}
+        <Skeleton className="h-[200px] mb-8" />
+        {/* Films by Release Year */}
+        <Skeleton className="h-[400px]" />
       </div>
     );
   }

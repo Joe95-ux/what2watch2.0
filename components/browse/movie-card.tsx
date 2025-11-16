@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
-import { Star, Play, Plus, Heart, Maximize2, Bookmark } from "lucide-react";
+import { Star, Play, Plus, Heart, Maximize2, Bookmark, Volume2, VolumeX } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getPosterUrl, TMDBVideo, getYouTubeEmbedUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -37,9 +37,9 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
+  const [isVideoMuted, setIsVideoMuted] = useState(true);
   const cardRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const originalRectRef = useRef<DOMRect | null>(null);
   const attemptedFetchRef = useRef<number | null>(null); // Track which item ID we've attempted to fetch
   const [trailerError, setTrailerError] = useState<string | null>(null);
   
@@ -73,14 +73,13 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
     setAllVideos([]);
     setTrailerError(null);
     setIsLoadingTrailer(false);
+    setIsHovered(false);
+    setIsVideoMuted(true);
   }, [item.id]);
 
-  // Store original rect when hover starts - capture synchronously before transforms
   const handleMouseEnter = (e: React.MouseEvent) => {
-    if (!isMobile && cardRef.current) {
+    if (!isMobile) {
       e.stopPropagation();
-      // Capture rect synchronously before setting hover state to prevent jumpiness
-      originalRectRef.current = cardRef.current.getBoundingClientRect();
       setIsHovered(true);
     }
   };
@@ -90,7 +89,6 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
       e.stopPropagation();
       setIsHovered(false);
       setTrailer(null); // Clear trailer when not hovering
-      originalRectRef.current = null;
     }
   };
 
@@ -186,83 +184,6 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
     };
   }, [isHovered, isModalOpen, fetchTrailerVideos, isMobile, item.id, variant]);
 
-  // Calculate position to prevent card from going off-screen (desktop only)
-  const getCardStyle = () => {
-    // No scaling on mobile/tablet
-    if (isMobile || variant === "dashboard" || !isHovered || !cardRef.current) return {};
-    
-    // Use original rect (before scaling) to prevent feedback loop
-    // If we don't have originalRect yet, don't apply transform to avoid jumpiness
-    const rect = originalRectRef.current;
-    if (!rect) {
-      // Wait for originalRect to be captured before applying transform
-      return {};
-    }
-    const viewportWidth = window.innerWidth;
-    
-    // Check if card is under gradient area (first 64px from viewport edges)
-    // Only prevent scaling if gradients are actually visible (when can scroll)
-    const isUnderLeftGradient = canScrollPrev && rect.left < 64;
-    const isUnderRightGradient = canScrollNext && rect.right > viewportWidth - 64;
-    
-    // Don't scale if under gradient area AND gradients are visible
-    if (isUnderLeftGradient || isUnderRightGradient) {
-      return {};
-    }
-    
-    // Different scale for "more-like-this" variant (smaller scale like Netflix)
-    // Dashboard variant already returned early, so we only handle default and more-like-this here
-    const scale = variant === "more-like-this" ? 1.15 : 1.4;
-    
-    // Calculate scaled dimensions
-    const scaledWidth = rect.width * scale;
-    const scaledHeight = rect.height * scale;
-    const scaleOffsetX = (scaledWidth - rect.width) / 2;
-    const scaleOffsetY = (scaledHeight - rect.height) / 2;
-    
-    // Calculate where scaled card would be positioned
-    const scaledLeft = rect.left - scaleOffsetX;
-    const scaledRight = rect.right + scaleOffsetX;
-    const scaledTop = rect.top - scaleOffsetY;
-    const scaledBottom = rect.bottom + scaleOffsetY;
-    
-    // Check if scaled card would overflow viewport
-    const wouldOverflowRight = scaledRight > viewportWidth - 20;
-    const wouldOverflowLeft = scaledLeft < 20;
-    const wouldOverflowTop = scaledTop < 20;
-    const wouldOverflowBottom = scaledBottom > window.innerHeight - 20;
-    
-    let transform = `scale(${scale})`;
-    let translateX = 0;
-    let translateY = 0;
-    
-    // Adjust horizontal position if needed
-    if (wouldOverflowRight && !wouldOverflowLeft) {
-      translateX = -(scaledRight - viewportWidth + 20);
-    } else if (wouldOverflowLeft && !wouldOverflowRight) {
-      translateX = 20 - scaledLeft;
-    }
-    
-    // Adjust vertical position if needed
-    if (wouldOverflowTop && !wouldOverflowBottom) {
-      translateY = 20 - scaledTop;
-    } else if (wouldOverflowBottom && !wouldOverflowTop) {
-      translateY = -(scaledBottom - window.innerHeight + 20);
-    }
-    
-    // Clamp translations to reasonable values
-    translateX = Math.max(-50, Math.min(50, translateX));
-    translateY = Math.max(-50, Math.min(50, translateY));
-    
-    if (translateX !== 0 || translateY !== 0) {
-      transform = `scale(${scale}) translate(${translateX}px, ${translateY}px)`;
-    }
-    
-    return {
-      transform,
-      transformOrigin: "center center",
-    };
-  };
 
   return (
     <>
@@ -283,20 +204,12 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
             onCardClick?.(); // Call callback when card is clicked
           }
         }}
-        style={{
-          ...(isHovered && !isMobile ? getCardStyle() : {}),
-          transition: (isMobile || variant === "dashboard") ? "none" : "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
-          willChange: (isMobile || variant === "dashboard") ? "auto" : "transform",
-        }}
       >
         <div
           className={cn(
             "relative block aspect-[2/3] rounded-lg overflow-hidden",
             isHovered && !isMobile && "z-40"
           )}
-          style={{
-            transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-          }}
         >
           {/* Poster Image - Always visible as fallback */}
           {posterPath ? (
@@ -304,11 +217,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
               src={getPosterUrl(posterPath, "w500")}
               alt={title}
               fill
-              className={cn(
-                "object-cover transition-opacity duration-300",
-                // Only fade out poster on desktop when trailer is ready, never on mobile
-                !isMobile && variant !== "dashboard" && shouldShowOverlay && finalTrailer && !finalIsLoading && finalTrailer.key ? "opacity-0" : "opacity-100"
-              )}
+              className="object-cover"
               sizes="(max-width: 640px) 200px, 300px"
               unoptimized
             />
@@ -318,184 +227,264 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
             </div>
           )}
 
-          {/* Trailer Preview (desktop hover only - no autoplay on mobile or dashboard) - Overlays poster when ready */}
-          {shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && (
-            <div className="absolute inset-0 z-0 pointer-events-none">
-              <iframe
-                src={getYouTubeEmbedUrl(finalTrailer.key)}
-                className="w-full h-full"
-                allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                style={{ pointerEvents: "none" }}
-                title="Trailer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none" />
-            </div>
-          )}
-
           {/* Hover Overlay with Info - Always visible on mobile, hover on desktop */}
           <div
             className={cn(
               "absolute inset-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent",
-              shouldShowOverlay ? "opacity-100" : "opacity-0 pointer-events-none"
+              shouldShowOverlay ? "opacity-100" : "opacity-0 pointer-events-none",
+              !isMobile && variant !== "dashboard" && "transition-all duration-300"
             )}
             style={{
-              transition: "opacity 0.3s ease-out",
+              transform: !isMobile && variant !== "dashboard" && shouldShowOverlay ? "scale(1)" : "scale(0.95)",
             }}
             onClick={(e) => {
               // Prevent card click when clicking on overlay
               e.stopPropagation();
             }}
           >
-            {/* Action Buttons - Different design for "more-like-this" variant */}
-            {variant === "more-like-this" ? (
-              <div className="absolute top-2 right-2 z-20 pointer-events-auto">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className={cn(
-                    "rounded-full p-0 bg-white hover:bg-white/90 text-black shadow-lg hover:shadow-xl transition-all cursor-pointer flex items-center justify-center",
-                    isMobile ? "h-7 w-7" : "h-9 w-9"
-                  )}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setIsModalOpen(true);
-                  }}
-                >
-                  <Plus className={cn(isMobile ? "h-3.5 w-3.5" : "h-5 w-5")} />
-                </Button>
-              </div>
-            ) : (
-              <div className={cn(
-                "absolute flex items-center gap-2 z-20 pointer-events-auto",
-                isMobile ? "top-1.5 right-1.5 gap-1" : "top-3 right-3 gap-2"
-              )}>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className={cn(
-                    "rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/30 cursor-pointer",
-                    isMobile ? "h-6 w-6" : "h-8 w-8"
-                  )}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setIsModalOpen(true);
-                  }}
-                >
-                  <Maximize2 className={cn("text-white", isMobile ? "h-3 w-3" : "h-4 w-4")} />
-                </Button>
-              </div>
-            )}
-
-            {/* Content Info */}
-            <div className={cn(
-              "absolute bottom-0 left-0 right-0 space-y-2",
-              isMobile ? "p-2.5" : "p-4"
-            )}>
-              {/* Action Buttons Row */}
-              <div className={cn(
-                "flex items-center mb-2",
-                isMobile ? "gap-1" : "gap-1.5"
+            {/* Top Section: Video Playback Area with Badges */}
+            <div 
+              className="absolute top-0 left-0 right-0 h-[60%] flex items-center justify-center relative overflow-hidden"
+              style={{
+                backgroundImage: posterPath ? `url(${getPosterUrl(posterPath, "w500")})` : undefined,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+            >
+              {/* Trailer Preview (desktop hover only - no autoplay on mobile or dashboard) */}
+              {shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && (
+                <div className="absolute inset-0 z-0 pointer-events-none">
+                  <iframe
+                    key={`${finalTrailer.key}-${isVideoMuted}`}
+                    src={getYouTubeEmbedUrl(finalTrailer.key, true, isVideoMuted)}
+                    className="w-full h-full"
+                    allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    style={{ pointerEvents: "none" }}
+                    title="Trailer"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none" />
+                </div>
               )}
-              >
+
+              {/* Watchlist Badge - Left */}
+              {!isMobile && variant !== "dashboard" && (
+                <div className="absolute left-3 top-3 z-20 pointer-events-auto">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <CircleActionButton
+                        size="sm"
+                        onClick={async (e: React.MouseEvent) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          await toggleWatchlist.toggle(item, type);
+                        }}
+                      >
+                        <Bookmark 
+                          className={cn(
+                            "h-3 w-3",
+                            toggleWatchlist.isInWatchlist(item.id, type)
+                              ? "text-blue-500 fill-blue-500"
+                              : "text-white"
+                          )} 
+                        />
+                      </CircleActionButton>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from Watchlist" : "Add to Watchlist"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              )}
+
+              {/* Expand Badge - Right */}
+              {variant === "more-like-this" ? (
+                <div className="absolute right-3 top-3 z-20 pointer-events-auto">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className={cn(
+                      "rounded-full p-0 bg-white hover:bg-white/90 text-black shadow-lg hover:shadow-xl transition-all cursor-pointer flex items-center justify-center",
+                      isMobile ? "h-7 w-7" : "h-9 w-9"
+                    )}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsModalOpen(true);
+                    }}
+                  >
+                    <Plus className={cn(isMobile ? "h-3.5 w-3.5" : "h-5 w-5")} />
+                  </Button>
+                </div>
+              ) : (
+                <div className={cn(
+                  "absolute z-20 pointer-events-auto",
+                  isMobile ? "top-1.5 right-1.5" : "top-3 right-3"
+                )}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className={cn(
+                      "rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/30 cursor-pointer",
+                      isMobile ? "h-6 w-6" : "h-8 w-8"
+                    )}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsModalOpen(true);
+                    }}
+                  >
+                    <Maximize2 className={cn("text-white", isMobile ? "h-3 w-3" : "h-4 w-4")} />
+                  </Button>
+                </div>
+              )}
+
+              {/* Audio Control Button - Only show when video is playing */}
+              {shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && (
+                <div className={cn(
+                  "absolute z-20 pointer-events-auto",
+                  variant === "more-like-this" ? "right-3 top-12" : "right-3 top-12"
+                )}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className={cn(
+                          "rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/30 cursor-pointer",
+                          isMobile ? "h-6 w-6" : "h-8 w-8"
+                        )}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setIsVideoMuted(!isVideoMuted);
+                        }}
+                      >
+                        {isVideoMuted ? (
+                          <VolumeX className={cn("text-white", isMobile ? "h-3 w-3" : "h-4 w-4")} />
+                        ) : (
+                          <Volume2 className={cn("text-white", isMobile ? "h-3 w-3" : "h-4 w-4")} />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isVideoMuted ? "Unmute" : "Mute"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              )}
+
+              {/* Play Button - Center (only show when video is not playing) */}
+              {(!shouldShowOverlay || isMobile || variant === "dashboard" || !finalTrailer || finalIsLoading || !finalTrailer.key) && (
                 <Button
                   size="sm"
                   className={cn(
-                    "rounded-full bg-white text-black hover:bg-white/90 font-medium cursor-pointer",
-                    isMobile ? "h-6 px-2 text-[10px]" : "h-7 px-3 text-xs"
+                    "rounded-full bg-black/60 hover:bg-black/80 text-white font-medium cursor-pointer backdrop-blur-sm border border-white/20 z-10",
+                    isMobile ? "h-6 px-2 text-[10px]" : "h-10 px-4 text-sm"
                   )}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    // Prevent details modal from opening
                     setIsModalOpen(false);
                     setIsTrailerModalOpen(true);
 
-                    // Only fetch if we don't have cached videos
                     if (!cachedVideosData?.results && attemptedFetchRef.current !== item.id && !isLoadingTrailer) {
                       fetchTrailerVideos();
                     }
                   }}
                 >
-                  <Play className={cn("fill-black", isMobile ? "h-2.5 w-2.5 mr-0.5" : "h-3 w-3 mr-1")} />
+                  <Play className={cn("fill-white text-white", isMobile ? "h-2.5 w-2.5 mr-0.5" : "h-4 w-4 mr-1.5")} />
                   {!isMobile && "Play"}
                 </Button>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <AddToPlaylistDropdown
-                        item={item}
-                        type={type}
-                        onAddSuccess={onAddToPlaylist}
-                        trigger={
-                          <CircleActionButton
-                            size={isMobile ? "sm" : "sm"}
-                            onClick={(e: React.MouseEvent) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            }}
-                          >
-                            <Plus className={cn("text-white", isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
-                          </CircleActionButton>
-                        }
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Add to Playlist</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <CircleActionButton
-                      size={isMobile ? "sm" : "sm"}
-                      onClick={async (e: React.MouseEvent) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        await toggleFavorite.toggle(item, type);
-                      }}
-                    >
-                      <Heart 
-                        className={cn(
-                          isMobile ? "h-2.5 w-2.5" : "h-3 w-3",
-                          toggleFavorite.isFavorite(item.id, type)
-                            ? "text-red-500 fill-red-500"
-                            : "text-white"
-                        )} 
-                      />
-                    </CircleActionButton>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <CircleActionButton
-                      size={isMobile ? "sm" : "sm"}
-                      onClick={async (e: React.MouseEvent) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        await toggleWatchlist.toggle(item, type);
-                      }}
-                    >
-                      <Bookmark 
-                        className={cn(
-                          isMobile ? "h-2.5 w-2.5" : "h-3 w-3",
-                          toggleWatchlist.isInWatchlist(item.id, type)
-                            ? "text-blue-500 fill-blue-500"
-                            : "text-white"
-                        )} 
-                      />
-                    </CircleActionButton>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from Watchlist" : "Add to Watchlist"}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
+              )}
+            </div>
+
+            {/* Bottom Section: Content Info */}
+            <div className={cn(
+              "absolute bottom-0 left-0 right-0 space-y-2",
+              isMobile ? "p-2.5" : "p-4"
+            )}>
+              {/* Action Buttons Row - Only show on mobile or dashboard variant */}
+              {(isMobile || variant === "dashboard") && (
+                <div className={cn(
+                  "flex items-center mb-2",
+                  isMobile ? "gap-1" : "gap-1.5"
+                )}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div>
+                        <AddToPlaylistDropdown
+                          item={item}
+                          type={type}
+                          onAddSuccess={onAddToPlaylist}
+                          trigger={
+                            <CircleActionButton
+                              size={isMobile ? "sm" : "sm"}
+                              onClick={(e: React.MouseEvent) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
+                            >
+                              <Plus className={cn("text-white", isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
+                            </CircleActionButton>
+                          }
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Add to Playlist</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <CircleActionButton
+                        size={isMobile ? "sm" : "sm"}
+                        onClick={async (e: React.MouseEvent) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          await toggleFavorite.toggle(item, type);
+                        }}
+                      >
+                        <Heart 
+                          className={cn(
+                            isMobile ? "h-2.5 w-2.5" : "h-3 w-3",
+                            toggleFavorite.isFavorite(item.id, type)
+                              ? "text-red-500 fill-red-500"
+                              : "text-white"
+                          )} 
+                        />
+                      </CircleActionButton>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <CircleActionButton
+                        size={isMobile ? "sm" : "sm"}
+                        onClick={async (e: React.MouseEvent) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          await toggleWatchlist.toggle(item, type);
+                        }}
+                      >
+                        <Bookmark 
+                          className={cn(
+                            isMobile ? "h-2.5 w-2.5" : "h-3 w-3",
+                            toggleWatchlist.isInWatchlist(item.id, type)
+                              ? "text-blue-500 fill-blue-500"
+                              : "text-white"
+                          )} 
+                        />
+                      </CircleActionButton>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from Watchlist" : "Add to Watchlist"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              )}
 
               {/* Rating and Type */}
               <div className={cn(

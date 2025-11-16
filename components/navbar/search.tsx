@@ -298,36 +298,38 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
             </div>
             {/* Results Dropdown */}
             {(query || results.length > 0) && (
-              <div className="max-h-[60vh] overflow-y-auto border-t">
-                {isLoading && (
-                  <div className="p-2 space-y-3">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="flex items-center gap-3 px-2">
-                        <Skeleton className="h-12 w-8 rounded flex-shrink-0" />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton className="h-4 w-3/4" />
-                          <Skeleton className="h-3 w-1/2" />
+              <div className="h-auto overflow-hidden border-t">
+                <div className="p-2 max-h-[60vh] overflow-y-auto scrollbar-thin">
+                  {isLoading && (
+                    <div className="space-y-3">
+                      {[...Array(3)].map((_, i) => (
+                        <div key={i} className="flex items-center gap-3 px-2">
+                          <Skeleton className="h-12 w-8 rounded flex-shrink-0" />
+                          <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-3 w-1/2" />
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {!isLoading && query && results.length === 0 && (
-                  <div className="py-6 text-center text-sm text-muted-foreground">
-                    No results found.
-                  </div>
-                )}
-                {!isLoading && results.length > 0 && (
-                  <div className="p-2">
-                    {results.map((result) => (
-                      <SearchResultItem
-                        key={`${result.type}-${result.id}`}
-                        result={result}
-                        onSelect={handleSelect}
-                      />
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
+                  {!isLoading && query && results.length === 0 && (
+                    <div className="py-6 text-center text-sm text-muted-foreground">
+                      No results found.
+                    </div>
+                  )}
+                  {!isLoading && results.length > 0 && (
+                    <>
+                      {results.map((result) => (
+                        <SearchResultItem
+                          key={`${result.type}-${result.id}`}
+                          result={result}
+                          onSelect={handleSelect}
+                        />
+                      ))}
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -424,36 +426,38 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
 
       {/* Results Dropdown */}
       {isExpanded && (query || results.length > 0) && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-50 max-h-[400px] overflow-y-auto">
-          {isLoading && (
-            <div className="p-2 space-y-3">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="flex items-center gap-3 px-2">
-                  <Skeleton className="h-12 w-8 rounded flex-shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
+        <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-50 h-auto overflow-hidden">
+          <div className="p-2 max-h-[400px] overflow-y-auto scrollbar-thin">
+            {isLoading && (
+              <div className="space-y-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-3 px-2">
+                    <Skeleton className="h-12 w-8 rounded flex-shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {!isLoading && query && results.length === 0 && (
-            <div className="py-6 text-center text-sm text-muted-foreground">
-              No results found.
-            </div>
-          )}
-          {!isLoading && results.length > 0 && (
-            <div className="p-2">
-              {results.map((result) => (
-                <SearchResultItem
-                  key={`${result.type}-${result.id}`}
-                  result={result}
-                  onSelect={handleSelect}
-                />
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+            {!isLoading && query && results.length === 0 && (
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                No results found.
+              </div>
+            )}
+            {!isLoading && results.length > 0 && (
+              <>
+                {results.map((result) => (
+                  <SearchResultItem
+                    key={`${result.type}-${result.id}`}
+                    result={result}
+                    onSelect={handleSelect}
+                  />
+                ))}
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
