@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useWatchlist, useRemoveFromWatchlist, type WatchlistItem } from "@/hooks/use-watchlist";
+import { useWatchlist, useRemoveFromWatchlist } from "@/hooks/use-watchlist";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import MovieCard from "@/components/browse/movie-card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,8 +23,6 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import { useAllGenres } from "@/hooks/use-genres";
 
 type SortField = "createdAt" | "title" | "releaseYear";
 type SortOrder = "asc" | "desc";
@@ -35,16 +33,13 @@ export default function WatchlistContent() {
   const { data: watchlist = [], isLoading } = useWatchlist();
   const removeFromWatchlist = useRemoveFromWatchlist();
   const router = useRouter();
-  const { data: allGenres = [] } = useAllGenres();
   
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [filterType, setFilterType] = useState<FilterType>("all");
-  const [selectedGenre, setSelectedGenre] = useState<string>("all");
   const [sortField, setSortField] = useState<SortField>("createdAt");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [searchQuery, setSearchQuery] = useState("");
   const [itemToRemove, setItemToRemove] = useState<{ tmdbId: number; mediaType: string; title: string } | null>(null);
-  const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
 
   // Convert watchlist items to TMDB format for display
   const watchlistAsTMDB = useMemo(() => {
@@ -86,19 +81,6 @@ export default function WatchlistContent() {
     });
   }, [watchlist]);
 
-  // Get unique values for filters
-  const availableYears = useMemo(() => {
-    const years = new Set<number>();
-    watchlist.forEach((item) => {
-      const year = item.releaseDate 
-        ? new Date(item.releaseDate).getFullYear() 
-        : item.firstAirDate 
-        ? new Date(item.firstAirDate).getFullYear() 
-        : null;
-      if (year) years.add(year);
-    });
-    return Array.from(years).sort((a, b) => b - a);
-  }, [watchlist]);
 
   // Filter and sort
   const filteredAndSorted = useMemo(() => {
@@ -177,16 +159,14 @@ export default function WatchlistContent() {
   const clearFilters = () => {
     setSearchQuery("");
     setFilterType("all");
-    setSelectedGenre("all");
   };
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (searchQuery.trim()) count++;
     if (filterType !== "all") count++;
-    if (selectedGenre !== "all") count++;
     return count;
-  }, [searchQuery, filterType, selectedGenre]);
+  }, [searchQuery, filterType]);
 
   if (isLoading) {
     return (
@@ -411,7 +391,7 @@ export default function WatchlistContent() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filteredAndSorted.map(({ item, type, watchlistItem }) => {
+                {filteredAndSorted.map(({ type, watchlistItem }) => {
                   const releaseYear = watchlistItem.releaseDate 
                     ? new Date(watchlistItem.releaseDate).getFullYear() 
                     : watchlistItem.firstAirDate 

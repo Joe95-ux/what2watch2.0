@@ -76,9 +76,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const userLinks = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/my-list", label: "My List", icon: Heart, badge: favorites.length },
-    { href: "/watchlist", label: "Watchlist", icon: Bookmark, badge: watchlist.length },
+    { href: "/dashboard/watchlist", label: "Watchlist", icon: Bookmark, badge: watchlist.length },
     { href: "/playlists", label: "Playlists", icon: List, badge: playlists.length },
     { href: "/dashboard/diary", label: "Diary", icon: BookOpen },
+    { href: "/dashboard/diary/stats", label: "Diary Stats", icon: BarChart3 },
     { href: "/dashboard/my-stats", label: "My Stats", icon: BarChart3 },
   ];
 

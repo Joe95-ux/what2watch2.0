@@ -316,190 +316,178 @@ export default function DiaryContent() {
 
   return (
     <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Film Diary</h1>
-            <p className="text-muted-foreground">
-              {filteredAndSortedLogs.length} of {logs.length} {logs.length === 1 ? "entry" : "entries"}
-              {activeFilterCount > 0 && (
-                <span className="ml-2">
-                  <Badge variant="secondary" className="text-xs">
-                    {activeFilterCount} {activeFilterCount === 1 ? "filter" : "filters"} active
-                  </Badge>
-                </span>
-              )}
-            </p>
-          </div>
+      {/* Header - Full width */}
+      <div className="mb-4">
+        <h1 className="text-3xl font-bold">Film Diary</h1>
+        <p className="text-muted-foreground">
+          {filteredAndSortedLogs.length} of {logs.length} {logs.length === 1 ? "entry" : "entries"}
+          {activeFilterCount > 0 && (
+            <span className="ml-2">
+              <Badge variant="secondary" className="text-xs">
+                {activeFilterCount} {activeFilterCount === 1 ? "filter" : "filters"} active
+              </Badge>
+            </span>
+          )}
+        </p>
+      </div>
+
+      {/* View Mode Buttons - Right under header */}
+      <div className="flex items-center gap-2 mb-6">
+        <Button
+          variant={viewMode === "grid" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setViewMode("grid")}
+          className="cursor-pointer"
+        >
+          <Grid3x3 className="h-4 w-4 mr-2" />
+          Grid
+        </Button>
+        <Button
+          variant={viewMode === "table" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setViewMode("table")}
+          className="cursor-pointer"
+        >
+          <Table2 className="h-4 w-4 mr-2" />
+          Table
+        </Button>
+      </div>
+
+      {/* Filters */}
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        {/* Search */}
+        <div className="relative w-72 lg:w-80 2xl:w-96">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by title or notes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+
+        {/* Media Type */}
+        <Select value={mediaTypeFilter} onValueChange={(v) => setMediaTypeFilter(v as "all" | "movie" | "tv")}>
+          <SelectTrigger className="w-[120px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="movie">Movies</SelectItem>
+            <SelectItem value="tv">TV Shows</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Release Year */}
+        <Select value={yearFilter} onValueChange={setYearFilter}>
+          <SelectTrigger className="w-[130px]">
+            <SelectValue placeholder="Release Year" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Years</SelectItem>
+            {availableYears.map((year) => (
+              <SelectItem key={year} value={year.toString()}>
+                {year}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Watched Year */}
+        <Select value={watchedYearFilter} onValueChange={setWatchedYearFilter}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Watched Year" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Watched</SelectItem>
+            {availableWatchedYears.map((year) => (
+              <SelectItem key={year} value={year.toString()}>
+                {year}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Rating */}
+        <Select value={ratingFilter} onValueChange={setRatingFilter}>
+          <SelectTrigger className="w-[120px]">
+            <SelectValue placeholder="Rating" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Ratings</SelectItem>
+            {[5, 4, 3, 2, 1].map((rating) => (
+              <SelectItem key={rating} value={rating.toString()}>
+                {rating} {rating === 1 ? "star" : "stars"}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Tag Filter */}
+        {availableTags.length > 0 && (
+          <Select value={tagFilter} onValueChange={setTagFilter}>
+            <SelectTrigger className="w-[130px]">
+              <SelectValue placeholder="Tag" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Tags</SelectItem>
+              {availableTags.map((tag) => (
+                <SelectItem key={tag} value={tag}>
+                  {tag}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        {/* Liked Filter */}
+        <Select value={likedFilter} onValueChange={(v) => setLikedFilter(v as "all" | "liked" | "not-liked")}>
+          <SelectTrigger className="w-[120px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="liked">Liked</SelectItem>
+            <SelectItem value="not-liked">Not Liked</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Sort */}
+        <Select 
+          value={`${sortField}-${sortOrder}`} 
+          onValueChange={(v) => {
+            const [field, order] = v.split("-");
+            setSortField(field as SortField);
+            setSortOrder(order as SortOrder);
+          }}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="watchedAt-desc">Date Watched (Newest)</SelectItem>
+            <SelectItem value="watchedAt-asc">Date Watched (Oldest)</SelectItem>
+            <SelectItem value="rating-desc">Rating (High to Low)</SelectItem>
+            <SelectItem value="rating-asc">Rating (Low to High)</SelectItem>
+            <SelectItem value="title-asc">Title (A-Z)</SelectItem>
+            <SelectItem value="title-desc">Title (Z-A)</SelectItem>
+            <SelectItem value="releaseYear-desc">Release Year (Newest)</SelectItem>
+            <SelectItem value="releaseYear-asc">Release Year (Oldest)</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Clear Filters */}
+        {activeFilterCount > 0 && (
           <Button
             variant="outline"
             size="sm"
-            onClick={() => router.push("/dashboard/diary/stats")}
+            onClick={clearFilters}
             className="cursor-pointer"
           >
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Stats
+            <X className="h-4 w-4 mr-2" />
+            Clear
           </Button>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant={viewMode === "grid" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("grid")}
-            className="cursor-pointer"
-          >
-            <Grid3x3 className="h-4 w-4 mr-2" />
-            Grid
-          </Button>
-          <Button
-            variant={viewMode === "table" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("table")}
-            className="cursor-pointer"
-          >
-            <Table2 className="h-4 w-4 mr-2" />
-            Table
-          </Button>
-        </div>
-      </div>
-
-      {/* Filter Bar */}
-      <div className="mb-6 space-y-4 p-4 bg-muted/30 rounded-lg border">
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Search */}
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by title or notes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-
-          {/* Media Type */}
-          <Select value={mediaTypeFilter} onValueChange={(v) => setMediaTypeFilter(v as "all" | "movie" | "tv")}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="movie">Movies</SelectItem>
-              <SelectItem value="tv">TV Shows</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Release Year */}
-          <Select value={yearFilter} onValueChange={setYearFilter}>
-            <SelectTrigger className="w-[130px]">
-              <SelectValue placeholder="Release Year" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Years</SelectItem>
-              {availableYears.map((year) => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Watched Year */}
-          <Select value={watchedYearFilter} onValueChange={setWatchedYearFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Watched Year" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Watched</SelectItem>
-              {availableWatchedYears.map((year) => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Rating */}
-          <Select value={ratingFilter} onValueChange={setRatingFilter}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="Rating" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Ratings</SelectItem>
-              {[5, 4, 3, 2, 1].map((rating) => (
-                <SelectItem key={rating} value={rating.toString()}>
-                  {rating} {rating === 1 ? "star" : "stars"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Tag Filter */}
-          {availableTags.length > 0 && (
-            <Select value={tagFilter} onValueChange={setTagFilter}>
-              <SelectTrigger className="w-[130px]">
-                <SelectValue placeholder="Tag" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Tags</SelectItem>
-                {availableTags.map((tag) => (
-                  <SelectItem key={tag} value={tag}>
-                    {tag}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-
-          {/* Liked Filter */}
-          <Select value={likedFilter} onValueChange={(v) => setLikedFilter(v as "all" | "liked" | "not-liked")}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="liked">Liked</SelectItem>
-              <SelectItem value="not-liked">Not Liked</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Sort */}
-          <Select 
-            value={`${sortField}-${sortOrder}`} 
-            onValueChange={(v) => {
-              const [field, order] = v.split("-");
-              setSortField(field as SortField);
-              setSortOrder(order as SortOrder);
-            }}
-          >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="watchedAt-desc">Date Watched (Newest)</SelectItem>
-              <SelectItem value="watchedAt-asc">Date Watched (Oldest)</SelectItem>
-              <SelectItem value="rating-desc">Rating (High to Low)</SelectItem>
-              <SelectItem value="rating-asc">Rating (Low to High)</SelectItem>
-              <SelectItem value="title-asc">Title (A-Z)</SelectItem>
-              <SelectItem value="title-desc">Title (Z-A)</SelectItem>
-              <SelectItem value="releaseYear-desc">Release Year (Newest)</SelectItem>
-              <SelectItem value="releaseYear-asc">Release Year (Oldest)</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Clear Filters */}
-          {activeFilterCount > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearFilters}
-              className="cursor-pointer"
-            >
-              <X className="h-4 w-4 mr-2" />
-              Clear
-            </Button>
-          )}
-        </div>
+        )}
       </div>
 
       {filteredAndSortedLogs.length === 0 && logs.length > 0 ? (
