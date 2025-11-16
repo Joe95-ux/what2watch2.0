@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { X, Play, Plus, Heart, Star, Clock, Volume2, VolumeX, ArrowLeft, BookOpen, CalendarIcon } from "lucide-react";
@@ -100,6 +100,13 @@ export default function ContentDetailModal({
   // Track recently viewed
   const addRecentlyViewed = useAddRecentlyViewed();
   const toggleFavorite = useToggleFavorite();
+
+  // Consistent click handler to prevent propagation
+  const handleButtonClick = useCallback((e: React.MouseEvent, callback: () => void) => {
+    e.preventDefault();
+    e.stopPropagation();
+    callback();
+  }, []);
 
   // Fetch details based on type
   const { data: movieDetails, isLoading: isLoadingMovie } = useMovieDetails(
@@ -219,16 +226,28 @@ export default function ContentDetailModal({
     }
   };
 
+  // Handle sheet content clicks to prevent propagation
+  const handleSheetClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+  }, []);
+
   return (
     <Sheet open={isOpen} onOpenChange={handleOpenChange}>
       <SheetContent 
         side="right"
         className="!w-full sm:!w-[90vw] lg:!w-[80vw] xl:!max-w-[60rem] !h-full overflow-y-auto p-0 gap-0 [&>button]:hidden"
+        onClick={handleSheetClick}
         onInteractOutside={(e) => {
           // Prevent closing when clicking on interactive elements inside the sheet
           const target = e.target as HTMLElement;
-          // Don't close if clicking on dropdown menu or popover content
-          if (target.closest('[role="menu"]') || target.closest('[role="dialog"]') || target.closest('[data-radix-popper-content-wrapper]')) {
+          // Don't close if clicking on dropdown menu, popover content, or any interactive element
+          if (target.closest('[role="menu"]') || 
+              target.closest('[role="dialog"]') || 
+              target.closest('[data-radix-popper-content-wrapper]') ||
+              target.closest('.no-close') ||
+              target.closest('button') ||
+              target.closest('a') ||
+              target.closest('[role="button"]')) {
             e.preventDefault();
             return;
           }
@@ -236,16 +255,12 @@ export default function ContentDetailModal({
         }}
       >
         {/* Control Buttons - Wrapped in div to avoid [&>button]:hidden selector */}
-        <div>
+        <div className="no-close">
           {/* Back Button (when opened from More Like This) */}
           {showBackButton && (
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleBack();
-              }}
-              className="absolute top-4 left-4 z-[100] h-14 w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105"
+              onClick={(e) => handleButtonClick(e, handleBack)}
+              className="absolute top-4 left-4 z-[100] h-14 w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105 no-close"
               aria-label="Back"
             >
               <ArrowLeft className="h-7 w-7 text-white" />
@@ -254,12 +269,8 @@ export default function ContentDetailModal({
 
           {/* Close Button - More Prominent */}
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onClose();
-            }}
-            className="absolute top-4 right-4 z-[100] h-14 w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105"
+            onClick={(e) => handleButtonClick(e, onClose)}
+            className="absolute top-4 right-4 z-[100] h-14 w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105 no-close"
             aria-label="Close"
           >
             <X className="h-7 w-7 text-white" />
@@ -347,31 +358,34 @@ export default function ContentDetailModal({
                 <div className="flex items-center gap-3">
                   <Button
                     size="lg"
-                    className="bg-white dark:bg-white text-black dark:text-black hover:bg-white/90 dark:hover:bg-white/90 h-14 px-10 text-base font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg rounded-md"
+                    className="bg-white dark:bg-white text-black dark:text-black hover:bg-white/90 dark:hover:bg-white/90 h-14 px-10 text-base font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg rounded-md no-close"
                     asChild
                   >
-                    <Link href={`/${type}/${item.id}`}>
+                    <Link 
+                      href={`/${type}/${item.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="no-close"
+                    >
                       <Play className="size-6 mr-2.5 fill-black dark:fill-black" />
                       Play
                     </Link>
                   </Button>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div>
-                        <AddToPlaylistDropdown
-                          item={item}
-                          type={type}
-                          trigger={
-                            <Button
-                              size="lg"
-                              variant="outline"
-                              className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer"
-                            >
-                              <Plus className="size-6 text-white dark:text-white" />
-                            </Button>
-                          }
-                        />
-                      </div>
+                      <AddToPlaylistDropdown
+                        item={item}
+                        type={type}
+                        trigger={
+                          <Button
+                            size="lg"
+                            variant="outline"
+                            className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
+                            onClick={(e) => handleButtonClick(e, () => {})}
+                          >
+                            <Plus className="size-6 text-white dark:text-white" />
+                          </Button>
+                        }
+                      />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Add to Playlist</p>
@@ -382,7 +396,7 @@ export default function ContentDetailModal({
                       <Button
                         size="lg"
                         variant="outline"
-                        className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer"
+                        className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
                         onClick={async (e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -409,11 +423,8 @@ export default function ContentDetailModal({
                       <Button
                         size="lg"
                         variant="outline"
-                        className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }}
+                        className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
+                        onClick={(e) => handleButtonClick(e, () => {})}
                       >
                         <BookOpen className="size-6 text-white dark:text-white" />
                       </Button>
@@ -426,12 +437,8 @@ export default function ContentDetailModal({
                         <Button
                           size="lg"
                           variant="outline"
-                          className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 ml-auto cursor-pointer"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setIsMuted(!isMuted);
-                          }}
+                          className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 ml-auto cursor-pointer no-close"
+                          onClick={(e) => handleButtonClick(e, () => setIsMuted(!isMuted))}
                           aria-label={isMuted ? "Unmute" : "Mute"}
                         >
                           {isMuted ? (
@@ -492,7 +499,7 @@ export default function ContentDetailModal({
                         {details.genres.map((genre) => (
                           <span
                             key={genre.id}
-                            className="px-3 py-1 rounded-full bg-muted text-sm text-foreground"
+                            className="px-3 py-1 rounded-full bg-muted text-sm text-foreground no-close"
                           >
                             {genre.name}
                           </span>
@@ -703,6 +710,20 @@ function TVSeasonsSection({
   // Filter out season 0 (specials)
   const regularSeasons = seasons.filter((s) => s.season_number > 0);
 
+  // Handle season selection with propagation prevention
+  const handleSeasonSelect = useCallback((e: React.MouseEvent, seasonNumber: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onSeasonSelect(seasonNumber);
+  }, [onSeasonSelect]);
+
+  // Handle episode row click with propagation prevention
+  const handleEpisodeClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Add actual episode click logic here if needed
+  }, []);
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Seasons & Episodes</h3>
@@ -712,9 +733,9 @@ function TVSeasonsSection({
         {regularSeasons.map((season) => (
           <button
             key={season.id}
-            onClick={() => onSeasonSelect(season.season_number)}
+            onClick={(e) => handleSeasonSelect(e, season.season_number)}
             className={cn(
-              "px-4 py-2 rounded-md text-sm font-medium transition-all",
+              "px-4 py-2 rounded-md text-sm font-medium transition-all no-close",
               selectedSeason === season.season_number
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted hover:bg-muted/80"
@@ -759,7 +780,8 @@ function TVSeasonsSection({
                   {seasonDetails.episodes.map((episode) => (
                     <tr
                       key={episode.id}
-                      className="hover:bg-muted/20 transition-colors cursor-pointer group"
+                      className="hover:bg-muted/20 transition-colors cursor-pointer group no-close"
+                      onClick={handleEpisodeClick}
                     >
                       <td className="px-4 py-4 text-sm font-medium text-muted-foreground">
                         {episode.episode_number}
@@ -831,4 +853,3 @@ function TVSeasonsSection({
     </div>
   );
 }
-
