@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useUpdateViewingLog, useDeleteViewingLog, useLogViewing, type ViewingLog } from "@/hooks/use-viewing-logs";
 import { useToggleFavorite, useAddFavorite, useRemoveFavorite } from "@/hooks/use-favorites";
+import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import { useViewingLogComments, useCreateComment, useUpdateComment, useDeleteComment, useAddReaction, useRemoveReaction, type ViewingLogComment } from "@/hooks/use-viewing-log-comments";
 import { useMovieDetails, useTVDetails, useContentVideos } from "@/hooks/use-content-details";
 import { getPosterUrl, getBackdropUrl, type TMDBVideo, type TMDBMovie, type TMDBSeries } from "@/lib/tmdb";
@@ -14,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Heart, Star, CalendarIcon, Play, Edit, Trash2, Share2, Plus, 
-  MessageSquare, ArrowLeft, BookOpen, Reply, MoreVertical, Filter, ChevronDown, ChevronUp, Smile
+  MessageSquare, ArrowLeft, BookOpen, Reply, MoreVertical, Filter, ChevronDown, ChevronUp, Smile, Bookmark
 } from "lucide-react";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import { cn } from "@/lib/utils";
@@ -72,7 +73,9 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
   const deleteLog = useDeleteViewingLog();
   const logViewing = useLogViewing();
   const toggleFavorite = useToggleFavorite();
+  const toggleWatchlist = useToggleWatchlist();
   const isLiked = toggleFavorite.isFavorite(log.tmdbId, log.mediaType);
+  const isInWatchlist = toggleWatchlist.isInWatchlist(log.tmdbId, log.mediaType);
   const { data: comments = [], isLoading: commentsLoading } = useViewingLogComments(log.id, commentFilter);
   const deleteComment = useDeleteComment();
   
@@ -361,6 +364,29 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                     />
                     {isLiked ? "Liked" : "Like"}
                   </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      if (log.mediaType === "movie") {
+                        await toggleWatchlist.toggle(mockMovieItem, "movie");
+                      } else {
+                        await toggleWatchlist.toggle(mockTVItem, "tv");
+                      }
+                    }}
+                    className={cn(
+                      isInWatchlist && "bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800"
+                    )}
+                  >
+                    <Bookmark 
+                      className={cn(
+                        "h-4 w-4 mr-2",
+                        isInWatchlist ? "text-blue-500 fill-blue-500" : "text-muted-foreground"
+                      )} 
+                    />
+                    {isInWatchlist ? "In Watchlist" : "Watchlist"}
+                  </Button>
                   
                   <AddToPlaylistDropdown
                     item={mockItem}
@@ -450,10 +476,10 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} className="cursor-pointer">
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleteLog.isPending}>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleteLog.isPending} className="cursor-pointer">
               {deleteLog.isPending ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
@@ -496,6 +522,7 @@ function EditLogDialog({ isOpen, onClose, log, onUpdate, isPending }: EditLogDia
   const [watchedDate, setWatchedDate] = useState<Date>(new Date(log.watchedAt));
   const [notes, setNotes] = useState(log.notes || "");
   const [rating, setRating] = useState<number | null>(log.rating || null);
+  const [tags, setTags] = useState((log.tags || []).join(", "));
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const updateLog = useUpdateViewingLog();
   const toggleFavorite = useToggleFavorite();
@@ -508,6 +535,7 @@ function EditLogDialog({ isOpen, onClose, log, onUpdate, isPending }: EditLogDia
       setWatchedDate(new Date(log.watchedAt));
       setNotes(log.notes || "");
       setRating(log.rating || null);
+      setTags((log.tags || []).join(", "));
     }
   }, [isOpen, log]);
 
@@ -529,17 +557,20 @@ function EditLogDialog({ isOpen, onClose, log, onUpdate, isPending }: EditLogDia
 
   const handleSubmit = async () => {
     try {
+      const tagsArray = tags.trim() ? tags.split(",").map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
       await updateLog.mutateAsync({
         logId: log.id,
         watchedAt: watchedDate.toISOString(),
         notes: notes.trim() || null,
         rating: rating || null,
+        tags: tagsArray,
       });
       onUpdate({
         ...log,
         watchedAt: watchedDate.toISOString(),
         notes: notes.trim() || null,
         rating: rating || null,
+        tags: tagsArray,
       });
       toast.success("Review updated");
     } catch {
@@ -564,7 +595,7 @@ function EditLogDialog({ isOpen, onClose, log, onUpdate, isPending }: EditLogDia
               variant="outline"
               size="sm"
               className={cn(
-                "flex items-center gap-2",
+                "flex items-center gap-2 cursor-pointer",
                 isLiked && "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
               )}
               onClick={handleLikeToggle}
@@ -592,7 +623,7 @@ function EditLogDialog({ isOpen, onClose, log, onUpdate, isPending }: EditLogDia
                   key={star}
                   type="button"
                   onClick={() => setRating(rating === star ? null : star)}
-                  className="focus:outline-none"
+                  className="focus:outline-none cursor-pointer"
                 >
                   <Star
                     className={cn(
@@ -619,7 +650,7 @@ function EditLogDialog({ isOpen, onClose, log, onUpdate, isPending }: EditLogDia
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-full justify-start text-left font-normal",
+                    "w-full justify-start text-left font-normal cursor-pointer",
                     !watchedDate && "text-muted-foreground"
                   )}
                 >
@@ -653,12 +684,26 @@ function EditLogDialog({ isOpen, onClose, log, onUpdate, isPending }: EditLogDia
               className="resize-none"
             />
           </div>
+
+          {/* Tags */}
+          <div className="space-y-2">
+            <Label htmlFor="tags">Tags (Optional)</Label>
+            <Input
+              id="tags"
+              placeholder="Add tags separated by commas (e.g., Netflix, horror, favorite)"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Separate multiple tags with commas
+            </p>
+          </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} className="cursor-pointer">
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isPending}>
+          <Button onClick={handleSubmit} disabled={isPending} className="cursor-pointer">
             {isPending ? "Updating..." : "Update"}
           </Button>
         </DialogFooter>
@@ -719,6 +764,7 @@ function LogAgainDialog({ isOpen, onClose, log, onSuccess, isPending }: LogAgain
     if (logViewing.isPending) return;
     
     try {
+      const tagsArray = tags.trim() ? tags.split(",").map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
       await logViewing.mutateAsync({
         tmdbId: log.tmdbId,
         mediaType: log.mediaType,
@@ -730,6 +776,7 @@ function LogAgainDialog({ isOpen, onClose, log, onSuccess, isPending }: LogAgain
         watchedAt: watchedDate.toISOString(),
         notes: review.trim() || null,
         rating: rating || null,
+        tags: tagsArray,
       });
       
       toast.success("Film logged to your diary!");
@@ -783,7 +830,7 @@ function LogAgainDialog({ isOpen, onClose, log, onSuccess, isPending }: LogAgain
               variant="outline"
               size="sm"
               className={cn(
-                "flex items-center gap-2",
+                "flex items-center gap-2 cursor-pointer",
                 isLiked && "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
               )}
               onClick={handleLikeToggle}
@@ -811,7 +858,7 @@ function LogAgainDialog({ isOpen, onClose, log, onSuccess, isPending }: LogAgain
                   key={star}
                   type="button"
                   onClick={() => setRating(rating === star ? null : star)}
-                  className="focus:outline-none"
+                  className="focus:outline-none cursor-pointer"
                 >
                   <Star
                     className={cn(
@@ -838,7 +885,7 @@ function LogAgainDialog({ isOpen, onClose, log, onSuccess, isPending }: LogAgain
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-full justify-start text-left font-normal",
+                    "w-full justify-start text-left font-normal cursor-pointer",
                     !watchedDate && "text-muted-foreground"
                   )}
                 >
@@ -890,10 +937,10 @@ function LogAgainDialog({ isOpen, onClose, log, onSuccess, isPending }: LogAgain
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} className="cursor-pointer">
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isPending || !hasWatched}>
+          <Button onClick={handleSubmit} disabled={isPending || !hasWatched} className="cursor-pointer">
             {isPending ? "Logging..." : "Log Film"}
           </Button>
         </DialogFooter>

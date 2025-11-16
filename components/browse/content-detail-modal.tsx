@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { X, Play, Plus, Heart, Star, Clock, Volume2, VolumeX, ArrowLeft, BookOpen, CalendarIcon } from "lucide-react";
+import { X, Play, Plus, Heart, Star, Clock, Volume2, VolumeX, ArrowLeft, BookOpen, CalendarIcon, Bookmark } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getBackdropUrl, getPosterUrl, getYouTubeEmbedUrl, TMDBVideo } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,6 +25,7 @@ import TrailerModal from "./trailer-modal";
 import MoreLikeThis from "./more-like-this";
 import { useAddRecentlyViewed } from "@/hooks/use-recently-viewed";
 import { useToggleFavorite } from "@/hooks/use-favorites";
+import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -123,9 +124,11 @@ export default function ContentDetailModal({
   // Track recently viewed
   const addRecentlyViewed = useAddRecentlyViewed();
   const toggleFavorite = useToggleFavorite();
+  const toggleWatchlist = useToggleWatchlist();
   
   // Check if item is already liked
   const isLiked = toggleFavorite.isFavorite(item.id, type);
+  const isInWatchlist = toggleWatchlist.isInWatchlist(item.id, type);
 
   const handleLogFilm = async () => {
     if (logViewing.isPending) return;
@@ -513,7 +516,7 @@ export default function ContentDetailModal({
                       <DropdownMenuLabel>Log to Diary</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       <div className="space-y-4 mt-4" onClick={(e) => e.stopPropagation()}>
-                        {/* Like Button */}
+                        {/* Like and Watchlist Buttons */}
                         <div className="flex items-center gap-2">
                           <Button
                             type="button"
@@ -539,6 +542,32 @@ export default function ContentDetailModal({
                             />
                             <span className="text-sm">
                               {isLiked ? "Liked" : "Like"}
+                            </span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className={cn(
+                              "flex items-center gap-2",
+                              isInWatchlist && "bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800"
+                            )}
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              await toggleWatchlist.toggle(item, type);
+                            }}
+                          >
+                            <Bookmark 
+                              className={cn(
+                                "h-4 w-4",
+                                isInWatchlist 
+                                  ? "text-blue-500 fill-blue-500" 
+                                  : "text-muted-foreground"
+                              )} 
+                            />
+                            <span className="text-sm">
+                              {isInWatchlist ? "In Watchlist" : "Watchlist"}
                             </span>
                           </Button>
                         </div>

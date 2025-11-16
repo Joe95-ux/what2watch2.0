@@ -13,6 +13,7 @@ export interface ViewingLog {
   watchedAt: string; // ISO date string
   notes: string | null;
   rating: number | null; // 1-5 star rating
+  tags: string[]; // Tags for grouping
   createdAt: string;
   updatedAt: string;
 }
@@ -28,6 +29,7 @@ interface CreateViewingLogParams {
   watchedAt?: string; // ISO date string, defaults to now
   notes?: string | null;
   rating?: number | null; // 1-5 star rating
+  tags?: string[]; // Tags for grouping
 }
 
 interface UpdateViewingLogParams {
@@ -35,6 +37,7 @@ interface UpdateViewingLogParams {
   watchedAt?: string;
   notes?: string | null;
   rating?: number | null;
+  tags?: string[]; // Tags for grouping
 }
 
 // Fetch viewing logs

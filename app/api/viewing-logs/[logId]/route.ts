@@ -97,6 +97,7 @@ export async function PATCH(
       watchedAt?: Date;
       notes?: string | null;
       rating?: number | null;
+      tags?: string[];
     } = {};
 
     if (body.watchedAt) {
@@ -118,6 +119,19 @@ export async function PATCH(
           { status: 400 }
         );
       }
+    }
+
+    if (body.tags !== undefined) {
+      // Parse tags from comma-separated string or array
+      let tagsArray: string[] = [];
+      if (body.tags) {
+        if (typeof body.tags === "string") {
+          tagsArray = body.tags.split(",").map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
+        } else if (Array.isArray(body.tags)) {
+          tagsArray = body.tags.filter((tag: any) => typeof tag === "string" && tag.trim().length > 0);
+        }
+      }
+      updateData.tags = tagsArray;
     }
 
     const log = await db.viewingLog.update({

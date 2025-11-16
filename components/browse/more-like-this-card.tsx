@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { Play, Plus, Heart } from "lucide-react";
+import { Play, Plus, Heart, Bookmark } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
 import { CircleActionButton } from "./circle-action-button";
 import ContentDetailModal from "./content-detail-modal";
 import { useToggleFavorite } from "@/hooks/use-favorites";
+import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -27,6 +28,7 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const attemptedRuntimeFetchRef = useRef<number | null>(null); // Track which item ID we've attempted to fetch
   const toggleFavorite = useToggleFavorite();
+  const toggleWatchlist = useToggleWatchlist();
   
   const hasParent = !!parentItem && !!parentType;
 
@@ -165,8 +167,8 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
             </div>
           )}
 
-          {/* Like Button - Top Left */}
-          <div className="absolute top-2 left-2 z-20">
+          {/* Like and Watchlist Buttons - Top Left */}
+          <div className="absolute top-2 left-2 z-20 flex gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
                 <CircleActionButton
@@ -188,6 +190,29 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
               </TooltipTrigger>
               <TooltipContent>
                 <p>{toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <CircleActionButton
+                  size="sm"
+                  onClick={async (e: React.MouseEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    await toggleWatchlist.toggle(item, type);
+                  }}
+                >
+                  <Bookmark 
+                    className={`h-3 w-3 ${
+                      toggleWatchlist.isInWatchlist(item.id, type)
+                        ? "text-blue-500 fill-blue-500"
+                        : "text-white"
+                    }`} 
+                  />
+                </CircleActionButton>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from Watchlist" : "Add to Watchlist"}</p>
               </TooltipContent>
             </Tooltip>
           </div>

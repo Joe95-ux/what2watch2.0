@@ -166,10 +166,10 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
           <button
             onClick={scrollPrev}
             className={cn(
-              "absolute left-2 top-1/2 -translate-y-1/2 z-40",
-              "h-12 w-12 flex items-center justify-center",
+              "absolute left-0 top-0 h-full z-40",
+              "w-[45px] flex items-center justify-center",
               "bg-black/60 hover:bg-black/80 backdrop-blur-sm",
-              "rounded-full cursor-pointer transition-all duration-200",
+              "rounded-l-lg rounded-r-none border-0 cursor-pointer transition-all duration-200",
               "hidden md:flex"
             )}
             aria-label="Scroll left"
@@ -183,10 +183,10 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
           <button
             onClick={scrollNext}
             className={cn(
-              "absolute right-2 top-1/2 -translate-y-1/2 z-40",
-              "h-12 w-12 flex items-center justify-center",
+              "absolute right-0 top-0 h-full z-40",
+              "w-[45px] flex items-center justify-center",
               "bg-black/60 hover:bg-black/80 backdrop-blur-sm",
-              "rounded-full cursor-pointer transition-all duration-200",
+              "rounded-r-lg rounded-l-none border-0 cursor-pointer transition-all duration-200",
               "hidden md:flex"
             )}
             aria-label="Scroll right"

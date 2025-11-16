@@ -64,7 +64,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
     }
 
     const body = await request.json();
-    const { tmdbId, mediaType, title, posterPath, backdropPath, releaseDate, firstAirDate, watchedAt, notes, rating } = body;
+    const { tmdbId, mediaType, title, posterPath, backdropPath, releaseDate, firstAirDate, watchedAt, notes, rating, tags } = body;
 
     if (!tmdbId || !mediaType || !title) {
       return NextResponse.json(
@@ -106,6 +106,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
     }
     */
 
+    // Parse tags from comma-separated string or array
+    let tagsArray: string[] = [];
+    if (tags) {
+      if (typeof tags === "string") {
+        tagsArray = tags.split(",").map(tag => tag.trim()).filter(tag => tag.length > 0);
+      } else if (Array.isArray(tags)) {
+        tagsArray = tags.filter(tag => typeof tag === "string" && tag.trim().length > 0);
+      }
+    }
+
     const log = await db.viewingLog.create({
       data: {
         userId: user.id,
@@ -119,6 +129,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
         watchedAt: watchedDate,
         notes: notes || null,
         rating: rating || null,
+        tags: tagsArray,
       },
     });
 

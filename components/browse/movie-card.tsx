@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
-import { Star, Play, Plus, Heart, Maximize2 } from "lucide-react";
+import { Star, Play, Plus, Heart, Maximize2, Bookmark } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getPosterUrl, TMDBVideo, getYouTubeEmbedUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { CircleActionButton } from "./circle-action-button";
 import ContentDetailModal from "./content-detail-modal";
 import TrailerModal from "./trailer-modal";
 import { useToggleFavorite } from "@/hooks/use-favorites";
+import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -32,6 +33,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const [trailer, setTrailer] = useState<TMDBVideo | null>(null);
   const [allVideos, setAllVideos] = useState<TMDBVideo[]>([]);
   const toggleFavorite = useToggleFavorite();
+  const toggleWatchlist = useToggleWatchlist();
   const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
@@ -467,6 +469,30 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>{toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <CircleActionButton
+                      size={isMobile ? "sm" : "sm"}
+                      onClick={async (e: React.MouseEvent) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        await toggleWatchlist.toggle(item, type);
+                      }}
+                    >
+                      <Bookmark 
+                        className={cn(
+                          isMobile ? "h-2.5 w-2.5" : "h-3 w-3",
+                          toggleWatchlist.isInWatchlist(item.id, type)
+                            ? "text-blue-500 fill-blue-500"
+                            : "text-white"
+                        )} 
+                      />
+                    </CircleActionButton>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from Watchlist" : "Add to Watchlist"}</p>
                   </TooltipContent>
                 </Tooltip>
               </div>

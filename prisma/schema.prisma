@@ -43,6 +43,7 @@ model User {
   likedPlaylists LikedPlaylist[]
   viewingLogComments ViewingLogComment[]
   commentReactions CommentReaction[]
+  watchlistItems WatchlistItem[]
 
   @@map("users")
 }
@@ -95,6 +96,30 @@ model Favorite {
   @@unique([userId, tmdbId, mediaType])
   @@map("favorites")
   @@index([userId])
+}
+
+// Watchlist - movies and TV shows user wants to watch
+model WatchlistItem {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // TMDB data
+  tmdbId        Int      // Movie or TV show ID from TMDB
+  mediaType     String   // "movie" or "tv"
+  title         String
+  posterPath    String?
+  backdropPath  String?
+  releaseDate   String?  // For movies
+  firstAirDate  String?  // For TV shows
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, tmdbId, mediaType])
+  @@map("watchlist_items")
+  @@index([userId])
+  @@index([createdAt])
 }
 
 enum PlaylistVisibility {
@@ -327,6 +352,7 @@ model ViewingLog {
   watchedAt     DateTime // When the user watched it (can be in the past)
   notes         String?  // Optional notes about this viewing
   rating        Int?     // 1-5 star rating (optional)
+  tags          String[] @default([]) // Tags for grouping (e.g., Netflix, horror)
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

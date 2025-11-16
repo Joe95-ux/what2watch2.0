@@ -37,6 +37,7 @@ import {
   UserPlus,
   UserRound,
   BookOpen,
+  Bookmark,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useFavorites } from "@/hooks/use-favorites";
+import { useWatchlist } from "@/hooks/use-watchlist";
 import { usePlaylists } from "@/hooks/use-playlists";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -59,6 +61,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
   const { setTheme, theme } = useTheme();
   const { data: favorites = [] } = useFavorites();
+  const { data: watchlist = [] } = useWatchlist();
   const { data: playlists = [] } = usePlaylists();
 
   // General navigation items
@@ -73,6 +76,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const userLinks = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/my-list", label: "My List", icon: Heart, badge: favorites.length },
+    { href: "/watchlist", label: "Watchlist", icon: Bookmark, badge: watchlist.length },
     { href: "/playlists", label: "Playlists", icon: List, badge: playlists.length },
     { href: "/dashboard/diary", label: "Diary", icon: BookOpen },
     { href: "/dashboard/my-stats", label: "My Stats", icon: BarChart3 },

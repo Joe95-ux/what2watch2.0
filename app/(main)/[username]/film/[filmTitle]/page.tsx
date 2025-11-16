@@ -54,10 +54,36 @@ export default async function DiaryDetailPage({
   }
 
   // Transform Prisma result to match ViewingLog interface
-  const viewingLog = {
-    ...log,
+  const viewingLog: {
+    id: string;
+    userId: string;
+    tmdbId: number;
+    mediaType: "movie" | "tv";
+    title: string;
+    posterPath: string | null;
+    backdropPath: string | null;
+    releaseDate: string | null;
+    firstAirDate: string | null;
+    watchedAt: string;
+    notes: string | null;
+    rating: number | null;
+    tags: string[];
+    createdAt: string;
+    updatedAt: string;
+  } = {
+    id: log.id,
+    userId: log.userId,
+    tmdbId: log.tmdbId,
     mediaType: log.mediaType as "movie" | "tv",
+    title: log.title,
+    posterPath: log.posterPath,
+    backdropPath: log.backdropPath,
+    releaseDate: log.releaseDate,
+    firstAirDate: log.firstAirDate,
     watchedAt: log.watchedAt.toISOString(),
+    notes: log.notes,
+    rating: log.rating,
+    tags: (log as typeof log & { tags?: string[] }).tags || [],
     createdAt: log.createdAt.toISOString(),
     updatedAt: log.updatedAt.toISOString(),
   };
