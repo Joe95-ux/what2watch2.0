@@ -311,7 +311,7 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
                       item={item}
                       type={isMovie ? "movie" : "tv"}
                       variant="default"
-                      onClick={() => setSelectedItem({ item, type: isMovie ? "movie" : "tv" })}
+                      onCardClick={() => setSelectedItem({ item, type: isMovie ? "movie" : "tv" })}
                     />
                   </div>
                 );
@@ -340,7 +340,7 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete List</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{list.name}"? This action cannot be undone.
+              Are you sure you want to delete &quot;{list.name}&quot;? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
