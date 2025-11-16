@@ -580,14 +580,14 @@ function EditLogDialog({ isOpen, onClose, log, onUpdate, isPending }: EditLogDia
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] h-auto max-h-[80vh] scrollbar-thin">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[500px] h-auto overflow-hidden p-0">
+        <DialogHeader className="sticky top-0 z-10 bg-background p-4 border-b">
           <DialogTitle>Edit Review</DialogTitle>
           <DialogDescription>
             Update your review for &quot;{log.title}&quot;.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 p-4 max-h-[80vh] scrollbar-thin overflow-y-auto">
           {/* Like Button */}
           <div className="flex items-center gap-2">
             <Button
@@ -698,15 +698,15 @@ function EditLogDialog({ isOpen, onClose, log, onUpdate, isPending }: EditLogDia
               Separate multiple tags with commas
             </p>
           </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose} className="cursor-pointer">
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit} disabled={isPending} className="cursor-pointer">
+              {isPending ? "Updating..." : "Update"}
+            </Button>
+          </DialogFooter>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="cursor-pointer">
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={isPending} className="cursor-pointer">
-            {isPending ? "Updating..." : "Update"}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -795,14 +795,14 @@ function LogAgainDialog({ isOpen, onClose, log, onSuccess, isPending }: LogAgain
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] h-auto max-h-[80vh] scrollbar-thin">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[500px] h-auto overflow-hidden p-0">
+        <DialogHeader className="sticky top-0 z-10 bg-background p-4 border-b">
           <DialogTitle>Log Again</DialogTitle>
           <DialogDescription>
             Log another viewing of &quot;{log.title}&quot;{releaseYear ? ` (${releaseYear})` : ""}.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 p-4 max-h-[80vh] scrollbar-thin overflow-y-auto">
           {/* Movie Name and Release Year */}
           <div className="pb-2 border-b">
             <h3 className="font-semibold text-lg">{log.title}</h3>
@@ -935,15 +935,15 @@ function LogAgainDialog({ isOpen, onClose, log, onSuccess, isPending }: LogAgain
               Separate multiple tags with commas
             </p>
           </div>
-        </div>
-        <DialogFooter>
+          <DialogFooter>
           <Button variant="outline" onClick={onClose} className="cursor-pointer">
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isPending || !hasWatched} className="cursor-pointer">
-            {isPending ? "Logging..." : "Log Film"}
-          </Button>
-        </DialogFooter>
+              {isPending ? "Logging..." : "Log Film"}
+            </Button>
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
