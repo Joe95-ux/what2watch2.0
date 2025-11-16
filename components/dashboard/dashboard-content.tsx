@@ -149,14 +149,14 @@ export default function DashboardContent() {
             label="Watchlist"
             value={stats.watchlistCount}
             isLoading={isLoadingFavorites}
-            href="/my-list"
+            href="/dashboard/my-list"
           />
           <StatCard
             icon={BookOpen}
             label="Playlists"
             value={stats.playlistCount}
             isLoading={isLoadingPlaylists}
-            href="/playlists"
+            href="/dashboard/playlists"
           />
           <StatCard
             icon={Clock}
@@ -236,7 +236,7 @@ export default function DashboardContent() {
             title="My Watchlist"
             items={favoriteItems}
             type={favoriteItems.length > 0 ? ("title" in favoriteItems[0] ? "movie" : "tv") : "movie"}
-            href="/my-list"
+            href="/dashboard/my-list"
           />
         ) : (
           <div className="mb-12">

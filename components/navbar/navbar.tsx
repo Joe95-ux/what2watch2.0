@@ -24,8 +24,8 @@ const navLinks: NavLink[] = [
   { href: "/browse", label: "Browse" },
   { href: "/movies", label: "Movies" },
   { href: "/tv", label: "TV Shows" },
-  { href: "/my-list", label: "My List" },
-  { href: "/playlists", label: "Playlists" },
+  { href: "/dashboard/my-list", label: "My List" },
+  { href: "/dashboard/playlists", label: "Playlists" },
   { href: "/forums", label: "Forums" },
 ];
 

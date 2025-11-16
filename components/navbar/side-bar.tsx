@@ -26,8 +26,8 @@ const sidebarLinks: NavLink[] = [
   { href: "/browse", label: "Browse", icon: Home },
   { href: "/movies", label: "Movies", icon: Film },
   { href: "/tv", label: "TV Shows", icon: Tv },
-  { href: "/my-list", label: "My List", icon: Heart },
-  { href: "/playlists", label: "Playlists", icon: List },
+  { href: "/dashboard/my-list", label: "My List", icon: Heart },
+  { href: "/dashboard/playlists", label: "Playlists", icon: List },
   { href: "/forums", label: "Forums", icon: MessageSquare },
 ];
 

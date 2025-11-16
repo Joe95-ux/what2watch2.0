@@ -332,7 +332,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/30 cursor-pointer h-8 w-8"
+                        className="rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/30 cursor-pointer h-7 w-7"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -340,9 +340,9 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                         }}
                       >
                         {isVideoMuted ? (
-                          <VolumeX className="text-white h-4 w-4" />
+                          <VolumeX className="text-white h-3 w-3" />
                         ) : (
-                          <Volume2 className="text-white h-4 w-4" />
+                          <Volume2 className="text-white h-3 w-3" />
                         )}
                       </Button>
                     </TooltipTrigger>
@@ -420,33 +420,27 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                   <Button
                     size="sm"
                     variant="ghost"
-                    className={cn(
-                      "rounded-full p-0 bg-white hover:bg-white/90 text-black shadow-lg hover:shadow-xl transition-all cursor-pointer flex items-center justify-center",
-                      isMobile ? "h-7 w-7" : "h-9 w-9"
-                    )}
+                    className="rounded-full p-0 bg-white hover:bg-white/90 text-black shadow-lg hover:shadow-xl transition-all cursor-pointer flex items-center justify-center h-7 w-7"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       setIsModalOpen(true);
                     }}
                   >
-                    <Plus className={cn(isMobile ? "h-3.5 w-3.5" : "h-5 w-5")} />
+                    <Plus className="h-3 w-3" />
                   </Button>
                 ) : (
                   <Button
                     size="sm"
                     variant="ghost"
-                    className={cn(
-                      "rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/30 cursor-pointer",
-                      isMobile ? "h-6 w-6" : "h-8 w-8"
-                    )}
+                    className="rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/30 cursor-pointer h-7 w-7"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       setIsModalOpen(true);
                     }}
                   >
-                    <Maximize2 className={cn("text-white", isMobile ? "h-3 w-3" : "h-4 w-4")} />
+                    <Maximize2 className="text-white h-3 w-3" />
                   </Button>
                 )}
               </div>
