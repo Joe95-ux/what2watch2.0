@@ -22,6 +22,7 @@ import { useToggleFavorite } from "@/hooks/use-favorites";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import { toast } from "sonner";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface LogToDiaryDropdownProps {
   item: TMDBMovie | TMDBSeries;
@@ -99,7 +100,8 @@ export default function LogToDiaryDropdown({ item, type, trigger }: LogToDiaryDr
       >
         <DropdownMenuLabel>Log to Diary</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <div className="space-y-4 mt-4" onClick={(e) => e.stopPropagation()}>
+        <ScrollArea className="max-h-[500px] pr-4">
+          <div className="space-y-4 mt-4" onClick={(e) => e.stopPropagation()}>
           {/* Like and Watchlist Buttons */}
           <div className="flex items-center gap-2">
             <Button
@@ -284,7 +286,8 @@ export default function LogToDiaryDropdown({ item, type, trigger }: LogToDiaryDr
               {logViewing.isPending ? "Logging..." : "Log Film"}
             </Button>
           </div>
-        </div>
+          </div>
+        </ScrollArea>
       </DropdownMenuContent>
     </DropdownMenu>
   );
