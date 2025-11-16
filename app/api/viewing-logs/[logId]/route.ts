@@ -128,7 +128,7 @@ export async function PATCH(
         if (typeof body.tags === "string") {
           tagsArray = body.tags.split(",").map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
         } else if (Array.isArray(body.tags)) {
-          tagsArray = body.tags.filter((tag: any) => typeof tag === "string" && tag.trim().length > 0);
+          tagsArray = body.tags.filter((tag: unknown): tag is string => typeof tag === "string" && tag.trim().length > 0);
         }
       }
       updateData.tags = tagsArray;
