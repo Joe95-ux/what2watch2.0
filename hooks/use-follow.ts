@@ -24,13 +24,28 @@ export function useFollowUser() {
       }
       return response.json();
     },
-    onSuccess: (_, userId) => {
+    onSuccess: async (_, userId) => {
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ["user", userId, "follow"] });
       queryClient.invalidateQueries({ queryKey: ["user", userId, "followers"] });
       queryClient.invalidateQueries({ queryKey: ["user", userId, "following"] });
       queryClient.invalidateQueries({ queryKey: ["following"] });
       queryClient.invalidateQueries({ queryKey: ["followers"] });
+      
+      // Create activity for following user
+      try {
+        await fetch("/api/activity", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "FOLLOWED_USER",
+            followedUserId: userId,
+          }),
+        });
+      } catch (error) {
+        // Silently fail - activity creation is not critical
+        console.error("Failed to create activity:", error);
+      }
     },
   });
 }

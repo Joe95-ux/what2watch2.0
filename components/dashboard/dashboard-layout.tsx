@@ -28,15 +28,16 @@ import {
   List,
   LayoutDashboard,
   Settings,
+  Activity,
   Palette,
   BarChart3,
   Sparkles,
-  Activity,
   Users,
   UserPlus,
   UserRound,
   BookOpen,
   Bookmark,
+  ClipboardList,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -79,9 +80,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   // User links
   const userLinks = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/dashboard/activity", label: "Activity", icon: Activity },
     { href: "/dashboard/my-list", label: "My List", icon: Heart, badge: favorites.length },
     { href: "/dashboard/watchlist", label: "Watchlist", icon: Bookmark, badge: watchlist.length },
     { href: "/dashboard/playlists", label: "Playlists", icon: List, badge: playlists.length },
+    { href: "/dashboard/lists", label: "Lists", icon: ClipboardList },
     { href: "/dashboard/diary", label: "Diary", icon: BookOpen },
     { href: "/dashboard/diary/stats", label: "Diary Stats", icon: BarChart3 },
     { href: "/dashboard/my-stats", label: "My Stats", icon: BarChart3 },

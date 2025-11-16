@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useCreatePlaylist, useUpdatePlaylist, type Playlist, type PlaylistItem } from "@/hooks/use-playlists";
+import { useCreateList, useUpdateList, type List, type ListItem } from "@/hooks/use-lists";
 import { useSearch } from "@/hooks/use-search";
 import { useDebounce } from "@/hooks/use-debounce";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
@@ -18,39 +18,40 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { X, Search, Film, Tv } from "lucide-react";
+import { X, Plus, GripVertical, Search, Film, Tv } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface CreatePlaylistModalProps {
+interface CreateListModalProps {
   isOpen: boolean;
   onClose: () => void;
-  playlist?: Playlist;
+  list?: List;
 }
 
-interface PlaylistItemWithData extends PlaylistItem {
+interface ListItemWithData extends ListItem {
   tmdbData?: TMDBMovie | TMDBSeries;
 }
 
-export default function CreatePlaylistModal({ isOpen, onClose, playlist }: CreatePlaylistModalProps) {
-  const createPlaylist = useCreatePlaylist();
-  const updatePlaylist = useUpdatePlaylist();
+export default function CreateListModal({ isOpen, onClose, list }: CreateListModalProps) {
+  const createList = useCreateList();
+  const updateList = useUpdateList();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [isPublic, setIsPublic] = useState(false);
-  const [items, setItems] = useState<PlaylistItemWithData[]>([]);
+  const [visibility, setVisibility] = useState<"PUBLIC" | "FOLLOWERS_ONLY" | "PRIVATE">("PUBLIC");
+  const [tags, setTags] = useState("");
+  const [items, setItems] = useState<ListItemWithData[]>([]);
   
   // Film search state
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const debouncedQuery = useDebounce(searchQuery, 300);
   const searchContainerRef = useRef<HTMLDivElement>(null);
-
-  const isEditing = !!playlist;
+  
+  const isEditing = !!list;
 
   // Search for films
   const { data: searchResults, isLoading: isSearching } = useSearch({
@@ -58,24 +59,27 @@ export default function CreatePlaylistModal({ isOpen, onClose, playlist }: Creat
     type: "all",
   });
 
+  // Initialize form when editing
   useEffect(() => {
-    if (playlist) {
-      setName(playlist.name);
-      setDescription(playlist.description || "");
-      setIsPublic(playlist.isPublic);
-      setItems((playlist.items || []).map(item => ({
+    if (list) {
+      setName(list.name);
+      setDescription(list.description || "");
+      setVisibility(list.visibility);
+      setTags(list.tags.join(", "));
+      setItems(list.items.map(item => ({
         ...item,
-        tmdbData: undefined,
+        tmdbData: undefined, // We'll fetch if needed
       })));
     } else {
       setName("");
       setDescription("");
-      setIsPublic(false);
+      setVisibility("PRIVATE");
+      setTags("");
       setItems([]);
     }
     setSearchQuery("");
     setIsSearchOpen(false);
-  }, [playlist, isOpen]);
+  }, [list, isOpen]);
 
   // Close search dropdown when clicking outside
   useEffect(() => {
@@ -107,13 +111,13 @@ export default function CreatePlaylistModal({ isOpen, onClose, playlist }: Creat
     
     // Check if already added
     if (items.some(item => item.tmdbId === film.id && item.mediaType === mediaType)) {
-      toast.error(`${title} is already in the playlist`);
+      toast.error(`${title} is already in the list`);
       return;
     }
 
-    const newItem: PlaylistItemWithData = {
+    const newItem: ListItemWithData = {
       id: `temp-${Date.now()}`,
-      playlistId: playlist?.id || "",
+      listId: list?.id || "",
       tmdbId: film.id,
       mediaType,
       title,
@@ -121,7 +125,7 @@ export default function CreatePlaylistModal({ isOpen, onClose, playlist }: Creat
       backdropPath: film.backdrop_path,
       releaseDate: isMovie ? film.release_date || null : null,
       firstAirDate: !isMovie ? film.first_air_date || null : null,
-      order: items.length,
+      position: items.length + 1,
       createdAt: new Date().toISOString(),
       tmdbData: film,
     };
@@ -134,20 +138,30 @@ export default function CreatePlaylistModal({ isOpen, onClose, playlist }: Creat
 
   const handleRemoveItem = (index: number) => {
     const newItems = items.filter((_, i) => i !== index);
-    // Reorder
-    setItems(newItems.map((item, i) => ({ ...item, order: i })));
+    // Reorder positions
+    setItems(newItems.map((item, i) => ({ ...item, position: i + 1 })));
+  };
+
+  const handleMoveItem = (fromIndex: number, toIndex: number) => {
+    const newItems = [...items];
+    const [moved] = newItems.splice(fromIndex, 1);
+    newItems.splice(toIndex, 0, moved);
+    // Reorder positions
+    setItems(newItems.map((item, i) => ({ ...item, position: i + 1 })));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!name.trim()) {
-      toast.error("Playlist name is required");
+      toast.error("List name is required");
       return;
     }
 
     try {
-      const playlistItems = items.map(item => ({
+      const tagsArray = tags.trim() ? tags.split(",").map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
+      
+      const listItems = items.map(item => ({
         tmdbId: item.tmdbId,
         mediaType: item.mediaType,
         title: item.title,
@@ -155,49 +169,50 @@ export default function CreatePlaylistModal({ isOpen, onClose, playlist }: Creat
         backdropPath: item.backdropPath,
         releaseDate: item.releaseDate,
         firstAirDate: item.firstAirDate,
-        order: item.order,
+        position: item.position,
       }));
 
-      if (isEditing && playlist) {
-        await updatePlaylist.mutateAsync({
-          playlistId: playlist.id,
-          updates: {
-            name: name.trim(),
-            description: description.trim() || undefined,
-            isPublic,
-            items: playlistItems,
-          },
-        });
-        toast.success("Playlist updated");
-      } else {
-        await createPlaylist.mutateAsync({
+      if (isEditing && list) {
+        await updateList.mutateAsync({
+          listId: list.id,
           name: name.trim(),
           description: description.trim() || undefined,
-          isPublic,
-          items: playlistItems,
+          visibility,
+          tags: tagsArray,
+          items: listItems,
         });
-        toast.success("Playlist created");
+        toast.success("List updated");
+      } else {
+        await createList.mutateAsync({
+          name: name.trim(),
+          description: description.trim() || undefined,
+          visibility,
+          tags: tagsArray,
+          items: listItems,
+        });
+        toast.success("List created");
       }
       onClose();
     } catch (error) {
-      toast.error(isEditing ? "Failed to update playlist" : "Failed to create playlist");
+      toast.error(isEditing ? "Failed to update list" : "Failed to create list");
       console.error(error);
     }
   };
 
-  const isLoading = createPlaylist.isPending || updatePlaylist.isPending;
+  const isLoading = createList.isPending || updateList.isPending;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle>{isEditing ? "Edit Playlist" : "Create Playlist"}</DialogTitle>
+          <DialogTitle>{isEditing ? "Edit List" : "Create List"}</DialogTitle>
           <DialogDescription>
             {isEditing
-              ? "Update your playlist details and films"
-              : "Create a new playlist to organize your favorite movies and TV shows"}
+              ? "Update your list details and films"
+              : "Create a new ranked list of your favorite films"}
           </DialogDescription>
         </DialogHeader>
+        
         <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
           <div className="space-y-4 py-4 overflow-y-auto scrollbar-thin flex-1">
             {/* Basic Info */}
@@ -208,34 +223,46 @@ export default function CreatePlaylistModal({ isOpen, onClose, playlist }: Creat
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="My Awesome Playlist"
+                  placeholder="Top 10 Horror Films"
                   disabled={isLoading}
                   maxLength={100}
                 />
               </div>
+              
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="What's this playlist about?"
+                  placeholder="What's this list about?"
                   disabled={isLoading}
                   rows={3}
                   maxLength={500}
                 />
               </div>
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="public">Public Playlist</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Anyone can view this playlist
-                  </p>
-                </div>
-                <Switch
-                  id="public"
-                  checked={isPublic}
-                  onCheckedChange={setIsPublic}
+
+              <div className="space-y-2">
+                <Label htmlFor="visibility">Visibility</Label>
+                <Select value={visibility} onValueChange={(v: "PUBLIC" | "FOLLOWERS_ONLY" | "PRIVATE") => setVisibility(v)} disabled={isLoading}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PRIVATE">Private</SelectItem>
+                    <SelectItem value="FOLLOWERS_ONLY">Followers Only</SelectItem>
+                    <SelectItem value="PUBLIC">Public</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tags">Tags (comma-separated)</Label>
+                <Input
+                  id="tags"
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                  placeholder="horror, thriller, 2024"
                   disabled={isLoading}
                 />
               </div>
@@ -332,16 +359,20 @@ export default function CreatePlaylistModal({ isOpen, onClose, playlist }: Creat
               </div>
             </div>
 
-            {/* Playlist Items */}
+            {/* List Items */}
             {items.length > 0 && (
               <div className="space-y-2 border-t pt-4">
-                <Label>Films in Playlist ({items.length})</Label>
+                <Label>Films in List ({items.length})</Label>
                 <div className="space-y-2 max-h-[300px] overflow-y-auto scrollbar-thin">
                   {items.map((item, index) => (
                     <div
                       key={item.id}
                       className="flex items-center gap-3 p-3 border rounded-lg bg-card"
                     >
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <GripVertical className="h-4 w-4 cursor-move" />
+                        <span className="text-sm font-medium w-6">#{item.position}</span>
+                      </div>
                       {item.posterPath ? (
                         <div className="relative h-12 w-8 flex-shrink-0 rounded overflow-hidden">
                           <Image

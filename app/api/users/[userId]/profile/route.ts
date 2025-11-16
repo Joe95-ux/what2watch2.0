@@ -29,10 +29,11 @@ export async function GET(
     }
 
     // Get counts
-    const [followersCount, followingCount, playlistsCount] = await Promise.all([
+    const [followersCount, followingCount, playlistsCount, listsCount] = await Promise.all([
       db.follow.count({ where: { followingId: userId } }),
       db.follow.count({ where: { followerId: userId } }),
       db.playlist.count({ where: { userId } }),
+      db.list.count({ where: { userId, visibility: "PUBLIC" } }), // Only count public lists
     ]);
 
     return NextResponse.json({
@@ -41,6 +42,7 @@ export async function GET(
         followersCount,
         followingCount,
         playlistsCount,
+        listsCount,
       },
     });
   } catch (error) {

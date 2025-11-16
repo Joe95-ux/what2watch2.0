@@ -157,7 +157,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, description, isPublic, coverImage } = body;
+    const { name, description, isPublic, coverImage, items } = body;
 
     const user = await db.user.findUnique({
       where: { clerkId: userId },
@@ -189,6 +189,31 @@ export async function PUT(
       );
     }
 
+    // Update items if provided
+    if (items !== undefined) {
+      // Delete existing items
+      await db.playlistItem.deleteMany({
+        where: { playlistId },
+      });
+
+      // Create new items
+      if (Array.isArray(items) && items.length > 0) {
+        await db.playlistItem.createMany({
+          data: items.map((item: any, index: number) => ({
+            playlistId,
+            tmdbId: item.tmdbId,
+            mediaType: item.mediaType,
+            title: item.title,
+            posterPath: item.posterPath || null,
+            backdropPath: item.backdropPath || null,
+            releaseDate: item.releaseDate || null,
+            firstAirDate: item.firstAirDate || null,
+            order: item.order !== undefined ? item.order : index,
+          })),
+        });
+      }
+    }
+
     const playlist = await db.playlist.update({
       where: { id: playlistId },
       data: {
@@ -198,6 +223,9 @@ export async function PUT(
         ...(coverImage !== undefined && { coverImage: coverImage || null }),
       },
       include: {
+        items: {
+          orderBy: { order: "asc" },
+        },
         _count: {
           select: { items: true },
         },

@@ -724,7 +724,7 @@ export default function LandingPage() {
                 Discover curated collections from our community
               </p>
             </div>
-            <Link href="/playlists" className="hidden text-sm text-muted-foreground hover:text-foreground sm:block">
+            <Link href="/dashboard/playlists" className="hidden text-sm text-muted-foreground hover:text-foreground sm:block">
               View all →
             </Link>
           </div>
@@ -810,12 +810,12 @@ export default function LandingPage() {
               <h4 className="mb-4 text-sm font-semibold">Platform</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/my-list" className="text-muted-foreground hover:text-foreground">
+                  <Link href="/dashboard/my-list" className="text-muted-foreground hover:text-foreground">
                     My List
                   </Link>
                 </li>
                 <li>
-                  <Link href="/playlists" className="text-muted-foreground hover:text-foreground">
+                  <Link href="/dashboard/playlists" className="text-muted-foreground hover:text-foreground">
                     Playlists
                   </Link>
                 </li>

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { CreateActivityParams } from "./use-activity";
 
 export interface ViewingLog {
   id: string;
@@ -109,7 +110,29 @@ export function useLogViewing() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: createViewingLog,
+    mutationFn: async (params: CreateViewingLogParams) => {
+      const log = await createViewingLog(params);
+      
+      // Create activity for logging film
+      try {
+        await fetch("/api/activity", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "LOGGED_FILM",
+            tmdbId: params.tmdbId,
+            mediaType: params.mediaType,
+            title: params.title,
+            posterPath: params.posterPath,
+          }),
+        });
+      } catch (error) {
+        // Silently fail - activity creation is not critical
+        console.error("Failed to create activity:", error);
+      }
+      
+      return log;
+    },
     onSuccess: () => {
       // Invalidate viewing logs queries
       queryClient.invalidateQueries({ queryKey: ["viewing-logs"] });
@@ -135,7 +158,54 @@ export function useUpdateViewingLog() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: updateViewingLog,
+    mutationFn: async (params: UpdateViewingLogParams) => {
+      const log = await updateViewingLog(params);
+      
+      // Create activities for rating/reviewing if they changed
+      try {
+        const currentLog = await fetch(`/api/viewing-logs/${params.logId}`).then(r => r.json()).catch(() => null);
+        if (currentLog?.log) {
+          const activities: CreateActivityParams[] = [];
+          
+          // If rating was added or changed
+          if (params.rating !== undefined && params.rating !== null) {
+            activities.push({
+              type: "RATED_FILM",
+              tmdbId: currentLog.log.tmdbId,
+              mediaType: currentLog.log.mediaType,
+              title: currentLog.log.title,
+              posterPath: currentLog.log.posterPath,
+              rating: params.rating,
+            });
+          }
+          
+          // If notes were added or changed (review)
+          if (params.notes !== undefined && params.notes && params.notes.trim().length > 0) {
+            activities.push({
+              type: "REVIEWED_FILM",
+              tmdbId: currentLog.log.tmdbId,
+              mediaType: currentLog.log.mediaType,
+              title: currentLog.log.title,
+              posterPath: currentLog.log.posterPath,
+            });
+          }
+          
+          // Create activities
+          for (const activity of activities) {
+            await fetch("/api/activity", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(activity),
+            });
+          }
+        }
+      } catch (error) {
+        // Silently fail - activity creation is not critical
+        console.error("Failed to create activity:", error);
+      }
+      
+      return log;
+    },
     onSuccess: () => {
       // Invalidate viewing logs queries
       queryClient.invalidateQueries({ queryKey: ["viewing-logs"] });

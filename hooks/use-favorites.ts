@@ -108,12 +108,30 @@ export function useAddFavorite() {
         queryClient.setQueryData(["favorites"], context.previousFavorites);
       }
     },
-    onSuccess: async () => {
+    onSuccess: async (newFavorite) => {
       // Invalidate to get fresh data
       await queryClient.invalidateQueries({ queryKey: ["favorites"] });
       
       // Update preferences in the background (don't wait for it)
       updatePreferences().catch(console.error);
+      
+      // Create activity for liking film
+      try {
+        await fetch("/api/activity", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "LIKED_FILM",
+            tmdbId: newFavorite.tmdbId,
+            mediaType: newFavorite.mediaType,
+            title: newFavorite.title,
+            posterPath: newFavorite.posterPath,
+          }),
+        });
+      } catch (error) {
+        // Silently fail - activity creation is not critical
+        console.error("Failed to create activity:", error);
+      }
     },
   });
 }

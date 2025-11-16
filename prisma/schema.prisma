@@ -44,6 +44,9 @@ model User {
   viewingLogComments ViewingLogComment[]
   commentReactions CommentReaction[]
   watchlistItems WatchlistItem[]
+  activities Activity[]
+  followedActivities Activity[] @relation("UserFollowedActivities")
+  lists List[]
 
   @@map("users")
 }
@@ -517,4 +520,104 @@ model LikedPlaylist {
   @@index([userId])
   @@index([playlistId])
   @@index([createdAt])
+}
+
+// Activity Feed - tracks user actions for social feed
+enum ActivityType {
+  LOGGED_FILM      // User logged a film to diary
+  RATED_FILM       // User rated a film
+  REVIEWED_FILM    // User wrote a review/notes
+  LIKED_FILM       // User liked a film
+  CREATED_LIST     // User created a list
+  CREATED_PLAYLIST // User created a playlist
+  FOLLOWED_USER    // User followed someone
+}
+
+model Activity {
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String       @db.ObjectId
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type          ActivityType
+  
+  // Optional: related content (film, list, playlist, user)
+  tmdbId        Int?         // For film-related activities
+  mediaType     String?      // "movie" or "tv"
+  title         String?      // Film title
+  posterPath    String?      // Film poster
+  
+  // For list/playlist activities
+  listId        String?      @db.ObjectId
+  listName      String?      // List/playlist name
+  
+  // For follow activities
+  followedUserId String?     @db.ObjectId
+  followedUser   User?       @relation("UserFollowedActivities", fields: [followedUserId], references: [id], onDelete: Cascade)
+  
+  // Additional metadata
+  rating        Int?         // For rating activities
+  metadata      Json?        // Additional flexible data
+  
+  createdAt     DateTime     @default(now())
+  
+  @@map("activities")
+  @@index([userId, createdAt])
+  @@index([userId, type])
+  @@index([createdAt])
+  @@index([tmdbId, mediaType])
+}
+
+// Lists - user-created ranked lists (different from playlists)
+enum ListVisibility {
+  PUBLIC
+  FOLLOWERS_ONLY
+  PRIVATE
+}
+
+model List {
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String       @db.ObjectId
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name          String
+  description   String?
+  visibility    ListVisibility @default(PRIVATE)
+  tags          String[]     @default([])
+  coverImage    String?      // URL to cover image
+  
+  items         ListItem[]
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  @@map("lists")
+  @@index([userId])
+  @@index([visibility])
+  @@index([createdAt])
+}
+
+// Items in a list (with ranking/position)
+model ListItem {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  listId        String   @db.ObjectId
+  list          List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+  
+  // TMDB data
+  tmdbId        Int
+  mediaType     String   // "movie" or "tv"
+  title         String
+  posterPath    String?
+  backdropPath  String?
+  releaseDate   String?
+  firstAirDate  String?
+  
+  // Ranking/position in the list (1-based)
+  position      Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  
+  @@map("list_items")
+  @@index([listId])
+  @@index([listId, position])
+  @@unique([listId, tmdbId, mediaType])
 }

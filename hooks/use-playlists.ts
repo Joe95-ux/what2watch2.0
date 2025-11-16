@@ -66,6 +66,16 @@ const createPlaylist = async (playlist: {
   description?: string;
   isPublic?: boolean;
   coverImage?: string;
+  items?: Array<{
+    tmdbId: number;
+    mediaType: "movie" | "tv";
+    title: string;
+    posterPath?: string | null;
+    backdropPath?: string | null;
+    releaseDate?: string | null;
+    firstAirDate?: string | null;
+    order?: number;
+  }>;
 }): Promise<Playlist> => {
   const res = await fetch("/api/playlists", {
     method: "POST",
@@ -88,6 +98,16 @@ const updatePlaylist = async (
     description?: string;
     isPublic?: boolean;
     coverImage?: string;
+    items?: Array<{
+      tmdbId: number;
+      mediaType: "movie" | "tv";
+      title: string;
+      posterPath?: string | null;
+      backdropPath?: string | null;
+      releaseDate?: string | null;
+      firstAirDate?: string | null;
+      order?: number;
+    }>;
   }
 ): Promise<Playlist> => {
   const res = await fetch(`/api/playlists/${playlistId}`, {

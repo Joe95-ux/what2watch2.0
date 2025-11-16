@@ -22,6 +22,7 @@ interface ProfileLayoutProps {
   followersCount: number;
   followingCount: number;
   playlistsCount: number;
+  listsCount?: number;
   
   // Actions
   actionButton?: ReactNode; // Follow button or Edit button
@@ -45,6 +46,7 @@ export default function ProfileLayout({
   followersCount,
   followingCount,
   playlistsCount,
+  listsCount = 0,
   actionButton,
   tabs,
   tabContent,
@@ -113,6 +115,12 @@ export default function ProfileLayout({
                 <span className="font-semibold text-foreground">{playlistsCount}</span>{" "}
                 {playlistsCount === 1 ? "playlist" : "playlists"}
               </span>
+              {listsCount > 0 && (
+                <span>
+                  <span className="font-semibold text-foreground">{listsCount}</span>{" "}
+                  {listsCount === 1 ? "list" : "lists"}
+                </span>
+              )}
             </div>
           </div>
 

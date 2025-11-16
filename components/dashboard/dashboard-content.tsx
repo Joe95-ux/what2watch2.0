@@ -272,7 +272,7 @@ export default function DashboardContent() {
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-medium">My Playlists</h2>
-              <Link href="/playlists" className="text-sm text-muted-foreground hover:text-foreground">
+              <Link href="/dashboard/playlists" className="text-sm text-muted-foreground hover:text-foreground">
                 View all →
               </Link>
             </div>
@@ -288,13 +288,13 @@ export default function DashboardContent() {
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-medium">My Playlists</h2>
-              <Link href="/playlists" className="text-sm text-muted-foreground hover:text-foreground">
+              <Link href="/dashboard/playlists" className="text-sm text-muted-foreground hover:text-foreground">
                 Create one →
               </Link>
             </div>
             <div className="text-center py-12 border border-dashed rounded-lg">
               <p className="text-muted-foreground mb-4">You haven&apos;t created any playlists yet</p>
-              <Link href="/playlists">
+              <Link href="/dashboard/playlists">
                 <span className="text-sm text-primary hover:underline">Create your first playlist</span>
               </Link>
             </div>

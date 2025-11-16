@@ -24,8 +24,8 @@ const navLinks: NavLink[] = [
   { href: "/browse", label: "Browse" },
   { href: "/movies", label: "Movies" },
   { href: "/tv", label: "TV Shows" },
+  { href: "/lists", label: "Lists" },
   { href: "/dashboard/my-list", label: "My List" },
-  { href: "/dashboard/playlists", label: "Playlists" },
   { href: "/forums", label: "Forums" },
 ];
 
@@ -39,13 +39,13 @@ export default function Navbar() {
   const isDiscoverPage = pathname === "/dashboard/ai/discover" || pathname?.startsWith("/dashboard/ai/discover");
   const isDashboard = (pathname === "/dashboard" || pathname?.startsWith("/dashboard/")) && !isDiscoverPage;
 
-  // Check if we're on a page that should use max-w-7xl (my-list and playlists, but not search)
-  const shouldUseMaxWidth = pathname === "/my-list" || pathname === "/playlists" || pathname?.startsWith("/playlists/");
+  // Check if we're on a page that should use max-w-7xl (my-list, but not search)
+  const shouldUseMaxWidth = pathname === "/dashboard/my-list";
 
   const shouldUseMaxSearchNav = pathname === "/search" || pathname?.startsWith("/search");
 
   // Check if we're on a page with hero section (dark navbar needed)
-  const hasHeroSection = pathname === "/browse" || pathname === "/movies" || pathname === "/tv" || pathname?.startsWith("/browse/") || pathname?.startsWith("/movies/") || pathname?.startsWith("/tv/") || pathname?.startsWith("/playlists/");
+  const hasHeroSection = pathname === "/browse" || pathname === "/movies" || pathname === "/tv" || pathname === "/lists" || pathname?.startsWith("/browse/") || pathname?.startsWith("/movies/") || pathname?.startsWith("/tv/") || pathname?.startsWith("/lists/");
 
   return (
     <nav className={cn(

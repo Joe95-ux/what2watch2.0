@@ -80,7 +80,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
     }
 
     const body = await request.json();
-    const { name, description, isPublic, coverImage } = body;
+    const { name, description, isPublic, coverImage, items } = body;
 
     if (!name || name.trim().length === 0) {
       return NextResponse.json(
@@ -100,6 +100,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
       );
     }
 
+    // Create playlist with items in a transaction
     const playlist = await db.playlist.create({
       data: {
         userId: user.id,
@@ -107,8 +108,23 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
         description: description?.trim() || null,
         isPublic: isPublic || false,
         coverImage: coverImage || null,
+        items: {
+          create: (items || []).map((item: any, index: number) => ({
+            tmdbId: item.tmdbId,
+            mediaType: item.mediaType,
+            title: item.title,
+            posterPath: item.posterPath || null,
+            backdropPath: item.backdropPath || null,
+            releaseDate: item.releaseDate || null,
+            firstAirDate: item.firstAirDate || null,
+            order: item.order !== undefined ? item.order : index,
+          })),
+        },
       },
       include: {
+        items: {
+          orderBy: { order: "asc" },
+        },
         _count: {
           select: { items: true },
         },

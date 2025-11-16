@@ -17,9 +17,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import PlaylistCard from "@/components/browse/playlist-card";
+import ListCard from "@/components/browse/list-card";
 import MovieCard from "@/components/browse/movie-card";
 import { Playlist } from "@/hooks/use-playlists";
-import { Users, UserCheck, List, Star, Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import { List as ListType } from "@/hooks/use-lists";
+import { Users, UserCheck, List, Star, Heart, ChevronLeft, ChevronRight, ClipboardList } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useFavorites } from "@/hooks/use-favorites";
@@ -37,7 +39,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   const { data: currentUser } = useCurrentUser();
   const isOwnProfile = currentUser?.id === userId;
   const isMobile = useIsMobile();
-  const [activeTab, setActiveTab] = useState<"playlists" | "reviews" | "my-list" | "followers" | "following">("playlists");
+  const [activeTab, setActiveTab] = useState<"playlists" | "lists" | "reviews" | "my-list" | "followers" | "following">("lists");
   
   // Fetch favorites for My List tab (only if viewing own profile)
   const { data: favorites = [], isLoading: isLoadingFavorites } = useFavorites();
@@ -69,8 +71,21 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
     enabled: !!userId,
   });
 
+  const { data: listsData, isLoading: isLoadingLists } = useQuery({
+    queryKey: ["user", userId, "lists"],
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${userId}/lists`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch lists");
+      }
+      return response.json();
+    },
+    enabled: !!userId,
+  });
+
   const user = userData?.user;
   const playlists = useMemo(() => (playlistsData?.playlists || []) as Playlist[], [playlistsData?.playlists]);
+  const lists = useMemo(() => (listsData?.lists || []) as ListType[], [listsData?.lists]);
   const followers = followersData?.followers || [];
   const following = followingData?.following || [];
 
@@ -82,17 +97,25 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   const totalPages = useMemo(() => {
     if (activeTab === "playlists") {
       return Math.ceil(playlists.length / itemsPerPage);
+    } else if (activeTab === "lists") {
+      return Math.ceil(lists.length / itemsPerPage);
     } else if (activeTab === "my-list" && isOwnProfile) {
       return Math.ceil(favorites.length / itemsPerPage);
     }
     return 1;
-  }, [playlists.length, favorites.length, activeTab, itemsPerPage, isOwnProfile]);
+  }, [playlists.length, lists.length, favorites.length, activeTab, itemsPerPage, isOwnProfile]);
 
   const paginatedPlaylists = useMemo(() => {
     if (activeTab !== "playlists") return [];
     const startIndex = (currentPage - 1) * itemsPerPage;
     return playlists.slice(startIndex, startIndex + itemsPerPage);
   }, [playlists, currentPage, itemsPerPage, activeTab]);
+
+  const paginatedLists = useMemo(() => {
+    if (activeTab !== "lists") return [];
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return lists.slice(startIndex, startIndex + itemsPerPage);
+  }, [lists, currentPage, itemsPerPage, activeTab]);
 
   // Convert favorites to TMDB format for My List tab
   const favoritesAsTMDB = useMemo(() => {
@@ -189,6 +212,12 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
       <Select value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
         <SelectTrigger className="w-full">
           <SelectValue>
+            {activeTab === "lists" && (
+              <span className="flex items-center gap-2">
+                <ClipboardList className="h-4 w-4" />
+                Lists ({lists.length})
+              </span>
+            )}
             {activeTab === "playlists" && (
               <span className="flex items-center gap-2">
                 <List className="h-4 w-4" />
@@ -222,6 +251,12 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value="lists">
+            <span className="flex items-center gap-2">
+              <ClipboardList className="h-4 w-4" />
+              Lists ({lists.length})
+            </span>
+          </SelectItem>
           <SelectItem value="playlists">
             <span className="flex items-center gap-2">
               <List className="h-4 w-4" />
@@ -260,6 +295,10 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   ) : (
     <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="w-full">
       <TabsList className="w-full justify-start overflow-x-auto">
+        <TabsTrigger value="lists" className="flex items-center gap-2">
+          <ClipboardList className="h-4 w-4" />
+          Lists ({lists.length})
+        </TabsTrigger>
         <TabsTrigger value="playlists" className="flex items-center gap-2">
           <List className="h-4 w-4" />
           Playlists ({playlists.length})
@@ -289,6 +328,61 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   // Tab content
   const tabContent = (
     <>
+      {activeTab === "lists" && (
+        <>
+          {isLoadingLists ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="aspect-[3/4] w-full rounded-lg" />
+              ))}
+            </div>
+          ) : lists.length === 0 ? (
+            <div className="text-center py-12">
+              <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No lists yet</h3>
+              <p className="text-muted-foreground">This user hasn&apos;t created any lists.</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
+                {paginatedLists.map((list: ListType) => (
+                  <ListCard
+                    key={list.id}
+                    list={list}
+                    variant="grid"
+                  />
+                ))}
+              </div>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-6">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
+
       {activeTab === "playlists" && (
         <>
           {isLoadingPlaylists ? (
@@ -501,6 +595,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
       followersCount={followers.length}
       followingCount={following.length}
       playlistsCount={playlists.length}
+      listsCount={lists.length}
       actionButton={actionButton}
       tabs={tabs}
       tabContent={tabContent}
