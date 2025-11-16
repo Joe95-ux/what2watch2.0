@@ -154,7 +154,7 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold">List not found</h1>
           <p className="text-muted-foreground">{error || "This list doesn't exist or is private."}</p>
-          <Button onClick={() => router.back()}>Go Back</Button>
+          <Button onClick={() => router.back()} className="cursor-pointer">Go Back</Button>
         </div>
       </div>
     );
@@ -198,7 +198,7 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
                     variant="ghost"
                     size="icon"
                     onClick={() => router.back()}
-                    className="flex-shrink-0"
+                    className="flex-shrink-0 cursor-pointer"
                   >
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
@@ -259,23 +259,23 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
               {isOwner && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" className="cursor-pointer">
                       <MoreVertical className="h-5 w-5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleShare}>
+                    <DropdownMenuItem onClick={handleShare} className="cursor-pointer">
                       <Share2 className="h-4 w-4 mr-2" />
                       Share
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>
+                    <DropdownMenuItem onClick={() => setIsEditModalOpen(true)} className="cursor-pointer">
                       <Edit2 className="h-4 w-4 mr-2" />
                       Edit
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => setIsDeleteDialogOpen(true)}
-                      className="text-destructive"
+                      className="text-destructive cursor-pointer"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete
@@ -285,7 +285,7 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
               )}
 
               {!isOwner && (
-                <Button variant="outline" size="icon" onClick={handleShare}>
+                <Button variant="outline" size="icon" onClick={handleShare} className="cursor-pointer">
                   <Share2 className="h-5 w-5" />
                 </Button>
               )}
@@ -344,8 +344,8 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+            <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground cursor-pointer">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

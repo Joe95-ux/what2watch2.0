@@ -151,14 +151,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
 
     // Create activity for creating list
     try {
-      await fetch(`${request.nextUrl.origin}/api/activity`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      await db.activity.create({
+        data: {
+          userId: user.id,
           type: "CREATED_LIST",
           listId: list.id,
           listName: list.name,
-        }),
+        },
       });
     } catch (error) {
       // Silently fail - activity creation is not critical

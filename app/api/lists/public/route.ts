@@ -39,7 +39,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
           },
         },
         items: {
-          take: 1, // Only get first item for cover image
+          take: 5, // Get first 5 items for deck of cards effect
           orderBy: { position: "asc" },
           select: {
             posterPath: true,
@@ -57,7 +57,9 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
       { lists, currentUserId },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
         },
       }
     );

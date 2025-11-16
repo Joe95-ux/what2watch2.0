@@ -15,21 +15,19 @@ interface ListCardProps {
 export default function ListCard({ list, className, variant = "carousel" }: ListCardProps) {
   const router = useRouter();
 
-  const getListCover = () => {
-    if (list.coverImage) {
-      return list.coverImage;
-    }
-    // Use first item's poster as cover if available
+  const getListPosters = () => {
     if (list.items && list.items.length > 0) {
-      const firstItem = list.items[0];
-      if (firstItem.posterPath) {
-        return getPosterUrl(firstItem.posterPath, "w500");
-      }
+      // Get first 5 items with posters
+      return list.items
+        .filter(item => item.posterPath)
+        .slice(0, 5)
+        .map(item => getPosterUrl(item.posterPath!, "w500"));
     }
-    return null;
+    return [];
   };
 
-  const coverImage = getListCover();
+  const posters = getListPosters();
+  const hasDeckEffect = posters.length > 1;
   const itemCount = list._count?.items || list.items?.length || 0;
   const displayName = list.user?.displayName || list.user?.username || "Unknown";
 
@@ -45,10 +43,45 @@ export default function ListCard({ list, className, variant = "carousel" }: List
       onClick={() => router.push(`/lists/${list.id}`)}
     >
       <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-muted border border-border hover:border-primary/50 transition-colors">
-        {/* Cover Image */}
-        {coverImage ? (
+        {/* Deck of Cards Effect */}
+        {hasDeckEffect ? (
+          <div className="relative w-full h-full">
+            {posters.map((poster, index) => {
+              const offset = index * 8; // 8px offset for each card
+              const zIndex = posters.length - index; // First poster on top
+              const rotation = (index - 2) * 2; // Slight rotation for deck effect
+              
+              return (
+                <div
+                  key={index}
+                  className="absolute inset-0"
+                  style={{
+                    transform: `translate(${offset}px, ${offset}px) rotate(${rotation}deg)`,
+                    zIndex,
+                  }}
+                >
+                  <Image
+                    src={poster}
+                    alt={`${list.name} - Film ${index + 1}`}
+                    fill
+                    className="object-cover rounded-lg"
+                    sizes="(max-width: 640px) 180px, 200px"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        ) : posters.length === 1 ? (
           <Image
-            src={coverImage}
+            src={posters[0]}
+            alt={list.name}
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 180px, 200px"
+          />
+        ) : list.coverImage ? (
+          <Image
+            src={list.coverImage}
             alt={list.name}
             fill
             className="object-cover"

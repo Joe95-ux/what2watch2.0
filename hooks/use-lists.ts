@@ -165,6 +165,8 @@ export function useCreateList() {
     mutationFn: createList,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lists"] });
+      queryClient.invalidateQueries({ queryKey: ["public-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["activity-feed"] });
     },
   });
 }
@@ -178,6 +180,7 @@ export function useUpdateList() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["lists"] });
       queryClient.invalidateQueries({ queryKey: ["list", data.id] });
+      queryClient.invalidateQueries({ queryKey: ["public-lists"] });
     },
   });
 }
