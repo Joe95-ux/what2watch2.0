@@ -199,7 +199,16 @@ export async function PUT(
       // Create new items
       if (Array.isArray(items) && items.length > 0) {
         await db.playlistItem.createMany({
-          data: items.map((item: any, index: number) => ({
+          data: items.map((item: {
+            tmdbId: number;
+            mediaType: "movie" | "tv";
+            title: string;
+            posterPath?: string | null;
+            backdropPath?: string | null;
+            releaseDate?: string | null;
+            firstAirDate?: string | null;
+            order?: number;
+          }, index: number) => ({
             playlistId,
             tmdbId: item.tmdbId,
             mediaType: item.mediaType,

@@ -109,7 +109,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
         isPublic: isPublic || false,
         coverImage: coverImage || null,
         items: {
-          create: (items || []).map((item: any, index: number) => ({
+          create: (items || []).map((item: {
+            tmdbId: number;
+            mediaType: "movie" | "tv";
+            title: string;
+            posterPath?: string | null;
+            backdropPath?: string | null;
+            releaseDate?: string | null;
+            firstAirDate?: string | null;
+            order?: number;
+          }, index: number) => ({
             tmdbId: item.tmdbId,
             mediaType: item.mediaType,
             title: item.title,
