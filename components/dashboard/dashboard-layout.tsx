@@ -30,7 +30,6 @@ import {
   Settings,
   Palette,
   BarChart3,
-  Plus,
   Sparkles,
   Activity,
   Users,
@@ -52,6 +51,9 @@ import { useFavorites } from "@/hooks/use-favorites";
 import { useWatchlist } from "@/hooks/use-watchlist";
 import { usePlaylists } from "@/hooks/use-playlists";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { useClerk } from "@clerk/nextjs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -63,6 +65,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { data: favorites = [] } = useFavorites();
   const { data: watchlist = [] } = useWatchlist();
   const { data: playlists = [] } = usePlaylists();
+  const { data: currentUser } = useCurrentUser();
+  const { openUserProfile } = useClerk();
 
   // General navigation items
   const generalNavItems = [
@@ -312,20 +316,51 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
 
         <SidebarFooter className="flex-shrink-0 pt-2 border-t">
-          {/* Create Playlist CTA */}
-          <Link href="/playlists" className="group block cursor-pointer group-data-[collapsible=icon]:hidden">
+          {/* User Profile Footer - Expanded */}
+          <div className="group-data-[collapsible=icon]:hidden flex items-center justify-between gap-2 p-2">
+            {/* Left: User Avatar | Username and Online Status */}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="relative flex-shrink-0">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={currentUser?.avatarUrl || undefined} alt={currentUser?.displayName || ""} />
+                  <AvatarFallback>
+                    {(currentUser?.displayName || currentUser?.username || "U")[0].toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                {/* Online Status Indicator */}
+                <div className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-background" />
+              </div>
+              <div className="flex flex-col min-w-0 flex-1">
+                <p className="text-sm font-medium truncate">
+                  {currentUser?.displayName || currentUser?.username || "User"}
+                </p>
+                <p className="text-xs text-muted-foreground">Online</p>
+              </div>
+            </div>
+            
+            {/* Right: Settings Icon */}
             <Button
-              className="cta-shine animate-gradient-slow relative w-full overflow-hidden bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white transition-all duration-300 ease-out shadow-[0_18px_42px_-24px_rgba(168,85,247,0.7)] hover:scale-[1.02] hover:shadow-[0_22px_48px_-18px_rgba(236,72,153,0.75)] focus-visible:scale-[1.02] active:scale-[0.98]"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 flex-shrink-0 cursor-pointer"
+              onClick={() => openUserProfile()}
             >
-              <Plus className="size-5 mr-2 transition-transform duration-300 group-hover:rotate-90" />
-              <span className="font-semibold tracking-wide">Create Playlist</span>
+              <Settings className="h-4 w-4" />
             </Button>
-          </Link>
-          {/* Collapsed CTA - icon only */}
+          </div>
+          
+          {/* User Profile Footer - Collapsed (Avatar Only) */}
           <div className="hidden group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2">
-            <Link href="/playlists" className="cursor-pointer">
-              <Plus className="size-6 text-purple-600 dark:text-purple-400 transition-all duration-300 hover:rotate-90 hover:scale-110" />
-            </Link>
+            <div className="relative">
+              <Avatar className="h-8 w-8 cursor-pointer" onClick={() => openUserProfile()}>
+                <AvatarImage src={currentUser?.avatarUrl || undefined} alt={currentUser?.displayName || ""} />
+                <AvatarFallback>
+                  {(currentUser?.displayName || currentUser?.username || "U")[0].toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              {/* Online Status Indicator */}
+              <div className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-background" />
+            </div>
           </div>
         </SidebarFooter>
       </Sidebar>

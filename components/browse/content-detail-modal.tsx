@@ -77,6 +77,7 @@ export default function ContentDetailModal({
       setWatchedDate(new Date());
       setNotes("");
       setRating(null);
+      setTags("");
       setIsLogFilmDropdownOpen(false);
     }
   }, [initialItem, initialType, isOpen]);
@@ -117,6 +118,7 @@ export default function ContentDetailModal({
   const [watchedDate, setWatchedDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState("");
   const [rating, setRating] = useState<number | null>(null);
+  const [tags, setTags] = useState("");
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const isClosingRef = useRef(false);
   const logViewing = useLogViewing();
@@ -136,6 +138,9 @@ export default function ContentDetailModal({
     try {
       const title = "title" in item ? item.title : item.name;
       
+      // Parse tags
+      const tagsArray = tags.trim() ? tags.split(",").map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
+      
       // Log the film
       await logViewing.mutateAsync({
         tmdbId: item.id,
@@ -148,6 +153,7 @@ export default function ContentDetailModal({
         watchedAt: watchedDate.toISOString(),
         notes: notes.trim() || null,
         rating: rating || null,
+        tags: tagsArray,
       });
       
       // Handle like toggle if user clicked like button
@@ -156,6 +162,7 @@ export default function ContentDetailModal({
       toast.success("Film logged to your diary!");
       setNotes("");
       setRating(null);
+      setTags("");
       setWatchedDate(new Date());
       setIsLogFilmDropdownOpen(false);
     } catch (error) {
@@ -292,29 +299,15 @@ export default function ContentDetailModal({
       <SheetContent 
         side="right"
         className="!w-full sm:!w-[90vw] lg:!w-[80vw] xl:!max-w-[60rem] !h-full overflow-y-auto p-0 gap-0 [&>button]:hidden"
-        onPointerDownOutside={(e) => {
-          // Prevent closing when clicking on interactive elements
+        onInteractOutside={(e) => {
+          // Prevent closing when clicking on interactive elements inside the sheet
           const target = e.target as HTMLElement;
-          if (target.closest('button') || target.closest('[role="button"]')) {
+          // Don't close if clicking on dropdown menu or popover content
+          if (target.closest('[role="menu"]') || target.closest('[role="dialog"]') || target.closest('[data-radix-popper-content-wrapper]')) {
             e.preventDefault();
             return;
           }
           // Allow normal close behavior for clicks outside
-        }}
-        onInteractOutside={(e) => {
-          // Prevent closing when clicking on interactive elements
-          const target = e.target as HTMLElement;
-          if (target.closest('button') || target.closest('[role="button"]')) {
-            e.preventDefault();
-            return;
-          }
-          // Stop the event from propagating to elements behind the sheet
-          // This prevents the click from triggering onClick handlers on cards
-          e.preventDefault();
-          // Manually close the sheet since we prevented the default close behavior
-          setTimeout(() => {
-            onClose();
-          }, 0);
         }}
       >
         {/* Control Buttons - Wrapped in div to avoid [&>button]:hidden selector */}
@@ -501,14 +494,6 @@ export default function ContentDetailModal({
                     <DropdownMenuContent
                       align="end"
                       className="z-[110] w-80 p-4"
-                      onPointerDownOutside={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                      onInteractOutside={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
                       onClick={(e) => {
                         e.stopPropagation();
                       }}
@@ -626,16 +611,8 @@ export default function ContentDetailModal({
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent 
-                              className="w-auto p-0" 
+                              className="w-auto p-0 z-[120]" 
                               align="start"
-                              onPointerDownOutside={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }}
-                              onInteractOutside={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }}
                             >
                               <Calendar
                                 mode="single"
@@ -665,6 +642,22 @@ export default function ContentDetailModal({
                             rows={3}
                             className="resize-none"
                           />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="tags" className="text-sm">Tags (Optional)</Label>
+                          <Input
+                            id="tags"
+                            placeholder="Add tags separated by commas (e.g., Netflix, horror, favorite)"
+                            value={tags}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              setTags(e.target.value);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Separate multiple tags with commas
+                          </p>
                         </div>
                         <div className="flex justify-end gap-2 pt-2">
                           <Button

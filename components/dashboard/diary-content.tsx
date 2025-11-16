@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useViewingLogs, useDeleteViewingLog, useUpdateViewingLog, type ViewingLog } from "@/hooks/use-viewing-logs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Trash2, Film, Tv, Edit, Table2, Grid3x3, CalendarIcon, Heart, Star, FileText, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Filter, BarChart3 } from "lucide-react";
+import { Trash2, Film, Tv, Edit, Table2, Grid3x3, CalendarIcon, Heart, Star, FileText, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { getPosterUrl } from "@/lib/tmdb";
 import { format } from "date-fns";
@@ -44,6 +44,11 @@ export default function DiaryContent() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [logToEdit, setLogToEdit] = useState<ViewingLog | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+  
+  // Pagination state
+  const [gridLogsToShow, setGridLogsToShow] = useState(10);
+  const [tableCurrentPage, setTableCurrentPage] = useState(1);
+  const tablePageSize = 25;
   
   // Filter and sort state
   const [searchQuery, setSearchQuery] = useState("");
@@ -208,6 +213,42 @@ export default function DiaryContent() {
     return Object.keys(groupedLogs).sort((a, b) => b.localeCompare(a));
   }, [groupedLogs]);
 
+  // Paginated data for grid view
+  const paginatedGridData = useMemo(() => {
+    let logCount = 0;
+    const visibleDates: Array<{ dateKey: string; logsToShow: number }> = [];
+    
+    for (const dateKey of sortedDates) {
+      const dateLogs = groupedLogs[dateKey];
+      if (logCount + dateLogs.length <= gridLogsToShow) {
+        visibleDates.push({ dateKey, logsToShow: dateLogs.length });
+        logCount += dateLogs.length;
+      } else {
+        // Partial date group
+        const remaining = gridLogsToShow - logCount;
+        if (remaining > 0) {
+          visibleDates.push({ dateKey, logsToShow: remaining });
+        }
+        break;
+      }
+    }
+    
+    const totalLogs = filteredAndSortedLogs.length;
+    const hasMore = gridLogsToShow < totalLogs;
+    
+    return { visibleDates, hasMore };
+  }, [sortedDates, groupedLogs, gridLogsToShow, filteredAndSortedLogs.length]);
+
+  // Paginated data for table view
+  const paginatedTableData = useMemo(() => {
+    const startIndex = (tableCurrentPage - 1) * tablePageSize;
+    const endIndex = startIndex + tablePageSize;
+    const paginatedLogs = filteredAndSortedLogs.slice(startIndex, endIndex);
+    const totalPages = Math.ceil(filteredAndSortedLogs.length / tablePageSize);
+    
+    return { paginatedLogs, totalPages };
+  }, [filteredAndSortedLogs, tableCurrentPage, tablePageSize]);
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -232,7 +273,16 @@ export default function DiaryContent() {
     setTagFilter("");
     setLikedFilter("all");
     setWatchedYearFilter("all");
+    // Reset pagination when filters change
+    setGridLogsToShow(10);
+    setTableCurrentPage(1);
   };
+
+  // Reset pagination when filters or sort change
+  useEffect(() => {
+    setGridLogsToShow(10);
+    setTableCurrentPage(1);
+  }, [searchQuery, mediaTypeFilter, yearFilter, ratingFilter, tagFilter, likedFilter, watchedYearFilter, sortField, sortOrder]);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -356,7 +406,7 @@ export default function DiaryContent() {
       {/* Filters */}
       <div className="mb-6 flex flex-wrap items-center gap-3">
         {/* Search */}
-        <div className="relative w-72 lg:w-80 2xl:w-96">
+        <div className="relative w-56 lg:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search by title or notes..."
@@ -368,25 +418,25 @@ export default function DiaryContent() {
 
         {/* Media Type */}
         <Select value={mediaTypeFilter} onValueChange={(v) => setMediaTypeFilter(v as "all" | "movie" | "tv")}>
-          <SelectTrigger className="w-[120px]">
+          <SelectTrigger className="w-[120px] text-[13px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="movie">Movies</SelectItem>
-            <SelectItem value="tv">TV Shows</SelectItem>
+            <SelectItem value="all" className="text-[13px]">All Types</SelectItem>
+            <SelectItem value="movie" className="text-[13px]">Movies</SelectItem>
+            <SelectItem value="tv" className="text-[13px]">TV Shows</SelectItem>
           </SelectContent>
         </Select>
 
         {/* Release Year */}
         <Select value={yearFilter} onValueChange={setYearFilter}>
-          <SelectTrigger className="w-[130px]">
+          <SelectTrigger className="w-[130px] text-[13px]">
             <SelectValue placeholder="Release Year" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Years</SelectItem>
+            <SelectItem value="all" className="text-[13px]">All Years</SelectItem>
             {availableYears.map((year) => (
-              <SelectItem key={year} value={year.toString()}>
+              <SelectItem key={year} value={year.toString()} className="text-[13px]">
                 {year}
               </SelectItem>
             ))}
@@ -395,13 +445,13 @@ export default function DiaryContent() {
 
         {/* Watched Year */}
         <Select value={watchedYearFilter} onValueChange={setWatchedYearFilter}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-[140px] text-[13px]">
             <SelectValue placeholder="Watched Year" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Watched</SelectItem>
+            <SelectItem value="all" className="text-[13px]">All Watched</SelectItem>
             {availableWatchedYears.map((year) => (
-              <SelectItem key={year} value={year.toString()}>
+              <SelectItem key={year} value={year.toString()} className="text-[13px]">
                 {year}
               </SelectItem>
             ))}
@@ -410,13 +460,13 @@ export default function DiaryContent() {
 
         {/* Rating */}
         <Select value={ratingFilter} onValueChange={setRatingFilter}>
-          <SelectTrigger className="w-[120px]">
+          <SelectTrigger className="w-[120px] text-[13px]">
             <SelectValue placeholder="Rating" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Ratings</SelectItem>
+            <SelectItem value="all" className="text-[13px]">All Ratings</SelectItem>
             {[5, 4, 3, 2, 1].map((rating) => (
-              <SelectItem key={rating} value={rating.toString()}>
+              <SelectItem key={rating} value={rating.toString()} className="text-[13px]">
                 {rating} {rating === 1 ? "star" : "stars"}
               </SelectItem>
             ))}
@@ -426,13 +476,13 @@ export default function DiaryContent() {
         {/* Tag Filter */}
         {availableTags.length > 0 && (
           <Select value={tagFilter} onValueChange={setTagFilter}>
-            <SelectTrigger className="w-[130px]">
+            <SelectTrigger className="w-[130px] text-[13px]">
               <SelectValue placeholder="Tag" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Tags</SelectItem>
+              <SelectItem value="" className="text-[13px]">All Tags</SelectItem>
               {availableTags.map((tag) => (
-                <SelectItem key={tag} value={tag}>
+                <SelectItem key={tag} value={tag} className="text-[13px]">
                   {tag}
                 </SelectItem>
               ))}
@@ -442,13 +492,13 @@ export default function DiaryContent() {
 
         {/* Liked Filter */}
         <Select value={likedFilter} onValueChange={(v) => setLikedFilter(v as "all" | "liked" | "not-liked")}>
-          <SelectTrigger className="w-[120px]">
+          <SelectTrigger className="w-[120px] text-[13px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="liked">Liked</SelectItem>
-            <SelectItem value="not-liked">Not Liked</SelectItem>
+            <SelectItem value="all" className="text-[13px]">All</SelectItem>
+            <SelectItem value="liked" className="text-[13px]">Liked</SelectItem>
+            <SelectItem value="not-liked" className="text-[13px]">Not Liked</SelectItem>
           </SelectContent>
         </Select>
 
@@ -461,18 +511,18 @@ export default function DiaryContent() {
             setSortOrder(order as SortOrder);
           }}
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-[160px] text-[13px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="watchedAt-desc">Date Watched (Newest)</SelectItem>
-            <SelectItem value="watchedAt-asc">Date Watched (Oldest)</SelectItem>
-            <SelectItem value="rating-desc">Rating (High to Low)</SelectItem>
-            <SelectItem value="rating-asc">Rating (Low to High)</SelectItem>
-            <SelectItem value="title-asc">Title (A-Z)</SelectItem>
-            <SelectItem value="title-desc">Title (Z-A)</SelectItem>
-            <SelectItem value="releaseYear-desc">Release Year (Newest)</SelectItem>
-            <SelectItem value="releaseYear-asc">Release Year (Oldest)</SelectItem>
+            <SelectItem value="watchedAt-desc" className="text-[13px]">Date Watched (Newest)</SelectItem>
+            <SelectItem value="watchedAt-asc" className="text-[13px]">Date Watched (Oldest)</SelectItem>
+            <SelectItem value="rating-desc" className="text-[13px]">Rating (High to Low)</SelectItem>
+            <SelectItem value="rating-asc" className="text-[13px]">Rating (Low to High)</SelectItem>
+            <SelectItem value="title-asc" className="text-[13px]">Title (A-Z)</SelectItem>
+            <SelectItem value="title-desc" className="text-[13px]">Title (Z-A)</SelectItem>
+            <SelectItem value="releaseYear-desc" className="text-[13px]">Release Year (Newest)</SelectItem>
+            <SelectItem value="releaseYear-asc" className="text-[13px]">Release Year (Oldest)</SelectItem>
           </SelectContent>
         </Select>
 
@@ -510,32 +560,36 @@ export default function DiaryContent() {
           </p>
         </div>
       ) : viewMode === "grid" ? (
-        <div className="space-y-12">
-          {sortedDates.map((dateKey) => {
-            const dateLogs = groupedLogs[dateKey];
-            const date = new Date(dateKey);
-            const formattedDate = format(date, "MMM d, yyyy");
-            const dayName = format(date, "EEEE");
+        <>
+          <div className="space-y-12">
+            {paginatedGridData.visibleDates.map(({ dateKey, logsToShow: logsCount }) => {
+              const dateLogs = groupedLogs[dateKey];
+              const date = new Date(dateKey);
+              const formattedDate = format(date, "MMM d, yyyy");
+              const dayName = format(date, "EEEE");
+              
+              // Get the logs to show for this date
+              const logsToShow = dateLogs.slice(0, logsCount);
 
-            return (
-              <div key={dateKey} className="relative">
-                {/* Timeline line - horizontal line connecting all dates */}
-                <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-border hidden md:block" />
-                
-                {/* Date header with calendar icon */}
-                <div className="flex items-center gap-4 mb-6 relative z-10">
-                  <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 border-2 border-primary/20 flex-shrink-0">
-                    <CalendarIcon className="h-6 w-6 text-primary" />
+              return (
+                <div key={dateKey} className="relative">
+                  {/* Timeline line - horizontal line connecting all dates */}
+                  <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-border hidden md:block" />
+                  
+                  {/* Date header with calendar icon */}
+                  <div className="flex items-center gap-4 mb-6 relative z-10">
+                    <div className="flex items-center justify-center w-16 h-16 rounded-full bg-background border-2 border-primary/20 flex-shrink-0">
+                      <CalendarIcon className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-foreground">{dayName}</h2>
+                      <p className="text-sm text-muted-foreground">{formattedDate}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-foreground">{dayName}</h2>
-                    <p className="text-sm text-muted-foreground">{formattedDate}</p>
-                  </div>
-                </div>
 
-                {/* Horizontal card row - cards hang from the date */}
-                <div className="flex flex-wrap gap-4 ml-20 md:ml-24">
-                  {dateLogs.map((log) => (
+                  {/* Horizontal card row - cards hang from the date */}
+                  <div className="flex flex-wrap gap-4 ml-20 md:ml-24">
+                    {logsToShow.map((log) => (
                     <div
                       key={log.id}
                       className="group relative bg-card border rounded-lg overflow-hidden hover:shadow-lg transition-all cursor-pointer flex-shrink-0"
@@ -605,12 +659,26 @@ export default function DiaryContent() {
                         )}
                       </div>
                     </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+          
+          {/* Load More Button */}
+          {paginatedGridData.hasMore && (
+            <div className="flex justify-center mt-8">
+              <Button
+                variant="outline"
+                onClick={() => setGridLogsToShow(prev => prev + 10)}
+                className="cursor-pointer"
+              >
+                Load More
+              </Button>
+            </div>
+          )}
+        </>
       ) : (
         <div className="border border-border rounded-lg overflow-hidden bg-card">
           <div className="overflow-x-auto">
@@ -668,7 +736,7 @@ export default function DiaryContent() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filteredAndSortedLogs.map((log) => {
+                {paginatedTableData.paginatedLogs.map((log) => {
                   const watchedDate = new Date(log.watchedAt);
                   const releaseYear = log.releaseDate 
                     ? new Date(log.releaseDate).getFullYear() 
@@ -802,6 +870,63 @@ export default function DiaryContent() {
               </tbody>
             </table>
           </div>
+          
+          {/* Table Pagination */}
+          {paginatedTableData.totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+              <div className="text-sm text-muted-foreground">
+                Showing {(tableCurrentPage - 1) * tablePageSize + 1} to {Math.min(tableCurrentPage * tablePageSize, filteredAndSortedLogs.length)} of {filteredAndSortedLogs.length} entries
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setTableCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={tableCurrentPage === 1}
+                  className="cursor-pointer"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: paginatedTableData.totalPages }, (_, i) => i + 1)
+                    .filter(page => {
+                      // Show first page, last page, current page, and pages around current
+                      return page === 1 || 
+                             page === paginatedTableData.totalPages || 
+                             (page >= tableCurrentPage - 1 && page <= tableCurrentPage + 1);
+                    })
+                    .map((page, index, array) => {
+                      // Add ellipsis if there's a gap
+                      const showEllipsisBefore = index > 0 && array[index - 1] < page - 1;
+                      return (
+                        <div key={page} className="flex items-center gap-1">
+                          {showEllipsisBefore && <span className="text-muted-foreground px-2">...</span>}
+                          <Button
+                            variant={tableCurrentPage === page ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setTableCurrentPage(page)}
+                            className="cursor-pointer min-w-[2.5rem]"
+                          >
+                            {page}
+                          </Button>
+                        </div>
+                      );
+                    })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setTableCurrentPage(prev => Math.min(paginatedTableData.totalPages, prev + 1))}
+                  disabled={tableCurrentPage === paginatedTableData.totalPages}
+                  className="cursor-pointer"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 
-// 4 Beautiful abstract gradients
+// 6 Beautiful abstract gradients
 export const BANNER_GRADIENTS = [
   {
     id: "gradient-1",
@@ -25,6 +25,16 @@ export const BANNER_GRADIENTS = [
     name: "Desert Dunes",
     gradient: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
   },
+  {
+    id: "gradient-5",
+    name: "Purple Haze",
+    gradient: "linear-gradient(135deg, #a855f7 0%, #3b82f6 100%)",
+  },
+  {
+    id: "gradient-6",
+    name: "Emerald Dream",
+    gradient: "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)",
+  },
 ];
 
 interface BannerGradientSelectorProps {
@@ -37,7 +47,7 @@ export default function BannerGradientSelector({
   onSelect,
 }: BannerGradientSelectorProps) {
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {BANNER_GRADIENTS.map((gradient) => {
         const isSelected = selectedGradient === gradient.id;
         return (
