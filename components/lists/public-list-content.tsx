@@ -8,7 +8,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Share2, Edit2, Trash2, MoreVertical } from "lucide-react";
 import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
-import { getPosterUrl } from "@/lib/tmdb";
 import type { List } from "@/hooks/use-lists";
 import {
   DropdownMenu,
@@ -35,15 +34,6 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import Link from "next/link";
 import CreateListModal from "./create-list-modal";
-
-type ListWithUser = List & {
-  user?: {
-    id: string;
-    username: string | null;
-    displayName: string | null;
-    avatarUrl: string | null;
-  } | null;
-};
 
 interface PublicListContentProps {
   listId: string;
@@ -72,17 +62,8 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
         }
         const data = await res.json();
         setList(data.list);
-        // Get current user ID if authenticated
-        try {
-          const userRes = await fetch("/api/users/me");
-          if (userRes.ok) {
-            const userData = await userRes.json();
-            setCurrentUserId(userData.user?.id || null);
-          }
-        } catch {
-          // Not authenticated, that's fine
-          setCurrentUserId(null);
-        }
+        // Get current user ID from API response
+        setCurrentUserId(data.currentUserId || null);
       } catch (err) {
         setError("Failed to load list");
         console.error(err);
@@ -94,7 +75,6 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
     fetchList();
   }, [listId]);
 
-  const listWithUser = list as ListWithUser;
   const isOwner = Boolean(currentUserId && list && currentUserId === list.userId);
 
   // Redirect owner to dashboard list page for better UX
@@ -110,7 +90,7 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
       await deleteList.mutateAsync(list.id);
       toast.success("List deleted");
       router.push("/dashboard/lists");
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete list");
     }
   };

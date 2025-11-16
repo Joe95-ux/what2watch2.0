@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, List as ListIcon, Grid3x3, Table2, Trash2, Edit } from "lucide-react";
 import CreateListModal from "./create-list-modal";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { getPosterUrl } from "@/lib/tmdb";
 import { format } from "date-fns";
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function ListsContent() {
+  const router = useRouter();
   const { data: lists = [], isLoading } = useLists();
   const deleteList = useDeleteList();
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
@@ -103,88 +105,99 @@ export default function ListsContent() {
           </div>
         ) : viewMode === "grid" ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {lists.map((list) => (
-              <div
-                key={list.id}
-                className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow bg-card"
-              >
-                {/* Cover Image or First Item Poster */}
-                {list.items.length > 0 && list.items[0].posterPath ? (
-                  <Link href={`/dashboard/lists/${list.id}`}>
-                    <div className="relative aspect-[3/4] w-full">
+            {lists.map((list) => {
+              const coverImage = list.items.length > 0 && list.items[0].posterPath 
+                ? getPosterUrl(list.items[0].posterPath) 
+                : null;
+              const displayName = list.user?.displayName || list.user?.username || "Unknown";
+              // Note: Like and comment counts may not be implemented yet
+              const likeCount: number = 0; // TODO: Add likes feature for lists
+              const commentCount: number = 0; // TODO: Add comments feature for lists
+              
+              return (
+                <div
+                  key={list.id}
+                  className="group relative cursor-pointer"
+                  onClick={() => router.push(`/dashboard/lists/${list.id}`)}
+                >
+                  <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-muted border border-border hover:border-primary/50 transition-colors">
+                    {/* Cover Image */}
+                    {coverImage ? (
                       <Image
-                        src={getPosterUrl(list.items[0].posterPath)}
+                        src={coverImage}
                         alt={list.name}
                         fill
                         className="object-cover"
-                        unoptimized
+                        sizes="(max-width: 640px) 180px, 200px"
                       />
-                    </div>
-                  </Link>
-                ) : (
-                  <div className="aspect-[3/4] w-full bg-muted flex items-center justify-center">
-                    <ListIcon className="h-12 w-12 text-muted-foreground" />
-                  </div>
-                )}
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                        <ListIcon className="h-12 w-12 text-muted-foreground" />
+                      </div>
+                    )}
 
-                <div className="p-4">
-                  <Link href={`/dashboard/lists/${list.id}`}>
-                    <h3 className="font-semibold text-lg mb-1 hover:underline">{list.name}</h3>
-                  </Link>
-                  {list.description && (
-                    <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                      {list.description}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-xs text-muted-foreground">
-                      {list.items.length} {list.items.length === 1 ? "film" : "films"}
-                    </span>
-                    <span className="text-xs text-muted-foreground">•</span>
-                    <span className="text-xs text-muted-foreground capitalize">
-                      {list.visibility.toLowerCase().replace("_", " ")}
-                    </span>
-                  </div>
-                  {list.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {list.tags.slice(0, 3).map((tag) => (
-                        <span
-                          key={tag}
-                          className="text-xs px-2 py-0.5 bg-muted rounded"
-                        >
-                          {tag}
-                        </span>
-                      ))}
+                    {/* Action Buttons - Top Right */}
+                    <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm border-0 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingList(list);
+                          setIsCreateModalOpen(true);
+                        }}
+                      >
+                        <Edit className="h-3 w-3 text-white" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm border-0 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setListToDelete(list);
+                          setDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3 text-white" />
+                      </Button>
                     </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setEditingList(list);
-                        setIsCreateModalOpen(true);
-                      }}
-                      className="flex-1"
-                    >
-                      <Edit className="h-3 w-3 mr-1" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setListToDelete(list);
-                        setDeleteDialogOpen(true);
-                      }}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+
+                    {/* Tags - Bottom Left */}
+                    {list.tags.length > 0 && (
+                      <div className="absolute bottom-2 left-2 flex flex-wrap gap-1 max-w-[70%] opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        {list.tags.slice(0, 2).map((tag) => (
+                          <span
+                            key={tag}
+                            className="text-xs px-2 py-0.5 bg-black/60 backdrop-blur-sm text-white rounded"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                        {list.tags.length > 2 && (
+                          <span className="text-xs px-2 py-0.5 bg-black/60 backdrop-blur-sm text-white rounded">
+                            +{list.tags.length - 2}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Title and Meta Info Below Card */}
+                  <div className="mt-2">
+                    <h3 className="text-[16px] font-semibold line-clamp-1 mb-1">{list.name}</h3>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <span>{displayName}</span>
+                      <span>•</span>
+                      <span>{likeCount} likes</span>
+                      <span>•</span>
+                      <span>{commentCount} comments</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="border rounded-lg overflow-hidden">

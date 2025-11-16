@@ -56,7 +56,10 @@ export async function GET(
       }
     }
 
-    return NextResponse.json({ list });
+    return NextResponse.json({ 
+      list,
+      currentUserId: user?.id || null,
+    });
   } catch (error) {
     console.error("Get list API error:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to fetch list";
