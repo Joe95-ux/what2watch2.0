@@ -209,10 +209,11 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
           className={cn(
             "relative block aspect-[2/3] rounded-lg overflow-hidden",
             isHovered && !isMobile && "z-40",
-            !isMobile && variant !== "dashboard" && "transition-transform duration-300"
+            !isMobile && variant !== "dashboard" && "transition-transform duration-500 ease-out"
           )}
           style={{
             transform: !isMobile && variant !== "dashboard" && shouldShowOverlay ? "scale(1.05)" : "scale(1)",
+            willChange: !isMobile && variant !== "dashboard" ? "transform" : "auto",
           }}
         >
           {/* Poster Image - Always visible as fallback */}
@@ -372,14 +373,11 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                 </div>
               )}
 
-              {/* Play Button - Center (only show when video is not playing on desktop, always show on mobile) */}
-              {(isMobile || variant === "dashboard" || !shouldShowOverlay || !finalTrailer || finalIsLoading || !finalTrailer.key) && (
+              {/* Play Button - Center (only show on desktop when video is not playing) */}
+              {!isMobile && variant !== "dashboard" && (!shouldShowOverlay || !finalTrailer || finalIsLoading || !finalTrailer.key) && (
                 <Button
                   size="sm"
-                  className={cn(
-                    "rounded-full bg-black/60 hover:bg-black/80 text-white font-medium cursor-pointer backdrop-blur-sm border border-white/20 z-10",
-                    isMobile ? "h-6 px-2 text-[10px]" : "h-10 px-4 text-sm"
-                  )}
+                  className="rounded-full bg-black/60 hover:bg-black/80 text-white font-medium cursor-pointer backdrop-blur-sm border border-white/20 z-10 h-10 px-4 text-sm"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -391,8 +389,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                     }
                   }}
                 >
-                  <Play className={cn("fill-white text-white", isMobile ? "h-2.5 w-2.5 mr-0.5" : "h-4 w-4 mr-1.5")} />
-                  {!isMobile && "Play"}
+                  <Play className="fill-white text-white h-4 w-4 mr-1.5" />
+                  Play
                 </Button>
               )}
             </div>
@@ -408,6 +406,27 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                 "flex items-center mb-2",
                 isMobile ? "gap-1" : "gap-1.5"
               )}>
+                {/* Play Trailer Button */}
+                <Button
+                  size="sm"
+                  className={cn(
+                    "rounded-full bg-black/60 hover:bg-black/80 text-white font-medium cursor-pointer backdrop-blur-sm border border-white/20",
+                    isMobile ? "h-6 px-2 text-[10px]" : "h-7 px-3 text-xs"
+                  )}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsModalOpen(false);
+                    setIsTrailerModalOpen(true);
+
+                    if (!cachedVideosData?.results && attemptedFetchRef.current !== item.id && !isLoadingTrailer) {
+                      fetchTrailerVideos();
+                    }
+                  }}
+                >
+                  <Play className={cn("fill-white text-white", isMobile ? "h-2.5 w-2.5 mr-0.5" : "h-3 w-3 mr-1")} />
+                  {!isMobile && "Trailer"}
+                </Button>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div>
@@ -455,30 +474,6 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>{toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <CircleActionButton
-                      size={isMobile ? "sm" : "sm"}
-                      onClick={async (e: React.MouseEvent) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        await toggleWatchlist.toggle(item, type);
-                      }}
-                    >
-                      <Bookmark 
-                        className={cn(
-                          isMobile ? "h-2.5 w-2.5" : "h-3 w-3",
-                          toggleWatchlist.isInWatchlist(item.id, type)
-                            ? "text-blue-500 fill-blue-500"
-                            : "text-white"
-                        )} 
-                      />
-                    </CircleActionButton>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from Watchlist" : "Add to Watchlist"}</p>
                   </TooltipContent>
                 </Tooltip>
               </div>

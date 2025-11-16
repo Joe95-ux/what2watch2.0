@@ -580,7 +580,7 @@ function EditLogDialog({ isOpen, onClose, log, onUpdate, isPending }: EditLogDia
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] h-auto max-h-[80vh] scrollbar-thin">
         <DialogHeader>
           <DialogTitle>Edit Review</DialogTitle>
           <DialogDescription>
@@ -795,7 +795,7 @@ function LogAgainDialog({ isOpen, onClose, log, onSuccess, isPending }: LogAgain
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] h-auto max-h-[80vh] scrollbar-thin">
         <DialogHeader>
           <DialogTitle>Log Again</DialogTitle>
           <DialogDescription>
