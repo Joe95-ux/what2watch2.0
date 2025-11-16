@@ -126,9 +126,26 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       const Icon = item.icon;
                       // For Dashboard, only match exactly /dashboard, not /dashboard/*
                       // For other routes, match exact path or paths starting with href + "/"
-                      const isActive = item.href === "/dashboard"
-                        ? pathname === item.href
-                        : pathname === item.href || pathname?.startsWith(item.href + "/");
+                      // But exclude child routes that have their own menu items
+                      let isActive = false;
+                      if (item.href === "/dashboard") {
+                        isActive = pathname === item.href;
+                      } else {
+                        // Check if pathname matches exactly
+                        if (pathname === item.href) {
+                          isActive = true;
+                        } else if (pathname?.startsWith(item.href + "/")) {
+                          // Check if there's a more specific route that should be active instead
+                          const moreSpecificRoute = userLinks.find(
+                            (otherItem) => 
+                              otherItem.href !== item.href && 
+                              (pathname === otherItem.href || pathname?.startsWith(otherItem.href + "/")) &&
+                              otherItem.href.startsWith(item.href + "/")
+                          );
+                          // Only mark as active if there's no more specific route
+                          isActive = !moreSpecificRoute;
+                        }
+                      }
                       return (
                         <SidebarMenuItem key={item.href}>
                           <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>

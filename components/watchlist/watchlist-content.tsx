@@ -219,67 +219,65 @@ export default function WatchlistContent() {
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="mb-6 space-y-4 p-4 bg-muted/30 rounded-lg border">
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Search */}
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search watchlist..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-
-          {/* Media Type */}
-          <Select value={filterType} onValueChange={(v) => setFilterType(v as FilterType)}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="movie">Movies</SelectItem>
-              <SelectItem value="tv">TV Shows</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Sort */}
-          <Select 
-            value={`${sortField}-${sortOrder}`} 
-            onValueChange={(v) => {
-              const [field, order] = v.split("-");
-              setSortField(field as SortField);
-              setSortOrder(order as SortOrder);
-            }}
-          >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="createdAt-desc">Recently Added</SelectItem>
-              <SelectItem value="createdAt-asc">Oldest Added</SelectItem>
-              <SelectItem value="title-asc">Title (A-Z)</SelectItem>
-              <SelectItem value="title-desc">Title (Z-A)</SelectItem>
-              <SelectItem value="releaseYear-desc">Release Year (Newest)</SelectItem>
-              <SelectItem value="releaseYear-asc">Release Year (Oldest)</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Clear Filters */}
-          {activeFilterCount > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearFilters}
-              className="cursor-pointer"
-            >
-              <X className="h-4 w-4 mr-2" />
-              Clear
-            </Button>
-          )}
+      {/* Filters */}
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        {/* Search */}
+        <div className="relative w-72 lg:w-80 2xl:w-96">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search watchlist..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
         </div>
+
+        {/* Media Type */}
+        <Select value={filterType} onValueChange={(v) => setFilterType(v as FilterType)}>
+          <SelectTrigger className="w-[120px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="movie">Movies</SelectItem>
+            <SelectItem value="tv">TV Shows</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Sort */}
+        <Select 
+          value={`${sortField}-${sortOrder}`} 
+          onValueChange={(v) => {
+            const [field, order] = v.split("-");
+            setSortField(field as SortField);
+            setSortOrder(order as SortOrder);
+          }}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="createdAt-desc">Recently Added</SelectItem>
+            <SelectItem value="createdAt-asc">Oldest Added</SelectItem>
+            <SelectItem value="title-asc">Title (A-Z)</SelectItem>
+            <SelectItem value="title-desc">Title (Z-A)</SelectItem>
+            <SelectItem value="releaseYear-desc">Release Year (Newest)</SelectItem>
+            <SelectItem value="releaseYear-asc">Release Year (Oldest)</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Clear Filters */}
+        {activeFilterCount > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={clearFilters}
+            className="cursor-pointer"
+          >
+            <X className="h-4 w-4 mr-2" />
+            Clear
+          </Button>
+        )}
       </div>
 
       {filteredAndSorted.length === 0 && watchlist.length > 0 ? (
