@@ -4,10 +4,9 @@ import { useState } from "react";
 import { useLists, useDeleteList, type List } from "@/hooks/use-lists";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Plus, List as ListIcon, Grid3x3, Table2, Trash2, Edit, Eye } from "lucide-react";
+import { Plus, List as ListIcon, Grid3x3, Table2, Trash2, Edit } from "lucide-react";
 import CreateListModal from "./create-list-modal";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { getPosterUrl } from "@/lib/tmdb";
 import { format } from "date-fns";
@@ -26,7 +25,6 @@ import {
 export default function ListsContent() {
   const { data: lists = [], isLoading } = useLists();
   const deleteList = useDeleteList();
-  const router = useRouter();
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingList, setEditingList] = useState<List | undefined>();
@@ -41,7 +39,7 @@ export default function ListsContent() {
       toast.success("List deleted");
       setDeleteDialogOpen(false);
       setListToDelete(null);
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete list");
     }
   };
@@ -86,9 +84,9 @@ export default function ListsContent() {
         </div>
 
         {isLoading ? (
-          <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className={viewMode === "grid" ? "h-64" : "h-24"} />
+          <div className={viewMode === "grid" ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" : "space-y-4"}>
+            {Array.from({ length: 12 }).map((_, i) => (
+              <Skeleton key={i} className={viewMode === "grid" ? "aspect-[3/4] w-full rounded-lg" : "h-24"} />
             ))}
           </div>
         ) : lists.length === 0 ? (
@@ -104,7 +102,7 @@ export default function ListsContent() {
             </Button>
           </div>
         ) : viewMode === "grid" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {lists.map((list) => (
               <div
                 key={list.id}
@@ -113,7 +111,7 @@ export default function ListsContent() {
                 {/* Cover Image or First Item Poster */}
                 {list.items.length > 0 && list.items[0].posterPath ? (
                   <Link href={`/dashboard/lists/${list.id}`}>
-                    <div className="relative h-48 w-full">
+                    <div className="relative aspect-[3/4] w-full">
                       <Image
                         src={getPosterUrl(list.items[0].posterPath)}
                         alt={list.name}
@@ -124,7 +122,7 @@ export default function ListsContent() {
                     </div>
                   </Link>
                 ) : (
-                  <div className="h-48 w-full bg-muted flex items-center justify-center">
+                  <div className="aspect-[3/4] w-full bg-muted flex items-center justify-center">
                     <ListIcon className="h-12 w-12 text-muted-foreground" />
                   </div>
                 )}

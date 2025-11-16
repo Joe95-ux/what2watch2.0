@@ -43,20 +43,22 @@ export default function ListCard({ list, className, variant = "carousel" }: List
       onClick={() => router.push(`/lists/${list.id}`)}
     >
       <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-muted border border-border hover:border-primary/50 transition-colors">
-        {/* Deck of Cards Effect */}
+        {/* Deck of Cards Effect - Stacked like Letterboxd */}
         {hasDeckEffect ? (
           <div className="relative w-full h-full">
             {posters.map((poster, index) => {
-              const offset = index * 8; // 8px offset for each card
+              // Each card is slightly offset to reveal the one below
+              // Top card (index 0) has no offset, each subsequent card is offset by 3px
+              const offsetX = index * 3; // Horizontal offset
+              const offsetY = index * 3; // Vertical offset
               const zIndex = posters.length - index; // First poster on top
-              const rotation = (index - 2) * 2; // Slight rotation for deck effect
               
               return (
                 <div
                   key={index}
                   className="absolute inset-0"
                   style={{
-                    transform: `translate(${offset}px, ${offset}px) rotate(${rotation}deg)`,
+                    transform: `translate(${offsetX}px, ${offsetY}px)`,
                     zIndex,
                   }}
                 >

@@ -229,30 +229,10 @@ export default function CreateListModal({ isOpen, onClose, list }: CreateListMod
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
         {/* Step Indicators */}
         <div className="px-6 pt-6 pb-4 border-b">
-          <div className="flex items-center justify-between mb-4">
-            <DialogTitle className="text-2xl font-bold">
-              {isEditing ? "Edit List" : "Create List"}
-            </DialogTitle>
-            <div className="flex items-center gap-2">
-              <div className={cn(
-                "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors",
-                step >= 1 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              )}>
-                1
-              </div>
-              <div className={cn(
-                "h-0.5 w-12 transition-colors",
-                step >= 2 ? "bg-primary" : "bg-muted"
-              )} />
-              <div className={cn(
-                "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors",
-                step >= 2 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              )}>
-                2
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-8">
+          <DialogTitle className="text-[1.5rem] font-bold mb-4">
+            {isEditing ? "Edit List" : "Create List"}
+          </DialogTitle>
+          <div className="flex items-center gap-8 mb-4">
             <button
               type="button"
               onClick={() => setStep(1)}
@@ -274,6 +254,24 @@ export default function CreateListModal({ isOpen, onClose, list }: CreateListMod
             >
               Add Films
             </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className={cn(
+              "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors",
+              step >= 1 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+            )}>
+              1
+            </div>
+            <div className={cn(
+              "h-0.5 w-12 transition-colors",
+              step >= 2 ? "bg-primary" : "bg-muted"
+            )} />
+            <div className={cn(
+              "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors",
+              step >= 2 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+            )}>
+              2
+            </div>
           </div>
         </div>
         
