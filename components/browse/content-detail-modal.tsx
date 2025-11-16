@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { X, Play, Plus, Heart, Star, Clock, Volume2, VolumeX, ArrowLeft, BookOpen, CalendarIcon, Bookmark } from "lucide-react";
+import { X, Play, Plus, Heart, Star, Clock, Volume2, VolumeX, ArrowLeft, BookOpen, CalendarIcon } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getBackdropUrl, getPosterUrl, getYouTubeEmbedUrl, TMDBVideo } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,23 +25,9 @@ import TrailerModal from "./trailer-modal";
 import MoreLikeThis from "./more-like-this";
 import { useAddRecentlyViewed } from "@/hooks/use-recently-viewed";
 import { useToggleFavorite } from "@/hooks/use-favorites";
-import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { useLogViewing } from "@/hooks/use-viewing-logs";
-import { format } from "date-fns";
-import { toast } from "sonner";
+import LogToDiaryDropdown from "./log-to-diary-dropdown";
 
 interface ContentDetailModalProps {
   item: TMDBMovie | TMDBSeries;
@@ -73,12 +59,7 @@ export default function ContentDetailModal({
       setCurrentItem(initialItem);
       setCurrentType(initialType);
       setParentItem(null);
-      // Reset log film form
-      setWatchedDate(new Date());
-      setNotes("");
-      setRating(null);
-      setTags("");
-      setIsLogFilmDropdownOpen(false);
+      // Reset state when modal opens
     }
   }, [initialItem, initialType, isOpen]);
   
@@ -114,67 +95,11 @@ export default function ContentDetailModal({
   const [selectedVideo, setSelectedVideo] = useState<TMDBVideo | null>(null);
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay compatibility
-  const [isLogFilmDropdownOpen, setIsLogFilmDropdownOpen] = useState(false);
-  const [watchedDate, setWatchedDate] = useState<Date>(new Date());
-  const [notes, setNotes] = useState("");
-  const [rating, setRating] = useState<number | null>(null);
-  const [tags, setTags] = useState("");
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const isClosingRef = useRef(false);
-  const logViewing = useLogViewing();
   
   // Track recently viewed
   const addRecentlyViewed = useAddRecentlyViewed();
   const toggleFavorite = useToggleFavorite();
-  const toggleWatchlist = useToggleWatchlist();
-  
-  // Check if item is already liked
-  const isLiked = toggleFavorite.isFavorite(item.id, type);
-  const isInWatchlist = toggleWatchlist.isInWatchlist(item.id, type);
-
-  const handleLogFilm = async () => {
-    if (logViewing.isPending) return;
-    
-    try {
-      const title = "title" in item ? item.title : item.name;
-      
-      // Parse tags
-      const tagsArray = tags.trim() ? tags.split(",").map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
-      
-      // Log the film
-      await logViewing.mutateAsync({
-        tmdbId: item.id,
-        mediaType: type,
-        title,
-        posterPath: item.poster_path || null,
-        backdropPath: item.backdrop_path || null,
-        releaseDate: "release_date" in item ? item.release_date || null : null,
-        firstAirDate: "first_air_date" in item ? item.first_air_date || null : null,
-        watchedAt: watchedDate.toISOString(),
-        notes: notes.trim() || null,
-        rating: rating || null,
-        tags: tagsArray,
-      });
-      
-      // Handle like toggle if user clicked like button
-      // (We'll handle this separately based on like button state)
-      
-      toast.success("Film logged to your diary!");
-      setNotes("");
-      setRating(null);
-      setTags("");
-      setWatchedDate(new Date());
-      setIsLogFilmDropdownOpen(false);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to log film";
-      toast.error(errorMessage.includes("already") ? errorMessage : "Failed to log film. Please try again.");
-      console.error("Error logging film:", error);
-    }
-  };
-  
-  const handleLikeToggle = async () => {
-    await toggleFavorite.toggle(item, type);
-  };
 
   // Fetch details based on type
   const { data: movieDetails, isLoading: isLoadingMovie } = useMovieDetails(
@@ -477,8 +402,10 @@ export default function ContentDetailModal({
                       <p>{toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}</p>
                     </TooltipContent>
                   </Tooltip>
-                  <DropdownMenu open={isLogFilmDropdownOpen} onOpenChange={setIsLogFilmDropdownOpen}>
-                    <DropdownMenuTrigger asChild>
+                  <LogToDiaryDropdown
+                    item={item}
+                    type={type}
+                    trigger={
                       <Button
                         size="lg"
                         variant="outline"
@@ -490,202 +417,8 @@ export default function ContentDetailModal({
                       >
                         <BookOpen className="size-6 text-white dark:text-white" />
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="end"
-                      className="z-[110] w-80 p-4"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                      }}
-                    >
-                      <DropdownMenuLabel>Log to Diary</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <div className="space-y-4 mt-4" onClick={(e) => e.stopPropagation()}>
-                        {/* Like and Watchlist Buttons */}
-                        <div className="flex items-center gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className={cn(
-                              "flex items-center gap-2",
-                              isLiked && "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
-                            )}
-                            onClick={async (e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              await handleLikeToggle();
-                            }}
-                          >
-                            <Heart 
-                              className={cn(
-                                "h-4 w-4",
-                                isLiked 
-                                  ? "text-red-500 fill-red-500" 
-                                  : "text-muted-foreground"
-                              )} 
-                            />
-                            <span className="text-sm">
-                              {isLiked ? "Liked" : "Like"}
-                            </span>
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className={cn(
-                              "flex items-center gap-2",
-                              isInWatchlist && "bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800"
-                            )}
-                            onClick={async (e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              await toggleWatchlist.toggle(item, type);
-                            }}
-                          >
-                            <Bookmark 
-                              className={cn(
-                                "h-4 w-4",
-                                isInWatchlist 
-                                  ? "text-blue-500 fill-blue-500" 
-                                  : "text-muted-foreground"
-                              )} 
-                            />
-                            <span className="text-sm">
-                              {isInWatchlist ? "In Watchlist" : "Watchlist"}
-                            </span>
-                          </Button>
-                        </div>
-                        
-                        {/* Star Rating */}
-                        <div className="space-y-2">
-                          <Label className="text-sm">Rating (Optional)</Label>
-                          <div className="flex items-center gap-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <button
-                                key={star}
-                                type="button"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setRating(rating === star ? null : star);
-                                }}
-                                className="focus:outline-none"
-                                onMouseDown={(e) => e.stopPropagation()}
-                              >
-                                <Star
-                                  className={cn(
-                                    "h-5 w-5 transition-colors",
-                                    rating && star <= rating
-                                      ? "text-yellow-400 fill-yellow-400"
-                                      : "text-muted-foreground"
-                                  )}
-                                />
-                              </button>
-                            ))}
-                            {rating && (
-                              <span className="ml-2 text-sm text-muted-foreground">
-                                {rating}/5
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="watched-date" className="text-sm">Date Watched</Label>
-                          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full justify-start text-left font-normal",
-                                  !watchedDate && "text-muted-foreground"
-                                )}
-                                onMouseDown={(e) => {
-                                  // Prevent closing the dropdown when clicking the date picker button
-                                  e.stopPropagation();
-                                }}
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {watchedDate ? format(watchedDate, "PPP") : <span>Pick a date</span>}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent 
-                              className="w-auto p-0 z-[120]" 
-                              align="start"
-                            >
-                              <Calendar
-                                mode="single"
-                                selected={watchedDate}
-                                onSelect={(date) => {
-                                  if (date) {
-                                    setWatchedDate(date);
-                                    setIsCalendarOpen(false);
-                                  }
-                                }}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="notes" className="text-sm">Notes (Optional)</Label>
-                          <Textarea
-                            id="notes"
-                            placeholder="Add your thoughts, rating, or any notes..."
-                            value={notes}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              setNotes(e.target.value);
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                            rows={3}
-                            className="resize-none"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="tags" className="text-sm">Tags (Optional)</Label>
-                          <Input
-                            id="tags"
-                            placeholder="Add tags separated by commas (e.g., Netflix, horror, favorite)"
-                            value={tags}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              setTags(e.target.value);
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Separate multiple tags with commas
-                          </p>
-                        </div>
-                        <div className="flex justify-end gap-2 pt-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setIsLogFilmDropdownOpen(false);
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleLogFilm();
-                            }}
-                            disabled={logViewing.isPending}
-                          >
-                            {logViewing.isPending ? "Logging..." : "Log Film"}
-                          </Button>
-                        </div>
-                      </div>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    }
+                  />
                   {/* Mute/Unmute Toggle - Only show when trailer is available, on extreme right */}
                   {trailer && videosData && (
                     <Tooltip>
