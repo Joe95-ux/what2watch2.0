@@ -209,14 +209,9 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
       >
         <div
           className={cn(
-            "relative block aspect-[2/3] rounded-lg overflow-hidden",
-            isHovered && !isMobile && "z-40",
-            !isMobile && variant !== "dashboard" && "transition-transform duration-500 ease-out"
+            "relative block aspect-[2/3] rounded-lg overflow-hidden group",
+            isHovered && !isMobile && "z-40"
           )}
-          style={{
-            transform: !isMobile && variant !== "dashboard" && shouldShowOverlay ? "scale(1.05)" : "scale(1)",
-            willChange: !isMobile && variant !== "dashboard" ? "transform" : "auto",
-          }}
         >
           {/* Poster Image - Always visible as fallback */}
           {posterPath ? (
@@ -224,7 +219,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
               src={getPosterUrl(posterPath, "w500")}
               alt={title}
               fill
-              className="object-cover"
+              className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
               sizes="(max-width: 640px) 200px, 300px"
               unoptimized
             />
@@ -237,7 +232,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
           {/* Overlay Content */}
           <div
             className={cn(
-              "absolute inset-0 transition-all duration-300",
+              "absolute inset-0 rounded-lg transition-all duration-300",
               shouldShowOverlay ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1 pointer-events-none",
               (isMobile || variant === "dashboard") && "opacity-100 translate-y-0 pointer-events-auto"
             )}
@@ -259,7 +254,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
             )}
 
             {/* Overlay gradient */}
-            <div className="absolute inset-0 z-20 bg-gradient-to-t from-black/95 via-black/75 to-transparent" />
+            <div className="absolute inset-0 z-20 bg-gradient-to-t from-black/95 via-black/75 to-transparent pointer-events-none" />
 
             <div
               className={cn(
@@ -358,7 +353,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                     <Button
                       size="sm"
                       className={cn(
-                        "rounded-full bg-black/60 hover:bg-black/80 text-white font-medium cursor-pointer backdrop-blur-sm border border-white/20",
+                        "rounded-full bg-black/60 hover:bg-black/70 text-white font-medium cursor-pointer backdrop-blur-sm border border-white/30",
                         isMobile ? "h-6 px-2 text-[10px]" : "h-7 px-3 text-xs"
                       )}
                       onClick={(e) => {
