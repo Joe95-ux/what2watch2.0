@@ -1,14 +1,21 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import useEmblaCarousel from "embla-carousel-react";
-import { ChevronLeft, ChevronRight, ChevronRight as CaretRight, Trash2 } from "lucide-react";
+import { ChevronRight as CaretRight, Trash2 } from "lucide-react";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import MovieCard from "./movie-card";
 import ContentDetailModal from "./content-detail-modal";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
+} from "@/components/ui/carousel";
 
 interface ContentRowProps {
   title: string;
@@ -22,25 +29,13 @@ interface ContentRowProps {
 }
 
 export default function ContentRow({ title, items, type, isLoading, href, showClearButton, onClear, isClearing }: ContentRowProps) {
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    align: "start",
-    slidesToScroll: 5,
-    breakpoints: {
-      "(max-width: 640px)": { slidesToScroll: 2 },
-      "(max-width: 1024px)": { slidesToScroll: 3 },
-      "(max-width: 1280px)": { slidesToScroll: 4 },
-    },
-  });
-
+  const [api, setApi] = useState<CarouselApi>();
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0); // 0 = start, 1 = scrolled
   const [currentPadding, setCurrentPadding] = useState(16); // Default to px-4 (16px)
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
-
-  const scrollPrev = () => emblaApi?.scrollPrev();
-  const scrollNext = () => emblaApi?.scrollNext();
 
   // Calculate padding based on viewport width
   useEffect(() => {
@@ -63,40 +58,40 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
 
   // Track scroll progress to adjust padding
   useEffect(() => {
-    if (!emblaApi) return;
+    if (!api) return;
 
     const updateScrollProgress = () => {
-      const progress = emblaApi.scrollProgress();
+      const progress = api.scrollProgress();
       setScrollProgress(progress);
     };
 
     updateScrollProgress();
-    emblaApi.on('scroll', updateScrollProgress);
-    emblaApi.on('reInit', updateScrollProgress);
+    api.on('scroll', updateScrollProgress);
+    api.on('reInit', updateScrollProgress);
 
     return () => {
-      emblaApi.off('scroll', updateScrollProgress);
-      emblaApi.off('reInit', updateScrollProgress);
+      api.off('scroll', updateScrollProgress);
+      api.off('reInit', updateScrollProgress);
     };
-  }, [emblaApi]);
+  }, [api]);
 
   useEffect(() => {
-    if (!emblaApi) return;
+    if (!api) return;
 
     const updateScrollState = () => {
-      setCanScrollPrev(emblaApi.canScrollPrev());
-      setCanScrollNext(emblaApi.canScrollNext());
+      setCanScrollPrev(api.canScrollPrev());
+      setCanScrollNext(api.canScrollNext());
     };
 
     updateScrollState();
-    emblaApi.on("select", updateScrollState);
-    emblaApi.on("reInit", updateScrollState);
+    api.on("select", updateScrollState);
+    api.on("reInit", updateScrollState);
 
     return () => {
-      emblaApi.off("select", updateScrollState);
-      emblaApi.off("reInit", updateScrollState);
+      api.off("select", updateScrollState);
+      api.off("reInit", updateScrollState);
     };
-  }, [emblaApi]);
+  }, [api]);
 
   if (isLoading) {
     return (
@@ -166,40 +161,6 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
       
       {/* Carousel container - starts with padding, expands to full width on scroll */}
       <div className="relative">
-        {/* Left Control Button - Anchored to left edge of carousel */}
-        {canScrollPrev && (
-          <button
-            onClick={scrollPrev}
-            className={cn(
-              "absolute left-0 top-0 h-full z-40",
-              "w-[45px] flex items-center justify-center",
-              "bg-black/60 hover:bg-black/80 backdrop-blur-sm",
-              "rounded-l-lg rounded-r-none border-0 cursor-pointer transition-all duration-200",
-              "hidden md:flex"
-            )}
-            aria-label="Scroll left"
-          >
-            <ChevronLeft className="h-6 w-6 text-white" />
-          </button>
-        )}
-
-        {/* Right Control Button - Anchored to right edge of carousel */}
-        {canScrollNext && (
-          <button
-            onClick={scrollNext}
-            className={cn(
-              "absolute right-0 top-0 h-full z-40",
-              "w-[45px] flex items-center justify-center",
-              "bg-black/60 hover:bg-black/80 backdrop-blur-sm",
-              "rounded-r-lg rounded-l-none border-0 cursor-pointer transition-all duration-200",
-              "hidden md:flex"
-            )}
-            aria-label="Scroll right"
-          >
-            <ChevronRight className="h-6 w-6 text-white" />
-          </button>
-        )}
-
         {/* Carousel - starts with left padding, expands to full width on scroll */}
         <div 
           ref={carouselRef}
@@ -209,26 +170,52 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
             paddingRight: scrollProgress > 0 ? '0px' : `${currentPadding}px`, // Remove right padding when scrolled
           }}
         >
-          <div className="overflow-hidden" ref={emblaRef}>
-            <div className="flex gap-3">
+          <Carousel
+            setApi={setApi}
+            opts={{
+              align: "start",
+              slidesToScroll: 5,
+              breakpoints: {
+                "(max-width: 640px)": { slidesToScroll: 2 },
+                "(max-width: 1024px)": { slidesToScroll: 3 },
+                "(max-width: 1280px)": { slidesToScroll: 4 },
+              },
+            }}
+            className="w-full"
+          >
+            <CarouselContent className="-ml-2 md:-ml-4 gap-3">
               {items.map((item) => (
-                <div key={item.id} className="relative flex-shrink-0 w-[180px] sm:w-[200px] overflow-hidden">
-                  <MovieCard 
-                    item={item} 
-                    type={"title" in item ? "movie" : "tv"}
-                    canScrollPrev={canScrollPrev}
-                    canScrollNext={canScrollNext}
-                    onCardClick={(clickedItem, clickedType) =>
-                      setSelectedItem({
-                        item: clickedItem,
-                        type: clickedType,
-                      })
-                    }
-                  />
-                </div>
+                <CarouselItem key={item.id} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px]">
+                  <div className="relative overflow-hidden">
+                    <MovieCard 
+                      item={item} 
+                      type={"title" in item ? "movie" : "tv"}
+                      canScrollPrev={canScrollPrev}
+                      canScrollNext={canScrollNext}
+                      onCardClick={(clickedItem, clickedType) =>
+                        setSelectedItem({
+                          item: clickedItem,
+                          type: clickedType,
+                        })
+                      }
+                    />
+                  </div>
+                </CarouselItem>
               ))}
-            </div>
-          </div>
+            </CarouselContent>
+            <CarouselPrevious 
+              className={cn(
+                "left-0 h-[270px] sm:h-[300px] w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm transition-all duration-200 hidden md:flex items-center justify-center cursor-pointer",
+                !canScrollPrev && "opacity-0 pointer-events-none"
+              )}
+            />
+            <CarouselNext 
+              className={cn(
+                "right-0 h-[270px] sm:h-[300px] w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm transition-all duration-200 hidden md:flex items-center justify-center cursor-pointer",
+                !canScrollNext && "opacity-0 pointer-events-none"
+              )}
+            />
+          </Carousel>
         </div>
       </div>
     </div>

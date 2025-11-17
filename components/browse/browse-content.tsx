@@ -148,10 +148,10 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
     return filtered.slice(0, 20);
   }, [filteredContentData, yearFilter]);
 
-  // Track seen items to reduce duplicates
-  const seenIds = new Set<number>();
-
+  // Track seen items to reduce duplicates - use separate sets for each section
+  // to prevent filters from affecting other sections
   const filterUnique = (items: (TMDBMovie | TMDBSeries)[], limit?: number) => {
+    const seenIds = new Set<number>();
     const source = limit ? items.slice(0, limit) : items;
     return source.filter((item) => {
       if (seenIds.has(item.id)) return false;
@@ -216,9 +216,9 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
         )}
 
         {/* Popular Section with Tabs */}
-        <div className="mb-12 px-4 sm:px-6 lg:px-8">
+        <div className="mb-12">
           <Tabs value={popularTab} onValueChange={(v) => setPopularTab(v as "movies" | "tv")}>
-            <div className="group flex items-center gap-4 mb-6">
+            <div className="px-4 sm:px-6 lg:px-8 group flex items-center gap-4 mb-6">
               <Link 
                 href={popularTab === "movies" ? "/browse/movies/popular" : "/browse/tv/popular"}
                 className="inline-flex items-center gap-2 transition-all duration-300"
@@ -276,7 +276,7 @@ function CuratedListsSection({ lists, playlists }: { lists: List[]; playlists: P
   return (
     <div className="mb-12 px-4 sm:px-6 lg:px-8">
       <h2 className="text-2xl font-medium text-foreground mb-6">Explore Curated Lists</h2>
-      <div className="relative group">
+      <div className="relative group/carousel">
         <Carousel
           opts={{
             align: "start",
@@ -301,10 +301,10 @@ function CuratedListsSection({ lists, playlists }: { lists: List[]; playlists: P
             ))}
           </CarouselContent>
           <CarouselPrevious 
-            className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+            className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
           />
           <CarouselNext 
-            className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+            className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
           />
         </Carousel>
       </div>
