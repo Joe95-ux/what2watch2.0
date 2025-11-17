@@ -70,69 +70,60 @@ export default function QuickFilters({
   };
 
   return (
-    <div className={cn("w-full px-4 sm:px-6 lg:px-8 py-4", className)}>
-      <div className="flex flex-wrap items-center gap-3">
+    <div className={cn("w-full py-4", className)}>
+      <div className="flex items-center gap-3 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {/* Mood Filter */}
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-muted-foreground" />
-          <div className="flex gap-1.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {moodOptions.map((option) => (
-              <Button
-                key={option.value}
-                variant={selectedMood === option.value ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleMoodChange(option.value)}
-                className={cn(
-                  "text-xs whitespace-nowrap",
-                  selectedMood === option.value && "bg-primary text-primary-foreground"
-                )}
-              >
-                {option.label}
-              </Button>
-            ))}
-          </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {moodOptions.map((option) => (
+            <Button
+              key={option.value}
+              variant={selectedMood === option.value ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleMoodChange(option.value)}
+              className={cn(
+                "text-xs whitespace-nowrap cursor-pointer",
+                selectedMood === option.value && "bg-primary text-primary-foreground"
+              )}
+            >
+              {option.label}
+            </Button>
+          ))}
         </div>
 
         {/* Duration Filter */}
-        <div className="flex items-center gap-2">
-          <Clock className="h-4 w-4 text-muted-foreground" />
-          <div className="flex gap-1.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {durationOptions.map((option) => (
-              <Button
-                key={option.value}
-                variant={selectedDuration === option.value ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleDurationChange(option.value)}
-                className={cn(
-                  "text-xs whitespace-nowrap",
-                  selectedDuration === option.value && "bg-primary text-primary-foreground"
-                )}
-              >
-                {option.label}
-              </Button>
-            ))}
-          </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {durationOptions.map((option) => (
+            <Button
+              key={option.value}
+              variant={selectedDuration === option.value ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleDurationChange(option.value)}
+              className={cn(
+                "text-xs whitespace-nowrap cursor-pointer",
+                selectedDuration === option.value && "bg-primary text-primary-foreground"
+              )}
+            >
+              {option.label}
+            </Button>
+          ))}
         </div>
 
         {/* Year Filter */}
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          <div className="flex gap-1.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {yearOptions.map((option) => (
-              <Button
-                key={option.value}
-                variant={selectedYear === option.value ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleYearChange(option.value)}
-                className={cn(
-                  "text-xs whitespace-nowrap",
-                  selectedYear === option.value && "bg-primary text-primary-foreground"
-                )}
-              >
-                {option.label}
-              </Button>
-            ))}
-          </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {yearOptions.map((option) => (
+            <Button
+              key={option.value}
+              variant={selectedYear === option.value ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleYearChange(option.value)}
+              className={cn(
+                "text-xs whitespace-nowrap cursor-pointer",
+                selectedYear === option.value && "bg-primary text-primary-foreground"
+              )}
+            >
+              {option.label}
+            </Button>
+          ))}
         </div>
 
         {/* Surprise Me Button */}
@@ -141,7 +132,7 @@ export default function QuickFilters({
             variant="outline"
             size="sm"
             onClick={onSurpriseMe}
-            className="ml-auto text-xs whitespace-nowrap border-primary/50 hover:bg-primary/10"
+            className="ml-auto text-xs whitespace-nowrap border-primary/50 hover:bg-primary/10 cursor-pointer flex-shrink-0"
           >
             <Shuffle className="h-3.5 w-3.5 mr-1.5" />
             Surprise Me

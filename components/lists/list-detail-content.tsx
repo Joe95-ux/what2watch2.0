@@ -94,7 +94,7 @@ export default function ListDetailContent({ listId }: ListDetailContentProps) {
           onClick={() => router.push("/dashboard/lists")}
           className="mb-4"
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
+          <ArrowLeft className="h-4 w-4 mr-2"/>
           Back to Lists
         </Button>
 
