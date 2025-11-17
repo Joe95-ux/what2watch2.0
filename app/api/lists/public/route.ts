@@ -46,7 +46,11 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
           },
         },
         _count: {
-          select: { items: true },
+          select: {
+            items: true,
+            likedBy: true,
+            comments: true,
+          },
         },
       },
       orderBy: { updatedAt: "desc" },

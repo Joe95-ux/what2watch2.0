@@ -30,6 +30,13 @@ export async function GET(
             avatarUrl: true,
           },
         },
+        _count: {
+          select: {
+            items: true,
+            likedBy: true,
+            comments: true,
+          },
+        },
       },
     });
 

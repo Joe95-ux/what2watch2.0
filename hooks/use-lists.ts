@@ -25,6 +25,7 @@ export interface List {
   visibility: ListVisibility;
   tags: string[];
   coverImage: string | null;
+  blockedUsers?: string[];
   items: ListItem[];
   createdAt: string;
   updatedAt: string;
@@ -36,6 +37,8 @@ export interface List {
   };
   _count?: {
     items: number;
+    likedBy: number;
+    comments: number;
   };
 }
 

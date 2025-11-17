@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useLists, useDeleteList, type List } from "@/hooks/use-lists";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Plus, List as ListIcon, Grid3x3, Table2, Trash2, Edit } from "lucide-react";
+import { Plus, List as ListIcon, Grid3x3, Table2, Trash2, Edit, Heart, MessageCircle } from "lucide-react";
 import CreateListModal from "./create-list-modal";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -49,9 +49,9 @@ export default function ListsContent() {
   return (
     <div className="flex-1 space-y-6 p-6">
       <div className="container max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 mb-6">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">My Lists</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Curated Lists</h1>
             <p className="text-muted-foreground mt-2">
               Create and manage your ranked lists of favorite films
             </p>
@@ -110,9 +110,8 @@ export default function ListsContent() {
                 ? getPosterUrl(list.items[0].posterPath) 
                 : null;
               const displayName = list.user?.displayName || list.user?.username || "Unknown";
-              // Note: Like and comment counts may not be implemented yet
-              const likeCount: number = 0; // TODO: Add likes feature for lists
-              const commentCount: number = 0; // TODO: Add comments feature for lists
+              const likeCount = list._count?.likedBy || 0;
+              const commentCount = list._count?.comments || 0;
               
               return (
                 <div
@@ -190,9 +189,15 @@ export default function ListsContent() {
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <span>{displayName}</span>
                       <span>•</span>
-                      <span>{likeCount} likes</span>
+                      <span className="flex items-center gap-1">
+                        <Heart className="h-3 w-3" />
+                        {likeCount}
+                      </span>
                       <span>•</span>
-                      <span>{commentCount} comments</span>
+                      <span className="flex items-center gap-1">
+                        <MessageCircle className="h-3 w-3" />
+                        {commentCount}
+                      </span>
                     </div>
                   </div>
                 </div>

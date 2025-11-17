@@ -47,6 +47,9 @@ model User {
   activities Activity[]
   followedActivities Activity[] @relation("UserFollowedActivities")
   lists List[]
+  likedLists LikedList[]
+  listComments ListComment[]
+  listCommentReactions ListCommentReaction[]
 
   @@map("users")
 }
@@ -585,7 +588,12 @@ model List {
   tags          String[]     @default([])
   coverImage    String?      // URL to cover image
   
+  // Moderation - users blocked from commenting
+  blockedUsers  String[]     @default([]) // Array of user IDs
+  
   items         ListItem[]
+  likedBy       LikedList[]
+  comments      ListComment[]
   
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
@@ -620,4 +628,72 @@ model ListItem {
   @@index([listId])
   @@index([listId, position])
   @@unique([listId, tmdbId, mediaType])
+}
+
+// Liked Lists - lists that users have liked (PUBLIC or FOLLOWERS_ONLY only)
+model LikedList {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listId        String   @db.ObjectId
+  list          List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, listId])
+  @@map("liked_lists")
+  @@index([userId])
+  @@index([listId])
+  @@index([createdAt])
+}
+
+// List Comments - comments on lists
+model ListComment {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  listId        String   @db.ObjectId
+  list          List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  content       String
+  
+  // Nested replies
+  parentCommentId String? @db.ObjectId
+  parentComment   ListComment? @relation("ListCommentReplies", fields: [parentCommentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies         ListComment[] @relation("ListCommentReplies")
+  
+  // Reactions
+  reactions     ListCommentReaction[]
+  
+  likes         Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("list_comments")
+  @@index([listId])
+  @@index([userId])
+  @@index([parentCommentId])
+  @@index([createdAt])
+}
+
+// List Comment reactions - likes and emoji reactions
+model ListCommentReaction {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  commentId     String   @db.ObjectId
+  comment       ListComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Reaction type: "like" or emoji string (e.g., "👍", "❤️", "😂")
+  reactionType  String   // "like" or emoji unicode
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([commentId, userId, reactionType])
+  @@map("list_comment_reactions")
+  @@index([commentId])
+  @@index([userId])
+  @@index([reactionType])
+  @@index([createdAt])
 }
