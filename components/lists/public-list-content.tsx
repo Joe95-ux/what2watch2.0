@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import NextImage from "next/image";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,7 +41,9 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import CreateListModal from "./create-list-modal";
+import ShareListDialog from "./share-list-dialog";
 import { Heart, MessageSquare, Send, Edit2 as Edit, Trash2, Reply, Smile } from "lucide-react";
+import { getPosterUrl } from "@/lib/tmdb";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -64,6 +67,7 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [commentFilter, setCommentFilter] = useState("newest");
   const [newComment, setNewComment] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
@@ -158,12 +162,8 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
     fetchList();
   }, [listId]);
 
-  // Redirect owner to dashboard list page for better UX
-  useEffect(() => {
-    if (isOwner && list && !isLoading) {
-      router.replace(`/dashboard/lists/${list.id}`);
-    }
-  }, [isOwner, list, isLoading, router]);
+  // Note: Owners can access the public view to moderate comments
+  // If they want the dashboard view, they can navigate there manually
 
   const handleDelete = async () => {
     if (!list) return;
@@ -177,20 +177,7 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
   };
 
   const handleShare = () => {
-    if (navigator.share && list) {
-      navigator.share({
-        title: list.name,
-        text: list.description || `Check out ${list.name} on What2Watch`,
-        url: window.location.href,
-      }).catch(() => {
-        // Fallback to clipboard
-        navigator.clipboard.writeText(window.location.href);
-        toast.success("Link copied to clipboard");
-      });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      toast.success("Link copied to clipboard");
-    }
+    setIsShareDialogOpen(true);
   };
 
   const handleLike = () => {
@@ -400,125 +387,145 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
 
   const user = list.user;
   const displayName = user?.displayName || user?.username || "Unknown";
-  const username = user?.username || "unknown";
+
+  // Get cover image from first movie or list cover image
+  const coverImage = list.coverImage
+    ? list.coverImage
+    : list.items && list.items.length > 0 && list.items[0].posterPath
+    ? getPosterUrl(list.items[0].posterPath, "original")
+    : null;
 
   return (
     <>
       <div className="min-h-screen bg-background">
-        {/* Header */}
-        <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container mx-auto px-4 py-6">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 space-y-4">
-                <div className="flex items-center gap-4">
+        {/* Header with Cover */}
+        <div className="relative -mt-[65px] h-[43vh] min-h-[300px] max-h-[500px] overflow-hidden">
+          {coverImage ? (
+            <>
+              <NextImage
+                src={coverImage}
+                alt={list.name}
+                fill
+                className="object-cover"
+                unoptimized
+                priority
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+            </>
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5" />
+          )}
+
+          <div className="absolute inset-0 flex items-end">
+            <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 w-full">
+              <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                <div className="flex-1">
                   <Button
                     variant="ghost"
-                    size="icon"
+                    size="sm"
                     onClick={() => router.back()}
-                    className="flex-shrink-0 cursor-pointer"
+                    className="mb-4"
                   >
-                    <ArrowLeft className="h-5 w-5" />
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back
                   </Button>
-                  <div className="flex-1 min-w-0">
-                    <h1 className="text-3xl font-bold truncate">{list.name}</h1>
-                    {list.description && (
-                      <p className="text-muted-foreground mt-2">{list.description}</p>
+                  <h1 className="text-4xl font-bold mb-2">{list.name}</h1>
+                  {list.description && (
+                    <p className="text-lg text-muted-foreground mb-4 max-w-2xl">
+                      {list.description}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                    <span>
+                      {list.items?.length || 0} {list.items?.length === 1 ? "film" : "films"}
+                    </span>
+                    {list.tags && list.tags.length > 0 && (
+                      <>
+                        <span>•</span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {list.tags.slice(0, 3).map((tag) => (
+                            <Badge key={tag} variant="secondary" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                          {list.tags.length > 3 && (
+                            <span className="text-xs">+{list.tags.length - 3} more</span>
+                          )}
+                        </div>
+                      </>
                     )}
-                  </div>
-                </div>
-
-                {/* User Info */}
-                <div className="flex items-center gap-3">
-                  <Link href={`/users/${user?.id}`}>
-                    <Avatar className="h-10 w-10 cursor-pointer hover:opacity-80 transition-opacity">
-                      <AvatarImage src={user?.avatarUrl || undefined} />
-                      <AvatarFallback>
-                        {displayName.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Link>
-                  <div className="flex-1 min-w-0">
-                    <Link href={`/users/${user?.id}`}>
-                      <p className="font-medium hover:underline cursor-pointer">{displayName}</p>
+                    <span>•</span>
+                    <span>Updated {format(new Date(list.updatedAt), "MMM d, yyyy")}</span>
+                    <span>•</span>
+                    <Badge variant="outline" className="text-xs">
+                      {list.visibility === "PUBLIC" ? "Public" : list.visibility === "FOLLOWERS_ONLY" ? "Followers Only" : "Private"}
+                    </Badge>
+                    <span>•</span>
+                    <Link href={`/users/${user?.id}`} className="hover:text-primary transition-colors cursor-pointer">
+                      By {displayName}
                     </Link>
-                    {username && (
-                      <p className="text-sm text-muted-foreground">@{username}</p>
-                    )}
                   </div>
-                  {!isOwner && user?.id && (
-                    <FollowButton userId={user.id} />
-                  )}
                 </div>
-
-                {/* Meta Info */}
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <span>{list.items?.length || 0} films</span>
-                  {list.tags && list.tags.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      {list.tags.slice(0, 3).map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                      {list.tags.length > 3 && (
-                        <span className="text-xs">+{list.tags.length - 3} more</span>
-                      )}
-                    </div>
+                
+                {/* Actions */}
+                <div className="flex items-center gap-2">
+                  {/* Like Button - Only for PUBLIC or FOLLOWERS_ONLY lists */}
+                  {canLike && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleLike}
+                      className="cursor-pointer"
+                    >
+                      <Heart
+                        className={`h-5 w-5 ${isLiked ? "fill-red-500 text-red-500" : ""}`}
+                      />
+                    </Button>
                   )}
-                  <span>Updated {format(new Date(list.updatedAt), "MMM d, yyyy")}</span>
-                  <Badge variant="outline" className="text-xs">
-                    {list.visibility === "PUBLIC" ? "Public" : list.visibility === "FOLLOWERS_ONLY" ? "Followers Only" : "Private"}
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-2">
-                {/* Like Button - Only for PUBLIC or FOLLOWERS_ONLY lists */}
-                {canLike && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handleLike}
-                    className="cursor-pointer"
-                  >
-                    <Heart
-                      className={`h-5 w-5 ${isLiked ? "fill-red-500 text-red-500" : ""}`}
-                    />
-                  </Button>
-                )}
-                {isOwner && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="cursor-pointer">
-                        <MoreVertical className="h-5 w-5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={handleShare} className="cursor-pointer">
-                        <Share2 className="h-4 w-4 mr-2" />
-                        Share
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setIsEditModalOpen(true)} className="cursor-pointer">
-                        <Edit2 className="h-4 w-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => setIsDeleteDialogOpen(true)}
-                        className="text-destructive cursor-pointer"
+                  {isOwner ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={handleShare}
+                        className="gap-2 cursor-pointer"
                       >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-                {!isOwner && (
-                  <Button variant="outline" size="icon" onClick={handleShare} className="cursor-pointer">
-                    <Share2 className="h-5 w-5" />
-                  </Button>
-                )}
+                        <Share2 className="h-4 w-4" />
+                        Share
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="icon" className="cursor-pointer">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setIsEditModalOpen(true)} className="cursor-pointer">
+                            <Edit2 className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => setIsDeleteDialogOpen(true)}
+                            className="text-destructive cursor-pointer"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </>
+                  ) : (
+                    user?.id && (
+                      <>
+                        <FollowButton userId={user.id} />
+                        <Button variant="outline" onClick={handleShare} className="gap-2 cursor-pointer">
+                          <Share2 className="h-4 w-4" />
+                          Share
+                        </Button>
+                      </>
+                    )
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -737,6 +744,16 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
           list={list}
+        />
+      )}
+
+      {/* Share Dialog */}
+      {list && (
+        <ShareListDialog
+          list={list}
+          isOpen={isShareDialogOpen}
+          onClose={() => setIsShareDialogOpen(false)}
+          isOwnList={isOwner}
         />
       )}
 

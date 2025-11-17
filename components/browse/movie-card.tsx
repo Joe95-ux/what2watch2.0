@@ -250,11 +250,6 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
             {/* Top Section: Video Playback Area with Badges */}
             <div 
               className="absolute top-0 left-0 right-0 h-[60%] flex items-center justify-center overflow-hidden rounded-t-lg"
-              style={{
-                backgroundImage: posterPath ? `url(${getPosterUrl(posterPath, "w500")})` : undefined,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
             >
               {/* Trailer Preview (desktop hover only - no autoplay on mobile or dashboard) */}
               {shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && (
@@ -357,8 +352,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
             {/* Bottom Section: Content Info */}
             <div className={cn(
               "absolute bottom-0 left-0 right-0 space-y-2 rounded-b-lg",
-              isMobile ? "p-2.5" : "p-4",
-              !isMobile && variant !== "dashboard" && "bg-black/95"
+              isMobile ? "p-2.5" : "p-4"
             )}>
               {/* Action Buttons Row - Left: Play & Add to Playlist, Right: Expand */}
               <div className={cn(
