@@ -450,12 +450,14 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                 "flex items-center",
                 isMobile ? "gap-1" : "gap-2"
               )}>
-                <div className="flex items-center gap-0.5">
-                  <Star className={cn("text-yellow-400 fill-yellow-400", isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
-                  <span className={cn("font-semibold text-white", isMobile ? "text-[10px]" : "text-xs")}>
-                    {item.vote_average.toFixed(1)}
-                  </span>
-                </div>
+                {item.vote_average !== undefined && item.vote_average > 0 && (
+                  <div className="flex items-center gap-0.5">
+                    <Star className={cn("text-yellow-400 fill-yellow-400", isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
+                    <span className={cn("font-semibold text-white", isMobile ? "text-[10px]" : "text-xs")}>
+                      {item.vote_average.toFixed(1)}
+                    </span>
+                  </div>
+                )}
                 {year && (
                   <>
                     <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-xs")}>•</span>
