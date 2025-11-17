@@ -351,7 +351,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
 
             {/* Bottom Section: Content Info */}
             <div className={cn(
-              "absolute bottom-0 left-0 right-0 space-y-2 rounded-b-lg",
+              "absolute bottom-0 left-0 right-0 space-y-2 rounded-b-lg bg-black/80",
               isMobile ? "p-2.5" : "p-4"
             )}>
               {/* Action Buttons Row - Left: Play & Add to Playlist, Right: Expand */}

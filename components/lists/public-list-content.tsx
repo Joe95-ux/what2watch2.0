@@ -532,7 +532,7 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
         </div>
 
         {/* List Items */}
-        <div className="container mx-auto px-4 py-8">
+        <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {itemsWithPosition.length > 0 ? (
             <>
               {/* Filters and Sort */}
