@@ -37,6 +37,7 @@ import { FollowButton } from "@/components/social/follow-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import { format, formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import CreateListModal from "./create-list-modal";
@@ -560,18 +561,21 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
 
           {/* Comments Section */}
           {(list.visibility === "PUBLIC" || list.visibility === "FOLLOWERS_ONLY") && (
-            <ListCommentsSection
-              listId={list.id}
-              comments={comments}
-              isLoading={commentsLoading}
-              filter={commentFilter}
-              onFilterChange={setCommentFilter}
-              currentUser={currentUser}
-              isListOwner={isOwner}
-              onBlockUser={handleBlockUser}
-              onUnblockUser={handleUnblockUser}
-              blockedUsers={list.blockedUsers || []}
-            />
+            <>
+              <Separator className="my-12" />
+              <ListCommentsSection
+                listId={list.id}
+                comments={comments}
+                isLoading={commentsLoading}
+                filter={commentFilter}
+                onFilterChange={setCommentFilter}
+                currentUser={currentUser}
+                isListOwner={isOwner}
+                onBlockUser={handleBlockUser}
+                onUnblockUser={handleUnblockUser}
+                blockedUsers={list.blockedUsers || []}
+              />
+            </>
           )}
         </div>
       </div>
@@ -655,8 +659,6 @@ function ListCommentsSection({
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [replySubmittingId, setReplySubmittingId] = useState<string | null>(null);
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
-  const [editingContent, setEditingContent] = useState("");
   const [showAllComments, setShowAllComments] = useState(false);
   const createComment = useCreateListComment();
   const updateComment = useUpdateListComment();
@@ -709,16 +711,14 @@ function ListCommentsSection({
     }
   };
 
-  const handleEditComment = async (commentId: string) => {
-    if (!editingContent.trim()) return;
+  const handleEditComment = async (commentId: string, content: string) => {
+    if (!content.trim()) return;
     try {
       await updateComment.mutateAsync({
         listId,
         commentId,
-        content: editingContent.trim(),
+        content: content.trim(),
       });
-      setEditingCommentId(null);
-      setEditingContent("");
       toast.success("Comment updated");
     } catch {
       toast.error("Failed to update comment");
@@ -735,9 +735,8 @@ function ListCommentsSection({
   };
 
   return (
-    <div className="mt-12">
-      <div className="max-w-3xl mx-auto sm:bg-card sm:border sm:rounded-lg sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
+    <div className="max-w-3xl mx-auto px-4 sm:px-0">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
           <h3 className="text-2xl font-bold">Comments ({comments.length})</h3>
           <Select value={filter} onValueChange={onFilterChange}>
             <SelectTrigger className="w-[160px]">
@@ -752,53 +751,54 @@ function ListCommentsSection({
           </Select>
         </div>
 
-        <div className="space-y-6">
-          {currentUser && (
-            <div className="flex items-start gap-3 pb-4 border-b">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={currentUser.avatarUrl || undefined} />
-                <AvatarFallback>
-                  {(currentUser.displayName || currentUser.username || "U").charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <Textarea
-                  placeholder="Add a comment..."
-                  rows={3}
-                  className="resize-none"
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                />
-                <Button
-                  size="sm"
-                  className="mt-2"
-                  onClick={handlePostComment}
-                  disabled={!newComment.trim() || createComment.isPending}
-                >
-                  {createComment.isPending ? "Posting..." : "Post Comment"}
-                </Button>
-              </div>
+      <div className="space-y-6">
+        {currentUser && (
+          <div className="flex items-start gap-3 pb-4 border-b border-border">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={currentUser.avatarUrl || undefined} />
+              <AvatarFallback>
+                {(currentUser.displayName || currentUser.username || "U").charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <Textarea
+                placeholder="Add a comment..."
+                rows={3}
+                className="resize-none"
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+              />
+              <Button
+                size="sm"
+                className="mt-2"
+                onClick={handlePostComment}
+                disabled={!newComment.trim() || createComment.isPending}
+              >
+                {createComment.isPending ? "Posting..." : "Post Comment"}
+              </Button>
             </div>
-          )}
+          </div>
+        )}
 
-          {isLoading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex gap-3">
-                  <Skeleton className="h-8 w-8 rounded-full" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-16 w-full" />
-                  </div>
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex gap-3">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-16 w-full" />
                 </div>
-              ))}
-            </div>
-          ) : primaryComments.length === 0 ? (
-            <div className="text-center text-muted-foreground py-8">
-              <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>No comments yet. Be the first to comment!</p>
-            </div>
-          ) : (
+              </div>
+            ))}
+          </div>
+        ) : primaryComments.length === 0 ? (
+          <div className="text-center text-muted-foreground py-8">
+            <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p>No comments yet. Be the first to comment!</p>
+          </div>
+        ) : (
+          <>
             <div className="space-y-6">
               {displayedComments.map((comment) => (
                 <CommentItem
@@ -807,17 +807,6 @@ function ListCommentsSection({
                   currentUser={currentUser}
                   onDelete={handleDeleteComment}
                   onEdit={handleEditComment}
-                  editingCommentId={editingCommentId}
-                  editingContent={editingContent}
-                  onEditingContentChange={setEditingContent}
-                  onStartEdit={(id: string, content: string) => {
-                    setEditingCommentId(id);
-                    setEditingContent(content);
-                  }}
-                  onCancelEdit={() => {
-                    setEditingCommentId(null);
-                    setEditingContent("");
-                  }}
                   replyingTo={replyingTo}
                   replyContent={replyContent}
                   onReply={(commentId: string) => {
@@ -834,8 +823,8 @@ function ListCommentsSection({
                   isListOwner={isListOwner}
                   onBlockUser={onBlockUser}
                   onUnblockUser={onUnblockUser}
-                  isUserBlocked={blockedUsers.includes(comment.userId)}
-                  isReplySubmitting={replySubmittingId === comment.id}
+                  blockedUsers={blockedUsers}
+                  replySubmittingId={replySubmittingId}
                 />
               ))}
 
@@ -862,8 +851,8 @@ function ListCommentsSection({
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -874,12 +863,7 @@ interface CommentItemProps {
   comment: ListComment;
   currentUser: { id: string; username: string; displayName: string | null; avatarUrl: string | null } | null;
   onDelete: (commentId: string) => void;
-  onEdit: (commentId: string) => Promise<void>;
-  editingCommentId: string | null;
-  editingContent: string;
-  onEditingContentChange: (content: string) => void;
-  onStartEdit: (id: string, content: string) => void;
-  onCancelEdit: () => void;
+  onEdit: (commentId: string, content: string) => Promise<void>;
   replyingTo: string | null;
   replyContent: string;
   onReply: (commentId: string) => void;
@@ -890,8 +874,9 @@ interface CommentItemProps {
   isListOwner: boolean;
   onBlockUser: (userId: string) => void;
   onUnblockUser: (userId: string) => void;
-  isUserBlocked: boolean;
-  isReplySubmitting: boolean;
+  blockedUsers: string[];
+  replySubmittingId: string | null;
+  depth?: number;
 }
 
 function CommentItem({
@@ -899,11 +884,6 @@ function CommentItem({
   currentUser,
   onDelete,
   onEdit,
-  editingCommentId,
-  editingContent,
-  onEditingContentChange,
-  onStartEdit,
-  onCancelEdit,
   replyingTo,
   replyContent,
   onReply,
@@ -914,17 +894,23 @@ function CommentItem({
   isListOwner,
   onBlockUser,
   onUnblockUser,
-  isUserBlocked,
-  isReplySubmitting,
+  blockedUsers,
+  replySubmittingId,
+  depth = 0,
 }: CommentItemProps) {
   const isOwner = currentUser?.id === comment.userId;
   const isReplying = replyingTo === comment.id;
-  const isEditing = editingCommentId === comment.id;
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(comment.content);
+  const [isSaving, setIsSaving] = useState(false);
   const displayName = comment.user.displayName || comment.user.username || "Unknown";
+  const isUserBlocked = blockedUsers.includes(comment.userId);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const addReaction = useAddListCommentReaction();
   const removeReaction = useRemoveListCommentReaction();
+  const replies = comment.replies || [];
+  const isReplySubmitting = replySubmittingId === comment.id;
 
   // Close emoji picker when clicking outside
   useEffect(() => {
@@ -939,6 +925,12 @@ function CommentItem({
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [showEmojiPicker]);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setEditContent(comment.content);
+    }
+  }, [comment.content, isEditing]);
 
   // Group reactions by type
   const reactions = comment.reactions || [];
@@ -1019,8 +1011,21 @@ function CommentItem({
     }
   };
 
+  const handleSaveEdit = async () => {
+    if (!editContent.trim() || isSaving) return;
+    setIsSaving(true);
+    try {
+      await onEdit(comment.id, editContent.trim());
+      setIsEditing(false);
+    } catch {
+      // handled upstream
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
-    <div className="space-y-4">
+    <div className={cn("space-y-4", depth > 0 && "ml-4 border-l border-border/60 pl-4")}>
       <div className="flex gap-3">
         <Link href={`/users/${comment.user.id}`}>
           <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity">
@@ -1045,7 +1050,10 @@ function CommentItem({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => onStartEdit(comment.id, comment.content)}
+                      onClick={() => {
+                        setIsEditing(true);
+                        setEditContent(comment.content);
+                      }}
                       className="h-7 px-2 cursor-pointer"
                     >
                       <Edit className="h-3 w-3" />
@@ -1101,24 +1109,25 @@ function CommentItem({
           {isEditing ? (
             <div className="space-y-2">
               <Textarea
-                value={editingContent}
-                onChange={(e) => onEditingContentChange(e.target.value)}
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
                 className="min-h-[80px]"
               />
               <div className="flex gap-2">
                 <Button
                   size="sm"
-                  onClick={() => onEdit(comment.id)}
-                  disabled={!editingContent.trim()}
-                  className="cursor-pointer"
+                  onClick={handleSaveEdit}
+                  disabled={!editContent.trim() || isSaving}
                 >
-                  Save
+                  {isSaving ? "Saving..." : "Save"}
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={onCancelEdit}
-                  className="cursor-pointer"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditContent(comment.content);
+                  }}
                 >
                   Cancel
                 </Button>
@@ -1129,7 +1138,7 @@ function CommentItem({
           )}
 
           {!isEditing && (
-            <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2 flex-wrap">
               {currentUser && (
                 <button
                   onClick={() => onReply(comment.id)}
@@ -1139,10 +1148,8 @@ function CommentItem({
                   Reply
                 </button>
               )}
-              
-              {/* Reactions */}
-              <div className="flex items-center gap-2">
-                {/* Like button */}
+
+              <div className="flex items-center gap-2 flex-wrap">
                 {currentUser && (
                   <button
                     onClick={handleToggleLike}
@@ -1156,8 +1163,7 @@ function CommentItem({
                     {comment.likes > 0 && <span>{comment.likes}</span>}
                   </button>
                 )}
-                
-                {/* Emoji picker button */}
+
                 {currentUser && (
                   <div className="relative" ref={emojiPickerRef}>
                     <button
@@ -1168,22 +1174,15 @@ function CommentItem({
                     </button>
                     {showEmojiPicker && (
                       <div className="absolute bottom-full left-0 mb-2 z-50">
-                        <div className="relative">
-                          <EmojiPicker
-                            onEmojiClick={handleEmojiClick}
-                            width={300}
-                            height={400}
-                          />
-                        </div>
+                        <EmojiPicker onEmojiClick={handleEmojiClick} width={300} height={400} />
                       </div>
                     )}
                   </div>
                 )}
-                
-                {/* Display emoji reactions */}
+
                 {Object.entries(reactionsByType)
                   .filter(([type]) => type !== "like")
-                  .map(([emoji, reactions]) => {
+                  .map(([emoji, reactionList]) => {
                     const userHasReacted = userEmojiReactions.some((r) => r.reactionType === emoji);
                     return (
                       <button
@@ -1197,10 +1196,10 @@ function CommentItem({
                           "flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs hover:bg-muted transition-colors",
                           userHasReacted && "bg-muted"
                         )}
-                        title={`${reactions.length} ${emoji}`}
+                        title={`${reactionList.length} ${emoji}`}
                       >
                         <span>{emoji}</span>
-                        {reactions.length > 1 && <span>{reactions.length}</span>}
+                        {reactionList.length > 1 && <span>{reactionList.length}</span>}
                       </button>
                     );
                   })}
@@ -1208,7 +1207,6 @@ function CommentItem({
             </div>
           )}
 
-          {/* Reply Input */}
           {isReplying && (
             <div className="mt-3 ml-4 space-y-2">
               <Textarea
@@ -1222,7 +1220,6 @@ function CommentItem({
                   size="sm"
                   onClick={() => onPostReply(comment.id)}
                   disabled={!replyContent.trim() || isReplySubmitting}
-                  className="cursor-pointer"
                 >
                   <Send className="h-3 w-3 mr-1" />
                   {isReplySubmitting ? "Posting..." : "Reply"}
@@ -1231,7 +1228,6 @@ function CommentItem({
                   size="sm"
                   variant="outline"
                   onClick={onCancelReply}
-                  className="cursor-pointer"
                 >
                   Cancel
                 </Button>
@@ -1239,65 +1235,30 @@ function CommentItem({
             </div>
           )}
 
-          {/* Replies */}
-          {comment.replies && comment.replies.length > 0 && (
-            <div className="mt-4 ml-4 space-y-4 border-l-2 pl-4">
-              {comment.replies.map((reply) => {
-                const replyDisplayName = reply.user.displayName || reply.user.username || "Unknown";
-                const replyIsOwner = currentUser?.id === reply.userId;
-                return (
-                  <div key={reply.id} className="flex gap-3">
-                    <Link href={`/users/${reply.user.id}`}>
-                      <Avatar className="h-7 w-7 cursor-pointer hover:opacity-80 transition-opacity">
-                        <AvatarImage src={reply.user.avatarUrl || undefined} />
-                        <AvatarFallback>{replyDisplayName.charAt(0).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                    </Link>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <div>
-                          <Link href={`/users/${reply.user.id}`}>
-                            <p className="font-medium text-sm hover:underline cursor-pointer">{replyDisplayName}</p>
-                          </Link>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
-                          </p>
-                        </div>
-                        {(replyIsOwner || isListOwner) && (
-                          <div className="flex items-center gap-1">
-                            {isListOwner && !replyIsOwner && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  if (confirm("Are you sure you want to delete this reply?")) {
-                                    onDelete(reply.id);
-                                  }
-                                }}
-                                className="h-7 px-2 text-destructive hover:text-destructive cursor-pointer"
-                                title="Delete reply"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            )}
-                            {replyIsOwner && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => onDelete(reply.id)}
-                                className="h-7 px-2 text-destructive hover:text-destructive cursor-pointer"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      <p className="text-sm whitespace-pre-wrap break-words">{reply.content}</p>
-                    </div>
-                  </div>
-                );
-              })}
+          {replies.length > 0 && (
+            <div className="space-y-4">
+              {replies.map((reply) => (
+                <CommentItem
+                  key={reply.id}
+                  comment={reply}
+                  currentUser={currentUser}
+                  onDelete={onDelete}
+                  onEdit={onEdit}
+                  replyingTo={replyingTo}
+                  replyContent={replyContent}
+                  onReply={onReply}
+                  onReplyContentChange={onReplyContentChange}
+                  onPostReply={onPostReply}
+                  onCancelReply={onCancelReply}
+                  listId={listId}
+                  isListOwner={isListOwner}
+                  onBlockUser={onBlockUser}
+                  onUnblockUser={onUnblockUser}
+                  blockedUsers={blockedUsers}
+                  replySubmittingId={replySubmittingId}
+                  depth={depth + 1}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -1305,4 +1266,3 @@ function CommentItem({
     </div>
   );
 }
-
