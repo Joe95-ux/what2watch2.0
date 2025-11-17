@@ -233,6 +233,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
           <div
             className={cn(
               "absolute inset-0 rounded-lg transition-all duration-300",
+              !isMobile && variant !== "dashboard" && "transition-transform duration-500 ease-out group-hover:scale-105",
               shouldShowOverlay ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1 pointer-events-none",
               (isMobile || variant === "dashboard") && "opacity-100 translate-y-0 pointer-events-auto"
             )}
