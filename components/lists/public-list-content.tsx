@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import NextImage from "next/image";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
@@ -9,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Share2, Edit2, MoreVertical } from "lucide-react";
 import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
-import type { List } from "@/hooks/use-lists";
+import { useList, useDeleteList } from "@/hooks/use-lists";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +28,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useDeleteList } from "@/hooks/use-lists";
 import { useIsListLiked, useLikeList, useUnlikeList } from "@/hooks/use-list-likes";
 import { useListComments, useCreateListComment, useDeleteListComment, useUpdateListComment, type ListComment } from "@/hooks/use-list-comments";
 import { Ban, UserX } from "lucide-react";
@@ -37,17 +37,15 @@ import { FollowButton } from "@/components/social/follow-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import CreateListModal from "./create-list-modal";
 import ShareListDialog from "./share-list-dialog";
-import { Heart, MessageSquare, Send, Edit2 as Edit, Trash2, Reply, Smile } from "lucide-react";
+import { Heart, MessageSquare, Send, Edit2 as Edit, Trash2, Reply, Smile, Filter, ChevronDown, ChevronUp } from "lucide-react";
 import { getPosterUrl } from "@/lib/tmdb";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import { useMemo, useRef } from "react";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import { cn } from "@/lib/utils";
 import { useAddListCommentReaction, useRemoveListCommentReaction } from "@/hooks/use-list-comments";
@@ -60,20 +58,13 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
   const router = useRouter();
   const { data: currentUser } = useCurrentUser();
   const deleteList = useDeleteList();
+  const queryClient = useQueryClient();
+  const { data: list, isLoading, error } = useList(listId);
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
-  const [list, setList] = useState<List | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [commentFilter, setCommentFilter] = useState("newest");
-  const [newComment, setNewComment] = useState("");
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
-  const [editingContent, setEditingContent] = useState("");
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
-  const [replyContent, setReplyContent] = useState("");
   
   // Filter and sort state
   const [searchQuery, setSearchQuery] = useState("");
@@ -81,7 +72,13 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
   const [sortBy, setSortBy] = useState<"position" | "title" | "year">("position");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
-  const isOwner = Boolean(currentUserId && list && currentUserId === list.userId);
+  const refreshList = () => {
+    queryClient.invalidateQueries({ queryKey: ["list", listId] });
+    queryClient.invalidateQueries({ queryKey: ["public-lists"] });
+    queryClient.invalidateQueries({ queryKey: ["lists"] });
+  };
+
+  const isOwner = Boolean(currentUser?.id && list && currentUser.id === list.userId);
 
   // Like functionality
   const { data: likeStatus } = useIsListLiked(list?.id || null);
@@ -92,9 +89,6 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
 
   // Comments functionality
   const { data: comments = [], isLoading: commentsLoading } = useListComments(list?.id || "", commentFilter);
-  const createComment = useCreateListComment();
-  const updateComment = useUpdateListComment();
-  const deleteComment = useDeleteListComment();
 
   // Block/unblock user
   const handleBlockUser = async (userId: string) => {
@@ -110,8 +104,7 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
         throw new Error(error.error || "Failed to block user");
       }
       toast.success("User blocked from commenting");
-      // Refresh list to get updated blockedUsers
-      window.location.reload();
+      refreshList();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to block user";
       toast.error(errorMessage);
@@ -129,38 +122,12 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
         throw new Error(error.error || "Failed to unblock user");
       }
       toast.success("User unblocked");
-      // Refresh list to get updated blockedUsers
-      window.location.reload();
+      refreshList();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to unblock user";
       toast.error(errorMessage);
     }
   };
-
-  useEffect(() => {
-    const fetchList = async () => {
-      try {
-        setIsLoading(true);
-        const res = await fetch(`/api/lists/${listId}`);
-        if (!res.ok) {
-          const data = await res.json();
-          setError(data.error || "Failed to load list");
-          return;
-        }
-        const data = await res.json();
-        setList(data.list);
-        // Get current user ID from API response
-        setCurrentUserId(data.currentUserId || null);
-      } catch (err) {
-        setError("Failed to load list");
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchList();
-  }, [listId]);
 
   // Note: Owners can access the public view to moderate comments
   // If they want the dashboard view, they can navigate there manually
@@ -192,62 +159,6 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
         onSuccess: () => toast.success("Added to your library"),
         onError: () => toast.error("Failed to add list"),
       });
-    }
-  };
-
-  const handlePostComment = async () => {
-    if (!list || !newComment.trim()) return;
-    try {
-      await createComment.mutateAsync({
-        listId: list.id,
-        content: newComment.trim(),
-      });
-      setNewComment("");
-      toast.success("Comment posted");
-    } catch {
-      toast.error("Failed to post comment");
-    }
-  };
-
-  const handlePostReply = async (parentCommentId: string) => {
-    if (!list || !replyContent.trim()) return;
-    try {
-      await createComment.mutateAsync({
-        listId: list.id,
-        content: replyContent.trim(),
-        parentCommentId,
-      });
-      setReplyContent("");
-      setReplyingTo(null);
-      toast.success("Reply posted");
-    } catch {
-      toast.error("Failed to post reply");
-    }
-  };
-
-  const handleEditComment = async (commentId: string) => {
-    if (!list || !editingContent.trim()) return;
-    try {
-      await updateComment.mutateAsync({
-        listId: list.id,
-        commentId,
-        content: editingContent.trim(),
-      });
-      setEditingCommentId(null);
-      setEditingContent("");
-      toast.success("Comment updated");
-    } catch {
-      toast.error("Failed to update comment");
-    }
-  };
-
-  const handleDeleteComment = async (commentId: string) => {
-    if (!list) return;
-    try {
-      await deleteComment.mutateAsync({ listId: list.id, commentId });
-      toast.success("Comment deleted");
-    } catch {
-      toast.error("Failed to delete comment");
     }
   };
 
@@ -373,12 +284,15 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
     );
   }
 
-  if (error || !list) {
+  const errorMessage: string | null =
+    error instanceof Error ? error.message : error ? String(error) : null;
+
+  if (errorMessage || !list) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold">List not found</h1>
-          <p className="text-muted-foreground">{error || "This list doesn't exist or is private."}</p>
+          <p className="text-muted-foreground">{errorMessage || "This list doesn't exist or is private."}</p>
           <Button onClick={() => router.back()} className="cursor-pointer">Go Back</Button>
         </div>
       </div>
@@ -646,104 +560,18 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
 
           {/* Comments Section */}
           {(list.visibility === "PUBLIC" || list.visibility === "FOLLOWERS_ONLY") && (
-            <div className="mt-12 border-t pt-8">
-              <div className="max-w-3xl mx-auto">
-                <h2 className="text-2xl font-bold mb-6">Comments</h2>
-
-                {/* Comment Input */}
-                {currentUser && (
-                  <div className="mb-6">
-                    <Textarea
-                      placeholder="Add a comment..."
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      className="min-h-[100px] mb-2"
-                    />
-                    <div className="flex justify-end">
-                      <Button
-                        onClick={handlePostComment}
-                        disabled={!newComment.trim() || createComment.isPending}
-                        className="cursor-pointer"
-                      >
-                        <Send className="h-4 w-4 mr-2" />
-                        Post Comment
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Comment Filter */}
-                <div className="mb-4">
-                  <Tabs value={commentFilter} onValueChange={setCommentFilter}>
-                    <TabsList>
-                      <TabsTrigger value="newest" className="cursor-pointer">Newest</TabsTrigger>
-                      <TabsTrigger value="oldest" className="cursor-pointer">Oldest</TabsTrigger>
-                      <TabsTrigger value="most-liked" className="cursor-pointer">Most Liked</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                </div>
-
-                {/* Comments List */}
-                {commentsLoading ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="flex gap-3">
-                        <Skeleton className="h-8 w-8 rounded-full" />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton className="h-4 w-24" />
-                          <Skeleton className="h-16 w-full" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : comments.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-8">
-                    <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p>No comments yet. Be the first to comment!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {comments.map((comment) => (
-                      <CommentItem
-                        key={comment.id}
-                        comment={comment}
-                        currentUser={currentUser}
-                        onDelete={handleDeleteComment}
-                        onEdit={handleEditComment}
-                        editingCommentId={editingCommentId}
-                        editingContent={editingContent}
-                        onEditingContentChange={setEditingContent}
-                        onStartEdit={(id: string, content: string) => {
-                          setEditingCommentId(id);
-                          setEditingContent(content);
-                        }}
-                        onCancelEdit={() => {
-                          setEditingCommentId(null);
-                          setEditingContent("");
-                        }}
-                        replyingTo={replyingTo}
-                        replyContent={replyContent}
-                        onReply={(commentId: string) => {
-                          setReplyingTo(commentId);
-                          setReplyContent("");
-                        }}
-                        onReplyContentChange={setReplyContent}
-                        onPostReply={handlePostReply}
-                        onCancelReply={() => {
-                          setReplyingTo(null);
-                          setReplyContent("");
-                        }}
-                        listId={list.id}
-                        isListOwner={isOwner}
-                        onBlockUser={handleBlockUser}
-                        onUnblockUser={handleUnblockUser}
-                        isUserBlocked={list.blockedUsers?.includes(comment.userId) || false}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+            <ListCommentsSection
+              listId={list.id}
+              comments={comments}
+              isLoading={commentsLoading}
+              filter={commentFilter}
+              onFilterChange={setCommentFilter}
+              currentUser={currentUser}
+              isListOwner={isOwner}
+              onBlockUser={handleBlockUser}
+              onUnblockUser={handleUnblockUser}
+              blockedUsers={list.blockedUsers || []}
+            />
           )}
         </div>
       </div>
@@ -798,6 +626,249 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
   );
 }
 
+interface ListCommentsSectionProps {
+  listId: string;
+  comments: ListComment[];
+  isLoading: boolean;
+  filter: string;
+  onFilterChange: (filter: string) => void;
+  currentUser: { id: string; username: string; displayName: string | null; avatarUrl: string | null } | null;
+  isListOwner: boolean;
+  onBlockUser: (userId: string) => void;
+  onUnblockUser: (userId: string) => void;
+  blockedUsers: string[];
+}
+
+function ListCommentsSection({
+  listId,
+  comments,
+  isLoading,
+  filter,
+  onFilterChange,
+  currentUser,
+  isListOwner,
+  onBlockUser,
+  onUnblockUser,
+  blockedUsers,
+}: ListCommentsSectionProps) {
+  const [newComment, setNewComment] = useState("");
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState("");
+  const [replySubmittingId, setReplySubmittingId] = useState<string | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
+  const [showAllComments, setShowAllComments] = useState(false);
+  const createComment = useCreateListComment();
+  const updateComment = useUpdateListComment();
+  const deleteComment = useDeleteListComment();
+
+  const primaryComments = useMemo(() => {
+    const topLevel = comments.filter((comment) => !comment.parentCommentId);
+    return topLevel.length > 0 ? topLevel : comments;
+  }, [comments]);
+
+  const COMMENTS_PER_PAGE = 10;
+  const shouldShowToggle = primaryComments.length > COMMENTS_PER_PAGE;
+  const displayedComments = showAllComments ? primaryComments : primaryComments.slice(0, COMMENTS_PER_PAGE);
+  const remainingCount = Math.max(0, primaryComments.length - COMMENTS_PER_PAGE);
+
+  useEffect(() => {
+    setShowAllComments(false);
+  }, [filter]);
+
+  const handlePostComment = async () => {
+    if (!newComment.trim()) return;
+    try {
+      await createComment.mutateAsync({
+        listId,
+        content: newComment.trim(),
+      });
+      setNewComment("");
+      toast.success("Comment posted");
+    } catch {
+      toast.error("Failed to post comment");
+    }
+  };
+
+  const handlePostReply = async (parentCommentId: string) => {
+    if (!replyContent.trim()) return;
+    try {
+      setReplySubmittingId(parentCommentId);
+      await createComment.mutateAsync({
+        listId,
+        content: replyContent.trim(),
+        parentCommentId,
+      });
+      setReplyContent("");
+      setReplyingTo(null);
+      toast.success("Reply posted");
+    } catch {
+      toast.error("Failed to post reply");
+    } finally {
+      setReplySubmittingId(null);
+    }
+  };
+
+  const handleEditComment = async (commentId: string) => {
+    if (!editingContent.trim()) return;
+    try {
+      await updateComment.mutateAsync({
+        listId,
+        commentId,
+        content: editingContent.trim(),
+      });
+      setEditingCommentId(null);
+      setEditingContent("");
+      toast.success("Comment updated");
+    } catch {
+      toast.error("Failed to update comment");
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      await deleteComment.mutateAsync({ listId, commentId });
+      toast.success("Comment deleted");
+    } catch {
+      toast.error("Failed to delete comment");
+    }
+  };
+
+  return (
+    <div className="mt-12">
+      <div className="max-w-3xl mx-auto sm:bg-card sm:border sm:rounded-lg sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
+          <h3 className="text-2xl font-bold">Comments ({comments.length})</h3>
+          <Select value={filter} onValueChange={onFilterChange}>
+            <SelectTrigger className="w-[160px]">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest</SelectItem>
+              <SelectItem value="oldest">Oldest</SelectItem>
+              <SelectItem value="most-liked">Most Liked</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-6">
+          {currentUser && (
+            <div className="flex items-start gap-3 pb-4 border-b">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={currentUser.avatarUrl || undefined} />
+                <AvatarFallback>
+                  {(currentUser.displayName || currentUser.username || "U").charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <Textarea
+                  placeholder="Add a comment..."
+                  rows={3}
+                  className="resize-none"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                />
+                <Button
+                  size="sm"
+                  className="mt-2"
+                  onClick={handlePostComment}
+                  disabled={!newComment.trim() || createComment.isPending}
+                >
+                  {createComment.isPending ? "Posting..." : "Post Comment"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {isLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex gap-3">
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-16 w-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : primaryComments.length === 0 ? (
+            <div className="text-center text-muted-foreground py-8">
+              <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No comments yet. Be the first to comment!</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {displayedComments.map((comment) => (
+                <CommentItem
+                  key={comment.id}
+                  comment={comment}
+                  currentUser={currentUser}
+                  onDelete={handleDeleteComment}
+                  onEdit={handleEditComment}
+                  editingCommentId={editingCommentId}
+                  editingContent={editingContent}
+                  onEditingContentChange={setEditingContent}
+                  onStartEdit={(id: string, content: string) => {
+                    setEditingCommentId(id);
+                    setEditingContent(content);
+                  }}
+                  onCancelEdit={() => {
+                    setEditingCommentId(null);
+                    setEditingContent("");
+                  }}
+                  replyingTo={replyingTo}
+                  replyContent={replyContent}
+                  onReply={(commentId: string) => {
+                    setReplyingTo(commentId);
+                    setReplyContent("");
+                  }}
+                  onReplyContentChange={setReplyContent}
+                  onPostReply={handlePostReply}
+                  onCancelReply={() => {
+                    setReplyingTo(null);
+                    setReplyContent("");
+                  }}
+                  listId={listId}
+                  isListOwner={isListOwner}
+                  onBlockUser={onBlockUser}
+                  onUnblockUser={onUnblockUser}
+                  isUserBlocked={blockedUsers.includes(comment.userId)}
+                  isReplySubmitting={replySubmittingId === comment.id}
+                />
+              ))}
+
+              {shouldShowToggle && (
+                <div className="flex justify-center pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAllComments(!showAllComments)}
+                    className="flex items-center gap-2"
+                  >
+                    {showAllComments ? (
+                      <>
+                        <ChevronUp className="h-4 w-4" />
+                        Show Less
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4" />
+                        Show More ({remainingCount} more)
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Comment Item Component
 interface CommentItemProps {
   comment: ListComment;
@@ -820,6 +891,7 @@ interface CommentItemProps {
   onBlockUser: (userId: string) => void;
   onUnblockUser: (userId: string) => void;
   isUserBlocked: boolean;
+  isReplySubmitting: boolean;
 }
 
 function CommentItem({
@@ -843,6 +915,7 @@ function CommentItem({
   onBlockUser,
   onUnblockUser,
   isUserBlocked,
+  isReplySubmitting,
 }: CommentItemProps) {
   const isOwner = currentUser?.id === comment.userId;
   const isReplying = replyingTo === comment.id;
@@ -1148,11 +1221,11 @@ function CommentItem({
                 <Button
                   size="sm"
                   onClick={() => onPostReply(comment.id)}
-                  disabled={!replyContent.trim()}
+                  disabled={!replyContent.trim() || isReplySubmitting}
                   className="cursor-pointer"
                 >
                   <Send className="h-3 w-3 mr-1" />
-                  Reply
+                  {isReplySubmitting ? "Posting..." : "Reply"}
                 </Button>
                 <Button
                   size="sm"

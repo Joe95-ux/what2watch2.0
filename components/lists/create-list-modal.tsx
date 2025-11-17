@@ -28,13 +28,14 @@ interface CreateListModalProps {
   isOpen: boolean;
   onClose: () => void;
   list?: List;
+  onSuccess?: (list: List) => void;
 }
 
 interface ListItemWithData extends ListItem {
   tmdbData?: TMDBMovie | TMDBSeries;
 }
 
-export default function CreateListModal({ isOpen, onClose, list }: CreateListModalProps) {
+export default function CreateListModal({ isOpen, onClose, list, onSuccess }: CreateListModalProps) {
   const createList = useCreateList();
   const updateList = useUpdateList();
   const [step, setStep] = useState<1 | 2>(1);
@@ -195,8 +196,10 @@ export default function CreateListModal({ isOpen, onClose, list }: CreateListMod
         position: index + 1, // Use index-based position
       }));
 
+      let result: List;
+
       if (isEditing && list) {
-        await updateList.mutateAsync({
+        result = await updateList.mutateAsync({
           listId: list.id,
           name: name.trim(),
           description: description.trim() || undefined,
@@ -206,7 +209,7 @@ export default function CreateListModal({ isOpen, onClose, list }: CreateListMod
         });
         toast.success("List updated");
       } else {
-        await createList.mutateAsync({
+        result = await createList.mutateAsync({
           name: name.trim(),
           description: description.trim() || undefined,
           visibility,
@@ -215,6 +218,7 @@ export default function CreateListModal({ isOpen, onClose, list }: CreateListMod
         });
         toast.success("List created");
       }
+      onSuccess?.(result);
       onClose();
     } catch (error) {
       toast.error(isEditing ? "Failed to update list" : "Failed to create list");

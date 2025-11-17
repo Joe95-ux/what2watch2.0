@@ -237,83 +237,89 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
           {/* Overlay Content */}
           <div
             className={cn(
-              "absolute inset-0 flex flex-col rounded-lg overflow-hidden transition-all duration-300",
+              "absolute inset-0 transition-all duration-300",
               shouldShowOverlay ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1 pointer-events-none",
               (isMobile || variant === "dashboard") && "opacity-100 translate-y-0 pointer-events-auto"
             )}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="relative flex-1 min-h-[45%]">
-              {shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && (
-                <div className="absolute inset-0 z-0 pointer-events-none">
-                  <iframe
-                    key={`${finalTrailer.key}-${isVideoMuted}`}
-                    src={getYouTubeEmbedUrl(finalTrailer.key, true, isVideoMuted)}
-                    className="w-full h-full"
-                    allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    style={{ pointerEvents: "none" }}
-                    title="Trailer"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-transparent" />
-                </div>
-              )}
-
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent pointer-events-none" />
-
-              <div className="absolute top-3 left-3 z-20 pointer-events-auto flex items-center gap-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <CircleActionButton
-                      size="sm"
-                      onClick={async (e: React.MouseEvent) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        await toggleFavorite.toggle(item, type);
-                      }}
-                    >
-                      <Heart
-                        className={cn(
-                          "h-3 w-3",
-                          toggleFavorite.isFavorite(item.id, type)
-                            ? "text-red-500 fill-red-500"
-                            : "text-white"
-                        )}
-                      />
-                    </CircleActionButton>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <CircleActionButton
-                      size="sm"
-                      onClick={async (e: React.MouseEvent) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        await toggleWatchlist.toggle(item, type);
-                      }}
-                    >
-                      <Bookmark
-                        className={cn(
-                          "h-3 w-3",
-                          toggleWatchlist.isInWatchlist(item.id, type)
-                            ? "text-blue-500 fill-blue-500"
-                            : "text-white"
-                        )}
-                      />
-                    </CircleActionButton>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from Watchlist" : "Add to Watchlist"}</p>
-                  </TooltipContent>
-                </Tooltip>
+            {/* Trailer preview layer */}
+            {shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && (
+              <div className="absolute inset-0 z-10 overflow-hidden">
+                <iframe
+                  key={`${finalTrailer.key}-${isVideoMuted}`}
+                  src={getYouTubeEmbedUrl(finalTrailer.key, true, isVideoMuted)}
+                  className="w-full h-full"
+                  allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  style={{ pointerEvents: "none" }}
+                  title="Trailer"
+                />
               </div>
+            )}
 
-              {shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && (
-                <div className="absolute right-3 top-3 z-20 pointer-events-auto">
+            {/* Overlay gradient */}
+            <div className="absolute inset-0 z-20 bg-gradient-to-t from-black/95 via-black/75 to-transparent" />
+
+            <div
+              className={cn(
+                "relative z-30 h-full w-full flex flex-col text-white",
+                isMobile || variant === "dashboard" ? "p-3" : "p-4"
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <CircleActionButton
+                        size="sm"
+                        onClick={async (e: React.MouseEvent) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          await toggleFavorite.toggle(item, type);
+                        }}
+                      >
+                        <Heart
+                          className={cn(
+                            "h-3 w-3",
+                            toggleFavorite.isFavorite(item.id, type)
+                              ? "text-red-500 fill-red-500"
+                              : "text-white"
+                          )}
+                        />
+                      </CircleActionButton>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <CircleActionButton
+                        size="sm"
+                        onClick={async (e: React.MouseEvent) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          await toggleWatchlist.toggle(item, type);
+                        }}
+                      >
+                        <Bookmark
+                          className={cn(
+                            "h-3 w-3",
+                            toggleWatchlist.isInWatchlist(item.id, type)
+                              ? "text-blue-500 fill-blue-500"
+                              : "text-white"
+                          )}
+                        />
+                      </CircleActionButton>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from Watchlist" : "Add to Watchlist"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+
+                {shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -337,141 +343,140 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                       <p>{isVideoMuted ? "Unmute" : "Mute"}</p>
                     </TooltipContent>
                   </Tooltip>
-                </div>
-              )}
-            </div>
-
-            <div
-              className={cn(
-                "relative bg-black/80 space-y-2 pointer-events-auto",
-                isMobile || variant === "dashboard" ? "p-3" : "p-4"
-              )}
-            >
-              {/* Action Buttons Row - Left: Play & Add to Playlist, Right: Expand */}
-              <div className={cn(
-                "flex items-center justify-between mb-2",
-                isMobile ? "gap-1" : "gap-1.5"
-              )}>
-                {/* Left: Play & Add to Playlist */}
-                <div className="flex items-center gap-1.5">
-                  {/* Play Trailer Button */}
-                  <Button
-                    size="sm"
-                    className={cn(
-                      "rounded-full bg-black/60 hover:bg-black/80 text-white font-medium cursor-pointer backdrop-blur-sm border border-white/20",
-                      isMobile ? "h-6 px-2 text-[10px]" : "h-7 px-3 text-xs"
-                    )}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setIsModalOpen(false);
-                      setIsTrailerModalOpen(true);
-
-                      if (!cachedVideosData?.results && attemptedFetchRef.current !== item.id && !isLoadingTrailer) {
-                        fetchTrailerVideos();
-                      }
-                    }}
-                  >
-                    <Play className={cn("fill-white text-white", isMobile ? "h-2.5 w-2.5 mr-0.5" : "h-3 w-3 mr-1")} />
-                    {!isMobile && "Trailer"}
-                  </Button>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div>
-                        <AddToPlaylistDropdown
-                          item={item}
-                          type={type}
-                          onAddSuccess={onAddToPlaylist}
-                          trigger={
-                            <CircleActionButton
-                              size={isMobile ? "sm" : "sm"}
-                              onClick={(e: React.MouseEvent) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }}
-                            >
-                              <Plus className={cn("text-white", isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
-                            </CircleActionButton>
-                          }
-                        />
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Add to Playlist</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-
-                {/* Right: Expand Button */}
-                {variant === "more-like-this" ? (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="rounded-full p-0 bg-white hover:bg-white/90 text-black shadow-lg hover:shadow-xl transition-all cursor-pointer flex items-center justify-center h-7 w-7"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setIsModalOpen(true);
-                    }}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/30 cursor-pointer h-7 w-7"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setIsModalOpen(true);
-                    }}
-                  >
-                    <Maximize2 className="text-white h-3 w-3" />
-                  </Button>
                 )}
               </div>
 
-              {/* Rating and Type */}
-              <div className={cn(
-                "flex items-center",
-                isMobile ? "gap-1" : "gap-2"
-              )}>
-                {item.vote_average !== undefined && item.vote_average > 0 && (
-                  <div className="flex items-center gap-0.5">
-                    <Star className={cn("text-yellow-400 fill-yellow-400", isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
-                    <span className={cn("font-semibold text-white", isMobile ? "text-[10px]" : "text-xs")}>
-                      {item.vote_average.toFixed(1)}
-                    </span>
+              <div className="mt-auto space-y-2">
+                {/* Action Buttons Row */}
+                <div
+                  className={cn(
+                    "flex items-center justify-between mb-2",
+                    isMobile ? "gap-1" : "gap-1.5"
+                  )}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      size="sm"
+                      className={cn(
+                        "rounded-full bg-black/60 hover:bg-black/80 text-white font-medium cursor-pointer backdrop-blur-sm border border-white/20",
+                        isMobile ? "h-6 px-2 text-[10px]" : "h-7 px-3 text-xs"
+                      )}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsModalOpen(false);
+                        setIsTrailerModalOpen(true);
+
+                        if (!cachedVideosData?.results && attemptedFetchRef.current !== item.id && !isLoadingTrailer) {
+                          fetchTrailerVideos();
+                        }
+                      }}
+                    >
+                      <Play className={cn("fill-white text-white", isMobile ? "h-2.5 w-2.5 mr-0.5" : "h-3 w-3 mr-1")} />
+                      {!isMobile && "Trailer"}
+                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <AddToPlaylistDropdown
+                            item={item}
+                            type={type}
+                            onAddSuccess={onAddToPlaylist}
+                            trigger={
+                              <CircleActionButton
+                                size="sm"
+                                onClick={(e: React.MouseEvent) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }}
+                              >
+                                <Plus className={cn("text-white", isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
+                              </CircleActionButton>
+                            }
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Add to Playlist</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
+
+                  {variant === "more-like-this" ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="rounded-full p-0 bg-white hover:bg-white/90 text-black shadow-lg hover:shadow-xl transition-all cursor-pointer flex items-center justify-center h-7 w-7"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsModalOpen(true);
+                      }}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/30 cursor-pointer h-7 w-7"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsModalOpen(true);
+                      }}
+                    >
+                      <Maximize2 className="text-white h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+
+                <div
+                  className={cn(
+                    "flex items-center",
+                    isMobile ? "gap-1" : "gap-2"
+                  )}
+                >
+                  {item.vote_average !== undefined && item.vote_average > 0 && (
+                    <div className="flex items-center gap-0.5">
+                      <Star className={cn("text-yellow-400 fill-yellow-400", isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
+                      <span className={cn("font-semibold text-white", isMobile ? "text-[10px]" : "text-xs")}>
+                        {item.vote_average.toFixed(1)}
+                      </span>
+                    </div>
+                  )}
+                  {year && (
+                    <>
+                      <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-xs")}>•</span>
+                      <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-xs")}>{year}</span>
+                    </>
+                  )}
+                  <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-xs")}>•</span>
+                  <span className={cn("text-white/80 uppercase", isMobile ? "text-[10px]" : "text-xs")}>
+                    {type === "movie" ? "Movie" : "TV"}
+                  </span>
+                </div>
+
+                <h3
+                  className={cn(
+                    "font-bold text-white line-clamp-1",
+                    isMobile ? "text-xs" : "text-sm"
+                  )}
+                >
+                  {title}
+                </h3>
+
+                {item.overview && (
+                  <p
+                    className={cn(
+                      "text-white/90 line-clamp-2 leading-relaxed",
+                      isMobile ? "text-[10px]" : "text-xs"
+                    )}
+                  >
+                    {item.overview}
+                  </p>
                 )}
-                {year && (
-                  <>
-                    <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-xs")}>•</span>
-                    <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-xs")}>{year}</span>
-                  </>
-                )}
-                <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-xs")}>•</span>
-                <span className={cn("text-white/80 uppercase", isMobile ? "text-[10px]" : "text-xs")}>
-                  {type === "movie" ? "Movie" : "TV"}
-                </span>
               </div>
-
-              {/* Title */}
-              <h3 className={cn(
-                "font-bold text-white line-clamp-1",
-                isMobile ? "text-xs" : "text-sm"
-              )}>{title}</h3>
-
-              {/* Overview */}
-              {item.overview && (
-                <p className={cn(
-                  "text-white/90 line-clamp-2 leading-relaxed",
-                  isMobile ? "text-[10px]" : "text-xs"
-                )}>
-                  {item.overview}
-                </p>
-              )}
             </div>
           </div>
         </div>
