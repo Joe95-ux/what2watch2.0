@@ -486,12 +486,14 @@ export default function LandingPage() {
         <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-4xl text-center">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border bg-muted/50 px-4 py-1.5 text-sm font-medium text-muted-foreground">
-              <Sparkles className="h-4 w-4 text-primary" />
+              <Sparkles className="h-4 w-4 text-primary [&>path]:fill-current [&>path]:stroke-none" />
               Discover what to watch next
             </div>
             <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-              Your personal
-              <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent"> watchlist</span>
+              Your personal{" "}
+              <span className="inline-block bg-gradient-to-r from-primary to-primary/60 bg-clip-text [-webkit-background-clip:text] [background-clip:text] text-transparent [color:transparent] [&::selection]:bg-primary/20 [&::selection]:text-primary">
+                watchlist
+              </span>
               <br />
               companion
             </h1>
@@ -656,8 +658,8 @@ export default function LandingPage() {
                 key={index}
                 className="rounded-lg border bg-card p-6"
               >
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <feature.icon className="h-6 w-6" />
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                  <feature.icon className="h-6 w-6 text-primary [&>path]:fill-current [&>path]:stroke-none" />
                 </div>
                 <h3 className="mb-2 text-lg font-semibold">{feature.title}</h3>
                 <p className="text-sm text-muted-foreground">{feature.description}</p>

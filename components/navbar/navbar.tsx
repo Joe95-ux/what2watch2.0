@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser, SignInButton, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -33,6 +33,20 @@ export default function Navbar() {
   const { isSignedIn, isLoaded } = useUser();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isSheetMounted, setIsSheetMounted] = useState(false);
+
+  // Delay content rendering until Sheet animation completes to prevent flicker
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      setIsSheetMounted(false);
+      const timer = setTimeout(() => {
+        setIsSheetMounted(true);
+      }, 300); // 300ms delay - allows Sheet animation to start smoothly before content renders
+      return () => clearTimeout(timer);
+    } else {
+      setIsSheetMounted(false);
+    }
+  }, [mobileMenuOpen]);
 
   // Check if we're on dashboard page
   // Exclude /dashboard/ai/discover from dashboard layout (search should be on right)
@@ -124,11 +138,13 @@ export default function Navbar() {
                   />
                 </SheetTrigger>
                 <SheetContent side="right" className="w-[300px] sm:w-[400px] pt-6">
-                  <MobileNav 
-                    navLinks={navLinks} 
-                    pathname={pathname}
-                    onLinkClick={() => setMobileMenuOpen(false)}
-                  />
+                  {isSheetMounted && (
+                    <MobileNav 
+                      navLinks={navLinks} 
+                      pathname={pathname}
+                      onLinkClick={() => setMobileMenuOpen(false)}
+                    />
+                  )}
                 </SheetContent>
               </Sheet>
 
@@ -194,11 +210,13 @@ export default function Navbar() {
                 />
               </SheetTrigger>
               <SheetContent side="right" className="w-[300px] sm:w-[400px] pt-6">
-                <MobileNav 
-                  navLinks={navLinks} 
-                  pathname={pathname}
-                  onLinkClick={() => setMobileMenuOpen(false)}
-                />
+                {isSheetMounted && (
+                  <MobileNav 
+                    navLinks={navLinks} 
+                    pathname={pathname}
+                    onLinkClick={() => setMobileMenuOpen(false)}
+                  />
+                )}
               </SheetContent>
             </Sheet>
 

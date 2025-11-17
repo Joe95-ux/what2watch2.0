@@ -55,9 +55,15 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const debouncedQuery = useDebounce(query, 300);
+  const [isMounted, setIsMounted] = useState(false);
 
   // Check if mobile (using standard md breakpoint: 768px)
   const isMobile = useIsMobile();
+
+  // Prevent hydration mismatch by only showing content after mount
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     // Fetch genres for filter dropdown
@@ -171,6 +177,27 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
   };
 
   const hasActiveFilters = filters.type !== "all" || filters.genre.length > 0 || filters.year || filters.minRating > 0;
+
+  // Don't render until mounted to prevent hydration mismatch
+  if (!isMounted) {
+    return (
+      <div className="relative">
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "h-9 w-9 transition-colors duration-300",
+            hasHeroSection && "hover:bg-black/20 text-white"
+          )}
+        >
+          <SearchIcon className={cn(
+            "h-5 w-5 transition-colors duration-300",
+            hasHeroSection && "text-white"
+          )} />
+        </Button>
+      </div>
+    );
+  }
 
   // Mobile: Icon that expands to full-width search
   if (isMobile) {
