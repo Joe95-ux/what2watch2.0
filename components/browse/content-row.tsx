@@ -207,10 +207,10 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
             paddingRight: scrollProgress > 0 ? '0px' : `${currentPadding}px`, // Remove right padding when scrolled
           }}
         >
-          <div className="overflow-visible" ref={emblaRef}>
+          <div className="overflow-hidden" ref={emblaRef}>
             <div className="flex gap-3">
               {items.map((item) => (
-                <div key={item.id} className="relative flex-shrink-0 w-[180px] sm:w-[200px] overflow-visible">
+                <div key={item.id} className="relative flex-shrink-0 w-[180px] sm:w-[200px] overflow-hidden">
                   <MovieCard 
                     item={item} 
                     type={"title" in item ? "movie" : "tv"}

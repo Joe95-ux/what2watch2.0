@@ -50,7 +50,7 @@ export default function QuickFilters({
   onSurpriseMe,
   className,
 }: QuickFiltersProps) {
-  const [selectedMood, setSelectedMood] = useState<MoodFilter>("any");
+  const [selectedMood, setSelectedMood] = useState<MoodFilter>("light");
   const [selectedDuration, setSelectedDuration] = useState<DurationFilter>("any");
   const [selectedYear, setSelectedYear] = useState<YearFilter>("any");
 
