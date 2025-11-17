@@ -11,17 +11,23 @@ import ContentRow from "./content-row";
 import RecentlyViewed from "./recently-viewed";
 import QuickFilters, { MoodFilter, DurationFilter, YearFilter } from "./quick-filters";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useSearch } from "@/hooks/use-search";
 import ListCard from "./list-card";
 import PlaylistCard from "./playlist-card";
-import useEmblaCarousel from "embla-carousel-react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ChevronRight as CaretRight } from "lucide-react";
 import { List } from "@/hooks/use-lists";
 import { Playlist } from "@/hooks/use-playlists";
+import Link from "next/link";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 interface BrowseContentProps {
   favoriteGenres: number[];
@@ -56,7 +62,6 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
       light: [35, 10751, 16], // Comedy, Family, Animation
       dark: [27, 53, 80], // Horror, Thriller, Crime
       funny: [35], // Comedy
-      serious: [18, 36], // Drama, History
       romantic: [10749], // Romance
       thrilling: [28, 53, 12], // Action, Thriller, Adventure
     };
@@ -171,7 +176,7 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
             onYearChange={setYearFilter}
             onSurpriseMe={() => {
               // Random filter selection
-              const moods: MoodFilter[] = ["light", "dark", "funny", "serious", "romantic", "thrilling"];
+              const moods: MoodFilter[] = ["light", "dark", "funny", "romantic", "thrilling"];
               const durations: DurationFilter[] = ["quick", "medium", "long"];
               const years: YearFilter[] = ["recent", "2010s", "2000s", "classic"];
               setMoodFilter(moods[Math.floor(Math.random() * moods.length)]);
@@ -213,8 +218,18 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
         {/* Popular Section with Tabs */}
         <div className="mb-12 px-4 sm:px-6 lg:px-8">
           <Tabs value={popularTab} onValueChange={(v) => setPopularTab(v as "movies" | "tv")}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-medium text-foreground">Popular</h2>
+            <div className="group flex items-center gap-4 mb-6">
+              <Link 
+                href={popularTab === "movies" ? "/browse/movies/popular" : "/browse/tv/popular"}
+                className="inline-flex items-center gap-2 transition-all duration-300"
+              >
+                <h2 className="text-2xl font-medium text-foreground group-hover:text-primary transition-colors">
+                  Popular
+                </h2>
+                <CaretRight 
+                  className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" 
+                />
+              </Link>
               <TabsList>
                 <TabsTrigger value="movies">Movies</TabsTrigger>
                 <TabsTrigger value="tv">TV Shows</TabsTrigger>
@@ -250,37 +265,6 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
 
 // Curated Lists Section Component
 function CuratedListsSection({ lists, playlists }: { lists: List[]; playlists: Playlist[] }) {
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    align: "start",
-    slidesToScroll: 5,
-    breakpoints: {
-      "(max-width: 640px)": { slidesToScroll: 2 },
-      "(max-width: 1024px)": { slidesToScroll: 3 },
-      "(max-width: 1280px)": { slidesToScroll: 4 },
-    },
-  });
-
-  const [canScrollPrev, setCanScrollPrev] = useState(false);
-  const [canScrollNext, setCanScrollNext] = useState(false);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-    const updateScrollState = () => {
-      setCanScrollPrev(emblaApi.canScrollPrev());
-      setCanScrollNext(emblaApi.canScrollNext());
-    };
-    updateScrollState();
-    emblaApi.on("select", updateScrollState);
-    emblaApi.on("reInit", updateScrollState);
-    return () => {
-      emblaApi.off("select", updateScrollState);
-      emblaApi.off("reInit", updateScrollState);
-    };
-  }, [emblaApi]);
-
-  const scrollPrev = () => emblaApi?.scrollPrev();
-  const scrollNext = () => emblaApi?.scrollNext();
-
   // Combine lists and playlists
   const allItems = [
     ...lists.map((list) => ({ type: "list" as const, data: list })),
@@ -292,50 +276,37 @@ function CuratedListsSection({ lists, playlists }: { lists: List[]; playlists: P
   return (
     <div className="mb-12 px-4 sm:px-6 lg:px-8">
       <h2 className="text-2xl font-medium text-foreground mb-6">Explore Curated Lists</h2>
-      <div className="relative">
-        {canScrollPrev && (
-          <button
-            onClick={scrollPrev}
-            className={cn(
-              "absolute left-0 top-0 h-full z-40",
-              "w-[45px] flex items-center justify-center",
-              "bg-black/60 hover:bg-black/80 backdrop-blur-sm",
-              "rounded-l-lg rounded-r-none border-0 cursor-pointer transition-all duration-200",
-              "hidden md:flex"
-            )}
-            aria-label="Scroll left"
-          >
-            <ChevronLeft className="h-6 w-6 text-white" />
-          </button>
-        )}
-        {canScrollNext && (
-          <button
-            onClick={scrollNext}
-            className={cn(
-              "absolute right-0 top-0 h-full z-40",
-              "w-[45px] flex items-center justify-center",
-              "bg-black/60 hover:bg-black/80 backdrop-blur-sm",
-              "rounded-r-lg rounded-l-none border-0 cursor-pointer transition-all duration-200",
-              "hidden md:flex"
-            )}
-            aria-label="Scroll right"
-          >
-            <ChevronRight className="h-6 w-6 text-white" />
-          </button>
-        )}
-        <div className="overflow-hidden" ref={emblaRef}>
-          <div className="flex gap-3">
+      <div className="relative group">
+        <Carousel
+          opts={{
+            align: "start",
+            slidesToScroll: 5,
+            breakpoints: {
+              "(max-width: 640px)": { slidesToScroll: 2 },
+              "(max-width: 1024px)": { slidesToScroll: 3 },
+              "(max-width: 1280px)": { slidesToScroll: 4 },
+            },
+          }}
+          className="w-full"
+        >
+          <CarouselContent className="-ml-2 md:-ml-4 gap-3">
             {allItems.map((item) => (
-              <div key={`${item.type}-${item.data.id}`} className="flex-shrink-0 w-[180px] sm:w-[200px] overflow-hidden">
+              <CarouselItem key={`${item.type}-${item.data.id}`} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px]">
                 {item.type === "list" ? (
                   <ListCard list={item.data} variant="carousel" />
                 ) : (
                   <PlaylistCard playlist={item.data} variant="carousel" />
                 )}
-              </div>
+              </CarouselItem>
             ))}
-          </div>
-        </div>
+          </CarouselContent>
+          <CarouselPrevious 
+            className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+          />
+          <CarouselNext 
+            className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+          />
+        </Carousel>
       </div>
     </div>
   );

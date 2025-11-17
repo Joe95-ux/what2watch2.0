@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Sparkles, Clock, Calendar, Shuffle } from "lucide-react";
+import { Shuffle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type MoodFilter = "any" | "light" | "dark" | "funny" | "serious" | "romantic" | "thrilling";
+export type MoodFilter = "any" | "light" | "dark" | "funny" | "romantic" | "thrilling";
 export type DurationFilter = "any" | "quick" | "medium" | "long";
 export type YearFilter = "any" | "recent" | "2010s" | "2000s" | "classic";
 
@@ -23,7 +22,6 @@ const moodOptions: { value: MoodFilter; label: string }[] = [
   { value: "light", label: "Light" },
   { value: "dark", label: "Dark" },
   { value: "funny", label: "Funny" },
-  { value: "serious", label: "Serious" },
   { value: "romantic", label: "Romantic" },
   { value: "thrilling", label: "Thrilling" },
 ];

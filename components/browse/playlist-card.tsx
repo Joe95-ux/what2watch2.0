@@ -51,7 +51,6 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
     <div
       className={cn(
         "group relative cursor-pointer",
-        "transition-transform duration-300 hover:scale-105",
         variant === "carousel" && "flex-shrink-0 w-[180px] sm:w-[200px]",
         variant === "grid" && "w-full",
         className
@@ -65,7 +64,7 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
             src={coverImage}
             alt={playlist.name}
             fill
-            className="object-cover"
+            className="object-cover transition-transform duration-500 group-hover:scale-110"
             sizes="(max-width: 640px) 180px, 200px"
           />
         ) : (

@@ -135,32 +135,34 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
   return (
     <>
     <div className="mb-12">
-      {/* Title with padding */}
-      <div className="px-4 sm:px-6 lg:px-8 mb-6 flex items-center justify-between">
-        <Link 
-          href={titleHref}
-          className="group/title inline-flex items-center gap-2 transition-all duration-300"
-        >
-          <h2 className="text-2xl font-medium text-foreground group-hover/title:text-primary transition-colors">
-            {title}
-          </h2>
-          <CaretRight 
-            className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover/title:opacity-100 group-hover/title:translate-x-0 transition-all duration-300" 
-          />
-        </Link>
-        {showClearButton && onClear && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClear}
-            disabled={isClearing}
-            className="text-muted-foreground hover:text-foreground"
+      {/* Title with padding - Only render if title is not empty */}
+      {title && (
+        <div className="px-4 sm:px-6 lg:px-8 mb-6 flex items-center justify-between">
+          <Link 
+            href={titleHref}
+            className="group/title inline-flex items-center gap-2 transition-all duration-300"
           >
-            <Trash2 className="h-4 w-4 mr-2" />
-            {isClearing ? "Clearing..." : "Clear"}
-          </Button>
-        )}
-      </div>
+            <h2 className="text-2xl font-medium text-foreground group-hover/title:text-primary transition-colors">
+              {title}
+            </h2>
+            <CaretRight 
+              className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover/title:opacity-100 group-hover/title:translate-x-0 transition-all duration-300" 
+            />
+          </Link>
+          {showClearButton && onClear && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClear}
+              disabled={isClearing}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              {isClearing ? "Clearing..." : "Clear"}
+            </Button>
+          )}
+        </div>
+      )}
       
       {/* Carousel container - starts with padding, expands to full width on scroll */}
       <div className="relative">

@@ -55,6 +55,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useClerk } from "@clerk/nextjs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DashboardSubnav } from "./dashboard-subnav";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -368,7 +369,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="overflow-x-hidden min-w-0">
-        <div className="w-full min-w-0">
+        {/* Dashboard Subnav - Fixed under navbar */}
+        <DashboardSubnav />
+        {/* Add padding-top to account for fixed subnav */}
+        <div className="w-full min-w-0 pt-12">
           {children}
         </div>
       </SidebarInset>

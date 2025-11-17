@@ -35,7 +35,6 @@ export default function ListCard({ list, className, variant = "carousel" }: List
     <div
       className={cn(
         "group relative cursor-pointer",
-        "transition-transform duration-300 hover:scale-105",
         variant === "carousel" && "flex-shrink-0 w-[180px] sm:w-[200px]",
         variant === "grid" && "w-full",
         className
@@ -45,7 +44,7 @@ export default function ListCard({ list, className, variant = "carousel" }: List
       <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-muted border border-border hover:border-primary/50 transition-colors">
         {/* Deck of Cards Effect - Stacked like Letterboxd */}
         {hasDeckEffect ? (
-          <div className="relative w-full h-full">
+          <div className="relative w-full h-full overflow-hidden">
             {posters.map((poster, index) => {
               // Each card is slightly offset to reveal the one below
               // Top card (index 0) has no offset, each subsequent card is offset by 3px
@@ -66,7 +65,7 @@ export default function ListCard({ list, className, variant = "carousel" }: List
                     src={poster}
                     alt={`${list.name} - Film ${index + 1}`}
                     fill
-                    className="object-cover rounded-lg"
+                    className="object-cover rounded-lg transition-transform duration-500 group-hover:scale-110"
                     sizes="(max-width: 640px) 180px, 200px"
                   />
                 </div>
@@ -78,7 +77,7 @@ export default function ListCard({ list, className, variant = "carousel" }: List
             src={posters[0]}
             alt={list.name}
             fill
-            className="object-cover"
+            className="object-cover transition-transform duration-500 group-hover:scale-110"
             sizes="(max-width: 640px) 180px, 200px"
           />
         ) : list.coverImage ? (
@@ -86,7 +85,7 @@ export default function ListCard({ list, className, variant = "carousel" }: List
             src={list.coverImage}
             alt={list.name}
             fill
-            className="object-cover"
+            className="object-cover transition-transform duration-500 group-hover:scale-110"
             sizes="(max-width: 640px) 180px, 200px"
           />
         ) : (
@@ -119,48 +118,34 @@ export default function ListCard({ list, className, variant = "carousel" }: List
           )}
         </div>
 
-        {/* Badge - Position indicator for ranked lists */}
-        {list.items && list.items.length > 0 && (
-          <div className="absolute top-2 left-2 z-10">
-            <div className="bg-black/80 text-white text-xs font-bold px-2 py-1 rounded">
-              #{1}
-            </div>
-          </div>
-        )}
-
-        {/* Visibility Badge */}
-        <div className="absolute top-2 right-2 z-10">
-          <div className={cn(
-            "text-xs font-medium px-2 py-1 rounded backdrop-blur-sm",
-            list.visibility === "PUBLIC" && "bg-green-500/80 text-white",
-            list.visibility === "FOLLOWERS_ONLY" && "bg-blue-500/80 text-white",
-            list.visibility === "PRIVATE" && "bg-gray-500/80 text-white"
-          )}>
-            {list.visibility === "PUBLIC" ? "Public" : list.visibility === "FOLLOWERS_ONLY" ? "Followers" : "Private"}
-          </div>
+        {/* Item Count Badge - Same as playlist card */}
+        <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm rounded-full px-2 py-1">
+          <span className="text-xs font-medium text-white">
+            {itemCount}
+          </span>
         </div>
       </div>
 
-      {/* List Title - Always visible */}
-      <div className="mt-2">
-        <h3 className="font-medium text-sm line-clamp-1">{list.name}</h3>
-        {list.description && (
-          <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-            {list.description}
-          </p>
-        )}
-        {list.tags && list.tags.length > 0 && (
-          <div className="flex items-center gap-1 mt-1 flex-wrap">
-            {list.tags.slice(0, 2).map((tag) => (
-              <span key={tag} className="text-xs text-muted-foreground">
-                #{tag}
-              </span>
-            ))}
-            {list.tags.length > 2 && (
-              <span className="text-xs text-muted-foreground">+{list.tags.length - 2}</span>
-            )}
-          </div>
-        )}
+      {/* Title below card (visible on mobile, hidden on desktop where overlay shows) - Same as playlist card */}
+      <div className="mt-2 md:hidden">
+        <h3 className="font-semibold text-sm line-clamp-1">{list.name}</h3>
+        <p className="text-xs text-muted-foreground">
+          {itemCount} {itemCount === 1 ? "film" : "films"}
+          {list.user && (
+            <>
+              {" • "}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/users/${list.user?.id}`);
+                }}
+                className="hover:text-foreground transition-colors cursor-pointer"
+              >
+                by {displayName}
+              </button>
+            </>
+          )}
+        </p>
       </div>
     </div>
   );
