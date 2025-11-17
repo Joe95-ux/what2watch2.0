@@ -234,10 +234,10 @@ export function useAddListCommentReaction() {
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: ["list-comments", variables.listId] });
 
-      const previousComments = queryClient.getQueryData<ListComment[]>([
-        "list-comments",
-        variables.listId,
-      ]);
+      const commentQueries = queryClient.getQueriesData<ListComment[]>({
+        queryKey: ["list-comments", variables.listId],
+      });
+      const previousComments = commentQueries.map(([queryKey, data]) => [queryKey, data] as const);
 
       const currentUserQueries = queryClient.getQueriesData<{ id: string; username: string; displayName: string | null; avatarUrl: string | null } | null>({
         queryKey: ["current-user"],
@@ -245,7 +245,7 @@ export function useAddListCommentReaction() {
       });
       const currentUser = currentUserQueries[0]?.[1] || null;
 
-      if (previousComments) {
+      if (commentQueries.length > 0) {
         const updateCommentWithReaction = (comment: ListComment): ListComment => {
           if (comment.id === variables.commentId) {
             const optimisticReaction: ListCommentReaction = {
@@ -284,21 +284,20 @@ export function useAddListCommentReaction() {
           return comment;
         };
 
-        const optimisticComments = previousComments.map(updateCommentWithReaction);
-
-        queryClient.setQueryData<ListComment[]>(["list-comments", variables.listId, "newest"], optimisticComments);
-        queryClient.setQueryData<ListComment[]>(["list-comments", variables.listId, "oldest"], optimisticComments);
-        queryClient.setQueryData<ListComment[]>(["list-comments", variables.listId, "most-liked"], optimisticComments);
+        commentQueries.forEach(([queryKey, comments]) => {
+          if (!comments) return;
+          const optimisticComments = comments.map(updateCommentWithReaction);
+          queryClient.setQueryData<ListComment[]>(queryKey, optimisticComments);
+        });
       }
 
       return { previousComments };
     },
     onError: (err, variables, context) => {
       if (context?.previousComments) {
-        queryClient.setQueryData<ListComment[]>(["list-comments", variables.listId], context.previousComments);
-        queryClient.setQueryData<ListComment[]>(["list-comments", variables.listId, "newest"], context.previousComments);
-        queryClient.setQueryData<ListComment[]>(["list-comments", variables.listId, "oldest"], context.previousComments);
-        queryClient.setQueryData<ListComment[]>(["list-comments", variables.listId, "most-liked"], context.previousComments);
+        context.previousComments.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
       }
     },
     onSuccess: (data, variables) => {
@@ -315,12 +314,12 @@ export function useRemoveListCommentReaction() {
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: ["list-comments", variables.listId] });
 
-      const previousComments = queryClient.getQueryData<ListComment[]>([
-        "list-comments",
-        variables.listId,
-      ]);
+      const commentQueries = queryClient.getQueriesData<ListComment[]>({
+        queryKey: ["list-comments", variables.listId],
+      });
+      const previousComments = commentQueries.map(([queryKey, data]) => [queryKey, data] as const);
 
-      if (previousComments) {
+      if (commentQueries.length > 0) {
         const updateCommentWithRemovedReaction = (comment: ListComment): ListComment => {
           if (comment.id === variables.commentId) {
             const reactions = comment.reactions || [];
@@ -348,21 +347,20 @@ export function useRemoveListCommentReaction() {
           return comment;
         };
 
-        const optimisticComments = previousComments.map(updateCommentWithRemovedReaction);
-
-        queryClient.setQueryData<ListComment[]>(["list-comments", variables.listId, "newest"], optimisticComments);
-        queryClient.setQueryData<ListComment[]>(["list-comments", variables.listId, "oldest"], optimisticComments);
-        queryClient.setQueryData<ListComment[]>(["list-comments", variables.listId, "most-liked"], optimisticComments);
+        commentQueries.forEach(([queryKey, comments]) => {
+          if (!comments) return;
+          const optimisticComments = comments.map(updateCommentWithRemovedReaction);
+          queryClient.setQueryData<ListComment[]>(queryKey, optimisticComments);
+        });
       }
 
       return { previousComments };
     },
     onError: (err, variables, context) => {
       if (context?.previousComments) {
-        queryClient.setQueryData<ListComment[]>(["list-comments", variables.listId], context.previousComments);
-        queryClient.setQueryData<ListComment[]>(["list-comments", variables.listId, "newest"], context.previousComments);
-        queryClient.setQueryData<ListComment[]>(["list-comments", variables.listId, "oldest"], context.previousComments);
-        queryClient.setQueryData<ListComment[]>(["list-comments", variables.listId, "most-liked"], context.previousComments);
+        context.previousComments.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
       }
     },
     onSuccess: (_, variables) => {

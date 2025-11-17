@@ -194,6 +194,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
           isHovered && !isMobile && "z-40",
           className
         )}
+        data-can-scroll-prev={canScrollPrev ? "" : undefined}
+        data-can-scroll-next={canScrollNext ? "" : undefined}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={(e) => {
@@ -232,26 +234,16 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
             </div>
           )}
 
-          {/* Hover Overlay with Info - Always visible on mobile, hover on desktop */}
+          {/* Overlay Content */}
           <div
             className={cn(
-              "absolute inset-0 rounded-lg gap-0",
-              isMobile || variant === "dashboard" 
-                ? "bg-gradient-to-t from-black/95 via-black/70 to-transparent"
-                : "bg-gradient-to-t from-black/95 via-black/70 to-transparent",
-              shouldShowOverlay ? "opacity-100" : "opacity-0 pointer-events-none",
-              "transition-opacity duration-300"
+              "absolute inset-0 flex flex-col rounded-lg overflow-hidden transition-all duration-300",
+              shouldShowOverlay ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1 pointer-events-none",
+              (isMobile || variant === "dashboard") && "opacity-100 translate-y-0 pointer-events-auto"
             )}
-            onClick={(e) => {
-              // Prevent card click when clicking on overlay
-              e.stopPropagation();
-            }}
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* Top Section: Video Playback Area with Badges */}
-            <div 
-              className="absolute top-0 left-0 right-0 h-[60%] flex items-center justify-center overflow-hidden rounded-t-lg"
-            >
-              {/* Trailer Preview (desktop hover only - no autoplay on mobile or dashboard) */}
+            <div className="relative flex-1 min-h-[45%]">
               {shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && (
                 <div className="absolute inset-0 z-0 pointer-events-none">
                   <iframe
@@ -263,12 +255,13 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                     style={{ pointerEvents: "none" }}
                     title="Trailer"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-transparent" />
                 </div>
               )}
 
-              {/* Top Section: Like and Watchlist Icons - Left */}
-              <div className="absolute left-3 top-3 z-20 pointer-events-auto flex items-center gap-2">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent pointer-events-none" />
+
+              <div className="absolute top-3 left-3 z-20 pointer-events-auto flex items-center gap-2">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <CircleActionButton
@@ -279,13 +272,13 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                         await toggleFavorite.toggle(item, type);
                       }}
                     >
-                      <Heart 
+                      <Heart
                         className={cn(
                           "h-3 w-3",
                           toggleFavorite.isFavorite(item.id, type)
                             ? "text-red-500 fill-red-500"
                             : "text-white"
-                        )} 
+                        )}
                       />
                     </CircleActionButton>
                   </TooltipTrigger>
@@ -303,13 +296,13 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                         await toggleWatchlist.toggle(item, type);
                       }}
                     >
-                      <Bookmark 
+                      <Bookmark
                         className={cn(
                           "h-3 w-3",
                           toggleWatchlist.isInWatchlist(item.id, type)
                             ? "text-blue-500 fill-blue-500"
                             : "text-white"
-                        )} 
+                        )}
                       />
                     </CircleActionButton>
                   </TooltipTrigger>
@@ -319,7 +312,6 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                 </Tooltip>
               </div>
 
-              {/* Audio Control Button - Extreme Right (only when video is playing) */}
               {shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && (
                 <div className="absolute right-3 top-3 z-20 pointer-events-auto">
                   <Tooltip>
@@ -349,11 +341,12 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
               )}
             </div>
 
-            {/* Bottom Section: Content Info */}
-            <div className={cn(
-              "absolute top-[60%] bottom-0 left-0 right-0 space-y-2 rounded-b-lg",
-              isMobile ? "p-2.5 bg-black/30" : "p-4 bg-black/80"
-            )}>
+            <div
+              className={cn(
+                "relative bg-black/80 space-y-2 pointer-events-auto",
+                isMobile || variant === "dashboard" ? "p-3" : "p-4"
+              )}
+            >
               {/* Action Buttons Row - Left: Play & Add to Playlist, Right: Expand */}
               <div className={cn(
                 "flex items-center justify-between mb-2",

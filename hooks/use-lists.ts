@@ -181,6 +181,7 @@ export function useUpdateList() {
   return useMutation({
     mutationFn: updateList,
     onSuccess: (data) => {
+      queryClient.setQueryData(["list", data.id], data);
       queryClient.invalidateQueries({ queryKey: ["lists"] });
       queryClient.invalidateQueries({ queryKey: ["list", data.id] });
       queryClient.invalidateQueries({ queryKey: ["public-lists"] });
