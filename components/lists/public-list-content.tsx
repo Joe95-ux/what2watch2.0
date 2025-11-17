@@ -429,9 +429,9 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back
                   </Button>
-                  <h1 className="text-4xl font-bold mb-2">{list.name}</h1>
+                  <h1 className="hidden sm:block text-4xl font-bold mb-2">{list.name}</h1>
                   {list.description && (
-                    <p className="text-lg text-muted-foreground mb-4 max-w-2xl">
+                    <p className="hidden sm:block text-lg text-muted-foreground mb-4 max-w-2xl">
                       {list.description}
                     </p>
                   )}
@@ -533,12 +533,22 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
 
         {/* List Items */}
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Mobile Title and Description Section */}
+          <div className="sm:hidden mb-6">
+            <h1 className="text-2xl font-bold mb-2">{list.name}</h1>
+            {list.description && (
+              <p className="text-sm text-muted-foreground">
+                {list.description}
+              </p>
+            )}
+          </div>
+
           {itemsWithPosition.length > 0 ? (
             <>
               {/* Filters and Sort */}
               <div className="mb-6 flex flex-wrap items-center gap-3">
                 {/* Search */}
-                <div className="relative w-72 lg:w-80 2xl:w-96">
+                <div className="relative w-72">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search list..."
@@ -550,13 +560,13 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
 
                 {/* Media Type Filter */}
                 <Select value={filterType} onValueChange={(v) => setFilterType(v as "all" | "movie" | "tv")}>
-                  <SelectTrigger className="w-[120px]">
+                  <SelectTrigger className="w-[120px] text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="movie">Movies</SelectItem>
-                    <SelectItem value="tv">TV Shows</SelectItem>
+                    <SelectItem value="all" className="text-sm">All Types</SelectItem>
+                    <SelectItem value="movie" className="text-sm">Movies</SelectItem>
+                    <SelectItem value="tv" className="text-sm">TV Shows</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -569,16 +579,16 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
                     setSortOrder(order as "asc" | "desc");
                   }}
                 >
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-[180px] text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="position-asc">Position (1-N)</SelectItem>
-                    <SelectItem value="position-desc">Position (N-1)</SelectItem>
-                    <SelectItem value="title-asc">Title (A-Z)</SelectItem>
-                    <SelectItem value="title-desc">Title (Z-A)</SelectItem>
-                    <SelectItem value="year-desc">Release Year (Newest)</SelectItem>
-                    <SelectItem value="year-asc">Release Year (Oldest)</SelectItem>
+                    <SelectItem value="position-asc" className="text-sm">Position (1-N)</SelectItem>
+                    <SelectItem value="position-desc" className="text-sm">Position (N-1)</SelectItem>
+                    <SelectItem value="title-asc" className="text-sm">Title (A-Z)</SelectItem>
+                    <SelectItem value="title-desc" className="text-sm">Title (Z-A)</SelectItem>
+                    <SelectItem value="year-desc" className="text-sm">Release Year (Newest)</SelectItem>
+                    <SelectItem value="year-asc" className="text-sm">Release Year (Oldest)</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -607,7 +617,7 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
                     return (
                       <div key={`${item.id}-${item.originalIndex}`} className="relative">
                         {/* Position Badge */}
-                        <div className="absolute top-2 left-2 z-10">
+                        <div className="absolute top-2 right-2 sm:left-2 z-10">
                           <Badge className="bg-black/80 text-white font-bold">
                             #{item.position}
                           </Badge>

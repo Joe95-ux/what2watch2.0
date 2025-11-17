@@ -235,7 +235,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
           {/* Hover Overlay with Info - Always visible on mobile, hover on desktop */}
           <div
             className={cn(
-              "absolute inset-0 rounded-lg",
+              "absolute inset-0 rounded-lg gap-0",
               isMobile || variant === "dashboard" 
                 ? "bg-gradient-to-t from-black/95 via-black/70 to-transparent"
                 : "bg-gradient-to-t from-black/95 via-black/70 to-transparent",
@@ -351,8 +351,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
 
             {/* Bottom Section: Content Info */}
             <div className={cn(
-              "absolute bottom-0 left-0 right-0 space-y-2 rounded-b-lg bg-black/80",
-              isMobile ? "p-2.5" : "p-4"
+              "absolute top-[60%] bottom-0 left-0 right-0 space-y-2 rounded-b-lg",
+              isMobile ? "p-2.5 bg-black/30" : "p-4 bg-black/80"
             )}>
               {/* Action Buttons Row - Left: Play & Add to Playlist, Right: Expand */}
               <div className={cn(
