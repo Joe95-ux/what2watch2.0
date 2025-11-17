@@ -314,7 +314,7 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
     <>
       <div className="min-h-screen bg-background">
         {/* Header with Cover */}
-        <div className="relative -mt-[65px] h-[43vh] min-h-[300px] max-h-[500px] overflow-hidden">
+        <div className="relative -mt-[65px] h-[60vh] sm:h-[70vh] min-h-[300px] max-h-[75vh] overflow-hidden">
           {coverImage ? (
             <>
               <NextImage

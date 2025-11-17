@@ -60,6 +60,14 @@ export default function ContentDetailModal({
       setCurrentType(initialType);
       setParentItem(null);
       // Reset state when modal opens
+      // Delay content rendering until Sheet animation completes to prevent flicker
+      setIsSheetMounted(false);
+      const timer = setTimeout(() => {
+        setIsSheetMounted(true);
+      }, 300); // 300ms delay - allows Sheet animation to start smoothly before content renders
+      return () => clearTimeout(timer);
+    } else {
+      setIsSheetMounted(false);
     }
   }, [initialItem, initialType, isOpen]);
   
@@ -96,6 +104,7 @@ export default function ContentDetailModal({
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay compatibility
   const isClosingRef = useRef(false);
+  const [isSheetMounted, setIsSheetMounted] = useState(false);
   
   // Track recently viewed
   const addRecentlyViewed = useAddRecentlyViewed();
@@ -460,9 +469,10 @@ export default function ContentDetailModal({
         </div>
 
         {/* Content */}
-        <div className="bg-background">
-          <div className="px-6 sm:px-8 lg:px-12 py-8">
-            {isLoading ? (
+        {isSheetMounted && (
+          <div className="bg-background">
+            <div className="px-6 sm:px-8 lg:px-12 py-8">
+              {isLoading ? (
               <div className="space-y-4">
                 <Skeleton className="h-6 w-48" />
                 <Skeleton className="h-4 w-full" />
@@ -642,6 +652,7 @@ export default function ContentDetailModal({
             )}
           </div>
         </div>
+        )}
 
         {/* Trailer Modal */}
         {selectedVideo && (

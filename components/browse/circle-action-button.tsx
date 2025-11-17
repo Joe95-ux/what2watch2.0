@@ -30,6 +30,11 @@ export function CircleActionButton({
         sizeClasses[size],
         className,
       )}
+      style={{
+        transform: "translateZ(0)",
+        willChange: "transform",
+        backfaceVisibility: "hidden",
+      }}
       {...props}
     >
       {children}

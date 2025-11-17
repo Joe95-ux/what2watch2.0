@@ -340,13 +340,14 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {itemsAsTMDB.map(({ item, type }) => (
-              <div
+              <MovieCard
                 key={`${item.id}-${type}`}
-                onClick={() => setSelectedItem({ item, type })}
-                className="cursor-pointer"
-              >
-                <MovieCard item={item} type={type} />
-              </div>
+                item={item}
+                type={type}
+                onCardClick={(clickedItem, clickedType) =>
+                  setSelectedItem({ item: clickedItem, type: clickedType })
+                }
+              />
             ))}
           </div>
         )}

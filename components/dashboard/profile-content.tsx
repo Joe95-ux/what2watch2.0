@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import PlaylistCard from "@/components/browse/playlist-card";
 import MovieCard from "@/components/browse/movie-card";
+import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { Playlist } from "@/hooks/use-playlists";
 import { Users, UserCheck, List, Star, Heart, Edit, Image as ImageIcon, KeyRound, User as UserIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -62,6 +63,7 @@ export default function DashboardProfileContent() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
   const itemsPerPage = 24;
 
   // Pagination calculations
@@ -381,6 +383,12 @@ export default function DashboardProfileContent() {
                       item={item}
                       type={type}
                       variant="dashboard"
+                      onCardClick={(clickedItem, clickedType) =>
+                        setSelectedItem({
+                          item: clickedItem,
+                          type: clickedType,
+                        })
+                      }
                     />
                   </div>
                 ))}
@@ -520,6 +528,15 @@ export default function DashboardProfileContent() {
           />
         </DialogContent>
       </Dialog>
+
+      {selectedItem && (
+        <ContentDetailModal
+          item={selectedItem.item}
+          type={selectedItem.type}
+          isOpen={!!selectedItem}
+          onClose={() => setSelectedItem(null)}
+        />
+      )}
       
     </>
   );

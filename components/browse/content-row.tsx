@@ -5,6 +5,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, ChevronRight as CaretRight, Trash2 } from "lucide-react";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import MovieCard from "./movie-card";
+import ContentDetailModal from "./content-detail-modal";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
   const carouselRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0); // 0 = start, 1 = scrolled
   const [currentPadding, setCurrentPadding] = useState(16); // Default to px-4 (16px)
+  const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
 
   const scrollPrev = () => emblaApi?.scrollPrev();
   const scrollNext = () => emblaApi?.scrollNext();
@@ -131,6 +133,7 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
   })();
 
   return (
+    <>
     <div className="mb-12">
       {/* Title with padding */}
       <div className="px-4 sm:px-6 lg:px-8 mb-6 flex items-center justify-between">
@@ -213,6 +216,12 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
                     type={"title" in item ? "movie" : "tv"}
                     canScrollPrev={canScrollPrev}
                     canScrollNext={canScrollNext}
+                    onCardClick={(clickedItem, clickedType) =>
+                      setSelectedItem({
+                        item: clickedItem,
+                        type: clickedType,
+                      })
+                    }
                   />
                 </div>
               ))}
@@ -221,6 +230,15 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
         </div>
       </div>
     </div>
+    {selectedItem && (
+      <ContentDetailModal
+        item={selectedItem.item}
+        type={selectedItem.type}
+        isOpen={!!selectedItem}
+        onClose={() => setSelectedItem(null)}
+      />
+    )}
+    </>
   );
 }
 

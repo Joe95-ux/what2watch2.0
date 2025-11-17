@@ -7,7 +7,6 @@ import { TMDBMovie, TMDBSeries, getPosterUrl, TMDBVideo, getYouTubeEmbedUrl } fr
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { CircleActionButton } from "./circle-action-button";
-import ContentDetailModal from "./content-detail-modal";
 import TrailerModal from "./trailer-modal";
 import { useToggleFavorite } from "@/hooks/use-favorites";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
@@ -23,7 +22,7 @@ interface MovieCardProps {
   canScrollPrev?: boolean;
   canScrollNext?: boolean;
   variant?: "default" | "more-like-this" | "dashboard"; // Variant for different card styles
-  onCardClick?: () => void; // Callback when card is clicked
+  onCardClick?: (item: TMDBMovie | TMDBSeries, type: "movie" | "tv") => void; // Callback when card is clicked
   onAddToPlaylist?: () => void; // Callback when item is added to playlist
 }
 
@@ -35,7 +34,6 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const toggleFavorite = useToggleFavorite();
   const toggleWatchlist = useToggleWatchlist();
   const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(true);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -54,17 +52,6 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const posterPath = item.poster_path || item.backdrop_path;
   const releaseDate = type === "movie" ? (item as TMDBMovie).release_date : (item as TMDBSeries).first_air_date;
   const year = releaseDate ? new Date(releaseDate).getFullYear() : null;
-
-  // Reset hover state when modal opens
-  useEffect(() => {
-    if (isModalOpen) {
-      setIsHovered(false);
-      setTrailer(null);
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
-      }
-    }
-  }, [isModalOpen]);
 
   // Reset fetch state when item changes
   useEffect(() => {
@@ -119,6 +106,12 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const finalHasNoVideos = !finalIsLoading && finalAllVideos.length === 0;
   const finalError = trailerError && finalAllVideos.length === 0 ? trailerError : null;
 
+  const handleOpenDetails = useCallback(() => {
+    if (onCardClick) {
+      onCardClick(item, type);
+    }
+  }, [item, onCardClick, type]);
+
   const fetchTrailerVideos = useCallback(async () => {
     // If we have cached videos, use them instead of fetching
     if (cachedVideosData?.results && cachedVideosData.results.length > 0) {
@@ -171,7 +164,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   // Fetch trailer on desktop hover only (not on mobile to save data)
   useEffect(() => {
     // Only fetch on desktop hover, not on mobile
-    if (isHovered && !isMobile && variant !== "dashboard" && !isModalOpen && attemptedFetchRef.current !== item.id) {
+    if (isHovered && !isMobile && variant !== "dashboard" && attemptedFetchRef.current !== item.id) {
       hoverTimeoutRef.current = setTimeout(() => {
         fetchTrailerVideos();
       }, 500); // 500ms delay on desktop hover
@@ -182,7 +175,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
         clearTimeout(hoverTimeoutRef.current);
       }
     };
-  }, [isHovered, isModalOpen, fetchTrailerVideos, isMobile, item.id, variant]);
+  }, [isHovered, fetchTrailerVideos, isMobile, item.id, variant]);
 
 
   return (
@@ -202,8 +195,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
           const target = e.target as HTMLElement;
           // Don't open details modal if clicking on buttons or if trailer modal is open
           if (!target.closest("button") && !target.closest('[role="button"]') && !isTrailerModalOpen) {
-            setIsModalOpen(true);
-            onCardClick?.(); // Call callback when card is clicked
+            handleOpenDetails();
           }
         }}
       >
@@ -220,6 +212,10 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
               alt={title}
               fill
               className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+              style={{
+                willChange: "transform",
+                backfaceVisibility: "hidden",
+              }}
               sizes="(max-width: 640px) 200px, 300px"
               unoptimized
             />
@@ -232,11 +228,13 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
           {/* Overlay Content */}
           <div
             className={cn(
-              "absolute inset-0 rounded-lg transition-all duration-300",
-              !isMobile && variant !== "dashboard" && "transition-transform duration-500 ease-out group-hover:scale-105",
+              "absolute inset-0 rounded-lg transition-all duration-500 ease-out",
               shouldShowOverlay ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1 pointer-events-none",
               (isMobile || variant === "dashboard") && "opacity-100 translate-y-0 pointer-events-auto"
             )}
+            style={{
+              willChange: shouldShowOverlay ? "opacity, transform" : "opacity",
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Trailer preview layer */}
@@ -262,13 +260,18 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                 "relative z-30 h-full w-full flex flex-col text-white",
                 isMobile || variant === "dashboard" ? "p-3" : "p-4"
               )}
+              style={{
+                transform: "translateZ(0)", // Force GPU acceleration
+                backfaceVisibility: "hidden", // Prevent blur on transforms
+              }}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between" style={{ transform: "translateZ(0)", willChange: "transform" }}>
                 <div className="flex items-center gap-2">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <CircleActionButton
                         size="sm"
+                        className="backdrop-blur-md"
                         onClick={async (e: React.MouseEvent) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -293,6 +296,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                     <TooltipTrigger asChild>
                       <CircleActionButton
                         size="sm"
+                        className="backdrop-blur-md"
                         onClick={async (e: React.MouseEvent) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -321,7 +325,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/30 cursor-pointer h-7 w-7"
+                        className="rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/30 cursor-pointer h-7 w-7"
+                        style={{ transform: "translateZ(0)", willChange: "transform" }}
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -354,13 +359,13 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                     <Button
                       size="sm"
                       className={cn(
-                        "rounded-full bg-black/60 hover:bg-black/70 text-white font-medium cursor-pointer backdrop-blur-sm border border-white/30",
+                        "rounded-full bg-black/60 hover:bg-black/70 text-white font-medium cursor-pointer backdrop-blur-md border border-white/30",
                         isMobile ? "h-6 px-2 text-[10px]" : "h-7 px-3 text-xs"
                       )}
+                      style={{ transform: "translateZ(0)", willChange: "transform" }}
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        setIsModalOpen(false);
                         setIsTrailerModalOpen(true);
 
                         if (!cachedVideosData?.results && attemptedFetchRef.current !== item.id && !isLoadingTrailer) {
@@ -381,6 +386,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                             trigger={
                               <CircleActionButton
                                 size="sm"
+                                className="backdrop-blur-md"
                                 onClick={(e: React.MouseEvent) => {
                                   e.preventDefault();
                                   e.stopPropagation();
@@ -406,7 +412,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        setIsModalOpen(true);
+                        handleOpenDetails();
                       }}
                     >
                       <Plus className="h-3 w-3" />
@@ -415,11 +421,12 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/30 cursor-pointer h-7 w-7"
+                      className="rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/30 cursor-pointer h-7 w-7"
+                      style={{ transform: "translateZ(0)", willChange: "transform" }}
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        setIsModalOpen(true);
+                        handleOpenDetails();
                       }}
                     >
                       <Maximize2 className="text-white h-3 w-3" />
@@ -478,14 +485,6 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
         </div>
       </div>
 
-      {/* Detail Modal */}
-      <ContentDetailModal
-        item={item}
-        type={type}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      />
-
       {/* Trailer Modal */}
       {isTrailerModalOpen && (
         <TrailerModal
@@ -497,9 +496,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
           isLoading={finalIsLoading}
           hasNoVideos={finalHasNoVideos}
           errorMessage={finalError}
-          onOpenDetails={() => {
-            setIsModalOpen(true);
-          }}
+          onOpenDetails={handleOpenDetails}
         />
       )}
     </>

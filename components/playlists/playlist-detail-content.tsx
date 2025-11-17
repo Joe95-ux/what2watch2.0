@@ -341,9 +341,11 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {paginatedItems.map(({ item, type, playlistItemId }) => (
               <div key={playlistItemId} className="relative group">
-                <div onClick={() => setSelectedItem({ item, type })} className="cursor-pointer">
-                  <MovieCard item={item} type={type} />
-                </div>
+                <MovieCard
+                  item={item}
+                  type={type}
+                  onCardClick={(clickedItem, clickedType) => setSelectedItem({ item: clickedItem, type: clickedType })}
+                />
                 {isOwnPlaylist && (
                   <Button
                     variant="ghost"

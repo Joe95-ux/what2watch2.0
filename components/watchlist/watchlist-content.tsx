@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useWatchlist, useRemoveFromWatchlist } from "@/hooks/use-watchlist";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import MovieCard from "@/components/browse/movie-card";
+import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Bookmark, Film, Tv, Trash2, Grid3x3, Table2, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
@@ -40,6 +41,7 @@ export default function WatchlistContent() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [searchQuery, setSearchQuery] = useState("");
   const [itemToRemove, setItemToRemove] = useState<{ tmdbId: number; mediaType: string; title: string } | null>(null);
+  const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
 
   // Convert watchlist items to TMDB format for display
   const watchlistAsTMDB = useMemo(() => {
@@ -182,6 +184,7 @@ export default function WatchlistContent() {
   }
 
   return (
+    <>
     <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -307,6 +310,12 @@ export default function WatchlistContent() {
                 item={item}
                 type={type}
                 variant="dashboard"
+                onCardClick={(clickedItem, clickedType) =>
+                  setSelectedItem({
+                    item: clickedItem,
+                    type: clickedType,
+                  })
+                }
               />
               <Button
                 variant="ghost"
@@ -497,6 +506,15 @@ export default function WatchlistContent() {
         </DialogContent>
       </Dialog>
     </div>
+    {selectedItem && (
+      <ContentDetailModal
+        item={selectedItem.item}
+        type={selectedItem.type}
+        isOpen={!!selectedItem}
+        onClose={() => setSelectedItem(null)}
+      />
+    )}
+    </>
   );
 }
 

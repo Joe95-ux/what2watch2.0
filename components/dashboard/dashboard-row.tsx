@@ -5,6 +5,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import MovieCard from "@/components/browse/movie-card";
+import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ export default function DashboardRow({ title, items, type, isLoading, href }: Da
 
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
 
   const scrollPrev = () => emblaApi?.scrollPrev();
   const scrollNext = () => emblaApi?.scrollNext();
@@ -63,6 +65,7 @@ export default function DashboardRow({ title, items, type, isLoading, href }: Da
   const titleHref = href || "#";
 
   return (
+    <>
     <div className="mb-6 sm:mb-8 md:mb-12">
       {/* Title and Controls Row */}
       <div className="flex items-center justify-between mb-3 sm:mb-4 md:mb-6">
@@ -110,6 +113,12 @@ export default function DashboardRow({ title, items, type, isLoading, href }: Da
                   canScrollPrev={canScrollPrev}
                   canScrollNext={canScrollNext}
                   variant="dashboard"
+                  onCardClick={(clickedItem, clickedType) =>
+                    setSelectedItem({
+                      item: clickedItem,
+                      type: clickedType,
+                    })
+                  }
                 />
               </div>
             ))}
@@ -117,6 +126,15 @@ export default function DashboardRow({ title, items, type, isLoading, href }: Da
         </div>
       </div>
     </div>
+    {selectedItem && (
+      <ContentDetailModal
+        item={selectedItem.item}
+        type={selectedItem.type}
+        isOpen={!!selectedItem}
+        onClose={() => setSelectedItem(null)}
+      />
+    )}
+    </>
   );
 }
 

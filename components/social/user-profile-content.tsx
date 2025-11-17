@@ -19,6 +19,7 @@ import {
 import PlaylistCard from "@/components/browse/playlist-card";
 import ListCard from "@/components/browse/list-card";
 import MovieCard from "@/components/browse/movie-card";
+import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { Playlist } from "@/hooks/use-playlists";
 import { List as ListType } from "@/hooks/use-lists";
 import { Users, UserCheck, List, Star, Heart, ChevronLeft, ChevronRight, ClipboardList } from "lucide-react";
@@ -40,6 +41,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   const isOwnProfile = currentUser?.id === userId;
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState<"playlists" | "lists" | "reviews" | "my-list" | "followers" | "following">("lists");
+  const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
   
   // Fetch favorites for My List tab (only if viewing own profile)
   const { data: favorites = [], isLoading: isLoadingFavorites } = useFavorites();
@@ -470,6 +472,12 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
                       item={item}
                       type={type}
                       variant="dashboard"
+                      onCardClick={(clickedItem, clickedType) =>
+                        setSelectedItem({
+                          item: clickedItem,
+                          type: clickedType,
+                        })
+                      }
                     />
                   </div>
                 ))}
@@ -585,22 +593,33 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   );
 
   return (
-    <ProfileLayout
-      bannerGradient="#061E1C"
-      displayName={displayName}
-      username={user.username || undefined}
-      bio={user.bio || undefined}
-      avatarUrl={user.avatarUrl || undefined}
-      initials={initials}
-      followersCount={followers.length}
-      followingCount={following.length}
-      playlistsCount={playlists.length}
-      listsCount={lists.length}
-      actionButton={actionButton}
-      tabs={tabs}
-      tabContent={tabContent}
-      showBackButton={true}
-      onBack={() => router.back()}
-    />
+    <>
+      <ProfileLayout
+        bannerGradient="#061E1C"
+        displayName={displayName}
+        username={user.username || undefined}
+        bio={user.bio || undefined}
+        avatarUrl={user.avatarUrl || undefined}
+        initials={initials}
+        followersCount={followers.length}
+        followingCount={following.length}
+        playlistsCount={playlists.length}
+        listsCount={lists.length}
+        actionButton={actionButton}
+        tabs={tabs}
+        tabContent={tabContent}
+        showBackButton={true}
+        onBack={() => router.back()}
+      />
+
+      {selectedItem && (
+        <ContentDetailModal
+          item={selectedItem.item}
+          type={selectedItem.type}
+          isOpen={!!selectedItem}
+          onClose={() => setSelectedItem(null)}
+        />
+      )}
+    </>
   );
 }
