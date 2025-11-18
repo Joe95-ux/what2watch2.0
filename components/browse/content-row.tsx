@@ -123,8 +123,8 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
     if (titleLower.includes("popular tv") || titleLower.includes("popular tv shows")) return "/browse/tv/popular";
     if (titleLower.includes("latest tv") || titleLower.includes("on the air")) return "/browse/tv/latest";
     if (titleLower.includes("we think you'll love")) return "/browse/personalized";
-    // For genre titles, we'll need to pass genreId separately or extract from context
-    return "#";
+    // Default to browse route based on provided type
+    return type === "tv" ? "/browse/tv" : "/browse/movies";
   })();
 
   return (
@@ -160,7 +160,7 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
       )}
       
       {/* Carousel container - starts with padding, expands to full width on scroll */}
-      <div className="relative">
+      <div className="relative group/carousel">
         {/* Carousel - starts with left padding, expands to full width on scroll */}
         <div 
           className="overflow-visible transition-all duration-300 ease-out"
@@ -173,7 +173,7 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
             <button
               type="button"
               className={cn(
-                "absolute left-0 top-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm transition-all duration-200 hidden md:flex items-center justify-center cursor-pointer",
+                "absolute left-0 top-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm transition-all duration-200 hidden md:flex items-center justify-center cursor-pointer opacity-0 group-hover/carousel:opacity-100",
                 !canScrollPrev && "opacity-0 pointer-events-none"
               )}
               aria-label="Scroll left"
@@ -184,7 +184,7 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
             <button
               type="button"
               className={cn(
-                "absolute right-0 top-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm transition-all duration-200 hidden md:flex items-center justify-center cursor-pointer",
+                "absolute right-0 top-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm transition-all duration-200 hidden md:flex items-center justify-center cursor-pointer opacity-0 group-hover/carousel:opacity-100",
                 !canScrollNext && "opacity-0 pointer-events-none"
               )}
               aria-label="Scroll right"
@@ -202,6 +202,7 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
                         type={"title" in item ? "movie" : "tv"}
                         canScrollPrev={canScrollPrev}
                         canScrollNext={canScrollNext}
+                        forceDesktopVariantOnMobile
                         onCardClick={(clickedItem, clickedType) =>
                           setSelectedItem({
                             item: clickedItem,

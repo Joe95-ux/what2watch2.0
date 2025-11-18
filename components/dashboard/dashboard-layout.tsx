@@ -74,8 +74,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   // General navigation items
   const generalNavItems = [
     { href: "/browse", label: "Browse", icon: Home },
-    { href: "/movies", label: "Movies", icon: Film },
-    { href: "/tv", label: "TV Shows", icon: Tv },
+    { href: "/popular?type=movies", label: "Movies", icon: Film },
+    { href: "/popular?type=tv", label: "TV Shows", icon: Tv },
     { href: "/forums", label: "Forums", icon: MessageSquare },
   ];
 

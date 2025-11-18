@@ -112,6 +112,7 @@ export default function DashboardRow({ title, items, type, isLoading, href }: Da
                   type={"title" in item ? "movie" : "tv"}
                   canScrollPrev={canScrollPrev}
                   canScrollNext={canScrollNext}
+                  forceDesktopVariantOnMobile
                   onCardClick={(clickedItem, clickedType) =>
                     setSelectedItem({
                       item: clickedItem,

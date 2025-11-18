@@ -27,10 +27,13 @@ interface MovieCardProps {
   variant?: "default" | "more-like-this" | "dashboard"; // Variant for different card styles
   onCardClick?: (item: TMDBMovie | TMDBSeries, type: "movie" | "tv") => void; // Callback when card is clicked
   onAddToPlaylist?: () => void; // Callback when item is added to playlist
+  forceDesktopVariantOnMobile?: boolean;
 }
 
-export default function MovieCard({ item, type, className, canScrollPrev = false, canScrollNext = false, variant = "default", onCardClick, onAddToPlaylist }: MovieCardProps) {
-  const isMobile = useIsMobile();
+export default function MovieCard({ item, type, className, canScrollPrev = false, canScrollNext = false, variant = "default", onCardClick, onAddToPlaylist, forceDesktopVariantOnMobile = false }: MovieCardProps) {
+  const isMobileDevice = useIsMobile();
+  const shouldForceDesktopVariant = forceDesktopVariantOnMobile && isMobileDevice;
+  const isMobile = !shouldForceDesktopVariant && isMobileDevice;
   const [isHovered, setIsHovered] = useState(false);
   const [trailer, setTrailer] = useState<TMDBVideo | null>(null);
   const [allVideos, setAllVideos] = useState<TMDBVideo[]>([]);
@@ -311,7 +314,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                     <TooltipTrigger asChild>
                       <CircleActionButton
                         size="sm"
-                        className="backdrop-blur-md"
+                        className="backdrop-blur-md z-[5]"
                         onClick={async (e: React.MouseEvent) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -339,7 +342,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                     <TooltipTrigger asChild>
                       <CircleActionButton
                         size="sm"
-                        className="backdrop-blur-md"
+                        className="backdrop-blur-md z-[5]"
                         onClick={async (e: React.MouseEvent) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -433,7 +436,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                             trigger={
                               <CircleActionButton
                                 size="sm"
-                                className="backdrop-blur-md"
+                                className="backdrop-blur-md z-[5]"
                                 onClick={(e: React.MouseEvent) => {
                                   e.preventDefault();
                                   e.stopPropagation();
@@ -447,7 +450,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                       ) : (
                         <CircleActionButton
                           size="sm"
-                          className="backdrop-blur-md"
+                          className="backdrop-blur-md z-[5]"
                           onClick={(e: React.MouseEvent) => {
                             e.preventDefault();
                             e.stopPropagation();
