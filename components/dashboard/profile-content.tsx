@@ -321,7 +321,7 @@ export default function DashboardProfileContent() {
                 ))}
               </div>
               {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-6">
+                <div className="flex items-center justify-center gap-2 mt-6 w-full overflow-auto px-2 py-1">
                   <Button
                     variant="outline"
                     size="sm"
@@ -394,7 +394,7 @@ export default function DashboardProfileContent() {
                 ))}
               </div>
               {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-6">
+                <div className="flex items-center justify-center gap-2 mt-6 w-full overflow-auto px-2 py-1">
                   <Button
                     variant="outline"
                     size="sm"

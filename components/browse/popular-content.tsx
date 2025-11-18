@@ -271,7 +271,7 @@ function PopularContentInner() {
   return (
     <div className="min-h-screen bg-background">
       {/* Fixed Filter Nav */}
-      <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-[65px] z-[60]">
+      <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-[65px] z-30">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">
             {/* Tabs */}
@@ -357,7 +357,7 @@ function PopularContentInner() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2">
+              <div className="flex w-full items-center justify-center gap-2 overflow-auto px-2 py-1">
                 <Button
                   variant="outline"
                   size="sm"
@@ -368,7 +368,7 @@ function PopularContentInner() {
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   Previous
                 </Button>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 overflow-auto">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     let pageNum: number;
                     if (totalPages <= 5) {
@@ -427,7 +427,7 @@ export default function PopularContent() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-background">
-        <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-[65px] z-50">
+        <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-[65px] z-30">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between py-4">
               {/* Tabs Skeleton */}

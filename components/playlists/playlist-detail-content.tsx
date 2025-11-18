@@ -369,7 +369,7 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
         )}
         {itemsAsTMDB.length > 0 && totalPages > 1 && (
           <div className="mt-8 w-full">
-            <div className="flex items-center justify-center gap-2 overflow-x-auto max-w-full px-2 py-1">
+            <div className="flex items-center justify-center gap-2 overflow-auto max-w-full px-2 py-1">
               <Button
                 variant="outline"
                 size="sm"

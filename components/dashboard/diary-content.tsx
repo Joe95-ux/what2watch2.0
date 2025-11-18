@@ -45,6 +45,7 @@ export default function DiaryContent() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [logToEdit, setLogToEdit] = useState<ViewingLog | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+  const [hasMounted, setHasMounted] = useState(false);
   
   // Pagination state
   const [gridLogsToShow, setGridLogsToShow] = useState(10);
@@ -353,17 +354,27 @@ export default function DiaryContent() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Skeleton className="h-10 w-48 mb-8" />
-        <div className="space-y-6">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 w-full" />
-          ))}
-        </div>
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  const renderLoadingState = () => (
+    <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <Skeleton className="h-10 w-48 mb-8" />
+      <div className="space-y-6">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-32 w-full" />
+        ))}
       </div>
-    );
+    </div>
+  );
+
+  if (!hasMounted) {
+    return renderLoadingState();
+  }
+
+  if (isLoading) {
+    return renderLoadingState();
   }
 
   return (
@@ -875,11 +886,11 @@ export default function DiaryContent() {
           
           {/* Table Pagination */}
           {paginatedTableData.totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+            <div className="flex flex-col gap-3 px-4 py-3 border-t border-border md:flex-row md:items-center md:justify-between">
               <div className="text-sm text-muted-foreground">
                 Showing {(tableCurrentPage - 1) * tablePageSize + 1} to {Math.min(tableCurrentPage * tablePageSize, filteredAndSortedLogs.length)} of {filteredAndSortedLogs.length} entries
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full overflow-auto md:w-auto">
                 <Button
                   variant="outline"
                   size="sm"
@@ -890,7 +901,7 @@ export default function DiaryContent() {
                   <ChevronLeft className="h-4 w-4" />
                   Previous
                 </Button>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 overflow-auto">
                   {Array.from({ length: paginatedTableData.totalPages }, (_, i) => i + 1)
                     .filter(page => {
                       // Show first page, last page, current page, and pages around current

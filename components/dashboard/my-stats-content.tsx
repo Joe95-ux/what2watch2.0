@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
+import { TrendingUp, Users, Share2, Trophy, UserCheck } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -10,7 +11,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { TrendingUp, Users, Share2, Trophy, UserCheck } from "lucide-react";
 
 import {
   usePlaylistAnalytics,
@@ -631,13 +631,13 @@ function Leaderboard({
         
         {/* Pagination */}
         {sortedLeaderboard.length > itemsPerPage && (
-          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+          <div className="flex flex-col gap-3 mt-4 pt-4 border-t md:flex-row md:items-center md:justify-between">
             <div className="text-sm text-muted-foreground">
               Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
               {Math.min(currentPage * itemsPerPage, sortedLeaderboard.length)} of{" "}
               {sortedLeaderboard.length} playlists
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full overflow-auto md:w-auto">
               <Button
                 variant="outline"
                 size="sm"
@@ -646,7 +646,7 @@ function Leaderboard({
               >
                 Previous
               </Button>
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-muted-foreground flex-shrink-0">
                 Page {currentPage} of {totalPages}
               </div>
               <Button

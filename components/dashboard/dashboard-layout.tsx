@@ -16,6 +16,7 @@ import {
   SidebarProvider,
   SidebarSeparator,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -69,6 +70,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { data: playlists = [] } = usePlaylists();
   const { data: currentUser } = useCurrentUser();
   const { openUserProfile } = useClerk();
+  const { setOpenMobile } = useSidebar();
 
   // General navigation items
   const generalNavItems = [
@@ -157,7 +159,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       return (
                         <SidebarMenuItem key={item.href}>
                           <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-                            <Link href={item.href} className="flex items-center w-full">
+                            <Link
+                              href={item.href}
+                              className="flex items-center w-full"
+                              onClick={() => setOpenMobile(false)}
+                            >
                               <Icon />
                               <span>{item.label}</span>
                               {item.badge !== undefined && item.badge > 0 && (
@@ -172,7 +178,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     })}
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={pathname === "/dashboard/profile"} tooltip="Profile">
-                        <Link href="/dashboard/profile">
+                        <Link href="/dashboard/profile" onClick={() => setOpenMobile(false)}>
                           <UserRound />
                           <span>Profile</span>
                         </Link>
@@ -199,7 +205,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                         }
                         tooltip="Following"
                       >
-                        <Link href="/dashboard/social">
+                        <Link href="/dashboard/social" onClick={() => setOpenMobile(false)}>
                           <Users />
                           <span>Following</span>
                         </Link>
@@ -214,7 +220,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                         }
                         tooltip="Friends' Playlists"
                       >
-                        <Link href="/dashboard/social/friends-playlists">
+                        <Link href="/dashboard/social/friends-playlists" onClick={() => setOpenMobile(false)}>
                           <UserPlus />
                           <span>Friends&apos; Playlists</span>
                         </Link>
@@ -268,7 +274,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <SidebarMenu>
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={pathname === "/settings"} tooltip="Settings">
-                        <Link href="/settings">
+                        <Link href="/settings" onClick={() => setOpenMobile(false)}>
                           <Settings />
                           <span>Settings</span>
                         </Link>

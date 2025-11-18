@@ -414,7 +414,7 @@ export default function MyListContent() {
       )}
 
       {filteredAndSorted.length > 0 && totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-center gap-2">
+        <div className="mt-8 flex w-full items-center justify-center gap-2 overflow-auto px-2 py-1">
           <Button
             variant="outline"
             size="sm"
@@ -424,7 +424,7 @@ export default function MyListContent() {
             <ChevronLeft className="h-4 w-4 mr-1" />
             Previous
           </Button>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 overflow-auto">
             {pageNumbers.map((page) => (
               <Button
                 key={page}

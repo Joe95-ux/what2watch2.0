@@ -1,21 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { ChevronRight as CaretRight, Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import MovieCard from "./movie-card";
 import ContentDetailModal from "./content-detail-modal";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-  type CarouselApi,
-} from "@/components/ui/carousel";
+import useEmblaCarousel from "embla-carousel-react";
 
 interface ContentRowProps {
   title: string;
@@ -29,10 +22,17 @@ interface ContentRowProps {
 }
 
 export default function ContentRow({ title, items, type, isLoading, href, showClearButton, onClear, isClearing }: ContentRowProps) {
-  const [api, setApi] = useState<CarouselApi>();
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    align: "start",
+    slidesToScroll: 5,
+    breakpoints: {
+      "(max-width: 640px)": { slidesToScroll: 2 },
+      "(max-width: 1024px)": { slidesToScroll: 3 },
+      "(max-width: 1280px)": { slidesToScroll: 4 },
+    },
+  });
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
-  const carouselRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0); // 0 = start, 1 = scrolled
   const [currentPadding, setCurrentPadding] = useState(16); // Default to px-4 (16px)
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
@@ -58,40 +58,40 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
 
   // Track scroll progress to adjust padding
   useEffect(() => {
-    if (!api) return;
+    if (!emblaApi) return;
 
     const updateScrollProgress = () => {
-      const progress = api.scrollProgress();
+      const progress = emblaApi.scrollProgress();
       setScrollProgress(progress);
     };
 
     updateScrollProgress();
-    api.on('scroll', updateScrollProgress);
-    api.on('reInit', updateScrollProgress);
+    emblaApi.on("scroll", updateScrollProgress);
+    emblaApi.on("reInit", updateScrollProgress);
 
     return () => {
-      api.off('scroll', updateScrollProgress);
-      api.off('reInit', updateScrollProgress);
+      emblaApi.off("scroll", updateScrollProgress);
+      emblaApi.off("reInit", updateScrollProgress);
     };
-  }, [api]);
+  }, [emblaApi]);
 
   useEffect(() => {
-    if (!api) return;
+    if (!emblaApi) return;
 
     const updateScrollState = () => {
-      setCanScrollPrev(api.canScrollPrev());
-      setCanScrollNext(api.canScrollNext());
+      setCanScrollPrev(emblaApi.canScrollPrev());
+      setCanScrollNext(emblaApi.canScrollNext());
     };
 
     updateScrollState();
-    api.on("select", updateScrollState);
-    api.on("reInit", updateScrollState);
+    emblaApi.on("select", updateScrollState);
+    emblaApi.on("reInit", updateScrollState);
 
     return () => {
-      api.off("select", updateScrollState);
-      api.off("reInit", updateScrollState);
+      emblaApi.off("select", updateScrollState);
+      emblaApi.off("reInit", updateScrollState);
     };
-  }, [api]);
+  }, [emblaApi]);
 
   if (isLoading) {
     return (
@@ -140,7 +140,7 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
             <h2 className="text-2xl font-medium text-foreground group-hover/title:text-primary transition-colors">
               {title}
             </h2>
-            <CaretRight 
+            <ChevronRight 
               className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover/title:opacity-100 group-hover/title:translate-x-0 transition-all duration-300" 
             />
           </Link>
@@ -163,59 +163,58 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
       <div className="relative">
         {/* Carousel - starts with left padding, expands to full width on scroll */}
         <div 
-          ref={carouselRef}
           className="overflow-visible transition-all duration-300 ease-out"
           style={{
             paddingLeft: `${currentPadding * (1 - scrollProgress)}px`, // Match title padding at start, 0 when scrolled
             paddingRight: scrollProgress > 0 ? '0px' : `${currentPadding}px`, // Remove right padding when scrolled
           }}
         >
-          <Carousel
-            setApi={setApi}
-            opts={{
-              align: "start",
-              slidesToScroll: 5,
-              breakpoints: {
-                "(max-width: 640px)": { slidesToScroll: 2 },
-                "(max-width: 1024px)": { slidesToScroll: 3 },
-                "(max-width: 1280px)": { slidesToScroll: 4 },
-              },
-            }}
-            className="w-full"
-          >
-            <CarouselContent className="-ml-2 md:-ml-4 gap-3">
-              {items.map((item) => (
-                <CarouselItem key={item.id} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px]">
-                  <div className="relative overflow-hidden">
-                    <MovieCard 
-                      item={item} 
-                      type={"title" in item ? "movie" : "tv"}
-                      canScrollPrev={canScrollPrev}
-                      canScrollNext={canScrollNext}
-                      onCardClick={(clickedItem, clickedType) =>
-                        setSelectedItem({
-                          item: clickedItem,
-                          type: clickedType,
-                        })
-                      }
-                    />
-                  </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious 
+          <div className="relative">
+            <button
+              type="button"
               className={cn(
-                "left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm transition-all duration-200 hidden md:flex items-center justify-center cursor-pointer",
+                "absolute left-0 top-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm transition-all duration-200 hidden md:flex items-center justify-center cursor-pointer",
                 !canScrollPrev && "opacity-0 pointer-events-none"
               )}
-            />
-            <CarouselNext 
+              aria-label="Scroll left"
+              onClick={() => emblaApi?.scrollPrev()}
+            >
+              <ChevronLeft className="h-6 w-6 text-white" />
+            </button>
+            <button
+              type="button"
               className={cn(
-                "right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm transition-all duration-200 hidden md:flex items-center justify-center cursor-pointer",
+                "absolute right-0 top-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm transition-all duration-200 hidden md:flex items-center justify-center cursor-pointer",
                 !canScrollNext && "opacity-0 pointer-events-none"
               )}
-            />
-          </Carousel>
+              aria-label="Scroll right"
+              onClick={() => emblaApi?.scrollNext()}
+            >
+              <ChevronRight className="h-6 w-6 text-white" />
+            </button>
+            <div ref={emblaRef} className="overflow-hidden w-full">
+              <div className="-ml-2 md:-ml-4 flex gap-3">
+                {items.map((item) => (
+                  <div key={item.id} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px] flex-shrink-0">
+                    <div className="relative overflow-hidden">
+                      <MovieCard 
+                        item={item} 
+                        type={"title" in item ? "movie" : "tv"}
+                        canScrollPrev={canScrollPrev}
+                        canScrollNext={canScrollNext}
+                        onCardClick={(clickedItem, clickedType) =>
+                          setSelectedItem({
+                            item: clickedItem,
+                            type: clickedType,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -649,7 +649,7 @@ export default function DiscoverContent() {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t w-full gap-2">
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t w-full gap-2 overflow-auto px-2 py-1">
                     <Button
                       variant="outline"
                       size="sm"

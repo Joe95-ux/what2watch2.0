@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -258,7 +258,7 @@ export default function PlaylistsContent() {
             </Table>
           </div>
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-6">
+            <div className="flex items-center justify-center gap-2 mt-6 w-full overflow-auto px-2 py-1">
               <Button
                 variant="outline"
                 size="sm"
@@ -296,7 +296,7 @@ export default function PlaylistsContent() {
             ))}
           </div>
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-6">
+            <div className="flex items-center justify-center gap-2 mt-6 w-full overflow-auto px-2 py-1">
               <Button
                 variant="outline"
                 size="sm"
