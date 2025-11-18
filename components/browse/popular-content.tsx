@@ -218,7 +218,7 @@ function PopularContentInner() {
       }
     });
     
-    router.push(`/browse/popular?${params.toString()}`);
+    router.push(`/popular?${params.toString()}`);
   };
 
   const handleTypeChange = (newType: "all" | "movie" | "tv") => {
@@ -272,7 +272,7 @@ function PopularContentInner() {
     <div className="min-h-screen bg-background">
       {/* Fixed Filter Nav */}
       <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-[65px] z-10">
-        <div className="px-4 sm:px-6 lg:px-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">
             {/* Tabs */}
             <Tabs value={type} onValueChange={(v) => handleTypeChange(v as "all" | "movie" | "tv")}>
@@ -350,6 +350,7 @@ function PopularContentInner() {
                   item={item}
                   type={getContentType(item)}
                   onItemClick={handleCardClick}
+                  showTypeBadge={type === "all"}
                 />
               ))}
             </div>

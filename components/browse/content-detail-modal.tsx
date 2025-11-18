@@ -319,153 +319,177 @@ export default function ContentDetailModal({
             <div className="absolute inset-0 bg-muted" />
           )}
 
-          {/* Content Overlay */}
-          <div className="absolute inset-0 flex items-end z-10">
-            <div className="w-full px-6 sm:px-8 lg:px-12 pb-12">
-              <div className="max-w-3xl">
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-white drop-shadow-lg">
-                  {title}
-                </h1>
-                <div className="flex items-center gap-4 mb-6 flex-wrap">
-                  {item.vote_average > 0 && (
-                    <div className="flex items-center gap-1.5">
-                      <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
-                      <span className="text-white/90 font-semibold">
-                        {item.vote_average.toFixed(1)}
-                      </span>
-                    </div>
-                  )}
-                  {details && (
-                    <>
-                      {type === "movie" && "runtime" in details && (
-                        <div className="flex items-center gap-1.5 text-white/90">
-                          <Clock className="h-4 w-4" />
-                          <span>{formatRuntime(details.runtime)}</span>
-                        </div>
-                      )}
-                      {type === "tv" && "episode_run_time" in details && details.episode_run_time?.[0] && (
-                        <div className="flex items-center gap-1.5 text-white/90">
-                          <Clock className="h-4 w-4" />
-                          <span>{formatRuntime(details.episode_run_time[0])} per episode</span>
-                        </div>
-                      )}
-                      {type === "movie" && "release_date" in details && (
-                        <div className="flex items-center gap-1.5 text-white/90">
-                          <CalendarIcon className="h-4 w-4" />
-                          <span>{formatDate(details.release_date)}</span>
-                        </div>
-                      )}
-                      {type === "tv" && "first_air_date" in details && (
-                        <div className="flex items-center gap-1.5 text-white/90">
-                          <CalendarIcon className="h-4 w-4" />
-                          <span>{formatDate(details.first_air_date)}</span>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-                <div className="flex items-center gap-3">
-                  <Button
-                    size="lg"
-                    className="bg-white dark:bg-white text-black dark:text-black hover:bg-white/90 dark:hover:bg-white/90 h-14 px-10 text-base font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg rounded-md no-close"
-                    asChild
-                  >
-                    <Link 
-                      href={`/${type}/${item.id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="no-close"
+          {/* Content Overlay - Hidden when audio is enabled */}
+          {isMuted && (
+            <div className="absolute inset-0 flex items-end z-10">
+              <div className="w-full px-6 sm:px-8 lg:px-12 pb-12">
+                <div className="max-w-3xl">
+                  <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-white drop-shadow-lg">
+                    {title}
+                  </h1>
+                  <div className="flex items-center gap-4 mb-6 flex-wrap">
+                    {item.vote_average > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+                        <span className="text-white/90 font-semibold">
+                          {item.vote_average.toFixed(1)}
+                        </span>
+                      </div>
+                    )}
+                    {details && (
+                      <>
+                        {type === "movie" && "runtime" in details && (
+                          <div className="flex items-center gap-1.5 text-white/90">
+                            <Clock className="h-4 w-4" />
+                            <span>{formatRuntime(details.runtime)}</span>
+                          </div>
+                        )}
+                        {type === "tv" && "episode_run_time" in details && details.episode_run_time?.[0] && (
+                          <div className="flex items-center gap-1.5 text-white/90">
+                            <Clock className="h-4 w-4" />
+                            <span>{formatRuntime(details.episode_run_time[0])} per episode</span>
+                          </div>
+                        )}
+                        {type === "movie" && "release_date" in details && (
+                          <div className="flex items-center gap-1.5 text-white/90">
+                            <CalendarIcon className="h-4 w-4" />
+                            <span>{formatDate(details.release_date)}</span>
+                          </div>
+                        )}
+                        {type === "tv" && "first_air_date" in details && (
+                          <div className="flex items-center gap-1.5 text-white/90">
+                            <CalendarIcon className="h-4 w-4" />
+                            <span>{formatDate(details.first_air_date)}</span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      size="lg"
+                      className="bg-white dark:bg-white text-black dark:text-black hover:bg-white/90 dark:hover:bg-white/90 h-14 px-10 text-base font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg rounded-md no-close"
+                      asChild
                     >
-                      <Play className="size-6 mr-2.5 fill-black dark:fill-black" />
-                      Play
-                    </Link>
-                  </Button>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <AddToPlaylistDropdown
-                        item={item}
-                        type={type}
-                        trigger={
-                          <Button
-                            size="lg"
-                            variant="outline"
-                            className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
-                            onClick={(e) => handleButtonClick(e, () => {})}
-                          >
-                            <Plus className="size-6 text-white dark:text-white" />
-                          </Button>
-                        }
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Add to Playlist</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="lg"
-                        variant="outline"
-                        className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
-                        onClick={async (e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          await toggleFavorite.toggle(item, type);
-                        }}
+                      <Link 
+                        href={`/${type}/${item.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="no-close"
                       >
-                        <Heart 
-                          className={`size-6 ${
-                            toggleFavorite.isFavorite(item.id, type)
-                              ? "text-red-500 dark:text-red-500 fill-red-500 dark:fill-red-500"
-                              : "text-white dark:text-white"
-                          }`} 
+                        <Play className="size-6 mr-2.5 fill-black dark:fill-black" />
+                        Play
+                      </Link>
+                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <AddToPlaylistDropdown
+                          item={item}
+                          type={type}
+                          trigger={
+                            <Button
+                              size="lg"
+                              variant="outline"
+                              className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
+                              onClick={(e) => handleButtonClick(e, () => {})}
+                            >
+                              <Plus className="size-6 text-white dark:text-white" />
+                            </Button>
+                          }
                         />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <LogToDiaryDropdown
-                    item={item}
-                    type={type}
-                    trigger={
-                      <Button
-                        size="lg"
-                        variant="outline"
-                        className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
-                        onClick={(e) => handleButtonClick(e, () => {})}
-                      >
-                        <BookOpen className="size-6 text-white dark:text-white" />
-                      </Button>
-                    }
-                  />
-                  {/* Mute/Unmute Toggle - Only show when trailer is available, on extreme right */}
-                  {trailer && videosData && (
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Add to Playlist</p>
+                      </TooltipContent>
+                    </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
                           size="lg"
                           variant="outline"
-                          className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 ml-auto cursor-pointer no-close"
-                          onClick={(e) => handleButtonClick(e, () => setIsMuted(!isMuted))}
-                          aria-label={isMuted ? "Unmute" : "Mute"}
+                          className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            await toggleFavorite.toggle(item, type);
+                          }}
                         >
-                          {isMuted ? (
-                            <VolumeX className="size-6 text-white dark:text-white" />
-                          ) : (
-                            <Volume2 className="size-6 text-white dark:text-white" />
-                          )}
+                          <Heart 
+                            className={`size-6 ${
+                              toggleFavorite.isFavorite(item.id, type)
+                                ? "text-red-500 dark:text-red-500 fill-red-500 dark:fill-red-500"
+                                : "text-white dark:text-white"
+                            }`} 
+                          />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>{isMuted ? "Unmute" : "Mute"}</p>
+                        <p>{toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}</p>
                       </TooltipContent>
                     </Tooltip>
-                  )}
+                    <LogToDiaryDropdown
+                      item={item}
+                      type={type}
+                      trigger={
+                        <Button
+                          size="lg"
+                          variant="outline"
+                          className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
+                          onClick={(e) => handleButtonClick(e, () => {})}
+                        >
+                          <BookOpen className="size-6 text-white dark:text-white" />
+                        </Button>
+                      }
+                    />
+                    {/* Mute/Unmute Toggle - Only show when trailer is available, on extreme right */}
+                    {trailer && videosData && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="lg"
+                            variant="outline"
+                            className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 ml-auto cursor-pointer no-close"
+                            onClick={(e) => handleButtonClick(e, () => setIsMuted(!isMuted))}
+                            aria-label={isMuted ? "Unmute" : "Mute"}
+                          >
+                            {isMuted ? (
+                              <VolumeX className="size-6 text-white dark:text-white" />
+                            ) : (
+                              <Volume2 className="size-6 text-white dark:text-white" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{isMuted ? "Unmute" : "Mute"}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Clear Icon - Only show when audio is enabled (not muted) */}
+          {!isMuted && trailer && videosData && (
+            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer pointer-events-auto no-close"
+                    onClick={(e) => handleButtonClick(e, () => setIsMuted(true))}
+                    aria-label="Clear"
+                  >
+                    <X className="size-6 text-white dark:text-white" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Clear</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          )}
         </div>
 
         {/* Content */}

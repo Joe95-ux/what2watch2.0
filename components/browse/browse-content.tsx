@@ -220,7 +220,7 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
           <Tabs value={popularTab} onValueChange={(v) => setPopularTab(v as "movies" | "tv")}>
             <div className="px-4 sm:px-6 lg:px-8 group flex items-center gap-4 mb-6">
               <Link 
-                href={popularTab === "movies" ? "/browse/movies/popular" : "/browse/tv/popular"}
+                href="/popular"
                 className="inline-flex items-center gap-2 transition-all duration-300"
               >
                 <h2 className="text-2xl font-medium text-foreground group-hover:text-primary transition-colors">
@@ -241,7 +241,7 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
                 items={uniquePopularMovies}
                 type="movie"
                 isLoading={isLoadingPopularMovies}
-                href="/browse/movies/popular"
+                href="/popular?type=movies"
               />
             </TabsContent>
             <TabsContent value="tv">
@@ -250,7 +250,7 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
                 items={uniquePopularTV}
                 type="tv"
                 isLoading={isLoadingPopularTV}
-                href="/browse/tv/popular"
+                href="/popular?type=tv"
               />
             </TabsContent>
           </Tabs>

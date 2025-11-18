@@ -205,13 +205,13 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
             </CarouselContent>
             <CarouselPrevious 
               className={cn(
-                "left-0 h-[270px] sm:h-[300px] w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm transition-all duration-200 hidden md:flex items-center justify-center cursor-pointer",
+                "left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm transition-all duration-200 hidden md:flex items-center justify-center cursor-pointer",
                 !canScrollPrev && "opacity-0 pointer-events-none"
               )}
             />
             <CarouselNext 
               className={cn(
-                "right-0 h-[270px] sm:h-[300px] w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm transition-all duration-200 hidden md:flex items-center justify-center cursor-pointer",
+                "right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm transition-all duration-200 hidden md:flex items-center justify-center cursor-pointer",
                 !canScrollNext && "opacity-0 pointer-events-none"
               )}
             />

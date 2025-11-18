@@ -17,9 +17,10 @@ interface MoreLikeThisCardProps {
   parentItem?: TMDBMovie | TMDBSeries;
   parentType?: "movie" | "tv";
   onItemClick?: (item: TMDBMovie | TMDBSeries, itemType: "movie" | "tv") => void;
+  showTypeBadge?: boolean; // Show TV/Movies badge when filter is "all"
 }
 
-export default function MoreLikeThisCard({ item, type, parentItem, parentType, onItemClick }: MoreLikeThisCardProps) {
+export default function MoreLikeThisCard({ item, type, parentItem, parentType, onItemClick, showTypeBadge = false }: MoreLikeThisCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -224,6 +225,13 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
             </div>
           )}
 
+          {/* Type Badge - Bottom Left (when filter is "all") */}
+          {showTypeBadge && (
+            <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-xs text-white font-medium z-20">
+              {type === "movie" ? "Movie" : "TV"}
+            </div>
+          )}
+
           {/* Centered Play Button - Revealed on hover with animation */}
           <div
             className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300 ${
@@ -293,9 +301,9 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
             {title}
           </h3>
 
-          {/* Synopsis (Truncated to 3 lines) */}
+          {/* Synopsis (Truncated to 2 lines) */}
           {item.overview && (
-            <p className="text-xs text-foreground line-clamp-3 leading-snug">
+            <p className="text-xs text-foreground line-clamp-2 leading-snug">
               {item.overview}
             </p>
           )}
