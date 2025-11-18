@@ -160,8 +160,8 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
       )}
       
       {/* Carousel container - starts with padding, expands to full width on scroll */}
-      <div className="relative group/carousel">
-        {/* Control buttons - positioned outside the padding div */}
+      <div className="relative group/carousel overflow-hidden">
+        {/* Control buttons - matching Explore Curated Lists style */}
         <button
           type="button"
           className={cn(
