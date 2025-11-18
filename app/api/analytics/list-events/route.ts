@@ -115,6 +115,8 @@ export async function POST(request: NextRequest) {
     // Log for debugging (can be removed in production)
     if (type === ListEngagementType.SHARE) {
       console.log(`Share event recorded: listId=${list.id}, ownerId=${list.userId}, source=${source || 'unknown'}`);
+    } else if (type === ListEngagementType.VISIT) {
+      console.log(`Visit event recorded: listId=${list.id}, ownerId=${list.userId}, source=${source || 'unknown'}`);
     }
 
     const response = NextResponse.json({ success: true });

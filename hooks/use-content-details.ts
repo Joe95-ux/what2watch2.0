@@ -67,7 +67,7 @@ export function useTVDetails(tvId: number | null) {
 /**
  * Hook to fetch content videos (trailers)
  */
-export function useContentVideos(type: "movie" | "tv", id: number | null) {
+export function useContentVideos(type: "movie" | "tv", id: number | null, enabled: boolean = true) {
   return useQuery({
     queryKey: [type, id, "videos"],
     queryFn: async () => {
@@ -82,7 +82,7 @@ export function useContentVideos(type: "movie" | "tv", id: number | null) {
       const data = await response.json();
       return data as { id: number; results: TMDBVideo[] };
     },
-    enabled: !!id,
+    enabled: !!id && enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes - videos don't change often
     gcTime: 30 * 60 * 1000, // 30 minutes cache
     retry: 1, // Only retry once to avoid excessive API calls

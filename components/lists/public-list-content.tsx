@@ -66,6 +66,7 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [commentFilter, setCommentFilter] = useState("newest");
+  const [hasLoggedVisit, setHasLoggedVisit] = useState(false);
   
   // Filter and sort state
   const [searchQuery, setSearchQuery] = useState("");
@@ -80,6 +81,39 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
   };
 
   const isOwner = Boolean(currentUser?.id && list && currentUser.id === list.userId);
+
+  // Track visit event when viewing a public list
+  useEffect(() => {
+    if (!list || hasLoggedVisit || isOwner) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const logVisit = async () => {
+      try {
+        await fetch("/api/analytics/list-events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            listId: list.id,
+            type: "VISIT",
+            source: "public_view",
+          }),
+          signal: controller.signal,
+        });
+        setHasLoggedVisit(true);
+      } catch (logError) {
+        if ((logError as Error).name !== "AbortError") {
+          console.error("Failed to log list visit", logError);
+        }
+      }
+    };
+
+    logVisit();
+
+    return () => controller.abort();
+  }, [list, hasLoggedVisit, isOwner]);
 
   // Like functionality
   const { data: likeStatus } = useIsListLiked(list?.id || null);

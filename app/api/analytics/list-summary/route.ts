@@ -284,6 +284,9 @@ export async function GET(request: NextRequest) {
       { shares: 0, visits: 0, totalEngagement: 0 }
     );
 
+    console.log(`[List Analytics] Raw totals from events: Shares=${totals.shares}, Visits=${totals.visits}, Total=${totals.totalEngagement}`);
+    console.log(`[List Analytics] Raw totals result:`, JSON.stringify(totalsRaw, null, 2));
+
     const uniqueVisitors = uniqueVisitorsRaw.length
       ? toNumber(uniqueVisitorsRaw[0]?.count)
       : 0;
@@ -378,14 +381,72 @@ export async function GET(request: NextRequest) {
       count: toNumber(row.count),
     }));
 
+    // Get comment and reaction counts for user's lists
+    const userListIds = await db.list.findMany({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+    const listIdsArray = userListIds.map((l) => l.id);
+
+    console.log(`[List Analytics] Found ${listIdsArray.length} lists for user ${user.id}`);
+
+    // Count comments (only top-level comments, not replies)
+    let commentCount = 0;
+    if (listIdsArray.length > 0) {
+      const commentWhere: { listId: { in: string[] }; parentCommentId: null; createdAt?: { gte: Date; lte: Date } } = {
+        listId: { in: listIdsArray },
+        parentCommentId: null,
+      };
+      if (hasDateFilter && startDate && now) {
+        commentWhere.createdAt = { gte: startDate, lte: now };
+      }
+      commentCount = await db.listComment.count({
+        where: commentWhere,
+      });
+      console.log(`[List Analytics] Comment count: ${commentCount} (date filter: ${hasDateFilter})`);
+    }
+
+    // Count reactions
+    let reactionCount = 0;
+    if (listIdsArray.length > 0) {
+      const reactionWhere: { comment: { listId: { in: string[] } }; createdAt?: { gte: Date; lte: Date } } = {
+        comment: { listId: { in: listIdsArray } },
+      };
+      if (hasDateFilter && startDate && now) {
+        reactionWhere.createdAt = { gte: startDate, lte: now };
+      }
+      reactionCount = await db.listCommentReaction.count({
+        where: reactionWhere,
+      });
+      console.log(`[List Analytics] Reaction count: ${reactionCount} (date filter: ${hasDateFilter})`);
+    }
+
+    // Count list likes
+    let likesCount = 0;
+    if (listIdsArray.length > 0) {
+      const likesWhere: { listId: { in: string[] }; createdAt?: { gte: Date; lte: Date } } = {
+        listId: { in: listIdsArray },
+      };
+      if (hasDateFilter && startDate && now) {
+        likesWhere.createdAt = { gte: startDate, lte: now };
+      }
+      likesCount = await db.likedList.count({
+        where: likesWhere,
+      });
+      console.log(`[List Analytics] Likes count: ${likesCount} (date filter: ${hasDateFilter})`);
+    }
+
     const topList = leaderboardWithNames[0] ?? null;
 
     const responsePayload = {
       totals: {
         shares: totals.shares,
         visits: totals.visits,
+        comments: commentCount,
+        reactions: reactionCount,
+        likes: likesCount,
         uniqueVisitors,
-        totalEngagement: totals.totalEngagement,
+        totalEngagement: totals.totalEngagement + commentCount + reactionCount + likesCount,
         topList: topList
           ? {
               id: topList.listId,
@@ -408,6 +469,11 @@ export async function GET(request: NextRequest) {
             end: new Date().toISOString(),
           },
     };
+
+    // Debug logging
+    console.log(`[List Analytics] User ${user.id} - Shares: ${totals.shares}, Visits: ${totals.visits}, Comments: ${commentCount}, Reactions: ${reactionCount}, Likes: ${likesCount}, Total Engagement: ${responsePayload.totals.totalEngagement}`);
+    console.log(`[List Analytics] User has ${listIdsArray.length} lists: ${listIdsArray.slice(0, 3).join(", ")}${listIdsArray.length > 3 ? "..." : ""}`);
+    console.log(`[List Analytics] Date filter: ${hasDateFilter ? `${startDate?.toISOString()} to ${now?.toISOString()}` : "All time"}`);
 
     return NextResponse.json(responsePayload);
   } catch (error) {

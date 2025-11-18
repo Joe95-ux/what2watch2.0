@@ -3,6 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 export interface ListAnalyticsTotals {
   shares: number;
   visits: number;
+  comments: number;
+  reactions: number;
+  likes: number;
   uniqueVisitors: number;
   totalEngagement: number;
   topList: {

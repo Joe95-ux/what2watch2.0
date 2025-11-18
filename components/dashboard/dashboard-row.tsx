@@ -110,6 +110,7 @@ export default function DashboardRow({ title, items, type, isLoading, href }: Da
                   <MovieCard 
                     item={item} 
                     type={"title" in item ? "movie" : "tv"}
+                    variant="dashboard"
                     canScrollPrev={canScrollPrev}
                     canScrollNext={canScrollNext}
                     onCardClick={(clickedItem, clickedType) =>

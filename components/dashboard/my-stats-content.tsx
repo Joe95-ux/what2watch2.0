@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { TrendingUp, Users, Share2, Trophy, UserCheck, BarChart3 } from "lucide-react";
+import { TrendingUp, Users, Share2, Trophy, UserCheck, BarChart3, MessageSquare, Heart } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -869,6 +869,24 @@ function ListStatsOverview({ totals }: { totals?: ListAnalyticsTotals }) {
         value={shareToVisitRate}
         format="percentage"
         helper="How often shares turn into visits"
+      />
+      <MetricCard
+        icon={<MessageSquare className="h-5 w-5 text-indigo-500" />}
+        label="Comments"
+        value={totals.comments}
+        helper="Comments on your lists"
+      />
+      <MetricCard
+        icon={<Heart className="h-5 w-5 text-pink-500" />}
+        label="Reactions"
+        value={totals.reactions}
+        helper="Reactions to comments"
+      />
+      <MetricCard
+        icon={<Heart className="h-5 w-5 text-red-500" />}
+        label="Likes"
+        value={totals.likes}
+        helper="Users who liked your lists"
       />
       <MetricCard
         icon={<Trophy className="h-5 w-5 text-amber-500" />}

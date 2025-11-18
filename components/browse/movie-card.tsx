@@ -51,8 +51,14 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const [playlistTooltipOpen, setPlaylistTooltipOpen] = useState(false);
   const [isPlaylistDropdownOpen, setIsPlaylistDropdownOpen] = useState(false);
   
+  // Only enable video fetching when hovering (on desktop) and not in dashboard variant
+  // This prevents unnecessary API calls when cards are just rendered but not interacted with
+  // Dashboard variant never needs videos, so we disable fetching for it completely
+  const shouldFetchVideos = isHovered && !isMobile && variant !== "dashboard";
+  
   // Use React Query to get cached videos (same cache as detail modal uses)
-  const { data: cachedVideosData, isLoading: isLoadingCachedVideos } = useContentVideos(type, item.id);
+  // Disabled by default to prevent unnecessary fetches - only enabled when hovering on desktop (non-dashboard variant)
+  const { data: cachedVideosData, isLoading: isLoadingCachedVideos } = useContentVideos(type, item.id, shouldFetchVideos);
   
   // On mobile/tablet, always show overlay with details (no hover/scaling needed)
   // Dashboard variant also always shows overlay

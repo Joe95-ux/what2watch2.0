@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -29,11 +29,34 @@ export default function ShareListDialog({ list, isOpen, onClose, isOwnList = tru
     ? `${window.location.origin}/lists/${list.id}`
     : "";
 
+  const recordShareEvent = useCallback(async (source: string) => {
+    try {
+      const response = await fetch("/api/analytics/list-events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          listId: list.id,
+          type: "SHARE",
+          source,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Failed to log share event:", errorData.error || response.statusText);
+      }
+    } catch (logError) {
+      console.error("Failed to log share event", logError);
+    }
+  }, [list.id]);
+
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       toast.success("Link copied to clipboard!");
+      // Record share event - await to ensure it completes
+      await recordShareEvent("copy_link");
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       toast.error("Failed to copy link");
@@ -54,6 +77,8 @@ export default function ShareListDialog({ list, isOpen, onClose, isOwnList = tru
     }
 
     if (shareUrl_platform) {
+      // Record share event before opening
+      recordShareEvent(platform);
       window.open(shareUrl_platform, "_blank", "width=600,height=400");
     }
   };
