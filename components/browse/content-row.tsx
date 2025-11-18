@@ -161,59 +161,58 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
       
       {/* Carousel container - starts with padding, expands to full width on scroll */}
       <div className="relative group/carousel">
+        {/* Control buttons - positioned outside the padding div */}
+        <button
+          type="button"
+          className={cn(
+            "absolute left-0 top-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10",
+            !canScrollPrev && "opacity-0 pointer-events-none"
+          )}
+          aria-label="Scroll left"
+          onClick={() => emblaApi?.scrollPrev()}
+        >
+          <ChevronLeft className="h-6 w-6 text-white" />
+        </button>
+        <button
+          type="button"
+          className={cn(
+            "absolute right-0 top-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10",
+            !canScrollNext && "opacity-0 pointer-events-none"
+          )}
+          aria-label="Scroll right"
+          onClick={() => emblaApi?.scrollNext()}
+        >
+          <ChevronRight className="h-6 w-6 text-white" />
+        </button>
         {/* Carousel - starts with left padding, expands to full width on scroll */}
         <div 
-          className="overflow-visible transition-all duration-300 ease-out"
+          className="transition-all duration-300 ease-out"
           style={{
             paddingLeft: `${currentPadding * (1 - scrollProgress)}px`, // Match title padding at start, 0 when scrolled
             paddingRight: scrollProgress > 0 ? '0px' : `${currentPadding}px`, // Remove right padding when scrolled
           }}
         >
-          <div className="relative">
-            <button
-              type="button"
-              className={cn(
-                "absolute left-0 top-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm transition-all duration-200 hidden md:flex items-center justify-center cursor-pointer opacity-0 group-hover/carousel:opacity-100",
-                !canScrollPrev && "opacity-0 pointer-events-none"
-              )}
-              aria-label="Scroll left"
-              onClick={() => emblaApi?.scrollPrev()}
-            >
-              <ChevronLeft className="h-6 w-6 text-white" />
-            </button>
-            <button
-              type="button"
-              className={cn(
-                "absolute right-0 top-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm transition-all duration-200 hidden md:flex items-center justify-center cursor-pointer opacity-0 group-hover/carousel:opacity-100",
-                !canScrollNext && "opacity-0 pointer-events-none"
-              )}
-              aria-label="Scroll right"
-              onClick={() => emblaApi?.scrollNext()}
-            >
-              <ChevronRight className="h-6 w-6 text-white" />
-            </button>
-            <div ref={emblaRef} className="overflow-hidden w-full">
-              <div className="-ml-2 md:-ml-4 flex gap-3">
-                {items.map((item) => (
-                  <div key={item.id} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px] flex-shrink-0">
-                    <div className="relative overflow-hidden">
-                      <MovieCard 
-                        item={item} 
-                        type={"title" in item ? "movie" : "tv"}
-                        canScrollPrev={canScrollPrev}
-                        canScrollNext={canScrollNext}
-                        forceDesktopVariantOnMobile
-                        onCardClick={(clickedItem, clickedType) =>
-                          setSelectedItem({
-                            item: clickedItem,
-                            type: clickedType,
-                          })
-                        }
-                      />
-                    </div>
+          <div ref={emblaRef} className="overflow-hidden w-full touch-pan-x">
+            <div className="-ml-2 md:-ml-4 flex gap-3">
+              {items.map((item) => (
+                <div key={item.id} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px] flex-shrink-0">
+                  <div className="relative overflow-hidden">
+                    <MovieCard 
+                      item={item} 
+                      type={"title" in item ? "movie" : "tv"}
+                      canScrollPrev={canScrollPrev}
+                      canScrollNext={canScrollNext}
+                      forceDesktopVariantOnMobile
+                      onCardClick={(clickedItem, clickedType) =>
+                        setSelectedItem({
+                          item: clickedItem,
+                          type: clickedType,
+                        })
+                      }
+                    />
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

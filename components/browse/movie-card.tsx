@@ -48,6 +48,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const attemptedFetchRef = useRef<number | null>(null); // Track which item ID we've attempted to fetch
   const [trailerError, setTrailerError] = useState<string | null>(null);
+  const [playlistTooltipOpen, setPlaylistTooltipOpen] = useState(false);
+  const [isPlaylistDropdownOpen, setIsPlaylistDropdownOpen] = useState(false);
   
   // Use React Query to get cached videos (same cache as detail modal uses)
   const { data: cachedVideosData, isLoading: isLoadingCachedVideos } = useContentVideos(type, item.id);
@@ -425,7 +427,10 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                       <Play className={cn("fill-white text-white", isMobile ? "h-2.5 w-2.5 mr-0.5" : "h-3 w-3 mr-1")} />
                       {!isMobile && "Trailer"}
                     </Button>
-                    <Tooltip>
+                  <Tooltip
+                    open={playlistTooltipOpen && !isPlaylistDropdownOpen}
+                    onOpenChange={(open) => setPlaylistTooltipOpen(open)}
+                  >
                       <TooltipTrigger asChild>
                       {isSignedIn ? (
                         <div>
@@ -433,6 +438,12 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                             item={item}
                             type={type}
                             onAddSuccess={onAddToPlaylist}
+                          onOpenChange={(open) => {
+                            setIsPlaylistDropdownOpen(open);
+                            if (open) {
+                              setPlaylistTooltipOpen(false);
+                            }
+                          }}
                             trigger={
                               <CircleActionButton
                                 size="sm"

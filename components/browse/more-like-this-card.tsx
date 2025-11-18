@@ -46,6 +46,8 @@ export default function MoreLikeThisCard({
   const isMobile = useIsMobile();
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
+  const [playlistTooltipOpen, setPlaylistTooltipOpen] = useState(false);
+  const [isPlaylistDropdownOpen, setIsPlaylistDropdownOpen] = useState(false);
   
   const hasParent = !!parentItem && !!parentType;
 
@@ -304,7 +306,10 @@ export default function MoreLikeThisCard({
                 {parentalRating}
               </span>
             </div>
-            <Tooltip>
+            <Tooltip
+              open={playlistTooltipOpen && !isPlaylistDropdownOpen}
+              onOpenChange={(open) => setPlaylistTooltipOpen(open)}
+            >
               <TooltipTrigger asChild>
                 {isSignedIn ? (
                   <div>
@@ -312,6 +317,12 @@ export default function MoreLikeThisCard({
                       item={item}
                       type={type}
                       onAddSuccess={onAddToPlaylist}
+                      onOpenChange={(open) => {
+                        setIsPlaylistDropdownOpen(open);
+                        if (open) {
+                          setPlaylistTooltipOpen(false);
+                        }
+                      }}
                       trigger={
                         <CircleActionButton
                           size="sm"

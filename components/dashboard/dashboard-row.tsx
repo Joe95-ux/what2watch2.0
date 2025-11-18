@@ -67,7 +67,7 @@ export default function DashboardRow({ title, items, type, isLoading, href }: Da
   return (
     <>
     <div className="mb-6 sm:mb-8 md:mb-12">
-      {/* Title and Controls Row */}
+      {/* Title */}
       <div className="flex items-center justify-between mb-3 sm:mb-4 md:mb-6">
         <Link 
           href={titleHref}
@@ -77,49 +77,52 @@ export default function DashboardRow({ title, items, type, isLoading, href }: Da
             {title}
           </h2>
         </Link>
-        
-        {/* Carousel Controls */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={scrollPrev}
-            disabled={!canScrollPrev}
-            className="h-9 w-9 cursor-pointer"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={scrollNext}
-            disabled={!canScrollNext}
-            className="h-9 w-9 cursor-pointer"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </Button>
-        </div>
       </div>
       
       {/* Carousel container with overflow-hidden */}
-      <div className="relative overflow-hidden">
-        <div ref={emblaRef} className="overflow-hidden w-full">
-          <div className="flex gap-3">
+      <div className="relative group/carousel overflow-hidden">
+        {/* Control buttons - matching Explore Curated Lists style */}
+        <button
+          type="button"
+          className={cn(
+            "absolute left-0 top-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10",
+            !canScrollPrev && "opacity-0 pointer-events-none"
+          )}
+          aria-label="Scroll left"
+          onClick={scrollPrev}
+        >
+          <ChevronLeft className="h-6 w-6 text-white" />
+        </button>
+        <button
+          type="button"
+          className={cn(
+            "absolute right-0 top-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10",
+            !canScrollNext && "opacity-0 pointer-events-none"
+          )}
+          aria-label="Scroll right"
+          onClick={scrollNext}
+        >
+          <ChevronRight className="h-6 w-6 text-white" />
+        </button>
+        <div ref={emblaRef} className="overflow-hidden w-full touch-pan-x">
+          <div className="-ml-2 md:-ml-4 flex gap-3">
             {items.map((item) => (
-              <div key={item.id} className="relative flex-shrink-0 w-[180px] sm:w-[200px]">
-                <MovieCard 
-                  item={item} 
-                  type={"title" in item ? "movie" : "tv"}
-                  canScrollPrev={canScrollPrev}
-                  canScrollNext={canScrollNext}
-                  forceDesktopVariantOnMobile
-                  onCardClick={(clickedItem, clickedType) =>
-                    setSelectedItem({
-                      item: clickedItem,
-                      type: clickedType,
-                    })
-                  }
-                />
+              <div key={item.id} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px] flex-shrink-0">
+                <div className="relative overflow-hidden">
+                  <MovieCard 
+                    item={item} 
+                    type={"title" in item ? "movie" : "tv"}
+                    canScrollPrev={canScrollPrev}
+                    canScrollNext={canScrollNext}
+                    forceDesktopVariantOnMobile
+                    onCardClick={(clickedItem, clickedType) =>
+                      setSelectedItem({
+                        item: clickedItem,
+                        type: clickedType,
+                      })
+                    }
+                  />
+                </div>
               </div>
             ))}
           </div>

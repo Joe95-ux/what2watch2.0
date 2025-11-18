@@ -105,6 +105,8 @@ export default function ContentDetailModal({
   const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay compatibility
   const isClosingRef = useRef(false);
   const [isSheetMounted, setIsSheetMounted] = useState(false);
+  const [heroPlaylistTooltipOpen, setHeroPlaylistTooltipOpen] = useState(false);
+  const [isHeroPlaylistDropdownOpen, setIsHeroPlaylistDropdownOpen] = useState(false);
   
   // Track recently viewed
   const addRecentlyViewed = useAddRecentlyViewed();
@@ -269,20 +271,20 @@ export default function ContentDetailModal({
           {showBackButton && (
             <button
               onClick={(e) => handleButtonClick(e, handleBack)}
-              className="absolute top-4 left-4 z-[100] h-14 w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105 no-close"
+              className="absolute top-4 left-4 z-[100] h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105 no-close"
               aria-label="Back"
             >
-              <ArrowLeft className="h-7 w-7 text-white" />
+              <ArrowLeft className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
             </button>
           )}
 
           {/* Close Button - More Prominent */}
           <button
             onClick={(e) => handleButtonClick(e, onClose)}
-            className="absolute top-4 right-4 z-[100] h-14 w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105 no-close"
+            className="absolute top-4 right-4 z-[100] h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105 no-close"
             aria-label="Close"
           >
-            <X className="h-7 w-7 text-white" />
+            <X className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
           </button>
         </div>
 
@@ -368,7 +370,7 @@ export default function ContentDetailModal({
                   <div className="flex items-center gap-3">
                     <Button
                       size="lg"
-                      className="bg-white dark:bg-white text-black dark:text-black hover:bg-white/90 dark:hover:bg-white/90 h-14 px-10 text-base font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg rounded-md no-close"
+                      className="bg-white dark:bg-white text-black dark:text-black hover:bg-white/90 dark:hover:bg-white/90 h-12 px-6 text-sm md:h-14 md:px-10 md:text-base font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg rounded-md no-close"
                       asChild
                     >
                       <Link 
@@ -376,11 +378,14 @@ export default function ContentDetailModal({
                         onClick={(e) => e.stopPropagation()}
                         className="no-close"
                       >
-                        <Play className="size-6 mr-2.5 fill-black dark:fill-black" />
+                        <Play className="size-5 md:size-6 mr-2.5 fill-black dark:fill-black" />
                         Play
                       </Link>
                     </Button>
-                    <Tooltip>
+                    <Tooltip
+                      open={heroPlaylistTooltipOpen && !isHeroPlaylistDropdownOpen}
+                      onOpenChange={(open) => setHeroPlaylistTooltipOpen(open)}
+                    >
                       <TooltipTrigger asChild>
                         <AddToPlaylistDropdown
                           item={item}
@@ -389,12 +394,18 @@ export default function ContentDetailModal({
                             <Button
                               size="lg"
                               variant="outline"
-                              className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
+                              className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-12 w-12 md:h-14 md:w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
                               onClick={(e) => handleButtonClick(e, () => {})}
                             >
-                              <Plus className="size-6 text-white dark:text-white" />
+                              <Plus className="size-5 md:size-6 text-white dark:text-white" />
                             </Button>
                           }
+                          onOpenChange={(open) => {
+                            setIsHeroPlaylistDropdownOpen(open);
+                            if (open) {
+                              setHeroPlaylistTooltipOpen(false);
+                            }
+                          }}
                         />
                       </TooltipTrigger>
                       <TooltipContent>
@@ -406,7 +417,7 @@ export default function ContentDetailModal({
                         <Button
                           size="lg"
                           variant="outline"
-                          className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
+                          className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-12 w-12 md:h-14 md:w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
                           onClick={async (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -414,7 +425,7 @@ export default function ContentDetailModal({
                           }}
                         >
                           <Heart 
-                            className={`size-6 ${
+                            className={`size-5 md:size-6 ${
                               toggleFavorite.isFavorite(item.id, type)
                                 ? "text-red-500 dark:text-red-500 fill-red-500 dark:fill-red-500"
                                 : "text-white dark:text-white"
@@ -433,10 +444,10 @@ export default function ContentDetailModal({
                         <Button
                           size="lg"
                           variant="outline"
-                          className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
+                          className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-12 w-12 md:h-14 md:w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
                           onClick={(e) => handleButtonClick(e, () => {})}
                         >
-                          <BookOpen className="size-6 text-white dark:text-white" />
+                          <BookOpen className="size-5 md:size-6 text-white dark:text-white" />
                         </Button>
                       }
                     />
@@ -447,14 +458,14 @@ export default function ContentDetailModal({
                           <Button
                             size="lg"
                             variant="outline"
-                            className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 ml-auto cursor-pointer no-close"
+                          className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-12 w-12 md:h-14 md:w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 ml-auto cursor-pointer no-close"
                             onClick={(e) => handleButtonClick(e, () => setIsMuted(!isMuted))}
                             aria-label={isMuted ? "Unmute" : "Mute"}
                           >
                             {isMuted ? (
-                              <VolumeX className="size-6 text-white dark:text-white" />
+                            <VolumeX className="size-5 md:size-6 text-white dark:text-white" />
                             ) : (
-                              <Volume2 className="size-6 text-white dark:text-white" />
+                            <Volume2 className="size-5 md:size-6 text-white dark:text-white" />
                             )}
                           </Button>
                         </TooltipTrigger>
