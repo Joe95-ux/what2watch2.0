@@ -200,7 +200,7 @@ export default function MoreLikeThisCard({
           )}
 
           {/* Like and Watchlist Buttons - Top Left */}
-          <div className="absolute top-2 left-2 z-30 flex gap-2">
+          <div className="absolute top-2 left-2 z-[5] flex gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
                 <CircleActionButton
@@ -257,14 +257,14 @@ export default function MoreLikeThisCard({
 
           {/* Runtime - Top Right */}
           {runtimeText && (
-            <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-xs text-white font-medium z-30">
+            <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-xs text-white font-medium z-[5]">
               {runtimeText}
             </div>
           )}
 
           {/* Type Badge - Bottom Left (when filter is "all") */}
           {showTypeBadge && (
-            <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-xs text-white font-medium z-30">
+            <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-xs text-white font-medium z-[5]">
               {type === "movie" ? "Movie" : "TV"}
             </div>
           )}
@@ -288,7 +288,7 @@ export default function MoreLikeThisCard({
                   setIsDetailModalOpen(true);
                 }
               }}
-              className="pointer-events-auto z-30"
+              className="pointer-events-auto z-[5]"
             >
               <Play className="size-6 text-white fill-white" />
             </CircleActionButton>

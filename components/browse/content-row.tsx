@@ -192,7 +192,7 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
             paddingRight: scrollProgress > 0 ? '0px' : `${currentPadding}px`, // Remove right padding when scrolled
           }}
         >
-          <div ref={emblaRef} className="overflow-hidden w-full touch-pan-x">
+          <div ref={emblaRef} className="overflow-hidden w-full" style={{ touchAction: 'pan-x' }}>
             <div className="-ml-2 md:-ml-4 flex gap-3">
               {items.map((item) => (
                 <div key={item.id} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px] flex-shrink-0">
@@ -202,7 +202,6 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
                       type={"title" in item ? "movie" : "tv"}
                       canScrollPrev={canScrollPrev}
                       canScrollNext={canScrollNext}
-                      forceDesktopVariantOnMobile
                       onCardClick={(clickedItem, clickedType) =>
                         setSelectedItem({
                           item: clickedItem,
