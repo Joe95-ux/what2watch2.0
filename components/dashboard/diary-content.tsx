@@ -57,7 +57,7 @@ export default function DiaryContent() {
   const [mediaTypeFilter, setMediaTypeFilter] = useState<"all" | "movie" | "tv">("all");
   const [yearFilter, setYearFilter] = useState<string>("all");
   const [ratingFilter, setRatingFilter] = useState<string>("all");
-  const [tagFilter, setTagFilter] = useState<string>("");
+  const [tagFilter, setTagFilter] = useState<string>("all");
   const [likedFilter, setLikedFilter] = useState<"all" | "liked" | "not-liked">("all");
   const [watchedYearFilter, setWatchedYearFilter] = useState<string>("all");
   const [sortField, setSortField] = useState<SortField>("watchedAt");
@@ -132,7 +132,7 @@ export default function DiaryContent() {
     }
 
     // Tag filter
-    if (tagFilter.trim()) {
+    if (tagFilter && tagFilter !== "all") {
       const tag = tagFilter.toLowerCase().trim();
       filtered = filtered.filter((log) =>
         (log.tags || []).some((t) => t.toLowerCase() === tag)
@@ -292,7 +292,7 @@ export default function DiaryContent() {
     if (mediaTypeFilter !== "all") count++;
     if (yearFilter !== "all") count++;
     if (ratingFilter !== "all") count++;
-    if (tagFilter.trim()) count++;
+    if (tagFilter && tagFilter !== "all") count++;
     if (likedFilter !== "all") count++;
     if (watchedYearFilter !== "all") count++;
     return count;
@@ -493,7 +493,7 @@ export default function DiaryContent() {
               <SelectValue placeholder="Tag" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="" className="text-[13px]">All Tags</SelectItem>
+              <SelectItem value="all" className="text-[13px]">All Tags</SelectItem>
               {availableTags.map((tag) => (
                 <SelectItem key={tag} value={tag} className="text-[13px]">
                   {tag}

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import useEmblaCarousel from "embla-carousel-react";
+import { WheelGesturesPlugin } from 'embla-carousel-wheel-gestures';
 
 interface ContentRowProps {
   title: string;
@@ -30,7 +31,9 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
       "(max-width: 1024px)": { slidesToScroll: 3 },
       "(max-width: 1280px)": { slidesToScroll: 4 },
     },
-  });
+  },  [
+    WheelGesturesPlugin()
+  ]);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0); // 0 = start, 1 = scrolled
@@ -60,38 +63,25 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
   useEffect(() => {
     if (!emblaApi) return;
 
-    const updateScrollProgress = () => {
-      const progress = emblaApi.scrollProgress();
-      setScrollProgress(progress);
-    };
-
-    updateScrollProgress();
-    emblaApi.on("scroll", updateScrollProgress);
-    emblaApi.on("reInit", updateScrollProgress);
-
-    return () => {
-      emblaApi.off("scroll", updateScrollProgress);
-      emblaApi.off("reInit", updateScrollProgress);
-    };
-  }, [emblaApi]);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-
     const updateScrollState = () => {
       setCanScrollPrev(emblaApi.canScrollPrev());
       setCanScrollNext(emblaApi.canScrollNext());
+      setScrollProgress(Math.min(emblaApi.scrollProgress(), 1));
     };
 
-    updateScrollState();
     emblaApi.on("select", updateScrollState);
     emblaApi.on("reInit", updateScrollState);
+    emblaApi.on("scroll", updateScrollState);
+    emblaApi.on("slideFocus", updateScrollState);
 
     return () => {
       emblaApi.off("select", updateScrollState);
       emblaApi.off("reInit", updateScrollState);
+      emblaApi.off("scroll", updateScrollState);
+      emblaApi.off("slideFocus", updateScrollState);
     };
   }, [emblaApi]);
+
 
   if (isLoading) {
     return (

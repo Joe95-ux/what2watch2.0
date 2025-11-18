@@ -25,8 +25,9 @@ function PopularContentInner() {
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
   const GENRES_TO_SHOW = 8;
 
-  // Get params from URL
-  const type = (searchParams.get("type") || "all") as "all" | "movie" | "tv";
+  // Get params from URL - normalize "movies" to "movie"
+  const typeParam = searchParams.get("type") || "all";
+  const type = (typeParam === "movies" ? "movie" : typeParam) as "all" | "movie" | "tv";
   const genreParam = searchParams.get("genre") || "";
   const genre = genreParam ? genreParam.split(",").map(id => parseInt(id, 10)).filter(id => !isNaN(id)) : [];
   const year = searchParams.get("year") || "";
@@ -46,8 +47,10 @@ function PopularContentInner() {
   useEffect(() => {
     const genreParam = searchParams.get("genre") || "";
     const genreArray = genreParam ? genreParam.split(",").map(id => parseInt(id, 10)).filter(id => !isNaN(id)) : [];
+    const typeParam = searchParams.get("type") || "all";
+    const normalizedType = (typeParam === "movies" ? "movie" : typeParam) as "all" | "movie" | "tv";
     setFilters({
-      type: (searchParams.get("type") || "all") as "all" | "movie" | "tv",
+      type: normalizedType,
       genre: genreArray,
       year: searchParams.get("year") || "",
       minRating: searchParams.get("minRating") ? parseFloat(searchParams.get("minRating")!) : 0,
@@ -192,7 +195,9 @@ function PopularContentInner() {
           }
         } else if (key === "type") {
           if (value !== "all") {
-            params.set(key, value.toString());
+            // Convert "movie" to "movies" for URL consistency
+            const urlType = value.toString() === "movie" ? "movies" : value.toString();
+            params.set(key, urlType);
           } else {
             params.delete(key);
           }
@@ -275,7 +280,7 @@ function PopularContentInner() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">
             {/* Tabs */}
-            <Tabs value={type} onValueChange={(v) => handleTypeChange(v as "all" | "movie" | "tv")}>
+            <Tabs value={type === "movie" ? "movies" : type} onValueChange={(v) => handleTypeChange(v === "movies" ? "movie" : v as "all" | "movie" | "tv")}>
               <TabsList>
                 <TabsTrigger value="all" className="cursor-pointer">All</TabsTrigger>
                 <TabsTrigger value="movies" className="cursor-pointer">Movies</TabsTrigger>
