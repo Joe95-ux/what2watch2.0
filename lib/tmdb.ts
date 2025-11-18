@@ -349,6 +349,8 @@ export async function discoverMovies(filters: {
   minRating?: number;
   language?: string;
   keywords?: number | number[];
+  runtimeMin?: number;
+  runtimeMax?: number;
 }): Promise<TMDBResponse<TMDBMovie>> {
   const params: Record<string, string | number> = {
     page: filters.page || 1,
@@ -378,6 +380,13 @@ export async function discoverMovies(filters: {
       ? filters.keywords.join(',')
       : filters.keywords;
   }
+  // Runtime filtering for movies
+  if (filters.runtimeMin !== undefined) {
+    params['with_runtime.gte'] = filters.runtimeMin;
+  }
+  if (filters.runtimeMax !== undefined) {
+    params['with_runtime.lte'] = filters.runtimeMax;
+  }
   
   return fetchTMDB<TMDBResponse<TMDBMovie>>('/discover/movie', params);
 }
@@ -395,6 +404,8 @@ export async function discoverTV(filters: {
   minRating?: number;
   language?: string;
   keywords?: number | number[];
+  runtimeMin?: number;
+  runtimeMax?: number;
 }): Promise<TMDBResponse<TMDBSeries>> {
   const params: Record<string, string | number> = {
     page: filters.page || 1,
@@ -423,6 +434,14 @@ export async function discoverTV(filters: {
     params.with_keywords = Array.isArray(filters.keywords)
       ? filters.keywords.join(',')
       : filters.keywords;
+  }
+  // Runtime filtering for TV shows (episode runtime)
+  // Note: TMDB uses with_runtime for TV episode runtime
+  if (filters.runtimeMin !== undefined) {
+    params['with_runtime.gte'] = filters.runtimeMin;
+  }
+  if (filters.runtimeMax !== undefined) {
+    params['with_runtime.lte'] = filters.runtimeMax;
   }
   
   return fetchTMDB<TMDBResponse<TMDBSeries>>('/discover/tv', params);

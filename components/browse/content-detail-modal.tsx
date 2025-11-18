@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { X, Play, Plus, Heart, Star, Clock, Volume2, VolumeX, ArrowLeft, BookOpen, CalendarIcon } from "lucide-react";
+import { X, Play, Plus, Heart, Star, Clock, Volume2, VolumeX, ArrowLeft, BookOpen, BookCheck, CalendarIcon } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getBackdropUrl, getPosterUrl, getYouTubeEmbedUrl, TMDBVideo } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -471,7 +471,7 @@ export default function ContentDetailModal({
 
           {/* Clear Icon - Only show when audio is enabled (not muted) */}
           {!isMuted && trailer && videosData && (
-            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+            <div className="absolute inset-0 flex items-end justify-end z-10 pointer-events-none p-6 sm:p-8 lg:p-12">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -481,7 +481,7 @@ export default function ContentDetailModal({
                     onClick={(e) => handleButtonClick(e, () => setIsMuted(true))}
                     aria-label="Clear"
                   >
-                    <X className="size-6 text-white dark:text-white" />
+                    <BookCheck className="size-6 text-white dark:text-white" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>

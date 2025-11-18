@@ -271,15 +271,15 @@ function PopularContentInner() {
   return (
     <div className="min-h-screen bg-background">
       {/* Fixed Filter Nav */}
-      <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-[65px] z-10">
+      <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-[65px] z-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">
             {/* Tabs */}
             <Tabs value={type} onValueChange={(v) => handleTypeChange(v as "all" | "movie" | "tv")}>
               <TabsList>
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="movies">Movies</TabsTrigger>
-                <TabsTrigger value="tv">TV Shows</TabsTrigger>
+                <TabsTrigger value="all" className="cursor-pointer">All</TabsTrigger>
+                <TabsTrigger value="movies" className="cursor-pointer">Movies</TabsTrigger>
+                <TabsTrigger value="tv" className="cursor-pointer">TV Shows</TabsTrigger>
               </TabsList>
             </Tabs>
 

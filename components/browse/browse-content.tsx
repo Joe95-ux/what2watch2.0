@@ -76,6 +76,8 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
       year?: string;
       sortBy?: string;
       genre?: number[];
+      runtimeMin?: number;
+      runtimeMax?: number;
     } = {
       type: preferredTypes.length > 0 ? (preferredTypes[0] as "movie" | "tv") : "movie",
       sortBy: "popularity.desc",
@@ -104,8 +106,20 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
       }
     }
 
+    // Duration filter - convert to runtime range
+    if (durationFilter !== "any") {
+      if (durationFilter === "quick") {
+        params.runtimeMax = 90; // < 90 min
+      } else if (durationFilter === "medium") {
+        params.runtimeMin = 90;
+        params.runtimeMax = 120; // 90-120 min
+      } else if (durationFilter === "long") {
+        params.runtimeMin = 120; // > 120 min
+      }
+    }
+
     return params;
-  }, [moodFilter, yearFilter, preferredTypes]);
+  }, [moodFilter, yearFilter, durationFilter, preferredTypes]);
 
   // Fetch filtered content for first section - always enabled to show Discover section
   // Since moodFilter defaults to "light", we'll always have genre and minRating
