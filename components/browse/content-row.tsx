@@ -160,7 +160,13 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
       )}
       
       {/* Carousel container - starts with padding, expands to full width on scroll */}
-      <div className="relative group/carousel overflow-hidden">
+      <div 
+        className="relative group/carousel overflow-hidden transition-all duration-300 ease-out"
+        style={{
+          paddingLeft: `${currentPadding * (1 - scrollProgress)}px`, // Match title padding at start, 0 when scrolled
+          paddingRight: scrollProgress > 0 ? '0px' : `${currentPadding}px`, // Remove right padding when scrolled
+        }}
+      >
         {/* Control buttons - matching Explore Curated Lists style */}
         <button
           type="button"
@@ -184,35 +190,26 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
         >
           <ChevronRight className="h-6 w-6 text-white" />
         </button>
-        {/* Carousel - starts with left padding, expands to full width on scroll */}
-        <div 
-          className="transition-all duration-300 ease-out"
-          style={{
-            paddingLeft: `${currentPadding * (1 - scrollProgress)}px`, // Match title padding at start, 0 when scrolled
-            paddingRight: scrollProgress > 0 ? '0px' : `${currentPadding}px`, // Remove right padding when scrolled
-          }}
-        >
-          <div ref={emblaRef} className="overflow-hidden w-full" style={{ touchAction: 'pan-x' }}>
-            <div className="-ml-2 md:-ml-4 flex gap-3">
-              {items.map((item) => (
-                <div key={item.id} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px] flex-shrink-0">
-                  <div className="relative overflow-hidden">
-                    <MovieCard 
-                      item={item} 
-                      type={"title" in item ? "movie" : "tv"}
-                      canScrollPrev={canScrollPrev}
-                      canScrollNext={canScrollNext}
-                      onCardClick={(clickedItem, clickedType) =>
-                        setSelectedItem({
-                          item: clickedItem,
-                          type: clickedType,
-                        })
-                      }
-                    />
-                  </div>
+        <div ref={emblaRef} className="overflow-hidden w-full" style={{ touchAction: 'pan-x' }}>
+          <div className="-ml-2 md:-ml-4 flex gap-3">
+            {items.map((item) => (
+              <div key={item.id} className="basis-[180px] sm:basis-[200px] flex-shrink-0">
+                <div className="relative overflow-hidden">
+                  <MovieCard 
+                    item={item} 
+                    type={"title" in item ? "movie" : "tv"}
+                    canScrollPrev={canScrollPrev}
+                    canScrollNext={canScrollNext}
+                    onCardClick={(clickedItem, clickedType) =>
+                      setSelectedItem({
+                        item: clickedItem,
+                        type: clickedType,
+                      })
+                    }
+                  />
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
