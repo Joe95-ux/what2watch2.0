@@ -182,7 +182,7 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
   return (
     <div className="min-h-screen bg-background">
       {/* Quick Filters Bar */}
-      <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-[65px] z-10">
+      <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-[64px] z-12">
         <div className="px-4 sm:px-6 lg:px-8">
           <QuickFilters
             onMoodChange={setMoodFilter}

@@ -34,6 +34,8 @@ model User {
   viewingLogs   ViewingLog[]
   playlistEngagements PlaylistEngagementEvent[] @relation("UserPlaylistEngagementOwnership")
   playlistEngagementActions PlaylistEngagementEvent[] @relation("UserPlaylistEngagementActor")
+  listEngagements ListEngagementEvent[] @relation("UserListEngagementOwnership")
+  listEngagementActions ListEngagementEvent[] @relation("UserListEngagementActor")
   aiChatEvents AiChatEvent[]
   aiChatSessions AiChatSession[]
   
@@ -594,6 +596,7 @@ model List {
   items         ListItem[]
   likedBy       LikedList[]
   comments      ListComment[]
+  engagementEvents ListEngagementEvent[]
   
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
@@ -696,4 +699,29 @@ model ListCommentReaction {
   @@index([userId])
   @@index([reactionType])
   @@index([createdAt])
+}
+
+enum ListEngagementType {
+  SHARE
+  VISIT
+}
+
+model ListEngagementEvent {
+  id           String                 @id @default(auto()) @map("_id") @db.ObjectId
+  listId       String                 @db.ObjectId
+  list         List                   @relation(fields: [listId], references: [id], onDelete: Cascade)
+  ownerId      String                 @db.ObjectId
+  owner        User                   @relation("UserListEngagementOwnership", fields: [ownerId], references: [id], onDelete: Cascade)
+  actorId      String?                @db.ObjectId
+  actor        User?                  @relation("UserListEngagementActor", fields: [actorId], references: [id])
+  type         ListEngagementType
+  source       String?
+  visitorToken String?
+  metadata     Json?
+  createdAt    DateTime               @default(now())
+
+  @@map("list_engagement_events")
+  @@index([listId])
+  @@index([ownerId, type])
+  @@index([visitorToken])
 }

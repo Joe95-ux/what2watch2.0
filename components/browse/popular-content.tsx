@@ -276,7 +276,7 @@ function PopularContentInner() {
   return (
     <div className="min-h-screen bg-background">
       {/* Fixed Filter Nav */}
-      <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-[65px] z-30">
+      <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-[64px] z-30">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">
             {/* Tabs */}

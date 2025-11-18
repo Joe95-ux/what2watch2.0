@@ -25,7 +25,7 @@ export function DashboardSubnav() {
   const breadcrumbs = generateBreadcrumbs(pathname);
 
   return (
-    <div className="fixed top-[65px] left-0 right-0 z-40 h-12 border-b border-border/50 bg-background/95 backdrop-blur-sm">
+    <div className="fixed top-[64px] left-0 right-0 z-40 h-12 border-b border-border/50 bg-background/95 backdrop-blur-sm">
       <div className="flex h-full items-center gap-3 px-4">
         {/* Sidebar Trigger */}
         <SidebarTrigger className="h-8 w-8 flex-shrink-0" />

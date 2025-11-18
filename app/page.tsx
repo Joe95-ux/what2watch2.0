@@ -16,7 +16,7 @@ import {
   ChevronRight,
   Plus,
 } from "lucide-react";
-import { SignInButton } from "@clerk/nextjs";
+import { SignInButton, useUser } from "@clerk/nextjs";
 import Navbar from "@/components/navbar/navbar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -190,6 +190,7 @@ function FAQAccordion() {
 
 export default function LandingPage() {
   const router = useRouter();
+  const { isSignedIn } = useUser();
 
   const {
     data: trendingMovies = [],
@@ -502,12 +503,21 @@ export default function LandingPage() {
               and a vibrant community of film enthusiasts.
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <SignInButton mode="modal">
-                <Button size="lg" className="w-full sm:w-auto">
-                  Get Started
-                  <ArrowRight className="ml-2 h-4 w-4" />
+              {isSignedIn ? (
+                <Button size="lg" className="w-full sm:w-auto" asChild>
+                  <Link href="/dashboard/profile">
+                    Visit Profile
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
                 </Button>
-              </SignInButton>
+              ) : (
+                <SignInButton mode="modal">
+                  <Button size="lg" className="w-full sm:w-auto">
+                    Get Started
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </SignInButton>
+              )}
               <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
                 <Link href="/browse">Browse Library</Link>
               </Button>
@@ -747,12 +757,21 @@ export default function LandingPage() {
               Join thousands of users discovering great content every day
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <SignInButton mode="modal">
-                <Button size="lg" className="w-full sm:w-auto">
-                  Get Started Free
-                  <ArrowRight className="ml-2 h-4 w-4" />
+              {isSignedIn ? (
+                <Button size="lg" className="w-full sm:w-auto" asChild>
+                  <Link href="/dashboard/profile">
+                    Visit Profile
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
                 </Button>
-              </SignInButton>
+              ) : (
+                <SignInButton mode="modal">
+                  <Button size="lg" className="w-full sm:w-auto">
+                    Get Started Free
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </SignInButton>
+              )}
               <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
                 <Link href="/browse">Explore Now</Link>
               </Button>

@@ -162,7 +162,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <div className="relative w-full h-[60vh] min-h-[400px] overflow-hidden -mt-[65px]">
+      <div className="relative w-full h-[40vh] sm:h-[50vh] md:h-[60vh] min-h-[250px] sm:min-h-[300px] md:min-h-[400px] overflow-hidden -mt-[65px]">
         {backdropPath ? (
           <>
             <Image
@@ -179,54 +179,69 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
           <div className="absolute inset-0 bg-muted" />
         )}
         
-        <div className="absolute inset-0 flex items-end z-10">
-          <div className="w-full px-4 sm:px-6 lg:px-8 pb-8">
-            <div className="max-w-7xl mx-auto">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.back()}
-                className="mb-4"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-              
-              <div className="flex flex-col md:flex-row gap-6">
-                {posterPath && (
-                  <div className="relative w-32 h-48 md:w-40 md:h-60 rounded-lg overflow-hidden flex-shrink-0">
-                    <Image
-                      src={getPosterUrl(posterPath, "w500")}
-                      alt={title}
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
-                  </div>
+        {/* Back Button - Only visible on banner */}
+        <div className="absolute top-4 left-4 z-20 md:hidden">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.back()}
+            className="bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white border-white/20"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+        </div>
+      </div>
+      
+      {/* Poster and Movie Info Section - Below banner on mobile, inside on desktop */}
+      <div className="relative -mt-16 md:-mt-24 lg:-mt-32">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+          {/* Back Button - Desktop only */}
+          <div className="hidden md:block mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.back()}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+            {posterPath && (
+              <div className="relative w-32 h-48 sm:w-40 sm:h-60 md:w-48 md:h-72 rounded-lg overflow-hidden flex-shrink-0 shadow-lg">
+                <Image
+                  src={getPosterUrl(posterPath, "w500")}
+                  alt={title}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              </div>
+            )}
+            
+            <div className="flex-1 pt-2 sm:pt-0">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 text-foreground">{title}</h1>
+              <div className="flex items-center gap-3 sm:gap-4 mb-4 flex-wrap">
+                {releaseYear && (
+                  <span className="text-muted-foreground text-sm sm:text-base">{releaseYear}</span>
                 )}
-                
-                <div className="flex-1">
-                  <h1 className="text-3xl md:text-4xl font-bold mb-2">{title}</h1>
-                  <div className="flex items-center gap-4 mb-4 flex-wrap">
-                    {releaseYear && (
-                      <span className="text-muted-foreground">{releaseYear}</span>
-                    )}
-                    <span className="text-muted-foreground capitalize">{log.mediaType}</span>
-                    {trailer && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedVideo(trailer);
-                          setIsTrailerModalOpen(true);
-                        }}
-                      >
-                        <Play className="h-4 w-4 mr-2" />
-                        Watch Trailer
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                <span className="text-muted-foreground capitalize text-sm sm:text-base">{log.mediaType}</span>
+                {trailer && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedVideo(trailer);
+                      setIsTrailerModalOpen(true);
+                    }}
+                    className="text-xs sm:text-sm"
+                  >
+                    <Play className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    Watch Trailer
+                  </Button>
+                )}
               </div>
             </div>
           </div>
