@@ -271,7 +271,7 @@ function PopularContentInner() {
   return (
     <div className="min-h-screen bg-background">
       {/* Fixed Filter Nav */}
-      <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-[65px] z-50">
+      <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-[65px] z-[60]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">
             {/* Tabs */}
@@ -427,10 +427,16 @@ export default function PopularContent() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-background">
-        <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-[65px] z-10">
-          <div className="px-4 sm:px-6 lg:px-8">
+        <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-[65px] z-50">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between py-4">
-              <Skeleton className="h-10 w-48" />
+              {/* Tabs Skeleton */}
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-10 w-16" />
+                <Skeleton className="h-10 w-20" />
+                <Skeleton className="h-10 w-24" />
+              </div>
+              {/* Filters Button Skeleton */}
               <Skeleton className="h-10 w-24" />
             </div>
           </div>

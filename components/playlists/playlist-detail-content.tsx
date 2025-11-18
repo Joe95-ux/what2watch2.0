@@ -215,7 +215,7 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
   return (
     <div className="min-h-screen bg-background">
       {/* Header with Cover */}
-      <div className="relative -mt-[65px] h-[43vh] min-h-[300px] max-h-[500px] overflow-hidden">
+      <div className="relative -mt-[65px] h-[60vh] min-h-[300px] max-h-[75vh] overflow-hidden">
         {coverImage ? (
           <>
             <img
@@ -242,9 +242,9 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back
                 </Button>
-                <h1 className="text-4xl font-bold mb-2">{playlist.name}</h1>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">{playlist.name}</h1>
                 {playlist.description && (
-                  <p className="text-lg text-muted-foreground mb-4 max-w-2xl">
+                  <p className="text-base sm:text-lg text-muted-foreground mb-4 max-w-2xl">
                     {playlist.description}
                   </p>
                 )}
@@ -368,38 +368,42 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
           </div>
         )}
         {itemsAsTMDB.length > 0 && totalPages > 1 && (
-          <div className="mt-8 flex items-center justify-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Previous
-            </Button>
-            <div className="flex items-center gap-1">
-              {pageNumbers.map((page) => (
-                <Button
-                  key={page}
-                  variant={currentPage === page ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setCurrentPage(page)}
-                  className="min-w-[40px]"
-                >
-                  {page}
-                </Button>
-              ))}
+          <div className="mt-8 w-full">
+            <div className="flex items-center justify-center gap-2 overflow-x-auto max-w-full px-2 py-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="flex-shrink-0"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              <div className="flex items-center gap-1 overflow-x-auto max-w-full">
+                {pageNumbers.map((page) => (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(page)}
+                    className="min-w-[40px] flex-shrink-0"
+                  >
+                    {page}
+                  </Button>
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="flex-shrink-0"
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Next
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
           </div>
         )}
       </div>

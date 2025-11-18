@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { Play, Plus, Heart, Bookmark } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
@@ -10,6 +10,10 @@ import { useToggleFavorite } from "@/hooks/use-favorites";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
+import { useUser, useClerk } from "@clerk/nextjs";
+import { toast } from "sonner";
 
 interface MoreLikeThisCardProps {
   item: TMDBMovie | TMDBSeries;
@@ -18,18 +22,30 @@ interface MoreLikeThisCardProps {
   parentType?: "movie" | "tv";
   onItemClick?: (item: TMDBMovie | TMDBSeries, itemType: "movie" | "tv") => void;
   showTypeBadge?: boolean; // Show TV/Movies badge when filter is "all"
+  className?: string;
+  onAddToPlaylist?: () => void;
 }
 
-export default function MoreLikeThisCard({ item, type, parentItem, parentType, onItemClick, showTypeBadge = false }: MoreLikeThisCardProps) {
+export default function MoreLikeThisCard({
+  item,
+  type,
+  parentItem,
+  parentType,
+  onItemClick,
+  showTypeBadge = false,
+  className,
+  onAddToPlaylist,
+}: MoreLikeThisCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const [runtime, setRuntime] = useState<number | null>(null);
   const [isLoadingRuntime, setIsLoadingRuntime] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const attemptedRuntimeFetchRef = useRef<number | null>(null); // Track which item ID we've attempted to fetch
   const toggleFavorite = useToggleFavorite();
   const toggleWatchlist = useToggleWatchlist();
+  const isMobile = useIsMobile();
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   
   const hasParent = !!parentItem && !!parentType;
 
@@ -57,16 +73,6 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
   const parentalRating = type === "movie" 
     ? ((item as TMDBMovie).adult ? "R" : "PG-13")
     : "TV-MA";
-
-  // Check if mobile
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
 
   // Reset fetch attempt tracking when item changes
   useEffect(() => {
@@ -141,10 +147,33 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
     }
   };
 
+  const promptSignIn = useCallback(
+    (message?: string) => {
+      toast.error(message ?? "Please sign in to perform this action.");
+      if (openSignIn) {
+        openSignIn({
+          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        });
+      }
+    },
+    [openSignIn]
+  );
+
+  const requireAuth = useCallback(
+    async (action: () => Promise<void> | void, message?: string) => {
+      if (!isSignedIn) {
+        promptSignIn(message);
+        return;
+      }
+      return action();
+    },
+    [isSignedIn, promptSignIn]
+  );
+
   return (
     <>
       <div
-        className="relative bg-card rounded-lg overflow-hidden cursor-pointer group"
+        className={cn("relative bg-card rounded-lg overflow-hidden cursor-pointer group", className)}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={handleCardClick}
@@ -169,7 +198,7 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
           )}
 
           {/* Like and Watchlist Buttons - Top Left */}
-          <div className="absolute top-2 left-2 z-20 flex gap-2">
+          <div className="absolute top-2 left-2 z-30 flex gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
                 <CircleActionButton
@@ -177,7 +206,10 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
                   onClick={async (e: React.MouseEvent) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    await toggleFavorite.toggle(item, type);
+                    await requireAuth(
+                      () => toggleFavorite.toggle(item, type),
+                      "Sign in to like titles."
+                    );
                   }}
                 >
                   <Heart 
@@ -200,7 +232,10 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
                   onClick={async (e: React.MouseEvent) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    await toggleWatchlist.toggle(item, type);
+                    await requireAuth(
+                      () => toggleWatchlist.toggle(item, type),
+                      "Sign in to manage your watchlist."
+                    );
                   }}
                 >
                   <Bookmark 
@@ -220,14 +255,14 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
 
           {/* Runtime - Top Right */}
           {runtimeText && (
-            <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-xs text-white font-medium z-20">
+            <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-xs text-white font-medium z-30">
               {runtimeText}
             </div>
           )}
 
           {/* Type Badge - Bottom Left (when filter is "all") */}
           {showTypeBadge && (
-            <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-xs text-white font-medium z-20">
+            <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-xs text-white font-medium z-30">
               {type === "movie" ? "Movie" : "TV"}
             </div>
           )}
@@ -251,7 +286,7 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
                   setIsDetailModalOpen(true);
                 }
               }}
-              className="pointer-events-auto z-10"
+              className="pointer-events-auto z-30"
             >
               <Play className="size-6 text-white fill-white" />
             </CircleActionButton>
@@ -271,24 +306,37 @@ export default function MoreLikeThisCard({ item, type, parentItem, parentType, o
             </div>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div>
-                  <AddToPlaylistDropdown
-                    item={item}
-                    type={type}
-                    onOpenChange={setIsDropdownOpen}
-                    trigger={
-                      <CircleActionButton
-                        size="sm"
-                        onClick={(e: React.MouseEvent) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }}
-                      >
-                        <Plus className="h-3 w-3 text-black dark:text-white" />
-                      </CircleActionButton>
-                    }
-                  />
-                </div>
+                {isSignedIn ? (
+                  <div>
+                    <AddToPlaylistDropdown
+                      item={item}
+                      type={type}
+                      onAddSuccess={onAddToPlaylist}
+                      trigger={
+                        <CircleActionButton
+                          size="sm"
+                          onClick={(e: React.MouseEvent) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                        >
+                          <Plus className="h-3 w-3 text-black dark:text-white" />
+                        </CircleActionButton>
+                      }
+                    />
+                  </div>
+                ) : (
+                  <CircleActionButton
+                    size="sm"
+                    onClick={(e: React.MouseEvent) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      void requireAuth(async () => undefined, "Sign in to manage playlists.");
+                    }}
+                  >
+                    <Plus className="h-3 w-3 text-black dark:text-white" />
+                  </CircleActionButton>
+                )}
               </TooltipTrigger>
               <TooltipContent>
                 <p>Add to Playlist</p>

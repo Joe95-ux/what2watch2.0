@@ -14,6 +14,9 @@ import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdo
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useContentVideos } from "@/hooks/use-content-details";
+import { useUser, useClerk } from "@clerk/nextjs";
+import { toast } from "sonner";
+import MoreLikeThisCard from "./more-like-this-card";
 
 interface MovieCardProps {
   item: TMDBMovie | TMDBSeries;
@@ -36,6 +39,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(true);
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const cardRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const attemptedFetchRef = useRef<number | null>(null); // Track which item ID we've attempted to fetch
@@ -177,6 +182,41 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
     };
   }, [isHovered, fetchTrailerVideos, isMobile, item.id, variant]);
 
+  const promptSignIn = useCallback(
+    (message?: string) => {
+      toast.error(message ?? "Please sign in to perform this action.");
+      if (openSignIn) {
+        openSignIn({
+          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        });
+      }
+    },
+    [openSignIn]
+  );
+
+  const requireAuth = useCallback(
+    async (action: () => Promise<void> | void, message?: string) => {
+      if (!isSignedIn) {
+        promptSignIn(message);
+        return;
+      }
+      return action();
+    },
+    [isSignedIn, promptSignIn]
+  );
+
+  if (isMobile) {
+    return (
+      <MoreLikeThisCard
+        item={item}
+        type={type}
+        onItemClick={onCardClick}
+        className={cn("flex-shrink-0", className)}
+        onAddToPlaylist={onAddToPlaylist}
+      />
+    );
+  }
+
 
   return (
     <>
@@ -275,7 +315,10 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                         onClick={async (e: React.MouseEvent) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          await toggleFavorite.toggle(item, type);
+                          await requireAuth(
+                            () => toggleFavorite.toggle(item, type),
+                            "Sign in to like titles."
+                          );
                         }}
                       >
                         <Heart
@@ -300,7 +343,10 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                         onClick={async (e: React.MouseEvent) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          await toggleWatchlist.toggle(item, type);
+                          await requireAuth(
+                            () => toggleWatchlist.toggle(item, type),
+                            "Sign in to manage your watchlist."
+                          );
                         }}
                       >
                         <Bookmark
@@ -378,6 +424,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                     </Button>
                     <Tooltip>
                       <TooltipTrigger asChild>
+                      {isSignedIn ? (
                         <div>
                           <AddToPlaylistDropdown
                             item={item}
@@ -397,6 +444,19 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                             }
                           />
                         </div>
+                      ) : (
+                        <CircleActionButton
+                          size="sm"
+                          className="backdrop-blur-md"
+                          onClick={(e: React.MouseEvent) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            void requireAuth(async () => undefined, "Sign in to manage playlists.");
+                          }}
+                        >
+                          <Plus className={cn("text-white", isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
+                        </CircleActionButton>
+                      )}
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>Add to Playlist</p>
