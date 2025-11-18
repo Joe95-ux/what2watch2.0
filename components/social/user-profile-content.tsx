@@ -471,7 +471,6 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
                     <MovieCard
                       item={item}
                       type={type}
-                      variant="dashboard"
                       onCardClick={(clickedItem, clickedType) =>
                         setSelectedItem({
                           item: clickedItem,

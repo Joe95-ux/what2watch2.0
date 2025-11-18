@@ -51,7 +51,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   
   // On mobile/tablet, always show overlay with details (no hover/scaling needed)
   // Dashboard variant also always shows overlay
-  const shouldShowOverlay = isHovered || isMobile || variant === "dashboard";
+  const shouldShowOverlay = isHovered || isMobile;
 
   const title = "title" in item ? item.title : item.name;
   const posterPath = item.poster_path || item.backdrop_path;

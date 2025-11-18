@@ -382,7 +382,6 @@ export default function DashboardProfileContent() {
                     <MovieCard
                       item={item}
                       type={type}
-                      variant="dashboard"
                       onCardClick={(clickedItem, clickedType) =>
                         setSelectedItem({
                           item: clickedItem,

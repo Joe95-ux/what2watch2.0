@@ -632,7 +632,6 @@ export default function DiscoverContent() {
                         <MovieCard
                           item={item}
                           type={"title" in item ? "movie" : "tv"}
-                          variant="dashboard"
                           onCardClick={() => {
                             setSelectedItem({
                               item,
