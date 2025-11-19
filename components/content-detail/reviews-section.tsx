@@ -9,7 +9,7 @@ interface ReviewsSectionProps {
   mediaType: "movie" | "tv";
 }
 
-export default function ReviewsSection({ tmdbId, mediaType }: ReviewsSectionProps) {
+export default function ReviewsSection({ }: ReviewsSectionProps) {
   // TODO: Implement reviews API integration
   // For now, show placeholder
   return (
@@ -38,6 +38,7 @@ interface Review {
 }
 
 // Review Card Component (for future use)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ReviewCard({ review }: { review: Review }) {
   return (
     <div className="bg-card border border-border rounded-lg p-6 hover:shadow-md transition-shadow">

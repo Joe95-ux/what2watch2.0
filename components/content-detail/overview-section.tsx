@@ -20,6 +20,7 @@ interface DetailsType {
   revenue?: number;
   number_of_seasons?: number;
   number_of_episodes?: number;
+  genres?: Array<{ id: number; name: string }>;
 }
 
 interface OverviewSectionProps {
@@ -40,56 +41,135 @@ export default function OverviewSection({ item, type, details }: OverviewSection
 
   const posterPath = item.poster_path;
 
+  // Get crew info from details if available
+  const detailsWithCredits = details as DetailsType & {
+    credits?: {
+      crew?: Array<{
+        id: number;
+        name: string;
+        job: string;
+      }>;
+    };
+  };
+
+  const director = detailsWithCredits?.credits?.crew?.find((person) => person.job === "Director");
+  const writers = detailsWithCredits?.credits?.crew?.filter((person) => 
+    person.job === "Writer" || person.job === "Screenplay" || person.job === "Story"
+  ).slice(0, 3);
+
   return (
-    <section className="py-12 space-y-12">
-      {/* Synopsis & Poster */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <h2 className="text-2xl font-bold mb-4">Synopsis</h2>
-          <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-            {displaySynopsis || "No synopsis available."}
-          </p>
-          {shouldTruncate && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="mt-4"
-            >
-              {isExpanded ? (
-                <>
-                  <ChevronUp className="h-4 w-4 mr-1" />
-                  Show Less
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="h-4 w-4 mr-1" />
-                  Read More
-                </>
-              )}
-            </Button>
-          )}
+    <section className="py-12">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Main Content */}
+        <div className="lg:col-span-8 space-y-8">
+          {/* Synopsis */}
+          <div>
+            <h2 className="text-2xl font-bold mb-4">Storyline</h2>
+            <p className="text-foreground leading-relaxed text-base">
+              {displaySynopsis || "No synopsis available."}
+            </p>
+            {shouldTruncate && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="mt-4"
+              >
+                {isExpanded ? (
+                  <>
+                    <ChevronUp className="h-4 w-4 mr-1" />
+                    Show Less
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4 mr-1" />
+                    Read More
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+
+          {/* Watch Providers */}
+          <WatchProvidersSection item={item} type={type} />
+
+          {/* Details Grid */}
+          <DetailsGrid type={type} details={details} />
         </div>
-        {posterPath && (
-          <div className="hidden lg:block">
-            <div className="relative aspect-[2/3] rounded-lg overflow-hidden">
-              <Image
-                src={getPosterUrl(posterPath, "w500")}
-                alt={type === "movie" ? (item as TMDBMovie).title : (item as TMDBSeries).name}
-                fill
-                className="object-cover"
-                unoptimized
-              />
+
+        {/* Sidebar - IMDb style */}
+        <div className="lg:col-span-4">
+          <div className="space-y-6">
+            {/* Poster */}
+            {posterPath && (
+              <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-muted">
+                <Image
+                  src={getPosterUrl(posterPath, "w500")}
+                  alt={type === "movie" ? (item as TMDBMovie).title : (item as TMDBSeries).name}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              </div>
+            )}
+
+            {/* Quick Info */}
+            <div className="space-y-4">
+              {director && (
+                <div>
+                  <p className="text-sm font-semibold text-muted-foreground mb-1">Director</p>
+                  <p className="text-foreground">{director.name}</p>
+                </div>
+              )}
+
+              {writers && writers.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-muted-foreground mb-1">
+                    {writers.length === 1 ? "Writer" : "Writers"}
+                  </p>
+                  <p className="text-foreground">
+                    {writers.map((w) => w.name).join(", ")}
+                  </p>
+                </div>
+              )}
+
+              {details?.genres && details.genres.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-muted-foreground mb-1">Genres</p>
+                  <div className="flex flex-wrap gap-2">
+                    {details.genres.map((genre) => (
+                      <span
+                        key={genre.id}
+                        className="px-2 py-1 bg-muted rounded text-sm text-foreground"
+                      >
+                        {genre.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {details?.production_countries && details.production_countries.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-muted-foreground mb-1">Country</p>
+                  <p className="text-foreground">
+                    {details.production_countries.map((c) => c.name).join(", ")}
+                  </p>
+                </div>
+              )}
+
+              {details?.spoken_languages && details.spoken_languages.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-muted-foreground mb-1">Language</p>
+                  <p className="text-foreground">
+                    {details.spoken_languages.map((l) => l.english_name || l.name).join(", ")}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
-        )}
+        </div>
       </div>
-
-      {/* Watch Providers */}
-      <WatchProvidersSection item={item} type={type} />
-
-      {/* Details Grid */}
-      <DetailsGrid type={type} details={details} />
     </section>
   );
 }
@@ -108,10 +188,9 @@ function WatchProvidersSection({ item, type }: { item: TMDBMovie | TMDBSeries; t
     return (
       <div>
         <h2 className="text-2xl font-bold mb-6">Where to Watch</h2>
-        <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="flex-shrink-0 w-32 h-32 rounded-lg" />
-          ))}
+        <div className="space-y-4">
+          <Skeleton className="h-24 w-full rounded-lg" />
+          <Skeleton className="h-24 w-full rounded-lg" />
         </div>
       </div>
     );
@@ -132,89 +211,100 @@ function WatchProvidersSection({ item, type }: { item: TMDBMovie | TMDBSeries; t
     <div>
       <h2 className="text-2xl font-bold mb-6">Where to Watch</h2>
       
-      {/* Streaming Providers */}
-      {streamingProviders.length > 0 && (
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Stream</h3>
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4">
-            {streamingProviders.map((provider: TMDBWatchProvider) => (
-              <div
-                key={provider.provider_id}
-                className="flex-shrink-0 w-32 h-32 rounded-lg bg-muted border border-border flex flex-col items-center justify-center p-3 hover:scale-105 transition-transform cursor-pointer group"
-              >
-                {provider.logo_path ? (
-                  <Image
-                    src={getImageUrl(provider.logo_path, "w500")}
-                    alt={provider.provider_name}
-                    width={80}
-                    height={80}
-                    className="object-contain group-hover:opacity-80 transition-opacity"
-                    unoptimized
-                  />
-                ) : (
-                  <span className="text-xs font-medium text-center">{provider.provider_name}</span>
-                )}
-              </div>
-            ))}
+      <div className="space-y-6">
+        {/* Streaming Providers - JustWatch style */}
+        {streamingProviders.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1 h-6 bg-green-500 rounded-full" />
+              <h3 className="text-base font-semibold text-foreground">Streaming</h3>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {streamingProviders.map((provider: TMDBWatchProvider) => (
+                <div
+                  key={provider.provider_id}
+                  className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg border border-border transition-colors cursor-pointer group"
+                >
+                  {provider.logo_path ? (
+                    <Image
+                      src={getImageUrl(provider.logo_path, "w500")}
+                      alt={provider.provider_name}
+                      width={32}
+                      height={32}
+                      className="object-contain rounded group-hover:opacity-80 transition-opacity"
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="text-xs font-medium">{provider.provider_name}</span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Buy Providers */}
-      {buyProviders.length > 0 && (
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Buy</h3>
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4">
-            {buyProviders.map((provider: TMDBWatchProvider) => (
-              <div
-                key={provider.provider_id}
-                className="flex-shrink-0 w-32 h-32 rounded-lg bg-muted border border-border flex flex-col items-center justify-center p-3 hover:scale-105 transition-transform cursor-pointer group"
-              >
-                {provider.logo_path ? (
-                  <Image
-                    src={getImageUrl(provider.logo_path, "w500")}
-                    alt={provider.provider_name}
-                    width={80}
-                    height={80}
-                    className="object-contain group-hover:opacity-80 transition-opacity"
-                    unoptimized
-                  />
-                ) : (
-                  <span className="text-xs font-medium text-center">{provider.provider_name}</span>
-                )}
-              </div>
-            ))}
+        {/* Buy Providers - JustWatch style */}
+        {buyProviders.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1 h-6 bg-blue-500 rounded-full" />
+              <h3 className="text-base font-semibold text-foreground">Buy</h3>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {buyProviders.map((provider: TMDBWatchProvider) => (
+                <div
+                  key={provider.provider_id}
+                  className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg border border-border transition-colors cursor-pointer group"
+                >
+                  {provider.logo_path ? (
+                    <Image
+                      src={getImageUrl(provider.logo_path, "w500")}
+                      alt={provider.provider_name}
+                      width={32}
+                      height={32}
+                      className="object-contain rounded group-hover:opacity-80 transition-opacity"
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="text-xs font-medium">{provider.provider_name}</span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Rent Providers */}
-      {rentProviders.length > 0 && (
-        <div>
-          <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Rent</h3>
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4">
-            {rentProviders.map((provider: TMDBWatchProvider) => (
-              <div
-                key={provider.provider_id}
-                className="flex-shrink-0 w-32 h-32 rounded-lg bg-muted border border-border flex flex-col items-center justify-center p-3 hover:scale-105 transition-transform cursor-pointer group"
-              >
-                {provider.logo_path ? (
-                  <Image
-                    src={getImageUrl(provider.logo_path, "w500")}
-                    alt={provider.provider_name}
-                    width={80}
-                    height={80}
-                    className="object-contain group-hover:opacity-80 transition-opacity"
-                    unoptimized
-                  />
-                ) : (
-                  <span className="text-xs font-medium text-center">{provider.provider_name}</span>
-                )}
-              </div>
-            ))}
+        {/* Rent Providers - JustWatch style */}
+        {rentProviders.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1 h-6 bg-purple-500 rounded-full" />
+              <h3 className="text-base font-semibold text-foreground">Rent</h3>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {rentProviders.map((provider: TMDBWatchProvider) => (
+                <div
+                  key={provider.provider_id}
+                  className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg border border-border transition-colors cursor-pointer group"
+                >
+                  {provider.logo_path ? (
+                    <Image
+                      src={getImageUrl(provider.logo_path, "w500")}
+                      alt={provider.provider_name}
+                      width={32}
+                      height={32}
+                      className="object-contain rounded group-hover:opacity-80 transition-opacity"
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="text-xs font-medium">{provider.provider_name}</span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

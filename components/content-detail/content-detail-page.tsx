@@ -20,6 +20,7 @@ import VideosSection from "./videos-section";
 import PhotosSection from "./photos-section";
 import TVSeasonsSection from "./tv-seasons-section";
 import MoreLikeThisSection from "./more-like-this-section";
+import RecentlyViewedSection from "./recently-viewed-section";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface ContentDetailPageProps {
@@ -156,6 +157,8 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
               type={type}
               isLoading={false}
             />
+            {/* Recently Viewed */}
+            <RecentlyViewedSection currentItemId={item.id} currentType={type} />
           </>
         )}
         {activeTab === "cast" && (

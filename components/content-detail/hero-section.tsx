@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Play, Plus, Heart, BookOpen, Star, Clock, Calendar, Volume2, VolumeX } from "lucide-react";
+import { Play, Plus, Heart, BookOpen, Star, Volume2, VolumeX } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getBackdropUrl, getYouTubeEmbedUrl, TMDBVideo } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -67,20 +67,21 @@ export default function HeroSection({ item, type, details, trailer, videosData }
   const genres = details?.genres || [];
 
   return (
-    <div className="relative w-full h-screen overflow-hidden">
+    <div className="relative w-full h-[85vh] min-h-[600px] overflow-hidden -mt-[65px]">
       {/* Backdrop/Video */}
       <div className="absolute inset-0">
         {trailer && videosData ? (
           <div className="absolute inset-0">
             <iframe
               src={getYouTubeEmbedUrl(trailer.key, true, isMuted)}
-              className="w-full h-full"
+              className="w-full h-full scale-110"
               allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
               style={{ pointerEvents: "none" }}
               title="Trailer"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent pointer-events-none" />
           </div>
         ) : backdropPath ? (
           <>
@@ -88,71 +89,65 @@ export default function HeroSection({ item, type, details, trailer, videosData }
               src={getBackdropUrl(backdropPath, "w1280")}
               alt={title}
               fill
-              className="object-cover"
+              className="object-cover scale-110"
               priority
               unoptimized
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/80 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-transparent" />
           </>
         ) : (
           <div className="absolute inset-0 bg-muted" />
         )}
       </div>
 
-      {/* Content Overlay */}
+      {/* Content Overlay - Netflix style bottom positioning */}
       <div className="absolute inset-0 flex items-end z-10">
-        <div className="w-full px-6 sm:px-8 lg:px-12 pb-16">
+        <div className="w-full px-6 sm:px-8 lg:px-16 pb-20 lg:pb-24">
           <div className="max-w-4xl">
-            {/* Title */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 drop-shadow-2xl">
+            {/* Title - Larger, bolder */}
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white mb-6 drop-shadow-2xl leading-tight">
               {title}
             </h1>
 
-            {/* Metadata */}
-            <div className="flex items-center gap-4 mb-6 flex-wrap text-white/90">
+            {/* Metadata Row */}
+            <div className="flex items-center gap-4 mb-6 flex-wrap text-white/95">
               {item.vote_average > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
-                  <span className="font-semibold">{item.vote_average.toFixed(1)}</span>
-                </div>
-              )}
-              {runtime && (
-                <div className="flex items-center gap-1.5">
-                  <Clock className="h-4 w-4" />
-                  <span>{runtime}</span>
+                <div className="flex items-center gap-2">
+                  <Star className="h-6 w-6 text-yellow-400 fill-yellow-400" />
+                  <span className="font-bold text-lg">{item.vote_average.toFixed(1)}</span>
                 </div>
               )}
               {releaseDate && (
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="h-4 w-4" />
-                  <span>{releaseDate}</span>
-                </div>
+                <span className="text-lg font-medium">{new Date(releaseDate).getFullYear()}</span>
+              )}
+              {runtime && (
+                <span className="text-lg font-medium">{runtime}</span>
+              )}
+              {genres.length > 0 && (
+                <>
+                  <span className="text-white/60">•</span>
+                  <span className="text-lg font-medium">{genres[0]?.name}</span>
+                </>
               )}
             </div>
 
-            {/* Genres */}
-            {genres.length > 0 && (
-              <div className="flex gap-2 mb-8 flex-wrap">
-                {genres.slice(0, 5).map((genre: { id: number; name: string }) => (
-                  <span
-                    key={genre.id}
-                    className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm text-white text-sm border border-white/20"
-                  >
-                    {genre.name}
-                  </span>
-                ))}
-              </div>
+            {/* Description - Netflix style */}
+            {item.overview && (
+              <p className="text-lg text-white/90 mb-8 max-w-2xl line-clamp-3 drop-shadow-lg leading-relaxed">
+                {item.overview}
+              </p>
             )}
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-3 flex-wrap">
+            {/* Action Buttons - Netflix style */}
+            <div className="flex items-center gap-4 flex-wrap">
               <Button
                 size="lg"
-                className="bg-white text-black hover:bg-white/90 h-12 px-8 font-semibold rounded-md"
+                className="bg-white text-black hover:bg-white/80 h-14 px-10 font-bold text-lg rounded-md shadow-lg hover:shadow-xl transition-all"
                 asChild
               >
                 <Link href={`/${type}/${item.id}`}>
-                  <Play className="size-5 mr-2 fill-black" />
+                  <Play className="size-6 mr-2 fill-black" />
                   Play
                 </Link>
               </Button>
@@ -164,9 +159,9 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                   <Button
                     size="lg"
                     variant="outline"
-                    className="bg-white/10 border-white/30 text-white hover:bg-white/20 h-12 w-12 rounded-full backdrop-blur-sm"
+                    className="bg-white/15 border-white/40 text-white hover:bg-white/25 h-14 w-14 rounded-full backdrop-blur-md border-2"
                   >
-                    <Plus className="size-5" />
+                    <Plus className="size-6" />
                   </Button>
                 }
               />
@@ -176,14 +171,14 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                   <Button
                     size="lg"
                     variant="outline"
-                    className="bg-white/10 border-white/30 text-white hover:bg-white/20 h-12 w-12 rounded-full backdrop-blur-sm"
+                    className="bg-white/15 border-white/40 text-white hover:bg-white/25 h-14 w-14 rounded-full backdrop-blur-md border-2"
                     onClick={async () => {
                       await toggleFavorite.toggle(item, type);
                     }}
                   >
                     <Heart
                       className={cn(
-                        "size-5",
+                        "size-6",
                         toggleFavorite.isFavorite(item.id, type)
                           ? "text-red-500 fill-red-500"
                           : "text-white"
@@ -203,9 +198,9 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                   <Button
                     size="lg"
                     variant="outline"
-                    className="bg-white/10 border-white/30 text-white hover:bg-white/20 h-12 w-12 rounded-full backdrop-blur-sm"
+                    className="bg-white/15 border-white/40 text-white hover:bg-white/25 h-14 w-14 rounded-full backdrop-blur-md border-2"
                   >
-                    <BookOpen className="size-5" />
+                    <BookOpen className="size-6" />
                   </Button>
                 }
               />
@@ -217,14 +212,14 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                     <Button
                       size="lg"
                       variant="outline"
-                      className="bg-white/10 border-white/30 text-white hover:bg-white/20 h-12 w-12 rounded-full backdrop-blur-sm ml-auto"
+                      className="bg-white/15 border-white/40 text-white hover:bg-white/25 h-14 w-14 rounded-full backdrop-blur-md border-2"
                       onClick={() => setIsMuted(!isMuted)}
                       aria-label={isMuted ? "Unmute" : "Mute"}
                     >
                       {isMuted ? (
-                        <VolumeX className="size-5" />
+                        <VolumeX className="size-6" />
                       ) : (
-                        <Volume2 className="size-5" />
+                        <Volume2 className="size-6" />
                       )}
                     </Button>
                   </TooltipTrigger>

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { getPosterUrl } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import MediaModal from "./media-modal";
 
 interface PhotosSectionProps {
   backdrops: Array<{ file_path: string }> | undefined;
@@ -18,7 +18,7 @@ type PhotoType = "backdrops" | "posters" | "stills";
 
 export default function PhotosSection({ backdrops, posters, stills, isLoading }: PhotosSectionProps) {
   const [selectedType, setSelectedType] = useState<PhotoType>("backdrops");
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
   if (isLoading) {
     return (
@@ -48,86 +48,82 @@ export default function PhotosSection({ backdrops, posters, stills, isLoading }:
   }
 
   return (
-    <section className="py-12">
-      <div className="flex items-center gap-4 mb-6 flex-wrap">
-        <h2 className="text-2xl font-bold">Photos</h2>
-        <div className="flex gap-2">
-          <Button
-            variant={selectedType === "backdrops" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedType("backdrops")}
-          >
-            Backdrops ({photos.backdrops.length})
-          </Button>
-          <Button
-            variant={selectedType === "posters" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedType("posters")}
-          >
-            Posters ({photos.posters.length})
-          </Button>
-          <Button
-            variant={selectedType === "stills" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedType("stills")}
-          >
-            Stills ({photos.stills.length})
-          </Button>
+    <>
+      <section className="py-12">
+        <div className="flex items-center gap-4 mb-6 flex-wrap">
+          <h2 className="text-2xl font-bold">Photos</h2>
+          <div className="flex gap-2">
+            <Button
+              variant={selectedType === "backdrops" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedType("backdrops")}
+            >
+              Backdrops ({photos.backdrops.length})
+            </Button>
+            <Button
+              variant={selectedType === "posters" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedType("posters")}
+            >
+              Posters ({photos.posters.length})
+            </Button>
+            <Button
+              variant={selectedType === "stills" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedType("stills")}
+            >
+              Stills ({photos.stills.length})
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {/* Featured Image */}
-      {featuredPhoto && (
-        <div
-          className="relative aspect-video rounded-lg overflow-hidden mb-8 bg-muted cursor-pointer group hover:scale-[1.02] transition-transform"
-          onClick={() => setSelectedImage(featuredPhoto.file_path)}
-        >
-          <Image
-            src={getPosterUrl(featuredPhoto.file_path, "original")}
-            alt="Featured"
-            fill
-            className="object-cover"
-            unoptimized
-          />
-        </div>
-      )}
-
-      {/* Photo Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        {currentPhotos.slice(1, 13).map((photo, index) => (
+        {/* Featured Image */}
+        {featuredPhoto && (
           <div
-            key={index}
-            className="relative aspect-video rounded-lg overflow-hidden bg-muted cursor-pointer group hover:scale-105 transition-transform"
-            onClick={() => setSelectedImage(photo.file_path)}
+            className="relative aspect-video rounded-lg overflow-hidden mb-8 bg-muted cursor-pointer group hover:scale-[1.02] transition-transform"
+            onClick={() => setSelectedImageIndex(0)}
           >
             <Image
-              src={getPosterUrl(photo.file_path, "w500")}
-              alt={`Photo ${index + 2}`}
+              src={getPosterUrl(featuredPhoto.file_path, "original")}
+              alt="Featured"
               fill
               className="object-cover"
               unoptimized
             />
           </div>
-        ))}
-      </div>
+        )}
 
-      {/* Lightbox */}
-      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-7xl p-0">
-          {selectedImage && (
-            <div className="relative w-full aspect-video">
+        {/* Photo Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {currentPhotos.slice(1, 13).map((photo, index) => (
+            <div
+              key={index}
+              className="relative aspect-video rounded-lg overflow-hidden bg-muted cursor-pointer group hover:scale-105 transition-transform"
+              onClick={() => setSelectedImageIndex(index + 1)}
+            >
               <Image
-                src={getPosterUrl(selectedImage, "original")}
-                alt="Full size"
+                src={getPosterUrl(photo.file_path, "w500")}
+                alt={`Photo ${index + 2}`}
                 fill
-                className="object-contain"
+                className="object-cover"
                 unoptimized
               />
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </section>
+          ))}
+        </div>
+      </section>
+
+      {/* Media Modal */}
+      {selectedImageIndex !== null && (
+        <MediaModal
+          items={currentPhotos.map((photo) => ({ type: "image" as const, data: photo }))}
+          initialIndex={selectedImageIndex}
+          isOpen={selectedImageIndex !== null}
+          onClose={() => setSelectedImageIndex(null)}
+          title="Photos"
+        />
+      )}
+    </>
   );
 }
 
