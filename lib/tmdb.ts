@@ -546,7 +546,22 @@ export async function getRecommendedTV(tvId: number, page: number = 1): Promise<
 }
 
 export function getYouTubeEmbedUrl(key: string, autoplay: boolean = true, muted: boolean = true): string {
-  return `https://www.youtube.com/embed/${key}?autoplay=${autoplay ? 1 : 0}&mute=${muted ? 1 : 0}&controls=1&rel=0&modestbranding=1${autoplay ? `&loop=1&playlist=${key}` : ''}`;
+  const params = new URLSearchParams({
+    autoplay: autoplay ? "1" : "0",
+    mute: muted ? "1" : "0",
+    controls: "1",
+    rel: "0",
+    modestbranding: "1",
+    playsinline: "1",
+    enablejsapi: "1",
+  });
+
+  if (autoplay) {
+    params.append("loop", "1");
+    params.append("playlist", key);
+  }
+
+  return `https://www.youtube.com/embed/${key}?${params.toString()}`;
 }
 
 /**

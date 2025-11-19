@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Image from "next/image";
 import { Play, Heart, Bookmark, Plus, Clapperboard, Images, Star } from "lucide-react";
 import {
@@ -10,12 +10,15 @@ import {
   getPosterUrl,
   getBackdropUrl,
 } from "@/lib/tmdb";
+import { Button } from "@/components/ui/button";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
 import { useToggleFavorite } from "@/hooks/use-favorites";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import { cn } from "@/lib/utils";
 import TrailerModal from "@/components/browse/trailer-modal";
 import { CircleActionButton } from "@/components/browse/circle-action-button";
+import LogToDiaryDropdown from "@/components/browse/log-to-diary-dropdown";
+import MediaModal from "./media-modal";
 
 interface DetailsType {
   release_date?: string;
@@ -40,6 +43,8 @@ interface HeroSectionProps {
 
 export default function HeroSection({ item, type, details, trailer, videosData }: HeroSectionProps) {
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
+  const [initialVideoId, setInitialVideoId] = useState<string | null>(null);
+  const [isPhotosModalOpen, setIsPhotosModalOpen] = useState(false);
   const toggleFavorite = useToggleFavorite();
   const toggleWatchlist = useToggleWatchlist();
 
@@ -84,16 +89,71 @@ export default function HeroSection({ item, type, details, trailer, videosData }
     ? formatTrailerDuration(trailer.runtime)
     : null;
 
-  const formattedVideoCount = formatCount(videoCount);
-  const formattedPhotoCount = formatCount(photoCount);
+  const videoStatLabel = formatStatLabel(videoCount, "Videos");
+  const photoStatLabel = formatStatLabel(photoCount, "Photos");
+
+  const photoItems =
+    [
+      ...(details?.images?.backdrops ?? []),
+      ...(details?.images?.posters ?? []),
+      ...(details?.images?.stills ?? []),
+    ].filter((img) => !!img?.file_path) ?? [];
+
+  const photoMediaItems = photoItems.map((photo) => ({
+    type: "image" as const,
+    data: { file_path: photo.file_path },
+  }));
+
+  const handleOpenTrailerModal = (preferredVideoId?: string | null) => {
+    setInitialVideoId(preferredVideoId ?? null);
+    setIsTrailerOpen(true);
+  };
+
+  const handleCloseTrailerModal = () => {
+    setIsTrailerOpen(false);
+    setInitialVideoId(null);
+  };
 
   return (
-    <section className="-mt-[65px] pt-16 sm:pt-20 pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="rounded-[32px] bg-gradient-to-b from-background via-background/80 to-background px-6 sm:px-8 lg:px-12 py-10 space-y-8 border border-border/40">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
-            <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
+    <section className="-mt-[65px] pt-16 sm:pt-20 pb-12 bg-gradient-to-b from-[#050505] via-[#0c0c0c] to-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-end gap-3">
+            <CircleActionButton
+              size="md"
+              aria-label="Toggle favorite"
+              onClick={async () => {
+                await toggleFavorite.toggle(item, type);
+              }}
+            >
+              <Heart
+                className={cn(
+                  "h-5 w-5",
+                  toggleFavorite.isFavorite(item.id, type)
+                    ? "text-red-500 fill-red-500"
+                    : "text-white"
+                )}
+              />
+            </CircleActionButton>
+            <span className="h-6 w-px bg-white/20" />
+            <LogToDiaryDropdown
+              item={item}
+              type={type}
+              trigger={
+                <Button
+                  size="sm"
+                  className="inline-flex items-center gap-2 rounded-full bg-primary/85 text-primary-foreground hover:bg-primary px-4 py-2"
+                >
+                  <Clapperboard className="h-4 w-4" />
+                  Log
+                </Button>
+              }
+            />
+          </div>
+
+          <div>
+            <h1 className="text-3xl font-semibold text-foreground">{title}</h1>
+            <div className="mt-3 inline-flex flex-wrap items-center gap-4 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-muted-foreground">
               {item.vote_average > 0 && (
                 <div className="flex items-center gap-2 text-foreground">
                   <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
@@ -104,143 +164,149 @@ export default function HeroSection({ item, type, details, trailer, videosData }
               {runtimeText && <span>{runtimeText}</span>}
             </div>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_minmax(0,1fr)_240px]">
-            {/* Poster Column */}
-            <div className="relative rounded-3xl bg-muted overflow-hidden aspect-[2/3]">
-              {posterPath ? (
-                <Image
-                  src={getPosterUrl(posterPath, "w500")}
-                  alt={title}
-                  fill
-                  className="object-cover"
-                  priority
-                  unoptimized
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                  No Image
-                </div>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
-
-              <div className="absolute top-4 left-4 flex gap-2">
-                <CircleActionButton
-                  size="sm"
-                  onClick={async () => {
-                    await toggleWatchlist.toggle(item, type);
-                  }}
-                >
-                  <Bookmark
-                    className={cn(
-                      "h-4 w-4",
-                      toggleWatchlist.isInWatchlist(item.id, type)
-                        ? "text-blue-500 fill-blue-500"
-                        : "text-white"
-                    )}
-                  />
-                </CircleActionButton>
-                <CircleActionButton
-                  size="sm"
-                  onClick={async () => {
-                    await toggleFavorite.toggle(item, type);
-                  }}
-                >
-                  <Heart
-                    className={cn(
-                      "h-4 w-4",
-                      toggleFavorite.isFavorite(item.id, type)
-                        ? "text-red-500 fill-red-500"
-                        : "text-white"
-                    )}
-                  />
-                </CircleActionButton>
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[260px_minmax(0,1fr)_200px]">
+          {/* Poster Column */}
+          <div className="relative hidden lg:block rounded-lg bg-muted/20 overflow-hidden aspect-[2/3] border border-white/10">
+            {posterPath ? (
+              <Image
+                src={getPosterUrl(posterPath, "w500")}
+                alt={title}
+                fill
+                className="object-cover"
+                priority
+                unoptimized
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                No Image
               </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
 
-              <div className="absolute top-4 right-4">
-                <AddToPlaylistDropdown
-                  item={item}
-                  type={type}
-                  trigger={
-                    <CircleActionButton size="sm">
-                      <Plus className="h-4 w-4 text-white" />
-                    </CircleActionButton>
-                  }
-                />
-              </div>
-            </div>
-
-            {/* Banner Column */}
-            <div className="relative rounded-3xl bg-muted overflow-hidden min-h-[260px]">
-              {backdropPath ? (
-                <Image
-                  src={getBackdropUrl(backdropPath, "w1280")}
-                  alt={`${title} backdrop`}
-                  fill
-                  className="object-cover"
-                  priority
-                  unoptimized
-                />
-              ) : (
-                <div className="absolute inset-0 bg-muted" />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
-
-              <div className="absolute bottom-6 left-6 flex items-center gap-4">
-                <button
-                  onClick={() => trailer && setIsTrailerOpen(true)}
-                  disabled={!trailer}
+            <div className="absolute top-4 left-4 flex gap-2">
+              <CircleActionButton
+                size="sm"
+                onClick={async () => {
+                  await toggleWatchlist.toggle(item, type);
+                }}
+                aria-label="Toggle watchlist"
+              >
+                <Bookmark
                   className={cn(
-                    "flex items-center justify-center h-16 w-16 rounded-full border-2 border-white/60 bg-white/10 backdrop-blur hover:bg-white/20 transition",
-                    !trailer && "opacity-60 cursor-not-allowed"
+                    "h-4 w-4",
+                    toggleWatchlist.isInWatchlist(item.id, type)
+                      ? "text-blue-500 fill-blue-500"
+                      : "text-white"
                   )}
-                  aria-label="Play trailer"
-                >
-                  <Play className="h-7 w-7 text-white fill-white" />
-                </button>
-                <div>
-                  <p className="text-white font-semibold text-lg">Play Trailer</p>
-                  <p className="text-white/80 text-sm">
-                    {trailer
-                      ? trailerDurationText ?? "Runtime unavailable"
-                      : "Trailer not available"}
-                  </p>
-                </div>
-              </div>
+                />
+              </CircleActionButton>
             </div>
 
-            {/* Stats Column */}
-            <div className="grid gap-4">
-              <div className="rounded-3xl border border-border bg-card/60 p-6 flex flex-col gap-3">
-                <Clapperboard className="h-6 w-6 text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Videos</p>
-                  <p className="text-2xl font-semibold">{formattedVideoCount}</p>
-                </div>
-              </div>
-              <div className="rounded-3xl border border-border bg-card/60 p-6 flex flex-col gap-3">
-                <Images className="h-6 w-6 text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Photos</p>
-                  <p className="text-2xl font-semibold">
-                    {formattedPhotoCount}
-                    <span className="text-base font-medium text-muted-foreground ml-2">
-                      {photoCount > 0 ? "photos" : ""}
-                    </span>
-                  </p>
+            <div className="absolute top-4 right-4">
+              <AddToPlaylistDropdown
+                item={item}
+                type={type}
+                trigger={
+                  <CircleActionButton size="sm" aria-label="Add to playlist">
+                    <Plus className="h-4 w-4 text-white" />
+                  </CircleActionButton>
+                }
+              />
+            </div>
+          </div>
+
+          {/* Banner Column */}
+          <div className="relative rounded-lg bg-muted/20 overflow-hidden min-h-[260px] border border-white/10">
+            {backdropPath ? (
+              <Image
+                src={getBackdropUrl(backdropPath, "w1280")}
+                alt={`${title} backdrop`}
+                fill
+                className="object-cover"
+                priority
+                unoptimized
+              />
+            ) : (
+              <div className="absolute inset-0 bg-muted" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
+
+            <div className="absolute bottom-6 left-6 right-6">
+              <div className="flex items-center gap-4">
+                {posterPath && (
+                  <div className="relative w-20 sm:w-24 aspect-[2/3] rounded-xl overflow-hidden border border-white/20 lg:hidden">
+                    <Image
+                      src={getPosterUrl(posterPath, "w500")}
+                      alt={title}
+                      fill
+                      className="object-cover"
+                      sizes="96px"
+                      unoptimized
+                    />
+                  </div>
+                )}
+                <div className="flex items-center gap-4 flex-1">
+                  <button
+                    onClick={() => trailer && handleOpenTrailerModal(trailer?.id)}
+                    disabled={!trailer}
+                    className={cn(
+                      "flex items-center justify-center h-16 w-16 rounded-full border-2 border-white/60 bg-white/10 backdrop-blur hover:bg-white/20 transition",
+                      !trailer && "opacity-60 cursor-not-allowed"
+                    )}
+                    aria-label="Play trailer"
+                  >
+                    <Play className="h-7 w-7 text-white fill-white" />
+                  </button>
+                  <div>
+                    <p className="text-white font-semibold text-lg">Play Trailer</p>
+                    <p className="text-white/80 text-sm">
+                      {trailer
+                        ? trailerDurationText ?? "Runtime unavailable"
+                        : "Trailer not available"}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Stats Column */}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+            <HeroStatCard
+              icon={<Clapperboard className="h-6 w-6 text-primary" />}
+              value={videoStatLabel}
+              onClick={videoCount > 0 ? () => handleOpenTrailerModal(null) : undefined}
+              disabled={videoCount === 0}
+            />
+            <HeroStatCard
+              icon={<Images className="h-6 w-6 text-primary" />}
+              value={photoStatLabel}
+              onClick={photoMediaItems.length > 0 ? () => setIsPhotosModalOpen(true) : undefined}
+              disabled={photoMediaItems.length === 0}
+            />
+          </div>
         </div>
       </div>
 
-      {trailer && (
+      {(trailer || videosData) && (
         <TrailerModal
           video={trailer}
           videos={videosData?.results || []}
           isOpen={isTrailerOpen}
-          onClose={() => setIsTrailerOpen(false)}
+          onClose={handleCloseTrailerModal}
+          title={title}
+          initialVideoId={initialVideoId ?? trailer?.id ?? null}
+        />
+      )}
+
+      {photoMediaItems.length > 0 && (
+        <MediaModal
+          items={photoMediaItems}
+          initialIndex={0}
+          isOpen={isPhotosModalOpen}
+          onClose={() => setIsPhotosModalOpen(false)}
           title={title}
         />
       )}
@@ -255,9 +321,49 @@ function formatTrailerDuration(seconds: number) {
   return `${mins}m ${secs.toString().padStart(2, "0")}s`;
 }
 
-function formatCount(count: number) {
-  if (!count || count <= 0) return "0";
-  if (count > 99) return "99+";
-  return String(count);
+function formatStatLabel(count: number, label: string) {
+  const value = count <= 0 ? "0" : count > 99 ? "99+" : String(count);
+  return `${value} ${label}`;
+}
+
+function HeroStatCard({
+  icon,
+  value,
+  onClick,
+  disabled,
+}: {
+  icon: ReactNode;
+  value: string;
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
+  const content = (
+    <>
+      {icon}
+      <p className="text-lg lg:text-xl font-semibold text-white">{value}</p>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className={cn(
+          "rounded-lg border border-white/15 bg-white/5 p-4 lg:p-6 flex flex-col items-center justify-center gap-3 text-center transition hover:bg-white/10",
+          disabled && "opacity-50 cursor-not-allowed hover:bg-white/5"
+        )}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-white/15 bg-white/5 p-4 lg:p-6 flex flex-col items-center justify-center gap-3 text-center">
+      {content}
+    </div>
+  );
 }
 

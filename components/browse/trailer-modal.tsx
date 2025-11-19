@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { TMDBVideo, getYouTubeEmbedUrl } from "@/lib/tmdb";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -17,6 +17,7 @@ interface TrailerModalProps {
   hasNoVideos?: boolean;
   errorMessage?: string | null;
   onOpenDetails?: () => void;
+  initialVideoId?: string | null;
 }
 
 export default function TrailerModal({
@@ -29,6 +30,7 @@ export default function TrailerModal({
   hasNoVideos = false,
   errorMessage,
   onOpenDetails,
+  initialVideoId,
 }: TrailerModalProps) {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -50,21 +52,32 @@ export default function TrailerModal({
   useEffect(() => {
     if (!isOpen) {
       setCurrentVideoIndex(0);
-      // Stop video playback when modal closes
       if (iframeRef.current) {
-        // Remove iframe src to stop playback
         iframeRef.current.src = "";
       }
       return;
     }
 
-    if (video && youtubeVideos.length > 0) {
+    if (youtubeVideos.length === 0) {
+      setCurrentVideoIndex(0);
+      return;
+    }
+
+    if (initialVideoId) {
+      const initialIndex = youtubeVideos.findIndex((v) => v.id === initialVideoId);
+      if (initialIndex >= 0) {
+        setCurrentVideoIndex(initialIndex);
+        return;
+      }
+    }
+
+    if (video) {
       const index = youtubeVideos.findIndex((v) => v.id === video.id);
       setCurrentVideoIndex(index >= 0 ? index : 0);
-    } else if (youtubeVideos.length === 0) {
+    } else {
       setCurrentVideoIndex(0);
     }
-  }, [isOpen, video, youtubeVideos]);
+  }, [isOpen, video, youtubeVideos, initialVideoId]);
 
   // Ensure the index stays within bounds when the list of videos changes
   useEffect(() => {
@@ -80,17 +93,25 @@ export default function TrailerModal({
   const canGoNext =
     hasMultipleVideos && currentVideoIndex < youtubeVideos.length - 1;
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     if (canGoPrev) {
       setCurrentVideoIndex((index) => index - 1);
     }
-  };
+  }, [canGoPrev]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (canGoNext) {
       setCurrentVideoIndex((index) => index + 1);
     }
-  };
+  }, [canGoNext]);
+
+  const advanceToNextVideo = useCallback(() => {
+    if (canGoNext) {
+      setCurrentVideoIndex((index) => index + 1);
+    } else if (hasMultipleVideos) {
+      setCurrentVideoIndex(0);
+    }
+  }, [canGoNext, hasMultipleVideos]);
 
   const modalTitle = currentVideo
     ? `${title} - ${currentVideo.name}`
@@ -120,6 +141,30 @@ export default function TrailerModal({
     }
     onClose();
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleYouTubeMessage = (event: MessageEvent) => {
+      if (!event.origin.includes("youtube.com")) return;
+      let data = event.data;
+      if (typeof data === "string") {
+        try {
+          data = JSON.parse(data);
+        } catch {
+          return;
+        }
+      }
+      if (typeof data === "object" && data !== null && data.event === "onStateChange") {
+        if (data.info === 0) {
+          advanceToNextVideo();
+        }
+      }
+    };
+
+    window.addEventListener("message", handleYouTubeMessage);
+    return () => window.removeEventListener("message", handleYouTubeMessage);
+  }, [isOpen, advanceToNextVideo]);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>

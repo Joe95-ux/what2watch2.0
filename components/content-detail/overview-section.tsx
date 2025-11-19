@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { TMDBMovie, TMDBSeries, getImageUrl, TMDBWatchProvider } from "@/lib/tmdb";
 import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Clapperboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWatchProviders } from "@/hooks/use-content-details";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -69,11 +69,11 @@ export default function OverviewSection({ item, type, details, cast }: OverviewS
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-7 space-y-6">
           {details?.genres && details.genres.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 -mx-2 px-2">
               {details.genres.map((genre) => (
                 <span
                   key={genre.id}
-                  className="px-3 py-1 text-sm rounded-full bg-muted text-foreground"
+                  className="px-3 py-1 text-sm rounded-full bg-muted text-foreground flex-shrink-0"
                 >
                   {genre.name}
                 </span>
@@ -121,7 +121,11 @@ export default function OverviewSection({ item, type, details, cast }: OverviewS
             item={item}
             type={type}
             trigger={
-              <Button className="w-full" size="lg">
+              <Button
+                size="sm"
+                className="inline-flex items-center gap-2 rounded-full bg-primary/85 text-primary-foreground hover:bg-primary px-5 py-2"
+              >
+                <Clapperboard className="h-4 w-4" />
                 Log {type === "movie" ? "Movie" : "TV Show"}
               </Button>
             }
@@ -130,7 +134,9 @@ export default function OverviewSection({ item, type, details, cast }: OverviewS
         </div>
       </div>
 
-      <DetailsGrid type={type} details={details} />
+      <div className="max-w-3xl mx-auto w-full">
+        <DetailsGrid type={type} details={details} />
+      </div>
     </section>
   );
 }
@@ -321,7 +327,7 @@ function DetailsGrid({ type, details }: { type: "movie" | "tv"; details: Details
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6">Details</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {detailItems.map((item, index) => (
           <div key={index}>
             <p className="text-sm text-muted-foreground mb-1">{item.label}</p>
