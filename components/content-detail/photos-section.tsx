@@ -50,9 +50,9 @@ export default function PhotosSection({ backdrops, posters, stills, isLoading }:
   return (
     <>
       <section className="py-12">
-        <div className="flex items-center gap-4 mb-6 flex-wrap">
-          <h2 className="text-2xl font-bold">Photos</h2>
-          <div className="flex gap-2">
+        <div className="flex items-center gap-4 mb-6 overflow-x-auto scrollbar-hide">
+          <h2 className="text-2xl font-bold flex-shrink-0">Photos</h2>
+          <div className="flex gap-2 flex-shrink-0">
             <Button
               variant={selectedType === "backdrops" ? "default" : "outline"}
               size="sm"

@@ -6,6 +6,7 @@ interface StickyNavProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   isScrolled: boolean;
+  type?: "movie" | "tv";
 }
 
 const tabs = [
@@ -17,7 +18,14 @@ const tabs = [
   { id: "photos", label: "Photos" },
 ];
 
-export default function StickyNav({ activeTab, onTabChange, isScrolled }: StickyNavProps) {
+export default function StickyNav({ activeTab, onTabChange, isScrolled, type }: StickyNavProps) {
+  const getTabLabel = (tabId: string) => {
+    if (tabId === "cast" && type === "tv") {
+      return "Series Cast";
+    }
+    return tabs.find((t) => t.id === tabId)?.label || tabId;
+  };
+
   return (
     <div
       className={cn(
@@ -40,7 +48,7 @@ export default function StickyNav({ activeTab, onTabChange, isScrolled }: Sticky
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {tab.label}
+              {getTabLabel(tab.id)}
               {activeTab === tab.id && (
                 <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
               )}

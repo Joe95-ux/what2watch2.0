@@ -8,8 +8,8 @@ import {
   useContentVideos,
   useTVSeasons,
   useTVSeasonDetails,
-  useSimilarMovies,
-  useSimilarTV,
+  useRecommendedMovies,
+  useRecommendedTV,
   useWatchProviders,
 } from "@/hooks/use-content-details";
 import HeroSection from "./hero-section";
@@ -36,6 +36,14 @@ interface DetailsWithCredits {
       id: number;
       name: string;
       character: string;
+      profile_path: string | null;
+      episode_count?: number; // For TV shows
+    }>;
+    crew?: Array<{
+      id: number;
+      name: string;
+      job: string;
+      department: string;
       profile_path: string | null;
     }>;
   };
@@ -65,8 +73,8 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
     type === "tv" ? item.id : null,
     selectedSeason
   );
-  const { data: similarMovies } = useSimilarMovies(type === "movie" ? item.id : null);
-  const { data: similarTV } = useSimilarTV(type === "tv" ? item.id : null);
+  const { data: recommendedMovies } = useRecommendedMovies(type === "movie" ? item.id : null);
+  const { data: recommendedTV } = useRecommendedTV(type === "tv" ? item.id : null);
   const {
     data: watchAvailability,
     isLoading: isLoadingWatchAvailability,
@@ -99,9 +107,10 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
     }
   }, [type, seasonsData, selectedSeason]);
 
-  // Get cast from details (with type assertion for credits)
+  // Get cast and crew from details (with type assertion for credits)
   const detailsWithExtras = details as DetailsWithCredits | null;
-  const cast = detailsWithExtras?.credits?.cast?.slice(0, 20) || [];
+  const cast = detailsWithExtras?.credits?.cast || [];
+  const crew = detailsWithExtras?.credits?.crew || [];
 
   // Get images from details (with type assertion for images)
   const images = detailsWithExtras?.images;
@@ -109,10 +118,10 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
   const posters = images?.posters || [];
   const stills = images?.stills || [];
 
-  // Get similar content
+  // Get recommended content
   const moreLikeThisItems = type === "movie"
-    ? (similarMovies?.results || [])
-    : (similarTV?.results || []);
+    ? (recommendedMovies?.results || [])
+    : (recommendedTV?.results || []);
 
   if (isLoading) {
     return (
@@ -140,6 +149,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
         activeTab={activeTab}
         onTabChange={setActiveTab}
         isScrolled={isScrolled}
+        type={type}
       />
 
       {/* Content Sections */}
@@ -176,7 +186,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
           </>
         )}
         {activeTab === "cast" && (
-          <CastSection cast={cast} isLoading={false} />
+          <CastSection cast={cast} crew={crew} isLoading={false} type={type} />
         )}
         {activeTab === "watch" && (
           <WatchBreakdownSection

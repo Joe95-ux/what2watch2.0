@@ -58,10 +58,23 @@ export default function HeroSection({ item, type, details, trailer, videosData }
     (details?.images?.posters?.length ?? 0) +
     (details?.images?.stills?.length ?? 0);
 
-  const formatRuntime = (minutes: number | number[] | undefined): string | null => {
+  const formatRuntime = (minutes: number | number[] | undefined, isTV: boolean = false): string | null => {
     if (!minutes) return null;
     if (Array.isArray(minutes)) {
-      return `${minutes[0]} min`;
+      // For TV shows, calculate average of episode runtimes
+      if (isTV && minutes.length > 0) {
+        const average = Math.round(minutes.reduce((sum, val) => sum + val, 0) / minutes.length);
+        const hours = Math.floor(average / 60);
+        const mins = average % 60;
+        return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+      }
+      // For movies or single value, use first value
+      if (minutes.length > 0) {
+        const hours = Math.floor(minutes[0] / 60);
+        const mins = minutes[0] % 60;
+        return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+      }
+      return null;
     }
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -82,8 +95,8 @@ export default function HeroSection({ item, type, details, trailer, videosData }
 
   const runtimeText =
     type === "movie"
-      ? formatRuntime(details?.runtime)
-      : formatRuntime(details?.episode_run_time);
+      ? formatRuntime(details?.runtime, false)
+      : formatRuntime(details?.episode_run_time, true);
 
   const trailerDurationText = trailer?.runtime
     ? formatTrailerDuration(trailer.runtime)
@@ -116,7 +129,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
 
   return (
     <section className="-mt-[65px] pt-16 sm:pt-20 pb-12 bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-end gap-3 mt-[14px] md:mt-0">
             <CircleActionButton
@@ -151,9 +164,9 @@ export default function HeroSection({ item, type, details, trailer, videosData }
             />
           </div>
 
-          <div>
-            <h1 className="text-[18px] sm:text-3xl font-semibold text-foreground">{title}</h1>
-            <div className="mt-3 inline-flex flex-wrap items-center gap-4 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row justify-start sm:justify-between sm:items-center gap-3">
+            <h1 className="text-[1.3rem] sm:text-3xl font-semibold text-foreground">{title}</h1>
+            <div className="inline-flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               {item.vote_average > 0 && (
                 <div className="flex items-center gap-2 text-foreground">
                   <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
@@ -259,14 +272,14 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                   >
                     <Play className="h-7 w-7 text-white fill-white" />
                   </button>
-                  <div className="flex flex-col gap-1">
-                    <p className="text-white font-semibold text-lg">Play Trailer</p>
-                    <p className="text-white/80 text-sm">
-                      {trailer
-                        ? trailerDurationText ?? "Runtime unavailable"
-                        : "Trailer not available"}
-                    </p>
-                  </div>
+                  {trailer && (
+                    <div className="flex flex-col gap-1">
+                      <p className="text-white font-semibold text-lg">Play Trailer</p>
+                      {trailerDurationText && (
+                        <p className="text-white/80 text-sm">{trailerDurationText}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

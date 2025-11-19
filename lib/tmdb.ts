@@ -285,6 +285,8 @@ export interface TMDBPersonMovieCredit {
   id: number;
   title: string;
   character?: string;
+  job?: string;
+  department?: string;
   release_date: string;
   vote_average: number;
   poster_path: string | null;
@@ -307,6 +309,8 @@ export interface TMDBPersonTVCredit {
   id: number;
   name: string;
   character?: string;
+  job?: string;
+  department?: string;
   first_air_date: string;
   vote_average: number;
   poster_path: string | null;
@@ -320,6 +324,49 @@ export interface TMDBPersonTVCredits {
 
 export async function getPersonTVCredits(personId: number): Promise<TMDBPersonTVCredits> {
   return fetchTMDB<TMDBPersonTVCredits>(`/person/${personId}/tv_credits`);
+}
+
+/**
+ * Get person details
+ */
+export interface TMDBPerson {
+  id: number;
+  name: string;
+  biography: string;
+  birthday: string | null;
+  deathday: string | null;
+  place_of_birth: string | null;
+  profile_path: string | null;
+  known_for_department: string;
+  gender: number; // 0: not specified, 1: female, 2: male, 3: non-binary
+  popularity: number;
+  imdb_id: string | null;
+  homepage: string | null;
+}
+
+export async function getPersonDetails(personId: number): Promise<TMDBPerson> {
+  return fetchTMDB<TMDBPerson>(`/person/${personId}`);
+}
+
+/**
+ * Get person images
+ */
+export interface TMDBPersonImage {
+  file_path: string;
+  aspect_ratio: number;
+  height: number;
+  width: number;
+  iso_639_1: string | null;
+  vote_average: number;
+  vote_count: number;
+}
+
+export interface TMDBPersonImages {
+  profiles: TMDBPersonImage[];
+}
+
+export async function getPersonImages(personId: number): Promise<TMDBPersonImages> {
+  return fetchTMDB<TMDBPersonImages>(`/person/${personId}/images`);
 }
 
 /**
