@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
-import { TMDBVideo, getYouTubeEmbedUrl, getPosterUrl, getImageUrl } from "@/lib/tmdb";
+import { TMDBVideo, getYouTubeEmbedUrl, getImageUrl } from "@/lib/tmdb";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -49,17 +49,17 @@ export default function MediaModal({
   const canGoPrev = hasMultiple && currentIndex > 0;
   const canGoNext = hasMultiple && currentIndex < items.length - 1;
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     if (canGoPrev) {
       setCurrentIndex((index) => index - 1);
     }
-  };
+  }, [canGoPrev]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (canGoNext) {
       setCurrentIndex((index) => index + 1);
     }
-  };
+  }, [canGoNext]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -77,7 +77,7 @@ export default function MediaModal({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, canGoPrev, canGoNext]);
+  }, [isOpen, canGoPrev, canGoNext, handlePrev, handleNext, onClose]);
 
   if (!currentItem) return null;
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useRecentlyViewed, recentlyViewedToTMDBItem } from "@/hooks/use-recently-viewed";
-import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import {

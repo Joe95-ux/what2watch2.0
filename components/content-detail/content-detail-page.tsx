@@ -140,7 +140,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {activeTab === "overview" && (
           <>
-            <OverviewSection item={item} type={type} details={details ?? null} />
+            <OverviewSection item={item} type={type} details={details ?? null} cast={cast} />
             {/* TV Seasons - Show in overview for TV */}
             {type === "tv" && seasonsData && (
               <TVSeasonsSection
@@ -157,6 +157,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
               type={type}
               isLoading={false}
             />
+            <div className="border-t border-border my-12" />
             {/* Recently Viewed */}
             <RecentlyViewedSection currentItemId={item.id} currentType={type} />
           </>

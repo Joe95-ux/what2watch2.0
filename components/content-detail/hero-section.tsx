@@ -2,15 +2,20 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { Play, Plus, Heart, BookOpen, Star, Volume2, VolumeX } from "lucide-react";
-import { TMDBMovie, TMDBSeries, getBackdropUrl, getYouTubeEmbedUrl, TMDBVideo } from "@/lib/tmdb";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Play, Heart, Bookmark, Plus, Clapperboard, Images, Star } from "lucide-react";
+import {
+  TMDBMovie,
+  TMDBSeries,
+  TMDBVideo,
+  getPosterUrl,
+  getBackdropUrl,
+} from "@/lib/tmdb";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
-import LogToDiaryDropdown from "@/components/browse/log-to-diary-dropdown";
 import { useToggleFavorite } from "@/hooks/use-favorites";
+import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import { cn } from "@/lib/utils";
+import TrailerModal from "@/components/browse/trailer-modal";
+import { CircleActionButton } from "@/components/browse/circle-action-button";
 
 interface DetailsType {
   release_date?: string;
@@ -18,6 +23,11 @@ interface DetailsType {
   runtime?: number;
   episode_run_time?: number[];
   genres?: Array<{ id: number; name: string }>;
+  images?: {
+    backdrops?: Array<{ file_path: string }>;
+    posters?: Array<{ file_path: string }>;
+    stills?: Array<{ file_path: string }>;
+  };
 }
 
 interface HeroSectionProps {
@@ -29,15 +39,22 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({ item, type, details, trailer, videosData }: HeroSectionProps) {
-  const [isMuted, setIsMuted] = useState(true);
+  const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const toggleFavorite = useToggleFavorite();
+  const toggleWatchlist = useToggleWatchlist();
 
   const title = type === "movie" ? (item as TMDBMovie).title : (item as TMDBSeries).name;
+  const posterPath = item.poster_path || item.backdrop_path;
   const backdropPath = item.backdrop_path || item.poster_path;
 
-  // Format runtime
-  const formatRuntime = (minutes: number | number[] | undefined): string => {
-    if (!minutes) return "N/A";
+  const videoCount = videosData?.results?.length ?? 0;
+  const photoCount =
+    (details?.images?.backdrops?.length ?? 0) +
+    (details?.images?.posters?.length ?? 0) +
+    (details?.images?.stills?.length ?? 0);
+
+  const formatRuntime = (minutes: number | number[] | undefined): string | null => {
+    if (!minutes) return null;
     if (Array.isArray(minutes)) {
       return `${minutes[0]} min`;
     }
@@ -46,193 +63,201 @@ export default function HeroSection({ item, type, details, trailer, videosData }
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
-  // Format date
-  const formatDate = (date: string | null | undefined): string => {
-    if (!date) return "N/A";
-    return new Date(date).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+  const formatYear = (date: string | undefined): string | null => {
+    if (!date) return null;
+    const parsed = new Date(date);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return String(parsed.getFullYear());
   };
 
-  const releaseDate = type === "movie" 
-    ? (details?.release_date ? formatDate(details.release_date) : null)
-    : (details?.first_air_date ? formatDate(details.first_air_date) : null);
+  const releaseYear =
+    type === "movie"
+      ? formatYear(details?.release_date)
+      : formatYear(details?.first_air_date);
 
-  const runtime = type === "movie"
-    ? (details?.runtime ? formatRuntime(details.runtime) : null)
-    : (details?.episode_run_time?.[0] ? formatRuntime(details.episode_run_time[0]) : null);
+  const runtimeText =
+    type === "movie"
+      ? formatRuntime(details?.runtime)
+      : formatRuntime(details?.episode_run_time);
 
-  const genres = details?.genres || [];
+  const trailerDurationText = trailer?.runtime
+    ? formatTrailerDuration(trailer.runtime)
+    : null;
+
+  const formattedVideoCount = formatCount(videoCount);
+  const formattedPhotoCount = formatCount(photoCount);
 
   return (
-    <div className="relative w-full h-[85vh] min-h-[600px] overflow-hidden -mt-[65px]">
-      {/* Backdrop/Video */}
-      <div className="absolute inset-0">
-        {trailer && videosData ? (
-          <div className="absolute inset-0">
-            <iframe
-              src={getYouTubeEmbedUrl(trailer.key, true, isMuted)}
-              className="w-full h-full scale-110"
-              allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              style={{ pointerEvents: "none" }}
-              title="Trailer"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent pointer-events-none" />
-          </div>
-        ) : backdropPath ? (
-          <>
-            <Image
-              src={getBackdropUrl(backdropPath, "w1280")}
-              alt={title}
-              fill
-              className="object-cover scale-110"
-              priority
-              unoptimized
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-transparent" />
-          </>
-        ) : (
-          <div className="absolute inset-0 bg-muted" />
-        )}
-      </div>
-
-      {/* Content Overlay - Netflix style bottom positioning */}
-      <div className="absolute inset-0 flex items-end z-10">
-        <div className="w-full px-6 sm:px-8 lg:px-16 pb-20 lg:pb-24">
-          <div className="max-w-4xl">
-            {/* Title - Larger, bolder */}
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white mb-6 drop-shadow-2xl leading-tight">
-              {title}
-            </h1>
-
-            {/* Metadata Row */}
-            <div className="flex items-center gap-4 mb-6 flex-wrap text-white/95">
+    <section className="-mt-[65px] pt-16 sm:pt-20 pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="rounded-[32px] bg-gradient-to-b from-background via-background/80 to-background px-6 sm:px-8 lg:px-12 py-10 space-y-8 border border-border/40">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
+            <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
               {item.vote_average > 0 && (
-                <div className="flex items-center gap-2">
-                  <Star className="h-6 w-6 text-yellow-400 fill-yellow-400" />
-                  <span className="font-bold text-lg">{item.vote_average.toFixed(1)}</span>
+                <div className="flex items-center gap-2 text-foreground">
+                  <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                  <span className="font-semibold">{item.vote_average.toFixed(1)}</span>
                 </div>
               )}
-              {releaseDate && (
-                <span className="text-lg font-medium">{new Date(releaseDate).getFullYear()}</span>
+              {releaseYear && <span>{releaseYear}</span>}
+              {runtimeText && <span>{runtimeText}</span>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_minmax(0,1fr)_240px]">
+            {/* Poster Column */}
+            <div className="relative rounded-3xl bg-muted overflow-hidden aspect-[2/3]">
+              {posterPath ? (
+                <Image
+                  src={getPosterUrl(posterPath, "w500")}
+                  alt={title}
+                  fill
+                  className="object-cover"
+                  priority
+                  unoptimized
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                  No Image
+                </div>
               )}
-              {runtime && (
-                <span className="text-lg font-medium">{runtime}</span>
-              )}
-              {genres.length > 0 && (
-                <>
-                  <span className="text-white/60">•</span>
-                  <span className="text-lg font-medium">{genres[0]?.name}</span>
-                </>
-              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+
+              <div className="absolute top-4 left-4 flex gap-2">
+                <CircleActionButton
+                  size="sm"
+                  onClick={async () => {
+                    await toggleWatchlist.toggle(item, type);
+                  }}
+                >
+                  <Bookmark
+                    className={cn(
+                      "h-4 w-4",
+                      toggleWatchlist.isInWatchlist(item.id, type)
+                        ? "text-blue-500 fill-blue-500"
+                        : "text-white"
+                    )}
+                  />
+                </CircleActionButton>
+                <CircleActionButton
+                  size="sm"
+                  onClick={async () => {
+                    await toggleFavorite.toggle(item, type);
+                  }}
+                >
+                  <Heart
+                    className={cn(
+                      "h-4 w-4",
+                      toggleFavorite.isFavorite(item.id, type)
+                        ? "text-red-500 fill-red-500"
+                        : "text-white"
+                    )}
+                  />
+                </CircleActionButton>
+              </div>
+
+              <div className="absolute top-4 right-4">
+                <AddToPlaylistDropdown
+                  item={item}
+                  type={type}
+                  trigger={
+                    <CircleActionButton size="sm">
+                      <Plus className="h-4 w-4 text-white" />
+                    </CircleActionButton>
+                  }
+                />
+              </div>
             </div>
 
-            {/* Description - Netflix style */}
-            {item.overview && (
-              <p className="text-lg text-white/90 mb-8 max-w-2xl line-clamp-3 drop-shadow-lg leading-relaxed">
-                {item.overview}
-              </p>
-            )}
-
-            {/* Action Buttons - Netflix style */}
-            <div className="flex items-center gap-4 flex-wrap">
-              <Button
-                size="lg"
-                className="bg-white text-black hover:bg-white/80 h-14 px-10 font-bold text-lg rounded-md shadow-lg hover:shadow-xl transition-all"
-                asChild
-              >
-                <Link href={`/${type}/${item.id}`}>
-                  <Play className="size-6 mr-2 fill-black" />
-                  Play
-                </Link>
-              </Button>
-
-              <AddToPlaylistDropdown
-                item={item}
-                type={type}
-                trigger={
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="bg-white/15 border-white/40 text-white hover:bg-white/25 h-14 w-14 rounded-full backdrop-blur-md border-2"
-                  >
-                    <Plus className="size-6" />
-                  </Button>
-                }
-              />
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="bg-white/15 border-white/40 text-white hover:bg-white/25 h-14 w-14 rounded-full backdrop-blur-md border-2"
-                    onClick={async () => {
-                      await toggleFavorite.toggle(item, type);
-                    }}
-                  >
-                    <Heart
-                      className={cn(
-                        "size-6",
-                        toggleFavorite.isFavorite(item.id, type)
-                          ? "text-red-500 fill-red-500"
-                          : "text-white"
-                      )}
-                    />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}</p>
-                </TooltipContent>
-              </Tooltip>
-
-              <LogToDiaryDropdown
-                item={item}
-                type={type}
-                trigger={
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="bg-white/15 border-white/40 text-white hover:bg-white/25 h-14 w-14 rounded-full backdrop-blur-md border-2"
-                  >
-                    <BookOpen className="size-6" />
-                  </Button>
-                }
-              />
-
-              {/* Mute/Unmute Toggle - Only show when trailer is available */}
-              {trailer && videosData && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="bg-white/15 border-white/40 text-white hover:bg-white/25 h-14 w-14 rounded-full backdrop-blur-md border-2"
-                      onClick={() => setIsMuted(!isMuted)}
-                      aria-label={isMuted ? "Unmute" : "Mute"}
-                    >
-                      {isMuted ? (
-                        <VolumeX className="size-6" />
-                      ) : (
-                        <Volume2 className="size-6" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{isMuted ? "Unmute" : "Mute"}</p>
-                  </TooltipContent>
-                </Tooltip>
+            {/* Banner Column */}
+            <div className="relative rounded-3xl bg-muted overflow-hidden min-h-[260px]">
+              {backdropPath ? (
+                <Image
+                  src={getBackdropUrl(backdropPath, "w1280")}
+                  alt={`${title} backdrop`}
+                  fill
+                  className="object-cover"
+                  priority
+                  unoptimized
+                />
+              ) : (
+                <div className="absolute inset-0 bg-muted" />
               )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
+
+              <div className="absolute bottom-6 left-6 flex items-center gap-4">
+                <button
+                  onClick={() => trailer && setIsTrailerOpen(true)}
+                  disabled={!trailer}
+                  className={cn(
+                    "flex items-center justify-center h-16 w-16 rounded-full border-2 border-white/60 bg-white/10 backdrop-blur hover:bg-white/20 transition",
+                    !trailer && "opacity-60 cursor-not-allowed"
+                  )}
+                  aria-label="Play trailer"
+                >
+                  <Play className="h-7 w-7 text-white fill-white" />
+                </button>
+                <div>
+                  <p className="text-white font-semibold text-lg">Play Trailer</p>
+                  <p className="text-white/80 text-sm">
+                    {trailer
+                      ? trailerDurationText ?? "Runtime unavailable"
+                      : "Trailer not available"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats Column */}
+            <div className="grid gap-4">
+              <div className="rounded-3xl border border-border bg-card/60 p-6 flex flex-col gap-3">
+                <Clapperboard className="h-6 w-6 text-primary" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Videos</p>
+                  <p className="text-2xl font-semibold">{formattedVideoCount}</p>
+                </div>
+              </div>
+              <div className="rounded-3xl border border-border bg-card/60 p-6 flex flex-col gap-3">
+                <Images className="h-6 w-6 text-primary" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Photos</p>
+                  <p className="text-2xl font-semibold">
+                    {formattedPhotoCount}
+                    <span className="text-base font-medium text-muted-foreground ml-2">
+                      {photoCount > 0 ? "photos" : ""}
+                    </span>
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {trailer && (
+        <TrailerModal
+          video={trailer}
+          videos={videosData?.results || []}
+          isOpen={isTrailerOpen}
+          onClose={() => setIsTrailerOpen(false)}
+          title={title}
+        />
+      )}
+    </section>
   );
+}
+
+function formatTrailerDuration(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds <= 0) return null;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}m ${secs.toString().padStart(2, "0")}s`;
+}
+
+function formatCount(count: number) {
+  if (!count || count <= 0) return "0";
+  if (count > 99) return "99+";
+  return String(count);
 }
 

@@ -1,12 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { TMDBMovie, TMDBSeries, getPosterUrl, getImageUrl, TMDBWatchProvider } from "@/lib/tmdb";
+import { TMDBMovie, TMDBSeries, getImageUrl, TMDBWatchProvider } from "@/lib/tmdb";
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWatchProviders } from "@/hooks/use-content-details";
 import { Skeleton } from "@/components/ui/skeleton";
+import LogToDiaryDropdown from "@/components/browse/log-to-diary-dropdown";
 
 interface DetailsType {
   release_date?: string;
@@ -21,17 +22,32 @@ interface DetailsType {
   number_of_seasons?: number;
   number_of_episodes?: number;
   genres?: Array<{ id: number; name: string }>;
+  credits?: {
+    crew?: Array<{
+      id: number;
+      name: string;
+      job: string;
+    }>;
+  };
+}
+
+interface CastMember {
+  id: number;
+  name: string;
+  character: string;
+  profile_path: string | null;
 }
 
 interface OverviewSectionProps {
   item: TMDBMovie | TMDBSeries;
   type: "movie" | "tv";
   details: DetailsType | null;
+  cast?: CastMember[];
 }
 
 const MAX_SYNOPSIS_LENGTH = 500;
 
-export default function OverviewSection({ item, type, details }: OverviewSectionProps) {
+export default function OverviewSection({ item, type, details, cast }: OverviewSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const synopsis = item.overview || "";
   const shouldTruncate = synopsis.length > MAX_SYNOPSIS_LENGTH;
@@ -39,30 +55,32 @@ export default function OverviewSection({ item, type, details }: OverviewSection
     ? synopsis.slice(0, MAX_SYNOPSIS_LENGTH) + "..."
     : synopsis;
 
-  const posterPath = item.poster_path;
-
-  // Get crew info from details if available
-  const detailsWithCredits = details as DetailsType & {
-    credits?: {
-      crew?: Array<{
-        id: number;
-        name: string;
-        job: string;
-      }>;
-    };
-  };
-
-  const director = detailsWithCredits?.credits?.crew?.find((person) => person.job === "Director");
-  const writers = detailsWithCredits?.credits?.crew?.filter((person) => 
-    person.job === "Writer" || person.job === "Screenplay" || person.job === "Story"
-  ).slice(0, 3);
+  const director = details?.credits?.crew?.find((person) => person.job === "Director");
+  const writers = details?.credits?.crew
+    ?.filter((person) => person.job === "Writer" || person.job === "Screenplay" || person.job === "Story")
+    .slice(0, 3)
+    .map((person) => person.name)
+    .join(", ");
+  const topCastNames = cast && cast.length > 0 ? cast.slice(0, 4).map((c) => c.name).join(", ") : "N/A";
+  const countries = details?.production_countries?.map((c) => c.name).join(", ") || "N/A";
 
   return (
-    <section className="py-12">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Main Content */}
-        <div className="lg:col-span-8 space-y-8">
-          {/* Synopsis */}
+    <section className="py-12 space-y-12">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="lg:col-span-7 space-y-6">
+          {details?.genres && details.genres.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {details.genres.map((genre) => (
+                <span
+                  key={genre.id}
+                  className="px-3 py-1 text-sm rounded-full bg-muted text-foreground"
+                >
+                  {genre.name}
+                </span>
+              ))}
+            </div>
+          )}
+
           <div>
             <h2 className="text-2xl font-bold mb-4">Storyline</h2>
             <p className="text-foreground leading-relaxed text-base">
@@ -90,86 +108,29 @@ export default function OverviewSection({ item, type, details }: OverviewSection
             )}
           </div>
 
-          {/* Watch Providers */}
-          <WatchProvidersSection item={item} type={type} />
-
-          {/* Details Grid */}
-          <DetailsGrid type={type} details={details} />
-        </div>
-
-        {/* Sidebar - IMDb style */}
-        <div className="lg:col-span-4">
-          <div className="space-y-6">
-            {/* Poster */}
-            {posterPath && (
-              <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-muted">
-                <Image
-                  src={getPosterUrl(posterPath, "w500")}
-                  alt={type === "movie" ? (item as TMDBMovie).title : (item as TMDBSeries).name}
-                  fill
-                  className="object-cover"
-                  unoptimized
-                />
-              </div>
-            )}
-
-            {/* Quick Info */}
-            <div className="space-y-4">
-              {director && (
-                <div>
-                  <p className="text-sm font-semibold text-muted-foreground mb-1">Director</p>
-                  <p className="text-foreground">{director.name}</p>
-                </div>
-              )}
-
-              {writers && writers.length > 0 && (
-                <div>
-                  <p className="text-sm font-semibold text-muted-foreground mb-1">
-                    {writers.length === 1 ? "Writer" : "Writers"}
-                  </p>
-                  <p className="text-foreground">
-                    {writers.map((w) => w.name).join(", ")}
-                  </p>
-                </div>
-              )}
-
-              {details?.genres && details.genres.length > 0 && (
-                <div>
-                  <p className="text-sm font-semibold text-muted-foreground mb-1">Genres</p>
-                  <div className="flex flex-wrap gap-2">
-                    {details.genres.map((genre) => (
-                      <span
-                        key={genre.id}
-                        className="px-2 py-1 bg-muted rounded text-sm text-foreground"
-                      >
-                        {genre.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {details?.production_countries && details.production_countries.length > 0 && (
-                <div>
-                  <p className="text-sm font-semibold text-muted-foreground mb-1">Country</p>
-                  <p className="text-foreground">
-                    {details.production_countries.map((c) => c.name).join(", ")}
-                  </p>
-                </div>
-              )}
-
-              {details?.spoken_languages && details.spoken_languages.length > 0 && (
-                <div>
-                  <p className="text-sm font-semibold text-muted-foreground mb-1">Language</p>
-                  <p className="text-foreground">
-                    {details.spoken_languages.map((l) => l.english_name || l.name).join(", ")}
-                  </p>
-                </div>
-              )}
-            </div>
+          <div className="rounded-2xl border border-border bg-card/50 divide-y divide-border">
+            <OverviewInfoRow label="Director" value={director?.name || "N/A"} />
+            <OverviewInfoRow label="Writers" value={writers || "N/A"} />
+            <OverviewInfoRow label="Stars" value={topCastNames} />
+            <OverviewInfoRow label="Country" value={countries} />
           </div>
         </div>
+
+        <div className="lg:col-span-5 space-y-4">
+          <LogToDiaryDropdown
+            item={item}
+            type={type}
+            trigger={
+              <Button className="w-full" size="lg">
+                Log {type === "movie" ? "Movie" : "TV Show"}
+              </Button>
+            }
+          />
+          <WatchProvidersSection item={item} type={type} />
+        </div>
       </div>
+
+      <DetailsGrid type={type} details={details} />
     </section>
   );
 }
@@ -368,6 +329,15 @@ function DetailsGrid({ type, details }: { type: "movie" | "tv"; details: Details
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function OverviewInfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium text-right">{value}</span>
     </div>
   );
 }

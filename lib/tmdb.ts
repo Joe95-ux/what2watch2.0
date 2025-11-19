@@ -495,6 +495,7 @@ export interface TMDBVideo {
   type: string;
   official: boolean;
   published_at: string;
+  runtime?: number;
 }
 
 export interface TMDBVideosResponse {
