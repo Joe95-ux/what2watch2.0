@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { TMDBMovie, TMDBSeries, TMDBVideo, TMDBTVSeason, TMDBTVSeasonDetails } from "@/lib/tmdb";
+import { TMDBMovie, TMDBSeries, TMDBVideo, TMDBTVSeason, TMDBTVSeasonDetails, TMDBWatchProvidersResponse } from "@/lib/tmdb";
 
 interface MovieDetails extends TMDBMovie {
   genres: Array<{ id: number; name: string }>;
@@ -196,6 +196,28 @@ export function useRecommendedTV(tvId: number | null) {
     enabled: !!tvId,
     staleTime: 10 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
+  });
+}
+
+/**
+ * Hook to fetch watch providers
+ */
+export function useWatchProviders(type: "movie" | "tv", id: number | null) {
+  return useQuery({
+    queryKey: [type, id, "watch-providers"],
+    queryFn: async () => {
+      if (!id) return null;
+      const apiType = type === "movie" ? "movies" : type;
+      const response = await fetch(`/api/${apiType}/${id}/watch-providers`);
+      if (!response.ok) {
+        return null; // Return null instead of throwing to handle gracefully
+      }
+      return response.json() as Promise<TMDBWatchProvidersResponse>;
+    },
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
+    retry: 1,
   });
 }
 

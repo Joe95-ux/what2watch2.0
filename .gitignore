@@ -36,6 +36,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+#md files
+DESING_PROPOSAL_MOVIE_DETAIL.md
+IMPLEMENTATION_GUIDE.md
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

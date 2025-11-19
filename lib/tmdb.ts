@@ -326,14 +326,50 @@ export async function getPersonTVCredits(personId: number): Promise<TMDBPersonTV
  * Get movie details
  */
 export async function getMovieDetails(movieId: number): Promise<TMDBMovie & { genres: TMDBGenre[]; runtime: number; budget: number; revenue: number }> {
-  return fetchTMDB(`/movie/${movieId}`);
+  return fetchTMDB(`/movie/${movieId}`, { append_to_response: "credits,images,similar" });
 }
 
 /**
  * Get TV show details
  */
 export async function getTVDetails(tvId: number): Promise<TMDBSeries & { genres: TMDBGenre[]; number_of_seasons: number; number_of_episodes: number; episode_run_time: number[] }> {
-  return fetchTMDB(`/tv/${tvId}`);
+  return fetchTMDB(`/tv/${tvId}`, { append_to_response: "credits,images,similar" });
+}
+
+/**
+ * Watch Provider interfaces
+ */
+export interface TMDBWatchProvider {
+  display_priority: number;
+  logo_path: string;
+  provider_id: number;
+  provider_name: string;
+}
+
+export interface TMDBWatchProviders {
+  link?: string;
+  flatrate?: TMDBWatchProvider[];
+  buy?: TMDBWatchProvider[];
+  rent?: TMDBWatchProvider[];
+}
+
+export interface TMDBWatchProvidersResponse {
+  id: number;
+  results: Record<string, TMDBWatchProviders>;
+}
+
+/**
+ * Get movie watch providers
+ */
+export async function getMovieWatchProviders(movieId: number): Promise<TMDBWatchProvidersResponse> {
+  return fetchTMDB(`/movie/${movieId}/watch/providers`);
+}
+
+/**
+ * Get TV show watch providers
+ */
+export async function getTVWatchProviders(tvId: number): Promise<TMDBWatchProvidersResponse> {
+  return fetchTMDB(`/tv/${tvId}/watch/providers`);
 }
 
 /**
