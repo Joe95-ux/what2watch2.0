@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { JustWatchAvailabilityResponse, JustWatchOffer } from "@/lib/justwatch";
 import { useState } from "react";
@@ -66,10 +67,8 @@ export default function OverviewSection({
   const director = details?.credits?.crew?.find((person) => person.job === "Director");
   const writers = details?.credits?.crew
     ?.filter((person) => person.job === "Writer" || person.job === "Screenplay" || person.job === "Story")
-    .slice(0, 3)
-    .map((person) => person.name)
-    .join(", ");
-  const topCastNames = cast && cast.length > 0 ? cast.slice(0, 4).map((c) => c.name).join(", ") : "N/A";
+    .slice(0, 3);
+  const topCast = cast && cast.length > 0 ? cast.slice(0, 4) : [];
   const countries = details?.production_countries?.map((c) => c.name).join(", ") || "N/A";
 
   return (
@@ -117,9 +116,21 @@ export default function OverviewSection({
           </div>
 
           <div className="rounded-2xl border border-border bg-card/50 divide-y divide-border">
-            <OverviewInfoRow label="Director" value={director?.name || "N/A"} />
-            <OverviewInfoRow label="Writers" value={writers || "N/A"} />
-            <OverviewInfoRow label="Stars" value={topCastNames} />
+            <OverviewInfoRow 
+              label="Director" 
+              value={director?.name || "N/A"} 
+              personId={director?.id}
+            />
+            <OverviewInfoRow 
+              label="Writers" 
+              value={writers ? writers.map((w) => w.name).join(", ") : "N/A"}
+              writers={writers}
+            />
+            <OverviewInfoRow 
+              label="Stars" 
+              value={topCast.length > 0 ? topCast.map((c) => c.name).join(", ") : "N/A"}
+              cast={topCast}
+            />
             <OverviewInfoRow label="Country" value={countries} />
           </div>
 
@@ -334,11 +345,84 @@ function DetailsGrid({ type, details }: { type: "movie" | "tv"; details: Details
   );
 }
 
-function OverviewInfoRow({ label, value }: { label: string; value: string }) {
+interface OverviewInfoRowProps {
+  label: string;
+  value: string;
+  personId?: number;
+  writers?: Array<{ id: number; name: string }>;
+  cast?: Array<{ id: number; name: string }>;
+}
+
+function OverviewInfoRow({ label, value, personId, writers, cast }: OverviewInfoRowProps) {
+  const router = useRouter();
+
+  const handleClick = () => {
+    if (personId) {
+      router.push(`/person/${personId}`);
+    }
+  };
+
+  const renderValue = () => {
+    if (cast && cast.length > 0) {
+      return (
+        <div className="font-medium text-right flex flex-wrap gap-1 justify-end">
+          {cast.map((person, index) => (
+            <span key={person.id}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/person/${person.id}`);
+                }}
+                className="hover:text-primary transition-colors cursor-pointer"
+              >
+                {person.name}
+              </button>
+              {index < cast.length - 1 && <span>,</span>}
+            </span>
+          ))}
+        </div>
+      );
+    }
+
+    if (writers && writers.length > 0) {
+      return (
+        <div className="font-medium text-right flex flex-wrap gap-1 justify-end">
+          {writers.map((writer, index) => (
+            <span key={writer.id}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/person/${writer.id}`);
+                }}
+                className="hover:text-primary transition-colors cursor-pointer"
+              >
+                {writer.name}
+              </button>
+              {index < writers.length - 1 && <span>,</span>}
+            </span>
+          ))}
+        </div>
+      );
+    }
+
+    if (personId) {
+      return (
+        <button
+          onClick={handleClick}
+          className="font-medium text-right hover:text-primary transition-colors cursor-pointer"
+        >
+          {value}
+        </button>
+      );
+    }
+
+    return <span className="font-medium text-right">{value}</span>;
+  };
+
   return (
     <div className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
       <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium text-right">{value}</span>
+      {renderValue()}
     </div>
   );
 }
