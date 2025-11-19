@@ -70,6 +70,8 @@ async function fetchFromJustWatch(path: string, init: RequestInit = {}) {
   }
 
   const url = `${JUSTWATCH_API_BASE_URL}${path}`;
+  console.log(`[JustWatch] Fetching: ${url}`);
+  
   const response = await fetch(url, {
     ...init,
     headers: {
@@ -81,7 +83,9 @@ async function fetchFromJustWatch(path: string, init: RequestInit = {}) {
   });
 
   if (!response.ok) {
-    throw new Error(`JustWatch request failed: ${response.statusText}`);
+    const errorText = await response.text().catch(() => response.statusText);
+    console.error(`[JustWatch] Request failed: ${response.status} ${response.statusText}`, errorText);
+    throw new Error(`JustWatch request failed: ${response.status} ${response.statusText}`);
   }
 
   return response.json();
@@ -107,6 +111,8 @@ export async function getJustWatchAvailability(
   try {
     const locale = country.toLowerCase();
     const titlePath = `tmdb-${type === "movie" ? "movie" : "show"}-${tmdbId}`;
+
+    console.log(`[JustWatch] Fetching availability for ${type} ${tmdbId} in ${locale}`);
 
     const [rawTitleData, providersData] = await Promise.all([
       fetchFromJustWatch(`/content/titles/${locale}/${titlePath}`),
@@ -175,6 +181,10 @@ export async function getJustWatchAvailability(
     };
   } catch (error) {
     console.error("[JustWatch] Failed to load availability", error);
+    if (error instanceof Error) {
+      console.error("[JustWatch] Error message:", error.message);
+      console.error("[JustWatch] Error stack:", error.stack);
+    }
     return null;
   }
 }
