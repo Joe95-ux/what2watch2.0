@@ -122,6 +122,8 @@ export default function OverviewSection({
             <OverviewInfoRow label="Stars" value={topCastNames} />
             <OverviewInfoRow label="Country" value={countries} />
           </div>
+
+          <DetailsGrid type={type} details={details} />
         </div>
 
         <div className="lg:col-span-5 space-y-4">
@@ -133,10 +135,6 @@ export default function OverviewSection({
             Ad placement
           </div>
         </div>
-      </div>
-
-      <div className="w-full">
-        <DetailsGrid type={type} details={details} />
       </div>
     </section>
   );
@@ -204,7 +202,7 @@ function WatchProvidersSection({
         )}
       </div>
 
-      <JustWatchCredit availability={availability} />
+      <JustWatchCredit />
     </div>
   );
 }
@@ -231,7 +229,7 @@ function ProviderRow({
             href={provider.deepLinkUrl ?? provider.standardWebUrl ?? "#"}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg border border-border transition-colors group w-fit"
+            className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg border border-border transition-colors group w-fit cursor-pointer"
           >
             {provider.iconUrl ? (
               <Image
@@ -258,18 +256,17 @@ function ProviderRow({
   );
 }
 
-function JustWatchCredit({ availability }: { availability?: JustWatchAvailabilityResponse | null }) {
-  if (!availability) return null;
+function JustWatchCredit() {
   return (
     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-4">
       <Image
-        src={availability.credits.logoUrl}
+        src="https://widget.justwatch.com/assets/JW_logo_color_10px.svg"
         alt="JustWatch"
         width={66}
         height={10}
         unoptimized
       />
-      <span>{availability.credits.text}</span>
+      <span>Data powered by JustWatch</span>
     </div>
   );
 }

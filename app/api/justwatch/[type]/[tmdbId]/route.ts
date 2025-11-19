@@ -20,10 +20,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const data = await getJustWatchAvailability(type, tmdbId, country);
 
+    // Debug logging
+    console.log("[JustWatch API] Request:", { type, tmdbId, country });
+    console.log("[JustWatch API] Response:", JSON.stringify(data, null, 2));
+
     if (!data) {
+      console.log("[JustWatch API] No data returned");
       return NextResponse.json({ error: "JustWatch data unavailable" }, { status: 502 });
     }
 
+    console.log("[JustWatch API] Successfully returning data");
     return NextResponse.json(data, {
       headers: {
         "Cache-Control": "s-maxage=900, stale-while-revalidate=60",

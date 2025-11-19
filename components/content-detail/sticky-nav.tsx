@@ -34,7 +34,7 @@ export default function StickyNav({ activeTab, onTabChange, isScrolled }: Sticky
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={cn(
-                "relative py-4 text-sm font-medium transition-colors whitespace-nowrap",
+                "relative py-4 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer",
                 activeTab === tab.id
                   ? "text-foreground"
                   : "text-muted-foreground hover:text-foreground"

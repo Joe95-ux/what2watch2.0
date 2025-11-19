@@ -82,7 +82,7 @@ export default function TVSeasonsSection({
             key={season.id}
             onClick={(e) => handleSeasonSelect(e, season.season_number)}
             className={cn(
-              "px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap flex-shrink-0",
+              "px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 cursor-pointer",
               selectedSeason === season.season_number
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted hover:bg-muted/80"

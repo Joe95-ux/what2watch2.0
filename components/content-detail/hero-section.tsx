@@ -252,7 +252,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                     onClick={() => trailer && handleOpenTrailerModal(trailer?.id)}
                     disabled={!trailer}
                     className={cn(
-                      "flex items-center justify-center h-16 w-16 rounded-full border-2 border-white/60 bg-white/10 backdrop-blur hover:bg-white/20 transition",
+                      "flex items-center justify-center h-16 w-16 rounded-full border-2 border-white/60 bg-white/10 backdrop-blur hover:bg-white/20 transition cursor-pointer",
                       !trailer && "opacity-60 cursor-not-allowed"
                     )}
                     aria-label="Play trailer"
@@ -340,7 +340,7 @@ function HeroStatCard({
   const content = (
     <>
       {icon}
-      <p className="text-lg lg:text-xl font-semibold text-white">{value}</p>
+      <p className="text-lg lg:text-xl font-semibold text-foreground">{value}</p>
     </>
   );
 
@@ -351,8 +351,8 @@ function HeroStatCard({
         onClick={onClick}
         disabled={disabled}
         className={cn(
-          "rounded-lg border border-white/15 bg-white/5 p-4 lg:p-6 flex flex-col items-center justify-center gap-3 text-center transition hover:bg-white/10",
-          disabled && "opacity-50 cursor-not-allowed hover:bg-white/5"
+          "rounded-lg border border-border bg-card/80 dark:bg-card/40 p-4 lg:p-6 flex flex-col items-center justify-center gap-3 text-center transition hover:bg-card dark:hover:bg-card/60 cursor-pointer",
+          disabled && "opacity-50 cursor-not-allowed hover:bg-card/80 dark:hover:bg-card/40"
         )}
       >
         {content}
@@ -361,7 +361,7 @@ function HeroStatCard({
   }
 
   return (
-    <div className="rounded-lg border border-white/15 bg-white/5 p-4 lg:p-6 flex flex-col items-center justify-center gap-3 text-center">
+    <div className="rounded-lg border border-border bg-card/80 dark:bg-card/40 p-4 lg:p-6 flex flex-col items-center justify-center gap-3 text-center">
       {content}
     </div>
   );
