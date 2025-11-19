@@ -1,13 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { TMDBMovie, TMDBSeries, getImageUrl, TMDBWatchProvider } from "@/lib/tmdb";
+import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
+import { JustWatchAvailabilityResponse, JustWatchOffer } from "@/lib/justwatch";
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Clapperboard } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useWatchProviders } from "@/hooks/use-content-details";
 import { Skeleton } from "@/components/ui/skeleton";
-import LogToDiaryDropdown from "@/components/browse/log-to-diary-dropdown";
 
 interface DetailsType {
   release_date?: string;
@@ -43,11 +42,20 @@ interface OverviewSectionProps {
   type: "movie" | "tv";
   details: DetailsType | null;
   cast?: CastMember[];
+  watchAvailability?: JustWatchAvailabilityResponse | null;
+  isWatchLoading?: boolean;
 }
 
 const MAX_SYNOPSIS_LENGTH = 500;
 
-export default function OverviewSection({ item, type, details, cast }: OverviewSectionProps) {
+export default function OverviewSection({
+  item,
+  type,
+  details,
+  cast,
+  watchAvailability,
+  isWatchLoading = false,
+}: OverviewSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const synopsis = item.overview || "";
   const shouldTruncate = synopsis.length > MAX_SYNOPSIS_LENGTH;
@@ -83,7 +91,7 @@ export default function OverviewSection({ item, type, details, cast }: OverviewS
 
           <div>
             <h2 className="text-2xl font-bold mb-4">Storyline</h2>
-            <p className="text-foreground leading-relaxed text-base">
+            <p className="text-muted-foreground leading-relaxed text-base">
               {displaySynopsis || "No synopsis available."}
             </p>
             {shouldTruncate && (
@@ -117,39 +125,33 @@ export default function OverviewSection({ item, type, details, cast }: OverviewS
         </div>
 
         <div className="lg:col-span-5 space-y-4">
-          <LogToDiaryDropdown
-            item={item}
-            type={type}
-            trigger={
-              <Button
-                size="sm"
-                className="inline-flex items-center gap-2 rounded-full bg-primary/85 text-primary-foreground hover:bg-primary px-5 py-2"
-              >
-                <Clapperboard className="h-4 w-4" />
-                Log {type === "movie" ? "Movie" : "TV Show"}
-              </Button>
-            }
+          <WatchProvidersSection
+            availability={watchAvailability}
+            isLoading={isWatchLoading}
           />
-          <WatchProvidersSection item={item} type={type} />
+          <div className="hidden lg:flex h-52 border border-border rounded-2xl bg-muted/40 items-center justify-center text-sm text-muted-foreground">
+            Ad placement
+          </div>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto w-full">
+      <div className="w-full">
         <DetailsGrid type={type} details={details} />
       </div>
     </section>
   );
 }
 
-function WatchProvidersSection({ item, type }: { item: TMDBMovie | TMDBSeries; type: "movie" | "tv" }) {
-  const { data: providersData, isLoading } = useWatchProviders(type, item.id);
-
-  // Get providers for US region (or first available region)
-  const usProviders = providersData?.results?.["US"] || providersData?.results?.[Object.keys(providersData?.results || {})[0]] || null;
-  
-  const streamingProviders = usProviders?.flatrate || [];
-  const buyProviders = usProviders?.buy || [];
-  const rentProviders = usProviders?.rent || [];
+function WatchProvidersSection({
+  availability,
+  isLoading,
+}: {
+  availability?: JustWatchAvailabilityResponse | null;
+  isLoading?: boolean;
+}) {
+  const streamingProviders = availability?.offersByType?.flatrate ?? [];
+  const buyProviders = availability?.offersByType?.buy ?? [];
+  const rentProviders = availability?.offersByType?.rent ?? [];
 
   if (isLoading) {
     return (
@@ -163,7 +165,7 @@ function WatchProvidersSection({ item, type }: { item: TMDBMovie | TMDBSeries; t
     );
   }
 
-  if (!usProviders || (streamingProviders.length === 0 && buyProviders.length === 0 && rentProviders.length === 0)) {
+  if (!availability || (streamingProviders.length === 0 && buyProviders.length === 0 && rentProviders.length === 0)) {
     return (
       <div>
         <h2 className="text-2xl font-bold mb-6">Where to Watch</h2>
@@ -179,99 +181,95 @@ function WatchProvidersSection({ item, type }: { item: TMDBMovie | TMDBSeries; t
       <h2 className="text-2xl font-bold mb-6">Where to Watch</h2>
       
       <div className="space-y-6">
-        {/* Streaming Providers - JustWatch style */}
         {streamingProviders.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-1 h-6 bg-green-500 rounded-full" />
-              <h3 className="text-base font-semibold text-foreground">Streaming</h3>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {streamingProviders.map((provider: TMDBWatchProvider) => (
-                <div
-                  key={provider.provider_id}
-                  className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg border border-border transition-colors cursor-pointer group"
-                >
-                  {provider.logo_path ? (
-                    <Image
-                      src={getImageUrl(provider.logo_path, "w500")}
-                      alt={provider.provider_name}
-                      width={32}
-                      height={32}
-                      className="object-contain rounded group-hover:opacity-80 transition-opacity"
-                      unoptimized
-                    />
-                  ) : (
-                    <span className="text-xs font-medium">{provider.provider_name}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+          <ProviderRow
+            title="Streaming"
+            accentClass="bg-green-500"
+            providers={streamingProviders}
+          />
         )}
-
-        {/* Buy Providers - JustWatch style */}
         {buyProviders.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-1 h-6 bg-blue-500 rounded-full" />
-              <h3 className="text-base font-semibold text-foreground">Buy</h3>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {buyProviders.map((provider: TMDBWatchProvider) => (
-                <div
-                  key={provider.provider_id}
-                  className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg border border-border transition-colors cursor-pointer group"
-                >
-                  {provider.logo_path ? (
-                    <Image
-                      src={getImageUrl(provider.logo_path, "w500")}
-                      alt={provider.provider_name}
-                      width={32}
-                      height={32}
-                      className="object-contain rounded group-hover:opacity-80 transition-opacity"
-                      unoptimized
-                    />
-                  ) : (
-                    <span className="text-xs font-medium">{provider.provider_name}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+          <ProviderRow
+            title="Buy"
+            accentClass="bg-blue-500"
+            providers={buyProviders}
+          />
         )}
-
-        {/* Rent Providers - JustWatch style */}
         {rentProviders.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-1 h-6 bg-purple-500 rounded-full" />
-              <h3 className="text-base font-semibold text-foreground">Rent</h3>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {rentProviders.map((provider: TMDBWatchProvider) => (
-                <div
-                  key={provider.provider_id}
-                  className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg border border-border transition-colors cursor-pointer group"
-                >
-                  {provider.logo_path ? (
-                    <Image
-                      src={getImageUrl(provider.logo_path, "w500")}
-                      alt={provider.provider_name}
-                      width={32}
-                      height={32}
-                      className="object-contain rounded group-hover:opacity-80 transition-opacity"
-                      unoptimized
-                    />
-                  ) : (
-                    <span className="text-xs font-medium">{provider.provider_name}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+          <ProviderRow
+            title="Rent"
+            accentClass="bg-purple-500"
+            providers={rentProviders}
+          />
         )}
       </div>
+
+      <JustWatchCredit availability={availability} />
+    </div>
+  );
+}
+
+function ProviderRow({
+  title,
+  accentClass,
+  providers,
+}: {
+  title: string;
+  accentClass: string;
+  providers: JustWatchOffer[];
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <div className={`w-1 h-6 rounded-full ${accentClass}`} />
+        <h3 className="text-base font-semibold text-foreground">{title}</h3>
+      </div>
+      <div className="flex flex-wrap gap-3">
+        {providers.map((provider) => (
+          <a
+            key={`${provider.providerId}-${provider.monetizationType}`}
+            href={provider.deepLinkUrl ?? provider.standardWebUrl ?? "#"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg border border-border transition-colors group w-fit"
+          >
+            {provider.iconUrl ? (
+              <Image
+                src={provider.iconUrl}
+                alt={provider.providerName}
+                width={32}
+                height={32}
+                className="object-contain rounded group-hover:opacity-80 transition-opacity"
+                unoptimized
+              />
+            ) : (
+              <span className="text-xs font-medium">{provider.providerName}</span>
+            )}
+            <div className="flex flex-col text-left">
+              <span className="text-sm font-medium text-foreground">{provider.providerName}</span>
+              <span className="text-xs text-muted-foreground capitalize">
+                {provider.monetizationType}
+              </span>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function JustWatchCredit({ availability }: { availability?: JustWatchAvailabilityResponse | null }) {
+  if (!availability) return null;
+  return (
+    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-4">
+      <Image
+        src={availability.credits.logoUrl}
+        alt="JustWatch"
+        width={66}
+        height={10}
+        unoptimized
+      />
+      <span>{availability.credits.text}</span>
     </div>
   );
 }

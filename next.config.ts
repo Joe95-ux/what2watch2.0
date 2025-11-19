@@ -8,6 +8,16 @@ const nextConfig: NextConfig = {
         hostname: "image.tmdb.org",
         pathname: "/t/p/**",
       },
+      {
+        protocol: "https",
+        hostname: "images.justwatch.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "widget.justwatch.com",
+        pathname: "/**",
+      },
     ],
   },
 };

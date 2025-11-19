@@ -10,6 +10,7 @@ interface StickyNavProps {
 
 const tabs = [
   { id: "overview", label: "Overview" },
+  { id: "watch", label: "Where to Watch" },
   { id: "cast", label: "Cast" },
   { id: "reviews", label: "Reviews" },
   { id: "videos", label: "Videos" },

@@ -170,7 +170,7 @@ export default function TrailerModal({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent
         showCloseButton={false}
-        className="!max-w-[90vw] !w-full !h-[90vh] !max-h-[90vh] !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 overflow-hidden p-0 gap-0 bg-black !border-gray-800 dark:!border-gray-800"
+        className="!max-w-[90vw] !w-full !h-[60vh] !max-h-[60vh] md:!h-[90vh] md:!max-h-[90vh] !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 overflow-hidden p-0 gap-0 bg-black !border-gray-800 dark:!border-gray-800"
       >
         {/* Accessibility: Hidden title and description for screen readers */}
         <DialogTitle className="sr-only">{modalTitle}</DialogTitle>

@@ -115,10 +115,10 @@ export default function HeroSection({ item, type, details, trailer, videosData }
   };
 
   return (
-    <section className="-mt-[65px] pt-16 sm:pt-20 pb-12 bg-gradient-to-b from-[#050505] via-[#0c0c0c] to-background">
+    <section className="-mt-[65px] pt-16 sm:pt-20 pb-12 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-end gap-3">
+          <div className="flex items-center justify-end gap-3 mt-[14px] md:mt-0">
             <CircleActionButton
               size="md"
               aria-label="Toggle favorite"
@@ -152,7 +152,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
           </div>
 
           <div>
-            <h1 className="text-3xl font-semibold text-foreground">{title}</h1>
+            <h1 className="text-[18px] sm:text-3xl font-semibold text-foreground">{title}</h1>
             <div className="mt-3 inline-flex flex-wrap items-center gap-4 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-muted-foreground">
               {item.vote_average > 0 && (
                 <div className="flex items-center gap-2 text-foreground">
@@ -247,7 +247,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                     />
                   </div>
                 )}
-                <div className="flex items-center gap-4 flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
                   <button
                     onClick={() => trailer && handleOpenTrailerModal(trailer?.id)}
                     disabled={!trailer}
@@ -259,7 +259,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                   >
                     <Play className="h-7 w-7 text-white fill-white" />
                   </button>
-                  <div>
+                  <div className="flex flex-col gap-1">
                     <p className="text-white font-semibold text-lg">Play Trailer</p>
                     <p className="text-white/80 text-sm">
                       {trailer

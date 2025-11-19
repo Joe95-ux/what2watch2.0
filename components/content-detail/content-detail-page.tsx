@@ -10,6 +10,7 @@ import {
   useTVSeasonDetails,
   useSimilarMovies,
   useSimilarTV,
+  useWatchProviders,
 } from "@/hooks/use-content-details";
 import HeroSection from "./hero-section";
 import StickyNav from "./sticky-nav";
@@ -21,6 +22,7 @@ import PhotosSection from "./photos-section";
 import TVSeasonsSection from "./tv-seasons-section";
 import MoreLikeThisSection from "./more-like-this-section";
 import RecentlyViewedSection from "./recently-viewed-section";
+import WatchBreakdownSection from "./watch-breakdown-section";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface ContentDetailPageProps {
@@ -65,6 +67,10 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
   );
   const { data: similarMovies } = useSimilarMovies(type === "movie" ? item.id : null);
   const { data: similarTV } = useSimilarTV(type === "tv" ? item.id : null);
+  const {
+    data: watchAvailability,
+    isLoading: isLoadingWatchAvailability,
+  } = useWatchProviders(type, item.id);
 
   const details = type === "movie" ? movieDetails : tvDetails;
   const isLoading = type === "movie" ? isLoadingMovie : isLoadingTV;
@@ -140,7 +146,14 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {activeTab === "overview" && (
           <>
-            <OverviewSection item={item} type={type} details={details ?? null} cast={cast} />
+            <OverviewSection
+              item={item}
+              type={type}
+              details={details ?? null}
+              cast={cast}
+              watchAvailability={watchAvailability}
+              isWatchLoading={isLoadingWatchAvailability}
+            />
             {/* TV Seasons - Show in overview for TV */}
             {type === "tv" && seasonsData && (
               <TVSeasonsSection
@@ -164,6 +177,12 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
         )}
         {activeTab === "cast" && (
           <CastSection cast={cast} isLoading={false} />
+        )}
+        {activeTab === "watch" && (
+          <WatchBreakdownSection
+            availability={watchAvailability}
+            isLoading={isLoadingWatchAvailability}
+          />
         )}
         {activeTab === "reviews" && (
           <ReviewsSection tmdbId={item.id} mediaType={type} />

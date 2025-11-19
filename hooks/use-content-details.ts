@@ -1,5 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { TMDBMovie, TMDBSeries, TMDBVideo, TMDBTVSeason, TMDBTVSeasonDetails, TMDBWatchProvidersResponse } from "@/lib/tmdb";
+import {
+  TMDBMovie,
+  TMDBSeries,
+  TMDBVideo,
+  TMDBTVSeason,
+  TMDBTVSeasonDetails,
+  TMDBWatchProvidersResponse,
+} from "@/lib/tmdb";
+import { JustWatchAvailabilityResponse, JustWatchOffer } from "@/lib/justwatch";
 
 interface MovieDetails extends TMDBMovie {
   genres: Array<{ id: number; name: string }>;
@@ -202,22 +210,93 @@ export function useRecommendedTV(tvId: number | null) {
 /**
  * Hook to fetch watch providers
  */
-export function useWatchProviders(type: "movie" | "tv", id: number | null) {
+export function useWatchProviders(type: "movie" | "tv", id: number | null, countryCode: string = "US") {
   return useQuery({
-    queryKey: [type, id, "watch-providers"],
+    queryKey: [type, id, "watch-providers", countryCode.toUpperCase()],
     queryFn: async () => {
       if (!id) return null;
-      const apiType = type === "movie" ? "movies" : type;
-      const response = await fetch(`/api/${apiType}/${id}/watch-providers`);
-      if (!response.ok) {
-        return null; // Return null instead of throwing to handle gracefully
+      const country = countryCode.toUpperCase();
+
+      const jwResponse = await fetch(`/api/justwatch/${type}/${id}?country=${country}`);
+      if (jwResponse.ok) {
+        const data = (await jwResponse.json()) as JustWatchAvailabilityResponse | null;
+        if (data && hasOffers(data)) {
+          return data;
+        }
       }
-      return response.json() as Promise<TMDBWatchProvidersResponse>;
+
+      const fallback = await fetchTmdbProviders(type, id, country);
+      return fallback;
     },
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes
+    staleTime: 60 * 60 * 1000,
+    gcTime: 2 * 60 * 60 * 1000,
     retry: 1,
   });
+}
+
+async function fetchTmdbProviders(
+  type: "movie" | "tv",
+  id: number,
+  country: string
+): Promise<JustWatchAvailabilityResponse | null> {
+  const apiType = type === "movie" ? "movies" : type;
+  const response = await fetch(`/api/${apiType}/${id}/watch-providers`);
+  if (!response.ok) {
+    return null;
+  }
+  const data = (await response.json()) as TMDBWatchProvidersResponse;
+  const region =
+    data.results?.[country] ||
+    data.results?.[Object.keys(data.results || {})[0] as keyof typeof data.results];
+  if (!region) return null;
+
+  const grouped: Record<string, JustWatchOffer[]> = {
+    flatrate: mapTmdbProvider(region.flatrate, "flatrate"),
+    buy: mapTmdbProvider(region.buy, "buy"),
+    rent: mapTmdbProvider(region.rent, "rent"),
+    ads: [],
+    free: [],
+    cinema: [],
+    other: [],
+  };
+
+  const allOffers = Object.values(grouped).flat();
+  if (!allOffers.length) return null;
+
+  return {
+    country,
+    lastSyncedAt: null,
+    offersByType: grouped as JustWatchAvailabilityResponse["offersByType"],
+    allOffers,
+    credits: {
+      text: "Data powered by TMDB",
+      logoUrl: "https://image.tmdb.org/t/p/original//43uA9t8ufehhlGq4iVFaLjSlIc3.png",
+      url: "https://www.themoviedb.org",
+    },
+  };
+}
+
+function mapTmdbProvider(
+  providers: Array<{ provider_id: number; provider_name: string; logo_path: string | null }> | undefined,
+  monetizationType: JustWatchOffer["monetizationType"]
+): JustWatchOffer[] {
+  if (!providers) return [];
+  return providers.map((provider) => ({
+    providerId: provider.provider_id,
+    providerName: provider.provider_name,
+    iconUrl: provider.logo_path ? `https://image.tmdb.org/t/p/original${provider.logo_path}` : null,
+    monetizationType,
+    retailPrice: null,
+    currency: null,
+    presentationType: null,
+    standardWebUrl: null,
+    deepLinkUrl: null,
+  }));
+}
+
+function hasOffers(data: JustWatchAvailabilityResponse) {
+  if (!data) return false;
+  return data.allOffers && data.allOffers.length > 0;
 }
 
