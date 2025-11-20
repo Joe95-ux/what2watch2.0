@@ -263,7 +263,7 @@ export default function WriteReviewDialog({
                         <AlertDialogDescription>
                           A spoiler is information that reveals important plot details, twists, 
                           endings, or key story elements that could ruin the viewing experience 
-                          for others who haven't seen the content yet. If your review mentions 
+                          for others who haven&apos;t seen the content yet. If your review mentions 
                           specific plot points, character deaths, surprise endings, or major 
                           revelations, please mark it as containing spoilers.
                         </AlertDialogDescription>
