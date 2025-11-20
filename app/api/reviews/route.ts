@@ -230,7 +230,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Note: containsSpoilers field will be available after running: npx prisma generate
     const review = await db.review.create({
       data: {
         userId: user.id,
@@ -239,7 +238,6 @@ export async function POST(request: NextRequest) {
         rating,
         title: title || null,
         content,
-        // @ts-expect-error - containsSpoilers field added to schema, regenerate Prisma client
         containsSpoilers: containsSpoilers || false,
       },
       include: {
