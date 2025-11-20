@@ -74,11 +74,15 @@ export function useReviews(
 
       const response = await fetch(`/api/reviews?${params.toString()}`);
       if (!response.ok) {
-        throw new Error("Failed to fetch reviews");
+        const error = await response.json().catch(() => ({ error: "Failed to fetch reviews" }));
+        throw new Error(error.error || "Failed to fetch reviews");
       }
-      return response.json() as Promise<ReviewsResponse>;
+      const data = await response.json();
+      return data as ReviewsResponse;
     },
     enabled: !!tmdbId && !!mediaType,
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -104,8 +108,11 @@ export function useCreateReview() {
       return response.json() as Promise<Review>;
     },
     onSuccess: (_, variables) => {
+      // Invalidate all review queries for this content (regardless of options)
+      // This will automatically trigger a refetch for active queries
       queryClient.invalidateQueries({
         queryKey: ["reviews", variables.tmdbId, variables.mediaType],
+        exact: false,
       });
     },
   });

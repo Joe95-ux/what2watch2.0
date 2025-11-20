@@ -243,6 +243,7 @@ export async function POST(request: NextRequest) {
       ...review,
       reactionCounts: {},
       totalReactions: 0,
+      userReactions: [],
     });
   } catch (error) {
     console.error("Error creating review:", error);
