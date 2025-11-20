@@ -27,6 +27,8 @@ model User {
   favorites     Favorite[]
   playlists     Playlist[]
   reviews       Review[]
+  reviewReactions ReviewReaction[]
+  reviewReports ReviewReport[]
   forumPosts    ForumPost[]
   forumReplies  ForumReply[]
   sharedPlaylists SharedPlaylist[]
@@ -229,8 +231,11 @@ model Review {
   content       String   // Review text
   
   // Engagement
-  likes         Int      @default(0)
   helpful       Int      @default(0)
+  isFeatured    Boolean  @default(false) // Featured reviews shown first
+  
+  reactions     ReviewReaction[]
+  reports       ReviewReport[]
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -239,6 +244,49 @@ model Review {
   @@map("reviews")
   @@index([userId])
   @@index([tmdbId, mediaType])
+  @@index([createdAt])
+  @@index([isFeatured, createdAt])
+  @@index([rating])
+}
+
+// Review reactions - likes and emoji reactions
+model ReviewReaction {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  reviewId      String   @db.ObjectId
+  review        Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Reaction type: "like", "helpful", or emoji string (e.g., "👍", "❤️", "😂")
+  reactionType  String   // "like", "helpful", or emoji unicode
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([reviewId, userId, reactionType])
+  @@map("review_reactions")
+  @@index([reviewId])
+  @@index([userId])
+  @@index([reactionType])
+}
+
+// Review reports - user reports for inappropriate reviews
+model ReviewReport {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  reviewId      String   @db.ObjectId
+  review        Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  reason        String   // Report reason (spam, harassment, etc.)
+  description   String?  // Optional additional details
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([reviewId, userId])
+  @@map("review_reports")
+  @@index([reviewId])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 // Forum posts - discussion threads
