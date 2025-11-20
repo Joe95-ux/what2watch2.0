@@ -203,18 +203,18 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
               posterPath: item.poster_path,
               releaseYear:
                 type === "movie"
-                  ? details?.release_date
+                  ? details && "release_date" in details && details.release_date
                     ? new Date(details.release_date).getFullYear().toString()
                     : null
-                  : details?.first_air_date
+                  : details && "first_air_date" in details && details.first_air_date
                   ? new Date(details.first_air_date).getFullYear().toString()
                   : null,
               runtime:
                 type === "movie"
-                  ? details?.runtime
+                  ? details && "runtime" in details && details.runtime
                     ? `${Math.floor(details.runtime / 60)}h ${details.runtime % 60}m`
                     : null
-                  : details?.episode_run_time && details.episode_run_time.length > 0
+                  : details && "episode_run_time" in details && details.episode_run_time && details.episode_run_time.length > 0
                   ? (() => {
                       const avg = Math.round(
                         details.episode_run_time.reduce((a, b) => a + b, 0) /
