@@ -133,7 +133,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
       const response = await fetch(`/api/search?${params.toString()}`);
       const data: TMDBResponse<TMDBMovie | TMDBSeries> = await response.json();
 
-      const searchResults: SearchResult[] = data.results.slice(0, 10).map((item) => ({
+      const searchResults: SearchResult[] = data.results.slice(0, 20).map((item) => ({
         id: item.id,
         title: "title" in item ? item.title : item.name,
         type: "title" in item ? "movie" : "tv",
@@ -165,6 +165,25 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
     setResults([]);
     router.push(`/${result.type}/${result.id}`);
   };
+
+  const handleSubmitSearch = useCallback(() => {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) {
+      return;
+    }
+
+    const params = new URLSearchParams();
+    params.set("query", trimmedQuery);
+    if (filters.type !== "all") params.set("type", filters.type);
+    if (filters.genre.length > 0) params.set("genre", filters.genre.join(","));
+    if (filters.year) params.set("year", filters.year);
+    if (filters.minRating > 0) params.set("minRating", filters.minRating.toString());
+    if (filters.sortBy) params.set("sortBy", filters.sortBy);
+
+    router.push(`/search?${params.toString()}`);
+    setIsExpanded(false);
+    setResults([]);
+  }, [query, filters, router]);
 
   const resetFilters = () => {
     setFilters({
@@ -240,6 +259,12 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
                   placeholder="Search movies and TV shows..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleSubmitSearch();
+                    }
+                  }}
                   className={cn(
                     "pl-9 pr-20 h-10 transition-colors duration-300",
                     hasHeroSection && "bg-white/10 border-[rgba(255,255,255,0.1)] text-white placeholder:text-white/60 focus:border-[rgba(255,255,255,0.2)] focus:ring-white/20"
@@ -378,6 +403,12 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
           placeholder="Search movies and TV shows..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleSubmitSearch();
+            }
+          }}
           onFocus={() => setIsExpanded(true)}
           className={cn(
             "pl-9 pr-20 h-9 transition-colors duration-300",

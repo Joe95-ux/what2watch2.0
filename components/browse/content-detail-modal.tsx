@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { X, Play, Plus, Heart, Star, Clock, Volume2, VolumeX, ArrowLeft, BookOpen, BookCheck, CalendarIcon } from "lucide-react";
@@ -48,6 +49,7 @@ export default function ContentDetailModal({
   onBack: externalOnBack,
   onNavigate,
 }: ContentDetailModalProps) {
+  const router = useRouter();
   // Internal navigation state for More Like This
   const [currentItem, setCurrentItem] = useState(initialItem);
   const [currentType, setCurrentType] = useState(initialType);
@@ -303,7 +305,9 @@ export default function ContentDetailModal({
                   title="Trailer"
                 />
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent pointer-events-none dark:from-black/90 dark:via-black/60" />
+              {isMuted && (
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent pointer-events-none dark:from-black/90 dark:via-black/60" />
+              )}
             </div>
           ) : backdropPath ? (
             <>
@@ -315,7 +319,9 @@ export default function ContentDetailModal({
                 priority
                 unoptimized
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/80 to-transparent dark:from-black/90 dark:via-black/80" />
+              {isMuted && (
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/80 to-transparent dark:from-black/90 dark:via-black/80" />
+              )}
             </>
           ) : (
             <div className="absolute inset-0 bg-muted" />
@@ -542,12 +548,22 @@ export default function ContentDetailModal({
                       <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Genres</h3>
                       <div className="flex flex-wrap gap-2">
                         {details.genres.map((genre) => (
-                          <span
+                          <button
+                            type="button"
                             key={genre.id}
-                            className="px-3 py-1 rounded-full bg-muted text-sm text-foreground no-close"
+                            onClick={() => {
+                              router.push(
+                                `/search?${new URLSearchParams({
+                                  type: currentType,
+                                  genre: genre.id.toString(),
+                                }).toString()}`
+                              );
+                              onClose();
+                            }}
+                            className="px-3 py-1 rounded-full bg-muted text-sm text-foreground no-close transition hover:bg-primary/10 cursor-pointer"
                           >
                             {genre.name}
-                          </span>
+                          </button>
                         ))}
                       </div>
                     </div>

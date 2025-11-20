@@ -58,6 +58,7 @@ export default function OverviewSection({
   watchAvailability,
   isWatchLoading = false,
 }: OverviewSectionProps) {
+  const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
   const synopsis = item.overview || "";
   const shouldTruncate = synopsis.length > MAX_SYNOPSIS_LENGTH;
@@ -79,12 +80,21 @@ export default function OverviewSection({
           {details?.genres && details.genres.length > 0 && (
             <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 -mx-2 px-2">
               {details.genres.map((genre) => (
-                <span
+                <button
+                  type="button"
                   key={genre.id}
-                  className="px-3 py-1 text-sm rounded-full bg-muted text-foreground flex-shrink-0"
+                  onClick={() =>
+                    router.push(
+                      `/search?${new URLSearchParams({
+                        type,
+                        genre: genre.id.toString(),
+                      }).toString()}`
+                    )
+                  }
+                  className="px-3 py-1 text-sm rounded-full bg-muted text-foreground flex-shrink-0 transition hover:bg-primary/10 cursor-pointer"
                 >
                   {genre.name}
-                </span>
+                </button>
               ))}
             </div>
           )}

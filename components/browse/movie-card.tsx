@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
-import { Star, Play, Plus, Heart, Maximize2, Bookmark, Volume2, VolumeX } from "lucide-react";
+import { Star, Play, Plus, Heart, Maximize2, Bookmark, Volume2, VolumeX, BookCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries, getPosterUrl, TMDBVideo, getYouTubeEmbedUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ interface MovieCardProps {
 }
 
 export default function MovieCard({ item, type, className, canScrollPrev = false, canScrollNext = false, variant = "default", onCardClick, onAddToPlaylist, forceDesktopVariantOnMobile = false }: MovieCardProps) {
+  const router = useRouter();
   const isMobileDevice = useIsMobile();
   const shouldForceDesktopVariant = forceDesktopVariantOnMobile && isMobileDevice;
   const isMobile = !shouldForceDesktopVariant && isMobileDevice;
@@ -68,6 +70,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const posterPath = item.poster_path || item.backdrop_path;
   const releaseDate = type === "movie" ? (item as TMDBMovie).release_date : (item as TMDBSeries).first_air_date;
   const year = releaseDate ? new Date(releaseDate).getFullYear() : null;
+  const hideOverlayForAudio = !isVideoMuted && !isMobile && variant !== "dashboard";
 
   // Reset fetch state when item changes
   useEffect(() => {
@@ -125,8 +128,10 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const handleOpenDetails = useCallback(() => {
     if (onCardClick) {
       onCardClick(item, type);
+    } else {
+      router.push(`/${type}/${item.id}`);
     }
-  }, [item, onCardClick, type]);
+  }, [item, onCardClick, router, type]);
 
   const fetchTrailerVideos = useCallback(async () => {
     // If we have cached videos, use them instead of fetching
@@ -286,7 +291,6 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
             style={{
               willChange: shouldShowOverlay ? "opacity, transform" : "opacity",
             }}
-            onClick={(e) => e.stopPropagation()}
           >
             {/* Trailer preview layer */}
             {shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && (
@@ -303,264 +307,292 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
               </div>
             )}
 
-            {/* Overlay gradient */}
-            <div className="absolute inset-0 z-20 bg-gradient-to-t from-black/95 via-black/75 to-transparent pointer-events-none" />
+            {!hideOverlayForAudio && (
+              <>
+                {/* Overlay gradient */}
+                <div className="absolute inset-0 z-20 bg-gradient-to-t from-black/95 via-black/75 to-transparent pointer-events-none" />
 
-            <div
-              className={cn(
-                "relative z-30 h-full w-full flex flex-col text-white",
-                isMobile || variant === "dashboard" ? "p-3" : "p-4"
-              )}
-              style={{
-                transform: "translateZ(0)", // Force GPU acceleration
-                backfaceVisibility: "hidden", // Prevent blur on transforms
-              }}
-            >
-              <div className="flex items-center justify-between" style={{ transform: "translateZ(0)", willChange: "transform" }}>
-                <div className="flex items-center gap-2">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <CircleActionButton
-                        size="sm"
-                        className="backdrop-blur-md z-[5]"
-                        onClick={async (e: React.MouseEvent) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          await requireAuth(
-                            () => toggleFavorite.toggle(item, type),
-                            "Sign in to like titles."
-                          );
-                        }}
-                      >
-                        <Heart
-                          className={cn(
-                            "h-3 w-3",
-                            toggleFavorite.isFavorite(item.id, type)
-                              ? "text-red-500 fill-red-500"
-                              : "text-white"
-                          )}
-                        />
-                      </CircleActionButton>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <CircleActionButton
-                        size="sm"
-                        className="backdrop-blur-md z-[5]"
-                        onClick={async (e: React.MouseEvent) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          await requireAuth(
-                            () => toggleWatchlist.toggle(item, type),
-                            "Sign in to manage your watchlist."
-                          );
-                        }}
-                      >
-                        <Bookmark
-                          className={cn(
-                            "h-3 w-3",
-                            toggleWatchlist.isInWatchlist(item.id, type)
-                              ? "text-blue-500 fill-blue-500"
-                              : "text-white"
-                          )}
-                        />
-                      </CircleActionButton>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from Watchlist" : "Add to Watchlist"}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-
-                {shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/30 cursor-pointer h-7 w-7"
-                        style={{ transform: "translateZ(0)", willChange: "transform" }}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setIsVideoMuted(!isVideoMuted);
-                        }}
-                      >
-                        {isVideoMuted ? (
-                          <VolumeX className="text-white h-3 w-3" />
-                        ) : (
-                          <Volume2 className="text-white h-3 w-3" />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{isVideoMuted ? "Unmute" : "Mute"}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
-              </div>
-
-              <div className="mt-auto space-y-2">
-                {/* Action Buttons Row */}
                 <div
                   className={cn(
-                    "flex items-center justify-between mb-2",
-                    isMobile ? "gap-1" : "gap-1.5"
+                    "relative z-30 h-full w-full flex flex-col text-white",
+                    isMobile || variant === "dashboard" ? "p-3" : "p-4"
                   )}
+                  style={{
+                    transform: "translateZ(0)", // Force GPU acceleration
+                    backfaceVisibility: "hidden", // Prevent blur on transforms
+                  }}
                 >
-                  <div className="flex items-center gap-1.5">
-                    <Button
-                      size="sm"
-                      className={cn(
-                        "rounded-full bg-black/60 hover:bg-black/70 text-white font-medium cursor-pointer backdrop-blur-md border border-white/30",
-                        isMobile ? "h-6 px-2 text-[10px]" : "h-7 px-3 text-xs"
-                      )}
-                      style={{ transform: "translateZ(0)", willChange: "transform" }}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsTrailerModalOpen(true);
+                  <div className="flex items-center justify-between" style={{ transform: "translateZ(0)", willChange: "transform" }}>
+                    <div className="flex items-center gap-2">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <CircleActionButton
+                            size="sm"
+                            className="backdrop-blur-md z-[5]"
+                            onClick={async (e: React.MouseEvent) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              await requireAuth(
+                                () => toggleFavorite.toggle(item, type),
+                                "Sign in to like titles."
+                              );
+                            }}
+                          >
+                            <Heart
+                              className={cn(
+                                "h-3 w-3",
+                                toggleFavorite.isFavorite(item.id, type)
+                                  ? "text-red-500 fill-red-500"
+                                  : "text-white"
+                              )}
+                            />
+                          </CircleActionButton>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <CircleActionButton
+                            size="sm"
+                            className="backdrop-blur-md z-[5]"
+                            onClick={async (e: React.MouseEvent) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              await requireAuth(
+                                () => toggleWatchlist.toggle(item, type),
+                                "Sign in to manage your watchlist."
+                              );
+                            }}
+                          >
+                            <Bookmark
+                              className={cn(
+                                "h-3 w-3",
+                                toggleWatchlist.isInWatchlist(item.id, type)
+                                  ? "text-blue-500 fill-blue-500"
+                                  : "text-white"
+                              )}
+                            />
+                          </CircleActionButton>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from Watchlist" : "Add to Watchlist"}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
 
-                        if (!cachedVideosData?.results && attemptedFetchRef.current !== item.id && !isLoadingTrailer) {
-                          fetchTrailerVideos();
-                        }
-                      }}
-                    >
-                      <Play className={cn("fill-white text-white", isMobile ? "h-2.5 w-2.5 mr-0.5" : "h-3 w-3 mr-1")} />
-                      {!isMobile && "Trailer"}
-                    </Button>
-                  <Tooltip
-                    open={playlistTooltipOpen && !isPlaylistDropdownOpen}
-                    onOpenChange={(open) => setPlaylistTooltipOpen(open)}
-                  >
-                      <TooltipTrigger asChild>
-                      {isSignedIn ? (
-                        <div>
-                          <AddToPlaylistDropdown
-                            item={item}
-                            type={type}
-                            onAddSuccess={onAddToPlaylist}
-                          onOpenChange={(open) => {
-                            setIsPlaylistDropdownOpen(open);
-                            if (open) {
-                              setPlaylistTooltipOpen(false);
-                            }
-                          }}
-                            trigger={
-                              <CircleActionButton
-                                size="sm"
-                                className="backdrop-blur-md z-[5]"
-                                onClick={(e: React.MouseEvent) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                }}
-                              >
-                                <Plus className={cn("text-white", isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
-                              </CircleActionButton>
-                            }
-                          />
-                        </div>
-                      ) : (
-                        <CircleActionButton
-                          size="sm"
-                          className="backdrop-blur-md z-[5]"
-                          onClick={(e: React.MouseEvent) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            void requireAuth(async () => undefined, "Sign in to manage playlists.");
-                          }}
-                        >
-                          <Plus className={cn("text-white", isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
-                        </CircleActionButton>
-                      )}
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Add to Playlist</p>
-                      </TooltipContent>
-                    </Tooltip>
+                    {shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/30 cursor-pointer h-7 w-7"
+                            style={{ transform: "translateZ(0)", willChange: "transform" }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsVideoMuted(!isVideoMuted);
+                            }}
+                          >
+                            {isVideoMuted ? (
+                              <VolumeX className="text-white h-3 w-3" />
+                            ) : (
+                              <Volume2 className="text-white h-3 w-3" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{isVideoMuted ? "Unmute" : "Mute"}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                   </div>
 
-                  {variant === "more-like-this" ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="rounded-full p-0 bg-white hover:bg-white/90 text-black shadow-lg hover:shadow-xl transition-all cursor-pointer flex items-center justify-center h-7 w-7"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleOpenDetails();
-                      }}
+                  <div className="mt-auto space-y-2">
+                    {/* Action Buttons Row */}
+                    <div
+                      className={cn(
+                        "flex items-center justify-between mb-2",
+                        isMobile ? "gap-1" : "gap-1.5"
+                      )}
                     >
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/30 cursor-pointer h-7 w-7"
-                      style={{ transform: "translateZ(0)", willChange: "transform" }}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleOpenDetails();
-                      }}
-                    >
-                      <Maximize2 className="text-white h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          className={cn(
+                            "rounded-full bg-black/60 hover:bg-black/70 text-white font-medium cursor-pointer backdrop-blur-md border border-white/30",
+                            isMobile ? "h-6 px-2 text-[10px]" : "h-7 px-3 text-xs"
+                          )}
+                          style={{ transform: "translateZ(0)", willChange: "transform" }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setIsTrailerModalOpen(true);
 
-                <div
-                  className={cn(
-                    "flex items-center",
-                    isMobile ? "gap-1" : "gap-2"
-                  )}
-                >
-                  {item.vote_average !== undefined && item.vote_average > 0 && (
-                    <div className="flex items-center gap-0.5">
-                      <Star className={cn("text-yellow-400 fill-yellow-400", isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
-                      <span className={cn("font-semibold text-white", isMobile ? "text-[10px]" : "text-xs")}>
-                        {item.vote_average.toFixed(1)}
+                            if (!cachedVideosData?.results && attemptedFetchRef.current !== item.id && !isLoadingTrailer) {
+                              fetchTrailerVideos();
+                            }
+                          }}
+                        >
+                          <Play className={cn("fill-white text-white", isMobile ? "h-2.5 w-2.5 mr-0.5" : "h-3 w-3 mr-1")} />
+                          {!isMobile && "Trailer"}
+                        </Button>
+                      <Tooltip
+                        open={playlistTooltipOpen && !isPlaylistDropdownOpen}
+                        onOpenChange={(open) => setPlaylistTooltipOpen(open)}
+                      >
+                          <TooltipTrigger asChild>
+                          {isSignedIn ? (
+                            <div>
+                              <AddToPlaylistDropdown
+                                item={item}
+                                type={type}
+                                onAddSuccess={onAddToPlaylist}
+                              onOpenChange={(open) => {
+                                setIsPlaylistDropdownOpen(open);
+                                if (open) {
+                                  setPlaylistTooltipOpen(false);
+                                }
+                              }}
+                                trigger={
+                                  <CircleActionButton
+                                    size="sm"
+                                    className="backdrop-blur-md z-[5]"
+                                    onClick={(e: React.MouseEvent) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                    }}
+                                  >
+                                    <Plus className={cn("text-white", isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
+                                  </CircleActionButton>
+                                }
+                              />
+                            </div>
+                          ) : (
+                            <CircleActionButton
+                              size="sm"
+                              className="backdrop-blur-md z-[5]"
+                              onClick={(e: React.MouseEvent) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                void requireAuth(async () => undefined, "Sign in to manage playlists.");
+                              }}
+                            >
+                              <Plus className={cn("text-white", isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
+                            </CircleActionButton>
+                          )}
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Add to Playlist</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+
+                      {variant === "more-like-this" ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="rounded-full p-0 bg-white hover:bg-white/90 text-black shadow-lg hover:shadow-xl transition-all cursor-pointer flex items-center justify-center h-7 w-7"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleOpenDetails();
+                          }}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="rounded-full p-0 bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/30 cursor-pointer h-7 w-7"
+                          style={{ transform: "translateZ(0)", willChange: "transform" }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleOpenDetails();
+                          }}
+                        >
+                          <Maximize2 className="text-white h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+
+                    <div
+                      className={cn(
+                        "flex items-center",
+                        isMobile ? "gap-1" : "gap-2"
+                      )}
+                    >
+                      {item.vote_average !== undefined && item.vote_average > 0 && (
+                        <div className="flex items-center gap-0.5">
+                          <Star className={cn("text-yellow-400 fill-yellow-400", isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
+                          <span className={cn("font-semibold text-white", isMobile ? "text-[10px]" : "text-xs")}>
+                            {item.vote_average.toFixed(1)}
+                          </span>
+                        </div>
+                      )}
+                      {year && (
+                        <>
+                          <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-xs")}>•</span>
+                          <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-xs")}>{year}</span>
+                        </>
+                      )}
+                      <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-xs")}>•</span>
+                      <span className={cn("text-white/80 uppercase", isMobile ? "text-[10px]" : "text-xs")}>
+                        {type === "movie" ? "Movie" : "TV"}
                       </span>
                     </div>
-                  )}
-                  {year && (
-                    <>
-                      <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-xs")}>•</span>
-                      <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-xs")}>{year}</span>
-                    </>
-                  )}
-                  <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-xs")}>•</span>
-                  <span className={cn("text-white/80 uppercase", isMobile ? "text-[10px]" : "text-xs")}>
-                    {type === "movie" ? "Movie" : "TV"}
-                  </span>
-                </div>
 
-                <h3
-                  className={cn(
-                    "font-bold text-white line-clamp-1",
-                    isMobile ? "text-xs" : "text-sm"
-                  )}
-                >
-                  {title}
-                </h3>
+                    <h3
+                      className={cn(
+                        "font-bold text-white line-clamp-1",
+                        isMobile ? "text-xs" : "text-sm"
+                      )}
+                    >
+                      {title}
+                    </h3>
 
-                {item.overview && (
-                  <p
-                    className={cn(
-                      "text-white/90 line-clamp-2 leading-relaxed",
-                      isMobile ? "text-[10px]" : "text-xs"
+                    {item.overview && (
+                      <p
+                        className={cn(
+                          "text-white/90 line-clamp-2 leading-relaxed",
+                          isMobile ? "text-[10px]" : "text-xs"
+                        )}
+                      >
+                        {item.overview}
+                      </p>
                     )}
-                  >
-                    {item.overview}
-                  </p>
-                )}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && !isVideoMuted && (
+              <div className="absolute inset-0 flex items-end justify-end z-20 pointer-events-none p-4">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="bg-white/10 text-white border-white/40 hover:bg-white/20 h-8 w-8 rounded-full backdrop-blur-md cursor-pointer pointer-events-auto"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsVideoMuted(true);
+                      }}
+                    >
+                      <BookCheck className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Clear</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
