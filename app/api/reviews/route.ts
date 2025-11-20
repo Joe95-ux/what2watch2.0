@@ -31,25 +31,24 @@ export async function GET(request: NextRequest) {
       where.rating = parseInt(rating, 10);
     }
 
-    const orderBy: Prisma.ReviewOrderByWithRelationInput = {};
+    // For MongoDB, we'll sort by the primary field and handle secondary sorting in memory if needed
+    let orderBy: Prisma.ReviewOrderByWithRelationInput;
     switch (sortBy) {
       case "featured":
-        orderBy.isFeatured = "desc";
-        orderBy.createdAt = "desc";
+        // Sort by isFeatured first, then createdAt as secondary
+        orderBy = { isFeatured: "desc" };
         break;
       case "date":
-        orderBy.createdAt = "desc";
+        orderBy = { createdAt: "desc" };
         break;
       case "rating":
-        orderBy.rating = "desc";
-        orderBy.createdAt = "desc";
+        orderBy = { rating: "desc" };
         break;
       case "helpful":
-        orderBy.helpful = "desc";
-        orderBy.createdAt = "desc";
+        orderBy = { helpful: "desc" };
         break;
       default:
-        orderBy.createdAt = "desc";
+        orderBy = { createdAt: "desc" };
     }
 
     // Get current user if authenticated
@@ -94,6 +93,25 @@ export async function GET(request: NextRequest) {
       }),
       db.review.count({ where }),
     ]);
+
+    // For featured sort, do secondary sort by createdAt in memory
+    if (sortBy === "featured") {
+      reviews.sort((a, b) => {
+        if (a.isFeatured !== b.isFeatured) {
+          return a.isFeatured ? -1 : 1;
+        }
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    } else if (sortBy === "rating" || sortBy === "helpful") {
+      // Secondary sort by createdAt for rating and helpful
+      reviews.sort((a, b) => {
+        const primaryDiff = sortBy === "rating" 
+          ? b.rating - a.rating 
+          : b.helpful - a.helpful;
+        if (primaryDiff !== 0) return primaryDiff;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    }
 
     // Calculate reaction counts and user reactions
     type ReviewWithRelations = Prisma.ReviewGetPayload<{
