@@ -2,12 +2,21 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { X, Star, ChevronDown } from "lucide-react";
+import { X, Star, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { useCreateReview } from "@/hooks/use-reviews";
 import { toast } from "sonner";
@@ -38,6 +47,7 @@ export default function WriteReviewDialog({
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [containsSpoilers, setContainsSpoilers] = useState<"yes" | "no">("no");
+  const [isVisible, setIsVisible] = useState(false);
   const createReview = useCreateReview();
 
   // Reset form when dialog closes
@@ -47,6 +57,16 @@ export default function WriteReviewDialog({
       setTitle("");
       setContent("");
       setContainsSpoilers("no");
+    }
+  }, [isOpen]);
+
+  // Handle visibility for smooth transitions
+  useEffect(() => {
+    if (isOpen) {
+      setIsVisible(true);
+    } else {
+      const timer = setTimeout(() => setIsVisible(false), 300);
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
@@ -93,19 +113,22 @@ export default function WriteReviewDialog({
     }
   };
 
-  if (!isOpen) return null;
-
   const filmTitle = filmData?.title || (mediaType === "movie" ? "Movie" : "TV Show");
   const posterPath = filmData?.posterPath;
   const releaseYear = filmData?.releaseYear;
   const runtime = filmData?.runtime;
   const filmRating = filmData?.rating;
 
+  if (!isVisible) return null;
+
   return (
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 z-50 transition-opacity"
+        className={cn(
+          "fixed inset-0 bg-black/50 z-50 transition-opacity duration-300 ease-in-out",
+          isOpen ? "opacity-100" : "opacity-0"
+        )}
         onClick={onClose}
       />
 
@@ -158,6 +181,9 @@ export default function WriteReviewDialog({
                       <span>{runtime}</span>
                     </>
                   )}
+                </div>
+                <div className="text-xs font-medium text-muted-foreground mt-1">
+                  User Review
                 </div>
               </div>
             </div>
@@ -218,24 +244,53 @@ export default function WriteReviewDialog({
               </div>
 
               <div className="space-y-3">
-                <Label>Does your review contain spoilers?</Label>
-                <RadioGroup
-                  value={containsSpoilers}
-                  onValueChange={(value) => setContainsSpoilers(value as "yes" | "no")}
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="yes" id="spoilers-yes" />
-                    <Label htmlFor="spoilers-yes" className="font-normal cursor-pointer">
-                      Yes
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="no" id="spoilers-no" />
-                    <Label htmlFor="spoilers-no" className="font-normal cursor-pointer">
-                      No
-                    </Label>
-                  </div>
-                </RadioGroup>
+                <div className="flex items-center gap-2">
+                  <Label>Does your review contain spoilers?</Label>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-4 w-4 cursor-pointer"
+                      >
+                        <Info className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>What is a spoiler?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          A spoiler is information that reveals important plot details, twists, 
+                          endings, or key story elements that could ruin the viewing experience 
+                          for others who haven't seen the content yet. If your review mentions 
+                          specific plot points, character deaths, surprise endings, or major 
+                          revelations, please mark it as containing spoilers.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogAction>Got it</AlertDialogAction>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+                <div className="border border-input rounded-md p-4 space-y-4">
+                  <RadioGroup
+                    value={containsSpoilers}
+                    onValueChange={(value) => setContainsSpoilers(value as "yes" | "no")}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <RadioGroupItem value="yes" id="spoilers-yes" className="h-5 w-5" />
+                      <Label htmlFor="spoilers-yes" className="font-normal cursor-pointer text-base">
+                        Yes
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <RadioGroupItem value="no" id="spoilers-no" className="h-5 w-5" />
+                      <Label htmlFor="spoilers-no" className="font-normal cursor-pointer text-base">
+                        No
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
               </div>
             </div>
 
