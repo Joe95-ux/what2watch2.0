@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { JustWatchAvailabilityResponse, JustWatchOffer } from "@/lib/justwatch";
+import { createPersonSlug } from "@/lib/person-utils";
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -120,6 +121,7 @@ export default function OverviewSection({
               label="Director" 
               value={director?.name || "N/A"} 
               personId={director?.id}
+              personName={director?.name}
             />
             <OverviewInfoRow 
               label="Writers" 
@@ -349,16 +351,17 @@ interface OverviewInfoRowProps {
   label: string;
   value: string;
   personId?: number;
+  personName?: string;
   writers?: Array<{ id: number; name: string }>;
   cast?: Array<{ id: number; name: string }>;
 }
 
-function OverviewInfoRow({ label, value, personId, writers, cast }: OverviewInfoRowProps) {
+function OverviewInfoRow({ label, value, personId, personName, writers, cast }: OverviewInfoRowProps) {
   const router = useRouter();
 
   const handleClick = () => {
-    if (personId) {
-      router.push(`/person/${personId}`);
+    if (personId && personName) {
+      router.push(`/person/${createPersonSlug(personId, personName)}`);
     }
   };
 
@@ -371,7 +374,7 @@ function OverviewInfoRow({ label, value, personId, writers, cast }: OverviewInfo
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  router.push(`/person/${person.id}`);
+                  router.push(`/person/${createPersonSlug(person.id, person.name)}`);
                 }}
                 className="hover:text-primary transition-colors cursor-pointer"
               >
@@ -392,7 +395,7 @@ function OverviewInfoRow({ label, value, personId, writers, cast }: OverviewInfo
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  router.push(`/person/${writer.id}`);
+                  router.push(`/person/${createPersonSlug(writer.id, writer.name)}`);
                 }}
                 className="hover:text-primary transition-colors cursor-pointer"
               >
@@ -405,7 +408,7 @@ function OverviewInfoRow({ label, value, personId, writers, cast }: OverviewInfo
       );
     }
 
-    if (personId) {
+    if (personId && value !== "N/A") {
       return (
         <button
           onClick={handleClick}

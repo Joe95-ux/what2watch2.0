@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { getPosterUrl } from "@/lib/tmdb";
+import { createPersonSlug } from "@/lib/person-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Carousel,
@@ -106,7 +107,7 @@ export default function CastSection({ cast, crew, isLoading, type = "movie" }: C
               <CarouselItem key={person.id} className="pl-2 md:pl-4 basis-[140px] sm:basis-[160px]">
                 <div 
                   className="text-center group cursor-pointer"
-                  onClick={() => router.push(`/person/${person.id}`)}
+                  onClick={() => router.push(`/person/${createPersonSlug(person.id, person.name)}`)}
                 >
                   <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden mb-3 group-hover:scale-105 transition-transform">
                     {person.profile_path ? (
@@ -178,7 +179,7 @@ export default function CastSection({ cast, crew, isLoading, type = "movie" }: C
                 <div 
                   key={person.id} 
                   className="flex items-start gap-4 cursor-pointer hover:bg-muted/20 p-2 rounded-lg transition-colors"
-                  onClick={() => router.push(`/person/${person.id}`)}
+                  onClick={() => router.push(`/person/${createPersonSlug(person.id, person.name)}`)}
                 >
                   <div className="relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
                     {person.profile_path ? (
@@ -224,7 +225,7 @@ export default function CastSection({ cast, crew, isLoading, type = "movie" }: C
                         <div 
                           key={`${member.id}-${member.job}`} 
                           className="flex items-start gap-4 cursor-pointer hover:bg-muted/20 p-2 rounded-lg transition-colors"
-                          onClick={() => router.push(`/person/${member.id}`)}
+                          onClick={() => router.push(`/person/${createPersonSlug(member.id, member.name)}`)}
                         >
                           <div className="relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
                             {member.profile_path ? (

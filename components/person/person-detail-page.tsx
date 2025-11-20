@@ -143,12 +143,14 @@ export default function PersonDetailPage({ personId }: PersonDetailPageProps) {
       {/* Content Tabs */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="mb-8">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="photos">Photos</TabsTrigger>
-            <TabsTrigger value="known-for">Known For</TabsTrigger>
-            <TabsTrigger value="credits">Credits</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto scrollbar-hide mb-8 -mx-2 px-2">
+            <TabsList className="mb-0 min-w-fit">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="photos">Photos</TabsTrigger>
+              <TabsTrigger value="known-for">Known For</TabsTrigger>
+              <TabsTrigger value="credits">Credits</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="overview" className="space-y-12">
             <PersonBiography biography={person.biography} />

@@ -1,11 +1,19 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { TMDBPersonMovieCredits, TMDBPersonTVCredits } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowUpDown } from "lucide-react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 
 type CreditType = "all" | "movies" | "tv";
 type RoleType = "all" | "cast" | "crew";
@@ -27,6 +35,8 @@ interface CombinedCredit {
   department?: string;
 }
 
+const ITEMS_PER_PAGE = 50;
+
 export default function PersonCreditsTable({
   movieCredits,
   tvCredits,
@@ -35,6 +45,7 @@ export default function PersonCreditsTable({
   const [creditType, setCreditType] = useState<CreditType>("all");
   const [roleType, setRoleType] = useState<RoleType>("all");
   const [sortBy, setSortBy] = useState<SortBy>("year");
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Combine and format all credits
   const allCredits = useMemo(() => {
@@ -151,11 +162,28 @@ export default function PersonCreditsTable({
     return filtered;
   }, [allCredits, creditType, roleType, sortBy]);
 
+  // Pagination
+  const totalPages = Math.ceil(filteredCredits.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedCredits = filteredCredits.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [creditType, roleType, sortBy]);
+
   const handleSort = (newSortBy: SortBy) => {
     if (sortBy === newSortBy) {
       // Toggle ascending/descending could be added here
     }
     setSortBy(newSortBy);
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   if (allCredits.length === 0) {
@@ -246,7 +274,7 @@ export default function PersonCreditsTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredCredits.map((credit, index) => (
+              {paginatedCredits.map((credit, index) => (
                 <tr
                   key={`${credit.type}-${credit.id}-${index}`}
                   className="hover:bg-muted/20 transition-colors cursor-pointer group"
@@ -277,6 +305,103 @@ export default function PersonCreditsTable({
           </table>
         </div>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-6">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="gap-1"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+              </PaginationItem>
+              
+              {(() => {
+                const pages: (number | "ellipsis")[] = [];
+                
+                // Always show first page
+                pages.push(1);
+                
+                // Add ellipsis if needed
+                if (currentPage > 3) {
+                  pages.push("ellipsis");
+                }
+                
+                // Add pages around current
+                for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+                  if (i !== 1 && i !== totalPages) {
+                    pages.push(i);
+                  }
+                }
+                
+                // Add ellipsis if needed
+                if (currentPage < totalPages - 2) {
+                  pages.push("ellipsis");
+                }
+                
+                // Always show last page
+                if (totalPages > 1) {
+                  pages.push(totalPages);
+                }
+                
+                // Remove duplicates
+                const uniquePages = pages.filter((page, index, self) => {
+                  if (page === "ellipsis") {
+                    return index === self.indexOf("ellipsis") || 
+                           (index > 0 && self[index - 1] !== "ellipsis");
+                  }
+                  return index === self.findIndex((p) => p === page);
+                });
+                
+                return uniquePages.map((page, index) => {
+                  if (page === "ellipsis") {
+                    return (
+                      <PaginationItem key={`ellipsis-${index}`}>
+                        <span className="px-2">...</span>
+                      </PaginationItem>
+                    );
+                  }
+                  return (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handlePageChange(page);
+                        }}
+                        isActive={currentPage === page}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                });
+              })()}
+
+              <PaginationItem>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="gap-1"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
     </section>
   );
 }
