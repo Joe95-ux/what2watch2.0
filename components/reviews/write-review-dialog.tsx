@@ -47,7 +47,6 @@ export default function WriteReviewDialog({
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [containsSpoilers, setContainsSpoilers] = useState<"yes" | "no">("no");
-  const [isVisible, setIsVisible] = useState(false);
   const createReview = useCreateReview();
 
   // Reset form when dialog closes
@@ -57,18 +56,6 @@ export default function WriteReviewDialog({
       setTitle("");
       setContent("");
       setContainsSpoilers("no");
-    }
-  }, [isOpen]);
-
-  // Handle visibility for smooth transitions
-  useEffect(() => {
-    if (isOpen) {
-      // Small delay before showing to allow smooth opening animation
-      const timer = setTimeout(() => setIsVisible(true), 10);
-      return () => clearTimeout(timer);
-    } else {
-      const timer = setTimeout(() => setIsVisible(false), 300);
-      return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
@@ -121,25 +108,22 @@ export default function WriteReviewDialog({
   const runtime = filmData?.runtime;
   const filmRating = filmData?.rating;
 
-  if (!isVisible) return null;
-
   return (
     <>
       {/* Backdrop */}
-      <div
-        className={cn(
-          "fixed inset-0 bg-black/50 z-50 transition-opacity",
-          isOpen ? "opacity-100 duration-500 ease-out" : "opacity-0 duration-300 ease-in"
-        )}
-        onClick={onClose}
-      />
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 transition-opacity duration-300 ease-in"
+          onClick={onClose}
+        />
+      )}
 
       {/* Sheet */}
       <div
         className={cn(
           "fixed right-0 top-0 h-full w-full sm:w-[500px] bg-background border-l border-border z-50 shadow-2xl",
-          "transform transition-transform",
-          isOpen ? "translate-x-0 duration-500 ease-out" : "translate-x-full duration-300 ease-in"
+          "transform transition-transform duration-300 ease-in delay-75",
+          isOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
         <div className="flex flex-col h-full">
