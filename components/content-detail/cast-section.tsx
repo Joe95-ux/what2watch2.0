@@ -29,7 +29,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown, ChevronUp, ArrowUpDown, Filter } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface CastMember {
   id: number;
@@ -71,49 +70,9 @@ export default function CastSection({ cast, crew, isLoading, type = "movie" }: C
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [currentPage, setCurrentPage] = useState(1);
 
-  if (isLoading) {
-    return (
-      <section className="py-12">
-        <h2 className="text-2xl font-bold mb-6">{type === "tv" ? "Series Cast" : "Cast & Crew"}</h2>
-        <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div key={i} className="flex-shrink-0 w-32 text-center">
-              <Skeleton className="w-32 h-32 rounded-full mb-3" />
-              <Skeleton className="h-4 w-24 mx-auto mb-2" />
-              <Skeleton className="h-3 w-20 mx-auto" />
-            </div>
-          ))}
-        </div>
-      </section>
-    );
-  }
-
-  if (!cast || cast.length === 0) {
-    return null;
-  }
-
-  // Group crew by department
-  const crewByDepartment = crew?.reduce((acc, member) => {
-    if (!acc[member.department]) {
-      acc[member.department] = [];
-    }
-    acc[member.department].push(member);
-    return acc;
-  }, {} as Record<string, CrewMember[]>) || {};
-
-  // Sort departments (Directing, Writing, Production first)
-  const departmentOrder = ["Directing", "Writing", "Production", "Camera", "Sound", "Editing", "Art", "Costume & Make-Up", "Costume & Makeup", "Visual Effects", "Crew", "Lighting"];
-  const sortedDepartments = Object.keys(crewByDepartment).sort((a, b) => {
-    const aIndex = departmentOrder.indexOf(a);
-    const bIndex = departmentOrder.indexOf(b);
-    if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
-    if (aIndex === -1) return 1;
-    if (bIndex === -1) return -1;
-    return aIndex - bIndex;
-  });
-
-  // Combine cast and crew for table view
+  // Combine cast and crew for table view - must be before early returns
   const allPeople = useMemo(() => {
+    if (!cast) return [];
     const people: Array<{
       id: number;
       name: string;
@@ -185,6 +144,47 @@ export default function CastSection({ cast, crew, isLoading, type = "movie" }: C
 
     return sorted;
   }, [allPeople, filterType, sortField, sortDirection]);
+
+  if (isLoading) {
+    return (
+      <section className="py-12">
+        <h2 className="text-2xl font-bold mb-6">{type === "tv" ? "Series Cast" : "Cast & Crew"}</h2>
+        <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div key={i} className="flex-shrink-0 w-32 text-center">
+              <Skeleton className="w-32 h-32 rounded-full mb-3" />
+              <Skeleton className="h-4 w-24 mx-auto mb-2" />
+              <Skeleton className="h-3 w-20 mx-auto" />
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (!cast || cast.length === 0) {
+    return null;
+  }
+
+  // Group crew by department
+  const crewByDepartment = crew?.reduce((acc, member) => {
+    if (!acc[member.department]) {
+      acc[member.department] = [];
+    }
+    acc[member.department].push(member);
+    return acc;
+  }, {} as Record<string, CrewMember[]>) || {};
+
+  // Sort departments (Directing, Writing, Production first)
+  const departmentOrder = ["Directing", "Writing", "Production", "Camera", "Sound", "Editing", "Art", "Costume & Make-Up", "Costume & Makeup", "Visual Effects", "Crew", "Lighting"];
+  const sortedDepartments = Object.keys(crewByDepartment).sort((a, b) => {
+    const aIndex = departmentOrder.indexOf(a);
+    const bIndex = departmentOrder.indexOf(b);
+    if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+    if (aIndex === -1) return 1;
+    if (bIndex === -1) return -1;
+    return aIndex - bIndex;
+  });
 
   // Pagination
   const totalPages = Math.ceil(filteredAndSorted.length / ITEMS_PER_PAGE);
