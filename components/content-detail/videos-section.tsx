@@ -45,6 +45,7 @@ export default function VideosSection({ videos, isLoading, title }: VideosSectio
   const otherVideos = youtubeVideos.filter((v) => v.id !== trailer?.id);
 
   const allVideos = trailer ? [trailer, ...otherVideos] : otherVideos;
+  const maxDisplayed = trailer ? 7 : 6; // 1 trailer + 6 others, or just 6 others
 
   return (
     <>
@@ -82,9 +83,11 @@ export default function VideosSection({ videos, isLoading, title }: VideosSectio
         {/* Video Grid */}
         {otherVideos.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {otherVideos.slice(0, 6).map((video) => {
+            {otherVideos.slice(0, 6).map((video, gridIndex) => {
               const index = allVideos.findIndex((v) => v.id === video.id);
               const thumbnailUrl = `https://img.youtube.com/vi/${video.key}/maxresdefault.jpg`;
+              const isLastItem = gridIndex === 5 && allVideos.length > maxDisplayed;
+              const remainingCount = allVideos.length - maxDisplayed;
 
               return (
                 <div
@@ -100,14 +103,24 @@ export default function VideosSection({ videos, isLoading, title }: VideosSectio
                       (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${video.key}/hqdefault.jpg`;
                     }}
                   />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/20 transition-colors">
-                    <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Play className="h-8 w-8 text-black fill-black" />
+                  {isLastItem ? (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center group-hover:bg-black/70 transition-colors">
+                      <div className="text-white text-2xl font-bold">
+                        +{remainingCount}
+                      </div>
                     </div>
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
-                    <p className="text-white text-sm font-medium line-clamp-2">{video.name}</p>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/20 transition-colors">
+                        <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <Play className="h-8 w-8 text-black fill-black" />
+                        </div>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+                        <p className="text-white text-sm font-medium line-clamp-2">{video.name}</p>
+                      </div>
+                    </>
+                  )}
                 </div>
               );
             })}

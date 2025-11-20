@@ -95,21 +95,33 @@ export default function PhotosSection({ backdrops, posters, stills, isLoading }:
 
         {/* Photo Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {currentPhotos.slice(1, 13).map((photo, index) => (
-            <div
-              key={index}
-              className="relative aspect-video rounded-lg overflow-hidden bg-muted cursor-pointer group hover:scale-105 transition-transform"
-              onClick={() => setSelectedImageIndex(index + 1)}
-            >
-              <Image
-                src={getPosterUrl(photo.file_path, "w500")}
-                alt={`Photo ${index + 2}`}
-                fill
-                className="object-cover"
-                unoptimized
-              />
-            </div>
-          ))}
+          {currentPhotos.slice(1, 13).map((photo, index) => {
+            const isLastItem = index === 11 && currentPhotos.length > 13;
+            const remainingCount = currentPhotos.length - 13;
+            
+            return (
+              <div
+                key={index}
+                className="relative aspect-video rounded-lg overflow-hidden bg-muted cursor-pointer group hover:scale-105 transition-transform"
+                onClick={() => setSelectedImageIndex(index + 1)}
+              >
+                <Image
+                  src={getPosterUrl(photo.file_path, "w500")}
+                  alt={`Photo ${index + 2}`}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+                {isLastItem && (
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center group-hover:bg-black/70 transition-colors">
+                    <div className="text-white text-2xl font-bold">
+                      +{remainingCount}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 

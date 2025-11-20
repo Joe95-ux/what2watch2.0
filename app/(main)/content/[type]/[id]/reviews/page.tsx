@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useReviews } from "@/hooks/use-reviews";
+import { useMovieDetails, useTVDetails } from "@/hooks/use-content-details";
 import ReviewCard from "@/components/reviews/review-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,10 @@ export default function ReviewsPage() {
 
   const type = params.type as "movie" | "tv";
   const id = parseInt(params.id as string, 10);
+
+  const { data: movieDetails } = useMovieDetails(type === "movie" ? id : null);
+  const { data: tvDetails } = useTVDetails(type === "tv" ? id : null);
+  const details = type === "movie" ? movieDetails : tvDetails;
 
   const { data, isLoading } = useReviews(id, type, {
     rating: ratingFilter !== "all" ? parseInt(ratingFilter, 10) : null,
@@ -272,6 +277,46 @@ export default function ReviewsPage() {
             onClose={() => setWriteDialogOpen(false)}
             tmdbId={id}
             mediaType={type}
+            filmData={
+              details
+                ? {
+                    title:
+                      type === "movie"
+                        ? (details as any).title
+                        : (details as any).name,
+                    posterPath: details.poster_path || null,
+                    releaseYear:
+                      type === "movie"
+                        ? details.release_date
+                          ? new Date(details.release_date).getFullYear().toString()
+                          : null
+                        : details.first_air_date
+                        ? new Date(details.first_air_date).getFullYear().toString()
+                        : null,
+                    runtime:
+                      type === "movie"
+                        ? details.runtime
+                          ? `${Math.floor(details.runtime / 60)}h ${details.runtime % 60}m`
+                          : null
+                        : details.episode_run_time &&
+                          details.episode_run_time.length > 0
+                        ? (() => {
+                            const avg = Math.round(
+                              details.episode_run_time.reduce(
+                                (a: number, b: number) => a + b,
+                                0
+                              ) / details.episode_run_time.length
+                            );
+                            return `${Math.floor(avg / 60)}h ${avg % 60}m`;
+                          })()
+                        : null,
+                    rating:
+                      (details as any).vote_average > 0
+                        ? (details as any).vote_average
+                        : null,
+                  }
+                : undefined
+            }
           />
         )}
       </div>

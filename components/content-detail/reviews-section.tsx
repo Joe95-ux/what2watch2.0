@@ -12,11 +12,19 @@ import { useUser } from "@clerk/nextjs";
 interface ReviewsSectionProps {
   tmdbId: number;
   mediaType: "movie" | "tv";
+  filmData?: {
+    title: string;
+    posterPath: string | null;
+    releaseYear: string | null;
+    runtime: string | null;
+    rating: number | null;
+  };
 }
 
 export default function ReviewsSection({
   tmdbId,
   mediaType,
+  filmData,
 }: ReviewsSectionProps) {
   const router = useRouter();
   const { user } = useUser();
@@ -90,6 +98,7 @@ export default function ReviewsSection({
           onClose={() => setWriteDialogOpen(false)}
           tmdbId={tmdbId}
           mediaType={mediaType}
+          filmData={filmData}
         />
       )}
     </section>

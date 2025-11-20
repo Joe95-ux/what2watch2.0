@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Star, ThumbsUp, HelpCircle, MoreVertical, Share2, Facebook, Twitter, Mail, Link2, Flag } from "lucide-react";
+import { Star, ThumbsUp, ThumbsDown, MoreVertical, Share2, Facebook, Twitter, Mail, Link2, Flag, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -32,8 +32,9 @@ export default function ReviewCard({
   const { user } = useUser();
   const toggleReaction = useToggleReviewReaction();
   const [isExpanded, setIsExpanded] = useState(showFullContent);
+  const [showSpoiler, setShowSpoiler] = useState(false);
   const [helpfulLoading, setHelpfulLoading] = useState(false);
-  const [likeLoading, setLikeLoading] = useState(false);
+  const [dislikeLoading, setDislikeLoading] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -58,20 +59,20 @@ export default function ReviewCard({
     }
   };
 
-  const handleLike = async () => {
-    setLikeLoading(true);
+  const handleDislike = async () => {
+    setDislikeLoading(true);
     try {
       await toggleReaction.mutateAsync({
         reviewId: review.id,
-        reactionType: "like",
+        reactionType: "dislike",
       });
     } finally {
-      setLikeLoading(false);
+      setDislikeLoading(false);
     }
   };
 
   const helpfulCount = review.reactionCounts["helpful"] || 0;
-  const likeCount = review.reactionCounts["like"] || 0;
+  const dislikeCount = review.reactionCounts["dislike"] || 0;
   
   // Find first paragraph break (newline or double newline)
   const getFirstParagraph = (text: string): { paragraph: string; hasMore: boolean } => {
@@ -270,22 +271,52 @@ export default function ReviewCard({
         <h3 className="font-semibold mb-2 text-lg">{review.title}</h3>
       )}
       <div className="mb-4">
-        <p className={cn(
-          "text-muted-foreground",
-          shouldTruncate ? "line-clamp-3" : "whitespace-pre-wrap"
-        )}>
-          {displayContent}
-          {shouldTruncate && "..."}
-        </p>
-        {hasMoreContent && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="mt-2 cursor-pointer"
-          >
-            {isExpanded ? "Show less" : "Show more"}
-          </Button>
+        {review.containsSpoilers && !showSpoiler ? (
+          <>
+            <div className="flex items-center gap-2 text-destructive mb-2">
+              <span className="font-medium">Spoiler</span>
+              <button
+                onClick={() => setShowSpoiler(true)}
+                className="flex items-center gap-1 text-destructive hover:text-destructive/80 transition-colors cursor-pointer"
+              >
+                <ChevronDown className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground italic">
+              This review contains spoilers. Click to reveal.
+            </p>
+          </>
+        ) : (
+          <>
+            {review.containsSpoilers && showSpoiler && (
+              <div className="flex items-center gap-2 text-destructive mb-2">
+                <span className="font-medium">Spoiler</span>
+                <button
+                  onClick={() => setShowSpoiler(false)}
+                  className="flex items-center gap-1 text-destructive hover:text-destructive/80 transition-colors cursor-pointer"
+                >
+                  <ChevronUp className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+            <p className={cn(
+              "text-muted-foreground",
+              shouldTruncate ? "line-clamp-3" : "whitespace-pre-wrap"
+            )}>
+              {displayContent}
+              {shouldTruncate && "..."}
+            </p>
+            {hasMoreContent && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="mt-2 cursor-pointer"
+              >
+                {isExpanded ? "Show less" : "Show more"}
+              </Button>
+            )}
+          </>
         )}
       </div>
 
@@ -300,28 +331,22 @@ export default function ReviewCard({
             hasUserReacted("helpful") && "text-primary"
           )}
         >
-          <HelpCircle className="h-4 w-4 mr-1" />
+          <ThumbsUp className="h-4 w-4 mr-1" />
           Helpful ({helpfulCount})
         </Button>
         <Button
           variant="ghost"
           size="sm"
-          onClick={handleLike}
-          disabled={likeLoading}
+          onClick={handleDislike}
+          disabled={dislikeLoading}
           className={cn(
             "cursor-pointer",
-            hasUserReacted("like") && "text-primary"
+            hasUserReacted("dislike") && "text-primary"
           )}
         >
-          <ThumbsUp className="h-4 w-4 mr-1" />
-          Like ({likeCount})
+          <ThumbsDown className="h-4 w-4 mr-1" />
+          {dislikeCount}
         </Button>
-        {review.totalReactions > 0 && (
-          <span className="text-sm text-muted-foreground">
-            {review.totalReactions} reaction
-            {review.totalReactions !== 1 ? "s" : ""}
-          </span>
-        )}
       </div>
 
       <ReportReviewDialog

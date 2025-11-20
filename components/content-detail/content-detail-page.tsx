@@ -195,7 +195,37 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
           />
         )}
         {activeTab === "reviews" && (
-          <ReviewsSection tmdbId={item.id} mediaType={type} />
+          <ReviewsSection
+            tmdbId={item.id}
+            mediaType={type}
+            filmData={{
+              title: type === "movie" ? (item as TMDBMovie).title : (item as TMDBSeries).name,
+              posterPath: item.poster_path,
+              releaseYear:
+                type === "movie"
+                  ? details?.release_date
+                    ? new Date(details.release_date).getFullYear().toString()
+                    : null
+                  : details?.first_air_date
+                  ? new Date(details.first_air_date).getFullYear().toString()
+                  : null,
+              runtime:
+                type === "movie"
+                  ? details?.runtime
+                    ? `${Math.floor(details.runtime / 60)}h ${details.runtime % 60}m`
+                    : null
+                  : details?.episode_run_time && details.episode_run_time.length > 0
+                  ? (() => {
+                      const avg = Math.round(
+                        details.episode_run_time.reduce((a, b) => a + b, 0) /
+                          details.episode_run_time.length
+                      );
+                      return `${Math.floor(avg / 60)}h ${avg % 60}m`;
+                    })()
+                  : null,
+              rating: item.vote_average > 0 ? item.vote_average : null,
+            }}
+          />
         )}
         {activeTab === "videos" && (
           <VideosSection

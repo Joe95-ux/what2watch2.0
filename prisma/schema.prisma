@@ -229,6 +229,7 @@ model Review {
   rating        Int      // 1-10 rating
   title         String?  // Review title
   content       String   // Review text
+  containsSpoilers Boolean @default(false) // Whether review contains spoilers
   
   // Engagement
   helpful       Int      @default(0)

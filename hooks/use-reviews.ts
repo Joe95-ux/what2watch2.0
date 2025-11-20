@@ -15,6 +15,7 @@ export interface Review {
   rating: number;
   title: string | null;
   content: string;
+  containsSpoilers: boolean;
   helpful: number;
   isFeatured: boolean;
   reactionCounts: Record<string, number>;
@@ -40,6 +41,7 @@ interface CreateReviewData {
   rating: number;
   title?: string;
   content: string;
+  containsSpoilers?: boolean;
 }
 
 interface UpdateReviewData {
