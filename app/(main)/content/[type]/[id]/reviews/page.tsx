@@ -282,23 +282,28 @@ export default function ReviewsPage() {
                 ? {
                     title:
                       type === "movie"
-                        ? (details as any).title
-                        : (details as any).name,
+                        ? "title" in details
+                          ? details.title
+                          : ""
+                        : "name" in details
+                        ? details.name
+                        : "",
                     posterPath: details.poster_path || null,
                     releaseYear:
                       type === "movie"
-                        ? details.release_date
+                        ? "release_date" in details && details.release_date
                           ? new Date(details.release_date).getFullYear().toString()
                           : null
-                        : details.first_air_date
+                        : "first_air_date" in details && details.first_air_date
                         ? new Date(details.first_air_date).getFullYear().toString()
                         : null,
                     runtime:
                       type === "movie"
-                        ? details.runtime
+                        ? "runtime" in details && details.runtime
                           ? `${Math.floor(details.runtime / 60)}h ${details.runtime % 60}m`
                           : null
-                        : details.episode_run_time &&
+                        : "episode_run_time" in details &&
+                          details.episode_run_time &&
                           details.episode_run_time.length > 0
                         ? (() => {
                             const avg = Math.round(
@@ -311,8 +316,8 @@ export default function ReviewsPage() {
                           })()
                         : null,
                     rating:
-                      (details as any).vote_average > 0
-                        ? (details as any).vote_average
+                      details.vote_average > 0
+                        ? details.vote_average
                         : null,
                   }
                 : undefined
