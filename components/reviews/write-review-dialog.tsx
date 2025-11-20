@@ -63,7 +63,9 @@ export default function WriteReviewDialog({
   // Handle visibility for smooth transitions
   useEffect(() => {
     if (isOpen) {
-      setIsVisible(true);
+      // Small delay before showing to allow smooth opening animation
+      const timer = setTimeout(() => setIsVisible(true), 10);
+      return () => clearTimeout(timer);
     } else {
       const timer = setTimeout(() => setIsVisible(false), 300);
       return () => clearTimeout(timer);
@@ -126,8 +128,8 @@ export default function WriteReviewDialog({
       {/* Backdrop */}
       <div
         className={cn(
-          "fixed inset-0 bg-black/50 z-50 transition-opacity duration-300 ease-in-out",
-          isOpen ? "opacity-100" : "opacity-0"
+          "fixed inset-0 bg-black/50 z-50 transition-opacity",
+          isOpen ? "opacity-100 duration-500 ease-out" : "opacity-0 duration-300 ease-in"
         )}
         onClick={onClose}
       />
@@ -136,8 +138,8 @@ export default function WriteReviewDialog({
       <div
         className={cn(
           "fixed right-0 top-0 h-full w-full sm:w-[500px] bg-background border-l border-border z-50 shadow-2xl",
-          "transform transition-transform duration-300 ease-in-out",
-          isOpen ? "translate-x-0" : "translate-x-full"
+          "transform transition-transform",
+          isOpen ? "translate-x-0 duration-500 ease-out" : "translate-x-full duration-300 ease-in"
         )}
       >
         <div className="flex flex-col h-full">
