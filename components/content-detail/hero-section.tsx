@@ -198,9 +198,10 @@ export default function HeroSection({ item, type, details, trailer, videosData }
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
 
-            <div className="absolute top-4 left-4 flex gap-2">
+            <div className="absolute top-4 left-4 flex gap-3">
               <CircleActionButton
-                size="sm"
+                size="lg"
+                className="bg-black/70 text-white border-white/30 hover:bg-black/80 hover:border-white/60 shadow-lg"
                 onClick={async () => {
                   await toggleWatchlist.toggle(item, type);
                 }}
@@ -208,7 +209,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
               >
                 <Bookmark
                   className={cn(
-                    "h-4 w-4",
+                    "h-5 w-5",
                     toggleWatchlist.isInWatchlist(item.id, type)
                       ? "text-blue-500 fill-blue-500"
                       : "text-white"
@@ -222,8 +223,12 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                 item={item}
                 type={type}
                 trigger={
-                  <CircleActionButton size="sm" aria-label="Add to playlist">
-                    <Plus className="h-4 w-4 text-white" />
+                  <CircleActionButton
+                    size="lg"
+                    className="bg-black/70 text-white border-white/30 hover:bg-black/80 hover:border-white/60 shadow-lg"
+                    aria-label="Add to playlist"
+                  >
+                    <Plus className="h-5 w-5 text-white" />
                   </CircleActionButton>
                 }
               />
@@ -258,6 +263,38 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                       sizes="96px"
                       unoptimized
                     />
+                    <div className="absolute top-2 right-2 flex gap-2">
+                      <CircleActionButton
+                        size="md"
+                        className="bg-black/70 text-white border-white/30 hover:bg-black/80 hover:border-white/60 shadow-lg"
+                        aria-label="Toggle watchlist"
+                        onClick={async () => {
+                          await toggleWatchlist.toggle(item, type);
+                        }}
+                      >
+                        <Bookmark
+                          className={cn(
+                            "h-4 w-4",
+                            toggleWatchlist.isInWatchlist(item.id, type)
+                              ? "text-blue-400 fill-blue-400"
+                              : "text-white"
+                          )}
+                        />
+                      </CircleActionButton>
+                      <AddToPlaylistDropdown
+                        item={item}
+                        type={type}
+                        trigger={
+                          <CircleActionButton
+                            size="md"
+                            className="bg-black/70 text-white border-white/30 hover:bg-black/80 hover:border-white/60 shadow-lg"
+                            aria-label="Add to playlist"
+                          >
+                            <Plus className="h-4 w-4 text-white" />
+                          </CircleActionButton>
+                        }
+                      />
+                    </div>
                   </div>
                 )}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">

@@ -370,7 +370,7 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess }: Cr
                             </div>
                           ) : searchResults?.results && searchResults.results.length > 0 ? (
                             <div className="space-y-1">
-                              {searchResults.results.slice(0, 10).map((film) => {
+                              {searchResults.results.slice(0, 20).map((film) => {
                                 const isMovie = "title" in film;
                                 const title = isMovie ? film.title : film.name;
                                 const isAdded = items.some(
