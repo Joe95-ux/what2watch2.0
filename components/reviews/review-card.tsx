@@ -110,7 +110,7 @@ export default function ReviewCard({
 
   // Generate review URL - link to the reviews page with anchor
   const reviewUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/${review.mediaType}/${review.tmdbId}/reviews#review-${review.id}`
+    ? `${window.location.origin}/content/${review.mediaType}/${review.tmdbId}/reviews#review-${review.id}`
     : "";
 
   const reviewTitle = review.title || `${displayName}'s Review`;

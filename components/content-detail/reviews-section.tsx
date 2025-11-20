@@ -73,7 +73,7 @@ export default function ReviewsSection({
               <Button
                 variant="outline"
                 onClick={() =>
-                  router.push(`/${mediaType}/${tmdbId}/reviews`)
+                  router.push(`/content/${mediaType}/${tmdbId}/reviews`)
                 }
                 className="cursor-pointer"
               >
