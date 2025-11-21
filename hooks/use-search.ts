@@ -11,6 +11,7 @@ interface SearchParams {
   page?: number;
   runtimeMin?: number;
   runtimeMax?: number;
+  withOriginCountry?: string;
 }
 
 export function useSearch(params: SearchParams) {
