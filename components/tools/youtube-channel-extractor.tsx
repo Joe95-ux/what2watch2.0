@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Check, Youtube, Search, Loader2, AlertCircle } from "lucide-react";
+import { Copy, Check, Youtube, Search, Loader2, AlertCircle, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { extractChannelIdFromUrl } from "@/lib/youtube-channels";
 
@@ -22,6 +22,7 @@ export function YouTubeChannelExtractor() {
   const [channels, setChannels] = useState<YouTubeChannel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
   const handleExtract = async () => {
@@ -126,6 +127,34 @@ export function YouTubeChannelExtractor() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const addChannelId = async (channelId: string) => {
+    try {
+      const response = await fetch("/api/youtube/channels/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ channelId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAddedIds((prev) => new Set(prev).add(channelId));
+        toast.success(`Channel ID added! ${data.message || ""}`);
+        // Optionally reload the page after a short delay to show the new channel
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.error || "Failed to add channel ID");
+      }
+    } catch (err) {
+      console.error("Error adding channel ID:", err);
+      toast.error("Failed to add channel ID. Please try again.");
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !isLoading) {
       handleExtract();
@@ -190,37 +219,72 @@ export function YouTubeChannelExtractor() {
                     key={channel.id}
                     className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent transition-colors"
                   >
-                    {channel.thumbnail ? (
-                      <img
-                        src={channel.thumbnail}
-                        alt={channel.title}
-                        className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                        <Youtube className="h-6 w-6 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{channel.title}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <code className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded">
-                          {channel.id}
-                        </code>
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyToClipboard(channel.id)}
-                      className="cursor-pointer flex-shrink-0"
+                    <a
+                      href={channel.channelUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 flex-1 min-w-0 group"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      {copiedId === channel.id ? (
-                        <Check className="h-4 w-4 text-green-600" />
+                      {channel.thumbnail ? (
+                        <img
+                          src={channel.thumbnail}
+                          alt={channel.title}
+                          className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                        />
                       ) : (
-                        <Copy className="h-4 w-4" />
+                        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                          <Youtube className="h-6 w-6 text-muted-foreground" />
+                        </div>
                       )}
-                    </Button>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate group-hover:text-primary transition-colors">
+                          {channel.title}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <code className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded">
+                            {channel.id}
+                          </code>
+                          {addedIds.has(channel.id) && (
+                            <span className="text-xs text-green-600 font-medium">Added</span>
+                          )}
+                        </div>
+                      </div>
+                    </a>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addChannelId(channel.id);
+                        }}
+                        disabled={addedIds.has(channel.id)}
+                        className="cursor-pointer"
+                        title="Add to channel list"
+                      >
+                        {addedIds.has(channel.id) ? (
+                          <Check className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <Plus className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          copyToClipboard(channel.id);
+                        }}
+                        className="cursor-pointer"
+                      >
+                        {copiedId === channel.id ? (
+                          <Check className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

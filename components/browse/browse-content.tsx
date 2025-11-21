@@ -48,13 +48,78 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
   const { user } = useUser();
   const displayName = user?.fullName || user?.firstName || "You";
   
-  // Quick filters state - first filter (light) active by default
-  const [moodFilter, setMoodFilter] = useState<MoodFilter>("light");
-  const [durationFilter, setDurationFilter] = useState<DurationFilter>("any");
-  const [yearFilter, setYearFilter] = useState<YearFilter>("any");
-  const [regionFilter, setRegionFilter] = useState<RegionFilter>("any");
+  // Load filters from localStorage on mount
+  const loadFiltersFromStorage = (): {
+    moodFilter: MoodFilter;
+    durationFilter: DurationFilter;
+    yearFilter: YearFilter;
+    regionFilter: RegionFilter;
+    nollywoodContentType: "movies" | "tv" | "youtube";
+  } => {
+    if (typeof window === "undefined") {
+      return {
+        moodFilter: "light",
+        durationFilter: "any",
+        yearFilter: "any",
+        regionFilter: "any",
+        nollywoodContentType: "movies",
+      };
+    }
+
+    try {
+      const saved = localStorage.getItem("browse-filters");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          moodFilter: parsed.moodFilter || "light",
+          durationFilter: parsed.durationFilter || "any",
+          yearFilter: parsed.yearFilter || "any",
+          regionFilter: parsed.regionFilter || "any",
+          nollywoodContentType: parsed.nollywoodContentType || "movies",
+        };
+      }
+    } catch (error) {
+      console.error("Error loading filters from localStorage:", error);
+    }
+
+    return {
+      moodFilter: "light",
+      durationFilter: "any",
+      yearFilter: "any",
+      regionFilter: "any",
+      nollywoodContentType: "movies",
+    };
+  };
+
+  const savedFilters = loadFiltersFromStorage();
+
+  // Quick filters state - load from localStorage or use defaults
+  const [moodFilter, setMoodFilter] = useState<MoodFilter>(savedFilters.moodFilter);
+  const [durationFilter, setDurationFilter] = useState<DurationFilter>(savedFilters.durationFilter);
+  const [yearFilter, setYearFilter] = useState<YearFilter>(savedFilters.yearFilter);
+  const [regionFilter, setRegionFilter] = useState<RegionFilter>(savedFilters.regionFilter);
   const [popularTab, setPopularTab] = useState<"movies" | "tv">("movies");
-  const [nollywoodContentType, setNollywoodContentType] = useState<"movies" | "tv" | "youtube">("movies");
+  const [nollywoodContentType, setNollywoodContentType] = useState<"movies" | "tv" | "youtube">(savedFilters.nollywoodContentType);
+
+  // Save filters to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      localStorage.setItem(
+        "browse-filters",
+        JSON.stringify({
+          moodFilter,
+          durationFilter,
+          yearFilter,
+          regionFilter,
+          nollywoodContentType,
+        })
+      );
+    } catch (error) {
+      console.error("Error saving filters to localStorage:", error);
+    }
+  }, [moodFilter, durationFilter, yearFilter, regionFilter, nollywoodContentType]);
   
   // Fetch data
   const { data: popularMovies = [], isLoading: isLoadingPopularMovies } = usePopularMovies(1);
@@ -79,6 +144,64 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
     };
     return moodGenreMap[mood] || [];
   };
+
+  // Build "View All" URL based on current filters
+  const viewAllUrl = useMemo(() => {
+    if (regionFilter === "nollywood") {
+      return "/nollywood";
+    }
+
+    // Build search URL with current filters
+    const params = new URLSearchParams();
+    
+    // Type
+    if (nollywoodContentType === "movies") {
+      params.set("type", "movie");
+    } else if (nollywoodContentType === "tv") {
+      params.set("type", "tv");
+    } else if (preferredTypes.length > 0) {
+      params.set("type", preferredTypes[0]);
+    }
+
+    // Genre (from mood filter)
+    if (moodFilter !== "any") {
+      const moodGenres = getMoodGenres(moodFilter);
+      if (moodGenres.length > 0) {
+        params.set("genre", moodGenres.join(","));
+      }
+      params.set("minRating", "6.5");
+    }
+
+    // Year
+    if (yearFilter !== "any") {
+      const currentYear = new Date().getFullYear();
+      if (yearFilter === "recent") {
+        params.set("year", String(currentYear - 2));
+      } else if (yearFilter === "2010s") {
+        params.set("year", "2015");
+      } else if (yearFilter === "2000s") {
+        params.set("year", "2005");
+      } else if (yearFilter === "classic") {
+        params.set("year", "1995");
+      }
+    }
+
+    // Duration
+    if (durationFilter !== "any") {
+      if (durationFilter === "quick") {
+        params.set("runtimeMax", "90");
+      } else if (durationFilter === "medium") {
+        params.set("runtimeMin", "90");
+        params.set("runtimeMax", "120");
+      } else if (durationFilter === "long") {
+        params.set("runtimeMin", "120");
+      }
+    }
+
+    params.set("sortBy", "popularity.desc");
+
+    return `/search?${params.toString()}`;
+  }, [moodFilter, durationFilter, yearFilter, regionFilter, nollywoodContentType, preferredTypes]);
 
   // Build search params for filtered content (first section)
   const searchParams = useMemo(() => {
@@ -209,6 +332,10 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
       <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-[64px] z-12">
         <div className="px-4 sm:px-6 lg:px-8">
           <QuickFilters
+            initialMood={moodFilter}
+            initialDuration={durationFilter}
+            initialYear={yearFilter}
+            initialRegion={regionFilter}
             onMoodChange={setMoodFilter}
             onDurationChange={setDurationFilter}
             onYearChange={setYearFilter}
@@ -241,6 +368,7 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
                 items={uniqueFilteredContent}
                 type={regionFilter === "nollywood" && nollywoodContentType === "movies" ? "movie" : regionFilter === "nollywood" && nollywoodContentType === "tv" ? "tv" : (preferredTypes.length > 0 ? preferredTypes[0] : "movie")}
                 isLoading={isLoadingFiltered}
+                viewAllHref={viewAllUrl}
                 titleAction={
                   regionFilter === "nollywood" ? (
                     <DropdownMenu>
@@ -373,6 +501,7 @@ function YouTubeChannelsGrid() {
     channelUrl: string;
   }>>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
 
   useEffect(() => {
     const fetchChannels = async () => {
@@ -450,38 +579,58 @@ function YouTubeChannelsGrid() {
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-      {channels.map((channel) => (
-        <a
-          key={channel.id}
-          href={channel.channelUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group aspect-square rounded-lg overflow-hidden bg-muted hover:scale-105 transition-transform cursor-pointer"
-        >
-          <div className="relative w-full h-full">
-            {channel.thumbnail ? (
-              <Image
-                src={channel.thumbnail}
-                alt={channel.title}
-                fill
-                className="object-cover"
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 20vw, 16vw"
-                unoptimized
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-muted">
-                <Youtube className="h-12 w-12 text-muted-foreground" />
-              </div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="absolute bottom-0 left-0 right-0 p-3">
-                <p className="text-white text-sm font-medium line-clamp-2">{channel.title}</p>
-              </div>
-            </div>
-          </div>
-        </a>
-      ))}
+    <div className="relative group/carousel">
+      <Carousel
+        opts={{
+          align: "start",
+          slidesToScroll: 4,
+          breakpoints: {
+            "(max-width: 640px)": { slidesToScroll: 2 },
+            "(max-width: 1024px)": { slidesToScroll: 3 },
+            "(max-width: 1280px)": { slidesToScroll: 4 },
+          },
+        }}
+        className="w-full"
+      >
+        <CarouselContent className="-ml-2 md:-ml-4 gap-4">
+          {channels.map((channel) => (
+            <CarouselItem key={channel.id} className="pl-2 md:pl-4 basis-[140px] sm:basis-[160px]">
+              <a
+                href={channel.channelUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group block text-center cursor-pointer"
+              >
+                <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden mb-3 group-hover:scale-105 transition-transform">
+                  {channel.thumbnail ? (
+                    <Image
+                      src={channel.thumbnail}
+                      alt={channel.title}
+                      fill
+                      className="object-cover"
+                      sizes="128px"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-muted flex items-center justify-center">
+                      <Youtube className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                <p className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">
+                  {channel.title}
+                </p>
+              </a>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        <CarouselPrevious 
+          className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+        />
+        <CarouselNext 
+          className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+        />
+      </Carousel>
     </div>
   );
 }

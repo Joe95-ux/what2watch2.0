@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Shuffle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,10 @@ export type YearFilter = "any" | "recent" | "2010s" | "2000s" | "classic";
 export type RegionFilter = "any" | "nollywood";
 
 interface QuickFiltersProps {
+  initialMood?: MoodFilter;
+  initialDuration?: DurationFilter;
+  initialYear?: YearFilter;
+  initialRegion?: RegionFilter;
   onMoodChange?: (mood: MoodFilter) => void;
   onDurationChange?: (duration: DurationFilter) => void;
   onYearChange?: (year: YearFilter) => void;
@@ -44,6 +48,10 @@ const yearOptions: { value: YearFilter; label: string }[] = [
 ];
 
 export default function QuickFilters({
+  initialMood = "light",
+  initialDuration = "any",
+  initialYear = "any",
+  initialRegion = "any",
   onMoodChange,
   onDurationChange,
   onYearChange,
@@ -51,10 +59,27 @@ export default function QuickFilters({
   onSurpriseMe,
   className,
 }: QuickFiltersProps) {
-  const [selectedMood, setSelectedMood] = useState<MoodFilter>("light");
-  const [selectedDuration, setSelectedDuration] = useState<DurationFilter>("any");
-  const [selectedYear, setSelectedYear] = useState<YearFilter>("any");
-  const [selectedRegion, setSelectedRegion] = useState<RegionFilter>("any");
+  const [selectedMood, setSelectedMood] = useState<MoodFilter>(initialMood);
+  const [selectedDuration, setSelectedDuration] = useState<DurationFilter>(initialDuration);
+  const [selectedYear, setSelectedYear] = useState<YearFilter>(initialYear);
+  const [selectedRegion, setSelectedRegion] = useState<RegionFilter>(initialRegion);
+
+  // Sync with parent state when initial values change
+  useEffect(() => {
+    setSelectedMood(initialMood);
+  }, [initialMood]);
+
+  useEffect(() => {
+    setSelectedDuration(initialDuration);
+  }, [initialDuration]);
+
+  useEffect(() => {
+    setSelectedYear(initialYear);
+  }, [initialYear]);
+
+  useEffect(() => {
+    setSelectedRegion(initialRegion);
+  }, [initialRegion]);
 
   const handleMoodChange = (mood: MoodFilter) => {
     setSelectedMood(mood);

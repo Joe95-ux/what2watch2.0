@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
+interface YouTubeApiError {
+  domain?: string;
+  reason?: string;
+  message?: string;
+}
+
 /**
  * Get YouTube video duration using YouTube Data API v3
  * Requires YOUTUBE_API_KEY environment variable
@@ -71,11 +77,6 @@ export async function GET(request: NextRequest) {
             console.error("  Code:", error.code);
             console.error("  Message:", error.message);
             if (error.errors && Array.isArray(error.errors)) {
-              interface YouTubeApiError {
-                domain?: string;
-                reason?: string;
-                message?: string;
-              }
               error.errors.forEach((err: YouTubeApiError, index: number) => {
                 console.error(`  Error ${index + 1}:`, err.domain, err.reason, err.message);
               });
@@ -87,7 +88,26 @@ export async function GET(request: NextRequest) {
               console.error("  1. API key is invalid or expired");
               console.error("  2. YouTube Data API v3 is not enabled in Google Cloud Console");
               console.error("  3. API key restrictions are blocking the request");
+              console.error("     - If you restricted by HTTP referrer, server-side requests won't work");
+              console.error("     - If you restricted by IP, ensure your server IP is allowed");
+              console.error("     - Consider using 'IP addresses' restriction instead of 'HTTP referrers' for server-side APIs");
               console.error("  4. Quota exceeded (check Google Cloud Console)");
+              
+              // Check if it's a restriction issue
+              if (error.errors && Array.isArray(error.errors)) {
+                const restrictionError = error.errors.find((err: YouTubeApiError) => 
+                  err.reason === "ipRefererBlocked" || 
+                  err.reason === "refererNotAllowed" ||
+                  err.reason === "accessNotConfigured"
+                );
+                if (restrictionError) {
+                  console.error("[YouTube Duration API] ⚠️  API KEY RESTRICTION DETECTED:");
+                  console.error("    This is a server-side API call. If you restricted your API key by:");
+                  console.error("    - HTTP referrers: This won't work for server-side requests");
+                  console.error("    - Application restrictions: Make sure 'None' or 'IP addresses' is selected");
+                  console.error("    Solution: Update API key restrictions in Google Cloud Console to allow server IPs");
+                }
+              }
             } else if (error.code === 400) {
               console.error("[YouTube Duration API] 400 Bad Request - Possible causes:");
               console.error("  1. Invalid videoId format");
@@ -98,13 +118,35 @@ export async function GET(request: NextRequest) {
           console.error("[YouTube Duration API] Could not parse error response as JSON");
         }
         
+        // Check if it's an API key restriction issue
+        let restrictionDetected = false;
+        try {
+          const errorJson = JSON.parse(errorText);
+          if (errorJson.error?.errors) {
+            const restrictionError = errorJson.error.errors.find((err: YouTubeApiError) => 
+              err.reason === "ipRefererBlocked" || 
+              err.reason === "refererNotAllowed" ||
+              err.reason === "accessNotConfigured"
+            );
+            if (restrictionError) {
+              restrictionDetected = true;
+            }
+          }
+        } catch {
+          // Ignore parse errors
+        }
+
         return NextResponse.json({ 
           duration: null,
           debug: {
             error: "YouTube API request failed",
             status: response.status,
             statusText: response.statusText,
-            message: errorText.substring(0, 500) // Limit error text length
+            message: errorText.substring(0, 500), // Limit error text length
+            restrictionIssue: restrictionDetected,
+            note: restrictionDetected 
+              ? "API key restrictions are blocking server-side requests. Use IP restrictions or create a separate key for server-side use."
+              : undefined
           }
         });
       }

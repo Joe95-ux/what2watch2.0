@@ -21,9 +21,10 @@ interface ContentRowProps {
   onClear?: () => void;
   isClearing?: boolean;
   titleAction?: React.ReactNode; // Optional action element next to title (e.g., dropdown)
+  viewAllHref?: string; // Optional href for "View All" button
 }
 
-export default function ContentRow({ title, items, type, isLoading, href, showClearButton, onClear, isClearing, titleAction }: ContentRowProps) {
+export default function ContentRow({ title, items, type, isLoading, href, showClearButton, onClear, isClearing, titleAction, viewAllHref }: ContentRowProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "start",
     slidesToScroll: 5,
@@ -138,18 +139,32 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
             </Link>
             {titleAction}
           </div>
-          {showClearButton && onClear && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClear}
-              disabled={isClearing}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              {isClearing ? "Clearing..." : "Clear"}
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {viewAllHref && (
+              <Link href={viewAllHref}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                >
+                  View All
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </Link>
+            )}
+            {showClearButton && onClear && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClear}
+                disabled={isClearing}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {isClearing ? "Clearing..." : "Clear"}
+              </Button>
+            )}
+          </div>
         </div>
       )}
       
