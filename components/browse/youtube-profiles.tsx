@@ -1,100 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Image from "next/image";
 import { ExternalLink, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-
-interface YouTubeChannel {
-  id: string;
-  title: string;
-  description: string;
-  thumbnail: string;
-  customUrl: string;
-  subscriberCount: string;
-  videoCount: string;
-  channelUrl: string;
-}
+import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
+import { YouTubeProfileSkeleton } from "./youtube-profile-skeleton";
+import { useRouter } from "next/navigation";
 
 interface YouTubeProfilesProps {
   className?: string;
 }
 
 export default function YouTubeProfiles({ className }: YouTubeProfilesProps) {
-  const [channels, setChannels] = useState<YouTubeChannel[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: channels = [], isLoading, error } = useYouTubeChannels();
+  const router = useRouter();
 
-  useEffect(() => {
-    const fetchChannels = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        // First, get channel IDs from database
-        const listResponse = await fetch("/api/youtube/channels/list");
-        if (!listResponse.ok) {
-          setIsLoading(false);
-          setChannels([]);
-          return;
-        }
-
-        const listData = await listResponse.json();
-        const channelIds = listData.channelIds || [];
-
-        // Don't fetch if no channel IDs are configured
-        if (!channelIds || channelIds.length === 0) {
-          setIsLoading(false);
-          setChannels([]);
-          return;
-        }
-
-        const response = await fetch(
-          `/api/youtube/channels?channelIds=${channelIds.join(",")}`
-        );
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || "Failed to fetch channels");
-        }
-
-        const data = await response.json();
-        setChannels(data.channels || []);
-      } catch (err) {
-        console.error("Error fetching YouTube channels:", err);
-        setError(err instanceof Error ? err.message : "Failed to load channels");
-        // Fallback to empty array if API fails
-        setChannels([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchChannels();
-  }, []);
-
-  const handleChannelClick = (channelUrl: string) => {
-    window.open(channelUrl, "_blank", "noopener,noreferrer");
+  const handleChannelClick = (channelId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    router.push(`/youtube-channel/${channelId}`);
   };
 
   if (isLoading) {
-    return (
-      <div className={cn("flex items-center gap-2 flex-shrink-0", className)}>
-        {[1, 2].map((i) => (
-          <div key={i} className="flex items-center gap-2 flex-shrink-0">
-            <Skeleton className="h-8 w-8 rounded-full" />
-            <Skeleton className="h-6 w-24" />
-          </div>
-        ))}
-      </div>
-    );
+    return <YouTubeProfileSkeleton variant="compact" count={2} className={className} />;
   }
 
   if (error || channels.length === 0) {
     // Don't render anything if there's an error or no channels
-    // You could also show a fallback UI here
     return null;
   }
 
@@ -109,7 +42,7 @@ export default function YouTubeProfiles({ className }: YouTubeProfilesProps) {
           key={channel.id}
           variant="outline"
           size="sm"
-          onClick={() => handleChannelClick(channel.channelUrl)}
+          onClick={(e) => handleChannelClick(channel.id, e)}
           className={cn(
             "h-8 px-2 gap-1.5 text-xs whitespace-nowrap cursor-pointer",
             "hover:bg-primary/10 hover:border-primary/50 transition-colors"

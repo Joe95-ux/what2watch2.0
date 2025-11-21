@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Copy, Check, Youtube, Search, Loader2, AlertCircle, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { extractChannelIdFromUrl } from "@/lib/youtube-channels";
+import { useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
 
 interface YouTubeChannel {
   id: string;
@@ -17,6 +19,7 @@ interface YouTubeChannel {
 }
 
 export function YouTubeChannelExtractor() {
+  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [channels, setChannels] = useState<YouTubeChannel[]>([]);
@@ -141,10 +144,9 @@ export function YouTubeChannelExtractor() {
         const data = await response.json();
         setAddedIds((prev) => new Set(prev).add(channelId));
         toast.success(`Channel ID added! ${data.message || ""}`);
-        // Optionally reload the page after a short delay to show the new channel
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
+        
+        // Invalidate and refetch YouTube channels query
+        await queryClient.invalidateQueries({ queryKey: ["youtube-channels"] });
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error("[YT CID Extractor] Add channel ID failed:", {
@@ -236,11 +238,16 @@ export function YouTubeChannelExtractor() {
                       onClick={(e) => e.stopPropagation()}
                     >
                       {channel.thumbnail ? (
-                        <img
-                          src={channel.thumbnail}
-                          alt={channel.title}
-                          className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                        />
+                        <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
+                          <Image
+                            src={channel.thumbnail}
+                            alt={channel.title}
+                            fill
+                            className="object-cover"
+                            sizes="48px"
+                            unoptimized
+                          />
+                        </div>
                       ) : (
                         <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                           <Youtube className="h-6 w-6 text-muted-foreground" />

@@ -48,6 +48,8 @@ model User {
   viewingLogComments ViewingLogComment[]
   commentReactions CommentReaction[]
   watchlistItems WatchlistItem[]
+  channelWatchlistItems ChannelWatchlistItem[]
+  favoriteChannels FavoriteChannel[]
   activities Activity[]
   followedActivities Activity[] @relation("UserFollowedActivities")
   lists List[]
@@ -152,6 +154,7 @@ model Playlist {
   likesCount    Int      @default(0) // Number of users who liked this playlist
   
   items         PlaylistItem[]
+  youtubeItems  YouTubePlaylistItem[]
   sharedPlaylists SharedPlaylist[]
   engagementEvents PlaylistEngagementEvent[]
   likedBy       LikedPlaylist[]
@@ -791,4 +794,71 @@ model YouTubeChannel {
   @@map("youtube_channels")
   @@index([isActive])
   @@index([order])
+}
+
+// Favorite Channels - User's favorite YouTube channels
+model FavoriteChannel {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // YouTube channel data
+  channelId     String   // YouTube channel ID (starts with UC)
+  title         String?  // Channel title (cached from API)
+  thumbnail     String?  // Channel thumbnail URL (cached)
+  channelUrl    String?  // Full YouTube channel URL (cached)
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, channelId])
+  @@map("favorite_channels")
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// Channel Watchlist - YouTube channels user wants to watch later
+model ChannelWatchlistItem {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // YouTube channel data
+  channelId     String   // YouTube channel ID (starts with UC)
+  title         String?  // Channel title (cached from API)
+  thumbnail     String?  // Channel thumbnail URL (cached)
+  channelUrl    String?  // Full YouTube channel URL (cached)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, channelId])
+  @@map("channel_watchlist_items")
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// YouTube Playlist Items - YouTube videos in user playlists
+model YouTubePlaylistItem {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  playlistId    String   @db.ObjectId
+  playlist      Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  
+  // YouTube video data
+  videoId       String   // YouTube video ID
+  title         String
+  thumbnail     String?  // Video thumbnail URL
+  description   String?  // Video description
+  duration      String?  // Video duration (ISO 8601 format)
+  publishedAt   String?  // Video publish date
+  channelId     String   // Channel ID that owns the video
+  channelTitle  String?  // Channel title (cached)
+  
+  // Order in playlist
+  order         Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+
+  @@map("youtube_playlist_items")
+  @@index([playlistId])
+  @@unique([playlistId, videoId])
 }

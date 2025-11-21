@@ -1,0 +1,180 @@
+"use client";
+
+import { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { usePlaylists } from "@/hooks/use-playlists";
+import { YouTubeVideo } from "@/hooks/use-youtube-channel";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Plus, Check } from "lucide-react";
+import { toast } from "sonner";
+import CreatePlaylistModal from "./create-playlist-modal";
+
+interface AddYouTubeVideoToPlaylistDropdownProps {
+  video: YouTubeVideo;
+  trigger?: React.ReactNode;
+  onOpenChange?: (open: boolean) => void;
+  onAddSuccess?: () => void;
+}
+
+export default function AddYouTubeVideoToPlaylistDropdown({
+  video,
+  trigger,
+  onOpenChange,
+  onAddSuccess,
+}: AddYouTubeVideoToPlaylistDropdownProps) {
+  const queryClient = useQueryClient();
+  const { data: playlists = [], isLoading } = usePlaylists();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isAdding, setIsAdding] = useState<string | null>(null);
+
+  const handleOpenChange = (open: boolean) => {
+    setIsDropdownOpen(open);
+    onOpenChange?.(open);
+  };
+
+  const handleAddToPlaylist = async (playlistId: string) => {
+    try {
+      setIsAdding(playlistId);
+      const response = await fetch(`/api/youtube/videos/${video.id}/playlist`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ playlistId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to add video to playlist");
+      }
+
+      await response.json();
+      toast.success(`Added to "${playlists.find((p) => p.id === playlistId)?.name}"`);
+      // Invalidate playlists query to refresh the UI
+      await queryClient.invalidateQueries({ queryKey: ["playlists"] });
+      onAddSuccess?.();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to add to playlist";
+      if (errorMessage.includes("already in playlist")) {
+        toast.error("Video is already in this playlist");
+      } else {
+        toast.error("Failed to add video to playlist");
+      }
+      console.error(error);
+    } finally {
+      setIsAdding(null);
+    }
+  };
+
+  // Check which playlists contain this video
+  const playlistsWithVideo = useMemo(() => {
+    const playlistIds = new Set<string>();
+    playlists.forEach((playlist) => {
+      if (playlist.youtubeItems?.some((item) => item.videoId === video.id)) {
+        playlistIds.add(playlist.id);
+      }
+    });
+    return playlistIds;
+  }, [playlists, video.id]);
+  const defaultTrigger = (
+    <Button variant="ghost" size="icon" className="h-8 w-8">
+      <Plus className="h-4 w-4" />
+    </Button>
+  );
+
+  return (
+    <>
+      <DropdownMenu open={isDropdownOpen} onOpenChange={handleOpenChange}>
+        <DropdownMenuTrigger asChild>
+          {trigger || defaultTrigger}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          className="w-56 z-[110]"
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          <DropdownMenuLabel>Add to Playlist</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {isLoading ? (
+            <DropdownMenuItem disabled>Loading playlists...</DropdownMenuItem>
+          ) : playlists.length === 0 ? (
+            <>
+              <DropdownMenuItem disabled>No playlists yet</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsDropdownOpen(false);
+                  setIsCreateModalOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Playlist
+              </DropdownMenuItem>
+            </>
+          ) : (
+            <>
+              {playlists.map((playlist) => {
+                const isInPlaylist = playlistsWithVideo.has(playlist.id);
+                const isAddingToThis = isAdding === playlist.id;
+                return (
+                  <DropdownMenuItem
+                    key={playlist.id}
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!isInPlaylist && !isAddingToThis) {
+                        await handleAddToPlaylist(playlist.id);
+                        setIsDropdownOpen(false);
+                      }
+                    }}
+                    disabled={isInPlaylist || isAddingToThis}
+                  >
+                    {isInPlaylist ? (
+                      <>
+                        <Check className="h-4 w-4 mr-2" />
+                        <span className="flex-1">{playlist.name}</span>
+                        <span className="text-xs text-muted-foreground">Added</span>
+                      </>
+                    ) : (
+                      <span>{playlist.name}</span>
+                    )}
+                  </DropdownMenuItem>
+                );
+              })}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsDropdownOpen(false);
+                  setIsCreateModalOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Playlist
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <CreatePlaylistModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
+    </>
+  );
+}
+

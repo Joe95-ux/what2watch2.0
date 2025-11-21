@@ -37,6 +37,9 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Button } from "../ui/button";
+import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
+import { YouTubeProfileSkeleton } from "./youtube-profile-skeleton";
+import FavoriteChannelsCarousel from "@/components/youtube/favorite-channels-carousel";
 
 interface BrowseContentProps {
   favoriteGenres: number[];
@@ -146,19 +149,16 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
 
   // Build "View All" URL based on current filters
   const viewAllUrl = useMemo(() => {
+    // Always navigate to /nollywood when Nollywood filter is active
     if (regionFilter === "nollywood") {
       return "/nollywood";
     }
 
-    // Build search URL with current filters
+    // Build search URL with current filters (only when NOT Nollywood)
     const params = new URLSearchParams();
     
     // Type
-    if (nollywoodContentType === "movies") {
-      params.set("type", "movie");
-    } else if (nollywoodContentType === "tv") {
-      params.set("type", "tv");
-    } else if (preferredTypes.length > 0) {
+    if (preferredTypes.length > 0) {
       params.set("type", preferredTypes[0]);
     }
 
@@ -200,7 +200,7 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
     params.set("sortBy", "popularity.desc");
 
     return `/search?${params.toString()}`;
-  }, [moodFilter, durationFilter, yearFilter, regionFilter, nollywoodContentType, preferredTypes]);
+  }, [moodFilter, durationFilter, yearFilter, regionFilter, preferredTypes]);
 
   // Build search params for filtered content (first section)
   const searchParams = useMemo(() => {
@@ -396,6 +396,9 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
           </>
         )}
 
+        {/* Favorite Channels Carousel */}
+        <FavoriteChannelsCarousel />
+
         {/* Made for [Username] Section */}
         {favoriteGenres && favoriteGenres.length > 0 && (
           <ContentRow
@@ -493,94 +496,10 @@ function NollywoodYouTubeSection({ onContentTypeChange }: { onContentTypeChange:
 
 // YouTube Channels Grid Component
 function YouTubeChannelsGrid() {
-  const [channels, setChannels] = useState<Array<{
-    id: string;
-    title: string;
-    thumbnail: string;
-    channelUrl: string;
-  }>>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  
-
-  useEffect(() => {
-    const fetchChannels = async () => {
-      try {
-        setIsLoading(true);
-        
-        // First, get channel IDs from database
-        const listResponse = await fetch("/api/youtube/channels/list");
-        if (listResponse.ok) {
-          const listData = await listResponse.json();
-          const channelIds = listData.channelIds || [];
-          
-          if (channelIds.length > 0) {
-            const channelIdsString = channelIds.join(",");
-            console.log("[YouTube Channels Grid] Fetching channels by ID:", channelIdsString);
-            const response = await fetch(`/api/youtube/channels?channelIds=${encodeURIComponent(channelIdsString)}`);
-            console.log("[YouTube Channels Grid] Response status:", response.status, response.statusText);
-            
-            if (response.ok) {
-              const data = await response.json();
-              console.log("[YouTube Channels Grid] Received channels:", data.channels?.length || 0);
-              setChannels(data.channels || []);
-            } else {
-              const errorData = await response.json().catch(() => ({}));
-              console.error("[YouTube Channels Grid] Error fetching YouTube channels by ID:", {
-                status: response.status,
-                statusText: response.statusText,
-                error: errorData
-              });
-              // Fall back to search on error
-              console.log("[YouTube Channels Grid] Falling back to search...");
-              const searchResponse = await fetch("/api/youtube/channels/search?q=Nollywood&maxResults=12");
-              if (searchResponse.ok) {
-                const searchData = await searchResponse.json();
-                setChannels(searchData.channels || []);
-              }
-            }
-          } else {
-            // Fall back to search if no channel IDs are configured
-            console.log("[YouTube Channels Grid] No channel IDs in database, using search...");
-            const response = await fetch("/api/youtube/channels/search?q=Nollywood&maxResults=12");
-            if (response.ok) {
-              const data = await response.json();
-              setChannels(data.channels || []);
-            } else {
-              const errorData = await response.json().catch(() => ({}));
-              console.error("[YouTube Channels Grid] Error fetching channels via search:", {
-                status: response.status,
-                statusText: response.statusText,
-                error: errorData
-              });
-            }
-          }
-        } else {
-          // Fall back to search if list API fails
-          console.log("[YouTube Channels Grid] Failed to get channel list, using search...");
-          const response = await fetch("/api/youtube/channels/search?q=Nollywood&maxResults=12");
-          if (response.ok) {
-            const data = await response.json();
-            setChannels(data.channels || []);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching YouTube channels:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchChannels();
-  }, []);
+  const { data: channels = [], isLoading } = useYouTubeChannels();
 
   if (isLoading) {
-    return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="aspect-square rounded-lg bg-muted animate-pulse" />
-        ))}
-      </div>
-    );
+    return <YouTubeProfileSkeleton variant="grid" count={6} />;
   }
 
   if (channels.length === 0) {
@@ -608,11 +527,9 @@ function YouTubeChannelsGrid() {
         <CarouselContent className="-ml-2 md:-ml-4 gap-4">
           {channels.map((channel) => (
             <CarouselItem key={channel.id} className="pl-2 md:pl-4 basis-[140px] sm:basis-[160px]">
-              <a
-                href={channel.channelUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group block text-center cursor-pointer"
+              <button
+                onClick={() => window.location.href = `/youtube-channel/${channel.id}`}
+                className="group block text-center cursor-pointer w-full"
               >
                 <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden mb-3 group-hover:scale-105 transition-transform">
                   {channel.thumbnail ? (
@@ -633,7 +550,7 @@ function YouTubeChannelsGrid() {
                 <p className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">
                   {channel.title}
                 </p>
-              </a>
+              </button>
             </CarouselItem>
           ))}
         </CarouselContent>

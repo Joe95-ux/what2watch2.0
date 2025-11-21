@@ -41,6 +41,9 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ playlist
         items: {
           orderBy: { order: "asc" },
         },
+        youtubeItems: {
+          orderBy: { order: "asc" },
+        },
         user: {
           select: {
             id: true,

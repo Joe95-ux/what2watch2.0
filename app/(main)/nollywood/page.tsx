@@ -14,17 +14,13 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import Image from "next/image";
+import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
+import { YouTubeProfileSkeleton } from "@/components/browse/youtube-profile-skeleton";
 
 const ITEMS_PER_PAGE = 20;
 
 export default function NollywoodPage() {
-  const [channels, setChannels] = useState<Array<{
-    id: string;
-    title: string;
-    thumbnail: string;
-    channelUrl: string;
-  }>>([]);
-  const [isLoadingChannels, setIsLoadingChannels] = useState(true);
+  const { data: channels = [], isLoading: isLoadingChannels } = useYouTubeChannels();
   
   const [movies, setMovies] = useState<TMDBMovie[]>([]);
   const [tvShows, setTVShows] = useState<TMDBSeries[]>([]);
@@ -33,37 +29,6 @@ export default function NollywoodPage() {
   
   const [moviesPage, setMoviesPage] = useState(1);
   const [tvPage, setTVPage] = useState(1);
-
-  // Fetch channels
-  useEffect(() => {
-    const fetchChannels = async () => {
-      try {
-        setIsLoadingChannels(true);
-        
-        // First, get channel IDs from database
-        const listResponse = await fetch("/api/youtube/channels/list");
-        if (listResponse.ok) {
-          const listData = await listResponse.json();
-          const channelIds = listData.channelIds || [];
-          
-          if (channelIds.length > 0) {
-            const channelIdsString = channelIds.join(",");
-            const response = await fetch(`/api/youtube/channels?channelIds=${encodeURIComponent(channelIdsString)}`);
-            if (response.ok) {
-              const data = await response.json();
-              setChannels(data.channels || []);
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching YouTube channels:", error);
-      } finally {
-        setIsLoadingChannels(false);
-      }
-    };
-
-    fetchChannels();
-  }, []);
 
   // Fetch all movies
   useEffect(() => {
@@ -246,11 +211,7 @@ export default function NollywoodPage() {
         <section className="mb-12">
           <h2 className="text-2xl font-semibold mb-6">YouTube Channels</h2>
           {isLoadingChannels ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="aspect-square rounded-lg bg-muted animate-pulse" />
-              ))}
-            </div>
+            <YouTubeProfileSkeleton variant="grid" count={6} />
           ) : channels.length > 0 ? (
             <div className="relative group/carousel">
               <Carousel
@@ -268,11 +229,9 @@ export default function NollywoodPage() {
                 <CarouselContent className="-ml-2 md:-ml-4 gap-4">
                   {channels.map((channel) => (
                     <CarouselItem key={channel.id} className="pl-2 md:pl-4 basis-[140px] sm:basis-[160px]">
-                      <a
-                        href={channel.channelUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group block text-center cursor-pointer"
+                      <button
+                        onClick={() => window.location.href = `/youtube-channel/${channel.id}`}
+                        className="group block text-center cursor-pointer w-full"
                       >
                         <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden mb-3 group-hover:scale-105 transition-transform">
                           {channel.thumbnail ? (
@@ -293,7 +252,7 @@ export default function NollywoodPage() {
                         <p className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">
                           {channel.title}
                         </p>
-                      </a>
+                      </button>
                     </CarouselItem>
                   ))}
                 </CarouselContent>

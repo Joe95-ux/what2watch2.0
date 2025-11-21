@@ -1,5 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+export interface YouTubePlaylistItem {
+  id: string;
+  videoId: string;
+  title: string;
+  thumbnail?: string | null;
+  description?: string | null;
+  duration?: string | null;
+  publishedAt?: string | null;
+  channelId: string;
+  channelTitle?: string | null;
+  order: number;
+  createdAt: string;
+}
+
 export interface Playlist {
   id: string;
   userId: string;
@@ -12,6 +26,7 @@ export interface Playlist {
   createdAt: string;
   updatedAt: string;
   items?: PlaylistItem[];
+  youtubeItems?: YouTubePlaylistItem[];
   user?: {
     id: string;
     username: string | null;

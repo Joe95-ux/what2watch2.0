@@ -36,6 +36,9 @@ export async function GET(
           items: {
             orderBy: { order: "asc" },
           },
+          youtubeItems: {
+            orderBy: { order: "asc" },
+          },
           user: {
             select: {
               id: true,
