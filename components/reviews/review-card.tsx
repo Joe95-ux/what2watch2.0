@@ -384,7 +384,10 @@ export default function ReviewCard({
             hasUserReacted("helpful") && "text-primary"
           )}
         >
-          <ThumbsUp className="h-4 w-4 mr-1" />
+          <ThumbsUp 
+            className="h-4 w-4 mr-1"
+            fill={hasUserReacted("helpful") ? "currentColor" : "none"}
+          />
           Helpful ({helpfulCount})
         </Button>
         <Button
@@ -397,7 +400,10 @@ export default function ReviewCard({
             hasUserReacted("dislike") && "text-primary"
           )}
         >
-          <ThumbsDown className="h-4 w-4 mr-1" />
+          <ThumbsDown 
+            className="h-4 w-4 mr-1"
+            fill={hasUserReacted("dislike") ? "currentColor" : "none"}
+          />
           {dislikeCount}
         </Button>
       </div>
