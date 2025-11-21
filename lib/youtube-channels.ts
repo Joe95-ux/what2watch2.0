@@ -35,6 +35,13 @@ export const NOLLYWOOD_CHANNEL_IDS = [
   // 2. Or manually extract from YouTube channel pages
   //
   // For now, leave empty and the component will gracefully handle it
+  "UCHtfUf-9779RPujVXixJ7Tw", "UCneM4DHHUWMVwmYktz8X46g","UCHY9J0IWIWht6GqIBiLidBA","UCVgfrcFUczRB2TfaD5rYhHQ","UCx67PyaVTdkNTt2n6p-WIbw",
+  "UCgvYAzU9Xp5N2jEITv0ZRPQ",
+  "UCnZ28GESUBXyZSIvzcs1RXA",
+  "UC4dptB_sE0skfVAWm1_HE_A",
+  "UCI3ICwjVjEfBwApSyArpG0Q",
+  "UC2BeWZ6kQoNMinwMzlzVTiQ",
+  "UCG6orNVuXIICv9_ifH6msIA",
 ];
 
 /**
