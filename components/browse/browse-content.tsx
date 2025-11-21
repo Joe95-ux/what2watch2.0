@@ -36,6 +36,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { Button } from "../ui/button";
 
 interface BrowseContentProps {
   favoriteGenres: number[];
