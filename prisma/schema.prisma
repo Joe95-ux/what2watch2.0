@@ -774,3 +774,21 @@ model ListEngagementEvent {
   @@index([ownerId, type])
   @@index([visitorToken])
 }
+
+// YouTube Channels - Nollywood YouTube channel IDs
+model YouTubeChannel {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  channelId     String   @unique // YouTube channel ID (starts with UC)
+  title         String?  // Channel title (optional, can be fetched from API)
+  thumbnail     String?  // Channel thumbnail URL (optional)
+  channelUrl    String?  // Full YouTube channel URL (optional)
+  isActive      Boolean  @default(true) // Whether channel is active/visible
+  order         Int      @default(0) // Display order
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("youtube_channels")
+  @@index([isActive])
+  @@index([order])
+}

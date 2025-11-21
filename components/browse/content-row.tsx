@@ -141,11 +141,11 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
           </div>
           <div className="flex items-center gap-2">
             {viewAllHref && (
-              <Link href={viewAllHref}>
+              <Link href={viewAllHref} className="cursor-pointer">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-xs"
+                  className="text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
                 >
                   View All
                   <ChevronRight className="h-4 w-4 ml-1" />

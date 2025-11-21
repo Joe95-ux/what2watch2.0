@@ -6,7 +6,6 @@ import { ExternalLink, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { NOLLYWOOD_CHANNEL_IDS } from "@/lib/youtube-channels";
 
 interface YouTubeChannel {
   id: string;
@@ -30,19 +29,30 @@ export default function YouTubeProfiles({ className }: YouTubeProfilesProps) {
 
   useEffect(() => {
     const fetchChannels = async () => {
-      // Don't fetch if no channel IDs are configured
-      if (!NOLLYWOOD_CHANNEL_IDS || NOLLYWOOD_CHANNEL_IDS.length === 0) {
-        setIsLoading(false);
-        setChannels([]);
-        return;
-      }
-
       try {
         setIsLoading(true);
         setError(null);
 
+        // First, get channel IDs from database
+        const listResponse = await fetch("/api/youtube/channels/list");
+        if (!listResponse.ok) {
+          setIsLoading(false);
+          setChannels([]);
+          return;
+        }
+
+        const listData = await listResponse.json();
+        const channelIds = listData.channelIds || [];
+
+        // Don't fetch if no channel IDs are configured
+        if (!channelIds || channelIds.length === 0) {
+          setIsLoading(false);
+          setChannels([]);
+          return;
+        }
+
         const response = await fetch(
-          `/api/youtube/channels?channelIds=${NOLLYWOOD_CHANNEL_IDS.join(",")}`
+          `/api/youtube/channels?channelIds=${channelIds.join(",")}`
         );
 
         if (!response.ok) {

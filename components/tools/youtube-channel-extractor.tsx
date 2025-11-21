@@ -147,11 +147,20 @@ export function YouTubeChannelExtractor() {
         }, 2000);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        toast.error(errorData.error || "Failed to add channel ID");
+        console.error("[YT CID Extractor] Add channel ID failed:", {
+          status: response.status,
+          error: errorData
+        });
+        const errorMessage = errorData.error || errorData.message || "Failed to add channel ID";
+        toast.error(errorMessage, {
+          description: errorData.note || errorData.details,
+          duration: 5000,
+        });
       }
     } catch (err) {
-      console.error("Error adding channel ID:", err);
-      toast.error("Failed to add channel ID. Please try again.");
+      console.error("[YT CID Extractor] Error adding channel ID:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to add channel ID. Please try again.";
+      toast.error(errorMessage);
     }
   };
 

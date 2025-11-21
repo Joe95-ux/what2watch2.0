@@ -14,7 +14,6 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import Image from "next/image";
-import { NOLLYWOOD_CHANNEL_IDS } from "@/lib/youtube-channels";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -41,12 +40,19 @@ export default function NollywoodPage() {
       try {
         setIsLoadingChannels(true);
         
-        if (NOLLYWOOD_CHANNEL_IDS.length > 0) {
-          const channelIds = NOLLYWOOD_CHANNEL_IDS.join(",");
-          const response = await fetch(`/api/youtube/channels?channelIds=${encodeURIComponent(channelIds)}`);
-          if (response.ok) {
-            const data = await response.json();
-            setChannels(data.channels || []);
+        // First, get channel IDs from database
+        const listResponse = await fetch("/api/youtube/channels/list");
+        if (listResponse.ok) {
+          const listData = await listResponse.json();
+          const channelIds = listData.channelIds || [];
+          
+          if (channelIds.length > 0) {
+            const channelIdsString = channelIds.join(",");
+            const response = await fetch(`/api/youtube/channels?channelIds=${encodeURIComponent(channelIdsString)}`);
+            if (response.ok) {
+              const data = await response.json();
+              setChannels(data.channels || []);
+            }
           }
         }
       } catch (error) {
