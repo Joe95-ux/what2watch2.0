@@ -1,5 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 
+interface YouTubeChannelItem {
+  id: string;
+  snippet: {
+    title: string;
+    description: string;
+    thumbnails: {
+      high?: { url: string };
+      default?: { url: string };
+    };
+    customUrl?: string;
+  };
+  statistics?: {
+    subscriberCount?: string;
+    videoCount?: string;
+  };
+}
+
+interface YouTubeChannelsResponse {
+  items: YouTubeChannelItem[];
+}
+
 /**
  * Get YouTube channel information using YouTube Data API v3
  * Returns channel details including thumbnail, title, and custom URL
@@ -43,10 +64,10 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const data = await response.json();
+      const data: YouTubeChannelsResponse = await response.json();
 
       if (data.items && data.items.length > 0) {
-        const channels = data.items.map((item: any) => ({
+        const channels = data.items.map((item) => ({
           id: item.id,
           title: item.snippet.title,
           description: item.snippet.description,

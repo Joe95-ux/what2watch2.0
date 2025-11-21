@@ -1,5 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 
+interface YouTubeSearchItem {
+  id: {
+    channelId: string;
+  };
+  snippet: {
+    title: string;
+    description: string;
+    thumbnails: {
+      high?: { url: string };
+      default?: { url: string };
+    };
+    customUrl?: string;
+  };
+}
+
+interface YouTubeSearchResponse {
+  items: YouTubeSearchItem[];
+}
+
+interface YouTubeChannelItem {
+  id: string;
+  snippet: {
+    title: string;
+    description: string;
+    thumbnails: {
+      high?: { url: string };
+      default?: { url: string };
+    };
+    customUrl?: string;
+  };
+  statistics?: {
+    subscriberCount?: string;
+    videoCount?: string;
+  };
+}
+
+interface YouTubeChannelsResponse {
+  items: YouTubeChannelItem[];
+}
+
 /**
  * Search for YouTube channels by keyword using YouTube Data API v3
  * Useful for finding Nollywood channels by name
@@ -43,14 +83,14 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const searchData = await searchResponse.json();
+      const searchData: YouTubeSearchResponse = await searchResponse.json();
 
       if (!searchData.items || searchData.items.length === 0) {
         return NextResponse.json({ channels: [] });
       }
 
       // Extract channel IDs from search results
-      const channelIds = searchData.items.map((item: any) => item.id.channelId).join(",");
+      const channelIds = searchData.items.map((item) => item.id.channelId).join(",");
 
       // Get detailed channel information
       const channelsResponse = await fetch(
@@ -68,10 +108,10 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const channelsData = await channelsResponse.json();
+      const channelsData: YouTubeChannelsResponse = await channelsResponse.json();
 
       if (channelsData.items && channelsData.items.length > 0) {
-        const channels = channelsData.items.map((item: any) => ({
+        const channels = channelsData.items.map((item) => ({
           id: item.id,
           title: item.snippet.title,
           description: item.snippet.description,
