@@ -434,6 +434,8 @@ export async function discoverMovies(filters: {
   keywords?: number | number[];
   runtimeMin?: number;
   runtimeMax?: number;
+  region?: string;
+  withOriginCountry?: string;
 }): Promise<TMDBResponse<TMDBMovie>> {
   const params: Record<string, string | number> = {
     page: filters.page || 1,
@@ -470,6 +472,8 @@ export async function discoverMovies(filters: {
   if (filters.runtimeMax !== undefined) {
     params['with_runtime.lte'] = filters.runtimeMax;
   }
+  if (filters.region) params.region = filters.region;
+  if (filters.withOriginCountry) params.with_origin_country = filters.withOriginCountry;
   
   return fetchTMDB<TMDBResponse<TMDBMovie>>('/discover/movie', params);
 }
@@ -489,6 +493,8 @@ export async function discoverTV(filters: {
   keywords?: number | number[];
   runtimeMin?: number;
   runtimeMax?: number;
+  region?: string;
+  withOriginCountry?: string;
 }): Promise<TMDBResponse<TMDBSeries>> {
   const params: Record<string, string | number> = {
     page: filters.page || 1,
@@ -526,6 +532,8 @@ export async function discoverTV(filters: {
   if (filters.runtimeMax !== undefined) {
     params['with_runtime.lte'] = filters.runtimeMax;
   }
+  if (filters.region) params.region = filters.region;
+  if (filters.withOriginCountry) params.with_origin_country = filters.withOriginCountry;
   
   return fetchTMDB<TMDBResponse<TMDBSeries>>('/discover/tv', params);
 }

@@ -37,11 +37,17 @@ export async function GET(request: NextRequest) {
       );
 
       if (!response.ok) {
-        console.error("YouTube API error:", response.status, response.statusText);
+        const errorText = await response.text();
+        console.error("YouTube API error:", response.status, response.statusText, errorText);
         return NextResponse.json({ duration: null });
       }
 
       const data = await response.json();
+      
+      if (!data || !data.items) {
+        console.warn("YouTube API returned unexpected response structure:", data);
+        return NextResponse.json({ duration: null });
+      }
 
       if (data.items && data.items.length > 0) {
         const duration = data.items[0].contentDetails.duration; // ISO 8601 format (e.g., "PT2M15S")

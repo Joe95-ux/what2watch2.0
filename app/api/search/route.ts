@@ -47,10 +47,11 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
     const runtimeMaxParam = searchParams.get("runtimeMax");
     const runtimeMin = runtimeMinParam ? parseInt(runtimeMinParam, 10) : undefined;
     const runtimeMax = runtimeMaxParam ? parseInt(runtimeMaxParam, 10) : undefined;
+    const withOriginCountry = searchParams.get("withOriginCountry") || undefined;
 
     // Allow requests with filters even without query
     const hasQuery = query && query.trim().length > 0;
-    const hasFilters = !!(genre || year || yearFrom || yearTo || minRating || runtimeMin !== undefined || runtimeMax !== undefined);
+    const hasFilters = !!(genre || year || yearFrom || yearTo || minRating || runtimeMin !== undefined || runtimeMax !== undefined || withOriginCountry);
     
     if (!hasQuery && !hasFilters) {
       return NextResponse.json(
@@ -75,7 +76,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
 
     try {
       // If filters are provided, use discover instead of search
-      if (genre || year || yearFrom || yearTo || minRating || runtimeMin !== undefined || runtimeMax !== undefined) {
+      if (genre || year || yearFrom || yearTo || minRating || runtimeMin !== undefined || runtimeMax !== undefined || withOriginCountry) {
         // For multiple genres, use OR logic (search each genre separately and combine)
         // TMDB's with_genres uses AND logic, which is too restrictive
         if (genre && genre.length > 1) {
@@ -88,6 +89,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
             ...(minRating && { minRating: parseFloat(minRating) }),
             ...(runtimeMin !== undefined && { runtimeMin }),
             ...(runtimeMax !== undefined && { runtimeMax }),
+            ...(withOriginCountry && { withOriginCountry }),
             sortBy,
           };
 
@@ -170,6 +172,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
             ...(minRating && { minRating: parseFloat(minRating) }),
             ...(runtimeMin !== undefined && { runtimeMin }),
             ...(runtimeMax !== undefined && { runtimeMax }),
+            ...(withOriginCountry && { withOriginCountry }),
             sortBy,
           };
 

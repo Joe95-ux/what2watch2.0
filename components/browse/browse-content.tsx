@@ -9,15 +9,23 @@ import { usePublicLists } from "@/components/lists/public-lists-content";
 import { usePublicPlaylists } from "@/hooks/use-playlists";
 import ContentRow from "./content-row";
 import RecentlyViewed from "./recently-viewed";
-import QuickFilters, { MoodFilter, DurationFilter, YearFilter } from "./quick-filters";
+import QuickFilters, { MoodFilter, DurationFilter, YearFilter, RegionFilter } from "./quick-filters";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useSearch } from "@/hooks/use-search";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 import ListCard from "./list-card";
 import PlaylistCard from "./playlist-card";
-import { ChevronRight as CaretRight } from "lucide-react";
+import { ChevronRight as CaretRight, Youtube } from "lucide-react";
+import Image from "next/image";
 import { List } from "@/hooks/use-lists";
 import { Playlist } from "@/hooks/use-playlists";
 import Link from "next/link";
@@ -42,7 +50,9 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
   const [moodFilter, setMoodFilter] = useState<MoodFilter>("light");
   const [durationFilter, setDurationFilter] = useState<DurationFilter>("any");
   const [yearFilter, setYearFilter] = useState<YearFilter>("any");
+  const [regionFilter, setRegionFilter] = useState<RegionFilter>("any");
   const [popularTab, setPopularTab] = useState<"movies" | "tv">("movies");
+  const [nollywoodContentType, setNollywoodContentType] = useState<"movies" | "tv" | "youtube">("movies");
   
   // Fetch data
   const { data: popularMovies = [], isLoading: isLoadingPopularMovies } = usePopularMovies(1);
@@ -78,6 +88,7 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
       genre?: number[];
       runtimeMin?: number;
       runtimeMax?: number;
+      withOriginCountry?: string;
     } = {
       type: preferredTypes.length > 0 ? (preferredTypes[0] as "movie" | "tv") : "movie",
       sortBy: "popularity.desc",
@@ -118,8 +129,19 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
       }
     }
 
+    // Region filter - Nollywood (Nigerian cinema)
+    if (regionFilter === "nollywood") {
+      params.withOriginCountry = "NG"; // Nigeria country code
+      // Set type based on nollywoodContentType when Nollywood filter is active
+      if (nollywoodContentType === "movies") {
+        params.type = "movie";
+      } else if (nollywoodContentType === "tv") {
+        params.type = "tv";
+      }
+    }
+
     return params;
-  }, [moodFilter, yearFilter, durationFilter, preferredTypes]);
+  }, [moodFilter, yearFilter, durationFilter, regionFilter, nollywoodContentType, preferredTypes]);
 
   // Fetch filtered content for first section - always enabled to show Discover section
   // Since moodFilter defaults to "light", we'll always have genre and minRating
@@ -188,14 +210,17 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
             onMoodChange={setMoodFilter}
             onDurationChange={setDurationFilter}
             onYearChange={setYearFilter}
+            onRegionChange={setRegionFilter}
             onSurpriseMe={() => {
               // Random filter selection
               const moods: MoodFilter[] = ["light", "dark", "funny", "romantic", "thrilling"];
               const durations: DurationFilter[] = ["quick", "medium", "long"];
               const years: YearFilter[] = ["recent", "2010s", "2000s", "classic"];
+              const regions: RegionFilter[] = ["any", "nollywood"];
               setMoodFilter(moods[Math.floor(Math.random() * moods.length)]);
               setDurationFilter(durations[Math.floor(Math.random() * durations.length)]);
               setYearFilter(years[Math.floor(Math.random() * years.length)]);
+              setRegionFilter(regions[Math.floor(Math.random() * regions.length)]);
             }}
           />
         </div>
@@ -204,13 +229,42 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
       {/* Content Sections */}
       <div className="w-full py-8">
         {/* First Section - Affected by Quick Filters - Always visible */}
-        {(uniqueFilteredContent.length > 0 || isLoadingFiltered) && (
-          <ContentRow
-            title="Discover"
-            items={uniqueFilteredContent}
-            type={preferredTypes.length > 0 ? preferredTypes[0] : "movie"}
-            isLoading={isLoadingFiltered}
-          />
+        {(uniqueFilteredContent.length > 0 || isLoadingFiltered || (regionFilter === "nollywood" && nollywoodContentType === "youtube")) && (
+          <>
+            {regionFilter === "nollywood" && nollywoodContentType === "youtube" ? (
+              <NollywoodYouTubeSection onContentTypeChange={setNollywoodContentType} />
+            ) : (
+              <ContentRow
+                title="Discover"
+                items={uniqueFilteredContent}
+                type={regionFilter === "nollywood" && nollywoodContentType === "movies" ? "movie" : regionFilter === "nollywood" && nollywoodContentType === "tv" ? "tv" : (preferredTypes.length > 0 ? preferredTypes[0] : "movie")}
+                isLoading={isLoadingFiltered}
+                titleAction={
+                  regionFilter === "nollywood" ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-2">
+                          {nollywoodContentType === "movies" ? "Movies" : nollywoodContentType === "tv" ? "TV" : "YouTube"}
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        <DropdownMenuItem onClick={() => setNollywoodContentType("movies")} className="cursor-pointer">
+                          Movies
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setNollywoodContentType("tv")} className="cursor-pointer">
+                          TV
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setNollywoodContentType("youtube")} className="cursor-pointer">
+                          YouTube
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : undefined
+                }
+              />
+            )}
+          </>
         )}
 
         {/* Made for [Username] Section */}
@@ -273,6 +327,122 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
         {/* Recently Viewed Section */}
         <RecentlyViewed />
       </div>
+    </div>
+  );
+}
+
+// Nollywood YouTube Section Component
+function NollywoodYouTubeSection({ onContentTypeChange }: { onContentTypeChange: (type: "movies" | "tv" | "youtube") => void }) {
+  return (
+    <div className="mb-12 px-4 sm:px-6 lg:px-8">
+      <div className="mb-6 flex items-center gap-3">
+        <h2 className="text-2xl font-medium text-foreground">Discover</h2>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              YouTube
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuItem onClick={() => onContentTypeChange("movies")} className="cursor-pointer">
+              Movies
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onContentTypeChange("tv")} className="cursor-pointer">
+              TV
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onContentTypeChange("youtube")} className="cursor-pointer">
+              YouTube
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <YouTubeChannelsGrid />
+    </div>
+  );
+}
+
+// YouTube Channels Grid Component
+function YouTubeChannelsGrid() {
+  const [channels, setChannels] = useState<Array<{
+    id: string;
+    title: string;
+    thumbnail: string;
+    channelUrl: string;
+  }>>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchChannels = async () => {
+      try {
+        setIsLoading(true);
+        // Use the search endpoint to find Nollywood channels
+        const response = await fetch("/api/youtube/channels/search?q=Nollywood&maxResults=12");
+        if (response.ok) {
+          const data = await response.json();
+          setChannels(data.channels || []);
+        }
+      } catch (error) {
+        console.error("Error fetching YouTube channels:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchChannels();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="aspect-square rounded-lg bg-muted animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (channels.length === 0) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        No YouTube channels found. Add channel IDs to see Nollywood channels.
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+      {channels.map((channel) => (
+        <a
+          key={channel.id}
+          href={channel.channelUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group aspect-square rounded-lg overflow-hidden bg-muted hover:scale-105 transition-transform cursor-pointer"
+        >
+          <div className="relative w-full h-full">
+            {channel.thumbnail ? (
+              <Image
+                src={channel.thumbnail}
+                alt={channel.title}
+                fill
+                className="object-cover"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 20vw, 16vw"
+                unoptimized
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-muted">
+                <Youtube className="h-12 w-12 text-muted-foreground" />
+              </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute bottom-0 left-0 right-0 p-3">
+                <p className="text-white text-sm font-medium line-clamp-2">{channel.title}</p>
+              </div>
+            </div>
+          </div>
+        </a>
+      ))}
     </div>
   );
 }

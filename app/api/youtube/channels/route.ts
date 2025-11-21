@@ -46,7 +46,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const channelIdArray = channelIds.split(",").map(id => id.trim());
+    const channelIdArray = channelIds.split(",").map(id => id.trim()).filter(id => id.length > 0);
+
+    if (channelIdArray.length === 0) {
+      return NextResponse.json(
+        { error: "No valid channel IDs provided" },
+        { status: 400 }
+      );
+    }
 
     try {
       const response = await fetch(

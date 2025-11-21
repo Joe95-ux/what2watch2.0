@@ -30,26 +30,32 @@ export default function YouTubeProfiles({ className }: YouTubeProfilesProps) {
 
   useEffect(() => {
     const fetchChannels = async () => {
+      // Don't fetch if no channel IDs are configured
+      if (!NOLLYWOOD_CHANNEL_IDS || NOLLYWOOD_CHANNEL_IDS.length === 0) {
+        setIsLoading(false);
+        setChannels([]);
+        return;
+      }
+
       try {
         setIsLoading(true);
         setError(null);
 
-        // For now, we'll use a hardcoded list of known Nollywood channels
-        // In production, you'd fetch these from your API
         const response = await fetch(
           `/api/youtube/channels?channelIds=${NOLLYWOOD_CHANNEL_IDS.join(",")}`
         );
 
         if (!response.ok) {
-          throw new Error("Failed to fetch channels");
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "Failed to fetch channels");
         }
 
         const data = await response.json();
         setChannels(data.channels || []);
       } catch (err) {
         console.error("Error fetching YouTube channels:", err);
-        setError("Failed to load channels");
-        // Fallback to hardcoded channels if API fails
+        setError(err instanceof Error ? err.message : "Failed to load channels");
+        // Fallback to empty array if API fails
         setChannels([]);
       } finally {
         setIsLoading(false);

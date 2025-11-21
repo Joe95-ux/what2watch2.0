@@ -4,16 +4,17 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Shuffle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import YouTubeProfiles from "./youtube-profiles";
 
 export type MoodFilter = "any" | "light" | "dark" | "funny" | "romantic" | "thrilling";
 export type DurationFilter = "any" | "quick" | "medium" | "long";
 export type YearFilter = "any" | "recent" | "2010s" | "2000s" | "classic";
+export type RegionFilter = "any" | "nollywood";
 
 interface QuickFiltersProps {
   onMoodChange?: (mood: MoodFilter) => void;
   onDurationChange?: (duration: DurationFilter) => void;
   onYearChange?: (year: YearFilter) => void;
+  onRegionChange?: (region: RegionFilter) => void;
   onSurpriseMe?: () => void;
   className?: string;
 }
@@ -46,12 +47,14 @@ export default function QuickFilters({
   onMoodChange,
   onDurationChange,
   onYearChange,
+  onRegionChange,
   onSurpriseMe,
   className,
 }: QuickFiltersProps) {
   const [selectedMood, setSelectedMood] = useState<MoodFilter>("light");
   const [selectedDuration, setSelectedDuration] = useState<DurationFilter>("any");
   const [selectedYear, setSelectedYear] = useState<YearFilter>("any");
+  const [selectedRegion, setSelectedRegion] = useState<RegionFilter>("any");
 
   const handleMoodChange = (mood: MoodFilter) => {
     setSelectedMood(mood);
@@ -66,6 +69,11 @@ export default function QuickFilters({
   const handleYearChange = (year: YearFilter) => {
     setSelectedYear(year);
     onYearChange?.(year);
+  };
+
+  const handleRegionChange = (region: RegionFilter) => {
+    setSelectedRegion(region);
+    onRegionChange?.(region);
   };
 
   return (
@@ -125,8 +133,20 @@ export default function QuickFilters({
           ))}
         </div>
 
-        {/* YouTube Profiles */}
-        <YouTubeProfiles className="ml-2" />
+        {/* Region Filter - Nollywood */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <Button
+            variant={selectedRegion === "nollywood" ? "default" : "outline"}
+            size="sm"
+            onClick={() => handleRegionChange(selectedRegion === "nollywood" ? "any" : "nollywood")}
+            className={cn(
+              "text-xs whitespace-nowrap cursor-pointer",
+              selectedRegion === "nollywood" && "bg-primary text-primary-foreground"
+            )}
+          >
+            Nollywood
+          </Button>
+        </div>
 
         {/* Surprise Me Button */}
         {onSurpriseMe && (

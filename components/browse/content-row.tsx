@@ -20,9 +20,10 @@ interface ContentRowProps {
   showClearButton?: boolean;
   onClear?: () => void;
   isClearing?: boolean;
+  titleAction?: React.ReactNode; // Optional action element next to title (e.g., dropdown)
 }
 
-export default function ContentRow({ title, items, type, isLoading, href, showClearButton, onClear, isClearing }: ContentRowProps) {
+export default function ContentRow({ title, items, type, isLoading, href, showClearButton, onClear, isClearing, titleAction }: ContentRowProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "start",
     slidesToScroll: 5,
@@ -123,17 +124,20 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
       {/* Title with padding - Only render if title is not empty */}
       {title && (
         <div className="px-4 sm:px-6 lg:px-8 mb-6 flex items-center justify-between">
-          <Link 
-            href={titleHref}
-            className="group/title inline-flex items-center gap-2 transition-all duration-300"
-          >
-            <h2 className="text-2xl font-medium text-foreground group-hover/title:text-primary transition-colors">
-              {title}
-            </h2>
-            <ChevronRight 
-              className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover/title:opacity-100 group-hover/title:translate-x-0 transition-all duration-300" 
-            />
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link 
+              href={titleHref}
+              className="group/title inline-flex items-center gap-2 transition-all duration-300"
+            >
+              <h2 className="text-2xl font-medium text-foreground group-hover/title:text-primary transition-colors">
+                {title}
+              </h2>
+              <ChevronRight 
+                className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover/title:opacity-100 group-hover/title:translate-x-0 transition-all duration-300" 
+              />
+            </Link>
+            {titleAction}
+          </div>
           {showClearButton && onClear && (
             <Button
               variant="ghost"
