@@ -74,20 +74,48 @@ export function YouTubeChannelExtractor() {
 
   const searchChannels = async (query: string) => {
     try {
+      console.log("[YT CID Extractor] Searching for channels with query:", query);
       const response = await fetch(`/api/youtube/channels/search?q=${encodeURIComponent(query)}&maxResults=10`);
+      console.log("[YT CID Extractor] Response status:", response.status, response.statusText);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log("[YT CID Extractor] Received channels:", data.channels?.length || 0);
         if (data.channels && data.channels.length > 0) {
           setChannels(data.channels);
         } else {
           setError("No channels found. Try a different search term.");
         }
       } else {
-        setError("Failed to search for channels.");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("[YT CID Extractor] Search failed:", {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
+        
+        // Provide more specific error messages
+        if (errorData.error) {
+          if (errorData.error === "YouTube API key not configured") {
+            setError("YouTube API key is not configured. Please contact the administrator.");
+          } else if (errorData.debug?.status === 403) {
+            setError("Access denied. The YouTube API key may be invalid or the API may not be enabled.");
+          } else if (errorData.debug?.status === 400) {
+            setError("Invalid search query. Please try a different search term.");
+          } else {
+            setError(`Failed to search: ${errorData.error}`);
+          }
+        } else {
+          setError(`Failed to search for channels. (Status: ${response.status})`);
+        }
       }
     } catch (err) {
-      console.error("Error searching channels:", err);
-      setError("An error occurred while searching.");
+      console.error("[YT CID Extractor] Error searching channels:", err);
+      if (err instanceof Error) {
+        setError(`Network error: ${err.message}`);
+      } else {
+        setError("An error occurred while searching. Please try again.");
+      }
     }
   };
 
@@ -109,12 +137,12 @@ export function YouTubeChannelExtractor() {
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" className="w-full justify-start cursor-pointer">
           <Youtube className="mr-2 h-4 w-4" />
-          <span>YouTube Channel ID Extractor</span>
+          <span>YT CID Extractor</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>YouTube Channel ID Extractor</DialogTitle>
+          <DialogTitle>YT CID Extractor</DialogTitle>
           <DialogDescription>
             Enter a YouTube channel name or URL to extract the channel ID. You can search by name or paste a channel URL.
           </DialogDescription>

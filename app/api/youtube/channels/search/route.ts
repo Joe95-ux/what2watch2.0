@@ -60,11 +60,14 @@ export async function GET(request: NextRequest) {
     const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 
     if (!YOUTUBE_API_KEY) {
+      console.error("[YouTube Channel Search API] YOUTUBE_API_KEY environment variable is not set");
       return NextResponse.json(
         { error: "YouTube API key not configured" },
         { status: 500 }
       );
     }
+
+    console.log("[YouTube Channel Search API] Searching for channels with query:", query);
 
     try {
       // First, search for channels
@@ -76,9 +79,37 @@ export async function GET(request: NextRequest) {
       );
 
       if (!searchResponse.ok) {
-        console.error("YouTube Search API error:", searchResponse.status, searchResponse.statusText);
+        const errorText = await searchResponse.text();
+        console.error("[YouTube Channel Search API] YouTube Search API error:", {
+          status: searchResponse.status,
+          statusText: searchResponse.statusText,
+          body: errorText
+        });
+        
+        // Try to parse error JSON for more details
+        try {
+          const errorJson = JSON.parse(errorText);
+          if (errorJson.error) {
+            const error = errorJson.error;
+            console.error("[YouTube Channel Search API] Error details:", {
+              code: error.code,
+              message: error.message,
+              errors: error.errors
+            });
+          }
+        } catch {
+          // Not JSON, ignore
+        }
+        
         return NextResponse.json(
-          { error: "Failed to search channels" },
+          { 
+            error: "Failed to search channels",
+            debug: {
+              status: searchResponse.status,
+              statusText: searchResponse.statusText,
+              message: errorText.substring(0, 500)
+            }
+          },
           { status: searchResponse.status }
         );
       }
@@ -101,9 +132,37 @@ export async function GET(request: NextRequest) {
       );
 
       if (!channelsResponse.ok) {
-        console.error("YouTube Channels API error:", channelsResponse.status, channelsResponse.statusText);
+        const errorText = await channelsResponse.text();
+        console.error("[YouTube Channel Search API] YouTube Channels API error:", {
+          status: channelsResponse.status,
+          statusText: channelsResponse.statusText,
+          body: errorText
+        });
+        
+        // Try to parse error JSON for more details
+        try {
+          const errorJson = JSON.parse(errorText);
+          if (errorJson.error) {
+            const error = errorJson.error;
+            console.error("[YouTube Channel Search API] Error details:", {
+              code: error.code,
+              message: error.message,
+              errors: error.errors
+            });
+          }
+        } catch {
+          // Not JSON, ignore
+        }
+        
         return NextResponse.json(
-          { error: "Failed to fetch channel details" },
+          { 
+            error: "Failed to fetch channel details",
+            debug: {
+              status: channelsResponse.status,
+              statusText: channelsResponse.statusText,
+              message: errorText.substring(0, 500)
+            }
+          },
           { status: channelsResponse.status }
         );
       }

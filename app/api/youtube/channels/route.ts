@@ -64,9 +64,37 @@ export async function GET(request: NextRequest) {
       );
 
       if (!response.ok) {
-        console.error("YouTube API error:", response.status, response.statusText);
+        const errorText = await response.text();
+        console.error("[YouTube Channels API] YouTube API error:", {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        
+        // Try to parse error JSON for more details
+        try {
+          const errorJson = JSON.parse(errorText);
+          if (errorJson.error) {
+            const error = errorJson.error;
+            console.error("[YouTube Channels API] Error details:", {
+              code: error.code,
+              message: error.message,
+              errors: error.errors
+            });
+          }
+        } catch {
+          // Not JSON, ignore
+        }
+        
         return NextResponse.json(
-          { error: "Failed to fetch channel information" },
+          { 
+            error: "Failed to fetch channel information",
+            debug: {
+              status: response.status,
+              statusText: response.statusText,
+              message: errorText.substring(0, 500)
+            }
+          },
           { status: response.status }
         );
       }

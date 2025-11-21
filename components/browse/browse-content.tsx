@@ -382,19 +382,43 @@ function YouTubeChannelsGrid() {
         // If channel IDs are configured, use them directly
         if (NOLLYWOOD_CHANNEL_IDS.length > 0) {
           const channelIds = NOLLYWOOD_CHANNEL_IDS.join(",");
+          console.log("[YouTube Channels Grid] Fetching channels by ID:", channelIds);
           const response = await fetch(`/api/youtube/channels?channelIds=${encodeURIComponent(channelIds)}`);
+          console.log("[YouTube Channels Grid] Response status:", response.status, response.statusText);
+          
           if (response.ok) {
             const data = await response.json();
+            console.log("[YouTube Channels Grid] Received channels:", data.channels?.length || 0);
             setChannels(data.channels || []);
           } else {
-            console.error("Error fetching YouTube channels by ID:", response.statusText);
+            const errorData = await response.json().catch(() => ({}));
+            console.error("[YouTube Channels Grid] Error fetching YouTube channels by ID:", {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorData
+            });
+            // Fall back to search on error
+            console.log("[YouTube Channels Grid] Falling back to search...");
+            const searchResponse = await fetch("/api/youtube/channels/search?q=Nollywood&maxResults=12");
+            if (searchResponse.ok) {
+              const searchData = await searchResponse.json();
+              setChannels(searchData.channels || []);
+            }
           }
         } else {
           // Fall back to search if no channel IDs are configured
+          console.log("[YouTube Channels Grid] No channel IDs configured, using search...");
           const response = await fetch("/api/youtube/channels/search?q=Nollywood&maxResults=12");
           if (response.ok) {
             const data = await response.json();
             setChannels(data.channels || []);
+          } else {
+            const errorData = await response.json().catch(() => ({}));
+            console.error("[YouTube Channels Grid] Error fetching channels via search:", {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorData
+            });
           }
         }
       } catch (error) {
