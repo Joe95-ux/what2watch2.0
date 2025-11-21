@@ -126,12 +126,9 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const finalError = trailerError && finalAllVideos.length === 0 ? trailerError : null;
 
   const handleOpenDetails = useCallback(() => {
-    if (onCardClick) {
-      onCardClick(item, type);
-    } else {
-      router.push(`/${type}/${item.id}`);
-    }
-  }, [item, onCardClick, router, type]);
+    // Always navigate to the details page, regardless of callbacks
+    router.push(`/${type}/${item.id}`);
+  }, [item, router, type]);
 
   const fetchTrailerVideos = useCallback(async () => {
     // If we have cached videos, use them instead of fetching

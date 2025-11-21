@@ -232,7 +232,7 @@ export default function LandingPage() {
   }, [trendingMovies, trendingTV]);
 
   const [selectedSlideIndex, setSelectedSlideIndex] = useState(0);
-  const [slideRuntimes, setSlideRuntimes] = useState<Record<string, number>>({});
+  const [trailerDurations, setTrailerDurations] = useState<Record<string, number>>({});
   const [isPaused, setIsPaused] = useState(false);
   const playlistScrollRef = useRef<HTMLDivElement>(null);
   const isAutoScrollingRef = useRef(false);
@@ -300,46 +300,53 @@ export default function LandingPage() {
     }
   }, [selectedSlideIndex]);
 
-  // Fetch runtime for all slides on mount (for playlist items)
-  useEffect(() => {
-    if (slides.length === 0) return;
+  const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
+  const [activeTrailerKey, setActiveTrailerKey] = useState<string | null>(null);
+  const [activeSlide, setActiveSlide] = useState<HeroSlide | null>(null);
+  const [trailers, setTrailers] = useState<Record<string, TrailerState>>({});
 
-    const fetchAllRuntimes = async () => {
-      const promises = slides.map(async (slide) => {
-        const key = `${slide.type}-${slide.id}`;
-        
+  // Fetch trailer durations for all slides when trailers are loaded
+  useEffect(() => {
+    const fetchTrailerDurations = async () => {
+      const promises = Object.entries(trailers).map(async ([key, trailerState]) => {
+        if (!trailerState.trailer?.key || trailerState.loading) {
+          return null;
+        }
+
+        // First check if TMDB provides runtime
+        if (trailerState.trailer.runtime && typeof trailerState.trailer.runtime === 'number' && trailerState.trailer.runtime > 0) {
+          return { key, duration: trailerState.trailer.runtime };
+        }
+
+        // If not, fetch from YouTube API
         try {
-          const response = await fetch(`/api/${slide.type === "movie" ? "movies" : "tv"}/${slide.id}`);
+          const response = await fetch(`/api/youtube/duration?videoId=${trailerState.trailer.key}`);
           if (response.ok) {
             const data = await response.json();
-            const runtime = slide.type === "movie" 
-              ? data.runtime 
-              : data.episode_run_time?.[0] || 0;
-            // Only return if runtime is valid (greater than 0)
-            if (runtime && runtime > 0) {
-              return { key, runtime };
+            if (data.duration && data.duration > 0) {
+              return { key, duration: data.duration };
             }
           }
         } catch (error) {
-          console.error(`Failed to fetch runtime for ${slide.title}:`, error);
+          console.error(`Failed to fetch trailer duration for ${key}:`, error);
         }
         return null;
       });
 
       const results = await Promise.all(promises);
-      const newRuntimes: Record<string, number> = {};
+      const newDurations: Record<string, number> = {};
       results.forEach(result => {
-        if (result && result.runtime > 0) {
-          newRuntimes[result.key] = result.runtime;
+        if (result && result.duration > 0) {
+          newDurations[result.key] = result.duration;
         }
       });
       
-      if (Object.keys(newRuntimes).length > 0) {
-        setSlideRuntimes(prev => {
+      if (Object.keys(newDurations).length > 0) {
+        setTrailerDurations(prev => {
           const updated = { ...prev };
-          Object.keys(newRuntimes).forEach(key => {
+          Object.keys(newDurations).forEach(key => {
             if (!updated[key]) {
-              updated[key] = newRuntimes[key];
+              updated[key] = newDurations[key];
             }
           });
           return updated;
@@ -347,13 +354,64 @@ export default function LandingPage() {
       }
     };
 
-    fetchAllRuntimes();
-  }, [slides.length]); // Only run when slides change
+    if (Object.keys(trailers).length > 0) {
+      fetchTrailerDurations();
+    }
+  }, [trailers]);
 
-  const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
-  const [activeTrailerKey, setActiveTrailerKey] = useState<string | null>(null);
-  const [activeSlide, setActiveSlide] = useState<HeroSlide | null>(null);
-  const [trailers, setTrailers] = useState<Record<string, TrailerState>>({});
+  // Fetch trailer durations for all slides when trailers are loaded
+  useEffect(() => {
+    const fetchTrailerDurations = async () => {
+      const promises = Object.entries(trailers).map(async ([key, trailerState]) => {
+        if (!trailerState.trailer?.key || trailerState.loading) {
+          return null;
+        }
+
+        // First check if TMDB provides runtime
+        if (trailerState.trailer.runtime && typeof trailerState.trailer.runtime === 'number' && trailerState.trailer.runtime > 0) {
+          return { key, duration: trailerState.trailer.runtime };
+        }
+
+        // If not, fetch from YouTube API
+        try {
+          const response = await fetch(`/api/youtube/duration?videoId=${trailerState.trailer.key}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.duration && data.duration > 0) {
+              return { key, duration: data.duration };
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to fetch trailer duration for ${key}:`, error);
+        }
+        return null;
+      });
+
+      const results = await Promise.all(promises);
+      const newDurations: Record<string, number> = {};
+      results.forEach(result => {
+        if (result && result.duration > 0) {
+          newDurations[result.key] = result.duration;
+        }
+      });
+      
+      if (Object.keys(newDurations).length > 0) {
+        setTrailerDurations(prev => {
+          const updated = { ...prev };
+          Object.keys(newDurations).forEach(key => {
+            if (!updated[key]) {
+              updated[key] = newDurations[key];
+            }
+          });
+          return updated;
+        });
+      }
+    };
+
+    if (Object.keys(trailers).length > 0) {
+      fetchTrailerDurations();
+    }
+  }, [trailers]);
 
   const ensureTrailer = useCallback(async (slide: HeroSlide) => {
     const key = `${slide.type}-${slide.id}`;
@@ -583,9 +641,10 @@ export default function LandingPage() {
                     slide={selectedSlide}
                     onPlay={handlePlay}
                     trailerDuration={selectedSlide ? (() => {
-                      const runtime = slideRuntimes[`${selectedSlide.type}-${selectedSlide.id}`];
-                      // Return runtime in minutes (will be formatted appropriately)
-                      return runtime && runtime > 0 ? runtime : undefined;
+                      const key = `${selectedSlide.type}-${selectedSlide.id}`;
+                      const duration = trailerDurations[key];
+                      // Return duration in seconds (will be formatted appropriately)
+                      return duration && duration > 0 ? duration : undefined;
                     })() : undefined}
                     onPrevious={() => {
                       setIsPaused(true);
@@ -610,13 +669,13 @@ export default function LandingPage() {
                     <div ref={playlistScrollRef} className="space-y-2">
                       {slides.map((slide, index) => {
                         const isSelected = index === selectedSlideIndex;
-                        const runtime = slideRuntimes[`${slide.type}-${slide.id}`];
+                        const duration = trailerDurations[`${slide.type}-${slide.id}`];
                         return (
                           <PlaylistItem
                             key={`${slide.type}-${slide.id}-${index}`}
                             slide={slide}
                             isSelected={isSelected}
-                            runtime={runtime}
+                            runtime={duration}
                             onClick={() => {
                               setIsPaused(true);
                               setSelectedSlideIndex(index);
@@ -1070,11 +1129,16 @@ type PlaylistItemProps = {
 };
 
 function PlaylistItem({ slide, isSelected, runtime, onClick, onPlay, index }: PlaylistItemProps) {
-  const formatRuntime = (minutes?: number) => {
-    if (!minutes || minutes === 0) return "";
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hours > 0 ? `${hours}:${mins.toString().padStart(2, "0")}` : `0:${mins.toString().padStart(2, "0")}`;
+  const formatRuntime = (seconds?: number) => {
+    if (!seconds || seconds === 0) return "";
+    // Format duration in seconds as MM:SS or HH:MM:SS
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hours > 0) {
+      return `${hours}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    }
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   return (

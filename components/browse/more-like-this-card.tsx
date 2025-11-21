@@ -6,7 +6,6 @@ import { Play, Plus, Heart, Bookmark } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
 import { CircleActionButton } from "./circle-action-button";
-import ContentDetailModal from "./content-detail-modal";
 import { useToggleFavorite } from "@/hooks/use-favorites";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
@@ -39,7 +38,6 @@ export default function MoreLikeThisCard({
 }: MoreLikeThisCardProps) {
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [runtime, setRuntime] = useState<number | null>(null);
   const [isLoadingRuntime, setIsLoadingRuntime] = useState(false);
   const attemptedRuntimeFetchRef = useRef<number | null>(null); // Track which item ID we've attempted to fetch
@@ -145,11 +143,8 @@ export default function MoreLikeThisCard({
       !target.closest('[data-radix-tooltip-trigger]') &&
       !target.closest('[data-radix-tooltip-content]')
     ) {
-      if (onItemClick) {
-        onItemClick(item, type);
-      } else {
-        router.push(`/${type}/${item.id}`);
-      }
+      // Always navigate to the details page, regardless of callbacks
+      router.push(`/${type}/${item.id}`);
     }
   };
 
@@ -285,12 +280,8 @@ export default function MoreLikeThisCard({
               onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
                 e.stopPropagation();
-                // Open details sheet instead of trailer modal
-                if (onItemClick) {
-                  onItemClick(item, type);
-                } else {
-                  setIsDetailModalOpen(true);
-                }
+                // Navigate to details page
+                router.push(`/${type}/${item.id}`);
               }}
               className="pointer-events-auto z-[5]"
             >
@@ -374,19 +365,6 @@ export default function MoreLikeThisCard({
       </div>
 
       {/* Detail Modal */}
-      {!onItemClick && (
-        <ContentDetailModal
-          item={item}
-          type={type}
-          isOpen={isDetailModalOpen}
-          onClose={() => setIsDetailModalOpen(false)}
-          showBackButton={hasParent}
-          onBack={hasParent && parentItem && parentType ? () => {
-            setIsDetailModalOpen(false);
-            // This will be handled by parent component
-          } : undefined}
-        />
-      )}
     </>
   );
 }

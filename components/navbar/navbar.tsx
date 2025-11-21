@@ -79,9 +79,9 @@ export default function Navbar() {
           <Logo fontSize="text-xl" iconSize={20} />
         </div>
 
-        {/* Center - Search (only on dashboard, not discover page) */}
+        {/* Center - Search (only on dashboard desktop, not discover page) */}
         {isDashboard ? (
-          <div className="flex items-center justify-center min-w-0">
+          <div className="hidden md:flex items-center justify-center min-w-0">
             <Search hasHeroSection={hasHeroSection} />
           </div>
         ) : (
@@ -194,31 +194,13 @@ export default function Navbar() {
           </>
         )}
 
-        {/* Right side - User (dashboard only) */}
+        {/* Right side - Search, Profile, Nav Trigger (dashboard only) */}
         {isDashboard && (
           <div className="flex items-center gap-3 flex-shrink-0">
-            {/* Mobile Menu Button */}
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild className="md:hidden">
-                <HamburgerButton
-                  isOpen={mobileMenuOpen}
-                  showMorph={false}
-                  className={cn(
-                    "h-9 w-9 max-[412px]:h-7 max-[412px]:w-7 transition-colors duration-300",
-                    hasHeroSection && "text-white hover:bg-black/20"
-                  )}
-                />
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[400px] pt-6">
-                {isSheetMounted && (
-                  <MobileNav 
-                    navLinks={navLinks} 
-                    pathname={pathname}
-                    onLinkClick={() => setMobileMenuOpen(false)}
-                  />
-                )}
-              </SheetContent>
-            </Sheet>
+            {/* Search - Visible on mobile, hidden on desktop (where it's in center) */}
+            <div className="md:hidden">
+              <Search hasHeroSection={hasHeroSection} />
+            </div>
 
             {/* User Auth */}
             {isLoaded && (
@@ -262,6 +244,29 @@ export default function Navbar() {
                 )}
               </div>
             )}
+
+            {/* Mobile Menu Button */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild className="md:hidden">
+                <HamburgerButton
+                  isOpen={mobileMenuOpen}
+                  showMorph={false}
+                  className={cn(
+                    "h-9 w-9 max-[412px]:h-7 max-[412px]:w-7 transition-colors duration-300",
+                    hasHeroSection && "text-white hover:bg-black/20"
+                  )}
+                />
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px] pt-6">
+                {isSheetMounted && (
+                  <MobileNav 
+                    navLinks={navLinks} 
+                    pathname={pathname}
+                    onLinkClick={() => setMobileMenuOpen(false)}
+                  />
+                )}
+              </SheetContent>
+            </Sheet>
           </div>
         )}
       </div>

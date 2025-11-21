@@ -7,9 +7,6 @@ import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,10 +22,12 @@ import { FiltersSheet, type SearchFilters } from "@/components/filters/filters-s
 interface SearchResult {
   id: number;
   title: string;
-  type: "movie" | "tv";
+  type: "movie" | "tv" | "person";
   poster_path: string | null;
+  profile_path?: string | null;
   release_date?: string;
   first_air_date?: string;
+  known_for_department?: string;
 }
 
 interface SearchProps {
@@ -121,6 +120,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
 
     setIsLoading(true);
     try {
+      // Search for movies/TV shows and people
       const params = new URLSearchParams({
         query: searchQuery,
         type: filters.type,
@@ -130,10 +130,17 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
         sortBy: filters.sortBy,
       });
 
-      const response = await fetch(`/api/search?${params.toString()}`);
-      const data: TMDBResponse<TMDBMovie | TMDBSeries> = await response.json();
+      // Always search for both content and people when type is "all"
+      const [contentResponse, peopleResponse] = await Promise.all([
+        fetch(`/api/search?${params.toString()}`),
+        fetch(`/api/search/people?query=${encodeURIComponent(searchQuery)}`),
+      ]);
 
-      const searchResults: SearchResult[] = data.results.slice(0, 20).map((item) => ({
+      const searchResults: SearchResult[] = [];
+
+      // Add content results (movies/TV)
+      const contentData: TMDBResponse<TMDBMovie | TMDBSeries> = await contentResponse.json();
+      const contentResults: SearchResult[] = contentData.results.slice(0, filters.type === "all" ? 10 : 20).map((item) => ({
         id: item.id,
         title: "title" in item ? item.title : item.name,
         type: "title" in item ? "movie" : "tv",
@@ -141,8 +148,23 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
         release_date: "release_date" in item ? item.release_date : undefined,
         first_air_date: "first_air_date" in item ? item.first_air_date : undefined,
       }));
+      searchResults.push(...contentResults);
 
-      setResults(searchResults);
+      // Add people results
+      const peopleData = await peopleResponse.json();
+      if (peopleData.results && Array.isArray(peopleData.results)) {
+        const peopleResults: SearchResult[] = peopleData.results.slice(0, filters.type === "all" ? 10 : 20).map((person: { id: number; name: string; profile_path: string | null; known_for_department: string }) => ({
+          id: person.id,
+          title: person.name,
+          type: "person" as const,
+          profile_path: person.profile_path,
+          known_for_department: person.known_for_department,
+        }));
+        searchResults.push(...peopleResults);
+      }
+
+      // Sort by relevance (you could improve this with better ranking)
+      setResults(searchResults.slice(0, 20));
     } catch (error) {
       console.error("Search error:", error);
       setResults([]);
@@ -163,7 +185,11 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
     setIsExpanded(false);
     setQuery("");
     setResults([]);
-    router.push(`/${result.type}/${result.id}`);
+    if (result.type === "person") {
+      router.push(`/person/${result.id}`);
+    } else {
+      router.push(`/${result.type}/${result.id}`);
+    }
   };
 
   const handleSubmitSearch = useCallback(() => {
@@ -236,7 +262,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
             }}
           >
             <SearchIcon className={cn(
-              "h-6 w-6 transition-colors duration-300",
+              "size-6 transition-colors duration-300",
               hasHeroSection && "text-white"
             )} />
           </Button>
@@ -256,7 +282,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
                 )} />
                 <Input
                   ref={inputRef}
-                  placeholder="Search movies and TV shows..."
+                  placeholder="Search movies, TV shows, and people..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => {
@@ -400,7 +426,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
         )} />
         <Input
           ref={inputRef}
-          placeholder="Search movies and TV shows..."
+          placeholder="Search movies, TV shows, and people..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
@@ -530,44 +556,65 @@ function SearchResultItem({
   result: SearchResult;
   onSelect: (result: SearchResult) => void;
 }) {
-  const posterUrl = result.poster_path
+  const isPerson = result.type === "person";
+  const imageUrl = isPerson
+    ? result.profile_path
+      ? `https://image.tmdb.org/t/p/w92${result.profile_path}`
+      : null
+    : result.poster_path
     ? `https://image.tmdb.org/t/p/w92${result.poster_path}`
     : null;
-  const year =
-    result.type === "movie"
-      ? result.release_date
-        ? new Date(result.release_date).getFullYear()
-        : "N/A"
-      : result.first_air_date
-      ? new Date(result.first_air_date).getFullYear()
-      : "N/A";
+  
+  const year = isPerson
+    ? null
+    : result.type === "movie"
+    ? result.release_date
+      ? new Date(result.release_date).getFullYear()
+      : "N/A"
+    : result.first_air_date
+    ? new Date(result.first_air_date).getFullYear()
+    : "N/A";
+
+  const subtitle = isPerson
+    ? result.known_for_department || "Actor"
+    : year;
+
+  const href = isPerson ? `/person/${result.id}` : `/${result.type}/${result.id}`;
 
   return (
     <Link
-      href={`/${result.type}/${result.id}`}
+      href={href}
       onClick={(e) => {
         e.preventDefault();
         onSelect(result);
       }}
       className="flex items-center gap-3 w-full px-2 py-2 rounded-md hover:bg-accent cursor-pointer transition-colors"
     >
-      {posterUrl ? (
+      {imageUrl ? (
         <Image
-          src={posterUrl}
+          src={imageUrl}
           alt={result.title}
-          width={32}
-          height={48}
-          className="h-12 w-8 object-cover rounded flex-shrink-0"
+          width={isPerson ? 32 : 32}
+          height={isPerson ? 32 : 48}
+          className={cn(
+            "object-cover rounded flex-shrink-0",
+            isPerson ? "h-8 w-8 rounded-full" : "h-12 w-8"
+          )}
           unoptimized
         />
       ) : (
-        <div className="h-12 w-8 bg-muted rounded flex items-center justify-center flex-shrink-0">
+        <div className={cn(
+          "bg-muted rounded flex items-center justify-center flex-shrink-0",
+          isPerson ? "h-8 w-8 rounded-full" : "h-12 w-8"
+        )}>
           <ImageIcon className="h-4 w-4 text-muted-foreground" />
         </div>
       )}
       <div className="flex-1 min-w-0">
         <div className="font-medium truncate">{result.title}</div>
-        <div className="text-xs text-muted-foreground">{year}</div>
+        {subtitle && (
+          <div className="text-xs text-muted-foreground">{subtitle}</div>
+        )}
       </div>
     </Link>
   );

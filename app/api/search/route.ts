@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { searchMovies, searchTV, discoverMovies, discoverTV, TMDBResponse, TMDBMovie, TMDBSeries } from "@/lib/tmdb";
+import { searchMovies, searchTV, searchPerson, discoverMovies, discoverTV, TMDBResponse, TMDBMovie, TMDBSeries, TMDBSearchPersonResponse } from "@/lib/tmdb";
 
-type SearchType = "movie" | "tv" | "all";
+type SearchType = "movie" | "tv" | "person" | "all";
 
 interface ErrorResponse {
   error: string;

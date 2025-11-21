@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Shuffle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import YouTubeProfiles from "./youtube-profiles";
 
 export type MoodFilter = "any" | "light" | "dark" | "funny" | "romantic" | "thrilling";
 export type DurationFilter = "any" | "quick" | "medium" | "long";
@@ -123,6 +124,9 @@ export default function QuickFilters({
             </Button>
           ))}
         </div>
+
+        {/* YouTube Profiles */}
+        <YouTubeProfiles className="ml-2" />
 
         {/* Surprise Me Button */}
         {onSurpriseMe && (

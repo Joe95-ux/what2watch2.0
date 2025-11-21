@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import Image from "next/image";
 import { Play, Heart, Bookmark, Plus, Clapperboard, Images, Star } from "lucide-react";
 import {
@@ -45,6 +45,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [initialVideoId, setInitialVideoId] = useState<string | null>(null);
   const [isPhotosModalOpen, setIsPhotosModalOpen] = useState(false);
+  const [trailerDuration, setTrailerDuration] = useState<number | null>(null);
   const toggleFavorite = useToggleFavorite();
   const toggleWatchlist = useToggleWatchlist();
 
@@ -98,9 +99,51 @@ export default function HeroSection({ item, type, details, trailer, videosData }
       ? formatRuntime(details?.runtime, false)
       : formatRuntime(details?.episode_run_time, true);
 
-  const trailerDurationText = trailer?.runtime
-    ? formatTrailerDuration(trailer.runtime)
-    : null;
+  // Fetch trailer duration from YouTube if available
+  useEffect(() => {
+    if (!trailer?.key) {
+      setTrailerDuration(null);
+      return;
+    }
+
+    // First check if TMDB provides runtime
+    if (trailer.runtime && typeof trailer.runtime === 'number' && trailer.runtime > 0) {
+      setTrailerDuration(trailer.runtime);
+      return;
+    }
+
+    // If not, try to fetch from YouTube API
+    const fetchTrailerDuration = async () => {
+      try {
+        const response = await fetch(`/api/youtube/duration?videoId=${trailer.key}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.duration && data.duration > 0) {
+            setTrailerDuration(data.duration);
+          } else {
+            setTrailerDuration(null);
+          }
+        } else {
+          setTrailerDuration(null);
+        }
+      } catch (error) {
+        console.error('Error fetching trailer duration:', error);
+        setTrailerDuration(null);
+      }
+    };
+
+    fetchTrailerDuration();
+  }, [trailer?.key, trailer?.runtime]);
+
+  // Format trailer duration for display (in seconds)
+  const formatTrailerDuration = (seconds: number) => {
+    if (!seconds || seconds <= 0) return null;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const trailerDurationText = trailerDuration ? formatTrailerDuration(trailerDuration) : null;
 
   const videoStatLabel = formatStatLabel(videoCount, "Videos");
   const photoStatLabel = formatStatLabel(photoCount, "Photos");
