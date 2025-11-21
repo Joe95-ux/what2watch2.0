@@ -52,14 +52,40 @@ export const NOLLYWOOD_CHANNEL_IDS = [
  * - https://youtube.com/c/channelname
  */
 export function extractChannelIdFromUrl(url: string): string | null {
-  // Extract from /channel/UC... format
+  // Extract from /channel/UC... format (most common)
   const channelMatch = url.match(/\/channel\/([a-zA-Z0-9_-]+)/);
   if (channelMatch) {
     return channelMatch[1];
   }
 
+  // Extract from /user/... format (older format)
+  const userMatch = url.match(/\/user\/([a-zA-Z0-9_-]+)/);
+  if (userMatch) {
+    // User URLs need to be resolved via API, but we can return null to trigger search
+    return null;
+  }
+
+  // Extract from /c/... format (custom URL)
+  const customMatch = url.match(/\/c\/([a-zA-Z0-9_-]+)/);
+  if (customMatch) {
+    // Custom URLs need to be resolved via API
+    return null;
+  }
+
+  // Extract from /@... format (handle format)
+  const handleMatch = url.match(/\/@([a-zA-Z0-9_-]+)/);
+  if (handleMatch) {
+    // Handle URLs need to be resolved via API
+    return null;
+  }
+
+  // If it looks like a direct channel ID (starts with UC and is 24 chars)
+  const directIdMatch = url.match(/^([UC][a-zA-Z0-9_-]{23})$/);
+  if (directIdMatch) {
+    return directIdMatch[1];
+  }
+
   // For custom URLs, we'd need to use the API to resolve them
-  // This is a placeholder - you'd need to call the API
   return null;
 }
 

@@ -7,6 +7,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard } from "lucide-react";
+import { YouTubeChannelExtractor } from "@/components/tools/youtube-channel-extractor";
 import { cn } from "@/lib/utils";
 
 interface MobileNavProps {
@@ -172,6 +173,12 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   <span>System</span>
                 </button>
               </div>
+            </div>
+
+            <Separator className="my-1" />
+
+            <div className="px-2 py-1.5">
+              <YouTubeChannelExtractor />
             </div>
 
             <Separator className="my-1" />

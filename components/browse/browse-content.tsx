@@ -37,6 +37,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Button } from "../ui/button";
+import { NOLLYWOOD_CHANNEL_IDS } from "@/lib/youtube-channels";
 
 interface BrowseContentProps {
   favoriteGenres: number[];
@@ -377,11 +378,24 @@ function YouTubeChannelsGrid() {
     const fetchChannels = async () => {
       try {
         setIsLoading(true);
-        // Use the search endpoint to find Nollywood channels
-        const response = await fetch("/api/youtube/channels/search?q=Nollywood&maxResults=12");
-        if (response.ok) {
-          const data = await response.json();
-          setChannels(data.channels || []);
+        
+        // If channel IDs are configured, use them directly
+        if (NOLLYWOOD_CHANNEL_IDS.length > 0) {
+          const channelIds = NOLLYWOOD_CHANNEL_IDS.join(",");
+          const response = await fetch(`/api/youtube/channels?channelIds=${encodeURIComponent(channelIds)}`);
+          if (response.ok) {
+            const data = await response.json();
+            setChannels(data.channels || []);
+          } else {
+            console.error("Error fetching YouTube channels by ID:", response.statusText);
+          }
+        } else {
+          // Fall back to search if no channel IDs are configured
+          const response = await fetch("/api/youtube/channels/search?q=Nollywood&maxResults=12");
+          if (response.ok) {
+            const data = await response.json();
+            setChannels(data.channels || []);
+          }
         }
       } catch (error) {
         console.error("Error fetching YouTube channels:", error);

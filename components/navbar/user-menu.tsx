@@ -1,6 +1,7 @@
 "use client";
 
 import { MoreVertical, Settings, LogOut, Moon, Sun, Monitor, LayoutDashboard } from "lucide-react";
+import { YouTubeChannelExtractor } from "@/components/tools/youtube-channel-extractor";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
@@ -98,6 +99,12 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+
+        <DropdownMenuSeparator />
+
+        <div className="px-2 py-1.5">
+          <YouTubeChannelExtractor />
+        </div>
 
         <DropdownMenuSeparator />
 
