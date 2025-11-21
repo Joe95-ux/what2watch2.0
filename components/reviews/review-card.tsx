@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Star, ThumbsUp, ThumbsDown, MoreVertical, Share2, Facebook, Twitter, Mail, Link2, Flag, ChevronDown, ChevronUp } from "lucide-react";
+import { Star, ThumbsUp, ThumbsDown, MoreVertical, Share2, Facebook, Twitter, Mail, Link2, Flag, ChevronDown, ChevronUp, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,13 +12,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { useToggleReviewReaction } from "@/hooks/use-reviews";
+import { useToggleReviewReaction, useDeleteReview } from "@/hooks/use-reviews";
 import type { Review } from "@/hooks/use-reviews";
-import { useUser } from "@clerk/nextjs";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import ReportReviewDialog from "./report-review-dialog";
+import EditReviewDialog from "./edit-review-dialog";
 
 interface ReviewCardProps {
   review: Review;
@@ -29,14 +40,20 @@ export default function ReviewCard({
   review,
   showFullContent = false,
 }: ReviewCardProps) {
-  const { user } = useUser();
+  const { data: currentUser } = useCurrentUser();
   const toggleReaction = useToggleReviewReaction();
+  const deleteReview = useDeleteReview();
   const [isExpanded, setIsExpanded] = useState(showFullContent);
   const [showSpoiler, setShowSpoiler] = useState(false);
   const [helpfulLoading, setHelpfulLoading] = useState(false);
   const [dislikeLoading, setDislikeLoading] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Check if current user is the review author
+  const isAuthor = currentUser?.id && review.userId === currentUser.id;
 
   const displayName =
     review.user.displayName || review.user.username || "Anonymous";
@@ -147,6 +164,18 @@ export default function ReviewCard({
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
+  const handleDelete = async () => {
+    try {
+      await deleteReview.mutateAsync(review.id);
+      toast.success("Review deleted successfully");
+      setDeleteDialogOpen(false);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete review"
+      );
+    }
+  };
+
   return (
     <div 
       id={`review-${review.id}`} 
@@ -211,6 +240,26 @@ export default function ReviewCard({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
+                {isAuthor && (
+                  <>
+                    <DropdownMenuItem
+                      onClick={() => setEditDialogOpen(true)}
+                      className="cursor-pointer"
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Review
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setDeleteDialogOpen(true)}
+                      variant="destructive"
+                      className="cursor-pointer"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Review
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
                 <DropdownMenuItem onClick={handleShareFacebook} className="cursor-pointer">
                   <Facebook className="h-4 w-4 mr-2" />
                   Share on Facebook
@@ -236,15 +285,19 @@ export default function ReviewCard({
                     </>
                   )}
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => setReportDialogOpen(true)}
-                  variant="destructive"
-                  className="cursor-pointer"
-                >
-                  <Flag className="h-4 w-4 mr-2" />
-                  Report Review
-                </DropdownMenuItem>
+                {!isAuthor && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => setReportDialogOpen(true)}
+                      variant="destructive"
+                      className="cursor-pointer"
+                    >
+                      <Flag className="h-4 w-4 mr-2" />
+                      Report Review
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -354,6 +407,43 @@ export default function ReviewCard({
         onClose={() => setReportDialogOpen(false)}
         reviewId={review.id}
       />
+
+      {isAuthor && (
+        <>
+          <EditReviewDialog
+            isOpen={editDialogOpen}
+            onClose={() => setEditDialogOpen(false)}
+            review={review}
+            filmData={{
+              title: review.title || "",
+              posterPath: null, // We don't have poster path in review, but it's optional
+              releaseYear: null,
+              runtime: null,
+              rating: null,
+            }}
+          />
+          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Review</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this review? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  disabled={deleteReview.isPending}
+                >
+                  {deleteReview.isPending ? "Deleting..." : "Delete"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
+      )}
     </div>
   );
 }

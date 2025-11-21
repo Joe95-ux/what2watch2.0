@@ -48,6 +48,7 @@ interface UpdateReviewData {
   rating?: number;
   title?: string;
   content?: string;
+  containsSpoilers?: boolean;
 }
 
 export function useReviews(
@@ -149,6 +150,7 @@ export function useUpdateReview() {
     onSuccess: (review) => {
       queryClient.invalidateQueries({
         queryKey: ["reviews", review.tmdbId, review.mediaType],
+        exact: false,
       });
     },
   });
@@ -170,8 +172,9 @@ export function useDeleteReview() {
 
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["reviews"] });
+    onSuccess: (_, reviewId) => {
+      // Invalidate all review queries to ensure the deleted review is removed
+      queryClient.invalidateQueries({ queryKey: ["reviews"], exact: false });
     },
   });
 }

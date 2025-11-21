@@ -99,7 +99,7 @@ export async function PUT(
 
     const { reviewId } = await params;
     const body = await request.json();
-    const { rating, title, content } = body;
+    const { rating, title, content, containsSpoilers } = body;
 
     const user = await db.user.findUnique({
       where: { clerkId: userId },
@@ -130,6 +130,7 @@ export async function PUT(
         ...(rating !== undefined && { rating }),
         ...(title !== undefined && { title }),
         ...(content !== undefined && { content }),
+        ...(containsSpoilers !== undefined && { containsSpoilers }),
       },
       include: {
         user: {
