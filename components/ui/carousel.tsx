@@ -179,6 +179,8 @@ function CarouselPrevious({
 }: React.ComponentProps<typeof Button>) {
   const { orientation, scrollPrev, canScrollPrev } = useCarousel()
 
+  if (!canScrollPrev) return null
+
   return (
     <Button
       data-slot="carousel-previous"
@@ -208,6 +210,8 @@ function CarouselNext({
   ...props
 }: React.ComponentProps<typeof Button>) {
   const { orientation, scrollNext, canScrollNext } = useCarousel()
+
+  if (!canScrollNext) return null
 
   return (
     <Button

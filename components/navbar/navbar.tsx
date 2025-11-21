@@ -74,14 +74,8 @@ export default function Navbar() {
         isDashboard ? "grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_auto] gap-2 md:gap-4" : "justify-between",
         isDiscoverPage && "justify-between"
       )}>
-        {/* Left side - Hamburger (below 1280px) and Logo */}
+        {/* Left side - Logo */}
         <div className="flex items-center gap-3">
-          {/* Navigation Dropdown - Show between md (768px) and xl (1280px), hidden on dashboard */}
-          {!isDashboard && !isDiscoverPage && (
-            <div className="hidden md:block xl:hidden">
-              <NavDropdown navLinks={navLinks} hasHeroSection={hasHeroSection} />
-            </div>
-          )}
           <Logo fontSize="text-xl" iconSize={20} />
         </div>
 
@@ -119,7 +113,7 @@ export default function Navbar() {
               </div>
             )}
 
-            {/* Right side - Search, User (non-dashboard and discover page) */}
+            {/* Right side - Search, Profile, Nav Trigger (non-dashboard and discover page) */}
             <div className="flex items-center gap-3 flex-shrink-0">
               {/* Search - Always visible, expands on mobile */}
               <Search hasHeroSection={hasHeroSection} />
@@ -187,6 +181,13 @@ export default function Navbar() {
                       </Button>
                     </SignInButton>
                   )}
+                </div>
+              )}
+
+              {/* Navigation Dropdown - Show between md (768px) and xl (1280px) on desktop, hidden on dashboard */}
+              {!isDashboard && !isDiscoverPage && (
+                <div className="hidden md:block xl:hidden">
+                  <NavDropdown navLinks={navLinks} hasHeroSection={hasHeroSection} />
                 </div>
               )}
             </div>

@@ -143,10 +143,12 @@ export default function TrailerModal({
   };
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !hasMultipleVideos) return;
 
     const handleYouTubeMessage = (event: MessageEvent) => {
-      if (!event.origin.includes("youtube.com")) return;
+      // Only process messages from YouTube
+      if (!event.origin.includes("youtube.com") && !event.origin.includes("youtu.be")) return;
+      
       let data = event.data;
       if (typeof data === "string") {
         try {
@@ -155,8 +157,13 @@ export default function TrailerModal({
           return;
         }
       }
+      
+      // YouTube iframe API sends state change events
+      // State 0 = ENDED, which means the video finished playing
       if (typeof data === "object" && data !== null && data.event === "onStateChange") {
-        if (data.info === 0) {
+        const state = data.info ?? data.data;
+        if (state === 0) {
+          // Video ended - advance to next video
           advanceToNextVideo();
         }
       }
@@ -164,7 +171,7 @@ export default function TrailerModal({
 
     window.addEventListener("message", handleYouTubeMessage);
     return () => window.removeEventListener("message", handleYouTubeMessage);
-  }, [isOpen, advanceToNextVideo]);
+  }, [isOpen, hasMultipleVideos, advanceToNextVideo]);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -249,7 +256,19 @@ export default function TrailerModal({
               <iframe
                 ref={iframeRef}
                 key={currentVideo.id} // Force re-render when video changes
-                src={getYouTubeEmbedUrl(currentVideo.key, true)}
+                src={(() => {
+                  // Build URL without loop parameter so video can end and advance to next
+                  const params = new URLSearchParams({
+                    autoplay: "1",
+                    mute: "0",
+                    controls: "1",
+                    rel: "0",
+                    modestbranding: "1",
+                    playsinline: "1",
+                    enablejsapi: "1",
+                  });
+                  return `https://www.youtube.com/embed/${currentVideo.key}?${params.toString()}`;
+                })()}
                 className="w-full h-full"
                 allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen

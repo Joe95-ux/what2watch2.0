@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { Play, Plus, Heart, Bookmark } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
 import { CircleActionButton } from "./circle-action-button";
 import ContentDetailModal from "./content-detail-modal";
@@ -36,6 +37,7 @@ export default function MoreLikeThisCard({
   className,
   onAddToPlaylist,
 }: MoreLikeThisCardProps) {
+  const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [runtime, setRuntime] = useState<number | null>(null);
@@ -133,18 +135,20 @@ export default function MoreLikeThisCard({
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Only open modal if click is directly on the card, not on action buttons or dropdowns
+    // Only navigate if click is directly on the card, not on action buttons or dropdowns
     const target = e.target as HTMLElement;
     if (
       !target.closest('button') && 
       !target.closest('[role="button"]') && 
       !target.closest('[data-radix-dropdown-trigger]') &&
-      !target.closest('[data-radix-dropdown-content]')
+      !target.closest('[data-radix-dropdown-content]') &&
+      !target.closest('[data-radix-tooltip-trigger]') &&
+      !target.closest('[data-radix-tooltip-content]')
     ) {
       if (onItemClick) {
         onItemClick(item, type);
       } else {
-        setIsDetailModalOpen(true);
+        router.push(`/${type}/${item.id}`);
       }
     }
   };

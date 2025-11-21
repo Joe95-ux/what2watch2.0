@@ -249,8 +249,16 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
         onMouseLeave={handleMouseLeave}
         onClick={(e) => {
           const target = e.target as HTMLElement;
-          // Don't open details modal if clicking on buttons or if trailer modal is open
-          if (!target.closest("button") && !target.closest('[role="button"]') && !isTrailerModalOpen) {
+          // Don't navigate if clicking on buttons, tooltips, dropdowns, or if trailer modal is open
+          if (
+            !target.closest("button") && 
+            !target.closest('[role="button"]') && 
+            !target.closest('[data-radix-dropdown-trigger]') &&
+            !target.closest('[data-radix-dropdown-content]') &&
+            !target.closest('[data-radix-tooltip-trigger]') &&
+            !target.closest('[data-radix-tooltip-content]') &&
+            !isTrailerModalOpen
+          ) {
             handleOpenDetails();
           }
         }}
