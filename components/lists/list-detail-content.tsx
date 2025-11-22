@@ -3,7 +3,7 @@
 import { useList } from "@/hooks/use-lists";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Edit, Trash2, Share2 } from "lucide-react";
+import { ArrowLeft, Edit, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
@@ -46,7 +46,7 @@ export default function ListDetailContent({ listId }: ListDetailContentProps) {
       await deleteList.mutateAsync(listId);
       toast.success("List deleted");
       router.push("/dashboard/lists");
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete list");
     }
   };
@@ -209,10 +209,10 @@ export default function ListDetailContent({ listId }: ListDetailContentProps) {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 pb-6">
-            {list.items.map((item, index) => (
+            {list.items.map((item) => (
               <Link
                 key={item.id}
-                href={`/browse/${item.mediaType}/${item.tmdbId}`}
+                href={`/${item.mediaType}/${item.tmdbId}`}
                 className="group relative"
               >
                 <div className="relative aspect-[2/3] rounded-lg overflow-hidden border bg-muted">
