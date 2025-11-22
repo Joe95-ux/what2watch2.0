@@ -2,12 +2,13 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@clerk/nextjs";
-import { Users, Loader2 } from "lucide-react";
+import { Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FollowButton } from "@/components/social/follow-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 interface User {
   id: string;
@@ -40,6 +41,7 @@ const fetchUsers = async (): Promise<UsersResponse> => {
 
 export function MembersSidebar() {
   const { isSignedIn } = useUser();
+  const { data: currentUser } = useCurrentUser();
 
   const { data, isLoading } = useQuery<UsersResponse>({
     queryKey: ["users", "sidebar"],
@@ -107,7 +109,7 @@ export function MembersSidebar() {
                         {user.listsCount} lists
                       </p>
                     </div>
-                    {isSignedIn && (
+                    {isSignedIn && currentUser?.id !== user.id && (
                       <FollowButton
                         userId={user.id}
                         size="sm"
