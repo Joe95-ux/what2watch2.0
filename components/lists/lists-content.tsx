@@ -22,6 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { MembersSidebar } from "./members-sidebar";
 
 export default function ListsContent() {
   const router = useRouter();
@@ -48,7 +49,10 @@ export default function ListsContent() {
 
   return (
     <div className="flex-1 space-y-6 p-6">
-      <div className="container max-w-7xl mx-auto">
+      <div className="container max-w-[1400px] mx-auto">
+        <div className="flex gap-6">
+          {/* Main Content */}
+          <div className="flex-1 min-w-0">
         <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 mb-6">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Curated Lists</h1>
@@ -273,6 +277,11 @@ export default function ListsContent() {
             </table>
           </div>
         )}
+          </div>
+
+          {/* Members Sidebar */}
+          <MembersSidebar />
+        </div>
       </div>
 
       <CreateListModal

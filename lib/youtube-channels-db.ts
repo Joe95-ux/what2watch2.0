@@ -6,14 +6,12 @@
 import { db } from "./db";
 
 /**
- * Get all active Nollywood YouTube channel IDs from database
+ * Get all Nollywood YouTube channel IDs from database
+ * Returns all channels (visibility controlled by isPrivate flag)
  */
 export async function getNollywoodChannelIds(): Promise<string[]> {
   try {
     const channels = await db.youTubeChannel.findMany({
-      where: {
-        isActive: true,
-      },
       orderBy: {
         order: "asc",
       },
@@ -31,14 +29,12 @@ export async function getNollywoodChannelIds(): Promise<string[]> {
 }
 
 /**
- * Get all active Nollywood YouTube channels with full details from database
+ * Get all Nollywood YouTube channels with full details from database
+ * Returns all channels (visibility controlled by isPrivate flag)
  */
 export async function getNollywoodChannels() {
   try {
     const channels = await db.youTubeChannel.findMany({
-      where: {
-        isActive: true,
-      },
       orderBy: {
         order: "asc",
       },

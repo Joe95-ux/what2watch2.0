@@ -4,8 +4,9 @@ import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 
 /**
- * Get all active YouTube channel IDs from database
+ * Get all YouTube channel IDs from database
  * Filters out private channels unless they belong to the current user
+ * Visibility is controlled by isPrivate flag only
  */
 export async function GET(request: NextRequest) {
   try {
@@ -21,6 +22,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build where clause: show public channels OR private channels owned by current user
+    // Only filter by privacy - isActive is not needed for visibility control
     const orConditions: Prisma.YouTubeChannelWhereInput[] = [
       { isPrivate: false }, // Public channels
     ];
@@ -34,7 +36,6 @@ export async function GET(request: NextRequest) {
     }
 
     const whereClause: Prisma.YouTubeChannelWhereInput = {
-      isActive: true,
       OR: orConditions,
     };
 
@@ -46,6 +47,13 @@ export async function GET(request: NextRequest) {
       select: {
         channelId: true,
       },
+    });
+
+    // Debug logging
+    console.log("[YouTube Channels List API] Query result:", {
+      totalChannels: channels.length,
+      userId: user?.id || "not authenticated",
+      whereClause,
     });
 
     const channelIds = channels.map((channel) => channel.channelId);

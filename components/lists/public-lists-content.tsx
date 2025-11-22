@@ -10,6 +10,7 @@ import { ClipboardList, Plus } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { MembersSidebar } from "./members-sidebar";
 
 // Fetch public lists (no authentication required)
 const fetchPublicLists = async (limit?: number): Promise<List[]> => {
@@ -51,53 +52,61 @@ export default function PublicListsContent() {
   }, [refetch]);
 
   return (
-    <div className="container max-w-7xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Discover Lists</h1>
-        <p className="text-muted-foreground">
-          Explore curated lists of films from the community
-        </p>
-      </div>
+    <div className="container max-w-[1400px] mx-auto px-4 py-8">
+      <div className="flex gap-6">
+        {/* Main Content */}
+        <div className="flex-1 min-w-0">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold tracking-tight mb-2">Discover Lists</h1>
+            <p className="text-muted-foreground">
+              Explore curated lists of films from the community
+            </p>
+          </div>
 
-      {isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <Skeleton key={i} className="aspect-[3/4] w-full rounded-lg" />
-          ))}
-        </div>
-      ) : lists.length === 0 ? (
-        <div className="text-center py-12 border border-dashed rounded-lg">
-          <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No public lists yet</h3>
-          <p className="text-muted-foreground mb-4">
-            Be the first to create a public list!
-          </p>
-          {isSignedIn ? (
-            <Button onClick={() => router.push("/dashboard/lists")} className="cursor-pointer">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Your First List
-            </Button>
+          {isLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <Skeleton key={i} className="aspect-[3/4] w-full rounded-lg" />
+              ))}
+            </div>
+          ) : lists.length === 0 ? (
+            <div className="text-center py-12 border border-dashed rounded-lg">
+              <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No public lists yet</h3>
+              <p className="text-muted-foreground mb-4">
+                Be the first to create a public list!
+              </p>
+              {isSignedIn ? (
+                <Button onClick={() => router.push("/dashboard/lists")} className="cursor-pointer">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First List
+                </Button>
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  <Button asChild className="cursor-pointer">
+                    <Link href="/sign-in">
+                      Sign In to Create a List
+                    </Link>
+                  </Button>
+                </div>
+              )}
+            </div>
           ) : (
-            <div className="flex items-center justify-center gap-2">
-              <Button asChild className="cursor-pointer">
-                <Link href="/sign-in">
-                  Sign In to Create a List
-                </Link>
-              </Button>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {lists.map((list: List) => (
+                <ListCard
+                  key={list.id}
+                  list={list}
+                  variant="grid"
+                />
+              ))}
             </div>
           )}
         </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {lists.map((list: List) => (
-            <ListCard
-              key={list.id}
-              list={list}
-              variant="grid"
-            />
-          ))}
-        </div>
-      )}
+
+        {/* Members Sidebar */}
+        <MembersSidebar />
+      </div>
     </div>
   );
 }
