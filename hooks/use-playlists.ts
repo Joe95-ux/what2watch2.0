@@ -35,6 +35,7 @@ export interface Playlist {
   };
   _count?: {
     items: number;
+    youtubeItems?: number;
   };
   isReadOnly?: boolean;
   createdBy?: {
