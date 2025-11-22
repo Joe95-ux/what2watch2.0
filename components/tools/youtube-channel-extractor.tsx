@@ -178,32 +178,52 @@ export function YouTubeChannelExtractor({ onOpenChange }: YouTubeChannelExtracto
     }
   };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      setIsOpen(open);
-      // Only close parent dropdown when dialog opens, not when it closes
-      if (open && onOpenChange) {
-        // Use setTimeout to ensure the dialog opens before closing the dropdown
-        setTimeout(() => {
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    
+    // Only close parent dropdown when dialog opens, not when it closes
+    if (open && onOpenChange) {
+      // Use a delay to ensure the dialog opens before closing the dropdown
+      // This prevents the dropdown from interfering with the dialog
+      setTimeout(() => {
+        if (onOpenChange) {
           onOpenChange(false);
-        }, 0);
-      }
-    }}>
+        }
+      }, 150);
+    }
+  };
+
+  const handleTriggerClick = (e: React.MouseEvent) => {
+    // Prevent the dropdown from closing immediately
+    e.stopPropagation();
+    // Don't prevent default - let DialogTrigger handle opening naturally
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
       <DialogTrigger asChild>
         <Button 
           variant="ghost" 
           size="sm" 
           className="w-full justify-start cursor-pointer"
-          onClick={(e) => {
-            // Prevent the dropdown from closing immediately
-            e.stopPropagation();
-          }}
+          onClick={handleTriggerClick}
         >
           <Youtube className="mr-2 h-4 w-4" />
           <span>YT CID Extractor</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent 
+        className="sm:max-w-[600px]"
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+        }}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>YT CID Extractor</DialogTitle>
           <DialogDescription>

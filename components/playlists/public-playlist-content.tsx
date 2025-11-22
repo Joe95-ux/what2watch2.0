@@ -91,7 +91,8 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
   const playlistWithUser = playlist as PlaylistWithUser;
   const isOwner = Boolean(currentUserId && playlist && currentUserId === playlist.userId);
 
-  // Redirect owner to regular playlist page for better UX
+  // Redirect owner to regular playlist page for better UX (only if playlist is public)
+  // For private playlists, owners can still view them here but we'll redirect for consistency
   useEffect(() => {
     if (isOwner && playlist && !isLoading) {
       router.replace(`/playlists/${playlist.id}`);

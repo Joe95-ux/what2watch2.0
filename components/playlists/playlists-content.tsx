@@ -119,19 +119,44 @@ export default function PlaylistsContent() {
     if (playlist.coverImage) {
       return playlist.coverImage;
     }
+    
+    // Combine both regular items and YouTube items, sorted by order
+    const allItems: Array<{ order: number; posterPath?: string | null; thumbnail?: string | null }> = [];
+    
+    // Add regular items
     if (playlist.items && playlist.items.length > 0) {
-      const firstItem = playlist.items[0];
-      if (firstItem.posterPath) {
-        return getPosterUrl(firstItem.posterPath, "w500");
-      }
+      playlist.items.forEach(item => {
+        allItems.push({
+          order: item.order,
+          posterPath: item.posterPath,
+        });
+      });
     }
-    // Use first YouTube item's thumbnail as cover if available
+    
+    // Add YouTube items
     if (playlist.youtubeItems && playlist.youtubeItems.length > 0) {
-      const firstYouTubeItem = playlist.youtubeItems[0];
-      if (firstYouTubeItem.thumbnail) {
-        return firstYouTubeItem.thumbnail;
+      playlist.youtubeItems.forEach(item => {
+        allItems.push({
+          order: item.order,
+          thumbnail: item.thumbnail,
+        });
+      });
+    }
+    
+    // Sort by order and find the first item with a cover
+    allItems.sort((a, b) => a.order - b.order);
+    
+    for (const item of allItems) {
+      // Prefer regular item poster if available
+      if (item.posterPath) {
+        return getPosterUrl(item.posterPath, "w500");
+      }
+      // Fall back to YouTube thumbnail if no poster
+      if (item.thumbnail) {
+        return item.thumbnail;
       }
     }
+    
     return null;
   };
 

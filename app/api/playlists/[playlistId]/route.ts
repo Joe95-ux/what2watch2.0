@@ -63,7 +63,8 @@ export async function GET(
         );
       }
 
-      if (!playlist.isPublic) {
+      // Allow owners to see their private playlists
+      if (!playlist.isPublic && currentUserId !== playlist.userId) {
         return NextResponse.json(
           { error: "Playlist is private" },
           { status: 403 }

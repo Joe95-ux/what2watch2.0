@@ -29,25 +29,58 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
   const isOwner = currentUser && playlist.userId === currentUser.id;
   const canLike = showLikeButton && !isOwner && playlist.user;
 
+  const handleCardClick = () => {
+    // If user is the owner, route to the regular playlist page (works for both public and private)
+    // Otherwise, route to the public page
+    if (isOwner) {
+      router.push(`/playlists/${playlist.id}`);
+    } else {
+      router.push(`/playlists/${playlist.id}/public`);
+    }
+  };
+
   const getPlaylistCover = () => {
     if (playlist.coverImage) {
       return playlist.coverImage;
     }
-    // Use first item's poster as cover if available
+    
+    // Combine both regular items and YouTube items, sorted by order
+    const allItems: Array<{ order: number; posterPath?: string | null; thumbnail?: string | null }> = [];
+    
+    // Add regular items
     if (playlist.items && playlist.items.length > 0) {
-      const firstItem = playlist.items[0];
-      if (firstItem.posterPath) {
-        return getPosterUrl(firstItem.posterPath, "w500");
-      }
+      playlist.items.forEach(item => {
+        allItems.push({
+          order: item.order,
+          posterPath: item.posterPath,
+        });
+      });
     }
-    // Use first YouTube item's thumbnail as cover if available
-    // Check YouTube items even if regular items exist but have no poster
+    
+    // Add YouTube items
     if (playlist.youtubeItems && playlist.youtubeItems.length > 0) {
-      const firstYouTubeItem = playlist.youtubeItems[0];
-      if (firstYouTubeItem.thumbnail) {
-        return firstYouTubeItem.thumbnail;
+      playlist.youtubeItems.forEach(item => {
+        allItems.push({
+          order: item.order,
+          thumbnail: item.thumbnail,
+        });
+      });
+    }
+    
+    // Sort by order and find the first item with a cover
+    allItems.sort((a, b) => a.order - b.order);
+    
+    for (const item of allItems) {
+      // Prefer regular item poster if available
+      if (item.posterPath) {
+        return getPosterUrl(item.posterPath, "w500");
+      }
+      // Fall back to YouTube thumbnail if no poster
+      if (item.thumbnail) {
+        return item.thumbnail;
       }
     }
+    
     return null;
   };
 
@@ -63,7 +96,7 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
         variant === "grid" && "w-full",
         className
       )}
-      onClick={() => router.push(`/playlists/${playlist.id}/public`)}
+      onClick={handleCardClick}
     >
       <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-muted border border-border hover:border-primary/50 transition-colors">
         {/* Cover Image */}

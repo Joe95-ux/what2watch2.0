@@ -206,7 +206,18 @@ export default function CreatePlaylistModal({ isOpen, onClose, playlist }: Creat
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+      <DialogContent 
+        className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0"
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+        }}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+        }}
+      >
         <div className="px-6 pt-6 pb-4 border-b">
           <DialogTitle className="text-[1.5rem] font-bold mb-2">
             {isEditing ? "Edit Playlist" : "Create Playlist"}
