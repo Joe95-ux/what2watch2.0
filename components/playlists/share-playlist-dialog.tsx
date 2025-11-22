@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Check, Facebook, Twitter, Link2 } from "lucide-react";
+import { Copy, Check, Facebook, Twitter, Link2, MessageCircle, Mail, Instagram } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import type { Playlist } from "@/hooks/use-playlists";
@@ -87,7 +87,7 @@ export default function SharePlaylistDialog({ playlist, isOpen, onClose, isOwnPl
     }
   };
 
-  const handleSocialShare = async (platform: "facebook" | "twitter") => {
+  const handleSocialShare = async (platform: "facebook" | "twitter" | "whatsapp" | "email" | "instagram") => {
     const encodedUrl = encodeURIComponent(shareUrl);
     const encodedTitle = encodeURIComponent(playlist.name);
     const encodedDescription = encodeURIComponent(playlist.description || "");
@@ -97,12 +97,26 @@ export default function SharePlaylistDialog({ playlist, isOpen, onClose, isOwnPl
       shareUrl_platform = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
     } else if (platform === "twitter") {
       shareUrl_platform = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}${encodedDescription ? ` - ${encodedDescription}` : ""}`;
+    } else if (platform === "whatsapp") {
+      shareUrl_platform = `https://wa.me/?text=${encodedTitle}%20${encodedUrl}`;
+    } else if (platform === "email") {
+      const subject = encodeURIComponent(playlist.name);
+      const body = encodeURIComponent(`${playlist.description || ""}\n\n${shareUrl}`);
+      shareUrl_platform = `mailto:?subject=${subject}&body=${body}`;
+    } else if (platform === "instagram") {
+      // Instagram doesn't support direct sharing via URL, so we'll copy the link
+      await handleCopyLink();
+      return;
     }
 
     if (shareUrl_platform) {
       // Record share event before opening - await to ensure it completes
       await recordShareEvent(platform);
-      window.open(shareUrl_platform, "_blank", "width=600,height=400");
+      if (platform === "email") {
+        window.location.href = shareUrl_platform;
+      } else {
+        window.open(shareUrl_platform, "_blank", "width=600,height=400");
+      }
     }
   };
 
@@ -168,10 +182,10 @@ export default function SharePlaylistDialog({ playlist, isOpen, onClose, isOwnPl
               {/* Social Share Buttons */}
               <div className="space-y-2">
                 <Label>Share on</Label>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <Button
                     variant="outline"
-                    className="flex-1"
+                    className="w-full"
                     onClick={() => handleSocialShare("facebook")}
                   >
                     <Facebook className="h-4 w-4 mr-2" />
@@ -179,11 +193,35 @@ export default function SharePlaylistDialog({ playlist, isOpen, onClose, isOwnPl
                   </Button>
                   <Button
                     variant="outline"
-                    className="flex-1"
+                    className="w-full"
                     onClick={() => handleSocialShare("twitter")}
                   >
                     <Twitter className="h-4 w-4 mr-2" />
                     Twitter
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => handleSocialShare("whatsapp")}
+                  >
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    WhatsApp
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => handleSocialShare("email")}
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Email
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full col-span-2"
+                    onClick={() => handleSocialShare("instagram")}
+                  >
+                    <Instagram className="h-4 w-4 mr-2" />
+                    Instagram (Copy Link)
                   </Button>
                 </div>
               </div>
