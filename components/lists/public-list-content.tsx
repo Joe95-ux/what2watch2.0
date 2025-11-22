@@ -347,8 +347,8 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
   return (
     <>
       <div className="min-h-screen bg-background">
-        {/* Header with Cover */}
-        <div className="relative -mt-[65px] h-[60vh] sm:h-[70vh] min-h-[300px] max-h-[75vh] overflow-hidden">
+        {/* Banner Section */}
+        <div className="relative -mt-[65px] h-[30vh] min-h-[200px] max-h-[300px] sm:h-[40vh] sm:min-h-[250px] md:h-[50vh] md:min-h-[300px] overflow-hidden">
           {coverImage ? (
             <>
               <NextImage
@@ -364,134 +364,123 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5" />
           )}
+        </div>
 
-          <div className="absolute inset-0 flex items-end">
-            <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 w-full">
-              <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-                <div className="flex-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => router.back()}
-                    className="mb-4"
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back
-                  </Button>
-                  <h1 className="hidden sm:block text-4xl font-bold mb-2">{list.name}</h1>
-                  {list.description && (
-                    <p className="hidden sm:block text-lg text-muted-foreground mb-4 max-w-2xl">
-                      {list.description}
-                    </p>
-                  )}
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                    <span>
-                      {list.items?.length || 0} {list.items?.length === 1 ? "film" : "films"}
-                    </span>
-                    {list.tags && list.tags.length > 0 && (
-                      <>
-                        <span>•</span>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {list.tags.slice(0, 3).map((tag) => (
-                            <Badge key={tag} variant="secondary" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                          {list.tags.length > 3 && (
-                            <span className="text-xs">+{list.tags.length - 3} more</span>
-                          )}
-                        </div>
-                      </>
-                    )}
+        {/* Info Section - Below banner */}
+        <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+            <div className="flex-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.back()}
+                className="mb-4"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">{list.name}</h1>
+              {list.description && (
+                <p className="text-base sm:text-lg text-muted-foreground mb-4 max-w-2xl">
+                  {list.description}
+                </p>
+              )}
+              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                <span>
+                  {list.items?.length || 0} {list.items?.length === 1 ? "film" : "films"}
+                </span>
+                {list.tags && list.tags.length > 0 && (
+                  <>
                     <span>•</span>
-                    <span>Updated {format(new Date(list.updatedAt), "MMM d, yyyy")}</span>
-                    <span>•</span>
-                    <Badge variant="outline" className="text-xs">
-                      {list.visibility === "PUBLIC" ? "Public" : list.visibility === "FOLLOWERS_ONLY" ? "Followers Only" : "Private"}
-                    </Badge>
-                    <span>•</span>
-                    <Link href={`/users/${user?.id}`} className="hover:text-primary transition-colors cursor-pointer">
-                      By {displayName}
-                    </Link>
-                  </div>
-                </div>
-                
-                {/* Actions */}
-                <div className="flex items-center gap-2">
-                  {/* Like Button - Only for PUBLIC or FOLLOWERS_ONLY lists */}
-                  {canLike && (
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={handleLike}
-                      className="cursor-pointer"
-                    >
-                      <Heart
-                        className={`h-5 w-5 ${isLiked ? "fill-red-500 text-red-500" : ""}`}
-                      />
-                    </Button>
-                  )}
-                  {isOwner ? (
-                    <>
-                      <Button
-                        variant="outline"
-                        onClick={handleShare}
-                        className="gap-2 cursor-pointer"
-                      >
-                        <Share2 className="h-4 w-4" />
-                        Share
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="icon" className="cursor-pointer">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setIsEditModalOpen(true)} className="cursor-pointer">
-                            <Edit2 className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => setIsDeleteDialogOpen(true)}
-                            className="text-destructive cursor-pointer"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </>
-                  ) : (
-                    user?.id && (
-                      <>
-                        <FollowButton userId={user.id} />
-                        <Button variant="outline" onClick={handleShare} className="gap-2 cursor-pointer">
-                          <Share2 className="h-4 w-4" />
-                          Share
-                        </Button>
-                      </>
-                    )
-                  )}
-                </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {list.tags.slice(0, 3).map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                      {list.tags.length > 3 && (
+                        <span className="text-xs">+{list.tags.length - 3} more</span>
+                      )}
+                    </div>
+                  </>
+                )}
+                <span>•</span>
+                <span>Updated {format(new Date(list.updatedAt), "MMM d, yyyy")}</span>
+                <span>•</span>
+                <Badge variant="outline" className="text-xs">
+                  {list.visibility === "PUBLIC" ? "Public" : list.visibility === "FOLLOWERS_ONLY" ? "Followers Only" : "Private"}
+                </Badge>
+                <span>•</span>
+                <Link href={`/users/${user?.id}`} className="hover:text-primary transition-colors cursor-pointer">
+                  By {displayName}
+                </Link>
               </div>
+            </div>
+            
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              {/* Like Button - Only for PUBLIC or FOLLOWERS_ONLY lists */}
+              {canLike && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleLike}
+                  className="cursor-pointer"
+                >
+                  <Heart
+                    className={`h-5 w-5 ${isLiked ? "fill-red-500 text-red-500" : ""}`}
+                  />
+                </Button>
+              )}
+              {isOwner ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleShare}
+                    className="gap-2 cursor-pointer"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    Share
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon" className="cursor-pointer">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setIsEditModalOpen(true)} className="cursor-pointer">
+                        <Edit2 className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => setIsDeleteDialogOpen(true)}
+                        className="text-destructive cursor-pointer"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              ) : (
+                user?.id && (
+                  <>
+                    <FollowButton userId={user.id} />
+                    <Button variant="outline" onClick={handleShare} className="gap-2 cursor-pointer">
+                      <Share2 className="h-4 w-4" />
+                      Share
+                    </Button>
+                  </>
+                )
+              )}
             </div>
           </div>
         </div>
 
         {/* List Items */}
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Mobile Title and Description Section */}
-          <div className="sm:hidden mb-6">
-            <h1 className="text-2xl font-bold mb-2">{list.name}</h1>
-            {list.description && (
-              <p className="text-sm text-muted-foreground">
-                {list.description}
-              </p>
-            )}
-          </div>
-
           {itemsWithPosition.length > 0 ? (
             <>
               {/* Filters and Sort */}
