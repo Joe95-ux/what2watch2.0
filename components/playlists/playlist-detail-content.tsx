@@ -236,6 +236,8 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
     ? playlist.coverImage
     : itemsAsTMDB.length > 0 && itemsAsTMDB[0].item.poster_path
     ? getPosterUrl(itemsAsTMDB[0].item.poster_path, "original")
+    : youtubeItems.length > 0 && youtubeItems[0].thumbnail
+    ? youtubeItems[0].thumbnail
     : null;
 
   return (
@@ -252,7 +254,7 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
           </>
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5" />
+          <div className="w-full h-full bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30" />
         )}
 
         <div className="absolute inset-0 flex items-end">

@@ -125,6 +125,13 @@ export default function PlaylistsContent() {
         return getPosterUrl(firstItem.posterPath, "w500");
       }
     }
+    // Use first YouTube item's thumbnail as cover if available
+    if (playlist.youtubeItems && playlist.youtubeItems.length > 0) {
+      const firstYouTubeItem = playlist.youtubeItems[0];
+      if (firstYouTubeItem.thumbnail) {
+        return firstYouTubeItem.thumbnail;
+      }
+    }
     return null;
   };
 
@@ -223,7 +230,7 @@ export default function PlaylistsContent() {
               <TableBody>
                 {paginatedPlaylists.map((playlist) => {
                   const coverImage = getPlaylistCover(playlist);
-                  const itemCount = playlist._count?.items || playlist.items?.length || 0;
+                  const itemCount = (playlist._count?.items || playlist.items?.length || 0) + (playlist._count?.youtubeItems || playlist.youtubeItems?.length || 0);
                   const authorName = playlist.user?.displayName || playlist.user?.username || "Unknown";
                   return (
                     <TableRow
@@ -242,9 +249,7 @@ export default function PlaylistsContent() {
                               sizes="64px"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <span className="text-xs text-muted-foreground">No Cover</span>
-                            </div>
+                            <div className="w-full h-full bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30" />
                           )}
                         </div>
                       </TableCell>

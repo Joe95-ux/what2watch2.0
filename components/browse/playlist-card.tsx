@@ -40,11 +40,18 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
         return getPosterUrl(firstItem.posterPath, "w500");
       }
     }
+    // Use first YouTube item's thumbnail as cover if available
+    if (playlist.youtubeItems && playlist.youtubeItems.length > 0) {
+      const firstYouTubeItem = playlist.youtubeItems[0];
+      if (firstYouTubeItem.thumbnail) {
+        return firstYouTubeItem.thumbnail;
+      }
+    }
     return null;
   };
 
   const coverImage = getPlaylistCover();
-  const itemCount = playlist._count?.items || playlist.items?.length || 0;
+  const itemCount = (playlist._count?.items || playlist.items?.length || 0) + (playlist._count?.youtubeItems || playlist.youtubeItems?.length || 0);
   const displayName = playlist.user?.displayName || playlist.user?.username || "Unknown";
 
   return (
@@ -68,9 +75,7 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
             sizes="(max-width: 640px) 180px, 200px"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
-            <span className="text-muted-foreground text-sm text-center px-2">No Cover</span>
-          </div>
+          <div className="w-full h-full bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30" />
         )}
 
         {/* Gradient Overlay */}

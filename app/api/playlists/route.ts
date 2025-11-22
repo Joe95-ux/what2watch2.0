@@ -53,7 +53,10 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ playlist
           },
         },
         _count: {
-          select: { items: true },
+          select: { 
+            items: true,
+            youtubeItems: true,
+          },
         },
       },
       orderBy: { updatedAt: "desc" },
@@ -137,8 +140,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
         items: {
           orderBy: { order: "asc" },
         },
+        youtubeItems: {
+          orderBy: { order: "asc" },
+        },
         _count: {
-          select: { items: true },
+          select: { 
+            items: true,
+            youtubeItems: true,
+          },
         },
       },
     });

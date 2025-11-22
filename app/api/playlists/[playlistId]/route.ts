@@ -48,7 +48,10 @@ export async function GET(
             },
           },
           _count: {
-            select: { items: true },
+            select: { 
+              items: true,
+              youtubeItems: true,
+            },
           },
         },
       });
@@ -242,7 +245,10 @@ export async function PUT(
           orderBy: { order: "asc" },
         },
         _count: {
-          select: { items: true },
+          select: { 
+            items: true,
+            youtubeItems: true,
+          },
         },
       },
     });

@@ -36,6 +36,20 @@ export interface YouTubePlaylist {
   playlistUrl: string;
 }
 
+export interface YouTubePost {
+  id: string;
+  text: string;
+  author: string;
+  authorThumbnail?: string;
+  publishedAt: string;
+  likeCount: number;
+  commentCount: number;
+  images?: string[];
+  videoId?: string;
+  videoTitle?: string;
+  videoThumbnail?: string;
+}
+
 interface YouTubeChannelResponse {
   channel: YouTubeChannel;
 }
@@ -49,6 +63,13 @@ interface YouTubeVideosResponse {
 
 interface YouTubePlaylistsResponse {
   playlists: YouTubePlaylist[];
+  nextPageToken?: string;
+  hasMore: boolean;
+  totalResults: number;
+}
+
+interface YouTubePostsResponse {
+  posts: YouTubePost[];
   nextPageToken?: string;
   hasMore: boolean;
   totalResults: number;
@@ -140,6 +161,28 @@ export function useYouTubeChannelVideos(
 }
 
 /**
+ * Fetch YouTube channel posts
+ */
+async function fetchChannelPosts(
+  channelId: string,
+  pageToken?: string
+): Promise<YouTubePostsResponse> {
+  const params = new URLSearchParams();
+  params.set("maxResults", "20");
+  if (pageToken) {
+    params.set("pageToken", pageToken);
+  }
+
+  const response = await fetch(
+    `/api/youtube/channels/${channelId}/posts?${params.toString()}`
+  );
+  if (!response.ok) {
+    throw new Error("Failed to fetch posts");
+  }
+  return response.json();
+}
+
+/**
  * Hook to fetch YouTube channel playlists with pagination
  */
 export function useYouTubeChannelPlaylists(
@@ -149,6 +192,22 @@ export function useYouTubeChannelPlaylists(
   return useQuery({
     queryKey: ["youtube-channel-playlists", channelId, pageToken],
     queryFn: () => fetchChannelPlaylists(channelId!, pageToken),
+    enabled: !!channelId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
+  });
+}
+
+/**
+ * Hook to fetch YouTube channel posts with pagination
+ */
+export function useYouTubeChannelPosts(
+  channelId: string | null,
+  pageToken?: string
+) {
+  return useQuery({
+    queryKey: ["youtube-channel-posts", channelId, pageToken],
+    queryFn: () => fetchChannelPosts(channelId!, pageToken),
     enabled: !!channelId,
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 30, // 30 minutes

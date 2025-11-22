@@ -4,11 +4,12 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Heart, Youtube, ExternalLink, Loader2, ChevronDown, ChevronUp, Search } from "lucide-react";
-import { useYouTubeChannel, useYouTubeChannelVideos, useYouTubeChannelPlaylists, YouTubeVideo, YouTubePlaylist } from "@/hooks/use-youtube-channel";
+import { useYouTubeChannel, useYouTubeChannelVideos, useYouTubeChannelPlaylists, useYouTubeChannelPosts, YouTubeVideo, YouTubePlaylist, YouTubePost } from "@/hooks/use-youtube-channel";
 import { useToggleFavoriteChannel } from "@/hooks/use-favorite-channels";
 import YouTubeVideoCard from "@/components/youtube/youtube-video-card";
 import YouTubeChannelStickyNav from "@/components/youtube/youtube-channel-sticky-nav";
 import YouTubeChannelSkeleton from "@/components/youtube/youtube-channel-skeleton";
+import YouTubePosts from "@/components/youtube/youtube-posts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,6 +29,9 @@ export default function YouTubeChannelPage() {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [accumulatedVideos, setAccumulatedVideos] = useState<YouTubeVideo[]>([]);
+  const [postsPageToken, setPostsPageToken] = useState<string | undefined>();
+  const [accumulatedPosts, setAccumulatedPosts] = useState<YouTubePost[]>([]);
   const heroRef = useRef<HTMLDivElement>(null);
   
   const { data: videosData, isLoading: isLoadingVideos } = useYouTubeChannelVideos(
@@ -38,11 +42,49 @@ export default function YouTubeChannelPage() {
     channelId,
     playlistsPageToken
   );
+  const { data: postsData, isLoading: isLoadingPosts } = useYouTubeChannelPosts(
+    channelId,
+    postsPageToken
+  );
   const toggleFavorite = useToggleFavoriteChannel();
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
 
-  const videos = videosData?.videos || [];
+  // Accumulate videos when new data arrives
+  useEffect(() => {
+    if (videosData?.videos) {
+      if (pageToken) {
+        // Append new videos when loading more
+        setAccumulatedVideos((prev) => [...prev, ...videosData.videos]);
+      } else {
+        // Replace videos when loading first page
+        setAccumulatedVideos(videosData.videos);
+      }
+    }
+  }, [videosData, pageToken]);
+
+  // Accumulate posts when new data arrives
+  useEffect(() => {
+    if (postsData?.posts) {
+      if (postsPageToken) {
+        // Append new posts when loading more
+        setAccumulatedPosts((prev) => [...prev, ...postsData.posts]);
+      } else {
+        // Replace posts when loading first page
+        setAccumulatedPosts(postsData.posts);
+      }
+    }
+  }, [postsData, postsPageToken]);
+
+  // Reset accumulated data when channel changes
+  useEffect(() => {
+    setAccumulatedVideos([]);
+    setAccumulatedPosts([]);
+    setPageToken(undefined);
+    setPostsPageToken(undefined);
+  }, [channelId]);
+
+  const videos = accumulatedVideos;
   const hasMore = videosData?.hasMore || false;
   const nextPageToken = videosData?.nextPageToken;
 
@@ -66,6 +108,15 @@ export default function YouTubeChannelPage() {
       setPlaylistsPageToken(playlistsData.nextPageToken);
     }
   };
+
+  const handleLoadMorePosts = () => {
+    if (postsData?.nextPageToken) {
+      setPostsPageToken(postsData.nextPageToken);
+    }
+  };
+
+  const posts = accumulatedPosts;
+  const hasMorePosts = postsData?.hasMore || false;
 
   const playlists = playlistsData?.playlists || [];
   const hasMorePlaylists = playlistsData?.hasMore || false;
@@ -318,9 +369,13 @@ export default function YouTubeChannelPage() {
           )}
 
           {activeTab === "posts" && (
-            <div className="text-center py-12 text-muted-foreground">
-              <p>Posts feature coming soon.</p>
-            </div>
+            <YouTubePosts
+              posts={posts}
+              isLoading={isLoadingPosts}
+              hasMore={hasMorePosts}
+              onLoadMore={handleLoadMorePosts}
+              isLoadingMore={isLoadingPosts && postsPageToken !== undefined}
+            />
           )}
 
           {activeTab === "playlists" && (

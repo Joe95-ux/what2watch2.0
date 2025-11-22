@@ -32,14 +32,6 @@ export function YouTubeChannelExtractor({ onOpenChange }: YouTubeChannelExtracto
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
-  const handleOpenChange = (open: boolean) => {
-    setIsOpen(open);
-    // Close parent dropdown when dialog opens
-    if (open && onOpenChange) {
-      onOpenChange(false);
-    }
-  };
-
   const handleExtract = async () => {
     if (!input.trim()) {
       setError("Please enter a channel name or URL");
@@ -187,9 +179,26 @@ export function YouTubeChannelExtractor({ onOpenChange }: YouTubeChannelExtracto
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      setIsOpen(open);
+      // Only close parent dropdown when dialog opens, not when it closes
+      if (open && onOpenChange) {
+        // Use setTimeout to ensure the dialog opens before closing the dropdown
+        setTimeout(() => {
+          onOpenChange(false);
+        }, 0);
+      }
+    }}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="w-full justify-start cursor-pointer">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="w-full justify-start cursor-pointer"
+          onClick={(e) => {
+            // Prevent the dropdown from closing immediately
+            e.stopPropagation();
+          }}
+        >
           <Youtube className="mr-2 h-4 w-4" />
           <span>YT CID Extractor</span>
         </Button>
