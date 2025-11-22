@@ -15,24 +15,41 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Build OR conditions: public channels OR user's private channels
-    const orConditions: Prisma.YouTubeChannelWhereInput[] = [
-      { isPrivate: false }, // All public channels
-    ];
+    // Build where clause: public channels OR user's private channels
+    let whereClause: Prisma.YouTubeChannelWhereInput;
 
-    // If user is authenticated, add condition for their private channels
     if (user) {
-      orConditions.push({
-        isPrivate: true,
-        addedByUserId: user.id, // user.id is a string (ObjectId), which matches addedByUserId type
-      });
+      // User is authenticated: show public channels OR their private channels
+      whereClause = {
+        OR: [
+          { isPrivate: false }, // All public channels
+          {
+            isPrivate: true,
+            addedByUserId: user.id, // User's private channels
+          },
+        ],
+      };
+    } else {
+      // User not authenticated: only show public channels
+      // Don't use OR with single condition - just use the condition directly
+      whereClause = {
+        isPrivate: false,
+      };
     }
+
+    // Debug: Log the where clause
+    console.log("[YouTube Channels API] Where clause:", JSON.stringify(whereClause, null, 2));
+
+    // Test: Try a simple query first to see if basic query works
+    const testChannels = await db.youTubeChannel.findMany({
+      where: { isPrivate: false },
+      select: { channelId: true },
+    });
+    console.log("[YouTube Channels API] Test query (isPrivate: false):", testChannels.length);
 
     // Simple query: public channels OR user's private channels
     const channels = await db.youTubeChannel.findMany({
-      where: {
-        OR: orConditions,
-      },
+      where: whereClause,
       orderBy: {
         order: "asc",
       },
