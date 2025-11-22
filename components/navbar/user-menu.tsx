@@ -51,13 +51,27 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <Link href="/dashboard">
-          <DropdownMenuItem className="cursor-pointer">
+          <DropdownMenuItem 
+            className="cursor-pointer"
+            onSelect={(e) => {
+              // Prevent default closing behavior - close manually after navigation
+              e.preventDefault();
+              setTimeout(() => setIsDropdownOpen(false), 100);
+            }}
+          >
             <LayoutDashboard className="mr-2 h-4 w-4" />
             <span>Dashboard</span>
           </DropdownMenuItem>
         </Link>
         <Link href="/settings">
-          <DropdownMenuItem className="cursor-pointer">
+          <DropdownMenuItem 
+            className="cursor-pointer"
+            onSelect={(e) => {
+              // Prevent default closing behavior - close manually after navigation
+              e.preventDefault();
+              setTimeout(() => setIsDropdownOpen(false), 100);
+            }}
+          >
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </DropdownMenuItem>
@@ -79,22 +93,46 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             <DropdownMenuItem
-              onClick={() => setTheme("light")}
+              onClick={() => {
+                setTheme("light");
+                // Close menu after theme change
+                setTimeout(() => setIsDropdownOpen(false), 100);
+              }}
               className="cursor-pointer"
+              onSelect={(e) => {
+                // Prevent default closing behavior - close manually
+                e.preventDefault();
+              }}
             >
               <Sun className="mr-2 h-4 w-4" />
               <span>Light</span>
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => setTheme("dark")}
+              onClick={() => {
+                setTheme("dark");
+                // Close menu after theme change
+                setTimeout(() => setIsDropdownOpen(false), 100);
+              }}
               className="cursor-pointer"
+              onSelect={(e) => {
+                // Prevent default closing behavior - close manually
+                e.preventDefault();
+              }}
             >
               <Moon className="mr-2 h-4 w-4" />
               <span>Dark</span>
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => setTheme("system")}
+              onClick={() => {
+                setTheme("system");
+                // Close menu after theme change
+                setTimeout(() => setIsDropdownOpen(false), 100);
+              }}
               className="cursor-pointer"
+              onSelect={(e) => {
+                // Prevent default closing behavior - close manually
+                e.preventDefault();
+              }}
             >
               <Monitor className="mr-2 h-4 w-4" />
               <span>System</span>
@@ -111,8 +149,16 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
         <DropdownMenuSeparator />
 
         <DropdownMenuItem
-          onClick={handleSignOut}
+          onClick={() => {
+            handleSignOut();
+            // Close menu after sign out
+            setTimeout(() => setIsDropdownOpen(false), 100);
+          }}
           className="cursor-pointer text-destructive focus:text-destructive"
+          onSelect={(e) => {
+            // Prevent default closing behavior - close manually
+            e.preventDefault();
+          }}
         >
           <LogOut className="mr-2 h-4 w-4" />
           <span>Logout</span>

@@ -194,7 +194,7 @@ export default function YouTubeVideoCard({
         )}
 
         {/* Share Button - Top Right */}
-        <div className="absolute top-2 right-2 z-[10] opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-2 right-2 z-[10] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
           <DropdownMenu open={isShareDropdownOpen} onOpenChange={setIsShareDropdownOpen}>
             <DropdownMenuTrigger asChild>
               <CircleActionButton
@@ -286,7 +286,7 @@ export default function YouTubeVideoCard({
 
         {/* Actions Dropdown Menu - Top Left (only if channelId provided or onRemove exists) */}
         {(channelId || onRemove) && (
-          <div className="absolute top-2 left-2 z-[10] opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="absolute top-2 left-2 z-[10] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
             <DropdownMenu open={isActionsDropdownOpen} onOpenChange={setIsActionsDropdownOpen}>
               <DropdownMenuTrigger asChild>
                 <CircleActionButton

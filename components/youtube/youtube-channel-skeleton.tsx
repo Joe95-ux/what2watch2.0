@@ -13,7 +13,7 @@ export default function YouTubeChannelSkeleton() {
 
         {/* Channel Info Skeleton */}
         <div className="mb-8">
-          <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+          <div className="flex flex-row gap-6 items-center">
             {/* Avatar Skeleton */}
             <Skeleton className="w-32 h-32 sm:w-40 sm:h-40 rounded-full flex-shrink-0" />
             

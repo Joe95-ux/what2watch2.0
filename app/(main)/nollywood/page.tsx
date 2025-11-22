@@ -175,7 +175,7 @@ export default function NollywoodPage() {
                   align: "start",
                   slidesToScroll: 4,
                   breakpoints: {
-                    "(max-width: 640px)": { slidesToScroll: 2 },
+                    "(max-width: 640px)": { slidesToScroll: 1 },
                     "(max-width: 1024px)": { slidesToScroll: 3 },
                     "(max-width: 1280px)": { slidesToScroll: 4 },
                   },
