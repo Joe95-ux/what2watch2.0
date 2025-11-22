@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 
 /**
@@ -6,10 +7,31 @@ import { db } from "@/lib/db";
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { channelId } = body;
+    const { userId } = await auth();
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
 
-    console.log("[Add Channel ID API] Request received:", { channelId });
+    // Get the user from database
+    const user = await db.user.findUnique({
+      where: { clerkId: userId },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    const body = await request.json();
+    const { channelId, isPrivate = false } = body;
+
+    console.log("[Add Channel ID API] Request received:", { channelId, isPrivate });
 
     if (!channelId || typeof channelId !== "string") {
       console.error("[Add Channel ID API] Invalid channelId:", channelId);
@@ -36,7 +58,7 @@ export async function POST(request: NextRequest) {
     if (existing) {
       console.log("[Add Channel ID API] Channel ID already exists:", channelId);
       return NextResponse.json(
-        { error: "Channel ID already exists in the database", message: "Channel ID is already added" },
+        { error: "Channel ID already exists in the database", message: "Channel ID is already added. You can mark it as private if you own it." },
         { status: 400 }
       );
     }
@@ -55,6 +77,8 @@ export async function POST(request: NextRequest) {
       data: {
         channelId,
         isActive: true,
+        isPrivate: Boolean(isPrivate),
+        addedByUserId: isPrivate ? user.id : null,
         order: nextOrder,
       },
     });

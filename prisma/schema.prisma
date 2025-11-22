@@ -786,6 +786,8 @@ model YouTubeChannel {
   thumbnail     String?  // Channel thumbnail URL (optional)
   channelUrl    String?  // Full YouTube channel URL (optional)
   isActive      Boolean  @default(true) // Whether channel is active/visible
+  isPrivate     Boolean  @default(false) // Whether channel is private (only visible to user who added it)
+  addedByUserId String?  @db.ObjectId // User who added this channel (null for public channels)
   order         Int      @default(0) // Display order
   
   createdAt     DateTime @default(now())
@@ -793,6 +795,8 @@ model YouTubeChannel {
 
   @@map("youtube_channels")
   @@index([isActive])
+  @@index([isPrivate])
+  @@index([addedByUserId])
   @@index([order])
 }
 

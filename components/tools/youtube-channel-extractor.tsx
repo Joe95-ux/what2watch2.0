@@ -5,11 +5,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Check, Youtube, Search, Loader2, AlertCircle, Plus } from "lucide-react";
+import { Copy, Check, Youtube, Search, Loader2, AlertCircle, Plus, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { extractChannelIdFromUrl } from "@/lib/youtube-channels";
 import { useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface YouTubeChannel {
   id: string;
@@ -31,6 +32,8 @@ export function YouTubeChannelExtractor({ onOpenChange }: YouTubeChannelExtracto
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
+  const [privateChannels, setPrivateChannels] = useState<Set<string>>(new Set());
+  const [existingChannels, setExistingChannels] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
   const handleExtract = async () => {
@@ -55,12 +58,14 @@ export function YouTubeChannelExtractor({ onOpenChange }: YouTubeChannelExtracto
           // Fetch channel details by ID
           const response = await fetch(`/api/youtube/channels?channelIds=${encodeURIComponent(channelId)}`);
           if (response.ok) {
-            const data = await response.json();
-            if (data.channels && data.channels.length > 0) {
-              setChannels(data.channels);
-            } else {
-              setError("Channel not found. Please check the URL.");
-            }
+          const data = await response.json();
+          if (data.channels && data.channels.length > 0) {
+            setChannels(data.channels);
+            // Check if channel already exists
+            await checkExistingChannels([channelId]);
+          } else {
+            setError("Channel not found. Please check the URL.");
+          }
           } else {
             setError("Failed to fetch channel information.");
           }
@@ -81,6 +86,25 @@ export function YouTubeChannelExtractor({ onOpenChange }: YouTubeChannelExtracto
     }
   };
 
+  const checkExistingChannels = async (channelIds: string[]) => {
+    try {
+      const response = await fetch("/api/youtube/channels/list");
+      if (response.ok) {
+        const data = await response.json();
+        const existingIds = new Set(data.channelIds || []);
+        const existing = new Set<string>();
+        channelIds.forEach((id) => {
+          if (existingIds.has(id)) {
+            existing.add(id);
+          }
+        });
+        setExistingChannels(existing);
+      }
+    } catch (err) {
+      console.error("[YT CID Extractor] Error checking existing channels:", err);
+    }
+  };
+
   const searchChannels = async (query: string) => {
     try {
       console.log("[YT CID Extractor] Searching for channels with query:", query);
@@ -92,6 +116,9 @@ export function YouTubeChannelExtractor({ onOpenChange }: YouTubeChannelExtracto
         console.log("[YT CID Extractor] Received channels:", data.channels?.length || 0);
         if (data.channels && data.channels.length > 0) {
           setChannels(data.channels);
+          // Check which channels already exist
+          const channelIds = data.channels.map((ch: YouTubeChannel) => ch.id);
+          await checkExistingChannels(channelIds);
         } else {
           setError("No channels found. Try a different search term.");
         }
@@ -137,12 +164,13 @@ export function YouTubeChannelExtractor({ onOpenChange }: YouTubeChannelExtracto
 
   const addChannelId = async (channelId: string) => {
     try {
+      const isPrivate = privateChannels.has(channelId);
       const response = await fetch("/api/youtube/channels/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ channelId }),
+        body: JSON.stringify({ channelId, isPrivate }),
       });
 
       if (response.ok) {
@@ -160,6 +188,12 @@ export function YouTubeChannelExtractor({ onOpenChange }: YouTubeChannelExtracto
           status: response.status,
           error: errorData
         });
+        
+        // If channel already exists, mark it as existing so user can update privacy
+        if (response.status === 400 && errorData.error?.includes("already exists")) {
+          setExistingChannels((prev) => new Set(prev).add(channelId));
+        }
+        
         const errorMessage = errorData.error || errorData.message || "Failed to add channel ID";
         toast.error(errorMessage, {
           description: errorData.note || errorData.details,
@@ -169,6 +203,46 @@ export function YouTubeChannelExtractor({ onOpenChange }: YouTubeChannelExtracto
     } catch (err) {
       console.error("[YT CID Extractor] Error adding channel ID:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to add channel ID. Please try again.";
+      toast.error(errorMessage);
+    }
+  };
+
+  const updateChannelPrivacy = async (channelId: string, isPrivate: boolean) => {
+    try {
+      const response = await fetch(`/api/youtube/channels/${channelId}/privacy`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ isPrivate }),
+      });
+
+      if (response.ok) {
+        // Update local state
+        const newPrivateChannels = new Set(privateChannels);
+        if (isPrivate) {
+          newPrivateChannels.add(channelId);
+        } else {
+          newPrivateChannels.delete(channelId);
+        }
+        setPrivateChannels(newPrivateChannels);
+        
+        // Mark as added if it was an existing channel
+        setAddedIds((prev) => new Set(prev).add(channelId));
+        
+        toast.success(`Channel marked as ${isPrivate ? "private" : "public"}`);
+        
+        // Invalidate and refetch YouTube channels query
+        await queryClient.invalidateQueries({ queryKey: ["youtube-channels"] });
+        await queryClient.refetchQueries({ queryKey: ["youtube-channels"] });
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || errorData.message || "Failed to update channel privacy";
+        toast.error(errorMessage);
+      }
+    } catch (err) {
+      console.error("[YT CID Extractor] Error updating channel privacy:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to update channel privacy. Please try again.";
       toast.error(errorMessage);
     }
   };
@@ -307,27 +381,82 @@ export function YouTubeChannelExtractor({ onOpenChange }: YouTubeChannelExtracto
                           {addedIds.has(channel.id) && (
                             <span className="text-xs text-green-600 font-medium">Added</span>
                           )}
+                          {existingChannels.has(channel.id) && !addedIds.has(channel.id) && (
+                            <span className="text-xs text-orange-600 font-medium">Already exists</span>
+                          )}
                         </div>
                       </div>
                     </a>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          addChannelId(channel.id);
-                        }}
-                        disabled={addedIds.has(channel.id)}
-                        className="cursor-pointer"
-                        title="Add to channel list"
-                      >
-                        {addedIds.has(channel.id) ? (
-                          <Check className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <Plus className="h-4 w-4" />
-                        )}
-                      </Button>
+                      {/* Private Checkbox - Only show if channel doesn't exist or exists and user can update it */}
+                      {(!existingChannels.has(channel.id) || addedIds.has(channel.id)) && (
+                        <div className="flex items-center gap-1.5 px-2 py-1 border rounded-md">
+                          <Checkbox
+                            id={`private-${channel.id}`}
+                            checked={privateChannels.has(channel.id)}
+                            onCheckedChange={(checked) => {
+                              const newPrivateChannels = new Set(privateChannels);
+                              if (checked) {
+                                newPrivateChannels.add(channel.id);
+                              } else {
+                                newPrivateChannels.delete(channel.id);
+                              }
+                              setPrivateChannels(newPrivateChannels);
+                              
+                              // If channel already exists and was just added, update privacy immediately
+                              if (addedIds.has(channel.id) && existingChannels.has(channel.id)) {
+                                updateChannelPrivacy(channel.id, Boolean(checked));
+                              }
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <Label
+                            htmlFor={`private-${channel.id}`}
+                            className="text-xs cursor-pointer flex items-center gap-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Lock className="h-3 w-3" />
+                            Private
+                          </Label>
+                        </div>
+                      )}
+                      {/* Update Privacy Button - Show if channel exists and hasn't been added yet */}
+                      {existingChannels.has(channel.id) && !addedIds.has(channel.id) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const isPrivate = privateChannels.has(channel.id);
+                            updateChannelPrivacy(channel.id, isPrivate);
+                            setAddedIds((prev) => new Set(prev).add(channel.id));
+                          }}
+                          className="cursor-pointer"
+                          title="Mark as private"
+                        >
+                          <Lock className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {/* Add Button - Only show if channel doesn't exist */}
+                      {!existingChannels.has(channel.id) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addChannelId(channel.id);
+                          }}
+                          disabled={addedIds.has(channel.id)}
+                          className="cursor-pointer"
+                          title="Add to channel list"
+                        >
+                          {addedIds.has(channel.id) ? (
+                            <Check className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <Plus className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
