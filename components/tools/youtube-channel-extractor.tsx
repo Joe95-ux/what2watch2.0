@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ interface YouTubeChannelExtractorProps {
 export function YouTubeChannelExtractor({ onOpenChange }: YouTubeChannelExtractorProps = {}) {
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
+  const isOpenRef = useRef(false);
   const [input, setInput] = useState("");
   const [channels, setChannels] = useState<YouTubeChannel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -180,22 +181,14 @@ export function YouTubeChannelExtractor({ onOpenChange }: YouTubeChannelExtracto
 
   const handleDialogOpenChange = (open: boolean) => {
     setIsOpen(open);
+    isOpenRef.current = open;
     
-    // Only close parent dropdown when dialog opens, not when it closes
-    if (open && onOpenChange) {
-      // Use a delay to ensure the dialog is fully opened before closing the dropdown
-      // This prevents the dropdown from interfering with the dialog
-      const wasOpening = open;
-      setTimeout(() => {
-        // Check if dialog is still open (user didn't close it immediately)
-        if (onOpenChange && wasOpening) {
-          // Close the dropdown after dialog has opened
-          onOpenChange(false);
-        }
-      }, 200);
+    // Close parent dropdown when dialog closes (not when it opens)
+    // This prevents the dropdown from interfering with the dialog opening
+    if (!open && onOpenChange) {
+      // Close the dropdown when dialog closes
+      onOpenChange(false);
     }
-    // Don't do anything when dialog closes - let it close naturally
-    // The dropdown should already be closed by this point
   };
 
   const handleTriggerClick = (e: React.MouseEvent) => {
