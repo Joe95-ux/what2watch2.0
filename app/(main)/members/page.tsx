@@ -3,14 +3,14 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@clerk/nextjs";
-import { Search, Users, Loader2 } from "lucide-react";
+import { Search, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FollowButton } from "@/components/social/follow-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 interface User {
   id: string;
@@ -51,6 +51,7 @@ const fetchUsers = async (page: number, search: string): Promise<UsersResponse> 
 
 export default function MembersPage() {
   const { isSignedIn } = useUser();
+  const { data: currentUser } = useCurrentUser();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -168,7 +169,7 @@ export default function MembersPage() {
                     <span>{user.listsCount} lists</span>
                   </div>
 
-                  {isSignedIn && (
+                  {isSignedIn && currentUser?.id !== user.id && (
                     <FollowButton userId={user.id} size="sm" variant="default" />
                   )}
                 </div>

@@ -35,9 +35,10 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const whereClause: Prisma.YouTubeChannelWhereInput = {
-      OR: orConditions,
-    };
+    // Build where clause - if no conditions, return empty result
+    const whereClause: Prisma.YouTubeChannelWhereInput = orConditions.length > 0
+      ? { OR: orConditions }
+      : { channelId: "__never_match__" }; // This will never match, effectively returning empty
 
     const channels = await db.youTubeChannel.findMany({
       where: whereClause,
@@ -49,14 +50,16 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    const channelIds = channels.map((channel) => channel.channelId);
+
     // Debug logging
     console.log("[YouTube Channels List API] Query result:", {
       totalChannels: channels.length,
       userId: user?.id || "not authenticated",
+      isAuthenticated: !!user,
       whereClause,
+      sampleChannelIds: channelIds.slice(0, 5),
     });
-
-    const channelIds = channels.map((channel) => channel.channelId);
 
     return NextResponse.json(
       { channelIds },

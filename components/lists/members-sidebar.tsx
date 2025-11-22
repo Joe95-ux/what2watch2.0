@@ -57,7 +57,7 @@ export function MembersSidebar() {
           <h2 className="font-semibold text-sm">Members</h2>
         </div>
 
-        <ScrollArea className="h-[calc(100vh-12rem)]">
+        <ScrollArea className="max-h-[calc(100vh-12rem)]">
           {isLoading ? (
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (

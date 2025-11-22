@@ -88,10 +88,17 @@ export function YouTubeChannelExtractor({ onOpenChange }: YouTubeChannelExtracto
 
   const checkExistingChannels = async (channelIds: string[]) => {
     try {
-      const response = await fetch("/api/youtube/channels/list");
+      // Use the check endpoint which returns all channels regardless of privacy
+      const response = await fetch("/api/youtube/channels/check", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ channelIds }),
+      });
       if (response.ok) {
         const data = await response.json();
-        const existingIds = new Set(data.channelIds || []);
+        const existingIds = new Set(data.existingIds || []);
         const existing = new Set<string>();
         channelIds.forEach((id) => {
           if (existingIds.has(id)) {
