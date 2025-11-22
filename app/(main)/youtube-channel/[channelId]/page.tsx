@@ -139,8 +139,15 @@ export default function YouTubeChannelPage() {
     return true;
   });
 
-  // Check if description needs truncation (more than 1 line)
-  const descriptionNeedsTruncation = channel?.description && channel.description.length > 100;
+  // Truncate description to first 4 words
+  const getTruncatedDescription = (description: string, maxWords: number = 4) => {
+    const words = description.split(/\s+/);
+    if (words.length <= maxWords) return description;
+    return words.slice(0, maxWords).join(" ") + "...";
+  };
+
+  // Check if description needs truncation (more than 4 words)
+  const descriptionNeedsTruncation = channel?.description && channel.description.split(/\s+/).length > 4;
 
   if (isLoadingChannel) {
     return <YouTubeChannelSkeleton />;
@@ -160,11 +167,11 @@ export default function YouTubeChannelPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Channel Info Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
         {/* Banner Section - Same width as content container */}
         <div ref={heroRef} className="mb-8">
           {channel.bannerImage ? (
-            <div className="relative w-full h-[200px] sm:h-[250px] md:h-[300px] overflow-hidden rounded-lg">
+            <div className="relative w-full h-[282px] overflow-hidden rounded-lg">
               <Image
                 src={channel.bannerImage}
                 alt={`${channel.title} banner`}
@@ -176,7 +183,7 @@ export default function YouTubeChannelPage() {
               />
             </div>
           ) : (
-            <div className="w-full h-[200px] sm:h-[250px] md:h-[300px] bg-gradient-to-r from-muted via-muted/80 to-muted rounded-lg" />
+            <div className="w-full h-[282px] bg-gradient-to-r from-muted via-muted/80 to-muted rounded-lg" />
           )}
         </div>
 
@@ -213,13 +220,10 @@ export default function YouTubeChannelPage() {
               {/* Description with Read More */}
               {channel.description && (
                 <div className="mb-4">
-                  <p
-                    className={cn(
-                      "text-sm text-foreground",
-                      !isDescriptionExpanded && descriptionNeedsTruncation && "line-clamp-1"
-                    )}
-                  >
-                    {channel.description}
+                  <p className="text-sm text-foreground">
+                    {isDescriptionExpanded 
+                      ? channel.description 
+                      : getTruncatedDescription(channel.description, 4)}
                   </p>
                   {descriptionNeedsTruncation && (
                     <Button
@@ -302,29 +306,18 @@ export default function YouTubeChannelPage() {
 
         {/* Sticky Navigation */}
         <div className="mb-8">
-          <div className="flex items-center justify-between gap-4">
-            <YouTubeChannelStickyNav
-              activeTab={activeTab}
-              onTabChange={(tab) => {
-                setActiveTab(tab);
-                if (tab !== "videos") {
-                  setShowSearch(false);
-                  setSearchQuery("");
-                }
-              }}
-              isScrolled={isScrolled}
-            />
-            {/* Search Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSearchClick}
-              className="cursor-pointer flex-shrink-0"
-            >
-              <Search className="h-4 w-4 mr-2" />
-              Search
-            </Button>
-          </div>
+          <YouTubeChannelStickyNav
+            activeTab={activeTab}
+            onTabChange={(tab) => {
+              setActiveTab(tab);
+              if (tab !== "videos") {
+                setShowSearch(false);
+                setSearchQuery("");
+              }
+            }}
+            onSearchClick={handleSearchClick}
+            isScrolled={isScrolled}
+          />
         </div>
 
         {/* Tab Content */}
@@ -343,6 +336,12 @@ export default function YouTubeChannelPage() {
                   autoFocus
                 />
               </div>
+            </div>
+          )}
+
+          {activeTab === "posts" && (
+            <div className="text-center py-12 text-muted-foreground">
+              <p>Posts feature coming soon.</p>
             </div>
           )}
 

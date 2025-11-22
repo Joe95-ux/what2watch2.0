@@ -1,10 +1,12 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { Search } from "lucide-react";
 
 interface YouTubeChannelStickyNavProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  onSearchClick: () => void;
   isScrolled: boolean;
 }
 
@@ -12,11 +14,13 @@ const tabs = [
   { id: "videos", label: "Videos" },
   { id: "shorts", label: "Shorts" },
   { id: "playlists", label: "Playlists" },
+  { id: "posts", label: "Posts" },
 ];
 
 export default function YouTubeChannelStickyNav({ 
   activeTab, 
-  onTabChange, 
+  onTabChange,
+  onSearchClick,
   isScrolled 
 }: YouTubeChannelStickyNavProps) {
   return (
@@ -46,6 +50,14 @@ export default function YouTubeChannelStickyNav({
             )}
           </button>
         ))}
+        {/* Search Icon - After Posts */}
+        <button
+          onClick={onSearchClick}
+          className="relative py-4 cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Search videos"
+        >
+          <Search className="h-6 w-6" />
+        </button>
       </div>
     </div>
   );

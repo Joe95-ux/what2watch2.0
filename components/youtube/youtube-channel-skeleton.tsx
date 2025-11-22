@@ -8,7 +8,7 @@ export default function YouTubeChannelSkeleton() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Banner Skeleton */}
         <div className="mb-8">
-          <Skeleton className="w-full h-[200px] sm:h-[250px] md:h-[300px] rounded-lg" />
+          <Skeleton className="w-full h-[282px] rounded-lg" />
         </div>
 
         {/* Channel Info Skeleton */}
