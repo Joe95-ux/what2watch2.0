@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 
 // GET - Get public activity feed for a specific user
 export async function GET(
@@ -90,24 +91,13 @@ export async function GET(
     const groupBy = searchParams.get("groupBy"); // Group by: "day", "week", "month", or null
 
     // Build where clause
-    const where: {
-      userId: string;
-      type?: string | { in: string[] };
-      createdAt?: {
-        gte?: Date;
-        lte?: Date;
-      };
-      OR?: Array<{
-        title?: { contains: string };
-        listName?: { contains: string };
-      }>;
-    } = {
+    const where: Prisma.ActivityWhereInput = {
       userId: targetUserId,
     };
 
     // Filter by activity type if provided
     if (typeParam && typeParam !== "all") {
-      const validTypes = [
+      const validTypes: Prisma.ActivityType[] = [
         "LOGGED_FILM",
         "RATED_FILM",
         "REVIEWED_FILM",
@@ -116,15 +106,15 @@ export async function GET(
         "CREATED_PLAYLIST",
         "FOLLOWED_USER",
       ];
-      if (validTypes.includes(typeParam)) {
-        where.type = typeParam;
+      if (validTypes.includes(typeParam as Prisma.ActivityType)) {
+        where.type = typeParam as Prisma.ActivityType;
       }
     }
 
     // Apply privacy filters based on user settings
     if (!isOwnProfile) {
       // Filter out activities based on user's privacy settings
-      const typeFilters: string[] = [];
+      const typeFilters: Prisma.ActivityType[] = [];
 
       if (targetUser.showWatchedInActivity) {
         typeFilters.push("LOGGED_FILM");
@@ -149,7 +139,7 @@ export async function GET(
       }
 
       // If a specific type is requested but it's not allowed, return empty
-      if (typeParam && typeParam !== "all" && !typeFilters.includes(typeParam)) {
+      if (typeParam && typeParam !== "all" && !typeFilters.includes(typeParam as Prisma.ActivityType)) {
         return NextResponse.json({ activities: [] });
       }
 
