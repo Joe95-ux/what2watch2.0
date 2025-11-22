@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Edit, Trash2, Share2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { getPosterUrl } from "@/lib/tmdb";
+import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
 import { format } from "date-fns";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -86,9 +86,38 @@ export default function ListDetailContent({ listId }: ListDetailContentProps) {
     );
   }
 
+  // Get cover image - prefer coverImage, fallback to first item's backdrop or poster
+  const coverImage = list.coverImage
+    ? list.coverImage
+    : list.items.length > 0 && list.items[0].backdropPath
+    ? getBackdropUrl(list.items[0].backdropPath, "original")
+    : list.items.length > 0 && list.items[0].posterPath
+    ? getPosterUrl(list.items[0].posterPath, "original")
+    : null;
+
   return (
-    <div className="flex-1 space-y-6 p-6">
-      <div className="container max-w-7xl mx-auto">
+    <div className="flex-1 space-y-6">
+      {/* Banner Section */}
+      <div className="relative -mt-[65px] h-[30vh] min-h-[200px] max-h-[300px] sm:h-[40vh] sm:min-h-[250px] md:h-[50vh] md:min-h-[300px] overflow-hidden">
+        {coverImage ? (
+          <>
+            <Image
+              src={coverImage}
+              alt={list.name}
+              fill
+              className="object-cover"
+              priority
+              unoptimized
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+          </>
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5" />
+        )}
+      </div>
+
+      {/* Info Section - Below banner */}
+      <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
         <Button
           variant="ghost"
           onClick={() => router.push("/dashboard/lists")}
@@ -100,11 +129,11 @@ export default function ListDetailContent({ listId }: ListDetailContentProps) {
 
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-start justify-between mb-4">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
             <div className="flex-1">
-              <h1 className="text-4xl font-bold tracking-tight mb-2">{list.name}</h1>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mb-2">{list.name}</h1>
               {list.description && (
-                <p className="text-lg text-muted-foreground mb-4">{list.description}</p>
+                <p className="text-base sm:text-lg text-muted-foreground mb-4">{list.description}</p>
               )}
               
               {/* User Info */}
@@ -179,7 +208,7 @@ export default function ListDetailContent({ listId }: ListDetailContentProps) {
             <p className="text-muted-foreground">This list is empty</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 pb-6">
             {list.items.map((item, index) => (
               <Link
                 key={item.id}
