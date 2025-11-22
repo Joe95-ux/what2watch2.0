@@ -18,7 +18,11 @@ interface YouTubeChannel {
   channelUrl: string;
 }
 
-export function YouTubeChannelExtractor() {
+interface YouTubeChannelExtractorProps {
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function YouTubeChannelExtractor({ onOpenChange }: YouTubeChannelExtractorProps = {}) {
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -27,6 +31,14 @@ export function YouTubeChannelExtractor() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    // Close parent dropdown when dialog opens
+    if (open && onOpenChange) {
+      onOpenChange(false);
+    }
+  };
 
   const handleExtract = async () => {
     if (!input.trim()) {
@@ -175,7 +187,7 @@ export function YouTubeChannelExtractor() {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" className="w-full justify-start cursor-pointer">
           <Youtube className="mr-2 h-4 w-4" />

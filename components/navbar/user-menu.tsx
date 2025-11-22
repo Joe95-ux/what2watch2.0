@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { MoreVertical, Settings, LogOut, Moon, Sun, Monitor, LayoutDashboard } from "lucide-react";
 import { YouTubeChannelExtractor } from "@/components/tools/youtube-channel-extractor";
 import { useTheme } from "next-themes";
@@ -27,6 +28,7 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
   const { setTheme, theme } = useTheme();
   const router = useRouter();
   const { signOut } = useClerk();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -34,7 +36,7 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className={cn(
           "h-9 w-9 transition-colors duration-300",
@@ -103,7 +105,7 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
         <DropdownMenuSeparator />
 
         <div className="px-2 py-1.5">
-          <YouTubeChannelExtractor />
+          <YouTubeChannelExtractor onOpenChange={setIsDropdownOpen} />
         </div>
 
         <DropdownMenuSeparator />

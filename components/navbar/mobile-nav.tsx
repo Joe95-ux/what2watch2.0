@@ -178,7 +178,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
             <Separator className="my-1" />
 
             <div className="px-2 py-1.5">
-              <YouTubeChannelExtractor />
+              <YouTubeChannelExtractor onOpenChange={onLinkClick} />
             </div>
 
             <Separator className="my-1" />

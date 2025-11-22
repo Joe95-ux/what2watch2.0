@@ -169,7 +169,7 @@ export default function YouTubeChannelPage() {
         {/* Banner Section - Same width as content container */}
         <div ref={heroRef} className="mb-8">
           {channel.bannerImage ? (
-            <div className="relative w-full h-[282px] overflow-hidden rounded-lg">
+            <div className="relative w-full h-[206px] overflow-hidden rounded-lg">
               <Image
                 src={channel.bannerImage}
                 alt={`${channel.title} banner`}
@@ -181,7 +181,7 @@ export default function YouTubeChannelPage() {
               />
             </div>
           ) : (
-            <div className="w-full h-[282px] bg-gradient-to-r from-muted via-muted/80 to-muted rounded-lg" />
+            <div className="w-full h-[206px] bg-gradient-to-r from-muted via-muted/80 to-muted rounded-lg" />
           )}
         </div>
 
