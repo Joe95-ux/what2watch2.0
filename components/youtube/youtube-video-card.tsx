@@ -2,21 +2,30 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Play, Plus } from "lucide-react";
+import { Play, Plus, Share2, Link2, Facebook, Twitter, Heart, Bookmark } from "lucide-react";
 import { YouTubeVideo } from "@/hooks/use-youtube-channel";
 import { CircleActionButton } from "@/components/browse/circle-action-button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
 import AddYouTubeVideoToPlaylistDropdown from "@/components/playlists/add-youtube-video-to-playlist-dropdown";
+import { useToggleFavoriteChannel } from "@/hooks/use-favorite-channels";
+import { useToggleChannelWatchlist } from "@/hooks/use-channel-watchlist";
 
 interface YouTubeVideoCardProps {
   video: YouTubeVideo;
   className?: string;
   onVideoClick?: (video: YouTubeVideo) => void;
   onAddToPlaylist?: () => void;
+  channelId?: string; // Channel ID for favorite/watchlist actions
 }
 
 /**
@@ -59,6 +68,7 @@ export default function YouTubeVideoCard({
   className,
   onVideoClick,
   onAddToPlaylist,
+  channelId,
 }: YouTubeVideoCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const isMobile = useIsMobile();
@@ -66,6 +76,10 @@ export default function YouTubeVideoCard({
   const { openSignIn } = useClerk();
   const [playlistTooltipOpen, setPlaylistTooltipOpen] = useState(false);
   const [isPlaylistDropdownOpen, setIsPlaylistDropdownOpen] = useState(false);
+  const [isShareDropdownOpen, setIsShareDropdownOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const toggleFavorite = useToggleFavoriteChannel();
+  const toggleWatchlist = useToggleChannelWatchlist();
 
   const duration = parseDuration(video.duration);
   const publishedTime = formatPublishedDate(video.publishedAt);
@@ -78,7 +92,9 @@ export default function YouTubeVideoCard({
       !target.closest('[data-radix-dropdown-trigger]') &&
       !target.closest('[data-radix-dropdown-content]') &&
       !target.closest('[data-radix-tooltip-trigger]') &&
-      !target.closest('[data-radix-tooltip-content]')
+      !target.closest('[data-radix-tooltip-content]') &&
+      !target.closest('[data-radix-dropdown-menu-trigger]') &&
+      !target.closest('[data-radix-dropdown-menu-content]')
     ) {
       if (onVideoClick) {
         onVideoClick(video);
@@ -109,6 +125,36 @@ export default function YouTubeVideoCard({
       return;
     }
     return action();
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(video.videoUrl);
+      setCopied(true);
+      toast.success("Link copied to clipboard!");
+      setIsShareDropdownOpen(false);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast.error("Failed to copy link");
+      console.error(error);
+    }
+  };
+
+  const handleSocialShare = (platform: "facebook" | "twitter") => {
+    const encodedUrl = encodeURIComponent(video.videoUrl);
+    const encodedTitle = encodeURIComponent(video.title);
+
+    let shareUrl = "";
+    if (platform === "facebook") {
+      shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+    } else if (platform === "twitter") {
+      shareUrl = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`;
+    }
+
+    if (shareUrl) {
+      window.open(shareUrl, "_blank", "width=600,height=400");
+      setIsShareDropdownOpen(false);
+    }
   };
 
   return (
@@ -144,6 +190,81 @@ export default function YouTubeVideoCard({
           </div>
         )}
 
+        {/* Share Button - Top Right */}
+        <div className="absolute top-2 right-2 z-[10] opacity-0 group-hover:opacity-100 transition-opacity">
+          <DropdownMenu open={isShareDropdownOpen} onOpenChange={setIsShareDropdownOpen}>
+            <DropdownMenuTrigger asChild>
+              <CircleActionButton
+                size="sm"
+                onClick={(e: React.MouseEvent) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                className="bg-black/60 hover:bg-black/80 backdrop-blur-sm"
+              >
+                <Share2 className="h-3 w-3 text-white" />
+              </CircleActionButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="w-48 z-[110]"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+              }}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleCopyLink();
+                }}
+                className="cursor-pointer"
+              >
+                {copied ? (
+                  <>
+                    <Link2 className="h-4 w-4 mr-2" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Link2 className="h-4 w-4 mr-2" />
+                    Copy Link
+                  </>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSocialShare("facebook");
+                }}
+                className="cursor-pointer"
+              >
+                <Facebook className="h-4 w-4 mr-2" />
+                Share on Facebook
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSocialShare("twitter");
+                }}
+                className="cursor-pointer"
+              >
+                <Twitter className="h-4 w-4 mr-2" />
+                Share on X
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
         {/* Centered Play Button - Revealed on hover */}
         <div
           className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300 ${
@@ -159,6 +280,68 @@ export default function YouTubeVideoCard({
             <Play className="size-6 text-white fill-white" />
           </CircleActionButton>
         </div>
+
+        {/* Favorite and Watchlist Buttons - Top Left (only if channelId provided) */}
+        {channelId && (
+          <div className="absolute top-2 left-2 z-[10] flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <CircleActionButton
+                  size="sm"
+                  onClick={async (e: React.MouseEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    await requireAuth(
+                      () => toggleFavorite.toggle(channelId),
+                      "Sign in to favorite channels."
+                    );
+                  }}
+                  className="bg-black/60 hover:bg-black/80 backdrop-blur-sm"
+                >
+                  <Heart
+                    className={cn(
+                      "h-3 w-3",
+                      toggleFavorite.isFavorited(channelId)
+                        ? "text-red-500 fill-red-500"
+                        : "text-white"
+                    )}
+                  />
+                </CircleActionButton>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{toggleFavorite.isFavorited(channelId) ? "Remove from Favorites" : "Add to Favorites"}</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <CircleActionButton
+                  size="sm"
+                  onClick={async (e: React.MouseEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    await requireAuth(
+                      () => toggleWatchlist.toggle(channelId),
+                      "Sign in to manage watchlist."
+                    );
+                  }}
+                  className="bg-black/60 hover:bg-black/80 backdrop-blur-sm"
+                >
+                  <Bookmark
+                    className={cn(
+                      "h-3 w-3",
+                      toggleWatchlist.isInWatchlist(channelId)
+                        ? "text-blue-500 fill-blue-500"
+                        : "text-white"
+                    )}
+                  />
+                </CircleActionButton>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{toggleWatchlist.isInWatchlist(channelId) ? "Remove from Watchlist" : "Add to Watchlist"}</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        )}
       </div>
 
       {/* Video Details */}

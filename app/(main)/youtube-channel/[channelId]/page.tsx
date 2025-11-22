@@ -3,10 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import { Heart, Bookmark, Youtube, ExternalLink, Loader2, ChevronDown, ChevronUp, Search } from "lucide-react";
+import { Heart, Youtube, ExternalLink, Loader2, ChevronDown, ChevronUp, Search } from "lucide-react";
 import { useYouTubeChannel, useYouTubeChannelVideos, useYouTubeChannelPlaylists, YouTubeVideo, YouTubePlaylist } from "@/hooks/use-youtube-channel";
 import { useToggleFavoriteChannel } from "@/hooks/use-favorite-channels";
-import { useToggleChannelWatchlist } from "@/hooks/use-channel-watchlist";
 import YouTubeVideoCard from "@/components/youtube/youtube-video-card";
 import YouTubeChannelStickyNav from "@/components/youtube/youtube-channel-sticky-nav";
 import YouTubeChannelSkeleton from "@/components/youtube/youtube-channel-skeleton";
@@ -40,7 +39,6 @@ export default function YouTubeChannelPage() {
     playlistsPageToken
   );
   const toggleFavorite = useToggleFavoriteChannel();
-  const toggleWatchlist = useToggleChannelWatchlist();
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
 
@@ -265,30 +263,10 @@ export default function YouTubeChannelPage() {
                   <Heart
                     className={cn(
                       "h-4 w-4 mr-2",
-                      toggleFavorite.isFavorited(channelId) && "fill-current"
+                      toggleFavorite.isFavorited(channelId) && "fill-red-500 text-red-500"
                     )}
                   />
                   {toggleFavorite.isFavorited(channelId) ? "Favorited" : "Favorite"}
-                </Button>
-                <Button
-                  variant={toggleWatchlist.isInWatchlist(channelId) ? "default" : "outline"}
-                  size="sm"
-                  onClick={async () => {
-                    await requireAuth(
-                      () => toggleWatchlist.toggle(channelId),
-                      "Sign in to manage watchlist."
-                    );
-                  }}
-                  disabled={toggleWatchlist.isLoading}
-                  className="cursor-pointer"
-                >
-                  <Bookmark
-                    className={cn(
-                      "h-4 w-4 mr-2",
-                      toggleWatchlist.isInWatchlist(channelId) && "fill-current"
-                    )}
-                  />
-                  {toggleWatchlist.isInWatchlist(channelId) ? "In Watchlist" : "Add to Watchlist"}
                 </Button>
                 <Button
                   variant="outline"
@@ -305,7 +283,7 @@ export default function YouTubeChannelPage() {
         </div>
 
         {/* Sticky Navigation */}
-        <div className="mb-8">
+        <div className="mb-4">
           <YouTubeChannelStickyNav
             activeTab={activeTab}
             onTabChange={(tab) => {
@@ -324,8 +302,8 @@ export default function YouTubeChannelPage() {
         <div className="py-8">
           {/* Search Bar - Show when search is active */}
           {showSearch && activeTab === "videos" && (
-            <div className="mb-6">
-              <div className="relative max-w-md">
+            <div className="mb-4">
+              <div className="relative max-w-xs">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="text"
@@ -456,6 +434,7 @@ export default function YouTubeChannelPage() {
                         key={video.id}
                         video={video}
                         onVideoClick={handleVideoClick}
+                        channelId={channelId}
                       />
                     ))}
                   </div>

@@ -96,6 +96,33 @@ export async function POST(
       },
     });
 
+    // Also add to watchlist if not already there
+    try {
+      const existingWatchlistItem = await db.channelWatchlistItem.findUnique({
+        where: {
+          userId_channelId: {
+            userId: user.id,
+            channelId,
+          },
+        },
+      });
+
+      if (!existingWatchlistItem) {
+        await db.channelWatchlistItem.create({
+          data: {
+            userId: user.id,
+            channelId,
+            title: channelTitle,
+            thumbnail: channelThumbnail,
+            channelUrl,
+          },
+        });
+      }
+    } catch (watchlistError) {
+      // Log but don't fail the favorite operation if watchlist add fails
+      console.error("Error adding channel to watchlist after favoriting:", watchlistError);
+    }
+
     return NextResponse.json({
       success: true,
       favorite,

@@ -2,15 +2,19 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useFavorites, useRemoveFavorite } from "@/hooks/use-favorites";
 import { useAllGenres } from "@/hooks/use-genres";
+import { useFavoriteChannels } from "@/hooks/use-favorite-channels";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LayoutGrid, List, X, Plus, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutGrid, List, X, Plus, Star, ChevronLeft, ChevronRight, Youtube } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -29,7 +33,9 @@ type FilterType = "all" | "movie" | "tv";
 type SortBy = "recent" | "title" | "year";
 
 export default function MyListContent() {
+  const router = useRouter();
   const { data: favorites = [], isLoading } = useFavorites();
+  const { data: favoriteChannels = [], isLoading: isLoadingChannels } = useFavoriteChannels();
   const removeFavorite = useRemoveFavorite();
   const { data: allGenres = [] } = useAllGenres();
   
@@ -203,6 +209,64 @@ export default function MyListContent() {
 
   return (
     <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Channels Section - First Section */}
+      {favoriteChannels.length > 0 && (
+        <div className="mb-12">
+          <h2 className="text-2xl font-semibold mb-4">Channels</h2>
+          <div className="relative group/carousel">
+            <Carousel
+              opts={{
+                align: "start",
+                slidesToScroll: 4,
+                breakpoints: {
+                  "(max-width: 640px)": { slidesToScroll: 2 },
+                  "(max-width: 1024px)": { slidesToScroll: 3 },
+                  "(max-width: 1280px)": { slidesToScroll: 4 },
+                },
+              }}
+              className="w-full"
+            >
+              <CarouselContent className="-ml-2 md:-ml-4 gap-4">
+                {favoriteChannels.map((channel) => (
+                  <CarouselItem key={channel.id} className="pl-2 md:pl-4 basis-[140px] sm:basis-[160px]">
+                    <button
+                      onClick={() => router.push(`/youtube-channel/${channel.channelId}`)}
+                      className="group block text-center cursor-pointer w-full"
+                    >
+                      <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden mb-3 group-hover:scale-105 transition-transform">
+                        {channel.thumbnail ? (
+                          <Image
+                            src={channel.thumbnail}
+                            alt={channel.title || "Channel"}
+                            fill
+                            className="object-cover"
+                            sizes="128px"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="absolute inset-0 bg-muted flex items-center justify-center">
+                            <Youtube className="h-12 w-12 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <p className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">
+                        {channel.title || "Channel"}
+                      </p>
+                    </button>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious
+                className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+              />
+              <CarouselNext
+                className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+              />
+            </Carousel>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">

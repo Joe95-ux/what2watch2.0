@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function YouTubeChannelSkeleton() {
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
         {/* Banner Skeleton */}
         <div className="mb-8">
           <Skeleton className="w-full h-[282px] rounded-lg" />

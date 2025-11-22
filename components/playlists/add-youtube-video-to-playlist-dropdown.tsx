@@ -61,6 +61,8 @@ export default function AddYouTubeVideoToPlaylistDropdown({
       toast.success(`Added to "${playlists.find((p) => p.id === playlistId)?.name}"`);
       // Invalidate playlists query to refresh the UI
       await queryClient.invalidateQueries({ queryKey: ["playlists"] });
+      // Also invalidate the specific playlist query
+      await queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
       onAddSuccess?.();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to add to playlist";
@@ -101,6 +103,13 @@ export default function AddYouTubeVideoToPlaylistDropdown({
           align="end"
           className="w-56 z-[110]"
           onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+          }}
+          onMouseDown={(e) => {
             e.stopPropagation();
           }}
         >

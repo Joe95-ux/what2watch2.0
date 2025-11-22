@@ -155,3 +155,94 @@ export async function POST(
   }
 }
 
+/**
+ * Remove a YouTube video from a playlist
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ videoId: string }> }
+) {
+  try {
+    const { userId: clerkUserId } = await auth();
+
+    if (!clerkUserId) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const { videoId } = await params;
+    const { searchParams } = new URL(request.url);
+    const playlistId = searchParams.get("playlistId");
+    const itemId = searchParams.get("itemId");
+
+    if (!playlistId) {
+      return NextResponse.json(
+        { error: "playlistId is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!itemId) {
+      return NextResponse.json(
+        { error: "itemId is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!videoId) {
+      return NextResponse.json(
+        { error: "videoId is required" },
+        { status: 400 }
+      );
+    }
+
+    // Get current user
+    const user = await db.user.findUnique({
+      where: { clerkId: clerkUserId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify playlist belongs to user
+    const playlist = await db.playlist.findFirst({
+      where: {
+        id: playlistId,
+        userId: user.id,
+      },
+    });
+
+    if (!playlist) {
+      return NextResponse.json(
+        { error: "Playlist not found or access denied" },
+        { status: 404 }
+      );
+    }
+
+    // Delete the YouTube playlist item
+    await db.youTubePlaylistItem.delete({
+      where: {
+        id: itemId,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Video removed from playlist",
+    });
+  } catch (error) {
+    console.error("Error removing video from playlist:", error);
+    return NextResponse.json(
+      { error: "Failed to remove video from playlist" },
+      { status: 500 }
+    );
+  }
+}
+

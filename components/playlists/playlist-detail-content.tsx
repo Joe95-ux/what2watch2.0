@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { usePlaylist, useDeletePlaylist, useRemoveItemFromPlaylist, type Playlist } from "@/hooks/use-playlists";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,8 @@ import ContentDetailModal from "@/components/browse/content-detail-modal";
 import CreatePlaylistModal from "./create-playlist-modal";
 import SharePlaylistDialog from "./share-playlist-dialog";
 import { FollowButton } from "@/components/social/follow-button";
+import YouTubeVideoCard from "@/components/youtube/youtube-video-card";
+import { YouTubeVideo } from "@/hooks/use-youtube-channel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,6 +53,7 @@ type PlaylistWithCurrentUser = Playlist & {
 };
 
 export default function PlaylistDetailContent({ playlistId }: PlaylistDetailContentProps) {
+  const queryClient = useQueryClient();
   const { data: playlist, isLoading } = usePlaylist(playlistId);
   const deletePlaylist = useDeletePlaylist();
   const removeItem = useRemoveItemFromPlaylist();
@@ -143,15 +147,37 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
     });
   }, [playlist]);
 
+  // Convert YouTube items to YouTubeVideo format
+  const youtubeItems = useMemo(() => {
+    if (!playlist) return [];
+    return (playlist.youtubeItems || []).map((item) => ({
+      id: item.videoId,
+      title: item.title,
+      thumbnail: item.thumbnail || undefined,
+      description: item.description || undefined,
+      duration: item.duration || undefined,
+      publishedAt: item.publishedAt || new Date().toISOString(),
+      channelId: item.channelId,
+      channelTitle: item.channelTitle || undefined,
+      videoUrl: `https://www.youtube.com/watch?v=${item.videoId}`,
+      playlistItemId: item.id,
+    }));
+  }, [playlist]);
+
   const itemsPerPage = 24;
+  const totalItems = itemsAsTMDB.length + youtubeItems.length;
   const totalPages = useMemo(() => {
-    return itemsAsTMDB.length > 0 ? Math.ceil(itemsAsTMDB.length / itemsPerPage) : 1;
-  }, [itemsAsTMDB.length, itemsPerPage]);
+    return totalItems > 0 ? Math.ceil(totalItems / itemsPerPage) : 1;
+  }, [totalItems, itemsPerPage]);
 
   const paginatedItems = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return itemsAsTMDB.slice(startIndex, startIndex + itemsPerPage);
-  }, [itemsAsTMDB, currentPage, itemsPerPage]);
+    const allItems = [
+      ...itemsAsTMDB.map((item) => ({ ...item, isYouTube: false })),
+      ...youtubeItems.map((item) => ({ ...item, isYouTube: true })),
+    ];
+    return allItems.slice(startIndex, startIndex + itemsPerPage);
+  }, [itemsAsTMDB, youtubeItems, currentPage, itemsPerPage]);
 
   const pageNumbers = useMemo(() => {
     const maxButtons = 5;
@@ -250,7 +276,7 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
                 )}
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <span>
-                    {itemsAsTMDB.length} {itemsAsTMDB.length === 1 ? "item" : "items"}
+                    {totalItems} {totalItems === 1 ? "item" : "items"}
                   </span>
                   {playlist.isPublic && (
                     <>
@@ -332,39 +358,78 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
 
       {/* Content */}
       <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {itemsAsTMDB.length === 0 ? (
+        {totalItems === 0 ? (
           <div className="text-center py-16">
             <p className="text-muted-foreground mb-4">This playlist is empty.</p>
             <Button onClick={() => router.push("/browse")} className="cursor-pointer">Browse Content</Button>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {paginatedItems.map(({ item, type, playlistItemId }) => (
-              <div key={playlistItemId} className="relative group">
-                <MovieCard
-                  item={item}
-                  type={type}
-                  onCardClick={(clickedItem, clickedType) => setSelectedItem({ item: clickedItem, type: clickedType })}
-                />
-                {isOwnPlaylist && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 hover:bg-black/80 rounded-full h-8 w-8"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const title = "title" in item ? item.title : item.name;
-                      setItemToRemove({
-                        itemId: playlistItemId,
-                        title,
-                      });
-                    }}
-                  >
-                    <X className="h-4 w-4 text-white" />
-                  </Button>
-                )}
-              </div>
-            ))}
+            {paginatedItems.map((item) => {
+              if (item.isYouTube) {
+                const youtubeItem = item as YouTubeVideo & { playlistItemId: string; isYouTube: boolean };
+                return (
+                  <div key={youtubeItem.playlistItemId} className="relative group">
+                    <YouTubeVideoCard
+                      video={youtubeItem}
+                      onVideoClick={(video) => window.open(video.videoUrl, "_blank", "noopener,noreferrer")}
+                    />
+                    {isOwnPlaylist && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 hover:bg-black/80 rounded-full h-8 w-8"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            const response = await fetch(`/api/youtube/videos/${youtubeItem.id}/playlist?playlistId=${playlistId}&itemId=${youtubeItem.playlistItemId}`, {
+                              method: "DELETE",
+                            });
+                            if (!response.ok) throw new Error("Failed to remove");
+                            toast.success("Removed from playlist");
+                            // Invalidate playlist query to refresh the UI
+                            await queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
+                          } catch (error) {
+                            toast.error("Failed to remove video");
+                            console.error(error);
+                          }
+                        }}
+                      >
+                        <X className="h-4 w-4 text-white" />
+                      </Button>
+                    )}
+                  </div>
+                );
+              } else {
+                const { item: tmdbItem, type, playlistItemId } = item as { item: TMDBMovie | TMDBSeries; type: "movie" | "tv"; playlistItemId: string; isYouTube: boolean };
+                return (
+                  <div key={playlistItemId} className="relative group">
+                    <MovieCard
+                      item={tmdbItem}
+                      type={type}
+                      onCardClick={(clickedItem, clickedType) => setSelectedItem({ item: clickedItem, type: clickedType })}
+                    />
+                    {isOwnPlaylist && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 hover:bg-black/80 rounded-full h-8 w-8"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const title = "title" in tmdbItem ? tmdbItem.title : tmdbItem.name;
+                          setItemToRemove({
+                            itemId: playlistItemId,
+                            title,
+                          });
+                        }}
+                      >
+                        <X className="h-4 w-4 text-white" />
+                      </Button>
+                    )}
+                  </div>
+                );
+              }
+            })}
           </div>
         )}
         {itemsAsTMDB.length > 0 && totalPages > 1 && (

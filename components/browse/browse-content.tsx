@@ -39,7 +39,6 @@ import {
 import { Button } from "../ui/button";
 import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
 import { YouTubeProfileSkeleton } from "./youtube-profile-skeleton";
-import FavoriteChannelsCarousel from "@/components/youtube/favorite-channels-carousel";
 
 interface BrowseContentProps {
   favoriteGenres: number[];
@@ -394,11 +393,6 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
               />
             )}
           </>
-        )}
-
-        {/* Favorite Channels Carousel - Hide when YouTube is selected to avoid duplicate skeletons */}
-        {!(regionFilter === "nollywood" && nollywoodContentType === "youtube") && (
-          <FavoriteChannelsCarousel />
         )}
 
         {/* Made for [Username] Section */}
