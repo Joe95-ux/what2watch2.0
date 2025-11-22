@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,13 +15,23 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Build OR conditions: public channels OR user's private channels
+    const orConditions: Prisma.YouTubeChannelWhereInput[] = [
+      { isPrivate: false }, // All public channels
+    ];
+
+    // If user is authenticated, add condition for their private channels
+    if (user) {
+      orConditions.push({
+        isPrivate: true,
+        addedByUserId: user.id, // user.id is a string (ObjectId), which matches addedByUserId type
+      });
+    }
+
     // Simple query: public channels OR user's private channels
     const channels = await db.youTubeChannel.findMany({
       where: {
-        OR: [
-          { isPrivate: false }, // All public channels
-          ...(user ? [{ isPrivate: true, addedByUserId: user.id }] : []) // User's private channels if logged in
-        ]
+        OR: orConditions,
       },
       orderBy: {
         order: "asc",
@@ -34,11 +45,35 @@ export async function GET(request: NextRequest) {
 
     const channelIds = channels.map((channel) => channel.channelId);
 
-    console.log("[YouTube Channels API] Fetched channels:", {
-      total: channels.length,
-      user: user?.id || "anonymous",
-      public: channels.filter(c => !c.isPrivate).length,
-      private: channels.filter(c => c.isPrivate).length,
+    // Debug: Check all channels to see their privacy status
+    const allChannelsDebug = await db.youTubeChannel.findMany({
+      select: {
+        channelId: true,
+        isPrivate: true,
+        addedByUserId: true,
+      },
+    });
+
+    console.log("[YouTube Channels API] Debug info:", {
+      totalInDB: allChannelsDebug.length,
+      publicChannels: allChannelsDebug.filter(c => !c.isPrivate).length,
+      privateChannels: allChannelsDebug.filter(c => c.isPrivate).length,
+      privateWithOwner: allChannelsDebug.filter(c => c.isPrivate && c.addedByUserId).length,
+      privateWithoutOwner: allChannelsDebug.filter(c => c.isPrivate && !c.addedByUserId).length,
+      currentUserId: user?.id || "anonymous",
+      currentUserIdType: typeof user?.id,
+      fetchedChannels: channels.length,
+      fetchedPublic: channels.filter(c => !c.isPrivate).length,
+      fetchedPrivate: channels.filter(c => c.isPrivate).length,
+      samplePrivateChannels: allChannelsDebug
+        .filter(c => c.isPrivate)
+        .slice(0, 3)
+        .map(c => ({
+          channelId: c.channelId,
+          addedByUserId: c.addedByUserId,
+          addedByUserIdType: typeof c.addedByUserId,
+          matchesCurrentUser: c.addedByUserId === user?.id,
+        })),
     });
 
     return NextResponse.json({ channelIds });
