@@ -7,7 +7,7 @@ import { getPosterUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
 import { useIsLiked, useLikePlaylist, useUnlikePlaylist } from "@/hooks/use-playlist-likes";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { Heart } from "lucide-react";
+import { Heart, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -41,7 +41,11 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
       }
     }
     // Use first YouTube item's thumbnail as cover if available
-    if (playlist.youtubeItems && playlist.youtubeItems.length > 0) {
+    // Check both youtubeItems array and _count to determine if playlist has YouTube items
+    const hasYouTubeItems = (playlist.youtubeItems && playlist.youtubeItems.length > 0) || 
+                           (playlist._count?.youtubeItems && playlist._count.youtubeItems > 0);
+    
+    if (hasYouTubeItems && playlist.youtubeItems && playlist.youtubeItems.length > 0) {
       const firstYouTubeItem = playlist.youtubeItems[0];
       if (firstYouTubeItem.thumbnail) {
         return firstYouTubeItem.thumbnail;
@@ -75,7 +79,16 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
             sizes="(max-width: 640px) 180px, 200px"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30" />
+          <div className="w-full h-full bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30 flex items-center justify-center">
+            {/* Show YouTube icon if playlist has YouTube items, otherwise show first letter of playlist name */}
+            {playlist.youtubeItems && playlist.youtubeItems.length > 0 ? (
+              <Youtube className="h-12 w-12 text-white/60" />
+            ) : (
+              <span className="text-4xl font-bold text-white/60">
+                {playlist.name.charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
         )}
 
         {/* Gradient Overlay */}

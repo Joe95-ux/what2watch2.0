@@ -236,8 +236,6 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
     ? playlist.coverImage
     : itemsAsTMDB.length > 0 && itemsAsTMDB[0].item.poster_path
     ? getPosterUrl(itemsAsTMDB[0].item.poster_path, "original")
-    : youtubeItems.length > 0 && youtubeItems[0].thumbnail
-    ? youtubeItems[0].thumbnail
     : null;
 
   return (
