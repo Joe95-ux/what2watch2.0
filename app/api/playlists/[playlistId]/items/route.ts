@@ -102,6 +102,11 @@ export async function POST(
       },
     });
 
+    // Note: We don't create activities for every item added to playlist to avoid spam
+    // Activities are only created when a playlist is first created (handled in playlist creation endpoint)
+    // If you want to track item additions, consider adding a new activity type "ADDED_TO_PLAYLIST"
+    // and create it here with appropriate rate limiting
+
     return NextResponse.json({ success: true, item });
   } catch (error) {
     console.error("Add playlist item API error:", error);

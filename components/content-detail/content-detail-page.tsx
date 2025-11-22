@@ -126,7 +126,105 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <Skeleton className="w-full h-screen" />
+        {/* Hero Section Skeleton */}
+        <div className="-mt-[65px] pt-16 sm:pt-20 pb-12 bg-background">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-end gap-3 mt-[14px] md:mt-0">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <Skeleton className="h-6 w-px" />
+                <Skeleton className="h-9 w-20 rounded-full" />
+              </div>
+              <div className="flex flex-col sm:flex-row justify-start sm:justify-between sm:items-center gap-3">
+                <Skeleton className="h-8 w-64" />
+                <div className="flex items-center gap-4">
+                  <Skeleton className="h-5 w-16" />
+                  <Skeleton className="h-5 w-20" />
+                  <Skeleton className="h-5 w-24" />
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-[260px_minmax(0,1fr)_200px]">
+              {/* Poster Skeleton */}
+              <div className="hidden lg:block">
+                <Skeleton className="aspect-[2/3] rounded-lg" />
+              </div>
+              {/* Banner Skeleton */}
+              <div className="relative rounded-lg overflow-hidden min-h-[260px]">
+                <Skeleton className="w-full h-full" />
+              </div>
+              {/* Stats Skeleton */}
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+                <Skeleton className="h-24 rounded-lg" />
+                <Skeleton className="h-24 rounded-lg" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sticky Nav Skeleton */}
+        <div className="sticky top-[65px] z-40 bg-background/95 backdrop-blur-sm border-b border-border">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex gap-6 overflow-x-auto">
+              <Skeleton className="h-12 w-24" />
+              <Skeleton className="h-12 w-24" />
+              <Skeleton className="h-12 w-24" />
+              <Skeleton className="h-12 w-24" />
+              <Skeleton className="h-12 w-24" />
+            </div>
+          </div>
+        </div>
+
+        {/* Content Sections Skeleton */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <div className="lg:col-span-7 space-y-6">
+              {/* Genres Skeleton */}
+              <div className="flex gap-2">
+                <Skeleton className="h-8 w-20 rounded-full" />
+                <Skeleton className="h-8 w-24 rounded-full" />
+                <Skeleton className="h-8 w-28 rounded-full" />
+              </div>
+              {/* Storyline Skeleton */}
+              <div>
+                <Skeleton className="h-7 w-32 mb-4" />
+                <Skeleton className="h-4 w-full mb-2" />
+                <Skeleton className="h-4 w-full mb-2" />
+                <Skeleton className="h-4 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+              {/* Info Card Skeleton */}
+              <div className="rounded-2xl border border-border bg-card/50 divide-y divide-border">
+                <Skeleton className="h-14 w-full" />
+                <Skeleton className="h-14 w-full" />
+                <Skeleton className="h-14 w-full" />
+                <Skeleton className="h-14 w-full" />
+              </div>
+              {/* Details Grid Skeleton */}
+              <div>
+                <Skeleton className="h-7 w-32 mb-6" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i}>
+                      <Skeleton className="h-4 w-24 mb-1" />
+                      <Skeleton className="h-5 w-32" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="lg:col-span-5 space-y-4">
+              {/* Watch Providers Skeleton */}
+              <div>
+                <Skeleton className="h-7 w-40 mb-6" />
+                <div className="space-y-4">
+                  <Skeleton className="h-24 w-full rounded-lg" />
+                  <Skeleton className="h-24 w-full rounded-lg" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

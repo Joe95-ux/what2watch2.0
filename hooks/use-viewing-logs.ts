@@ -162,32 +162,42 @@ export function useUpdateViewingLog() {
       const log = await updateViewingLog(params);
       
       // Create activities for rating/reviewing if they changed
+      // Note: We only create activities if rating/notes are being added for the first time
+      // or significantly changed (to avoid spam)
       try {
         const currentLog = await fetch(`/api/viewing-logs/${params.logId}`).then(r => r.json()).catch(() => null);
         if (currentLog?.log) {
           const activities: CreateActivityParams[] = [];
+          const previousRating = currentLog.log.rating;
+          const previousNotes = currentLog.log.notes;
           
-          // If rating was added or changed
+          // If rating was added (was null, now has value) or changed significantly (different value)
           if (params.rating !== undefined && params.rating !== null) {
-            activities.push({
-              type: "RATED_FILM",
-              tmdbId: currentLog.log.tmdbId,
-              mediaType: currentLog.log.mediaType,
-              title: currentLog.log.title,
-              posterPath: currentLog.log.posterPath,
-              rating: params.rating,
-            });
+            // Only create activity if rating is new or changed
+            if (previousRating === null || previousRating !== params.rating) {
+              activities.push({
+                type: "RATED_FILM",
+                tmdbId: currentLog.log.tmdbId,
+                mediaType: currentLog.log.mediaType,
+                title: currentLog.log.title,
+                posterPath: currentLog.log.posterPath,
+                rating: params.rating,
+              });
+            }
           }
           
-          // If notes were added or changed (review)
+          // If notes were added (was empty/null, now has content)
           if (params.notes !== undefined && params.notes && params.notes.trim().length > 0) {
-            activities.push({
-              type: "REVIEWED_FILM",
-              tmdbId: currentLog.log.tmdbId,
-              mediaType: currentLog.log.mediaType,
-              title: currentLog.log.title,
-              posterPath: currentLog.log.posterPath,
-            });
+            // Only create activity if notes are new (previous notes were empty/null)
+            if (!previousNotes || previousNotes.trim().length === 0) {
+              activities.push({
+                type: "REVIEWED_FILM",
+                tmdbId: currentLog.log.tmdbId,
+                mediaType: currentLog.log.mediaType,
+                title: currentLog.log.title,
+                posterPath: currentLog.log.posterPath,
+              });
+            }
           }
           
           // Create activities

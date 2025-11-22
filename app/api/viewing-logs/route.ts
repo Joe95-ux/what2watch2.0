@@ -133,6 +133,68 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
       },
     });
 
+    // Create activities for logging, rating, and reviewing
+    try {
+      const activities: Array<{
+        type: "LOGGED_FILM" | "RATED_FILM" | "REVIEWED_FILM";
+        tmdbId: number;
+        mediaType: string;
+        title: string;
+        posterPath: string | null;
+        rating?: number | null;
+      }> = [];
+
+      // Always create LOGGED_FILM activity
+      activities.push({
+        type: "LOGGED_FILM",
+        tmdbId,
+        mediaType,
+        title,
+        posterPath: posterPath || null,
+      });
+
+      // Create RATED_FILM activity if rating is provided
+      if (rating !== undefined && rating !== null) {
+        activities.push({
+          type: "RATED_FILM",
+          tmdbId,
+          mediaType,
+          title,
+          posterPath: posterPath || null,
+          rating,
+        });
+      }
+
+      // Create REVIEWED_FILM activity if notes are provided
+      if (notes && notes.trim().length > 0) {
+        activities.push({
+          type: "REVIEWED_FILM",
+          tmdbId,
+          mediaType,
+          title,
+          posterPath: posterPath || null,
+        });
+      }
+
+      // Create all activities
+      for (const activity of activities) {
+        await db.activity.create({
+          data: {
+            userId: user.id,
+            type: activity.type,
+            tmdbId: activity.tmdbId,
+            mediaType: activity.mediaType,
+            title: activity.title,
+            posterPath: activity.posterPath,
+            rating: activity.rating || null,
+          },
+        });
+      }
+    } catch (error) {
+      // Silently fail - activity creation is not critical
+      console.error("Failed to create activity for viewing log:", error);
+    }
+
     return NextResponse.json({ success: true, log });
   } catch (error) {
     console.error("Create viewing log API error:", error);

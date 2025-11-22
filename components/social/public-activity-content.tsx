@@ -1,38 +1,37 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useActivityFeed, type ActivityType, type Activity } from "@/hooks/use-activity";
+import { useUserActivity, type ActivityType, type Activity } from "@/hooks/use-activity";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDistanceToNow } from "date-fns";
 import Image from "next/image";
 import { getPosterUrl } from "@/lib/tmdb";
-import { 
-  Film, 
-  Star, 
-  FileText, 
-  Heart, 
-  List, 
-  Music, 
+import {
+  Film,
+  Star,
+  FileText,
+  Heart,
+  List,
+  Music,
   UserPlus,
   Calendar,
-  Tv,
-  ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  Lock,
   Search,
   Filter,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { format, startOfWeek, startOfMonth, subDays, subWeeks, subMonths } from "date-fns";
+import { format, subDays } from "date-fns";
 
 const ACTIVITY_TYPES: { value: ActivityType | "all"; label: string; icon: React.ReactNode }[] = [
   { value: "all", label: "All Activity", icon: <Calendar className="h-4 w-4" /> },
@@ -143,17 +142,23 @@ function ActivityItem({ activity }: { activity: Activity }) {
     }
   };
 
-  const hasPoster = activity.posterPath && (activity.type === "LOGGED_FILM" || activity.type === "RATED_FILM" || activity.type === "REVIEWED_FILM" || activity.type === "LIKED_FILM");
+  const hasPoster =
+    activity.posterPath &&
+    (activity.type === "LOGGED_FILM" ||
+      activity.type === "RATED_FILM" ||
+      activity.type === "REVIEWED_FILM" ||
+      activity.type === "LIKED_FILM");
 
   return (
     <div className="flex gap-4 p-4 border-b last:border-b-0 hover:bg-muted/50 transition-colors">
       {/* Avatar */}
-      <Link href={`/${username}`} className="flex-shrink-0">
+      <Link href={`/users/${activity.user.id}`} className="flex-shrink-0">
         <Avatar className="h-10 w-10">
-          <AvatarImage src={activity.user.avatarUrl || undefined} alt={activity.user.displayName || activity.user.username || "Unknown"} />
-          <AvatarFallback>
-            {displayName[0]?.toUpperCase() || "U"}
-          </AvatarFallback>
+          <AvatarImage
+            src={activity.user.avatarUrl || undefined}
+            alt={activity.user.displayName || activity.user.username || "Unknown"}
+          />
+          <AvatarFallback>{displayName[0]?.toUpperCase() || "U"}</AvatarFallback>
         </Avatar>
       </Link>
 
@@ -161,9 +166,7 @@ function ActivityItem({ activity }: { activity: Activity }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-sm leading-relaxed">
-              {getActivityMessage()}
-            </p>
+            <p className="text-sm leading-relaxed">{getActivityMessage()}</p>
             <p className="text-xs text-muted-foreground mt-1">
               {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
             </p>
@@ -172,7 +175,7 @@ function ActivityItem({ activity }: { activity: Activity }) {
           {/* Poster or Icon */}
           {hasPoster ? (
             <Link
-              href={`/browse/${activity.mediaType}/${activity.tmdbId}`}
+              href={`/${activity.mediaType}/${activity.tmdbId}`}
               className="flex-shrink-0"
             >
               <div className="relative h-16 w-12 rounded overflow-hidden border">
@@ -186,9 +189,7 @@ function ActivityItem({ activity }: { activity: Activity }) {
               </div>
             </Link>
           ) : (
-            <div className="flex-shrink-0 text-muted-foreground">
-              {getActivityIcon()}
-            </div>
+            <div className="flex-shrink-0 text-muted-foreground">{getActivityIcon()}</div>
           )}
         </div>
       </div>
@@ -196,7 +197,11 @@ function ActivityItem({ activity }: { activity: Activity }) {
   );
 }
 
-export default function ActivityContent() {
+interface PublicActivityContentProps {
+  userId: string;
+}
+
+export default function PublicActivityContent({ userId }: PublicActivityContentProps) {
   const [selectedType, setSelectedType] = useState<ActivityType | "all">("all");
   const [sortBy, setSortBy] = useState<"createdAt">("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
@@ -207,6 +212,8 @@ export default function ActivityContent() {
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const isMobile = useIsMobile();
+  const { data: currentUser } = useCurrentUser();
+  const isOwnProfile = currentUser?.id === userId;
 
   // Debounce search
   useEffect(() => {
@@ -241,8 +248,20 @@ export default function ActivityContent() {
 
   const { startDate, endDate } = getDateRange();
 
-  const { data, isLoading } = useActivityFeed(
-    selectedType === "all" ? undefined : selectedType,
+  // Fetch user profile to get username
+  const { data: userData } = useQuery({
+    queryKey: ["user", userId, "profile"],
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${userId}/profile`);
+      if (!response.ok) throw new Error("Failed to fetch user profile");
+      return response.json();
+    },
+    enabled: !!userId,
+  });
+
+  const { data, isLoading } = useUserActivity(
+    userId,
+    selectedType,
     50,
     sortBy,
     sortOrder,
@@ -254,173 +273,196 @@ export default function ActivityContent() {
 
   const activities = data?.activities || [];
   const grouped = data?.grouped;
+  const privacy = data?.privacy;
+
+  const displayName =
+    userData?.user?.displayName || userData?.user?.username || "User";
+  const username = userData?.user?.username || userId;
 
   return (
     <div className="flex-1 space-y-6 p-6">
       <div className="container max-w-4xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold tracking-tight">Activity Feed</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {isOwnProfile ? "My Activity" : `${displayName}'s Activity`}
+          </h1>
           <p className="text-muted-foreground mt-2">
-            See what your friends are watching and rating
+            {isOwnProfile
+              ? "Your activity feed"
+              : `See what ${displayName} has been up to`}
           </p>
         </div>
 
-        {/* Search */}
-        <div className="mb-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search activities..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+        {/* Privacy Notice */}
+        {privacy && !privacy.canViewAll && privacy.visibility === "PRIVATE" && (
+          <div className="mb-6 p-4 border border-muted rounded-lg bg-muted/50 flex items-center gap-3">
+            <Lock className="h-5 w-5 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              This user&apos;s activity is private.
+            </p>
           </div>
-        </div>
+        )}
+
+        {/* Search */}
+        {privacy && privacy.canViewAll && (
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search activities..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Filters and Sorting */}
-        <div className="mb-6 space-y-3">
-          <div className="flex flex-col sm:flex-row gap-3">
-            {/* Activity Type Filter */}
-            <Select
-              value={selectedType}
-              onValueChange={(v) => setSelectedType(v as ActivityType | "all")}
-            >
-              <SelectTrigger className={cn("w-full sm:w-[200px]")}>
-                <SelectValue>
-                  <span className="flex items-center gap-2">
-                    {ACTIVITY_TYPES.find((t) => t.value === selectedType)?.icon}
-                    {ACTIVITY_TYPES.find((t) => t.value === selectedType)?.label}
-                  </span>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {ACTIVITY_TYPES.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
+        {privacy && privacy.canViewAll && (
+          <div className="mb-6 space-y-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Activity Type Filter */}
+              <Select
+                value={selectedType}
+                onValueChange={(v) => setSelectedType(v as ActivityType | "all")}
+              >
+                <SelectTrigger className={cn("w-full sm:w-[200px]")}>
+                  <SelectValue>
                     <span className="flex items-center gap-2">
-                      {type.icon}
-                      {type.label}
+                      {ACTIVITY_TYPES.find((t) => t.value === selectedType)?.icon}
+                      {ACTIVITY_TYPES.find((t) => t.value === selectedType)?.label}
+                    </span>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {ACTIVITY_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      <span className="flex items-center gap-2">
+                        {type.icon}
+                        {type.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Date Range Filter */}
+              <Select
+                value={dateRange}
+                onValueChange={(v) => setDateRange(v as typeof dateRange)}
+              >
+                <SelectTrigger className={cn("w-full sm:w-[180px]")}>
+                  <SelectValue>
+                    <span className="flex items-center gap-2">
+                      <CalendarIcon className="h-4 w-4" />
+                      {dateRange === "all" && "All Time"}
+                      {dateRange === "today" && "Today"}
+                      {dateRange === "week" && "Last 7 Days"}
+                      {dateRange === "month" && "Last 30 Days"}
+                      {dateRange === "custom" && "Custom Range"}
+                    </span>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="week">Last 7 Days</SelectItem>
+                  <SelectItem value="month">Last 30 Days</SelectItem>
+                  <SelectItem value="custom">Custom Range</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Group By */}
+              <Select
+                value={groupBy}
+                onValueChange={(v) => setGroupBy(v as typeof groupBy)}
+              >
+                <SelectTrigger className={cn("w-full sm:w-[160px]")}>
+                  <SelectValue>
+                    <span className="flex items-center gap-2">
+                      <Filter className="h-4 w-4" />
+                      {groupBy === "none" && "No Grouping"}
+                      {groupBy === "day" && "Group by Day"}
+                      {groupBy === "week" && "Group by Week"}
+                      {groupBy === "month" && "Group by Month"}
+                    </span>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Grouping</SelectItem>
+                  <SelectItem value="day">Group by Day</SelectItem>
+                  <SelectItem value="week">Group by Week</SelectItem>
+                  <SelectItem value="month">Group by Month</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Sort Order */}
+              <Select
+                value={sortOrder}
+                onValueChange={(v) => setSortOrder(v as "asc" | "desc")}
+              >
+                <SelectTrigger className={cn("w-full sm:w-[180px]")}>
+                  <SelectValue>
+                    <span className="flex items-center gap-2">
+                      {sortOrder === "desc" ? (
+                        <ArrowDown className="h-4 w-4" />
+                      ) : (
+                        <ArrowUp className="h-4 w-4" />
+                      )}
+                      {sortOrder === "desc" ? "Newest First" : "Oldest First"}
+                    </span>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="desc">
+                    <span className="flex items-center gap-2">
+                      <ArrowDown className="h-4 w-4" />
+                      Newest First
                     </span>
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Date Range Filter */}
-            <Select
-              value={dateRange}
-              onValueChange={(v) => setDateRange(v as typeof dateRange)}
-            >
-              <SelectTrigger className={cn("w-full sm:w-[180px]")}>
-                <SelectValue>
-                  <span className="flex items-center gap-2">
-                    <CalendarIcon className="h-4 w-4" />
-                    {dateRange === "all" && "All Time"}
-                    {dateRange === "today" && "Today"}
-                    {dateRange === "week" && "Last 7 Days"}
-                    {dateRange === "month" && "Last 30 Days"}
-                    {dateRange === "custom" && "Custom Range"}
-                  </span>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Time</SelectItem>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="week">Last 7 Days</SelectItem>
-                <SelectItem value="month">Last 30 Days</SelectItem>
-                <SelectItem value="custom">Custom Range</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Group By */}
-            <Select
-              value={groupBy}
-              onValueChange={(v) => setGroupBy(v as typeof groupBy)}
-            >
-              <SelectTrigger className={cn("w-full sm:w-[160px]")}>
-                <SelectValue>
-                  <span className="flex items-center gap-2">
-                    <Filter className="h-4 w-4" />
-                    {groupBy === "none" && "No Grouping"}
-                    {groupBy === "day" && "Group by Day"}
-                    {groupBy === "week" && "Group by Week"}
-                    {groupBy === "month" && "Group by Month"}
-                  </span>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No Grouping</SelectItem>
-                <SelectItem value="day">Group by Day</SelectItem>
-                <SelectItem value="week">Group by Week</SelectItem>
-                <SelectItem value="month">Group by Month</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Sort Order */}
-            <Select
-              value={sortOrder}
-              onValueChange={(v) => setSortOrder(v as "asc" | "desc")}
-            >
-              <SelectTrigger className={cn("w-full sm:w-[180px]")}>
-                <SelectValue>
-                  <span className="flex items-center gap-2">
-                    {sortOrder === "desc" ? (
-                      <ArrowDown className="h-4 w-4" />
-                    ) : (
+                  <SelectItem value="asc">
+                    <span className="flex items-center gap-2">
                       <ArrowUp className="h-4 w-4" />
-                    )}
-                    {sortOrder === "desc" ? "Newest First" : "Oldest First"}
-                  </span>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="desc">
-                  <span className="flex items-center gap-2">
-                    <ArrowDown className="h-4 w-4" />
-                    Newest First
-                  </span>
-                </SelectItem>
-                <SelectItem value="asc">
-                  <span className="flex items-center gap-2">
-                    <ArrowUp className="h-4 w-4" />
-                    Oldest First
-                  </span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Custom Date Range Inputs */}
-          {dateRange === "custom" && (
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1">
-                <Label htmlFor="start-date" className="text-xs text-muted-foreground mb-1 block">
-                  Start Date
-                </Label>
-                <Input
-                  id="start-date"
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              <div className="flex-1">
-                <Label htmlFor="end-date" className="text-xs text-muted-foreground mb-1 block">
-                  End Date
-                </Label>
-                <Input
-                  id="end-date"
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="w-full"
-                />
-              </div>
+                      Oldest First
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          )}
-        </div>
+
+            {/* Custom Date Range Inputs */}
+            {dateRange === "custom" && (
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1">
+                  <Label htmlFor="start-date" className="text-xs text-muted-foreground mb-1 block">
+                    Start Date
+                  </Label>
+                  <Input
+                    id="start-date"
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+                <div className="flex-1">
+                  <Label htmlFor="end-date" className="text-xs text-muted-foreground mb-1 block">
+                    End Date
+                  </Label>
+                  <Input
+                    id="end-date"
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Activity List */}
         <div className="bg-card border rounded-lg overflow-hidden">
@@ -437,13 +479,20 @@ export default function ActivityContent() {
                 </div>
               ))}
             </div>
+          ) : !privacy || !privacy.canViewAll ? (
+            <div className="p-12 text-center">
+              <Lock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">
+                This user&apos;s activity is private.
+              </p>
+            </div>
           ) : activities.length === 0 ? (
             <div className="p-12 text-center">
               <p className="text-muted-foreground">
                 {debouncedSearch
                   ? "No activities found matching your search."
                   : selectedType === "all"
-                  ? "No activity yet. Start following users to see their activity!"
+                  ? "No activity yet."
                   : `No ${ACTIVITY_TYPES.find((t) => t.value === selectedType)?.label.toLowerCase()} activity yet.`}
               </p>
             </div>

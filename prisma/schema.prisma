@@ -19,6 +19,27 @@ model User {
   displayName   String?
   avatarUrl     String?
   bio           String?
+  
+  // Activity visibility settings
+  activityVisibility String @default("PUBLIC") // "PUBLIC", "FOLLOWERS_ONLY", "PRIVATE"
+  showRatingsInActivity Boolean @default(true)
+  showReviewsInActivity Boolean @default(true)
+  showListsInActivity Boolean @default(true)
+  showPlaylistsInActivity Boolean @default(true)
+  showWatchedInActivity Boolean @default(true)
+  showLikedInActivity Boolean @default(true)
+  showFollowedInActivity Boolean @default(true)
+  
+  // Notification preferences
+  emailNotifications Boolean @default(true)
+  pushNotifications Boolean @default(true)
+  notifyOnNewFollowers Boolean @default(true)
+  notifyOnNewReviews Boolean @default(true)
+  notifyOnListUpdates Boolean @default(true)
+  notifyOnPlaylistUpdates Boolean @default(true)
+  notifyOnActivityLikes Boolean @default(true)
+  notifyOnMentions Boolean @default(true)
+  
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -614,6 +635,9 @@ model Activity {
   // Additional metadata
   rating        Int?         // For rating activities
   metadata      Json?        // Additional flexible data
+  
+  // Privacy settings
+  visibility    String?      // "PUBLIC", "FOLLOWERS_ONLY", "PRIVATE" - inherits from user settings if null
   
   createdAt     DateTime     @default(now())
   

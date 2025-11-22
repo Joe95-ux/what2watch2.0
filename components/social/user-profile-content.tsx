@@ -22,7 +22,7 @@ import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { Playlist } from "@/hooks/use-playlists";
 import { List as ListType } from "@/hooks/use-lists";
-import { Users, UserCheck, List, Star, Heart, ChevronLeft, ChevronRight, ClipboardList } from "lucide-react";
+import { Users, UserCheck, List, Star, Heart, ChevronLeft, ChevronRight, ClipboardList, Activity } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useFavorites } from "@/hooks/use-favorites";
@@ -205,8 +205,20 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
     .toUpperCase()
     .slice(0, 2);
 
-  // Action button (Follow button for other users, nothing for own profile)
-  const actionButton = !isOwnProfile ? <FollowButton userId={userId} /> : undefined;
+  // Action buttons
+  const actionButtons = (
+    <div className="flex items-center gap-2">
+      <Button
+        variant="outline"
+        onClick={() => router.push(`/users/${userId}/activity`)}
+        className="cursor-pointer"
+      >
+        <Activity className="h-4 w-4 mr-2" />
+        Activity
+      </Button>
+      {!isOwnProfile && <FollowButton userId={userId} />}
+    </div>
+  );
 
   // Tabs component
   const tabs = isMobile ? (
@@ -604,7 +616,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
         followingCount={following.length}
         playlistsCount={playlists.length}
         listsCount={lists.length}
-        actionButton={actionButton}
+        actionButton={actionButtons}
         tabs={tabs}
         tabContent={tabContent}
         showBackButton={true}

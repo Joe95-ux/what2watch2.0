@@ -258,6 +258,29 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Create activity for review
+    try {
+      // Get film title and poster from TMDB (we'll need to fetch this or pass it)
+      // For now, we'll create activity with available data
+      await db.activity.create({
+        data: {
+          userId: user.id,
+          type: "REVIEWED_FILM",
+          tmdbId: parseInt(tmdbId, 10),
+          mediaType,
+          title: title || `Review for ${mediaType === "movie" ? "movie" : "TV show"}`,
+          rating,
+          metadata: {
+            reviewId: review.id,
+            hasSpoilers: containsSpoilers || false,
+          },
+        },
+      });
+    } catch (error) {
+      // Silently fail - activity creation is not critical
+      console.error("Failed to create activity for review:", error);
+    }
+
     return NextResponse.json({
       ...review,
       reactionCounts: {},
