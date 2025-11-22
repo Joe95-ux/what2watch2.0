@@ -147,6 +147,8 @@ export function YouTubeChannelExtractor() {
         
         // Invalidate and refetch YouTube channels query
         await queryClient.invalidateQueries({ queryKey: ["youtube-channels"] });
+        // Force a refetch to ensure the UI updates immediately
+        await queryClient.refetchQueries({ queryKey: ["youtube-channels"] });
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error("[YT CID Extractor] Add channel ID failed:", {

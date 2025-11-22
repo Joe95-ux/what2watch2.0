@@ -5,6 +5,7 @@ export interface YouTubeChannel {
   title: string;
   description: string;
   thumbnail?: string;
+  bannerImage?: string;
   customUrl?: string;
   subscriberCount: string;
   videoCount: string;
@@ -23,12 +24,31 @@ export interface YouTubeVideo {
   videoUrl: string;
 }
 
+export interface YouTubePlaylist {
+  id: string;
+  title: string;
+  description: string;
+  thumbnail?: string;
+  channelId: string;
+  channelTitle: string;
+  publishedAt: string;
+  itemCount: number;
+  playlistUrl: string;
+}
+
 interface YouTubeChannelResponse {
   channel: YouTubeChannel;
 }
 
 interface YouTubeVideosResponse {
   videos: YouTubeVideo[];
+  nextPageToken?: string;
+  hasMore: boolean;
+  totalResults: number;
+}
+
+interface YouTubePlaylistsResponse {
+  playlists: YouTubePlaylist[];
   nextPageToken?: string;
   hasMore: boolean;
   totalResults: number;
@@ -82,6 +102,28 @@ export function useYouTubeChannel(channelId: string | null) {
 }
 
 /**
+ * Fetch YouTube channel playlists
+ */
+async function fetchChannelPlaylists(
+  channelId: string,
+  pageToken?: string
+): Promise<YouTubePlaylistsResponse> {
+  const params = new URLSearchParams();
+  params.set("maxResults", "50");
+  if (pageToken) {
+    params.set("pageToken", pageToken);
+  }
+
+  const response = await fetch(
+    `/api/youtube/channels/${channelId}/playlists?${params.toString()}`
+  );
+  if (!response.ok) {
+    throw new Error("Failed to fetch playlists");
+  }
+  return response.json();
+}
+
+/**
  * Hook to fetch YouTube channel videos with pagination
  */
 export function useYouTubeChannelVideos(
@@ -91,6 +133,22 @@ export function useYouTubeChannelVideos(
   return useQuery({
     queryKey: ["youtube-channel-videos", channelId, pageToken],
     queryFn: () => fetchChannelVideos(channelId!, pageToken),
+    enabled: !!channelId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
+  });
+}
+
+/**
+ * Hook to fetch YouTube channel playlists with pagination
+ */
+export function useYouTubeChannelPlaylists(
+  channelId: string | null,
+  pageToken?: string
+) {
+  return useQuery({
+    queryKey: ["youtube-channel-playlists", channelId, pageToken],
+    queryFn: () => fetchChannelPlaylists(channelId!, pageToken),
     enabled: !!channelId,
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 30, // 30 minutes

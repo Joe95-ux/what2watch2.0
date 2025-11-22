@@ -15,6 +15,11 @@ interface YouTubeChannelItem {
     subscriberCount?: string;
     videoCount?: string;
   };
+  brandingSettings?: {
+    image?: {
+      bannerExternalUrl?: string;
+    };
+  };
 }
 
 interface YouTubeChannelsResponse {
@@ -49,7 +54,7 @@ export async function GET(
 
     try {
       const response = await fetch(
-        `https://www.googleapis.com/youtube/v3/channels?id=${channelId}&part=snippet,statistics,contentDetails&key=${YOUTUBE_API_KEY}`,
+        `https://www.googleapis.com/youtube/v3/channels?id=${channelId}&part=snippet,statistics,contentDetails,brandingSettings&key=${YOUTUBE_API_KEY}`,
         {
           next: { revalidate: 300 }, // Cache for 5 minutes
         }
@@ -84,6 +89,7 @@ export async function GET(
           title: item.snippet.title,
           description: item.snippet.description,
           thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
+          bannerImage: item.brandingSettings?.image?.bannerExternalUrl,
           customUrl: item.snippet.customUrl,
           subscriberCount: item.statistics?.subscriberCount || "0",
           videoCount: item.statistics?.videoCount || "0",

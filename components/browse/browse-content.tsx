@@ -360,7 +360,7 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
         {(uniqueFilteredContent.length > 0 || isLoadingFiltered || (regionFilter === "nollywood" && nollywoodContentType === "youtube")) && (
           <>
             {regionFilter === "nollywood" && nollywoodContentType === "youtube" ? (
-              <NollywoodYouTubeSection onContentTypeChange={setNollywoodContentType} />
+              <NollywoodYouTubeSection onContentTypeChange={setNollywoodContentType} viewAllHref={viewAllUrl} />
             ) : (
               <ContentRow
                 title="Discover"
@@ -396,8 +396,10 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
           </>
         )}
 
-        {/* Favorite Channels Carousel */}
-        <FavoriteChannelsCarousel />
+        {/* Favorite Channels Carousel - Hide when YouTube is selected to avoid duplicate skeletons */}
+        {!(regionFilter === "nollywood" && nollywoodContentType === "youtube") && (
+          <FavoriteChannelsCarousel />
+        )}
 
         {/* Made for [Username] Section */}
         {favoriteGenres && favoriteGenres.length > 0 && (
@@ -464,30 +466,41 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
 }
 
 // Nollywood YouTube Section Component
-function NollywoodYouTubeSection({ onContentTypeChange }: { onContentTypeChange: (type: "movies" | "tv" | "youtube") => void }) {
+function NollywoodYouTubeSection({ onContentTypeChange, viewAllHref }: { onContentTypeChange: (type: "movies" | "tv" | "youtube") => void; viewAllHref: string }) {
   return (
     <div className="mb-12 px-4 sm:px-6 lg:px-8">
-      <div className="mb-6 flex items-center gap-3">
-        <h2 className="text-2xl font-medium text-foreground">Discover</h2>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              YouTube
-              <ChevronDown className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuItem onClick={() => onContentTypeChange("movies")} className="cursor-pointer">
-              Movies
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onContentTypeChange("tv")} className="cursor-pointer">
-              TV
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onContentTypeChange("youtube")} className="cursor-pointer">
-              YouTube
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-medium text-foreground">Discover</h2>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                YouTube
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => onContentTypeChange("movies")} className="cursor-pointer">
+                Movies
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onContentTypeChange("tv")} className="cursor-pointer">
+                TV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onContentTypeChange("youtube")} className="cursor-pointer">
+                YouTube
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        {viewAllHref && (
+          <Link 
+            href={viewAllHref} 
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+          >
+            View All
+            <CaretRight className="h-4 w-4" />
+          </Link>
+        )}
       </div>
       <YouTubeChannelsGrid />
     </div>

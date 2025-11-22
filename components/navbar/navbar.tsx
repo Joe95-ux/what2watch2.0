@@ -52,9 +52,6 @@ export default function Navbar() {
   const isDiscoverPage = pathname === "/dashboard/ai/discover" || pathname?.startsWith("/dashboard/ai/discover");
   const isDashboard = (pathname === "/dashboard" || pathname?.startsWith("/dashboard/")) && !isDiscoverPage;
 
-  // Check if we're on a page that should use max-w-7xl (my-list, but not search)
-  const shouldUseMaxWidth = pathname === "/dashboard/my-list";
-
   const shouldUseMaxSearchNav = pathname === "/search" || pathname?.startsWith("/search");
 
   // Check if we're on a page with hero section (dark navbar needed)
@@ -69,7 +66,6 @@ export default function Navbar() {
     )}>
       <div className={cn(
         "w-full flex h-16 items-center px-4 sm:px-6 lg:px-8",
-        shouldUseMaxWidth && "max-w-7xl mx-auto",
         shouldUseMaxSearchNav && "container mx-auto",
         isDashboard ? "grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_auto] gap-2 md:gap-4" : "justify-between",
         isDiscoverPage && "justify-between"

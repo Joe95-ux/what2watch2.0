@@ -67,7 +67,7 @@ export function useYouTubeChannels() {
       // Fetch channel details
       return fetchChannelsByIds(channelIds);
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Always consider data stale to allow immediate refetch after adding channels
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
   });
 }

@@ -5,7 +5,7 @@ import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import MovieCard from "@/components/browse/movie-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Youtube } from "lucide-react";
+import { ChevronLeft, ChevronRight, Youtube, ChevronDown } from "lucide-react";
 import {
   Carousel,
   CarouselContent,
@@ -13,142 +13,98 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import Image from "next/image";
 import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
 import { YouTubeProfileSkeleton } from "@/components/browse/youtube-profile-skeleton";
+import { useSearch } from "@/hooks/use-search";
 
-const ITEMS_PER_PAGE = 20;
+type ContentFilter = "all" | "movies" | "tv";
 
 export default function NollywoodPage() {
   const { data: channels = [], isLoading: isLoadingChannels } = useYouTubeChannels();
   
-  const [movies, setMovies] = useState<TMDBMovie[]>([]);
-  const [tvShows, setTVShows] = useState<TMDBSeries[]>([]);
-  const [isLoadingMovies, setIsLoadingMovies] = useState(true);
-  const [isLoadingTV, setIsLoadingTV] = useState(true);
-  
-  const [moviesPage, setMoviesPage] = useState(1);
-  const [tvPage, setTVPage] = useState(1);
+  const [contentFilter, setContentFilter] = useState<ContentFilter>("all");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Fetch all movies
-  useEffect(() => {
-    const fetchAllMovies = async () => {
-      setIsLoadingMovies(true);
-      const allResults: TMDBMovie[] = [];
-      let page = 1;
-      let hasMore = true;
-
-      while (hasMore && page <= 10) {
-        try {
-          const searchParams = new URLSearchParams();
-          searchParams.set("type", "movie");
-          searchParams.set("withOriginCountry", "NG");
-          searchParams.set("sortBy", "popularity.desc");
-          searchParams.set("page", page.toString());
-
-          const response = await fetch(`/api/search?${searchParams.toString()}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.results && data.results.length > 0) {
-              const movieResults = data.results.filter((item: TMDBMovie | TMDBSeries) => "title" in item) as TMDBMovie[];
-              allResults.push(...movieResults);
-              if (data.results.length < 20 || page >= data.total_pages) {
-                hasMore = false;
-              } else {
-                page++;
-              }
-            } else {
-              hasMore = false;
-            }
-          } else {
-            hasMore = false;
-          }
-        } catch (error) {
-          console.error(`Error fetching movies page ${page}:`, error);
-          hasMore = false;
-        }
-      }
-
-      setMovies(allResults);
-      setIsLoadingMovies(false);
+  // Build search params for movies
+  const moviesSearchParams = useMemo(() => {
+    if (contentFilter === "tv") return null; // Don't fetch movies if only TV is selected
+    return {
+      type: "movie" as const,
+      withOriginCountry: "NG",
+      sortBy: "popularity.desc",
+      page: currentPage,
     };
+  }, [contentFilter, currentPage]);
 
-    fetchAllMovies();
-  }, []);
-
-  // Fetch all TV shows
-  useEffect(() => {
-    const fetchAllTV = async () => {
-      setIsLoadingTV(true);
-      const allResults: TMDBSeries[] = [];
-      let page = 1;
-      let hasMore = true;
-
-      while (hasMore && page <= 10) {
-        try {
-          const searchParams = new URLSearchParams();
-          searchParams.set("type", "tv");
-          searchParams.set("withOriginCountry", "NG");
-          searchParams.set("sortBy", "popularity.desc");
-          searchParams.set("page", page.toString());
-
-          const response = await fetch(`/api/search?${searchParams.toString()}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.results && data.results.length > 0) {
-              const tvResults = data.results.filter((item: TMDBMovie | TMDBSeries) => "name" in item) as TMDBSeries[];
-              allResults.push(...tvResults);
-              if (data.results.length < 20 || page >= data.total_pages) {
-                hasMore = false;
-              } else {
-                page++;
-              }
-            } else {
-              hasMore = false;
-            }
-          } else {
-            hasMore = false;
-          }
-        } catch (error) {
-          console.error(`Error fetching TV page ${page}:`, error);
-          hasMore = false;
-        }
-      }
-
-      setTVShows(allResults);
-      setIsLoadingTV(false);
+  // Build search params for TV
+  const tvSearchParams = useMemo(() => {
+    if (contentFilter === "movies") return null; // Don't fetch TV if only movies is selected
+    return {
+      type: "tv" as const,
+      withOriginCountry: "NG",
+      sortBy: "popularity.desc",
+      page: currentPage,
     };
+  }, [contentFilter, currentPage]);
 
-    fetchAllTV();
-  }, []);
+  // Fetch movies
+  const { data: moviesData, isLoading: isLoadingMovies } = useSearch(moviesSearchParams || {});
 
-  // Client-side pagination for movies
-  const moviesTotalPages = Math.ceil(movies.length / ITEMS_PER_PAGE);
-  const paginatedMovies = useMemo(() => {
-    return movies.slice((moviesPage - 1) * ITEMS_PER_PAGE, moviesPage * ITEMS_PER_PAGE);
-  }, [movies, moviesPage]);
+  // Fetch TV shows
+  const { data: tvData, isLoading: isLoadingTV } = useSearch(tvSearchParams || {});
 
-  // Client-side pagination for TV shows
-  const tvTotalPages = Math.ceil(tvShows.length / ITEMS_PER_PAGE);
-  const paginatedTV = useMemo(() => {
-    return tvShows.slice((tvPage - 1) * ITEMS_PER_PAGE, tvPage * ITEMS_PER_PAGE);
-  }, [tvShows, tvPage]);
+  // Combine and sort results
+  const allContent = useMemo(() => {
+    const results: (TMDBMovie | TMDBSeries)[] = [];
+    
+    if (contentFilter === "all") {
+      // Combine both movies and TV
+      if (moviesData?.results) results.push(...moviesData.results);
+      if (tvData?.results) results.push(...tvData.results);
+    } else if (contentFilter === "movies" && moviesData?.results) {
+      results.push(...moviesData.results);
+    } else if (contentFilter === "tv" && tvData?.results) {
+      results.push(...tvData.results);
+    }
+    
+    // Sort by popularity (TMDB already returns sorted, but we'll maintain order)
+    return results;
+  }, [moviesData, tvData, contentFilter]);
 
-  const handleMoviesPageChange = (newPage: number) => {
-    setMoviesPage(newPage);
+  const isLoadingContent = isLoadingMovies || isLoadingTV;
+
+  // Calculate total pages based on filter
+  const totalPages = useMemo(() => {
+    if (contentFilter === "all") {
+      // For "all", we show combined results, so use the max pages
+      const moviesPages = moviesData?.total_pages || 0;
+      const tvPages = tvData?.total_pages || 0;
+      return Math.max(moviesPages, tvPages);
+    } else if (contentFilter === "movies") {
+      return moviesData?.total_pages || 1;
+    } else {
+      return tvData?.total_pages || 1;
+    }
+  }, [contentFilter, moviesData, tvData]);
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleTVPageChange = (newPage: number) => {
-    setTVPage(newPage);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [contentFilter]);
 
-  const renderPagination = (
-    currentPage: number,
-    totalPages: number,
-    onPageChange: (page: number) => void
-  ) => {
+  const renderPagination = () => {
     if (totalPages <= 1) return null;
 
     return (
@@ -156,7 +112,7 @@ export default function NollywoodPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onPageChange(currentPage - 1)}
+          onClick={() => handlePageChange(currentPage - 1)}
           disabled={currentPage === 1}
           className="cursor-pointer"
         >
@@ -180,7 +136,7 @@ export default function NollywoodPage() {
                 key={pageNum}
                 variant={currentPage === pageNum ? "default" : "outline"}
                 size="sm"
-                onClick={() => onPageChange(pageNum)}
+                onClick={() => handlePageChange(pageNum)}
                 className="cursor-pointer min-w-[40px]"
               >
                 {pageNum}
@@ -191,7 +147,7 @@ export default function NollywoodPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onPageChange(currentPage + 1)}
+          onClick={() => handlePageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
           className="cursor-pointer"
         >
@@ -207,7 +163,7 @@ export default function NollywoodPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold mb-8">Nollywood</h1>
 
-        {/* YouTube Channels Carousel */}
+        {/* YouTube Channels Carousel - First Section */}
         <section className="mb-12">
           <h2 className="text-2xl font-semibold mb-6">YouTube Channels</h2>
           {isLoadingChannels ? (
@@ -269,59 +225,65 @@ export default function NollywoodPage() {
           )}
         </section>
 
-        {/* Movies Grid */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-semibold mb-6">Movies</h2>
-          
-          {isLoadingMovies ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-              {Array.from({ length: 20 }).map((_, i) => (
-                <Skeleton key={i} className="aspect-[2/3] rounded-lg" />
-              ))}
-            </div>
-          ) : paginatedMovies.length > 0 ? (
-            <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {paginatedMovies.map((item) => (
-                  <MovieCard
-                    key={item.id}
-                    item={item}
-                    type="movie"
-                  />
-                ))}
-              </div>
-              {renderPagination(moviesPage, moviesTotalPages, handleMoviesPageChange)}
-            </>
-          ) : (
-            <p className="text-muted-foreground">No movies found.</p>
-          )}
-        </section>
-
-        {/* TV Shows Grid */}
+        {/* Movies/TV Grid - Second Section */}
         <section>
-          <h2 className="text-2xl font-semibold mb-6">TV Shows</h2>
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h2 className="text-2xl font-semibold">Movies & TV Shows</h2>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    {contentFilter === "all" ? "All" : contentFilter === "movies" ? "Movies" : "TV"}
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem 
+                    onClick={() => setContentFilter("all")} 
+                    className="cursor-pointer"
+                  >
+                    All
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => setContentFilter("movies")} 
+                    className="cursor-pointer"
+                  >
+                    Movies
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => setContentFilter("tv")} 
+                    className="cursor-pointer"
+                  >
+                    TV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
           
-          {isLoadingTV ? (
+          {isLoadingContent ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
               {Array.from({ length: 20 }).map((_, i) => (
                 <Skeleton key={i} className="aspect-[2/3] rounded-lg" />
               ))}
             </div>
-          ) : paginatedTV.length > 0 ? (
+          ) : allContent.length > 0 ? (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {paginatedTV.map((item) => (
+                {allContent.map((item) => (
                   <MovieCard
                     key={item.id}
                     item={item}
-                    type="tv"
+                    type={"title" in item ? "movie" : "tv"}
                   />
                 ))}
               </div>
-              {renderPagination(tvPage, tvTotalPages, handleTVPageChange)}
+              {renderPagination()}
             </>
           ) : (
-            <p className="text-muted-foreground">No TV shows found.</p>
+            <p className="text-muted-foreground">
+              No {contentFilter === "all" ? "content" : contentFilter === "movies" ? "movies" : "TV shows"} found.
+            </p>
           )}
         </section>
       </div>

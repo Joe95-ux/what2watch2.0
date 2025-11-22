@@ -141,15 +141,12 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
           </div>
           <div className="flex items-center gap-2">
             {viewAllHref && (
-              <Link href={viewAllHref} className="cursor-pointer">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
-                >
-                  View All
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+              <Link 
+                href={viewAllHref} 
+                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+              >
+                View All
+                <ChevronRight className="h-4 w-4" />
               </Link>
             )}
             {showClearButton && onClear && (
