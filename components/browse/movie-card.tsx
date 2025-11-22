@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
-import { Star, Play, Plus, Heart, Maximize2, Bookmark, Volume2, VolumeX, BookCheck } from "lucide-react";
+import { Star, Play, Plus, Heart, Maximize2, Bookmark, Volume2, VolumeX, BookCheck, MoreVertical, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries, getPosterUrl, TMDBVideo, getYouTubeEmbedUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,12 @@ import { useToggleFavorite } from "@/hooks/use-favorites";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useContentVideos } from "@/hooks/use-content-details";
 import { useUser, useClerk } from "@clerk/nextjs";
@@ -28,10 +34,11 @@ interface MovieCardProps {
   variant?: "default" | "more-like-this" | "dashboard"; // Variant for different card styles
   onCardClick?: (item: TMDBMovie | TMDBSeries, type: "movie" | "tv") => void; // Callback when card is clicked
   onAddToPlaylist?: () => void; // Callback when item is added to playlist
+  onRemove?: () => void; // Callback to remove item from playlist
   forceDesktopVariantOnMobile?: boolean;
 }
 
-export default function MovieCard({ item, type, className, canScrollPrev = false, canScrollNext = false, variant = "default", onCardClick, onAddToPlaylist, forceDesktopVariantOnMobile = false }: MovieCardProps) {
+export default function MovieCard({ item, type, className, canScrollPrev = false, canScrollNext = false, variant = "default", onCardClick, onAddToPlaylist, onRemove, forceDesktopVariantOnMobile = false }: MovieCardProps) {
   const router = useRouter();
   const isMobileDevice = useIsMobile();
   const shouldForceDesktopVariant = forceDesktopVariantOnMobile && isMobileDevice;
@@ -52,6 +59,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const [trailerError, setTrailerError] = useState<string | null>(null);
   const [playlistTooltipOpen, setPlaylistTooltipOpen] = useState(false);
   const [isPlaylistDropdownOpen, setIsPlaylistDropdownOpen] = useState(false);
+  const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
   
   // Only enable video fetching when hovering (on desktop) and not in dashboard variant
   // This prevents unnecessary API calls when cards are just rendered but not interacted with
@@ -329,62 +337,96 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                 >
                   <div className="flex items-center justify-between" style={{ transform: "translateZ(0)", willChange: "transform" }}>
                     <div className="flex items-center gap-2">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
+                      <DropdownMenu open={isActionsDropdownOpen} onOpenChange={setIsActionsDropdownOpen}>
+                        <DropdownMenuTrigger asChild>
                           <CircleActionButton
                             size="sm"
                             className="backdrop-blur-md z-[5]"
-                            onClick={async (e: React.MouseEvent) => {
+                            onClick={(e: React.MouseEvent) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                          >
+                            <MoreVertical className="h-3 w-3 text-white" />
+                          </CircleActionButton>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="start"
+                          className="w-48 z-[110]"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                          }}
+                          onPointerDown={(e) => {
+                            e.stopPropagation();
+                          }}
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                          }}
+                        >
+                          <DropdownMenuItem
+                            onClick={async (e) => {
                               e.preventDefault();
                               e.stopPropagation();
                               await requireAuth(
                                 () => toggleFavorite.toggle(item, type),
                                 "Sign in to like titles."
                               );
+                              setIsActionsDropdownOpen(false);
                             }}
+                            className="cursor-pointer"
                           >
                             <Heart
                               className={cn(
-                                "h-3 w-3",
+                                "h-4 w-4 mr-2",
                                 toggleFavorite.isFavorite(item.id, type)
                                   ? "text-red-500 fill-red-500"
-                                  : "text-white"
+                                  : "text-muted-foreground"
                               )}
                             />
-                          </CircleActionButton>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <CircleActionButton
-                            size="sm"
-                            className="backdrop-blur-md z-[5]"
-                            onClick={async (e: React.MouseEvent) => {
+                            {toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={async (e) => {
                               e.preventDefault();
                               e.stopPropagation();
                               await requireAuth(
                                 () => toggleWatchlist.toggle(item, type),
                                 "Sign in to manage your watchlist."
                               );
+                              setIsActionsDropdownOpen(false);
                             }}
+                            className="cursor-pointer"
                           >
                             <Bookmark
                               className={cn(
-                                "h-3 w-3",
+                                "h-4 w-4 mr-2",
                                 toggleWatchlist.isInWatchlist(item.id, type)
                                   ? "text-blue-500 fill-blue-500"
-                                  : "text-white"
+                                  : "text-muted-foreground"
                               )}
                             />
-                          </CircleActionButton>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from Watchlist" : "Add to Watchlist"}</p>
-                        </TooltipContent>
-                      </Tooltip>
+                            {toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from Watchlist" : "Add to Watchlist"}
+                          </DropdownMenuItem>
+                          {onRemove && (
+                            <>
+                              <div className="my-1 border-t border-border" />
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  onRemove();
+                                  setIsActionsDropdownOpen(false);
+                                }}
+                                className="cursor-pointer text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Remove from Playlist
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
 
                     {shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && (

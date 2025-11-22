@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Play, Plus, Share2, Link2, Facebook, Twitter, Heart, Bookmark } from "lucide-react";
+import { Play, Plus, Share2, Link2, Facebook, Twitter, Heart, Bookmark, MoreVertical, Trash2 } from "lucide-react";
 import { YouTubeVideo } from "@/hooks/use-youtube-channel";
 import { CircleActionButton } from "@/components/browse/circle-action-button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -26,6 +26,7 @@ interface YouTubeVideoCardProps {
   onVideoClick?: (video: YouTubeVideo) => void;
   onAddToPlaylist?: () => void;
   channelId?: string; // Channel ID for favorite/watchlist actions
+  onRemove?: () => void; // Callback to remove video from playlist
 }
 
 /**
@@ -69,6 +70,7 @@ export default function YouTubeVideoCard({
   onVideoClick,
   onAddToPlaylist,
   channelId,
+  onRemove,
 }: YouTubeVideoCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const isMobile = useIsMobile();
@@ -77,6 +79,7 @@ export default function YouTubeVideoCard({
   const [playlistTooltipOpen, setPlaylistTooltipOpen] = useState(false);
   const [isPlaylistDropdownOpen, setIsPlaylistDropdownOpen] = useState(false);
   const [isShareDropdownOpen, setIsShareDropdownOpen] = useState(false);
+  const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const toggleFavorite = useToggleFavoriteChannel();
   const toggleWatchlist = useToggleChannelWatchlist();
@@ -281,65 +284,103 @@ export default function YouTubeVideoCard({
           </CircleActionButton>
         </div>
 
-        {/* Favorite and Watchlist Buttons - Top Left (only if channelId provided) */}
-        {channelId && (
-          <div className="absolute top-2 left-2 z-[10] flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Tooltip>
-              <TooltipTrigger asChild>
+        {/* Actions Dropdown Menu - Top Left (only if channelId provided or onRemove exists) */}
+        {(channelId || onRemove) && (
+          <div className="absolute top-2 left-2 z-[10] opacity-0 group-hover:opacity-100 transition-opacity">
+            <DropdownMenu open={isActionsDropdownOpen} onOpenChange={setIsActionsDropdownOpen}>
+              <DropdownMenuTrigger asChild>
                 <CircleActionButton
                   size="sm"
-                  onClick={async (e: React.MouseEvent) => {
+                  onClick={(e: React.MouseEvent) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    await requireAuth(
-                      () => toggleFavorite.toggle(channelId),
-                      "Sign in to favorite channels."
-                    );
                   }}
                   className="bg-black/60 hover:bg-black/80 backdrop-blur-sm"
                 >
-                  <Heart
-                    className={cn(
-                      "h-3 w-3",
-                      toggleFavorite.isFavorited(channelId)
-                        ? "text-red-500 fill-red-500"
-                        : "text-white"
-                    )}
-                  />
+                  <MoreVertical className="h-3 w-3 text-white" />
                 </CircleActionButton>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{toggleFavorite.isFavorited(channelId) ? "Remove from Favorites" : "Add to Favorites"}</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <CircleActionButton
-                  size="sm"
-                  onClick={async (e: React.MouseEvent) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    await requireAuth(
-                      () => toggleWatchlist.toggle(channelId),
-                      "Sign in to manage watchlist."
-                    );
-                  }}
-                  className="bg-black/60 hover:bg-black/80 backdrop-blur-sm"
-                >
-                  <Bookmark
-                    className={cn(
-                      "h-3 w-3",
-                      toggleWatchlist.isInWatchlist(channelId)
-                        ? "text-blue-500 fill-blue-500"
-                        : "text-white"
-                    )}
-                  />
-                </CircleActionButton>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{toggleWatchlist.isInWatchlist(channelId) ? "Remove from Watchlist" : "Add to Watchlist"}</p>
-              </TooltipContent>
-            </Tooltip>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="w-48 z-[110]"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                }}
+              >
+                {channelId && (
+                  <>
+                    <DropdownMenuItem
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        await requireAuth(
+                          () => toggleFavorite.toggle(channelId),
+                          "Sign in to favorite channels."
+                        );
+                        setIsActionsDropdownOpen(false);
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <Heart
+                        className={cn(
+                          "h-4 w-4 mr-2",
+                          toggleFavorite.isFavorited(channelId)
+                            ? "text-red-500 fill-red-500"
+                            : "text-muted-foreground"
+                        )}
+                      />
+                      {toggleFavorite.isFavorited(channelId) ? "Remove from Favorites" : "Add to Favorites"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        await requireAuth(
+                          () => toggleWatchlist.toggle(channelId),
+                          "Sign in to manage watchlist."
+                        );
+                        setIsActionsDropdownOpen(false);
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <Bookmark
+                        className={cn(
+                          "h-4 w-4 mr-2",
+                          toggleWatchlist.isInWatchlist(channelId)
+                            ? "text-blue-500 fill-blue-500"
+                            : "text-muted-foreground"
+                        )}
+                      />
+                      {toggleWatchlist.isInWatchlist(channelId) ? "Remove from Watchlist" : "Add to Watchlist"}
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {onRemove && (
+                  <>
+                    {channelId && <div className="my-1 border-t border-border" />}
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onRemove();
+                        setIsActionsDropdownOpen(false);
+                      }}
+                      className="cursor-pointer text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Remove from Playlist
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         )}
       </div>

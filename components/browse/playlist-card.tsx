@@ -41,11 +41,8 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
       }
     }
     // Use first YouTube item's thumbnail as cover if available
-    // Check both youtubeItems array and _count to determine if playlist has YouTube items
-    const hasYouTubeItems = (playlist.youtubeItems && playlist.youtubeItems.length > 0) || 
-                           (playlist._count?.youtubeItems && playlist._count.youtubeItems > 0);
-    
-    if (hasYouTubeItems && playlist.youtubeItems && playlist.youtubeItems.length > 0) {
+    // Check YouTube items even if regular items exist but have no poster
+    if (playlist.youtubeItems && playlist.youtubeItems.length > 0) {
       const firstYouTubeItem = playlist.youtubeItems[0];
       if (firstYouTubeItem.thumbnail) {
         return firstYouTubeItem.thumbnail;

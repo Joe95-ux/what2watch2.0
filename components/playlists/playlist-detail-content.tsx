@@ -373,31 +373,22 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
                     <YouTubeVideoCard
                       video={youtubeItem}
                       onVideoClick={(video) => window.open(video.videoUrl, "_blank", "noopener,noreferrer")}
+                      channelId={youtubeItem.channelId}
+                      onRemove={isOwnPlaylist ? async () => {
+                        try {
+                          const response = await fetch(`/api/youtube/videos/${youtubeItem.id}/playlist?playlistId=${playlistId}&itemId=${youtubeItem.playlistItemId}`, {
+                            method: "DELETE",
+                          });
+                          if (!response.ok) throw new Error("Failed to remove");
+                          toast.success("Removed from playlist");
+                          // Invalidate playlist query to refresh the UI
+                          await queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
+                        } catch (error) {
+                          toast.error("Failed to remove video");
+                          console.error(error);
+                        }
+                      } : undefined}
                     />
-                    {isOwnPlaylist && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 hover:bg-black/80 rounded-full h-8 w-8"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          try {
-                            const response = await fetch(`/api/youtube/videos/${youtubeItem.id}/playlist?playlistId=${playlistId}&itemId=${youtubeItem.playlistItemId}`, {
-                              method: "DELETE",
-                            });
-                            if (!response.ok) throw new Error("Failed to remove");
-                            toast.success("Removed from playlist");
-                            // Invalidate playlist query to refresh the UI
-                            await queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
-                          } catch (error) {
-                            toast.error("Failed to remove video");
-                            console.error(error);
-                          }
-                        }}
-                      >
-                        <X className="h-4 w-4 text-white" />
-                      </Button>
-                    )}
                   </div>
                 );
               } else {
@@ -408,24 +399,14 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
                       item={tmdbItem}
                       type={type}
                       onCardClick={(clickedItem, clickedType) => setSelectedItem({ item: clickedItem, type: clickedType })}
+                      onRemove={isOwnPlaylist ? () => {
+                        const title = "title" in tmdbItem ? tmdbItem.title : tmdbItem.name;
+                        setItemToRemove({
+                          itemId: playlistItemId,
+                          title,
+                        });
+                      } : undefined}
                     />
-                    {isOwnPlaylist && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 hover:bg-black/80 rounded-full h-8 w-8"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const title = "title" in tmdbItem ? tmdbItem.title : tmdbItem.name;
-                          setItemToRemove({
-                            itemId: playlistItemId,
-                            title,
-                          });
-                        }}
-                      >
-                        <X className="h-4 w-4 text-white" />
-                      </Button>
-                    )}
                   </div>
                 );
               }
