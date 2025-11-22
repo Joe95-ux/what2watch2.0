@@ -87,6 +87,9 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
   const coverImage = getPlaylistCover();
   const itemCount = (playlist._count?.items || playlist.items?.length || 0) + (playlist._count?.youtubeItems || playlist.youtubeItems?.length || 0);
   const displayName = playlist.user?.displayName || playlist.user?.username || "Unknown";
+  
+  // Check if coverImage is a YouTube thumbnail URL
+  const isYouTubeThumbnail = coverImage?.includes("i.ytimg.com") || coverImage?.includes("img.youtube.com");
 
   return (
     <div
@@ -107,6 +110,7 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-110"
             sizes="(max-width: 640px) 180px, 200px"
+            unoptimized={isYouTubeThumbnail}
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30 flex items-center justify-center">

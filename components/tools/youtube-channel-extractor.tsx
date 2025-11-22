@@ -183,20 +183,26 @@ export function YouTubeChannelExtractor({ onOpenChange }: YouTubeChannelExtracto
     
     // Only close parent dropdown when dialog opens, not when it closes
     if (open && onOpenChange) {
-      // Use a delay to ensure the dialog opens before closing the dropdown
+      // Use a delay to ensure the dialog is fully opened before closing the dropdown
       // This prevents the dropdown from interfering with the dialog
+      const wasOpening = open;
       setTimeout(() => {
-        if (onOpenChange) {
+        // Check if dialog is still open (user didn't close it immediately)
+        if (onOpenChange && wasOpening) {
+          // Close the dropdown after dialog has opened
           onOpenChange(false);
         }
-      }, 150);
+      }, 200);
     }
+    // Don't do anything when dialog closes - let it close naturally
+    // The dropdown should already be closed by this point
   };
 
   const handleTriggerClick = (e: React.MouseEvent) => {
-    // Prevent the dropdown from closing immediately
+    // Prevent the dropdown from closing immediately (shadcn closes dropdown on item click by default)
     e.stopPropagation();
-    // Don't prevent default - let DialogTrigger handle opening naturally
+    // Don't prevent default - let DialogTrigger handle opening the dialog naturally
+    // The dialog will open via DialogTrigger, and we'll close the dropdown after it opens
   };
 
   return (
@@ -207,6 +213,7 @@ export function YouTubeChannelExtractor({ onOpenChange }: YouTubeChannelExtracto
           size="sm" 
           className="w-full justify-start cursor-pointer"
           onClick={handleTriggerClick}
+          type="button"
         >
           <Youtube className="mr-2 h-4 w-4" />
           <span>YT CID Extractor</span>

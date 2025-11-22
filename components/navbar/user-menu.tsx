@@ -104,7 +104,7 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
 
         <DropdownMenuSeparator />
 
-        <div className="px-2 py-1.5">
+        <div className="px-2 py-1.5" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
           <YouTubeChannelExtractor onOpenChange={setIsDropdownOpen} />
         </div>
 

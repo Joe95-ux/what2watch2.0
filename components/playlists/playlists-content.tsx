@@ -257,6 +257,7 @@ export default function PlaylistsContent() {
                   const coverImage = getPlaylistCover(playlist);
                   const itemCount = (playlist._count?.items || playlist.items?.length || 0) + (playlist._count?.youtubeItems || playlist.youtubeItems?.length || 0);
                   const authorName = playlist.user?.displayName || playlist.user?.username || "Unknown";
+                  const isYouTubeThumbnail = coverImage?.includes("i.ytimg.com") || coverImage?.includes("img.youtube.com");
                   return (
                     <TableRow
                       key={playlist.id}
@@ -272,6 +273,7 @@ export default function PlaylistsContent() {
                               fill
                               className="object-cover"
                               sizes="64px"
+                              unoptimized={isYouTubeThumbnail}
                             />
                           ) : (
                             <div className="w-full h-full bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30" />
