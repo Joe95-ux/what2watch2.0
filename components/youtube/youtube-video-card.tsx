@@ -228,7 +228,7 @@ export default function YouTubeVideoCard({
                   e.stopPropagation();
                   handleCopyLink();
                 }}
-                className="cursor-pointer"
+                className="cursor-pointer text-[0.8rem]"
               >
                 {copied ? (
                   <>
@@ -248,7 +248,7 @@ export default function YouTubeVideoCard({
                   e.stopPropagation();
                   handleSocialShare("facebook");
                 }}
-                className="cursor-pointer"
+                className="cursor-pointer text-[0.8rem]"
               >
                 <Facebook className="h-4 w-4 mr-2" />
                 Share on Facebook
@@ -259,7 +259,7 @@ export default function YouTubeVideoCard({
                   e.stopPropagation();
                   handleSocialShare("twitter");
                 }}
-                className="cursor-pointer"
+                className="cursor-pointer text-[0.8rem]"
               >
                 <Twitter className="h-4 w-4 mr-2" />
                 Share on X
@@ -326,7 +326,7 @@ export default function YouTubeVideoCard({
                         );
                         setIsActionsDropdownOpen(false);
                       }}
-                      className="cursor-pointer"
+                      className="cursor-pointer text-[0.8rem]"
                     >
                       <Heart
                         className={cn(
@@ -348,7 +348,7 @@ export default function YouTubeVideoCard({
                         );
                         setIsActionsDropdownOpen(false);
                       }}
-                      className="cursor-pointer"
+                      className="cursor-pointer text-[0.8rem]"
                     >
                       <Bookmark
                         className={cn(
@@ -372,7 +372,7 @@ export default function YouTubeVideoCard({
                         onRemove();
                         setIsActionsDropdownOpen(false);
                       }}
-                      className="cursor-pointer text-destructive focus:text-destructive"
+                      className="cursor-pointer text-destructive focus:text-destructive text-[0.8rem]"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Remove from Playlist

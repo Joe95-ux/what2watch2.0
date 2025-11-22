@@ -341,7 +341,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                         <DropdownMenuTrigger asChild>
                           <CircleActionButton
                             size="sm"
-                            className="backdrop-blur-md z-[5]"
+                            className="bg-black/60 hover:bg-black/80 backdrop-blur-sm z-[5]"
                             onClick={(e: React.MouseEvent) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -374,7 +374,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                               );
                               setIsActionsDropdownOpen(false);
                             }}
-                            className="cursor-pointer"
+                            className="cursor-pointer text-[0.8rem]"
                           >
                             <Heart
                               className={cn(
@@ -396,7 +396,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                               );
                               setIsActionsDropdownOpen(false);
                             }}
-                            className="cursor-pointer"
+                            className="cursor-pointer text-[0.8rem]"
                           >
                             <Bookmark
                               className={cn(
@@ -418,7 +418,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                                   onRemove();
                                   setIsActionsDropdownOpen(false);
                                 }}
-                                className="cursor-pointer text-destructive focus:text-destructive"
+                                className="cursor-pointer text-destructive focus:text-destructive text-[0.8rem]"
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Remove from Playlist
