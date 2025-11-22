@@ -28,6 +28,7 @@ export default function YouTubeChannelPage() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
   
   const { data: videosData, isLoading: isLoadingVideos } = useYouTubeChannelVideos(
@@ -95,8 +96,24 @@ export default function YouTubeChannelPage() {
     return num.toString();
   };
 
-  // Filter videos based on active tab
+  // Handle search button click - reset to videos tab and show search
+  const handleSearchClick = () => {
+    setActiveTab("videos");
+    setShowSearch(true);
+  };
+
+  // Filter videos based on active tab and search query
   const filteredVideos = videos.filter((video) => {
+    // Apply search filter if search is active
+    if (showSearch && searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch = (
+        video.title.toLowerCase().includes(query) ||
+        video.description.toLowerCase().includes(query)
+      );
+      if (!matchesSearch) return false;
+    }
+
     if (activeTab === "shorts") {
       // Shorts are typically less than 60 seconds
       if (!video.duration) return false;
@@ -107,13 +124,6 @@ export default function YouTubeChannelPage() {
       const seconds = parseInt(durationMatch[3] || "0", 10);
       const totalSeconds = hours * 3600 + minutes * 60 + seconds;
       return totalSeconds <= 60;
-    }
-    if (activeTab === "search" && searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return (
-        video.title.toLowerCase().includes(query) ||
-        video.description.toLowerCase().includes(query)
-      );
     }
     if (activeTab === "videos") {
       // Regular videos (not shorts)
@@ -141,7 +151,7 @@ export default function YouTubeChannelPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Channel not found</h1>
-          <Button onClick={() => router.back()}>Go Back</Button>
+          <Button onClick={() => router.back()} className="cursor-pointer">Go Back</Button>
         </div>
       </div>
     );
@@ -149,29 +159,30 @@ export default function YouTubeChannelPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Banner Section */}
-      <div ref={heroRef} className="relative w-full">
-        {channel.bannerImage ? (
-          <div className="relative w-full h-[200px] sm:h-[250px] md:h-[300px] overflow-hidden">
-            <Image
-              src={channel.bannerImage}
-              alt={`${channel.title} banner`}
-              fill
-              className="object-cover"
-              sizes="100vw"
-              priority
-              unoptimized
-            />
-          </div>
-        ) : (
-          <div className="w-full h-[200px] sm:h-[250px] md:h-[300px] bg-gradient-to-r from-muted via-muted/80 to-muted" />
-        )}
-      </div>
-
       {/* Channel Info Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative -mt-16 sm:-mt-20 md:-mt-24 mb-8">
-          <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-end">
+        {/* Banner Section - Same width as content container */}
+        <div ref={heroRef} className="mb-8">
+          {channel.bannerImage ? (
+            <div className="relative w-full h-[200px] sm:h-[250px] md:h-[300px] overflow-hidden rounded-lg">
+              <Image
+                src={channel.bannerImage}
+                alt={`${channel.title} banner`}
+                fill
+                className="object-cover"
+                sizes="100vw"
+                priority
+                unoptimized
+              />
+            </div>
+          ) : (
+            <div className="w-full h-[200px] sm:h-[250px] md:h-[300px] bg-gradient-to-r from-muted via-muted/80 to-muted rounded-lg" />
+          )}
+        </div>
+
+        {/* Channel Info Section - No overlap with banner */}
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
             {/* Avatar */}
             <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden flex-shrink-0 border-4 border-background shadow-lg">
               {channel.thumbnail ? (
@@ -191,7 +202,7 @@ export default function YouTubeChannelPage() {
             </div>
 
             {/* Channel Info */}
-            <div className="flex-1 min-w-0 pb-4">
+            <div className="flex-1 min-w-0">
               <h1 className="text-2xl sm:text-3xl font-bold mb-2">{channel.title}</h1>
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-4">
                 <span>{formatSubscriberCount(channel.subscriberCount)} subscribers</span>
@@ -245,6 +256,7 @@ export default function YouTubeChannelPage() {
                     );
                   }}
                   disabled={toggleFavorite.isLoading}
+                  className="cursor-pointer"
                 >
                   <Heart
                     className={cn(
@@ -264,6 +276,7 @@ export default function YouTubeChannelPage() {
                     );
                   }}
                   disabled={toggleWatchlist.isLoading}
+                  className="cursor-pointer"
                 >
                   <Bookmark
                     className={cn(
@@ -277,6 +290,7 @@ export default function YouTubeChannelPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => window.open(channel.channelUrl, "_blank", "noopener,noreferrer")}
+                  className="cursor-pointer"
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
                   View on YouTube
@@ -287,15 +301,36 @@ export default function YouTubeChannelPage() {
         </div>
 
         {/* Sticky Navigation */}
-        <YouTubeChannelStickyNav
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          isScrolled={isScrolled}
-        />
+        <div className="mb-8">
+          <div className="flex items-center justify-between gap-4">
+            <YouTubeChannelStickyNav
+              activeTab={activeTab}
+              onTabChange={(tab) => {
+                setActiveTab(tab);
+                if (tab !== "videos") {
+                  setShowSearch(false);
+                  setSearchQuery("");
+                }
+              }}
+              isScrolled={isScrolled}
+            />
+            {/* Search Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSearchClick}
+              className="cursor-pointer flex-shrink-0"
+            >
+              <Search className="h-4 w-4 mr-2" />
+              Search
+            </Button>
+          </div>
+        </div>
 
         {/* Tab Content */}
         <div className="py-8">
-          {activeTab === "search" && (
+          {/* Search Bar - Show when search is active */}
+          {showSearch && activeTab === "videos" && (
             <div className="mb-6">
               <div className="relative max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -305,6 +340,7 @@ export default function YouTubeChannelPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
+                  autoFocus
                 />
               </div>
             </div>
@@ -375,6 +411,7 @@ export default function YouTubeChannelPage() {
                         variant="outline"
                         onClick={handleLoadMorePlaylists}
                         disabled={isLoadingPlaylists}
+                        className="cursor-pointer"
                       >
                         {isLoadingPlaylists ? (
                           <>
@@ -392,7 +429,7 @@ export default function YouTubeChannelPage() {
             </>
           )}
 
-          {(activeTab === "videos" || activeTab === "shorts" || activeTab === "search") && (
+          {(activeTab === "videos" || activeTab === "shorts") && (
             <>
               {isLoadingVideos && videos.length === 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -407,7 +444,7 @@ export default function YouTubeChannelPage() {
               ) : filteredVideos.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <p>
-                    {activeTab === "search" && searchQuery
+                    {showSearch && searchQuery
                       ? `No videos found matching "${searchQuery}".`
                       : `No ${activeTab} found.`}
                   </p>
@@ -429,6 +466,7 @@ export default function YouTubeChannelPage() {
                         variant="outline"
                         onClick={handleLoadMore}
                         disabled={isLoadingVideos}
+                        className="cursor-pointer"
                       >
                         {isLoadingVideos ? (
                           <>

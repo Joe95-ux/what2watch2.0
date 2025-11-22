@@ -5,20 +5,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function YouTubeChannelSkeleton() {
   return (
     <div className="min-h-screen bg-background">
-      {/* Banner Skeleton */}
-      <div className="w-full h-[200px] sm:h-[250px] md:h-[300px] bg-muted">
-        <Skeleton className="w-full h-full" />
-      </div>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Banner Skeleton */}
+        <div className="mb-8">
+          <Skeleton className="w-full h-[200px] sm:h-[250px] md:h-[300px] rounded-lg" />
+        </div>
+
         {/* Channel Info Skeleton */}
-        <div className="relative -mt-16 sm:-mt-20 md:-mt-24 mb-8">
-          <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-end">
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
             {/* Avatar Skeleton */}
             <Skeleton className="w-32 h-32 sm:w-40 sm:h-40 rounded-full flex-shrink-0" />
             
             {/* Info Skeleton */}
-            <div className="flex-1 min-w-0 pb-4">
+            <div className="flex-1 min-w-0">
               <Skeleton className="h-8 w-64 mb-3" />
               <Skeleton className="h-4 w-48 mb-4" />
               <Skeleton className="h-4 w-full max-w-md mb-2" />
