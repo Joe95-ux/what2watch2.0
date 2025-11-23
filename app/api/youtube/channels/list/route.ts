@@ -23,12 +23,21 @@ export async function GET(request: NextRequest) {
       select: {
         channelId: true,
         isPrivate: true,
+        isActive: true,
         addedByUserId: true,
       },
     });
 
-    // Filter channels: public (isPrivate is false or missing) OR user's private channels
+    // Filter channels: 
+    // 1. Must be active (isActive is true or missing/null - default to true)
+    // 2. Must be public (isPrivate is false or missing) OR user's private channels
     const channels = allChannels.filter((channel) => {
+      // First check if channel is active (treat missing/null as active)
+      const isActive = channel.isActive === true || channel.isActive === null || channel.isActive === undefined;
+      if (!isActive) {
+        return false; // Don't show inactive channels
+      }
+
       // Treat missing/null isPrivate as public (default behavior)
       const isPublic = channel.isPrivate === false || channel.isPrivate === null || channel.isPrivate === undefined;
       

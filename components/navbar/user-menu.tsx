@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreVertical, Settings, LogOut, Moon, Sun, Monitor, LayoutDashboard } from "lucide-react";
-import { YouTubeChannelExtractor } from "@/components/tools/youtube-channel-extractor";
+import { MoreVertical, Settings, LogOut, Moon, Sun, Monitor, LayoutDashboard, Youtube } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
@@ -142,9 +141,18 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
 
         <DropdownMenuSeparator />
 
-        <div className="px-2 py-1.5" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-          <YouTubeChannelExtractor onOpenChange={setIsDropdownOpen} />
-        </div>
+        <Link href="/youtube-management">
+          <DropdownMenuItem 
+            className="cursor-pointer"
+            onSelect={(e) => {
+              e.preventDefault();
+              setTimeout(() => setIsDropdownOpen(false), 100);
+            }}
+          >
+            <Youtube className="mr-2 h-4 w-4" />
+            <span>YouTube Management</span>
+          </DropdownMenuItem>
+        </Link>
 
         <DropdownMenuSeparator />
 

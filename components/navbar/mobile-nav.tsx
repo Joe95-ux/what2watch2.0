@@ -7,7 +7,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard } from "lucide-react";
-import { YouTubeChannelExtractor } from "@/components/tools/youtube-channel-extractor";
+import { Youtube } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MobileNavProps {
@@ -177,9 +177,12 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
 
             <Separator className="my-1" />
 
-            <div className="px-2 py-1.5">
-              <YouTubeChannelExtractor onOpenChange={onLinkClick} />
-            </div>
+            <Link href="/youtube-management" onClick={onLinkClick}>
+              <div className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer">
+                <Youtube className="h-4 w-4" />
+                <span>YouTube Management</span>
+              </div>
+            </Link>
 
             <Separator className="my-1" />
 
