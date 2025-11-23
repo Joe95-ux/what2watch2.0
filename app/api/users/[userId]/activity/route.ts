@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-import { Prisma } from "@prisma/client";
+import { Prisma, ActivityType } from "@prisma/client";
 
 // GET - Get public activity feed for a specific user
 export async function GET(
@@ -97,7 +97,7 @@ export async function GET(
 
     // Filter by activity type if provided
     if (typeParam && typeParam !== "all") {
-      const validTypes: Prisma.ActivityType[] = [
+      const validTypes: ActivityType[] = [
         "LOGGED_FILM",
         "RATED_FILM",
         "REVIEWED_FILM",
@@ -106,15 +106,15 @@ export async function GET(
         "CREATED_PLAYLIST",
         "FOLLOWED_USER",
       ];
-      if (validTypes.includes(typeParam as Prisma.ActivityType)) {
-        where.type = typeParam as Prisma.ActivityType;
+      if (validTypes.includes(typeParam as ActivityType)) {
+        where.type = typeParam as ActivityType;
       }
     }
 
     // Apply privacy filters based on user settings
     if (!isOwnProfile) {
       // Filter out activities based on user's privacy settings
-      const typeFilters: Prisma.ActivityType[] = [];
+      const typeFilters: ActivityType[] = [];
 
       if (targetUser.showWatchedInActivity) {
         typeFilters.push("LOGGED_FILM");
@@ -139,7 +139,7 @@ export async function GET(
       }
 
       // If a specific type is requested but it's not allowed, return empty
-      if (typeParam && typeParam !== "all" && !typeFilters.includes(typeParam as Prisma.ActivityType)) {
+      if (typeParam && typeParam !== "all" && !typeFilters.includes(typeParam as ActivityType)) {
         return NextResponse.json({ activities: [] });
       }
 
