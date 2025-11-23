@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Youtube, ChevronLeft, ChevronRight } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { YouTubeChannelExtractorInline } from "@/components/youtube/youtube-channel-extractor-inline";
 import { YouTubeChannelCard } from "@/components/youtube/youtube-channel-card";
 import { YouTubeChannelCardSkeleton } from "@/components/youtube/youtube-channel-card-skeleton";
