@@ -22,8 +22,8 @@ interface YouTubeChannelCardProps {
     isPrivate: boolean;
     addedByUserId: string | null;
     order: number;
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt: string;
+    updatedAt: string;
   };
 }
 
