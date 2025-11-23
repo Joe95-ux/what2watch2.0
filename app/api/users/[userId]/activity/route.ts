@@ -66,15 +66,37 @@ export async function GET(
     }
 
     // Determine what activities can be viewed
+    // If user is viewing their own profile, they can always see all activities
     const canViewAll = isOwnProfile;
-    const canViewFollowersOnly =
-      targetUser.activityVisibility === "FOLLOWERS_ONLY" && isFollowing;
-    const canViewPublic =
-      targetUser.activityVisibility === "PUBLIC" || canViewFollowersOnly;
+    
+    // For other users, check visibility settings
+    let canView = false;
+    if (isOwnProfile) {
+      canView = true; // Always allow viewing own profile
+    } else {
+      // Check if visibility allows viewing
+      if (targetUser.activityVisibility === "PUBLIC") {
+        canView = true;
+      } else if (targetUser.activityVisibility === "FOLLOWERS_ONLY" && isFollowing) {
+        canView = true;
+      } else if (targetUser.activityVisibility === "PRIVATE") {
+        canView = false;
+      } else {
+        // Default to public if visibility is not set
+        canView = true;
+      }
+    }
 
-    if (!canViewAll && !canViewPublic) {
+    if (!canView) {
       return NextResponse.json({
         activities: [],
+        grouped: null,
+        total: 0,
+        privacy: {
+          visibility: targetUser.activityVisibility,
+          isOwnProfile: false,
+          canViewAll: false,
+        },
         message: "This user's activity is private",
       });
     }
