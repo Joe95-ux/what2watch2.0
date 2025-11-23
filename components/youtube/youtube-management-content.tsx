@@ -3,9 +3,9 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Youtube, ChevronLeft, ChevronRight } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
 import { YouTubeChannelExtractorInline } from "@/components/youtube/youtube-channel-extractor-inline";
 import { YouTubeChannelCard } from "@/components/youtube/youtube-channel-card";
+import { YouTubeChannelCardSkeleton } from "@/components/youtube/youtube-channel-card-skeleton";
 import { Button } from "@/components/ui/button";
 
 interface Channel {
@@ -83,10 +83,13 @@ export default function YouTubeManagementContent() {
 
       {/* Active Channels */}
       {isLoading ? (
-        <div className="space-y-4">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
+        <div className="mb-8">
+          <Skeleton className="h-7 w-48 mb-4" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <YouTubeChannelCardSkeleton key={i} />
+            ))}
+          </div>
         </div>
       ) : isError ? (
         <div className="text-center py-12">

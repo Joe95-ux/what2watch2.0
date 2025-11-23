@@ -29,8 +29,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get all channels (for management, we show all)
-    const channels = await db.youTubeChannel.findMany({
+    // Query all channels first (since some may not have isPrivate field)
+    // Then filter in memory to handle missing fields as public (default)
+    const allChannels = await db.youTubeChannel.findMany({
       orderBy: [
         { isActive: "desc" },
         { order: "asc" },
@@ -49,6 +50,25 @@ export async function GET(request: NextRequest) {
         createdAt: true,
         updatedAt: true,
       },
+    });
+
+    // Filter channels based on privacy (same logic as browse page):
+    // Show public channels (isPrivate is false or missing) OR user's private channels
+    // Note: For management page, we show both active and inactive channels
+    const channels = allChannels.filter((channel) => {
+      // Treat missing/null isPrivate as public (default behavior)
+      const isPublic = channel.isPrivate === false || channel.isPrivate === null || channel.isPrivate === undefined;
+      
+      if (isPublic) {
+        return true; // Show all public channels
+      }
+      
+      // If private, only show if user owns it
+      if (channel.isPrivate === true) {
+        return channel.addedByUserId === user.id;
+      }
+      
+      return false;
     });
 
     return NextResponse.json({
