@@ -357,8 +357,8 @@ export default function PublicActivityContent({ userId }: PublicActivityContentP
         {privacy && privacy.canViewAll && (
           <div className="mb-6">
             <div className="flex flex-wrap gap-3">
-              {/* Search Container - 25% width, min-width 230px */}
-              <div className="relative flex-[0_0_25%] min-w-[230px]">
+              {/* Search Container - min-width 230px */}
+              <div className="relative min-w-[230px]">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="text"
@@ -369,14 +369,14 @@ export default function PublicActivityContent({ userId }: PublicActivityContentP
                 />
               </div>
 
-              {/* Filter Container - 75% width, contains 4 dropdowns */}
-              <div className="flex flex-wrap gap-3 flex-[0_0_75%] min-w-0">
+              {/* Filter Container - contains 4 dropdowns */}
+              <div className="flex flex-wrap gap-3 min-w-0">
                 {/* Activity Type Filter */}
                 <Select
                   value={selectedType}
                   onValueChange={(v) => setSelectedType(v as ActivityType | "all")}
                 >
-                  <SelectTrigger className={cn("w-full sm:w-[140px] text-[0.85rem]")}>
+                  <SelectTrigger className={cn("w-full sm:w-auto text-[0.85rem]")}>
                     <SelectValue>
                       <span className="flex items-center gap-2">
                         {ACTIVITY_TYPES.find((t) => t.value === selectedType)?.icon}
@@ -401,7 +401,7 @@ export default function PublicActivityContent({ userId }: PublicActivityContentP
                   value={dateRange}
                   onValueChange={(v) => setDateRange(v as typeof dateRange)}
                 >
-                  <SelectTrigger className={cn("w-full sm:w-[140px] text-[0.85rem]")}>
+                  <SelectTrigger className={cn("w-full sm:w-auto text-[0.85rem]")}>
                     <SelectValue>
                       <span className="flex items-center gap-2">
                         <CalendarIcon className="h-4 w-4" />
@@ -427,7 +427,7 @@ export default function PublicActivityContent({ userId }: PublicActivityContentP
                   value={groupBy}
                   onValueChange={(v) => setGroupBy(v as typeof groupBy)}
                 >
-                  <SelectTrigger className={cn("w-full sm:w-[140px] text-[0.85rem]")}>
+                  <SelectTrigger className={cn("w-full sm:w-auto text-[0.85rem]")}>
                     <SelectValue>
                       <span className="flex items-center gap-2">
                         <Filter className="h-4 w-4" />
@@ -451,7 +451,7 @@ export default function PublicActivityContent({ userId }: PublicActivityContentP
                   value={sortOrder}
                   onValueChange={(v) => setSortOrder(v as "asc" | "desc")}
                 >
-                  <SelectTrigger className={cn("w-full sm:w-[140px] text-[0.85rem]")}>
+                  <SelectTrigger className={cn("w-full sm:w-auto text-[0.85rem]")}>
                     <SelectValue>
                       <span className="flex items-center gap-2">
                         {sortOrder === "desc" ? (
