@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useActivityFeed, type ActivityType, type Activity } from "@/hooks/use-activity";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { formatDistanceToNow } from "date-fns";
 import Image from "next/image";
 import { getPosterUrl } from "@/lib/tmdb";
@@ -20,19 +18,19 @@ import {
   Music, 
   UserPlus,
   Calendar,
-  Tv,
-  ArrowUpDown,
   ArrowUp,
   ArrowDown,
   Search,
   Filter,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { format, startOfWeek, startOfMonth, subDays, subWeeks, subMonths } from "date-fns";
+import { format, subDays } from "date-fns";
 
 const ACTIVITY_TYPES: { value: ActivityType | "all"; label: string; icon: React.ReactNode }[] = [
   { value: "all", label: "All Activity", icon: <Calendar className="h-4 w-4" /> },
@@ -196,9 +194,11 @@ function ActivityItem({ activity }: { activity: Activity }) {
   );
 }
 
+const ITEMS_PER_PAGE = 25;
+
 export default function ActivityContent() {
   const [selectedType, setSelectedType] = useState<ActivityType | "all">("all");
-  const [sortBy, setSortBy] = useState<"createdAt">("createdAt");
+  const [sortBy] = useState<"createdAt">("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -206,7 +206,7 @@ export default function ActivityContent() {
   const [groupBy, setGroupBy] = useState<"none" | "day" | "week" | "month">("none");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
-  const isMobile = useIsMobile();
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Debounce search
   useEffect(() => {
@@ -252,8 +252,56 @@ export default function ActivityContent() {
     groupBy === "none" ? undefined : groupBy
   );
 
-  const activities = data?.activities || [];
+  const allActivities = useMemo(() => data?.activities || [], [data?.activities]);
   const grouped = data?.grouped;
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedType, debouncedSearch, dateRange, groupBy, sortOrder]);
+
+  // Pagination calculations
+  const totalItems = useMemo(() => {
+    return grouped 
+      ? Object.values(grouped).flat().length 
+      : allActivities.length;
+  }, [grouped, allActivities]);
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+
+  // Paginated activities
+  const paginatedActivities = useMemo(() => {
+    if (grouped) {
+      const allGroupedActivities = Object.values(grouped).flat();
+      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+      return allGroupedActivities.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    }
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return allActivities.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [allActivities, grouped, currentPage]);
+
+  // For grouped display, we need to reconstruct the grouped structure from paginated items
+  const paginatedGrouped = useMemo(() => {
+    if (!grouped) return null;
+    const allGroupedActivities = Object.values(grouped).flat();
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const paginatedItems = allGroupedActivities.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    
+    // Reconstruct grouped structure
+    const newGrouped: Record<string, Activity[]> = {};
+    paginatedItems.forEach((activity) => {
+      // Find which group this activity belongs to
+      for (const [key, activities] of Object.entries(grouped)) {
+        if (activities.some(a => a.id === activity.id)) {
+          if (!newGrouped[key]) {
+            newGrouped[key] = [];
+          }
+          newGrouped[key].push(activity);
+          break;
+        }
+      }
+    });
+    return newGrouped;
+  }, [grouped, currentPage]);
 
   return (
     <div className="flex-1 space-y-6 p-6">
@@ -267,7 +315,7 @@ export default function ActivityContent() {
 
         {/* Search */}
         <div className="mb-4">
-          <div className="relative">
+          <div className="relative w-full sm:w-[300px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
@@ -287,7 +335,7 @@ export default function ActivityContent() {
               value={selectedType}
               onValueChange={(v) => setSelectedType(v as ActivityType | "all")}
             >
-              <SelectTrigger className={cn("w-full sm:w-[200px]")}>
+              <SelectTrigger className={cn("w-full sm:w-[140px] text-[0.85rem]")}>
                 <SelectValue>
                   <span className="flex items-center gap-2">
                     {ACTIVITY_TYPES.find((t) => t.value === selectedType)?.icon}
@@ -297,7 +345,7 @@ export default function ActivityContent() {
               </SelectTrigger>
               <SelectContent>
                 {ACTIVITY_TYPES.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
+                  <SelectItem key={type.value} value={type.value} className="text-[0.85rem]">
                     <span className="flex items-center gap-2">
                       {type.icon}
                       {type.label}
@@ -312,7 +360,7 @@ export default function ActivityContent() {
               value={dateRange}
               onValueChange={(v) => setDateRange(v as typeof dateRange)}
             >
-              <SelectTrigger className={cn("w-full sm:w-[180px]")}>
+              <SelectTrigger className={cn("w-full sm:w-[140px] text-[0.85rem]")}>
                 <SelectValue>
                   <span className="flex items-center gap-2">
                     <CalendarIcon className="h-4 w-4" />
@@ -325,11 +373,11 @@ export default function ActivityContent() {
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Time</SelectItem>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="week">Last 7 Days</SelectItem>
-                <SelectItem value="month">Last 30 Days</SelectItem>
-                <SelectItem value="custom">Custom Range</SelectItem>
+                <SelectItem value="all" className="text-[0.85rem]">All Time</SelectItem>
+                <SelectItem value="today" className="text-[0.85rem]">Today</SelectItem>
+                <SelectItem value="week" className="text-[0.85rem]">Last 7 Days</SelectItem>
+                <SelectItem value="month" className="text-[0.85rem]">Last 30 Days</SelectItem>
+                <SelectItem value="custom" className="text-[0.85rem]">Custom Range</SelectItem>
               </SelectContent>
             </Select>
 
@@ -338,7 +386,7 @@ export default function ActivityContent() {
               value={groupBy}
               onValueChange={(v) => setGroupBy(v as typeof groupBy)}
             >
-              <SelectTrigger className={cn("w-full sm:w-[160px]")}>
+              <SelectTrigger className={cn("w-full sm:w-[140px] text-[0.85rem]")}>
                 <SelectValue>
                   <span className="flex items-center gap-2">
                     <Filter className="h-4 w-4" />
@@ -350,10 +398,10 @@ export default function ActivityContent() {
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">No Grouping</SelectItem>
-                <SelectItem value="day">Group by Day</SelectItem>
-                <SelectItem value="week">Group by Week</SelectItem>
-                <SelectItem value="month">Group by Month</SelectItem>
+                <SelectItem value="none" className="text-[0.85rem]">No Grouping</SelectItem>
+                <SelectItem value="day" className="text-[0.85rem]">Group by Day</SelectItem>
+                <SelectItem value="week" className="text-[0.85rem]">Group by Week</SelectItem>
+                <SelectItem value="month" className="text-[0.85rem]">Group by Month</SelectItem>
               </SelectContent>
             </Select>
 
@@ -362,7 +410,7 @@ export default function ActivityContent() {
               value={sortOrder}
               onValueChange={(v) => setSortOrder(v as "asc" | "desc")}
             >
-              <SelectTrigger className={cn("w-full sm:w-[180px]")}>
+              <SelectTrigger className={cn("w-full sm:w-[140px] text-[0.85rem]")}>
                 <SelectValue>
                   <span className="flex items-center gap-2">
                     {sortOrder === "desc" ? (
@@ -375,13 +423,13 @@ export default function ActivityContent() {
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="desc">
+                <SelectItem value="desc" className="text-[0.85rem]">
                   <span className="flex items-center gap-2">
                     <ArrowDown className="h-4 w-4" />
                     Newest First
                   </span>
                 </SelectItem>
-                <SelectItem value="asc">
+                <SelectItem value="asc" className="text-[0.85rem]">
                   <span className="flex items-center gap-2">
                     <ArrowUp className="h-4 w-4" />
                     Oldest First
@@ -437,7 +485,7 @@ export default function ActivityContent() {
                 </div>
               ))}
             </div>
-          ) : activities.length === 0 ? (
+          ) : totalItems === 0 ? (
             <div className="p-12 text-center">
               <p className="text-muted-foreground">
                 {debouncedSearch
@@ -447,9 +495,9 @@ export default function ActivityContent() {
                   : `No ${ACTIVITY_TYPES.find((t) => t.value === selectedType)?.label.toLowerCase()} activity yet.`}
               </p>
             </div>
-          ) : grouped ? (
+          ) : paginatedGrouped ? (
             <div className="divide-y">
-              {Object.entries(grouped)
+              {Object.entries(paginatedGrouped)
                 .sort(([a], [b]) => {
                   // Sort groups by date (newest first)
                   return sortOrder === "desc" ? b.localeCompare(a) : a.localeCompare(b);
@@ -471,9 +519,41 @@ export default function ActivityContent() {
             </div>
           ) : (
             <div className="divide-y">
-              {activities.map((activity) => (
+              {paginatedActivities.map((activity) => (
                 <ActivityItem key={activity.id} activity={activity} />
               ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-4 border-t">
+              <p className="text-sm text-muted-foreground">
+                Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, totalItems)} of {totalItems} results
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
         </div>

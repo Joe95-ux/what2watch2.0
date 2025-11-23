@@ -33,7 +33,12 @@ export default async function SettingsPage() {
       notifyOnPlaylistUpdates: true,
       notifyOnActivityLikes: true,
       notifyOnMentions: true,
-      preferences: true,
+      preferences: {
+        select: {
+          favoriteGenres: true,
+          onboardingCompleted: true,
+        },
+      },
     },
   });
 
