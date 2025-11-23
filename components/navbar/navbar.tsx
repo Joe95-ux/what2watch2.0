@@ -193,7 +193,7 @@ export default function Navbar() {
 
         {/* Right side - Search, Profile, Nav Trigger (dashboard only) */}
         {isDashboard && (
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-3 flex-shrink-0 justify-end md:justify-start">
             {/* Search - Visible on mobile, hidden on desktop (where it's in center) */}
             <div className="md:hidden">
               <Search hasHeroSection={hasHeroSection} />

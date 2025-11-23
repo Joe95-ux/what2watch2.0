@@ -357,124 +357,128 @@ export default function PublicActivityContent({ userId }: PublicActivityContentP
         {privacy && privacy.canViewAll && (
           <div className="mb-6">
             <div className="flex flex-wrap gap-3">
-              {/* Search */}
-              <div className="relative w-full sm:w-[300px] flex-shrink-0">
+              {/* Search Container - 25% width, min-width 230px */}
+              <div className="relative flex-[0_0_25%] min-w-[230px]">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="text"
                   placeholder="Search activities..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 w-full"
                 />
               </div>
-              {/* Activity Type Filter */}
-              <Select
-                value={selectedType}
-                onValueChange={(v) => setSelectedType(v as ActivityType | "all")}
-              >
-                <SelectTrigger className={cn("w-full sm:w-[140px] text-[0.85rem]")}>
-                  <SelectValue>
-                    <span className="flex items-center gap-2">
-                      {ACTIVITY_TYPES.find((t) => t.value === selectedType)?.icon}
-                      {ACTIVITY_TYPES.find((t) => t.value === selectedType)?.label}
-                    </span>
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {ACTIVITY_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value} className="text-[0.85rem]">
+
+              {/* Filter Container - 75% width, contains 4 dropdowns */}
+              <div className="flex flex-wrap gap-3 flex-[0_0_75%] min-w-0">
+                {/* Activity Type Filter */}
+                <Select
+                  value={selectedType}
+                  onValueChange={(v) => setSelectedType(v as ActivityType | "all")}
+                >
+                  <SelectTrigger className={cn("w-full sm:w-[140px] text-[0.85rem]")}>
+                    <SelectValue>
                       <span className="flex items-center gap-2">
-                        {type.icon}
-                        {type.label}
+                        {ACTIVITY_TYPES.find((t) => t.value === selectedType)?.icon}
+                        {ACTIVITY_TYPES.find((t) => t.value === selectedType)?.label}
+                      </span>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ACTIVITY_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value} className="text-[0.85rem]">
+                        <span className="flex items-center gap-2">
+                          {type.icon}
+                          {type.label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Date Range Filter */}
+                <Select
+                  value={dateRange}
+                  onValueChange={(v) => setDateRange(v as typeof dateRange)}
+                >
+                  <SelectTrigger className={cn("w-full sm:w-[140px] text-[0.85rem]")}>
+                    <SelectValue>
+                      <span className="flex items-center gap-2">
+                        <CalendarIcon className="h-4 w-4" />
+                        {dateRange === "all" && "All Time"}
+                        {dateRange === "today" && "Today"}
+                        {dateRange === "week" && "Last 7 Days"}
+                        {dateRange === "month" && "Last 30 Days"}
+                        {dateRange === "custom" && "Custom Range"}
+                      </span>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="text-[0.85rem]">All Time</SelectItem>
+                    <SelectItem value="today" className="text-[0.85rem]">Today</SelectItem>
+                    <SelectItem value="week" className="text-[0.85rem]">Last 7 Days</SelectItem>
+                    <SelectItem value="month" className="text-[0.85rem]">Last 30 Days</SelectItem>
+                    <SelectItem value="custom" className="text-[0.85rem]">Custom Range</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Group By */}
+                <Select
+                  value={groupBy}
+                  onValueChange={(v) => setGroupBy(v as typeof groupBy)}
+                >
+                  <SelectTrigger className={cn("w-full sm:w-[140px] text-[0.85rem]")}>
+                    <SelectValue>
+                      <span className="flex items-center gap-2">
+                        <Filter className="h-4 w-4" />
+                        {groupBy === "none" && "No Grouping"}
+                        {groupBy === "day" && "Group by Day"}
+                        {groupBy === "week" && "Group by Week"}
+                        {groupBy === "month" && "Group by Month"}
+                      </span>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none" className="text-[0.85rem]">No Grouping</SelectItem>
+                    <SelectItem value="day" className="text-[0.85rem]">Group by Day</SelectItem>
+                    <SelectItem value="week" className="text-[0.85rem]">Group by Week</SelectItem>
+                    <SelectItem value="month" className="text-[0.85rem]">Group by Month</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Sort Order */}
+                <Select
+                  value={sortOrder}
+                  onValueChange={(v) => setSortOrder(v as "asc" | "desc")}
+                >
+                  <SelectTrigger className={cn("w-full sm:w-[140px] text-[0.85rem]")}>
+                    <SelectValue>
+                      <span className="flex items-center gap-2">
+                        {sortOrder === "desc" ? (
+                          <ArrowDown className="h-4 w-4" />
+                        ) : (
+                          <ArrowUp className="h-4 w-4" />
+                        )}
+                        {sortOrder === "desc" ? "Newest First" : "Oldest First"}
+                      </span>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="desc" className="text-[0.85rem]">
+                      <span className="flex items-center gap-2">
+                        <ArrowDown className="h-4 w-4" />
+                        Newest First
                       </span>
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* Date Range Filter */}
-              <Select
-                value={dateRange}
-                onValueChange={(v) => setDateRange(v as typeof dateRange)}
-              >
-                <SelectTrigger className={cn("w-full sm:w-[140px] text-[0.85rem]")}>
-                  <SelectValue>
-                    <span className="flex items-center gap-2">
-                      <CalendarIcon className="h-4 w-4" />
-                      {dateRange === "all" && "All Time"}
-                      {dateRange === "today" && "Today"}
-                      {dateRange === "week" && "Last 7 Days"}
-                      {dateRange === "month" && "Last 30 Days"}
-                      {dateRange === "custom" && "Custom Range"}
-                    </span>
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all" className="text-[0.85rem]">All Time</SelectItem>
-                  <SelectItem value="today" className="text-[0.85rem]">Today</SelectItem>
-                  <SelectItem value="week" className="text-[0.85rem]">Last 7 Days</SelectItem>
-                  <SelectItem value="month" className="text-[0.85rem]">Last 30 Days</SelectItem>
-                  <SelectItem value="custom" className="text-[0.85rem]">Custom Range</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Group By */}
-              <Select
-                value={groupBy}
-                onValueChange={(v) => setGroupBy(v as typeof groupBy)}
-              >
-                <SelectTrigger className={cn("w-full sm:w-[140px] text-[0.85rem]")}>
-                  <SelectValue>
-                    <span className="flex items-center gap-2">
-                      <Filter className="h-4 w-4" />
-                      {groupBy === "none" && "No Grouping"}
-                      {groupBy === "day" && "Group by Day"}
-                      {groupBy === "week" && "Group by Week"}
-                      {groupBy === "month" && "Group by Month"}
-                    </span>
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none" className="text-[0.85rem]">No Grouping</SelectItem>
-                  <SelectItem value="day" className="text-[0.85rem]">Group by Day</SelectItem>
-                  <SelectItem value="week" className="text-[0.85rem]">Group by Week</SelectItem>
-                  <SelectItem value="month" className="text-[0.85rem]">Group by Month</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Sort Order */}
-              <Select
-                value={sortOrder}
-                onValueChange={(v) => setSortOrder(v as "asc" | "desc")}
-              >
-                <SelectTrigger className={cn("w-full sm:w-[140px] text-[0.85rem]")}>
-                  <SelectValue>
-                    <span className="flex items-center gap-2">
-                      {sortOrder === "desc" ? (
-                        <ArrowDown className="h-4 w-4" />
-                      ) : (
+                    <SelectItem value="asc" className="text-[0.85rem]">
+                      <span className="flex items-center gap-2">
                         <ArrowUp className="h-4 w-4" />
-                      )}
-                      {sortOrder === "desc" ? "Newest First" : "Oldest First"}
-                    </span>
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="desc" className="text-[0.85rem]">
-                    <span className="flex items-center gap-2">
-                      <ArrowDown className="h-4 w-4" />
-                      Newest First
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="asc" className="text-[0.85rem]">
-                    <span className="flex items-center gap-2">
-                      <ArrowUp className="h-4 w-4" />
-                      Oldest First
-                    </span>
-                  </SelectItem>
-              </SelectContent>
-            </Select>
+                        Oldest First
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Custom Date Range Inputs */}
