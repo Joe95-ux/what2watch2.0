@@ -4,9 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Lock, Eye, EyeOff, ExternalLink, Youtube } from "lucide-react";
+import { Lock, Eye, EyeOff, ExternalLink, Youtube, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import Image from "next/image";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -31,6 +30,7 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
   const queryClient = useQueryClient();
   const [isUpdatingActive, setIsUpdatingActive] = useState(false);
   const [isUpdatingPrivacy, setIsUpdatingPrivacy] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleToggleActive = async (isActive: boolean) => {
     setIsUpdatingActive(true);
@@ -90,6 +90,29 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
     }
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      const response = await fetch(`/api/youtube/channels/${channel.channelId}/refresh`, {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        toast.success("Channel details refreshed");
+        await queryClient.invalidateQueries({ queryKey: ["youtube-channels-manage"] });
+        await queryClient.refetchQueries({ queryKey: ["youtube-channels-manage"] });
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.error || "Failed to refresh channel details");
+      }
+    } catch (error) {
+      console.error("Error refreshing channel details:", error);
+      toast.error("Failed to refresh channel details");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const channelTitle = channel.title || "Unknown Channel";
   const channelUrl = channel.channelUrl || `https://www.youtube.com/channel/${channel.channelId}`;
   const displayName = channelTitle.length > 30 ? channelTitle.slice(0, 30) + "..." : channelTitle;
@@ -101,16 +124,16 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
       }`}
     >
       <div className="flex items-start gap-3 mb-3">
-        <Link href={channelUrl} target="_blank" rel="noopener noreferrer">
+        <Link href={channelUrl} target="_blank" rel="noopener noreferrer" className="relative group">
           {channel.thumbnail ? (
-            <Avatar className="h-12 w-12 cursor-pointer">
+            <Avatar className="h-12 w-12 cursor-pointer ring-2 ring-border group-hover:ring-primary transition-all">
               <AvatarImage src={channel.thumbnail} alt={channelTitle} />
               <AvatarFallback>
                 <Youtube className="h-6 w-6" />
               </AvatarFallback>
             </Avatar>
           ) : (
-            <Avatar className="h-12 w-12 cursor-pointer">
+            <Avatar className="h-12 w-12 cursor-pointer ring-2 ring-border group-hover:ring-primary transition-all">
               <AvatarFallback>
                 <Youtube className="h-6 w-6" />
               </AvatarFallback>
@@ -118,15 +141,29 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
           )}
         </Link>
         <div className="flex-1 min-w-0">
-          <Link href={channelUrl} target="_blank" rel="noopener noreferrer">
-            <h3 className="font-semibold hover:underline truncate flex items-center gap-2">
-              {displayName}
-              <ExternalLink className="h-3 w-3 text-muted-foreground" />
-            </h3>
-          </Link>
-          <p className="text-sm text-muted-foreground truncate font-mono">
-            {channel.channelId}
-          </p>
+          <div className="flex items-start justify-between gap-2">
+            <Link href={channelUrl} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-0">
+              <h3 className="font-semibold hover:underline truncate flex items-center gap-2">
+                {displayName}
+                <ExternalLink className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+              </h3>
+              <p className="text-sm text-muted-foreground truncate font-mono mt-0.5">
+                {channel.channelId}
+              </p>
+            </Link>
+            {(!channel.title || !channel.thumbnail) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="h-8 w-8 p-0"
+                title="Refresh channel details"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 

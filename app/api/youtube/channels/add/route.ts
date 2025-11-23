@@ -71,11 +71,47 @@ export async function POST(request: NextRequest) {
 
     const nextOrder = maxOrderChannel ? maxOrderChannel.order + 1 : 0;
 
+    // Fetch channel details from YouTube API
+    let channelTitle: string | null = null;
+    let channelThumbnail: string | null = null;
+    let channelUrl: string | null = null;
+
+    try {
+      const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+      if (YOUTUBE_API_KEY) {
+        const youtubeResponse = await fetch(
+          `https://www.googleapis.com/youtube/v3/channels?id=${channelId}&part=snippet&key=${YOUTUBE_API_KEY}`,
+          {
+            next: { revalidate: 3600 },
+          }
+        );
+
+        if (youtubeResponse.ok) {
+          const youtubeData = await youtubeResponse.json();
+          if (youtubeData.items && youtubeData.items.length > 0) {
+            const item = youtubeData.items[0];
+            channelTitle = item.snippet?.title || null;
+            channelThumbnail = item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.default?.url || null;
+            const customUrl = item.snippet?.customUrl;
+            channelUrl = customUrl 
+              ? `https://www.youtube.com/${customUrl}`
+              : `https://www.youtube.com/channel/${channelId}`;
+          }
+        }
+      }
+    } catch (error) {
+      console.error("[Add Channel ID API] Error fetching channel details from YouTube:", error);
+      // Continue without channel details - they can be fetched later
+    }
+
     // Add channel to database
     console.log("[Add Channel ID API] Adding channel to database...");
     const newChannel = await db.youTubeChannel.create({
       data: {
         channelId,
+        title: channelTitle,
+        thumbnail: channelThumbnail,
+        channelUrl: channelUrl,
         isActive: true,
         isPrivate: Boolean(isPrivate),
         addedByUserId: isPrivate ? user.id : null,

@@ -1,7 +1,8 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Youtube } from "lucide-react";
+import { Youtube, ChevronLeft, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { YouTubeChannelExtractorInline } from "@/components/youtube/youtube-channel-extractor-inline";
 import { YouTubeChannelCard } from "@/components/youtube/youtube-channel-card";
@@ -34,15 +35,34 @@ const fetchChannels = async (): Promise<ChannelsResponse> => {
   return response.json();
 };
 
+const ITEMS_PER_PAGE = 12;
+
 export default function YouTubeManagementContent() {
+  const [activePage, setActivePage] = useState(1);
+  const [inactivePage, setInactivePage] = useState(1);
+
   const { data, isLoading, isError, refetch } = useQuery<ChannelsResponse>({
     queryKey: ["youtube-channels-manage"],
     queryFn: fetchChannels,
   });
 
   const channels = data?.channels || [];
-  const activeChannels = channels.filter((ch) => ch.isActive);
-  const inactiveChannels = channels.filter((ch) => !ch.isActive);
+  const activeChannels = useMemo(() => channels.filter((ch) => ch.isActive), [channels]);
+  const inactiveChannels = useMemo(() => channels.filter((ch) => !ch.isActive), [channels]);
+
+  // Pagination calculations for active channels
+  const activeTotalPages = Math.ceil(activeChannels.length / ITEMS_PER_PAGE);
+  const paginatedActiveChannels = useMemo(() => {
+    const startIndex = (activePage - 1) * ITEMS_PER_PAGE;
+    return activeChannels.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [activeChannels, activePage]);
+
+  // Pagination calculations for inactive channels
+  const inactiveTotalPages = Math.ceil(inactiveChannels.length / ITEMS_PER_PAGE);
+  const paginatedInactiveChannels = useMemo(() => {
+    const startIndex = (inactivePage - 1) * ITEMS_PER_PAGE;
+    return inactiveChannels.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [inactiveChannels, inactivePage]);
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
@@ -77,23 +97,149 @@ export default function YouTubeManagementContent() {
         <>
           {activeChannels.length > 0 && (
             <div className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Active Channels ({activeChannels.length})</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">
+                  Active Channels ({activeChannels.length})
+                </h2>
+                {activeTotalPages > 1 && (
+                  <span className="text-sm text-muted-foreground">
+                    Page {activePage} of {activeTotalPages}
+                  </span>
+                )}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {activeChannels.map((channel) => (
+                {paginatedActiveChannels.map((channel) => (
                   <YouTubeChannelCard key={channel.id} channel={channel} />
                 ))}
               </div>
+              
+              {/* Active Channels Pagination */}
+              {activeTotalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-6">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActivePage((prev) => Math.max(1, prev - 1))}
+                    disabled={activePage === 1}
+                    className="gap-1"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: activeTotalPages }, (_, i) => i + 1)
+                      .filter((page) => {
+                        return (
+                          page === 1 ||
+                          page === activeTotalPages ||
+                          (page >= activePage - 1 && page <= activePage + 1)
+                        );
+                      })
+                      .map((page, index, array) => {
+                        const showEllipsisBefore = index > 0 && array[index - 1] < page - 1;
+                        return (
+                          <div key={page} className="flex items-center gap-1">
+                            {showEllipsisBefore && (
+                              <span className="text-muted-foreground px-2">...</span>
+                            )}
+                            <Button
+                              variant={activePage === page ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setActivePage(page)}
+                              className="min-w-[2.5rem]"
+                            >
+                              {page}
+                            </Button>
+                          </div>
+                        );
+                      })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActivePage((prev) => Math.min(activeTotalPages, prev + 1))}
+                    disabled={activePage === activeTotalPages}
+                    className="gap-1"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
           {inactiveChannels.length > 0 && (
             <div>
-              <h2 className="text-xl font-semibold mb-4">Inactive Channels ({inactiveChannels.length})</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">
+                  Inactive Channels ({inactiveChannels.length})
+                </h2>
+                {inactiveTotalPages > 1 && (
+                  <span className="text-sm text-muted-foreground">
+                    Page {inactivePage} of {inactiveTotalPages}
+                  </span>
+                )}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {inactiveChannels.map((channel) => (
+                {paginatedInactiveChannels.map((channel) => (
                   <YouTubeChannelCard key={channel.id} channel={channel} />
                 ))}
               </div>
+              
+              {/* Inactive Channels Pagination */}
+              {inactiveTotalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-6">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setInactivePage((prev) => Math.max(1, prev - 1))}
+                    disabled={inactivePage === 1}
+                    className="gap-1"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: inactiveTotalPages }, (_, i) => i + 1)
+                      .filter((page) => {
+                        return (
+                          page === 1 ||
+                          page === inactiveTotalPages ||
+                          (page >= inactivePage - 1 && page <= inactivePage + 1)
+                        );
+                      })
+                      .map((page, index, array) => {
+                        const showEllipsisBefore = index > 0 && array[index - 1] < page - 1;
+                        return (
+                          <div key={page} className="flex items-center gap-1">
+                            {showEllipsisBefore && (
+                              <span className="text-muted-foreground px-2">...</span>
+                            )}
+                            <Button
+                              variant={inactivePage === page ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setInactivePage(page)}
+                              className="min-w-[2.5rem]"
+                            >
+                              {page}
+                            </Button>
+                          </div>
+                        );
+                      })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setInactivePage((prev) => Math.min(inactiveTotalPages, prev + 1))}
+                    disabled={inactivePage === inactiveTotalPages}
+                    className="gap-1"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 

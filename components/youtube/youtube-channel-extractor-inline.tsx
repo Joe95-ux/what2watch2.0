@@ -4,13 +4,15 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Check, Youtube, Search, Loader2, AlertCircle, Plus, Lock } from "lucide-react";
+import { Copy, Check, Youtube, Search, Loader2, AlertCircle, Plus, Lock, Sparkles, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { extractChannelIdFromUrl } from "@/lib/youtube-channels";
 import { useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 interface YouTubeChannel {
   id: string;
@@ -45,21 +47,17 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
     setChannels([]);
 
     try {
-      // Check if input is a URL
       const isUrl = input.includes("youtube.com") || input.includes("youtu.be");
       
       if (isUrl) {
-        // Extract channel ID from URL
         const channelId = extractChannelIdFromUrl(input);
         
         if (channelId) {
-          // Fetch channel details by ID
           const response = await fetch(`/api/youtube/channels?channelIds=${encodeURIComponent(channelId)}`);
           if (response.ok) {
             const data = await response.json();
             if (data.channels && data.channels.length > 0) {
               setChannels(data.channels);
-              // Check if channel already exists
               await checkExistingChannels([channelId]);
             } else {
               setError("Channel not found. Please check the URL.");
@@ -68,12 +66,10 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
             setError("Failed to fetch channel information.");
           }
         } else {
-          // Try to search for the channel using the URL as a search term
           const searchTerm = input.split("/").pop() || input;
           await searchChannels(searchTerm);
         }
       } else {
-        // Search for channel by name
         await searchChannels(input);
       }
     } catch (err) {
@@ -171,18 +167,15 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
         setAddedIds((prev) => new Set(prev).add(channelId));
         toast.success(`Channel added successfully!`);
         
-        // Invalidate and refetch queries
         await queryClient.invalidateQueries({ queryKey: ["youtube-channels"] });
         await queryClient.invalidateQueries({ queryKey: ["youtube-channels-manage"] });
         await queryClient.refetchQueries({ queryKey: ["youtube-channels"] });
         await queryClient.refetchQueries({ queryKey: ["youtube-channels-manage"] });
         
-        // Clear input and channels
         setInput("");
         setChannels([]);
         setError(null);
         
-        // Callback to refresh channel list
         if (onChannelAdded) {
           onChannelAdded();
         }
@@ -248,100 +241,134 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Youtube className="h-5 w-5" />
-          Add YouTube Channel
-        </CardTitle>
-        <CardDescription>
-          Search for a YouTube channel by name or paste a channel URL to extract the channel ID.
-        </CardDescription>
+    <Card className="border-2 shadow-lg">
+      <CardHeader className="pb-4 space-y-1">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Youtube className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-xl font-semibold">Channel Extractor</CardTitle>
+              <CardDescription className="text-sm mt-1">
+                Search and add YouTube channels to your collection
+              </CardDescription>
+            </div>
+          </div>
+          <Badge variant="secondary" className="hidden sm:flex items-center gap-1">
+            <Sparkles className="h-3 w-3" />
+            Professional Tool
+          </Badge>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <Separator />
+      <CardContent className="pt-6 space-y-6">
+        {/* Search Input */}
         <div className="space-y-2">
-          <Label htmlFor="channel-input">Channel Name or URL</Label>
+          <Label htmlFor="channel-input" className="text-sm font-medium">
+            Channel Name or URL
+          </Label>
           <div className="flex gap-2">
-            <Input
-              id="channel-input"
-              placeholder="e.g., Nollywood Movies or https://www.youtube.com/channel/UC..."
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
-              disabled={isLoading}
-              className="flex-1"
-            />
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="channel-input"
+                placeholder="Search by name or paste channel URL..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                disabled={isLoading}
+                className="pl-10 h-11"
+              />
+            </div>
             <Button
               onClick={handleExtract}
               disabled={isLoading || !input.trim()}
+              size="lg"
+              className="px-6"
             >
               {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Searching...
+                </>
               ) : (
-                <Search className="h-4 w-4" />
+                <>
+                  <Search className="h-4 w-4 mr-2" />
+                  Search
+                </>
               )}
             </Button>
           </div>
           {error && (
-            <div className="flex items-center gap-2 text-sm text-destructive">
-              <AlertCircle className="h-4 w-4" />
+            <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-md border border-destructive/20">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
               <span>{error}</span>
             </div>
           )}
         </div>
 
+        {/* Results */}
         {channels.length > 0 && (
           <div className="space-y-3">
-            <Label>Found Channels</Label>
-            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold">Search Results</Label>
+              <Badge variant="outline">{channels.length} found</Badge>
+            </div>
+            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
               {channels.map((channel) => (
                 <div
                   key={channel.id}
-                  className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent transition-colors"
+                  className="group relative flex items-center gap-4 p-4 border rounded-lg hover:border-primary/50 hover:bg-accent/50 transition-all duration-200"
                 >
                   <a
                     href={channel.channelUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 flex-1 min-w-0 group"
+                    className="flex items-center gap-4 flex-1 min-w-0"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {channel.thumbnail ? (
-                      <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
+                      <div className="relative w-14 h-14 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-border">
                         <Image
                           src={channel.thumbnail}
                           alt={channel.title}
                           fill
                           className="object-cover"
-                          sizes="48px"
+                          sizes="56px"
                           unoptimized
                         />
                       </div>
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                        <Youtube className="h-6 w-6 text-muted-foreground" />
+                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0 ring-2 ring-border">
+                        <Youtube className="h-7 w-7 text-primary" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate group-hover:text-primary transition-colors">
+                      <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">
                         {channel.title}
                       </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <code className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded">
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <code className="text-xs text-muted-foreground font-mono bg-muted px-2 py-0.5 rounded border">
                           {channel.id}
                         </code>
                         {addedIds.has(channel.id) && (
-                          <span className="text-xs text-green-600 font-medium">Added</span>
+                          <Badge variant="default" className="text-xs">
+                            Added
+                          </Badge>
                         )}
                         {existingChannels.has(channel.id) && !addedIds.has(channel.id) && (
-                          <span className="text-xs text-orange-600 font-medium">Already exists</span>
+                          <Badge variant="secondary" className="text-xs">
+                            Exists
+                          </Badge>
                         )}
                       </div>
                     </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                   </a>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {(!existingChannels.has(channel.id) || addedIds.has(channel.id)) && (
-                      <div className="flex items-center gap-1.5 px-2 py-1 border rounded-md">
+                      <div className="flex items-center gap-2 px-3 py-1.5 border rounded-md bg-background">
                         <Checkbox
                           id={`private-${channel.id}`}
                           checked={privateChannels.has(channel.id)}
@@ -362,7 +389,7 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
                         />
                         <Label
                           htmlFor={`private-${channel.id}`}
-                          className="text-xs cursor-pointer flex items-center gap-1"
+                          className="text-xs cursor-pointer flex items-center gap-1.5 font-medium"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <Lock className="h-3 w-3" />
@@ -380,41 +407,49 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
                           updateChannelPrivacy(channel.id, isPrivate);
                           setAddedIds((prev) => new Set(prev).add(channel.id));
                         }}
-                        title="Mark as private"
+                        className="gap-2"
                       >
-                        <Lock className="h-4 w-4" />
+                        <Lock className="h-3.5 w-3.5" />
+                        Update
                       </Button>
                     )}
                     {!existingChannels.has(channel.id) && (
                       <Button
-                        variant="outline"
+                        variant="default"
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
                           addChannelId(channel.id);
                         }}
                         disabled={addedIds.has(channel.id)}
-                        title="Add to channel list"
+                        className="gap-2"
                       >
                         {addedIds.has(channel.id) ? (
-                          <Check className="h-4 w-4 text-green-600" />
+                          <>
+                            <Check className="h-3.5 w-3.5" />
+                            Added
+                          </>
                         ) : (
-                          <Plus className="h-4 w-4" />
+                          <>
+                            <Plus className="h-3.5 w-3.5" />
+                            Add
+                          </>
                         )}
                       </Button>
                     )}
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
                         copyToClipboard(channel.id);
                       }}
+                      className="gap-2"
                     >
                       {copiedId === channel.id ? (
-                        <Check className="h-4 w-4 text-green-600" />
+                        <Check className="h-3.5 w-3.5 text-green-600" />
                       ) : (
-                        <Copy className="h-4 w-4" />
+                        <Copy className="h-3.5 w-3.5" />
                       )}
                     </Button>
                   </div>
@@ -425,13 +460,15 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
         )}
 
         {channels.length === 0 && !isLoading && !error && (
-          <div className="text-center py-8 text-muted-foreground">
-            <Youtube className="h-12 w-12 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Enter a channel name or URL to get started</p>
+          <div className="text-center py-12 border-2 border-dashed rounded-lg bg-muted/30">
+            <div className="p-3 rounded-full bg-primary/10 w-fit mx-auto mb-4">
+              <Youtube className="h-6 w-6 text-primary" />
+            </div>
+            <p className="text-sm font-medium text-muted-foreground mb-1">Ready to search</p>
+            <p className="text-xs text-muted-foreground">Enter a channel name or URL above to get started</p>
           </div>
         )}
       </CardContent>
     </Card>
   );
 }
-
