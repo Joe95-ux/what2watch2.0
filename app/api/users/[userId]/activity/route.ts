@@ -272,7 +272,7 @@ export async function GET(
       privacy: {
         visibility: visibility,
         isOwnProfile,
-        canViewAll,
+        canViewAll: canView, // Use canView instead of canViewAll - this allows viewing when visibility is PUBLIC
       },
     });
   } catch (error) {

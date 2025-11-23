@@ -353,26 +353,21 @@ export default function PublicActivityContent({ userId }: PublicActivityContentP
           </div>
         )}
 
-        {/* Search */}
+        {/* Search and Filters */}
         {privacy && privacy.canViewAll && (
-          <div className="mb-4">
-            <div className="relative w-full sm:w-[300px]">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search activities..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Filters and Sorting */}
-        {privacy && privacy.canViewAll && (
-          <div className="mb-6 space-y-3">
-            <div className="flex flex-col sm:flex-row gap-3">
+          <div className="mb-6">
+            <div className="flex flex-wrap gap-3">
+              {/* Search */}
+              <div className="relative w-full sm:w-[300px] flex-shrink-0">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search activities..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
               {/* Activity Type Filter */}
               <Select
                 value={selectedType}
@@ -478,36 +473,38 @@ export default function PublicActivityContent({ userId }: PublicActivityContentP
                       Oldest First
                     </span>
                   </SelectItem>
-                </SelectContent>
-              </Select>
+              </SelectContent>
+            </Select>
             </div>
 
             {/* Custom Date Range Inputs */}
             {dateRange === "custom" && (
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1">
-                  <Label htmlFor="start-date" className="text-xs text-muted-foreground mb-1 block">
-                    Start Date
-                  </Label>
-                  <Input
-                    id="start-date"
-                    type="date"
-                    value={customStartDate}
-                    onChange={(e) => setCustomStartDate(e.target.value)}
-                    className="w-full"
-                  />
-                </div>
-                <div className="flex-1">
-                  <Label htmlFor="end-date" className="text-xs text-muted-foreground mb-1 block">
-                    End Date
-                  </Label>
-                  <Input
-                    id="end-date"
-                    type="date"
-                    value={customEndDate}
-                    onChange={(e) => setCustomEndDate(e.target.value)}
-                    className="w-full"
-                  />
+              <div className="w-full mt-3">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1">
+                    <Label htmlFor="start-date" className="text-xs text-muted-foreground mb-1 block">
+                      Start Date
+                    </Label>
+                    <Input
+                      id="start-date"
+                      type="date"
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Label htmlFor="end-date" className="text-xs text-muted-foreground mb-1 block">
+                      End Date
+                    </Label>
+                    <Input
+                      id="end-date"
+                      type="date"
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -529,7 +526,7 @@ export default function PublicActivityContent({ userId }: PublicActivityContentP
                 </div>
               ))}
             </div>
-          ) : !privacy || !privacy.canViewAll ? (
+          ) : !privacy || (!privacy.canViewAll && privacy.visibility === "PRIVATE") ? (
             <div className="p-12 text-center">
               <Lock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
