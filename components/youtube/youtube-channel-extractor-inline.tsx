@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Check, Youtube, Search, Loader2, AlertCircle, Plus, Lock, Sparkles, ArrowRight } from "lucide-react";
+import { Copy, Check, Youtube, Search, Loader2, AlertCircle, Plus, Lock, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { extractChannelIdFromUrl } from "@/lib/youtube-channels";
 import { useQueryClient } from "@tanstack/react-query";
@@ -242,7 +242,7 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
 
   return (
     <Card className="border-2 shadow-lg">
-      <CardHeader className="pb-4 space-y-1">
+      <CardHeader className="pb-0 space-y-1">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
@@ -255,14 +255,10 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
               </CardDescription>
             </div>
           </div>
-          <Badge variant="secondary" className="hidden sm:flex items-center gap-1">
-            <Sparkles className="h-3 w-3" />
-            Professional Tool
-          </Badge>
         </div>
       </CardHeader>
       <Separator />
-      <CardContent className="pt-6 space-y-6">
+      <CardContent className="pt-0 space-y-6">
         {/* Search Input */}
         <div className="space-y-2">
           <Label htmlFor="channel-input" className="text-sm font-medium">

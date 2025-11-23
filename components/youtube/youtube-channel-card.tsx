@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -90,7 +90,7 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
     }
   };
 
-  const handleRefresh = async () => {
+  const handleRefresh = async (showToast = true) => {
     setIsRefreshing(true);
     try {
       const response = await fetch(`/api/youtube/channels/${channel.channelId}/refresh`, {
@@ -98,20 +98,50 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
       });
 
       if (response.ok) {
-        toast.success("Channel details refreshed");
+        if (showToast) {
+          toast.success("Channel details refreshed");
+        }
         await queryClient.invalidateQueries({ queryKey: ["youtube-channels-manage"] });
         await queryClient.refetchQueries({ queryKey: ["youtube-channels-manage"] });
       } else {
         const errorData = await response.json().catch(() => ({}));
-        toast.error(errorData.error || "Failed to refresh channel details");
+        if (showToast) {
+          toast.error(errorData.error || "Failed to refresh channel details");
+        }
       }
     } catch (error) {
       console.error("Error refreshing channel details:", error);
-      toast.error("Failed to refresh channel details");
+      if (showToast) {
+        toast.error("Failed to refresh channel details");
+      }
     } finally {
       setIsRefreshing(false);
     }
   };
+
+  // Auto-refresh missing channel details on mount
+  useEffect(() => {
+    if (!channel.title || !channel.thumbnail) {
+      const refresh = async () => {
+        setIsRefreshing(true);
+        try {
+          const response = await fetch(`/api/youtube/channels/${channel.channelId}/refresh`, {
+            method: "POST",
+          });
+
+          if (response.ok) {
+            await queryClient.invalidateQueries({ queryKey: ["youtube-channels-manage"] });
+            await queryClient.refetchQueries({ queryKey: ["youtube-channels-manage"] });
+          }
+        } catch (error) {
+          console.error("Error auto-refreshing channel details:", error);
+        } finally {
+          setIsRefreshing(false);
+        }
+      };
+      refresh();
+    }
+  }, [channel.channelId, channel.title, channel.thumbnail, queryClient]);
 
   const channelTitle = channel.title || "Unknown Channel";
   const channelUrl = channel.channelUrl || `https://www.youtube.com/channel/${channel.channelId}`;
@@ -151,18 +181,20 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
                 {channel.channelId}
               </p>
             </Link>
-            {(!channel.title || !channel.thumbnail) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className="h-8 w-8 p-0"
-                title="Refresh channel details"
-              >
-                <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleRefresh(true);
+              }}
+              disabled={isRefreshing}
+              className="h-8 w-8 p-0"
+              title="Refresh channel details"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            </Button>
           </div>
         </div>
       </div>
