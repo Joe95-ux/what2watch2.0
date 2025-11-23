@@ -97,7 +97,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
     await db.user.update({
       where: { id: user.id },
       data: {
-        ...(activityVisibility && { activityVisibility }),
+        ...(activityVisibility !== undefined && activityVisibility !== null && { activityVisibility }),
         ...(showRatingsInActivity !== undefined && { showRatingsInActivity }),
         ...(showReviewsInActivity !== undefined && { showReviewsInActivity }),
         ...(showListsInActivity !== undefined && { showListsInActivity }),

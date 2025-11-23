@@ -69,20 +69,23 @@ export async function GET(
     // If user is viewing their own profile, they can always see all activities
     const canViewAll = isOwnProfile;
     
+    // Get the visibility setting, defaulting to "PUBLIC" if not set
+    const visibility = targetUser.activityVisibility || "PUBLIC";
+    
     // For other users, check visibility settings
     let canView = false;
     if (isOwnProfile) {
       canView = true; // Always allow viewing own profile
     } else {
       // Check if visibility allows viewing
-      if (targetUser.activityVisibility === "PUBLIC") {
+      if (visibility === "PUBLIC") {
         canView = true;
-      } else if (targetUser.activityVisibility === "FOLLOWERS_ONLY" && isFollowing) {
+      } else if (visibility === "FOLLOWERS_ONLY" && isFollowing) {
         canView = true;
-      } else if (targetUser.activityVisibility === "PRIVATE") {
+      } else if (visibility === "PRIVATE") {
         canView = false;
       } else {
-        // Default to public if visibility is not set
+        // Default to public if visibility is not recognized
         canView = true;
       }
     }
@@ -93,7 +96,7 @@ export async function GET(
         grouped: null,
         total: 0,
         privacy: {
-          visibility: targetUser.activityVisibility,
+          visibility: visibility,
           isOwnProfile: false,
           canViewAll: false,
         },
@@ -267,7 +270,7 @@ export async function GET(
       grouped: groupedActivities,
       total: activities.length,
       privacy: {
-        visibility: targetUser.activityVisibility,
+        visibility: visibility,
         isOwnProfile,
         canViewAll,
       },
