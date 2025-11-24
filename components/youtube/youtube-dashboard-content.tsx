@@ -244,23 +244,24 @@ export default function YouTubeDashboardContent() {
               slidesToScroll: 1,
               dragFree: true,
               breakpoints: {
-                "(max-width: 640px)": { slidesToScroll: 1, dragFree: true },
-                "(min-width: 641px) and (max-width: 768px)": { slidesToScroll: 2, dragFree: true },
-                "(min-width: 769px) and (max-width: 1024px)": { slidesToScroll: 3, dragFree: true },
-                "(min-width: 1025px) and (max-width: 1280px)": { slidesToScroll: 4, dragFree: true },
-                "(min-width: 1281px) and (max-width: 1536px)": { slidesToScroll: 5, dragFree: true },
-                "(min-width: 1537px)": { slidesToScroll: 6, dragFree: true },
+                "(max-width: 640px)": { slidesToScroll: 1, dragFree: true }, // 1 item on mobile
+                "(min-width: 641px) and (max-width: 768px)": { slidesToScroll: 2, dragFree: true }, // 2 items on small tablet
+                "(min-width: 769px) and (max-width: 1024px)": { slidesToScroll: 3, dragFree: true }, // 3 items on tablet
+                "(min-width: 1025px)": { slidesToScroll: 4, dragFree: true }, // 4 items on desktop and above
               },
             }}
             className="w-full"
           >
             <CarouselContent className="-ml-2 sm:-ml-3 md:-ml-4">
-              {Array.from({ length: 12 }).map((_, idx) => (
+              {Array.from({ length: 6 }).map((_, idx) => (
                 <CarouselItem 
                   key={idx} 
-                  className="pl-2 sm:pl-3 md:pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5 2xl:basis-1/6"
+                  className="pl-2 sm:pl-3 md:pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
                 >
-                  <Skeleton className="h-20 rounded-xl" />
+                  <div className="grid grid-cols-1 gap-4">
+                    <Skeleton className="h-20 rounded-xl" />
+                    <Skeleton className="h-20 rounded-xl" />
+                  </div>
                 </CarouselItem>
               ))}
             </CarouselContent>
@@ -273,87 +274,51 @@ export default function YouTubeDashboardContent() {
       return <EmptyState message="You haven't favorited any channels yet." />;
     }
 
-    // Split channels into two rows (first 6, then rest)
-    const firstRow = favoriteChannels.slice(0, 6);
-    const secondRow = favoriteChannels.slice(6, 12);
+    // Pair up channels: [0,1], [2,3], [4,5], etc.
+    // Each pair will be in one carousel item (two rows)
+    const pairedChannels: FavoriteChannel[][] = [];
+    for (let i = 0; i < favoriteChannels.length; i += 2) {
+      const pair = favoriteChannels.slice(i, i + 2);
+      pairedChannels.push(pair);
+    }
 
     return (
-      <div className="space-y-4">
-        {/* First Row */}
-        <div className="relative group/carousel">
-          <Carousel
-            opts={{
-              align: "start",
-              slidesToScroll: 1,
-              dragFree: true,
-              breakpoints: {
-                "(max-width: 640px)": { slidesToScroll: 1, dragFree: true },
-                "(min-width: 641px) and (max-width: 768px)": { slidesToScroll: 2, dragFree: true },
-                "(min-width: 769px) and (max-width: 1024px)": { slidesToScroll: 3, dragFree: true },
-                "(min-width: 1025px) and (max-width: 1280px)": { slidesToScroll: 4, dragFree: true },
-                "(min-width: 1281px) and (max-width: 1536px)": { slidesToScroll: 5, dragFree: true },
-                "(min-width: 1537px)": { slidesToScroll: 6, dragFree: true },
-              },
-            }}
-            className="w-full"
-          >
-            <CarouselContent className="-ml-2 sm:-ml-3 md:-ml-4">
-              {firstRow.map((favorite) => (
-                <CarouselItem 
-                  key={favorite.id} 
-                  className="pl-2 sm:pl-3 md:pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5 2xl:basis-1/6"
-                >
-                  <FavoriteChannelCard favorite={favorite} />
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious 
-              className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10"
-            />
-            <CarouselNext 
-              className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10"
-            />
-          </Carousel>
-        </div>
-        
-        {/* Second Row */}
-        {secondRow.length > 0 && (
-          <div className="relative group/carousel">
-            <Carousel
-              opts={{
-                align: "start",
-                slidesToScroll: 1,
-                dragFree: true,
-                breakpoints: {
-                  "(max-width: 640px)": { slidesToScroll: 1, dragFree: true },
-                  "(min-width: 641px) and (max-width: 768px)": { slidesToScroll: 2, dragFree: true },
-                  "(min-width: 769px) and (max-width: 1024px)": { slidesToScroll: 3, dragFree: true },
-                  "(min-width: 1025px) and (max-width: 1280px)": { slidesToScroll: 4, dragFree: true },
-                  "(min-width: 1281px) and (max-width: 1536px)": { slidesToScroll: 5, dragFree: true },
-                  "(min-width: 1537px)": { slidesToScroll: 6, dragFree: true },
-                },
-              }}
-              className="w-full"
-            >
-              <CarouselContent className="-ml-2 sm:-ml-3 md:-ml-4">
-                {secondRow.map((favorite) => (
-                  <CarouselItem 
-                    key={favorite.id} 
-                    className="pl-2 sm:pl-3 md:pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5 2xl:basis-1/6"
-                  >
-                    <FavoriteChannelCard favorite={favorite} />
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious 
-                className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10"
-              />
-              <CarouselNext 
-                className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10"
-              />
-            </Carousel>
-          </div>
-        )}
+      <div className="relative group/carousel">
+        <Carousel
+          opts={{
+            align: "start",
+            slidesToScroll: 1,
+            dragFree: true,
+            breakpoints: {
+              "(max-width: 640px)": { slidesToScroll: 1, dragFree: true }, // 1 item on mobile
+              "(min-width: 641px) and (max-width: 768px)": { slidesToScroll: 2, dragFree: true }, // 2 items on small tablet
+              "(min-width: 769px) and (max-width: 1024px)": { slidesToScroll: 3, dragFree: true }, // 3 items on tablet
+              "(min-width: 1025px)": { slidesToScroll: 4, dragFree: true }, // 4 items on desktop and above
+            },
+          }}
+          className="w-full"
+        >
+          <CarouselContent className="-ml-2 sm:-ml-3 md:-ml-4">
+            {pairedChannels.map((pair, pairIndex) => (
+              <CarouselItem 
+                key={`pair-${pairIndex}`} 
+                className="pl-2 sm:pl-3 md:pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
+              >
+                <div className="grid grid-cols-1 gap-4">
+                  {pair.map((favorite) => (
+                    <FavoriteChannelCard key={favorite.id} favorite={favorite} />
+                  ))}
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious 
+            className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10"
+          />
+          <CarouselNext 
+            className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10"
+          />
+        </Carousel>
       </div>
     );
   };

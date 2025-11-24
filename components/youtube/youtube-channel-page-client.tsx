@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Heart, Youtube, ExternalLink, Loader2, ChevronDown, ChevronUp, Search } from "lucide-react";
+import { Heart, Youtube, ExternalLink, Loader2, ChevronDown, ChevronUp, Search, ArrowLeft } from "lucide-react";
 import {
   useYouTubeChannel,
   useYouTubeChannelVideos,
@@ -17,9 +17,12 @@ import { useToggleFavoriteChannel } from "@/hooks/use-favorite-channels";
 import YouTubeVideoCard from "@/components/youtube/youtube-video-card";
 import { YouTubePlaylistCard } from "@/components/youtube/youtube-playlist-card";
 import YouTubeChannelStickyNav from "@/components/youtube/youtube-channel-sticky-nav";
-import YouTubeChannelSkeleton from "@/components/youtube/youtube-channel-skeleton";
+import YouTubeChannelPageSkeleton from "@/components/youtube/youtube-channel-page-skeleton";
 import YouTubePosts from "@/components/youtube/youtube-posts";
 import { YouTubeChannelSidebar } from "@/components/youtube/youtube-channel-sidebar";
+import { useFavoriteYouTubeVideos } from "@/hooks/use-favorite-youtube-videos";
+import { useYouTubeVideoWatchlist } from "@/hooks/use-youtube-video-watchlist";
+import { useYouTubeRecommendations } from "@/hooks/use-youtube-recommendations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,6 +40,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
   const [pageToken, setPageToken] = useState<string | undefined>();
   const [playlistsPageToken, setPlaylistsPageToken] = useState<string | undefined>();
   const [activeTab, setActiveTab] = useState("home");
+  const [sidebarTab, setSidebarTab] = useState<"channel" | "favorites" | "watchlater" | "recommendations">("channel");
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,6 +49,11 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
   const [postsPageToken, setPostsPageToken] = useState<string | undefined>();
   const [accumulatedPosts, setAccumulatedPosts] = useState<YouTubePost[]>([]);
   const heroRef = useRef<HTMLDivElement>(null);
+
+  // Tab content hooks
+  const { data: favoriteVideos = [], isLoading: isLoadingFavorites } = useFavoriteYouTubeVideos();
+  const { data: watchlistVideos = [], isLoading: isLoadingWatchlist } = useYouTubeVideoWatchlist();
+  const { data: recommendations, isLoading: isLoadingRecommendations } = useYouTubeRecommendations();
 
   const {
     data: videosData,
@@ -193,11 +202,152 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
 
   const descriptionNeedsTruncation = channel?.description && channel.description.split(/\s+/).length > 4;
 
+  // Render tab content
+  const renderTabContent = () => {
+    if (sidebarTab === "favorites") {
+      if (isLoadingFavorites) {
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-72 rounded-xl" />
+            ))}
+          </div>
+        );
+      }
+      if (favoriteVideos.length === 0) {
+        return (
+          <div className="text-center py-12 text-muted-foreground">
+            <p>No favorite videos yet.</p>
+          </div>
+        );
+      }
+      return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {favoriteVideos.map((video) => (
+            <YouTubeVideoCard
+              key={video.videoId}
+              video={{
+                id: video.videoId,
+                title: video.title,
+                description: video.description || "",
+                thumbnail: video.thumbnail || undefined,
+                channelId: video.channelId,
+                channelTitle: video.channelTitle || "",
+                publishedAt: video.publishedAt || new Date().toISOString(),
+                duration: video.duration || undefined,
+                videoUrl: video.videoUrl || `https://www.youtube.com/watch?v=${video.videoId}`,
+              }}
+              channelId={video.channelId}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    if (sidebarTab === "watchlater") {
+      if (isLoadingWatchlist) {
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-72 rounded-xl" />
+            ))}
+          </div>
+        );
+      }
+      if (watchlistVideos.length === 0) {
+        return (
+          <div className="text-center py-12 text-muted-foreground">
+            <p>Your watch later list is empty.</p>
+          </div>
+        );
+      }
+      return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {watchlistVideos.map((video) => (
+            <YouTubeVideoCard
+              key={video.videoId}
+              video={{
+                id: video.videoId,
+                title: video.title,
+                description: video.description || "",
+                thumbnail: video.thumbnail || undefined,
+                channelId: video.channelId,
+                channelTitle: video.channelTitle || "",
+                publishedAt: video.publishedAt || new Date().toISOString(),
+                duration: video.duration || undefined,
+                videoUrl: video.videoUrl || `https://www.youtube.com/watch?v=${video.videoId}`,
+              }}
+              channelId={video.channelId}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    if (sidebarTab === "recommendations") {
+      if (isLoadingRecommendations) {
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-72 rounded-xl" />
+            ))}
+          </div>
+        );
+      }
+      if (!recommendations?.recommendedVideos.length) {
+        return (
+          <div className="text-center py-12 text-muted-foreground">
+            <p>No recommendations available. Add favorite channels to get recommendations.</p>
+          </div>
+        );
+      }
+      return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {recommendations.recommendedVideos.map((video) => (
+            <YouTubeVideoCard
+              key={video.id}
+              video={video}
+              channelId={video.channelId}
+              titleLines={1}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    // Default: channel content
+    return null;
+  };
+
   if (isLoadingChannel) {
-    return <YouTubeChannelSkeleton />;
+    return <YouTubeChannelPageSkeleton />;
   }
 
   if (!channel) {
+    if (sidebarTab !== "channel") {
+      // If not viewing channel, allow tab content to render
+      return (
+        <div className="min-h-screen bg-background flex">
+          <YouTubeChannelSidebar 
+            currentChannelId={undefined}
+            activeTab={sidebarTab}
+            onTabChange={setSidebarTab}
+          />
+          <div className="flex-1 min-w-0 transition-all duration-300">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+              <div className="mb-6">
+                <h1 className="text-2xl font-semibold">
+                  {sidebarTab === "favorites" && "Favorite Videos"}
+                  {sidebarTab === "watchlater" && "Watch Later"}
+                  {sidebarTab === "recommendations" && "Recommendations"}
+                </h1>
+              </div>
+              {renderTabContent()}
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -213,11 +363,16 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
-      <YouTubeChannelSidebar currentChannelId={channelId} />
+      <YouTubeChannelSidebar 
+        currentChannelId={sidebarTab === "channel" ? channelId : undefined}
+        activeTab={sidebarTab}
+        onTabChange={setSidebarTab}
+      />
 
       {/* Main Content */}
-      <div className="flex-1 min-w-0">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+      <div className="flex-1 min-w-0 transition-all duration-300">
+        {sidebarTab === "channel" && channel ? (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
         <div ref={heroRef} className="mb-8">
           {channel.bannerImage ? (
             <div className="relative w-full h-[206px] overflow-hidden rounded-lg">
@@ -471,7 +626,28 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
             </>
           )}
         </div>
-        </div>
+          </div>
+        ) : sidebarTab !== "channel" ? (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+            <div className="mb-6">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSidebarTab("channel")}
+                className="mb-4 -ml-2"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Channel
+              </Button>
+              <h1 className="text-2xl font-semibold">
+                {sidebarTab === "favorites" && "Favorite Videos"}
+                {sidebarTab === "watchlater" && "Watch Later"}
+                {sidebarTab === "recommendations" && "Recommendations"}
+              </h1>
+            </div>
+            {renderTabContent()}
+          </div>
+        ) : null}
       </div>
     </div>
   );
