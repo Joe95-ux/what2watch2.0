@@ -1,8 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
-import { Play, Plus, Share2, Link2, Facebook, Twitter, Heart, Bookmark, MoreVertical, Trash2 } from "lucide-react";
+import {
+  Play,
+  Plus,
+  Share2,
+  Link2,
+  Facebook,
+  Twitter,
+  Heart,
+  Bookmark,
+  MoreVertical,
+  Trash2,
+  Star,
+  Clock3,
+} from "lucide-react";
 import { YouTubeVideo } from "@/hooks/use-youtube-channel";
 import { CircleActionButton } from "@/components/browse/circle-action-button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -19,6 +32,8 @@ import { toast } from "sonner";
 import AddYouTubeVideoToPlaylistDropdown from "@/components/playlists/add-youtube-video-to-playlist-dropdown";
 import { useToggleFavoriteChannel } from "@/hooks/use-favorite-channels";
 import { useToggleChannelWatchlist } from "@/hooks/use-channel-watchlist";
+import { useToggleFavoriteYouTubeVideo } from "@/hooks/use-favorite-youtube-videos";
+import { useToggleYouTubeVideoWatchlist } from "@/hooks/use-youtube-video-watchlist";
 
 interface YouTubeVideoCardProps {
   video: YouTubeVideo;
@@ -83,9 +98,26 @@ export default function YouTubeVideoCard({
   const [copied, setCopied] = useState(false);
   const toggleFavorite = useToggleFavoriteChannel();
   const toggleWatchlist = useToggleChannelWatchlist();
+  const toggleVideoFavorite = useToggleFavoriteYouTubeVideo();
+  const toggleVideoWatchlist = useToggleYouTubeVideoWatchlist();
+  const videoPayload = useMemo(
+    () => ({
+      id: video.id,
+      title: video.title,
+      thumbnail: video.thumbnail,
+      channelId: video.channelId,
+      channelTitle: video.channelTitle,
+      duration: video.duration,
+      videoUrl: video.videoUrl,
+      description: video.description,
+      publishedAt: video.publishedAt,
+    }),
+    [video]
+  );
 
   const duration = parseDuration(video.duration);
   const publishedTime = formatPublishedDate(video.publishedAt);
+  const shouldShowActions = true;
 
   const handleCardClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -284,8 +316,8 @@ export default function YouTubeVideoCard({
           </CircleActionButton>
         </div>
 
-        {/* Actions Dropdown Menu - Top Left (only if channelId provided or onRemove exists) */}
-        {(channelId || onRemove) && (
+        {/* Actions Dropdown Menu - Top Left */}
+        {shouldShowActions && (
           <div className="absolute top-2 left-2 z-[10] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
             <DropdownMenu open={isActionsDropdownOpen} onOpenChange={setIsActionsDropdownOpen}>
               <DropdownMenuTrigger asChild>
@@ -314,8 +346,49 @@ export default function YouTubeVideoCard({
                   e.stopPropagation();
                 }}
               >
+                <DropdownMenuItem
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    await requireAuth(
+                      () => toggleVideoFavorite.toggle(videoPayload),
+                      "Sign in to like videos."
+                    );
+                    setIsActionsDropdownOpen(false);
+                  }}
+                  className="cursor-pointer text-[0.8rem]"
+                >
+                  <Star
+                    className={cn(
+                      "h-4 w-4 mr-2",
+                      toggleVideoFavorite.isFavorited(video.id) ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground"
+                    )}
+                  />
+                  {toggleVideoFavorite.isFavorited(video.id) ? "Unlike video" : "Like video"}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    await requireAuth(
+                      () => toggleVideoWatchlist.toggle(videoPayload),
+                      "Sign in to manage your watchlist."
+                    );
+                    setIsActionsDropdownOpen(false);
+                  }}
+                  className="cursor-pointer text-[0.8rem]"
+                >
+                  <Clock3
+                    className={cn(
+                      "h-4 w-4 mr-2",
+                      toggleVideoWatchlist.isInWatchlist(video.id) ? "text-blue-500" : "text-muted-foreground"
+                    )}
+                  />
+                  {toggleVideoWatchlist.isInWatchlist(video.id) ? "Remove from watch later" : "Watch later"}
+                </DropdownMenuItem>
                 {channelId && (
                   <>
+                    <div className="my-1 border-t border-border" />
                     <DropdownMenuItem
                       onClick={async (e) => {
                         e.preventDefault();
@@ -336,7 +409,7 @@ export default function YouTubeVideoCard({
                             : "text-muted-foreground"
                         )}
                       />
-                      {toggleFavorite.isFavorited(channelId) ? "Remove from Favorites" : "Add to Favorites"}
+                      {toggleFavorite.isFavorited(channelId) ? "Remove channel favorite" : "Favorite channel"}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={async (e) => {
@@ -358,13 +431,13 @@ export default function YouTubeVideoCard({
                             : "text-muted-foreground"
                         )}
                       />
-                      {toggleWatchlist.isInWatchlist(channelId) ? "Remove from Watchlist" : "Add to Watchlist"}
+                      {toggleWatchlist.isInWatchlist(channelId) ? "Remove channel watchlist" : "Add channel to watchlist"}
                     </DropdownMenuItem>
                   </>
                 )}
                 {onRemove && (
                   <>
-                    {channelId && <div className="my-1 border-t border-border" />}
+                    <div className="my-1 border-t border-border" />
                     <DropdownMenuItem
                       onClick={(e) => {
                         e.preventDefault();

@@ -71,6 +71,8 @@ model User {
   watchlistItems WatchlistItem[]
   channelWatchlistItems ChannelWatchlistItem[]
   favoriteChannels FavoriteChannel[]
+  youtubeVideoFavorites YouTubeVideoFavorite[]
+  youtubeVideoWatchlistItems YouTubeVideoWatchlistItem[]
   activities Activity[]
   followedActivities Activity[] @relation("UserFollowedActivities")
   lists List[]
@@ -864,6 +866,50 @@ model ChannelWatchlistItem {
 
   @@unique([userId, channelId])
   @@map("channel_watchlist_items")
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model YouTubeVideoFavorite {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  videoId       String
+  title         String
+  thumbnail     String?
+  channelId     String
+  channelTitle  String?
+  duration      String?
+  videoUrl      String
+  description   String?
+  publishedAt   String?
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, videoId])
+  @@map("youtube_video_favorites")
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model YouTubeVideoWatchlistItem {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  videoId       String
+  title         String
+  thumbnail     String?
+  channelId     String
+  channelTitle  String?
+  duration      String?
+  videoUrl      String
+  description   String?
+  publishedAt   String?
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, videoId])
+  @@map("youtube_video_watchlist")
   @@index([userId])
   @@index([createdAt])
 }
