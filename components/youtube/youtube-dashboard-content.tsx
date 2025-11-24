@@ -20,6 +20,7 @@ import { YouTubeVideo } from "@/hooks/use-youtube-channel";
 import { getChannelProfilePath } from "@/lib/channel-path";
 import { useQuery } from "@tanstack/react-query";
 import { Users, Video } from "lucide-react";
+import { YouTubeRecommendations } from "@/components/youtube/youtube-recommendations";
 
 interface SectionProps {
   title: string;
@@ -265,29 +266,34 @@ export default function YouTubeDashboardContent() {
         <Carousel
           opts={{
             align: "start",
-            slidesToScroll: 6,
+            slidesToScroll: 1,
+            dragFree: true,
             breakpoints: {
-              "(max-width: 640px)": { slidesToScroll: 1 },
-              "(max-width: 768px)": { slidesToScroll: 2 },
-              "(max-width: 1024px)": { slidesToScroll: 3 },
-              "(max-width: 1280px)": { slidesToScroll: 4 },
-              "(max-width: 1536px)": { slidesToScroll: 5 },
+              "(max-width: 640px)": { slidesToScroll: 1, dragFree: true },
+              "(min-width: 641px) and (max-width: 768px)": { slidesToScroll: 2, dragFree: true },
+              "(min-width: 769px) and (max-width: 1024px)": { slidesToScroll: 3, dragFree: true },
+              "(min-width: 1025px) and (max-width: 1280px)": { slidesToScroll: 4, dragFree: true },
+              "(min-width: 1281px) and (max-width: 1536px)": { slidesToScroll: 5, dragFree: true },
+              "(min-width: 1537px)": { slidesToScroll: 6, dragFree: true },
             },
           }}
           className="w-full"
         >
-          <CarouselContent className="-ml-2 md:-ml-4 gap-4">
+          <CarouselContent className="-ml-2 sm:-ml-3 md:-ml-4">
             {items.map((video, index) => (
-              <CarouselItem key={`${video.id}-${index}`} className="pl-2 md:pl-4 basis-[280px] sm:basis-[300px] lg:basis-[320px]">
+              <CarouselItem 
+                key={`${video.id}-${index}`} 
+                className="pl-2 sm:pl-3 md:pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5 2xl:basis-1/6"
+              >
                 <YouTubeVideoCard video={video} channelId={channelIds[index]} />
               </CarouselItem>
             ))}
           </CarouselContent>
           <CarouselPrevious 
-            className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+            className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10"
           />
           <CarouselNext 
-            className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+            className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10"
           />
         </Carousel>
       </div>
@@ -394,6 +400,8 @@ export default function YouTubeDashboardContent() {
         </div>
 
         <div className="space-y-12">
+          <YouTubeRecommendations />
+
           <Section title="Favorite Channels" description="Channels you like to keep up with.">
             {renderFavoriteChannels()}
           </Section>

@@ -1,11 +1,31 @@
 "use client";
 
-import { useState } from "react";
-import { BarChart3, Eye, Clock, Heart, Bookmark, List, TrendingUp } from "lucide-react";
+import { useState, useMemo } from "react";
+import { BarChart3, Eye, Clock, Heart, Bookmark, List, TrendingUp, Play } from "lucide-react";
 import { useYouTubeAnalytics } from "@/hooks/use-youtube-analytics";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+} from "@/components/ui/chart";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  Line,
+  LineChart,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+} from "recharts";
+import { format, parseISO, eachDayOfInterval, startOfDay } from "date-fns";
 
 function formatDuration(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
@@ -16,9 +36,67 @@ function formatDuration(seconds: number): string {
   return `${minutes}m`;
 }
 
+const chartConfig = {
+  views: {
+    label: "Views",
+    color: "hsl(221 83% 53%)",
+  },
+  watchTime: {
+    label: "Watch Time (hours)",
+    color: "hsl(142 72% 45%)",
+  },
+  engagement: {
+    label: "Engagement",
+    color: "hsl(45 93% 47%)",
+  },
+};
+
 export function YouTubeAnalyticsDashboard() {
   const [period, setPeriod] = useState("30");
   const { data, isLoading } = useYouTubeAnalytics(parseInt(period, 10));
+
+  // Process views over time data
+  const viewsOverTimeData = useMemo(() => {
+    if (!data?.viewsOverTime || data.viewsOverTime.length === 0) return [];
+
+    const periodDays = parseInt(period, 10);
+    const startDate = startOfDay(new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000));
+    const endDate = startOfDay(new Date());
+    const allDays = eachDayOfInterval({ start: startDate, end: endDate });
+
+    // Create a map of dates to view counts
+    const viewsMap = new Map<string, number>();
+    data.viewsOverTime.forEach((item) => {
+      // Handle both Date objects and ISO strings
+      const date = item.createdAt instanceof Date 
+        ? item.createdAt 
+        : typeof item.createdAt === 'string' 
+        ? parseISO(item.createdAt) 
+        : new Date(item.createdAt);
+      const dateKey = format(startOfDay(date), "yyyy-MM-dd");
+      viewsMap.set(dateKey, item._count.id);
+    });
+
+    // Fill in all days with view counts
+    return allDays.map((day) => {
+      const dateKey = format(day, "yyyy-MM-dd");
+      return {
+        date: format(day, "MMM d"),
+        views: viewsMap.get(dateKey) || 0,
+      };
+    });
+  }, [data?.viewsOverTime, period]);
+
+  // Engagement data for pie chart
+  const engagementData = useMemo(() => {
+    if (!data?.stats) return [];
+    const stats = data.stats;
+    return [
+      { name: "Liked", value: stats.engagement.liked, color: "hsl(0 72% 51%)" },
+      { name: "Watchlist", value: stats.engagement.addedToWatchlist, color: "hsl(221 83% 53%)" },
+      { name: "Playlists", value: stats.engagement.addedToPlaylist, color: "hsl(142 72% 45%)" },
+    ].filter((item) => item.value > 0);
+  }, [data?.stats]);
 
   if (isLoading) {
     return (
@@ -32,6 +110,7 @@ export function YouTubeAnalyticsDashboard() {
             <Skeleton key={i} className="h-32" />
           ))}
         </div>
+        <Skeleton className="h-[400px] w-full" />
       </div>
     );
   }
@@ -127,6 +206,139 @@ export function YouTubeAnalyticsDashboard() {
         </Card>
       </div>
 
+      {/* Views Over Time Chart */}
+      {viewsOverTimeData.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Views Over Time
+            </CardTitle>
+            <CardDescription>Daily view count for the selected period</CardDescription>
+          </CardHeader>
+          <CardContent className="pl-2 sm:pl-4">
+            <ChartContainer config={chartConfig} className="h-[300px]">
+              <AreaChart data={viewsOverTimeData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  minTickGap={30}
+                  className="text-xs"
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  className="text-xs"
+                />
+                <ChartTooltip
+                  cursor={{ strokeDasharray: "4 4" }}
+                  content={<ChartTooltipContent />}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="views"
+                  stroke="var(--color-views)"
+                  fill="var(--color-views)"
+                  fillOpacity={0.2}
+                />
+              </AreaChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Engagement Breakdown */}
+      {engagementData.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Heart className="h-5 w-5" />
+                Engagement Breakdown
+              </CardTitle>
+              <CardDescription>How you interact with videos</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="h-[250px]">
+                <BarChart data={engagementData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis
+                    dataKey="name"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    className="text-xs"
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    className="text-xs"
+                  />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar
+                    dataKey="value"
+                    fill="var(--color-engagement)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+
+          {/* Completion Rate */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Play className="h-5 w-5" />
+                Completion Rate
+              </CardTitle>
+              <CardDescription>Percentage of videos watched to completion</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center justify-center h-[250px]">
+                <div className="relative w-32 h-32 mb-4">
+                  <svg className="w-32 h-32 transform -rotate-90">
+                    <circle
+                      cx="64"
+                      cy="64"
+                      r="56"
+                      stroke="hsl(var(--muted))"
+                      strokeWidth="12"
+                      fill="none"
+                    />
+                    <circle
+                      cx="64"
+                      cy="64"
+                      r="56"
+                      stroke="hsl(142 72% 45%)"
+                      strokeWidth="12"
+                      fill="none"
+                      strokeDasharray={`${2 * Math.PI * 56}`}
+                      strokeDashoffset={`${2 * Math.PI * 56 * (1 - stats.completionRate / 100)}`}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-2xl font-bold">{stats.completionRate.toFixed(1)}%</span>
+                  </div>
+                </div>
+                <div className="text-center space-y-1">
+                  <p className="text-sm text-muted-foreground">
+                    {stats.completedViews} of {stats.totalViews} videos completed
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Top Videos and Channels */}
       {data && (data.topVideos.length > 0 || data.topChannels.length > 0) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {data.topVideos.length > 0 && (
@@ -139,12 +351,21 @@ export function YouTubeAnalyticsDashboard() {
                 <CardDescription>Most viewed videos</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {data.topVideos.slice(0, 5).map((video, index) => (
-                    <div key={video.videoId} className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">#{index + 1}</span>
-                      <span className="flex-1 mx-2 truncate">Video {video.videoId.slice(0, 8)}...</span>
-                      <span className="text-muted-foreground">{video.viewCount} views</span>
+                <div className="space-y-3">
+                  {data.topVideos.slice(0, 10).map((video, index) => (
+                    <div
+                      key={video.videoId}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
+                          {index + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">Video {video.videoId.slice(0, 12)}...</p>
+                          <p className="text-xs text-muted-foreground">{video.viewCount} view{video.viewCount !== 1 ? "s" : ""}</p>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -162,12 +383,21 @@ export function YouTubeAnalyticsDashboard() {
                 <CardDescription>Most viewed channels</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {data.topChannels.slice(0, 5).map((channel, index) => (
-                    <div key={channel.channelId} className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">#{index + 1}</span>
-                      <span className="flex-1 mx-2 truncate">Channel {channel.channelId.slice(0, 8)}...</span>
-                      <span className="text-muted-foreground">{channel.viewCount} views</span>
+                <div className="space-y-3">
+                  {data.topChannels.slice(0, 10).map((channel, index) => (
+                    <div
+                      key={channel.channelId}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
+                          {index + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">Channel {channel.channelId.slice(0, 12)}...</p>
+                          <p className="text-xs text-muted-foreground">{channel.viewCount} view{channel.viewCount !== 1 ? "s" : ""}</p>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -88,15 +88,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: "/dashboard/my-list", label: "My List", icon: Heart, badge: favorites.length },
     { href: "/dashboard/watchlist", label: "Watchlist", icon: Bookmark, badge: watchlist.length },
     { href: "/dashboard/playlists", label: "Playlists", icon: List, badge: playlists.length },
-    { href: "/dashboard/youtube", label: "YouTube", icon: Youtube },
-    { href: "/dashboard/youtube/management", label: "Channel Management", icon: Settings },
-    { href: "/dashboard/youtube/search", label: "Search YouTube", icon: Youtube },
-    { href: "/dashboard/youtube/analytics", label: "YouTube Analytics", icon: BarChart3 },
-    { href: "/dashboard/youtube/notifications", label: "YouTube Notifications", icon: Bell },
     { href: "/dashboard/lists", label: "Lists", icon: ClipboardList },
     { href: "/dashboard/diary", label: "Diary", icon: BookOpen },
     { href: "/dashboard/diary/stats", label: "Diary Stats", icon: BarChart3 },
     { href: "/dashboard/my-stats", label: "My Stats", icon: BarChart3 },
+  ];
+
+  // YouTube links
+  const youtubeLinks = [
+    { href: "/dashboard/youtube", label: "YouTube Dashboard", icon: Youtube },
+    { href: "/dashboard/youtube/search", label: "Search", icon: Youtube },
+    { href: "/dashboard/youtube/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/dashboard/youtube/notifications", label: "Notifications", icon: Bell },
+    { href: "/dashboard/youtube/management", label: "Channel Management", icon: Settings },
   ];
 
   return (
@@ -189,6 +193,34 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     </SidebarNavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+
+              <SidebarSeparator />
+
+              {/* YouTube Group */}
+              <SidebarGroup>
+                <SidebarGroupLabel>YouTube</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {youtubeLinks.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
+                      return (
+                        <SidebarMenuItem key={item.href}>
+                          <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
+                            <SidebarNavLink
+                              href={item.href}
+                              className="flex items-center w-full"
+                            >
+                              <Icon />
+                              <span>{item.label}</span>
+                            </SidebarNavLink>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>

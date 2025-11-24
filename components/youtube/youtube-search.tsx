@@ -5,6 +5,7 @@ import { Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useYouTubeSearch } from "@/hooks/use-youtube-search";
+import { useYouTubeFeaturedVideos } from "@/hooks/use-youtube-featured-videos";
 import YouTubeVideoCard from "@/components/youtube/youtube-video-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { YouTubeVideo } from "@/hooks/use-youtube-channel";
@@ -13,6 +14,7 @@ export function YouTubeSearch() {
   const [query, setQuery] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const { data, isLoading, isFetching } = useYouTubeSearch(searchQuery, searchQuery.length > 0);
+  const { data: featuredVideos = [], isLoading: isLoadingFeatured } = useYouTubeFeaturedVideos();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +23,8 @@ export function YouTubeSearch() {
     }
   };
 
-  const videos: YouTubeVideo[] = data?.videos || [];
+  const videos: YouTubeVideo[] = searchQuery ? (data?.videos || []) : featuredVideos;
+  const isLoadingVideos = searchQuery ? isLoading : isLoadingFeatured;
 
   return (
     <div className="space-y-6">
@@ -48,32 +51,40 @@ export function YouTubeSearch() {
         </Button>
       </form>
 
-      {searchQuery && (
-        <div>
-          {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <Skeleton key={i} className="h-72 rounded-xl" />
-              ))}
-            </div>
-          ) : videos.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              No videos found for &quot;{searchQuery}&quot;
-            </div>
-          ) : (
-            <>
+      <div>
+        {isLoadingVideos ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-72 rounded-xl" />
+            ))}
+          </div>
+        ) : videos.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            {searchQuery ? (
+              <>No videos found for &quot;{searchQuery}&quot;</>
+            ) : (
+              <>No featured videos available. Try searching for something!</>
+            )}
+          </div>
+        ) : (
+          <>
+            {searchQuery ? (
               <p className="text-sm text-muted-foreground mb-4">
                 Found {data?.totalResults || 0} results for &quot;{searchQuery}&quot;
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {videos.map((video) => (
-                  <YouTubeVideoCard key={video.id} video={video} channelId={video.channelId} />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      )}
+            ) : (
+              <p className="text-sm text-muted-foreground mb-4">
+                Featured videos from your channels
+              </p>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {videos.map((video) => (
+                <YouTubeVideoCard key={video.id} video={video} channelId={video.channelId} />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
