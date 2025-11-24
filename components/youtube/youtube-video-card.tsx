@@ -13,8 +13,6 @@ import {
   Bookmark,
   MoreVertical,
   Trash2,
-  Star,
-  Clock3,
 } from "lucide-react";
 import { YouTubeVideo } from "@/hooks/use-youtube-channel";
 import { CircleActionButton } from "@/components/browse/circle-action-button";
@@ -30,8 +28,6 @@ import { cn } from "@/lib/utils";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
 import AddYouTubeVideoToPlaylistDropdown from "@/components/playlists/add-youtube-video-to-playlist-dropdown";
-import { useToggleFavoriteChannel } from "@/hooks/use-favorite-channels";
-import { useToggleChannelWatchlist } from "@/hooks/use-channel-watchlist";
 import { useToggleFavoriteYouTubeVideo } from "@/hooks/use-favorite-youtube-videos";
 import { useToggleYouTubeVideoWatchlist } from "@/hooks/use-youtube-video-watchlist";
 
@@ -96,8 +92,6 @@ export default function YouTubeVideoCard({
   const [isShareDropdownOpen, setIsShareDropdownOpen] = useState(false);
   const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const toggleFavorite = useToggleFavoriteChannel();
-  const toggleWatchlist = useToggleChannelWatchlist();
   const toggleVideoFavorite = useToggleFavoriteYouTubeVideo();
   const toggleVideoWatchlist = useToggleYouTubeVideoWatchlist();
   const videoPayload = useMemo(
@@ -352,19 +346,21 @@ export default function YouTubeVideoCard({
                     e.stopPropagation();
                     await requireAuth(
                       () => toggleVideoFavorite.toggle(videoPayload),
-                      "Sign in to like videos."
+                      "Sign in to favorite videos."
                     );
                     setIsActionsDropdownOpen(false);
                   }}
                   className="cursor-pointer text-[0.8rem]"
                 >
-                  <Star
+                  <Heart
                     className={cn(
                       "h-4 w-4 mr-2",
-                      toggleVideoFavorite.isFavorited(video.id) ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground"
+                      toggleVideoFavorite.isFavorited(video.id)
+                        ? "text-red-500 fill-red-500"
+                        : "text-muted-foreground"
                     )}
                   />
-                  {toggleVideoFavorite.isFavorited(video.id) ? "Unlike video" : "Like video"}
+                  {toggleVideoFavorite.isFavorited(video.id) ? "Remove from favorites" : "Liked video"}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={async (e) => {
@@ -378,63 +374,16 @@ export default function YouTubeVideoCard({
                   }}
                   className="cursor-pointer text-[0.8rem]"
                 >
-                  <Clock3
+                  <Bookmark
                     className={cn(
                       "h-4 w-4 mr-2",
-                      toggleVideoWatchlist.isInWatchlist(video.id) ? "text-blue-500" : "text-muted-foreground"
+                      toggleVideoWatchlist.isInWatchlist(video.id)
+                        ? "text-blue-500 fill-blue-500"
+                        : "text-muted-foreground"
                     )}
                   />
                   {toggleVideoWatchlist.isInWatchlist(video.id) ? "Remove from watch later" : "Watch later"}
                 </DropdownMenuItem>
-                {channelId && (
-                  <>
-                    <div className="my-1 border-t border-border" />
-                    <DropdownMenuItem
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        await requireAuth(
-                          () => toggleFavorite.toggle(channelId),
-                          "Sign in to favorite channels."
-                        );
-                        setIsActionsDropdownOpen(false);
-                      }}
-                      className="cursor-pointer text-[0.8rem]"
-                    >
-                      <Heart
-                        className={cn(
-                          "h-4 w-4 mr-2",
-                          toggleFavorite.isFavorited(channelId)
-                            ? "text-red-500 fill-red-500"
-                            : "text-muted-foreground"
-                        )}
-                      />
-                      {toggleFavorite.isFavorited(channelId) ? "Remove channel favorite" : "Favorite channel"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        await requireAuth(
-                          () => toggleWatchlist.toggle(channelId),
-                          "Sign in to manage watchlist."
-                        );
-                        setIsActionsDropdownOpen(false);
-                      }}
-                      className="cursor-pointer text-[0.8rem]"
-                    >
-                      <Bookmark
-                        className={cn(
-                          "h-4 w-4 mr-2",
-                          toggleWatchlist.isInWatchlist(channelId)
-                            ? "text-blue-500 fill-blue-500"
-                            : "text-muted-foreground"
-                        )}
-                      />
-                      {toggleWatchlist.isInWatchlist(channelId) ? "Remove channel watchlist" : "Add channel to watchlist"}
-                    </DropdownMenuItem>
-                  </>
-                )}
                 {onRemove && (
                   <>
                     <div className="my-1 border-t border-border" />

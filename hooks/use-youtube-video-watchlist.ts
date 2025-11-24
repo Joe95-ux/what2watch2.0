@@ -110,7 +110,29 @@ export function useToggleYouTubeVideoWatchlist() {
         await addMutation.mutateAsync(video);
       }
     },
+    add: async (video: VideoMetadataPayload) => {
+      await addMutation.mutateAsync(video);
+    },
     isLoading: addMutation.isPending || removeMutation.isPending,
+  };
+}
+
+export function useAddYouTubeVideoWatchlist() {
+  const queryClient = useQueryClient();
+
+  const addMutation = useMutation({
+    mutationFn: addToWatchlist,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["youtube-video-watchlist"] });
+      return;
+    },
+  });
+
+  return {
+    add: async (video: VideoMetadataPayload) => {
+      await addMutation.mutateAsync(video);
+    },
+    isLoading: addMutation.isPending,
   };
 }
 

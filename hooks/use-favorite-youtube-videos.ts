@@ -123,7 +123,29 @@ export function useToggleFavoriteYouTubeVideo() {
         await addMutation.mutateAsync(video);
       }
     },
+    add: async (video: VideoMetadataPayload) => {
+      await addMutation.mutateAsync(video);
+    },
     isLoading: addMutation.isPending || removeMutation.isPending,
+  };
+}
+
+export function useAddFavoriteYouTubeVideo() {
+  const queryClient = useQueryClient();
+
+  const addMutation = useMutation({
+    mutationFn: favoriteVideo,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["youtube-favorite-videos"] });
+      return;
+    },
+  });
+
+  return {
+    add: async (video: VideoMetadataPayload) => {
+      await addMutation.mutateAsync(video);
+    },
+    isLoading: addMutation.isPending,
   };
 }
 

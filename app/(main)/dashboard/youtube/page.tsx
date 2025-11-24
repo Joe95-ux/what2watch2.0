@@ -6,11 +6,5 @@ export const metadata = {
 };
 
 export default function DashboardYouTubePage() {
-  return (
-    <div className="space-y-10">
-      <YouTubeDashboardContent />
-    </div>
-  );
+  return <YouTubeDashboardContent />;
 }
-
-

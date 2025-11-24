@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 import { useFavorites } from "@/hooks/use-favorites";
 import { usePlaylists } from "@/hooks/use-playlists";
@@ -9,11 +11,14 @@ import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import DashboardRow from "@/components/dashboard/dashboard-row";
 import PlaylistCard from "@/components/browse/playlist-card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, Heart, Clock, Film, Share2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { BookOpen, Clock, Film, Heart, Share2, Youtube } from "lucide-react";
 import { usePlaylistAnalytics } from "@/hooks/use-playlist-analytics";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { usePersonalizedContent } from "@/hooks/use-movies";
-import Link from "next/link";
+import { useFavoriteYouTubeVideos } from "@/hooks/use-favorite-youtube-videos";
+import { useYouTubeVideoWatchlist } from "@/hooks/use-youtube-video-watchlist";
+import { useUserYouTubePlaylists } from "@/hooks/use-user-youtube-playlists";
 import { cn } from "@/lib/utils";
 
 export default function DashboardContent() {
@@ -23,6 +28,9 @@ export default function DashboardContent() {
   const { data: recentlyViewed = [], isLoading: isLoadingRecentlyViewed } = useRecentlyViewed();
   const { data: playlistAnalytics, isLoading: isLoadingPlaylistAnalytics } = usePlaylistAnalytics(); // Show all data by default
   const { data: preferences } = useUserPreferences();
+  const { data: favoriteYouTubeVideos = [], isLoading: isLoadingYouTubeFavorites } = useFavoriteYouTubeVideos();
+  const { data: youtubeWatchlist = [], isLoading: isLoadingYouTubeWatchlist } = useYouTubeVideoWatchlist();
+  const { data: youtubePlaylists = [], isLoading: isLoadingYouTubePlaylists } = useUserYouTubePlaylists();
   
   // Normalize favoriteGenres - handle Extended JSON format from MongoDB
   const normalizeGenres = (genres: unknown[]): number[] => {
@@ -128,6 +136,27 @@ export default function DashboardContent() {
     if (hour < 18) return "Good afternoon";
     return "Good evening";
   }, []);
+
+  const youtubeHighlightVideos = useMemo(() => {
+    const source = favoriteYouTubeVideos.length > 0 ? favoriteYouTubeVideos : youtubeWatchlist;
+    return source.slice(0, 3).map((video) => ({
+      id: video.videoId,
+      title: video.title,
+      channelTitle: video.channelTitle ?? "YouTube",
+      thumbnail: video.thumbnail ?? undefined,
+    }));
+  }, [favoriteYouTubeVideos, youtubeWatchlist]);
+
+  const youtubeTotals = useMemo(() => {
+    return {
+      favorites: favoriteYouTubeVideos.length,
+      watchlist: youtubeWatchlist.length,
+      playlists: youtubePlaylists.length,
+      totalVideos: favoriteYouTubeVideos.length + youtubeWatchlist.length,
+    };
+  }, [favoriteYouTubeVideos.length, youtubeWatchlist.length, youtubePlaylists.length]);
+
+  const isLoadingYouTubeSection = isLoadingYouTubeFavorites || isLoadingYouTubeWatchlist || isLoadingYouTubePlaylists;
 
   return (
     <div className="min-h-screen bg-background">
@@ -300,6 +329,12 @@ export default function DashboardContent() {
             </div>
           </div>
         )}
+
+        <YouTubeSnapshotSection
+          isLoading={isLoadingYouTubeSection}
+          totals={youtubeTotals}
+          highlightVideos={youtubeHighlightVideos}
+        />
       </div>
     </div>
   );
@@ -380,5 +415,109 @@ function StatCard({ icon: Icon, label, value, isLoading, href, helper }: StatCar
   }
 
   return content;
+}
+
+interface MiniYouTubeVideo {
+  id: string;
+  title: string;
+  channelTitle?: string;
+  thumbnail?: string;
+}
+
+interface YouTubeSnapshotProps {
+  isLoading: boolean;
+  totals: {
+    favorites: number;
+    watchlist: number;
+    playlists: number;
+    totalVideos: number;
+  };
+  highlightVideos: MiniYouTubeVideo[];
+}
+
+function YouTubeSnapshotSection({ isLoading, totals, highlightVideos }: YouTubeSnapshotProps) {
+  return (
+    <div className="mb-12 rounded-2xl border border-border/80 bg-card/60 p-5 sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">YouTube</p>
+          <h2 className="text-2xl font-semibold text-foreground">YouTube snapshot</h2>
+          <p className="text-sm text-muted-foreground">
+            Quick glance at your saved trailers and playlists pulled in from YouTube.
+          </p>
+        </div>
+        <Button variant="outline" asChild className="cursor-pointer">
+          <Link href="/dashboard/youtube">Open YouTube dashboard</Link>
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <Skeleton className="h-48 w-full rounded-2xl !bg-gray-200 dark:!bg-accent" />
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+          <div className="rounded-xl border border-border/70 bg-background/60 p-4 space-y-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-red-500/15 text-red-500">
+                  <Youtube className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Saved videos</p>
+                  <p className="text-xl font-semibold text-foreground">{totals.totalVideos}</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {totals.favorites} liked • {totals.watchlist} watch later
+              </p>
+            </div>
+            {highlightVideos.length > 0 ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {highlightVideos.map((video) => (
+                  <MiniYouTubeVideoCard key={video.id} video={video} />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-border/70 px-4 py-6 text-sm text-muted-foreground text-center">
+                Save a YouTube trailer or interview to see it here.
+              </div>
+            )}
+          </div>
+          <div className="rounded-xl border border-border/70 bg-background/60 p-5 flex flex-col gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Playlists</p>
+              <p className="text-3xl font-bold text-foreground">{totals.playlists}</p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              You have {totals.playlists === 0 ? "no" : totals.playlists} playlists mixing YouTube clips with your curated
+              lists.
+            </p>
+            <Button variant="secondary" asChild className="cursor-pointer mt-auto">
+              <Link href="/dashboard/playlists">Manage playlists</Link>
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MiniYouTubeVideoCard({ video }: { video: MiniYouTubeVideo }) {
+  return (
+    <div className="flex gap-3 rounded-xl border border-border/70 bg-card/70 p-3">
+      <div className="relative h-16 w-28 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+        {video.thumbnail ? (
+          <Image src={video.thumbnail} alt={video.title} fill className="object-cover" sizes="112px" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center px-2 text-center text-[0.65rem] text-muted-foreground">
+            No thumbnail
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col justify-between">
+        <p className="text-sm font-medium text-foreground line-clamp-2">{video.title}</p>
+        <p className="text-xs text-muted-foreground">{video.channelTitle || "YouTube"}</p>
+      </div>
+    </div>
+  );
 }
 
