@@ -39,6 +39,8 @@ import {
   BookOpen,
   Bookmark,
   ClipboardList,
+  Youtube,
+  Bell,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -86,6 +88,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: "/dashboard/my-list", label: "My List", icon: Heart, badge: favorites.length },
     { href: "/dashboard/watchlist", label: "Watchlist", icon: Bookmark, badge: watchlist.length },
     { href: "/dashboard/playlists", label: "Playlists", icon: List, badge: playlists.length },
+    { href: "/dashboard/youtube", label: "YouTube", icon: Youtube },
+    { href: "/dashboard/youtube/management", label: "Channel Management", icon: Settings },
+    { href: "/dashboard/youtube/search", label: "Search YouTube", icon: Youtube },
+    { href: "/dashboard/youtube/analytics", label: "YouTube Analytics", icon: BarChart3 },
+    { href: "/dashboard/youtube/notifications", label: "YouTube Notifications", icon: Bell },
     { href: "/dashboard/lists", label: "Lists", icon: ClipboardList },
     { href: "/dashboard/diary", label: "Diary", icon: BookOpen },
     { href: "/dashboard/diary/stats", label: "Diary Stats", icon: BarChart3 },

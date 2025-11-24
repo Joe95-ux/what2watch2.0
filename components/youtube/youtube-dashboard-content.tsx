@@ -12,12 +12,14 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import YouTubeVideoCard from "@/components/youtube/youtube-video-card";
-import { useFavoriteChannels } from "@/hooks/use-favorite-channels";
+import { useFavoriteChannels, type FavoriteChannel } from "@/hooks/use-favorite-channels";
 import { useFavoriteYouTubeVideos } from "@/hooks/use-favorite-youtube-videos";
 import { useYouTubeVideoWatchlist } from "@/hooks/use-youtube-video-watchlist";
 import { useUserYouTubePlaylists, type UserYouTubePlaylistPreview } from "@/hooks/use-user-youtube-playlists";
 import { YouTubeVideo } from "@/hooks/use-youtube-channel";
 import { getChannelProfilePath } from "@/lib/channel-path";
+import { useQuery } from "@tanstack/react-query";
+import { Users, Video } from "lucide-react";
 
 interface SectionProps {
   title: string;
@@ -53,6 +55,70 @@ function formatUpdatedAt(dateString: string) {
   if (diffInDays === 0) return "Updated today";
   if (diffInDays === 1) return "Updated yesterday";
   return `Updated ${diffInDays}d ago`;
+}
+
+function formatCount(count: string | number): string {
+  const num = typeof count === "string" ? parseInt(count, 10) : count;
+  if (isNaN(num)) return "0";
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+  return num.toString();
+}
+
+async function fetchChannelStats(channelId: string) {
+  const response = await fetch(`/api/youtube/channels/${channelId}`);
+  if (!response.ok) {
+    return { subscriberCount: "0", videoCount: "0" };
+  }
+  const data = await response.json();
+  return {
+    subscriberCount: data.channel?.subscriberCount || "0",
+    videoCount: data.channel?.videoCount || "0",
+  };
+}
+
+function FavoriteChannelCard({ favorite }: { favorite: FavoriteChannel }) {
+  const router = useRouter();
+  const { data: stats, isLoading: isLoadingStats } = useQuery({
+    queryKey: ["channel-stats", favorite.channelId],
+    queryFn: () => fetchChannelStats(favorite.channelId),
+    staleTime: 1000 * 60 * 15, // 15 minutes
+  });
+
+  return (
+    <button
+      onClick={() => router.push(getChannelProfilePath(favorite.channelId, favorite.slug))}
+      className="group rounded-2xl border border-border/60 p-4 text-left transition-colors hover:border-primary cursor-pointer"
+    >
+      <div className="flex items-center gap-3">
+        <div className="relative h-14 w-14 rounded-full overflow-hidden bg-muted flex-shrink-0">
+          {favorite.thumbnail ? (
+            <Image src={favorite.thumbnail} alt={favorite.title || "Channel"} fill className="object-cover" unoptimized />
+          ) : null}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-medium text-sm line-clamp-1 mb-1">{favorite.title || "Channel"}</p>
+          {isLoadingStats ? (
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <Skeleton className="h-3 w-12" />
+              <Skeleton className="h-3 w-12" />
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                <span>{formatCount(stats?.subscriberCount || "0")}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Video className="h-3 w-3" />
+                <span>{formatCount(stats?.videoCount || "0")}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </button>
+  );
 }
 
 function PlaylistPreviewStrip({ items }: { items: UserYouTubePlaylistPreview["previewItems"] }) {
@@ -171,7 +237,7 @@ export default function YouTubeDashboardContent() {
       return (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, idx) => (
-            <Skeleton key={idx} className="h-32 rounded-xl" />
+            <Skeleton key={idx} className="h-20 rounded-xl" />
           ))}
         </div>
       );
@@ -184,23 +250,7 @@ export default function YouTubeDashboardContent() {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {favoriteChannels.slice(0, 8).map((favorite) => (
-          <button
-            key={favorite.id}
-            onClick={() => router.push(getChannelProfilePath(favorite.channelId, favorite.slug))}
-            className="group rounded-2xl border border-border/60 p-4 text-left transition-colors hover:border-primary cursor-pointer"
-          >
-            <div className="flex items-center gap-3">
-              <div className="relative h-14 w-14 rounded-full overflow-hidden bg-muted">
-                {favorite.thumbnail ? (
-                  <Image src={favorite.thumbnail} alt={favorite.title || "Channel"} fill className="object-cover" unoptimized />
-                ) : null}
-              </div>
-              <div className="min-w-0">
-                <p className="font-medium text-sm line-clamp-2">{favorite.title || "Channel"}</p>
-                <p className="text-xs text-muted-foreground">@{favorite.slug?.replace("@", "") || favorite.channelId}</p>
-              </div>
-            </div>
-          </button>
+          <FavoriteChannelCard key={favorite.id} favorite={favorite} />
         ))}
       </div>
     );
@@ -215,11 +265,13 @@ export default function YouTubeDashboardContent() {
         <Carousel
           opts={{
             align: "start",
-            slidesToScroll: 5,
+            slidesToScroll: 6,
             breakpoints: {
               "(max-width: 640px)": { slidesToScroll: 1 },
+              "(max-width: 768px)": { slidesToScroll: 2 },
               "(max-width: 1024px)": { slidesToScroll: 3 },
               "(max-width: 1280px)": { slidesToScroll: 4 },
+              "(max-width: 1536px)": { slidesToScroll: 5 },
             },
           }}
           className="w-full"
@@ -326,7 +378,6 @@ export default function YouTubeDashboardContent() {
       <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-6 sm:py-8 space-y-12">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Dashboard</p>
             <h1 className="text-3xl font-semibold text-foreground">YouTube Control Center</h1>
             <p className="text-sm text-muted-foreground max-w-2xl">
               Track the channels, videos, and playlists you&apos;ve saved from YouTube in one place.

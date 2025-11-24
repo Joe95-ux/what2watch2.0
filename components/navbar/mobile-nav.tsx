@@ -177,7 +177,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
 
             <Separator className="my-1" />
 
-            <Link href="/youtube-management" onClick={onLinkClick}>
+            <Link href="/dashboard/youtube/management" onClick={onLinkClick}>
               <div className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer">
                 <Youtube className="h-4 w-4" />
                 <span>YouTube Management</span>

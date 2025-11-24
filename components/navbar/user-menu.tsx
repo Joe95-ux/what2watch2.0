@@ -141,7 +141,7 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
 
         <DropdownMenuSeparator />
 
-        <Link href="/youtube-management">
+        <Link href="/dashboard/youtube/management">
           <DropdownMenuItem 
             className="cursor-pointer"
             onSelect={(e) => {

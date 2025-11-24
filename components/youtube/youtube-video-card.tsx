@@ -13,6 +13,7 @@ import {
   Bookmark,
   MoreVertical,
   Trash2,
+  Check,
 } from "lucide-react";
 import { YouTubeVideo } from "@/hooks/use-youtube-channel";
 import { CircleActionButton } from "@/components/browse/circle-action-button";
@@ -38,6 +39,9 @@ interface YouTubeVideoCardProps {
   onAddToPlaylist?: () => void;
   channelId?: string; // Channel ID for favorite/watchlist actions
   onRemove?: () => void; // Callback to remove video from playlist
+  selectable?: boolean; // Enable selection mode
+  selected?: boolean; // Whether video is selected
+  onSelect?: (video: YouTubeVideo, selected: boolean) => void; // Selection callback
 }
 
 /**
@@ -82,6 +86,9 @@ export default function YouTubeVideoCard({
   onAddToPlaylist,
   channelId,
   onRemove,
+  selectable = false,
+  selected = false,
+  onSelect,
 }: YouTubeVideoCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const isMobile = useIsMobile();
@@ -210,6 +217,23 @@ export default function YouTubeVideoCard({
           <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">
             <span className="text-muted-foreground text-sm">No Thumbnail</span>
           </div>
+        )}
+
+        {/* Selection Checkbox - Top Left */}
+        {selectable && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect?.(video, !selected);
+            }}
+            className={`absolute top-2 left-2 z-10 h-6 w-6 rounded border-2 flex items-center justify-center transition-all ${
+              selected
+                ? "bg-primary border-primary text-primary-foreground"
+                : "bg-background/80 border-background backdrop-blur-sm hover:border-primary"
+            }`}
+          >
+            {selected && <Check className="h-4 w-4" />}
+          </button>
         )}
 
         {/* Duration - Bottom Right */}

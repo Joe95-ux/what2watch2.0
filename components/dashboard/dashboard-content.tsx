@@ -13,6 +13,13 @@ import PlaylistCard from "@/components/browse/playlist-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Clock, Film, Heart, Share2, Youtube } from "lucide-react";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import { usePlaylistAnalytics } from "@/hooks/use-playlist-analytics";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { usePersonalizedContent } from "@/hooks/use-movies";
@@ -305,12 +312,33 @@ export default function DashboardContent() {
                 View all →
               </Link>
             </div>
-            <div className="overflow-hidden">
-              <div className="flex gap-4 overflow-x-auto pb-4">
-                {playlists.slice(0, 10).map((playlist) => (
-                  <PlaylistCard key={playlist.id} playlist={playlist} />
-                ))}
-              </div>
+            <div className="relative group/carousel">
+              <Carousel
+                opts={{
+                  align: "start",
+                  slidesToScroll: 5,
+                  breakpoints: {
+                    "(max-width: 640px)": { slidesToScroll: 2 },
+                    "(max-width: 1024px)": { slidesToScroll: 3 },
+                    "(max-width: 1280px)": { slidesToScroll: 4 },
+                  },
+                }}
+                className="w-full"
+              >
+                <CarouselContent className="-ml-2 md:-ml-4 gap-3">
+                  {playlists.slice(0, 10).map((playlist) => (
+                    <CarouselItem key={playlist.id} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px]">
+                      <PlaylistCard playlist={playlist} variant="carousel" />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious 
+                  className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+                />
+                <CarouselNext 
+                  className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+                />
+              </Carousel>
             </div>
           </div>
         ) : (
@@ -437,7 +465,7 @@ interface YouTubeSnapshotProps {
 
 function YouTubeSnapshotSection({ isLoading, totals, highlightVideos }: YouTubeSnapshotProps) {
   return (
-    <div className="mb-12 rounded-2xl border border-border/80 bg-card/60 p-5 sm:p-6">
+    <div className="mb-12">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
           <p className="text-xs uppercase tracking-wide text-muted-foreground">YouTube</p>
@@ -452,10 +480,11 @@ function YouTubeSnapshotSection({ isLoading, totals, highlightVideos }: YouTubeS
       </div>
 
       {isLoading ? (
-        <Skeleton className="h-48 w-full rounded-2xl !bg-gray-200 dark:!bg-accent" />
+        <Skeleton className="h-48 w-full rounded-xl !bg-gray-200 dark:!bg-accent" />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-          <div className="rounded-xl border border-border/70 bg-background/60 p-4 space-y-4">
+        <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+          {/* Saved Videos Section */}
+          <div className="space-y-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-red-500/15 text-red-500">
@@ -482,7 +511,9 @@ function YouTubeSnapshotSection({ isLoading, totals, highlightVideos }: YouTubeS
               </div>
             )}
           </div>
-          <div className="rounded-xl border border-border/70 bg-background/60 p-5 flex flex-col gap-4">
+
+          {/* Playlists Section */}
+          <div className="rounded-xl border border-border/70 bg-card/50 p-5 flex flex-col gap-4">
             <div>
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Playlists</p>
               <p className="text-3xl font-bold text-foreground">{totals.playlists}</p>

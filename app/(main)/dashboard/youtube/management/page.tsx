@@ -3,6 +3,11 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import YouTubeManagementContent from "@/components/youtube/youtube-management-content";
 
+export const metadata = {
+  title: "YouTube Channel Management | what2watch",
+  description: "Manage your YouTube channels, control visibility, and set privacy settings.",
+};
+
 export default async function YouTubeManagementPage() {
   const { userId } = await auth();
 

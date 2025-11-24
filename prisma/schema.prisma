@@ -73,6 +73,8 @@ model User {
   favoriteChannels FavoriteChannel[]
   youtubeVideoFavorites YouTubeVideoFavorite[]
   youtubeVideoWatchlistItems YouTubeVideoWatchlistItem[]
+  youtubeNotifications YouTubeNotification[]
+  youtubeVideoViews YouTubeVideoView[]
   activities Activity[]
   followedActivities Activity[] @relation("UserFollowedActivities")
   lists List[]
@@ -938,4 +940,64 @@ model YouTubePlaylistItem {
   @@map("youtube_playlist_items")
   @@index([playlistId])
   @@unique([playlistId, videoId])
+}
+
+// YouTube Notifications - New videos from favorite channels
+model YouTubeNotification {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Channel that posted the video
+  channelId     String
+  channelTitle  String?
+  channelThumbnail String?
+  
+  // Video details
+  videoId       String
+  videoTitle    String
+  videoThumbnail String?
+  videoUrl      String
+  publishedAt   DateTime
+  
+  // Notification status
+  isRead        Boolean  @default(false)
+  readAt        DateTime?
+  
+  createdAt     DateTime @default(now())
+
+  @@map("youtube_notifications")
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@index([channelId])
+  @@unique([userId, videoId])
+}
+
+// YouTube Video Analytics - View tracking and engagement
+model YouTubeVideoView {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String?  @db.ObjectId
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  videoId       String
+  channelId     String
+  
+  // View tracking
+  viewDuration  Int?     // Duration watched in seconds
+  completed     Boolean  @default(false) // Whether video was watched to completion
+  source        String?  // Where the video was viewed from (dashboard, channel, search, etc.)
+  
+  // Engagement
+  liked         Boolean  @default(false)
+  addedToWatchlist Boolean @default(false)
+  addedToPlaylist Boolean @default(false)
+  
+  createdAt     DateTime @default(now())
+
+  @@map("youtube_video_views")
+  @@index([userId])
+  @@index([videoId])
+  @@index([channelId])
+  @@index([createdAt])
+  @@index([userId, createdAt])
 }
