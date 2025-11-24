@@ -37,13 +37,13 @@ export async function GET(request: NextRequest) {
       ...(unreadOnly && { isRead: false }),
     };
 
-    const notifications = await db.youtubeNotification.findMany({
+    const notifications = await db.youTubeNotification.findMany({
       where,
       orderBy: { createdAt: "desc" },
       take: limit,
     });
 
-    const unreadCount = await db.youtubeNotification.count({
+    const unreadCount = await db.youTubeNotification.count({
       where: {
         userId: user.id,
         isRead: false,
@@ -93,7 +93,7 @@ export async function PATCH(request: NextRequest) {
     const { notificationIds, markAllAsRead } = body;
 
     if (markAllAsRead) {
-      await db.youtubeNotification.updateMany({
+      await db.youTubeNotification.updateMany({
         where: {
           userId: user.id,
           isRead: false,
@@ -104,7 +104,7 @@ export async function PATCH(request: NextRequest) {
         },
       });
     } else if (notificationIds && Array.isArray(notificationIds)) {
-      await db.youtubeNotification.updateMany({
+      await db.youTubeNotification.updateMany({
         where: {
           id: { in: notificationIds },
           userId: user.id,

@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
             const publishedAt = new Date(item.snippet.publishedAt);
 
             // Check if notification already exists
-            const existing = await db.youtubeNotification.findUnique({
+            const existing = await db.youTubeNotification.findUnique({
               where: {
                 userId_videoId: {
                   userId: user.id,
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
             });
 
             if (!existing) {
-              await db.youtubeNotification.create({
+              await db.youTubeNotification.create({
                 data: {
                   userId: user.id,
                   channelId: favoriteChannel.channelId,
