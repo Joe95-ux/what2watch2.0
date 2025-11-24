@@ -6,11 +6,15 @@ import { db } from "@/lib/db";
 async function resolveChannelIdentifier(param: string) {
   if (!param) return null;
 
-  if (param.startsWith("@")) {
-    return db.youTubeChannel.findUnique({
-      where: { slug: param },
-      select: { channelId: true, title: true, slug: true },
-    });
+  const normalizedSlug = param.startsWith("@") ? param : `@${param}`;
+
+  const slugRecord = await db.youTubeChannel.findUnique({
+    where: { slug: normalizedSlug },
+    select: { channelId: true, title: true, slug: true },
+  });
+
+  if (slugRecord) {
+    return slugRecord;
   }
 
   return db.youTubeChannel.findUnique({
