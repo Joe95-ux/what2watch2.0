@@ -42,6 +42,7 @@ interface YouTubeVideoCardProps {
   selectable?: boolean; // Enable selection mode
   selected?: boolean; // Whether video is selected
   onSelect?: (video: YouTubeVideo, selected: boolean) => void; // Selection callback
+  titleLines?: 1 | 2; // Number of lines for title truncation (default: 2)
 }
 
 /**
@@ -89,6 +90,7 @@ export default function YouTubeVideoCard({
   selectable = false,
   selected = false,
   onSelect,
+  titleLines = 2,
 }: YouTubeVideoCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const isMobile = useIsMobile();
@@ -487,7 +489,10 @@ export default function YouTubeVideoCard({
         </div>
 
         {/* Title */}
-        <h3 className="text-sm font-semibold text-foreground line-clamp-2">
+        <h3 className={cn(
+          "text-sm font-semibold text-foreground",
+          titleLines === 1 ? "line-clamp-1" : "line-clamp-2"
+        )}>
           {video.title}
         </h3>
 

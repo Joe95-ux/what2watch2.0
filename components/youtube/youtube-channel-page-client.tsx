@@ -19,6 +19,7 @@ import { YouTubePlaylistCard } from "@/components/youtube/youtube-playlist-card"
 import YouTubeChannelStickyNav from "@/components/youtube/youtube-channel-sticky-nav";
 import YouTubeChannelSkeleton from "@/components/youtube/youtube-channel-skeleton";
 import YouTubePosts from "@/components/youtube/youtube-posts";
+import { YouTubeChannelSidebar } from "@/components/youtube/youtube-channel-sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -210,8 +211,13 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+    <div className="min-h-screen bg-background flex">
+      {/* Sidebar */}
+      <YouTubeChannelSidebar currentChannelId={channelId} />
+
+      {/* Main Content */}
+      <div className="flex-1 min-w-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
         <div ref={heroRef} className="mb-8">
           {channel.bannerImage ? (
             <div className="relative w-full h-[206px] overflow-hidden rounded-lg">
@@ -464,6 +470,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
               )}
             </>
           )}
+        </div>
         </div>
       </div>
     </div>

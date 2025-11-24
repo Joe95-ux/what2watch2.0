@@ -104,7 +104,7 @@ export function YouTubeRecommendations() {
                 key={`${video.id}-${index}`} 
                 className="pl-2 sm:pl-3 md:pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5 2xl:basis-1/6"
               >
-                <YouTubeVideoCard video={video} channelId={video.channelId} />
+                <YouTubeVideoCard video={video} channelId={video.channelId} titleLines={1} />
               </CarouselItem>
             ))}
           </CarouselContent>
