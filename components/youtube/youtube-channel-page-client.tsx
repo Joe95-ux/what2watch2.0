@@ -35,7 +35,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
   const { data: channel, isLoading: isLoadingChannel } = useYouTubeChannel(channelId);
   const [pageToken, setPageToken] = useState<string | undefined>();
   const [playlistsPageToken, setPlaylistsPageToken] = useState<string | undefined>();
-  const [activeTab, setActiveTab] = useState("videos");
+  const [activeTab, setActiveTab] = useState("home");
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,7 +45,13 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
   const [accumulatedPosts, setAccumulatedPosts] = useState<YouTubePost[]>([]);
   const heroRef = useRef<HTMLDivElement>(null);
 
-  const { data: videosData, isLoading: isLoadingVideos } = useYouTubeChannelVideos(channelId, pageToken);
+  const {
+    data: videosData,
+    isLoading: isLoadingVideos,
+    isFetching: isFetchingVideos,
+    isError: isErrorVideos,
+    refetch: refetchVideos,
+  } = useYouTubeChannelVideos(channelId, pageToken);
   const { data: playlistsData, isLoading: isLoadingPlaylists } = useYouTubeChannelPlaylists(
     channelId,
     playlistsPageToken
@@ -403,9 +409,9 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
             </>
           )}
 
-          {activeTab === "videos" && (
+          {["home", "videos", "shorts"].includes(activeTab) && (
             <>
-              {videos.length === 0 && isLoadingVideos ? (
+              {videos.length === 0 && (isLoadingVideos || isFetchingVideos) ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {Array.from({ length: 10 }).map((_, i) => (
                     <div key={i} className="space-y-2">
@@ -416,14 +422,24 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
                   ))}
                 </div>
               ) : videos.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <p>No videos found.</p>
+                <div className="text-center py-12 text-muted-foreground space-y-4">
+                  <p>{isErrorVideos ? "We couldn't load videos. Please try again." : "No videos found."}</p>
+                  {isErrorVideos && (
+                    <Button variant="outline" onClick={() => refetchVideos()} className="cursor-pointer">
+                      Retry
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {filteredVideos.map((video: YouTubeVideo) => (
-                      <YouTubeVideoCard key={video.id} video={video} onVideoClick={() => handleVideoClick(video)} />
+                      <YouTubeVideoCard
+                        key={video.id}
+                        video={video}
+                        channelId={channelId}
+                        onVideoClick={() => handleVideoClick(video)}
+                      />
                     ))}
                   </div>
                   {hasMore && (

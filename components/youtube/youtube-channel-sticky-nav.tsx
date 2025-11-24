@@ -11,6 +11,7 @@ interface YouTubeChannelStickyNavProps {
 }
 
 const tabs = [
+  { id: "home", label: "Home" },
   { id: "videos", label: "Videos" },
   { id: "shorts", label: "Shorts" },
   { id: "playlists", label: "Playlists" },
