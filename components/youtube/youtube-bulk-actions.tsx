@@ -4,8 +4,6 @@ import { useState } from "react";
 import { Heart, Bookmark, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useFavoriteYouTubeVideoActions } from "@/hooks/use-favorite-youtube-videos";
-import { useYouTubeVideoWatchlistActions } from "@/hooks/use-youtube-video-watchlist";
 import { toast } from "sonner";
 import { YouTubeVideo } from "@/hooks/use-youtube-channel";
 
@@ -21,8 +19,6 @@ export function BulkActionsBar({
   onBulkActionComplete,
 }: BulkActionsBarProps) {
   const [isProcessing, setIsProcessing] = useState(false);
-  const { addFavorite, removeFavorite } = useFavoriteYouTubeVideoActions();
-  const { addToWatchlist, removeFromWatchlist } = useYouTubeVideoWatchlistActions();
 
   const handleBulkAction = async (action: string) => {
     if (selectedVideos.length === 0) return;
