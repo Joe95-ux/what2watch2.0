@@ -20,6 +20,7 @@ import { YouTubeVideo } from "@/hooks/use-youtube-channel";
 import { getChannelProfilePath } from "@/lib/channel-path";
 import { useQuery } from "@tanstack/react-query";
 import { Users, Video } from "lucide-react";
+import { YouTubeVideoCardSkeleton } from "@/components/youtube/youtube-video-card-skeleton";
 import { YouTubeRecommendations } from "@/components/youtube/youtube-recommendations";
 
 interface SectionProps {
@@ -304,11 +305,33 @@ export default function YouTubeDashboardContent() {
     if (isLoadingFavoriteVideos) {
       return (
         <div className="relative group/carousel">
-          <div className="flex gap-4 overflow-x-hidden">
-            {Array.from({ length: 5 }).map((_, idx) => (
-              <Skeleton key={idx} className="h-72 w-[280px] sm:w-[300px] lg:w-[320px] flex-shrink-0 rounded-xl" />
-            ))}
-          </div>
+          <Carousel
+            opts={{
+              align: "start",
+              slidesToScroll: 1,
+              dragFree: true,
+              breakpoints: {
+                "(max-width: 640px)": { slidesToScroll: 1, dragFree: true },
+                "(min-width: 641px) and (max-width: 768px)": { slidesToScroll: 2, dragFree: true },
+                "(min-width: 769px) and (max-width: 1024px)": { slidesToScroll: 3, dragFree: true },
+                "(min-width: 1025px) and (max-width: 1280px)": { slidesToScroll: 4, dragFree: true },
+                "(min-width: 1281px) and (max-width: 1536px)": { slidesToScroll: 5, dragFree: true },
+                "(min-width: 1537px)": { slidesToScroll: 6, dragFree: true },
+              },
+            }}
+            className="w-full"
+          >
+            <CarouselContent className="-ml-2 sm:-ml-3 md:-ml-4">
+              {Array.from({ length: 6 }).map((_, idx) => (
+                <CarouselItem 
+                  key={idx} 
+                  className="pl-2 sm:pl-3 md:pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5 2xl:basis-1/6"
+                >
+                  <YouTubeVideoCardSkeleton />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
         </div>
       );
     }
@@ -327,11 +350,33 @@ export default function YouTubeDashboardContent() {
     if (isLoadingVideoWatchlist) {
       return (
         <div className="relative group/carousel">
-          <div className="flex gap-4 overflow-x-hidden">
-            {Array.from({ length: 5 }).map((_, idx) => (
-              <Skeleton key={idx} className="h-72 w-[280px] sm:w-[300px] lg:w-[320px] flex-shrink-0 rounded-xl" />
-            ))}
-          </div>
+          <Carousel
+            opts={{
+              align: "start",
+              slidesToScroll: 1,
+              dragFree: true,
+              breakpoints: {
+                "(max-width: 640px)": { slidesToScroll: 1, dragFree: true },
+                "(min-width: 641px) and (max-width: 768px)": { slidesToScroll: 2, dragFree: true },
+                "(min-width: 769px) and (max-width: 1024px)": { slidesToScroll: 3, dragFree: true },
+                "(min-width: 1025px) and (max-width: 1280px)": { slidesToScroll: 4, dragFree: true },
+                "(min-width: 1281px) and (max-width: 1536px)": { slidesToScroll: 5, dragFree: true },
+                "(min-width: 1537px)": { slidesToScroll: 6, dragFree: true },
+              },
+            }}
+            className="w-full"
+          >
+            <CarouselContent className="-ml-2 sm:-ml-3 md:-ml-4">
+              {Array.from({ length: 6 }).map((_, idx) => (
+                <CarouselItem 
+                  key={idx} 
+                  className="pl-2 sm:pl-3 md:pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5 2xl:basis-1/6"
+                >
+                  <YouTubeVideoCardSkeleton />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
         </div>
       );
     }

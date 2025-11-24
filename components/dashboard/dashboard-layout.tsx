@@ -206,7 +206,21 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <SidebarMenu>
                     {youtubeLinks.map((item) => {
                       const Icon = item.icon;
-                      const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
+                      // Check if pathname matches exactly
+                      let isActive = false;
+                      if (pathname === item.href) {
+                        isActive = true;
+                      } else if (pathname?.startsWith(item.href + "/")) {
+                        // Check if there's a more specific route that should be active instead
+                        const moreSpecificRoute = youtubeLinks.find(
+                          (otherItem) => 
+                            otherItem.href !== item.href && 
+                            (pathname === otherItem.href || pathname?.startsWith(otherItem.href + "/")) &&
+                            otherItem.href.startsWith(item.href + "/")
+                        );
+                        // Only mark as active if there's no more specific route
+                        isActive = !moreSpecificRoute;
+                      }
                       return (
                         <SidebarMenuItem key={item.href}>
                           <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
