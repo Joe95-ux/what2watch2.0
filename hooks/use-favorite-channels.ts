@@ -4,6 +4,7 @@ export interface FavoriteChannel {
   id: string;
   userId: string;
   channelId: string;
+  slug?: string | null;
   title?: string;
   thumbnail?: string;
   channelUrl?: string;

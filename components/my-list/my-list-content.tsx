@@ -16,6 +16,7 @@ import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { cn } from "@/lib/utils";
+import { getChannelProfilePath } from "@/lib/channel-path";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -230,7 +231,7 @@ export default function MyListContent() {
                 {favoriteChannels.map((channel) => (
                   <CarouselItem key={channel.id} className="pl-2 md:pl-4 basis-[140px] sm:basis-[160px]">
                     <button
-                      onClick={() => router.push(`/youtube-channel/${channel.channelId}`)}
+                      onClick={() => router.push(getChannelProfilePath(channel.channelId, channel.slug))}
                       className="group block text-center cursor-pointer w-full"
                     >
                       <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden mb-3 group-hover:scale-105 transition-transform">

@@ -12,6 +12,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { YouTubeProfileSkeleton } from "@/components/browse/youtube-profile-skeleton";
+import { getChannelProfilePath } from "@/lib/channel-path";
 
 export default function FavoriteChannelsCarousel() {
   const { data: favorites = [], isLoading } = useFavoriteChannels();
@@ -49,7 +50,7 @@ export default function FavoriteChannelsCarousel() {
               className="pl-2 md:pl-4 basis-[140px] sm:basis-[160px]"
             >
               <button
-                onClick={() => router.push(`/youtube-channel/${favorite.channelId}`)}
+                onClick={() => router.push(getChannelProfilePath(favorite.channelId, favorite.slug))}
                 className="group block text-center cursor-pointer w-full"
               >
                 <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden mb-3 group-hover:scale-105 transition-transform">

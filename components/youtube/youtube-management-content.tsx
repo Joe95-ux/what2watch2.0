@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 interface Channel {
   id: string;
   channelId: string;
+  slug?: string | null;
   title: string | null;
   thumbnail: string | null;
   channelUrl: string | null;
@@ -47,7 +48,7 @@ export default function YouTubeManagementContent() {
     queryFn: fetchChannels,
   });
 
-  const channels = data?.channels || [];
+  const channels = useMemo(() => data?.channels || [], [data?.channels]);
   const activeChannels = useMemo(() => channels.filter((ch) => ch.isActive), [channels]);
   const inactiveChannels = useMemo(() => channels.filter((ch) => !ch.isActive), [channels]);
 

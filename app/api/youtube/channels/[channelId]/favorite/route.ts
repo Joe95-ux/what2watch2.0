@@ -86,10 +86,16 @@ export async function POST(
     }
 
     // Create favorite
+    const channelRecord = await db.youTubeChannel.findUnique({
+      where: { channelId },
+      select: { slug: true },
+    });
+
     const favorite = await db.favoriteChannel.create({
       data: {
         userId: user.id,
         channelId,
+        slug: channelRecord?.slug,
         title: channelTitle,
         thumbnail: channelThumbnail,
         channelUrl,
@@ -112,6 +118,7 @@ export async function POST(
           data: {
             userId: user.id,
             channelId,
+            slug: channelRecord?.slug,
             title: channelTitle,
             thumbnail: channelThumbnail,
             channelUrl,

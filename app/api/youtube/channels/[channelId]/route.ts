@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
 
 interface YouTubeChannelItem {
   id: string;
@@ -35,8 +36,25 @@ export async function GET(
 ) {
   try {
     const { channelId } = await params;
+    let lookupChannelId = channelId;
 
-    if (!channelId) {
+    if (lookupChannelId.startsWith("@")) {
+      const record = await db.youTubeChannel.findUnique({
+        where: { slug: lookupChannelId },
+        select: { channelId: true },
+      });
+
+      if (!record) {
+        return NextResponse.json(
+          { error: "Channel not found" },
+          { status: 404 }
+        );
+      }
+
+      lookupChannelId = record.channelId;
+    }
+
+    if (!lookupChannelId) {
       return NextResponse.json(
         { error: "channelId is required" },
         { status: 400 }
@@ -54,7 +72,7 @@ export async function GET(
 
     try {
       const response = await fetch(
-        `https://www.googleapis.com/youtube/v3/channels?id=${channelId}&part=snippet,statistics,contentDetails,brandingSettings&key=${YOUTUBE_API_KEY}`,
+        `https://www.googleapis.com/youtube/v3/channels?id=${lookupChannelId}&part=snippet,statistics,contentDetails,brandingSettings&key=${YOUTUBE_API_KEY}`,
         {
           next: { revalidate: 300 }, // Cache for 5 minutes
         }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { generateUniqueChannelSlug } from "@/lib/channel-slug";
 
 /**
  * Refresh channel details from YouTube API
@@ -71,6 +72,7 @@ export async function POST(
     const channelUrl = customUrl 
       ? `https://www.youtube.com/${customUrl}`
       : `https://www.youtube.com/channel/${channelId}`;
+    const channelSlug = await generateUniqueChannelSlug(customUrl || channelTitle || channelId, existing.id);
 
     // Update channel in database
     const updated = await db.youTubeChannel.update({
@@ -79,6 +81,7 @@ export async function POST(
         title: channelTitle,
         thumbnail: channelThumbnail,
         channelUrl: channelUrl,
+        slug: channelSlug,
       },
     });
 

@@ -22,6 +22,7 @@ import {
 import Image from "next/image";
 import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
 import { YouTubeProfileSkeleton } from "@/components/browse/youtube-profile-skeleton";
+import { getChannelProfilePath } from "@/lib/channel-path";
 import { useSearch } from "@/hooks/use-search";
 
 type ContentFilter = "all" | "movies" | "tv";
@@ -186,7 +187,10 @@ export default function NollywoodPage() {
                   {channels.map((channel) => (
                     <CarouselItem key={channel.id} className="pl-2 md:pl-4 basis-[140px] sm:basis-[160px]">
                       <button
-                        onClick={() => window.location.href = `/youtube-channel/${channel.id}`}
+                        onClick={() => {
+                          const path = getChannelProfilePath(channel.id, channel.slug);
+                          window.location.href = path;
+                        }}
                         className="group block text-center cursor-pointer w-full"
                       >
                         <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden mb-3 group-hover:scale-105 transition-transform">

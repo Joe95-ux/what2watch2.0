@@ -10,11 +10,13 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getChannelProfilePath } from "@/lib/channel-path";
 
 interface YouTubeChannelCardProps {
   channel: {
     id: string;
     channelId: string;
+    slug?: string | null;
     title: string | null;
     thumbnail: string | null;
     channelUrl: string | null;
@@ -149,6 +151,8 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
   const channelUrl = channel.channelUrl || `https://www.youtube.com/channel/${channel.channelId}`;
   const displayName = channelTitle.length > 30 ? channelTitle.slice(0, 30) + "..." : channelTitle;
 
+  const profilePath = getChannelProfilePath(channel.channelId, channel.slug);
+
   const handleCardClick = (e: React.MouseEvent) => {
     // Don't navigate if clicking on buttons or switches
     const target = e.target as HTMLElement;
@@ -160,7 +164,7 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
     ) {
       return;
     }
-    router.push(`/youtube-channel/${channel.channelId}`);
+    router.push(profilePath);
   };
 
   return (
@@ -192,7 +196,7 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
-              <Link href={`/youtube-channel/${channel.channelId}`} className="block">
+              <Link href={profilePath} className="block">
                 <h3 className="font-semibold hover:underline truncate flex items-center gap-2">
                   {displayName}
                 </h3>

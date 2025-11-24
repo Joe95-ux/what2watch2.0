@@ -806,6 +806,7 @@ model ListEngagementEvent {
 model YouTubeChannel {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
   channelId     String   @unique // YouTube channel ID (starts with UC)
+  slug          String?  @unique // Friendly slug/handle (e.g. @channelname)
   title         String?  // Channel title (optional, can be fetched from API)
   thumbnail     String?  // Channel thumbnail URL (optional)
   channelUrl    String?  // Full YouTube channel URL (optional)
@@ -832,6 +833,7 @@ model FavoriteChannel {
   
   // YouTube channel data
   channelId     String   // YouTube channel ID (starts with UC)
+  slug          String?
   title         String?  // Channel title (cached from API)
   thumbnail     String?  // Channel thumbnail URL (cached)
   channelUrl    String?  // Full YouTube channel URL (cached)
@@ -852,6 +854,7 @@ model ChannelWatchlistItem {
   
   // YouTube channel data
   channelId     String   // YouTube channel ID (starts with UC)
+  slug          String?
   title         String?  // Channel title (cached from API)
   thumbnail     String?  // Channel thumbnail URL (cached)
   channelUrl    String?  // Full YouTube channel URL (cached)

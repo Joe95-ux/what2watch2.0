@@ -9,6 +9,7 @@ export interface YouTubeChannel {
   subscriberCount?: string;
   videoCount?: string;
   channelUrl: string;
+  slug?: string | null;
 }
 
 interface YouTubeChannelsResponse {

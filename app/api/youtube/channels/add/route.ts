@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { generateUniqueChannelSlug } from "@/lib/channel-slug";
 
 /**
  * Add a YouTube channel ID to the database
@@ -75,6 +76,7 @@ export async function POST(request: NextRequest) {
     let channelTitle: string | null = null;
     let channelThumbnail: string | null = null;
     let channelUrl: string | null = null;
+    let channelSlug: string | null = null;
 
     try {
       const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
@@ -96,6 +98,9 @@ export async function POST(request: NextRequest) {
             channelUrl = customUrl 
               ? `https://www.youtube.com/${customUrl}`
               : `https://www.youtube.com/channel/${channelId}`;
+            if (customUrl) {
+              channelSlug = await generateUniqueChannelSlug(customUrl);
+            }
           }
         }
       }
@@ -109,6 +114,7 @@ export async function POST(request: NextRequest) {
     const newChannel = await db.youTubeChannel.create({
       data: {
         channelId,
+        slug: channelSlug ?? (await generateUniqueChannelSlug(channelTitle || channelId)),
         title: channelTitle,
         thumbnail: channelThumbnail,
         channelUrl: channelUrl,

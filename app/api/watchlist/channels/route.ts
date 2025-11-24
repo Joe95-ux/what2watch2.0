@@ -83,11 +83,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const channelRecord = await db.youTubeChannel.findUnique({
+      where: { channelId },
+      select: { slug: true },
+    });
+
     // Add to watchlist
     const watchlistItem = await db.channelWatchlistItem.create({
       data: {
         userId: user.id,
         channelId,
+        slug: channelRecord?.slug,
         title: channelTitle,
         thumbnail: channelThumbnail,
         channelUrl,

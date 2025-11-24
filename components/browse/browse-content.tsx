@@ -39,6 +39,7 @@ import {
 import { Button } from "../ui/button";
 import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
 import { YouTubeProfileSkeleton } from "./youtube-profile-skeleton";
+import { getChannelProfilePath } from "@/lib/channel-path";
 
 interface BrowseContentProps {
   favoriteGenres: number[];
@@ -535,7 +536,10 @@ function YouTubeChannelsGrid() {
           {channels.map((channel) => (
             <CarouselItem key={channel.id} className="pl-2 md:pl-4 basis-[140px] sm:basis-[160px]">
               <button
-                onClick={() => window.location.href = `/youtube-channel/${channel.id}`}
+                onClick={() => {
+                  const path = getChannelProfilePath(channel.id, channel.slug);
+                  window.location.href = path;
+                }}
                 className="group block text-center cursor-pointer w-full"
               >
                 <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden mb-3 group-hover:scale-105 transition-transform">

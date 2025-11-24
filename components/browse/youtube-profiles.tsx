@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
 import { YouTubeProfileSkeleton } from "./youtube-profile-skeleton";
 import { useRouter } from "next/navigation";
+import { getChannelProfilePath } from "@/lib/channel-path";
 
 interface YouTubeProfilesProps {
   className?: string;
@@ -16,10 +17,10 @@ export default function YouTubeProfiles({ className }: YouTubeProfilesProps) {
   const { data: channels = [], isLoading, error } = useYouTubeChannels();
   const router = useRouter();
 
-  const handleChannelClick = (channelId: string, e: React.MouseEvent) => {
+  const handleChannelClick = (channelId: string, slug: string | null | undefined, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    router.push(`/youtube-channel/${channelId}`);
+    router.push(getChannelProfilePath(channelId, slug));
   };
 
   if (isLoading) {
@@ -42,7 +43,7 @@ export default function YouTubeProfiles({ className }: YouTubeProfilesProps) {
           key={channel.id}
           variant="outline"
           size="sm"
-          onClick={(e) => handleChannelClick(channel.id, e)}
+          onClick={(e) => handleChannelClick(channel.id, channel.slug, e)}
           className={cn(
             "h-8 px-2 gap-1.5 text-xs whitespace-nowrap cursor-pointer",
             "hover:bg-primary/10 hover:border-primary/50 transition-colors"

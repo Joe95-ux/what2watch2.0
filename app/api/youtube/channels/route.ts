@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
 
 interface YouTubeChannelItem {
   id: string;
@@ -56,6 +57,18 @@ export async function GET(request: NextRequest) {
     }
 
     try {
+      const dbChannels = await db.youTubeChannel.findMany({
+        where: {
+          channelId: {
+            in: channelIdArray,
+          },
+        },
+        select: {
+          channelId: true,
+          slug: true,
+        },
+      });
+      const slugMap = new Map(dbChannels.map((channel) => [channel.channelId, channel.slug]));
       const response = await fetch(
         `https://www.googleapis.com/youtube/v3/channels?id=${channelIdArray.join(",")}&part=snippet,statistics,contentDetails&key=${YOUTUBE_API_KEY}`,
         {
@@ -111,6 +124,7 @@ export async function GET(request: NextRequest) {
           subscriberCount: item.statistics?.subscriberCount || "0",
           videoCount: item.statistics?.videoCount || "0",
           channelUrl: `https://www.youtube.com/${item.snippet.customUrl || `channel/${item.id}`}`,
+          slug: slugMap.get(item.id) || null,
         }));
 
         return NextResponse.json(

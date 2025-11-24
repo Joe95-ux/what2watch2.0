@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         channelId: true,
+        slug: true,
         title: true,
         thumbnail: true,
         channelUrl: true,
