@@ -36,12 +36,56 @@ export async function GET(request: NextRequest) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - parseInt(period, 10));
 
+    const managedChannels = await db.youTubeChannel.findMany({
+      where: {
+        addedByUserId: user.id,
+      },
+      select: {
+        channelId: true,
+      },
+    });
+
+    if (managedChannels.length === 0) {
+      return NextResponse.json({
+        period: parseInt(period, 10),
+        stats: {
+          totalViews: 0,
+          completedViews: 0,
+          completionRate: 0,
+          totalWatchTime: 0,
+          averageWatchTime: 0,
+          engagement: {
+            liked: 0,
+            addedToWatchlist: 0,
+            addedToPlaylist: 0,
+          },
+        },
+        topVideos: [],
+        topChannels: [],
+        viewsOverTime: [],
+        message: "Add a channel to see analytics.",
+      });
+    }
+
+    let channelIds = managedChannels.map((c) => c.channelId);
+
+    if (channelId) {
+      if (!channelIds.includes(channelId)) {
+        return NextResponse.json(
+          { error: "Channel not managed by user" },
+          { status: 403 }
+        );
+      }
+      channelIds = [channelId];
+    }
+
     const where: Prisma.YouTubeVideoViewWhereInput = {
-      userId: user.id,
+      channelId: {
+        in: channelIds,
+      },
       createdAt: {
         gte: startDate,
       },
-      ...(channelId && { channelId }),
     };
 
     // Get view statistics

@@ -26,6 +26,7 @@ interface AnalyticsResponse {
     createdAt: Date;
     _count: { id: number };
   }>;
+  message?: string;
 }
 
 async function fetchAnalytics(period = 30, channelId?: string): Promise<AnalyticsResponse> {

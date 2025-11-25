@@ -66,6 +66,16 @@ function parseDuration(duration?: string): string | null {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
+function parseDurationToSeconds(duration?: string): number | null {
+  if (!duration) return null;
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return null;
+  const hours = parseInt(match[1] || "0", 10);
+  const minutes = parseInt(match[2] || "0", 10);
+  const seconds = parseInt(match[3] || "0", 10);
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
 /**
  * Format published date to relative time
  */
@@ -123,6 +133,32 @@ export default function YouTubeVideoCard({
   );
 
   const duration = parseDuration(video.duration);
+  const durationSeconds = useMemo(() => parseDurationToSeconds(video.duration), [video.duration]);
+  interface ViewEventOverrides {
+    viewDuration?: number;
+    completed?: boolean;
+    liked?: boolean;
+    addedToWatchlist?: boolean;
+    addedToPlaylist?: boolean;
+  }
+
+  const recordView = (overrides?: ViewEventOverrides) => {
+    const resolvedChannelId = channelId || video.channelId;
+    if (!resolvedChannelId) {
+      return;
+    }
+
+    trackVideoView.mutate({
+      videoId: video.id,
+      channelId: resolvedChannelId,
+      source,
+      viewDuration: overrides?.viewDuration,
+      completed: overrides?.completed ?? false,
+      liked: overrides?.liked ?? false,
+      addedToWatchlist: overrides?.addedToWatchlist ?? false,
+      addedToPlaylist: overrides?.addedToPlaylist ?? false,
+    });
+  };
   const publishedTime = formatPublishedDate(video.publishedAt);
   const shouldShowActions = true;
 
@@ -138,16 +174,7 @@ export default function YouTubeVideoCard({
       !target.closest('[data-radix-dropdown-menu-trigger]') &&
       !target.closest('[data-radix-dropdown-menu-content]')
     ) {
-      if (isSignedIn) {
-        const resolvedChannelId = channelId || video.channelId;
-        if (resolvedChannelId && !trackVideoView.isPending) {
-          trackVideoView.mutate({
-            videoId: video.id,
-            channelId: resolvedChannelId,
-            source,
-          });
-        }
-      }
+      recordView();
       if (onVideoClick) {
         onVideoClick(video);
       } else {
@@ -159,16 +186,9 @@ export default function YouTubeVideoCard({
   const handlePlayClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (isSignedIn) {
-      const resolvedChannelId = channelId || video.channelId;
-      if (resolvedChannelId && !trackVideoView.isPending) {
-        trackVideoView.mutate({
-          videoId: video.id,
-          channelId: resolvedChannelId,
-          source,
-        });
-      }
-    }
+    recordView({
+      viewDuration: durationSeconds ?? undefined,
+    });
     if (onVideoClick) {
       onVideoClick(video);
     } else {
@@ -395,7 +415,13 @@ export default function YouTubeVideoCard({
                     e.preventDefault();
                     e.stopPropagation();
                     await requireAuth(
-                      () => toggleVideoFavorite.toggle(videoPayload),
+                      async () => {
+                        const willFavorite = !toggleVideoFavorite.isFavorited(video.id);
+                        await toggleVideoFavorite.toggle(videoPayload);
+                        if (willFavorite) {
+                          recordView({ liked: true });
+                        }
+                      },
                       "Sign in to favorite videos."
                     );
                     setIsActionsDropdownOpen(false);
@@ -417,7 +443,13 @@ export default function YouTubeVideoCard({
                     e.preventDefault();
                     e.stopPropagation();
                     await requireAuth(
-                      () => toggleVideoWatchlist.toggle(videoPayload),
+                      async () => {
+                        const willAdd = !toggleVideoWatchlist.isInWatchlist(video.id);
+                        await toggleVideoWatchlist.toggle(videoPayload);
+                        if (willAdd) {
+                          recordView({ addedToWatchlist: true });
+                        }
+                      },
                       "Sign in to manage your watchlist."
                     );
                     setIsActionsDropdownOpen(false);
@@ -473,7 +505,10 @@ export default function YouTubeVideoCard({
                 <div>
                   <AddYouTubeVideoToPlaylistDropdown
                     video={video}
-                    onAddSuccess={onAddToPlaylist}
+                    onAddSuccess={() => {
+                      onAddToPlaylist?.();
+                      recordView({ addedToPlaylist: true });
+                    }}
                     onOpenChange={(open) => {
                       setIsPlaylistDropdownOpen(open);
                       if (open) {

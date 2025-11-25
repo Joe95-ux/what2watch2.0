@@ -18,10 +18,13 @@ interface RecommendationsResponse {
   message?: string;
 }
 
-async function fetchRecommendations(page = 1): Promise<RecommendationsResponse> {
+async function fetchRecommendations(page = 1, pageSize?: number): Promise<RecommendationsResponse> {
   const searchParams = new URLSearchParams({
     page: String(page),
   });
+  if (pageSize) {
+    searchParams.set("pageSize", String(pageSize));
+  }
   const response = await fetch(`/api/youtube/recommendations?${searchParams.toString()}`);
   if (!response.ok) {
     throw new Error("Failed to fetch recommendations");
@@ -29,10 +32,10 @@ async function fetchRecommendations(page = 1): Promise<RecommendationsResponse> 
   return response.json();
 }
 
-export function useYouTubeRecommendations(page = 1) {
+export function useYouTubeRecommendations(page = 1, pageSize?: number) {
   return useQuery({
-    queryKey: ["youtube-recommendations", page],
-    queryFn: () => fetchRecommendations(page),
+    queryKey: ["youtube-recommendations", page, pageSize],
+    queryFn: () => fetchRecommendations(page, pageSize),
     staleTime: 1000 * 60 * 60, // 1 hour
   });
 }

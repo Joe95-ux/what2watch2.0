@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { BarChart3, Eye, Clock, Heart, Bookmark, List, TrendingUp, Play } from "lucide-react";
 import { useYouTubeAnalytics } from "@/hooks/use-youtube-analytics";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -54,6 +54,16 @@ const chartConfig = {
 export function YouTubeAnalyticsDashboard() {
   const [period, setPeriod] = useState("30");
   const { data, isLoading } = useYouTubeAnalytics(parseInt(period, 10));
+
+  useEffect(() => {
+    if (!data) return;
+    if (data.stats?.totalViews === 0) {
+      console.info("[YouTubeAnalytics] No view data yet", {
+        period,
+        hasMessage: Boolean(data.message),
+      });
+    }
+  }, [data, period]);
 
   // Process views over time data
   const viewsOverTimeData = useMemo(() => {
@@ -150,6 +160,12 @@ export function YouTubeAnalyticsDashboard() {
           </SelectContent>
         </Select>
       </div>
+
+      {data?.message && (
+        <div className="rounded-lg border border-dashed border-muted-foreground/40 bg-muted/20 p-4 text-sm text-muted-foreground">
+          {data.message}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>

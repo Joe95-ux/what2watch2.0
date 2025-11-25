@@ -46,7 +46,7 @@ interface RecommendedChannel {
   slug?: string | null;
 }
 
-const PAGE_SIZE = 30;
+const DEFAULT_PAGE_SIZE = 30;
 const MAX_CHANNELS = 10;
 const VIDEOS_PER_CHANNEL = 10;
 
@@ -79,6 +79,9 @@ export async function GET(request: NextRequest) {
     const pageParam = request.nextUrl.searchParams.get("page");
     const requestedPage = Number(pageParam) || 1;
     const page = requestedPage < 1 ? 1 : requestedPage;
+
+    const pageSizeParam = request.nextUrl.searchParams.get("pageSize");
+    const pageSize = pageSizeParam ? Number(pageSizeParam) : DEFAULT_PAGE_SIZE;
 
     // Get user's favorite channels
     const favoriteChannels = await db.favoriteChannel.findMany({
@@ -197,14 +200,14 @@ export async function GET(request: NextRequest) {
 
     const totalVideos = sortedVideos.length;
     const totalPages =
-      totalVideos === 0 ? 0 : Math.ceil(totalVideos / PAGE_SIZE);
+      totalVideos === 0 ? 0 : Math.ceil(totalVideos / pageSize);
     const currentPage =
       totalPages === 0 ? 1 : Math.min(page, totalPages) || 1;
-    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    const startIndex = (currentPage - 1) * pageSize;
     const paginatedVideos =
       totalVideos === 0
         ? []
-        : sortedVideos.slice(startIndex, startIndex + PAGE_SIZE);
+        : sortedVideos.slice(startIndex, startIndex + pageSize);
 
     // Get recommended channels (similar to favorite channels)
     // For now, return empty array - can be enhanced with ML recommendations
@@ -216,7 +219,7 @@ export async function GET(request: NextRequest) {
         recommendedChannels,
         pagination: {
           page: currentPage,
-          pageSize: PAGE_SIZE,
+          pageSize: pageSize,
           totalVideos,
           totalPages,
           hasNextPage: totalPages > 0 && currentPage < totalPages,

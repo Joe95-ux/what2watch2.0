@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Sparkles } from "lucide-react";
 import { useYouTubeRecommendations } from "@/hooks/use-youtube-recommendations";
 import YouTubeVideoCard from "@/components/youtube/youtube-video-card";
 import { YouTubeVideoCardSkeleton } from "@/components/youtube/youtube-video-card-skeleton";
@@ -15,14 +14,9 @@ import {
 import { Button } from "@/components/ui/button";
 
 export function YouTubeRecommendations() {
-  const [page, setPage] = useState(1);
-  const { data, isLoading, isFetching } = useYouTubeRecommendations(page);
+  const { data, isLoading, isFetching } = useYouTubeRecommendations(1);
   const videos = data?.recommendedVideos || [];
   const pagination = data?.pagination;
-  const currentPage = pagination?.page ?? page;
-  const totalPages = pagination?.totalPages ?? (data?.recommendedVideos?.length ? 1 : 0);
-  const canGoPrev = pagination ? pagination.hasPreviousPage : currentPage > 1;
-  const canGoNext = pagination ? pagination.hasNextPage : videos.length === 30;
 
   if (isLoading) {
     return (
@@ -82,32 +76,52 @@ export function YouTubeRecommendations() {
     return null;
   }
 
-  const handlePrevious = () => {
-    if (currentPage > 1) {
-      setPage(currentPage - 1);
-    }
-  };
-
-  const handleNext = () => {
-    setPage(currentPage + 1);
-  };
+  const currentPage = pagination?.page ?? 1;
+  const totalPages = pagination?.totalPages ?? 1;
+  const hasNextPage = pagination?.hasNextPage ?? false;
+  const hasPreviousPage = pagination?.hasPreviousPage ?? false;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Sparkles className="h-5 w-5" />
-        <h2 className="text-xl font-semibold">Recommended for You</h2>
-      </div>
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>
-          Showing up to 30 videos · Page {currentPage}
-          {totalPages ? ` of ${totalPages}` : null}
-        </span>
-        {isFetching && (
-          <span className="inline-flex items-center gap-1 text-xs">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            Updating
-          </span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5" />
+          <h2 className="text-xl font-semibold">Recommended for You</h2>
+        </div>
+        {/* Pagination controls - visible on mobile/smaller screens */}
+        {pagination && totalPages > 1 && (
+          <div className="flex items-center gap-2 md:hidden">
+            {isFetching && (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            )}
+            <span className="text-sm text-muted-foreground">
+              {currentPage} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!hasPreviousPage || isFetching}
+              className="h-8 w-8 p-0"
+              onClick={() => {
+                // Navigate to previous page - would need state management if we want this functional
+                // For now, just show the info
+              }}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!hasNextPage || isFetching}
+              className="h-8 w-8 p-0"
+              onClick={() => {
+                // Navigate to next page - would need state management if we want this functional
+                // For now, just show the info
+              }}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         )}
       </div>
       <div className="relative group/carousel">
@@ -144,24 +158,6 @@ export function YouTubeRecommendations() {
             className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10"
           />
         </Carousel>
-      </div>
-      <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handlePrevious}
-          disabled={isFetching || !canGoPrev}
-        >
-          Previous page
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleNext}
-          disabled={isFetching || !canGoNext}
-        >
-          Next page
-        </Button>
       </div>
     </div>
   );

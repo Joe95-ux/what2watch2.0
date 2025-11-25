@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Heart, Youtube, ExternalLink, Loader2, ChevronDown, ChevronUp, Search, ArrowLeft, MoreVertical } from "lucide-react";
+import { Heart, Youtube, ExternalLink, Loader2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, PanelLeft, Search, ArrowLeft } from "lucide-react";
 import {
   useYouTubeChannel,
   useYouTubeChannelVideos,
@@ -60,8 +60,11 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
   const [postsPageToken, setPostsPageToken] = useState<string | undefined>();
   const [accumulatedPosts, setAccumulatedPosts] = useState<YouTubePost[]>([]);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [recommendationsPage, setRecommendationsPage] = useState(1);
   const heroRef = useRef<HTMLDivElement>(null);
+  const hasLoggedEmptyVideosRef = useRef(false);
   const isMobile = useIsMobile();
+  const videos = accumulatedVideos;
 
   const channelTitle = channel?.title || "Channel";
   const tabLabelMap: Record<SidebarTab, string> = {
@@ -80,14 +83,14 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
       <div className="lg:hidden sticky top-[65px] z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="px-4 py-2 flex items-center gap-3">
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
             onClick={() => setMobileSidebarOpen(true)}
-            className="cursor-pointer h-10 w-10 rounded-full"
+            className="cursor-pointer h-9 w-9"
+            aria-label="Toggle sidebar"
           >
-            <MoreVertical className="h-5 w-5" />
+            <PanelLeft className="h-5 w-5" />
           </Button>
-          <span className="text-muted-foreground">|</span>
           <Breadcrumb className="flex-1 min-w-0">
             <BreadcrumbList className="flex items-center gap-1 text-sm text-muted-foreground">
               <BreadcrumbItem className="truncate max-w-[140px]">
@@ -113,7 +116,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
   // Tab content hooks
   const { data: favoriteVideos = [], isLoading: isLoadingFavorites } = useFavoriteYouTubeVideos();
   const { data: watchlistVideos = [], isLoading: isLoadingWatchlist } = useYouTubeVideoWatchlist();
-  const { data: recommendations, isLoading: isLoadingRecommendations } = useYouTubeRecommendations();
+  const { data: recommendations, isLoading: isLoadingRecommendations } = useYouTubeRecommendations(recommendationsPage, 20);
 
   const extractRecommendedVideos = (data: typeof recommendations): YouTubeVideo[] => {
     if (
@@ -121,9 +124,9 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
       typeof data === "object" &&
       "recommendedVideos" in data
     ) {
-      const videos = (data as { recommendedVideos?: unknown }).recommendedVideos;
-      if (Array.isArray(videos)) {
-        return videos as YouTubeVideo[];
+      const videoItems = (data as { recommendedVideos?: unknown }).recommendedVideos;
+      if (Array.isArray(videoItems)) {
+        return videoItems as YouTubeVideo[];
       }
     }
     return [];
@@ -171,11 +174,40 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
     setAccumulatedPosts([]);
     setPageToken(undefined);
     setPostsPageToken(undefined);
+    setRecommendationsPage(1);
   }, [channelId]);
 
-  const videos = accumulatedVideos;
   const hasMore = videosData?.hasMore || false;
   const nextPageToken = videosData?.nextPageToken;
+
+  useEffect(() => {
+    if (
+      channelId &&
+      videos.length === 0 &&
+      !isLoadingVideos &&
+      !isFetchingVideos &&
+      !isErrorVideos
+    ) {
+      if (!hasLoggedEmptyVideosRef.current) {
+        hasLoggedEmptyVideosRef.current = true;
+        console.info("[YouTubeChannel] No videos found, attempting refetch", {
+          channelId,
+          pageToken,
+        });
+        void refetchVideos();
+      }
+    } else if (videos.length > 0) {
+      hasLoggedEmptyVideosRef.current = false;
+    }
+  }, [
+    channelId,
+    videos.length,
+    isLoadingVideos,
+    isFetchingVideos,
+    isErrorVideos,
+    refetchVideos,
+    pageToken,
+  ]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -376,16 +408,51 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
           </div>
         );
       }
+      const pagination = recommendations?.pagination;
+      const currentPage = pagination?.page ?? recommendationsPage;
+      const totalPages = pagination?.totalPages ?? 1;
+      const hasNextPage = pagination?.hasNextPage ?? false;
+      const hasPreviousPage = pagination?.hasPreviousPage ?? false;
+
       return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {recommendationVideos.map((video) => (
-            <YouTubeVideoCard
-              key={video.id}
-              video={video}
-              channelId={video.channelId}
-              titleLines={1}
-            />
-          ))}
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {recommendationVideos.map((video) => (
+              <YouTubeVideoCard
+                key={video.id}
+                video={video}
+                channelId={video.channelId}
+                titleLines={1}
+              />
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setRecommendationsPage((p) => Math.max(1, p - 1))}
+                  disabled={!hasPreviousPage || isLoadingRecommendations}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setRecommendationsPage((p) => p + 1)}
+                  disabled={!hasNextPage || isLoadingRecommendations}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       );
     }

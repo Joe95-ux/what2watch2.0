@@ -16,12 +16,13 @@ import { useFavoriteChannels, type FavoriteChannel } from "@/hooks/use-favorite-
 import { useFavoriteYouTubeVideos } from "@/hooks/use-favorite-youtube-videos";
 import { useYouTubeVideoWatchlist } from "@/hooks/use-youtube-video-watchlist";
 import { useUserYouTubePlaylists, type UserYouTubePlaylistPreview } from "@/hooks/use-user-youtube-playlists";
-import { YouTubeVideo } from "@/hooks/use-youtube-channel";
+import { YouTubeVideo, YouTubePlaylist } from "@/hooks/use-youtube-channel";
 import { getChannelProfilePath } from "@/lib/channel-path";
 import { useQuery } from "@tanstack/react-query";
 import { Users, Video } from "lucide-react";
 import { YouTubeVideoCardSkeleton } from "@/components/youtube/youtube-video-card-skeleton";
 import { YouTubeRecommendations } from "@/components/youtube/youtube-recommendations";
+import { YouTubePlaylistCard as ChannelPlaylistCard } from "@/components/youtube/youtube-playlist-card";
 
 interface SectionProps {
   title: string;
@@ -123,84 +124,19 @@ function FavoriteChannelCard({ favorite }: { favorite: FavoriteChannel }) {
   );
 }
 
-function PlaylistPreviewStrip({ items }: { items: UserYouTubePlaylistPreview["previewItems"] }) {
-  const previews = items.slice(0, 3);
-  const placeholders = Math.max(0, 3 - previews.length);
-
-  return (
-    <div className="flex flex-col gap-3 lg:flex-row">
-      {previews.map((item) => (
-        <div key={item.id} className="relative flex-1 min-h-[110px] overflow-hidden rounded-xl bg-muted">
-          {item.thumbnail ? (
-            <Image src={item.thumbnail} alt={item.title} fill className="object-cover" unoptimized />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center px-4 text-center text-xs text-muted-foreground">
-              {item.title}
-            </div>
-          )}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-3 bottom-3">
-            <p className="text-xs font-semibold text-white line-clamp-2">{item.title}</p>
-            {item.channelTitle && <p className="text-[0.65rem] text-white/70">{item.channelTitle}</p>}
-          </div>
-        </div>
-      ))}
-      {Array.from({ length: placeholders }).map((_, idx) => (
-        <div
-          key={`placeholder-${idx}`}
-          className="flex flex-1 min-h-[110px] items-center justify-center rounded-xl border border-dashed border-border/70 text-xs text-muted-foreground"
-        >
-          Add more videos
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function YouTubePlaylistCard({
-  playlist,
-  onView,
-}: {
-  playlist: UserYouTubePlaylistPreview;
-  onView: (playlistId: string) => void;
-}) {
-  const leadChannel = playlist.previewItems[0]?.channelTitle;
-
-  return (
-    <div className="rounded-2xl border border-border/70 bg-card/60 p-5 space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Playlist</p>
-          <h3 className="text-lg font-semibold text-foreground">{playlist.name}</h3>
-          {playlist.description && (
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{playlist.description}</p>
-          )}
-        </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          className="cursor-pointer self-start sm:self-auto"
-          onClick={() => onView(playlist.id)}
-        >
-          View
-        </Button>
-      </div>
-      <PlaylistPreviewStrip items={playlist.previewItems} />
-      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <span>
-          {playlist.youtubeItemsCount} video{playlist.youtubeItemsCount === 1 ? "" : "s"}
-        </span>
-        <span>•</span>
-        <span>{formatUpdatedAt(playlist.updatedAt)}</span>
-        {leadChannel && (
-          <>
-            <span>•</span>
-            <span>{leadChannel}</span>
-          </>
-        )}
-      </div>
-    </div>
-  );
+function mapPlaylistPreviewToYouTubePlaylist(playlist: UserYouTubePlaylistPreview): YouTubePlaylist {
+  const leadItem = playlist.previewItems[0];
+  return {
+    id: playlist.id,
+    title: playlist.name,
+    description: playlist.description || "",
+    thumbnail: playlist.coverImage || leadItem?.thumbnail || undefined,
+    channelId: leadItem?.videoId || playlist.id,
+    channelTitle: leadItem?.channelTitle || "Playlist",
+    publishedAt: playlist.updatedAt,
+    itemCount: playlist.youtubeItemsCount,
+    playlistUrl: `/playlists/${playlist.id}`,
+  };
 }
 
 function toYouTubeVideo(item: {
@@ -323,10 +259,15 @@ export default function YouTubeDashboardContent() {
     );
   };
 
-  const renderVideoCarousel = (items: ReturnType<typeof toYouTubeVideo>[], channelIds: string[]) => {
+  const renderVideoCarousel = (
+    items: ReturnType<typeof toYouTubeVideo>[],
+    channelIds: string[],
+    options?: { titleLines?: 1 | 2 }
+  ) => {
     if (items.length === 0) {
       return null;
     }
+    const titleLines = options?.titleLines ?? 2;
     return (
       <div className="relative group/carousel">
         <Carousel
@@ -351,7 +292,7 @@ export default function YouTubeDashboardContent() {
                 key={`${video.id}-${index}`} 
                 className="pl-2 sm:pl-3 md:pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5 2xl:basis-1/6"
               >
-                <YouTubeVideoCard video={video} channelId={channelIds[index]} />
+                <YouTubeVideoCard video={video} channelId={channelIds[index]} titleLines={titleLines} />
               </CarouselItem>
             ))}
           </CarouselContent>
@@ -408,7 +349,7 @@ export default function YouTubeDashboardContent() {
     const videos = favoriteVideos.map(toYouTubeVideo);
     const channelIds = favoriteVideos.map((item) => item.channelId);
 
-    return renderVideoCarousel(videos, channelIds);
+    return renderVideoCarousel(videos, channelIds, { titleLines: 1 });
   };
 
   const renderWatchlistVideos = () => {
@@ -453,7 +394,7 @@ export default function YouTubeDashboardContent() {
     const videos = watchlistVideos.map(toYouTubeVideo);
     const channelIds = watchlistVideos.map((item) => item.channelId);
 
-    return renderVideoCarousel(videos, channelIds);
+    return renderVideoCarousel(videos, channelIds, { titleLines: 1 });
   };
 
   const renderYouTubePlaylists = () => {
@@ -481,10 +422,44 @@ export default function YouTubeDashboardContent() {
     }
 
     return (
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        {youtubePlaylists.slice(0, 4).map((playlist) => (
-          <YouTubePlaylistCard key={playlist.id} playlist={playlist} onView={() => router.push("/dashboard/playlists")} />
-        ))}
+      <div className="relative group/carousel">
+        <Carousel
+          opts={{
+            align: "start",
+            slidesToScroll: 1,
+            dragFree: true,
+            breakpoints: {
+              "(max-width: 640px)": { slidesToScroll: 1, dragFree: true },
+              "(min-width: 641px) and (max-width: 1024px)": { slidesToScroll: 2, dragFree: true },
+              "(min-width: 1025px) and (max-width: 1440px)": { slidesToScroll: 3, dragFree: true },
+              "(min-width: 1441px)": { slidesToScroll: 4, dragFree: true },
+            },
+          }}
+          className="w-full"
+        >
+          <CarouselContent className="-ml-2 sm:-ml-3 md:-ml-4">
+            {youtubePlaylists.map((playlist) => {
+              const mapped = mapPlaylistPreviewToYouTubePlaylist(playlist);
+              return (
+                <CarouselItem
+                  key={playlist.id}
+                  className="pl-2 sm:pl-3 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3 xl:basis-1/4"
+                >
+                  <ChannelPlaylistCard
+                    playlist={mapped}
+                    onClick={() => router.push(`/playlists/${playlist.id}`)}
+                  />
+                </CarouselItem>
+              );
+            })}
+          </CarouselContent>
+          <CarouselPrevious 
+            className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10"
+          />
+          <CarouselNext 
+            className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10"
+          />
+        </Carousel>
       </div>
     );
   };
