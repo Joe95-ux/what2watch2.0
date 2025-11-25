@@ -207,10 +207,10 @@ export async function GET(request: NextRequest) {
     });
 
     // Get channel titles
-    const channelIds = topChannelsGrouped.map((c) => c.channelId);
+    const topChannelIds = topChannelsGrouped.map((c) => c.channelId);
     const channels = await db.youTubeChannel.findMany({
       where: {
-        channelId: { in: channelIds },
+        channelId: { in: topChannelIds },
       },
       select: {
         channelId: true,
@@ -226,7 +226,7 @@ export async function GET(request: NextRequest) {
     });
     
     // Fill in missing channel titles from favorite channels
-    const missingChannelIds = channelIds.filter((id) => !channelTitlesMap.has(id));
+    const missingChannelIds = topChannelIds.filter((id) => !channelTitlesMap.has(id));
     if (missingChannelIds.length > 0) {
       const favoriteChannels = await db.favoriteChannel.findMany({
         where: {
