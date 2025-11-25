@@ -16,26 +16,34 @@ import { useYouTubeRecommendations } from "@/hooks/use-youtube-recommendations";
 import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
 import { getChannelProfilePath } from "@/lib/channel-path";
 import Image from "next/image";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface YouTubeChannelSidebarProps {
   currentChannelId?: string;
   activeTab?: "channel" | "favorites" | "watchlater" | "recommendations";
   onTabChange?: (tab: "channel" | "favorites" | "watchlater" | "recommendations") => void;
+  mobileOpen?: boolean;
+  onMobileOpenChange?: (open: boolean) => void;
 }
 
 export function YouTubeChannelSidebar({ 
   currentChannelId, 
   activeTab = "channel",
-  onTabChange 
+  onTabChange,
+  mobileOpen,
+  onMobileOpenChange
 }: YouTubeChannelSidebarProps) {
   const router = useRouter();
   const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortByFavorite, setSortByFavorite] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  
+  // Use controlled state if provided, otherwise use internal state
+  const isOpen = mobileOpen !== undefined ? mobileOpen : internalOpen;
+  const setIsOpen = onMobileOpenChange || setInternalOpen;
 
   const { data: favoriteChannels = [], isLoading: isLoadingFavorites } = useFavoriteChannels();
   const { data: favoriteVideos = [] } = useFavoriteYouTubeVideos();
@@ -263,7 +271,7 @@ export function YouTubeChannelSidebar({
       )}
 
       {/* Channels List */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="h-[80vh]">
         <div className={cn("space-y-1", isCollapsed ? "p-1" : "p-2")}>
           {isLoadingChannels || isLoadingFavorites ? (
             <div className="space-y-2">
@@ -358,11 +366,6 @@ export function YouTubeChannelSidebar({
   if (isMobile) {
     return (
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetTrigger asChild>
-          <Button variant="outline" size="icon" className="fixed bottom-4 right-4 z-50 rounded-full shadow-lg">
-            <Youtube className="h-5 w-5" />
-          </Button>
-        </SheetTrigger>
         <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0">
           {sidebarContent}
         </SheetContent>
@@ -373,7 +376,7 @@ export function YouTubeChannelSidebar({
   return (
     <aside 
       className={cn(
-        "border-r bg-card flex-shrink-0 hidden lg:flex flex-col h-[calc(100vh-65px)] sticky top-[65px] transition-all duration-200 ease-in-out",
+        "border-r bg-card flex-shrink-0 hidden lg:flex flex-col fixed top-16 bottom-0 z-40 transition-all duration-200 ease-in-out",
         isCollapsed ? "w-12" : "w-64"
       )}
     >

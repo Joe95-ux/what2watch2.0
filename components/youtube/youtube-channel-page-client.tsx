@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Heart, Youtube, ExternalLink, Loader2, ChevronDown, ChevronUp, Search, ArrowLeft } from "lucide-react";
+import { Heart, Youtube, ExternalLink, Loader2, ChevronDown, ChevronUp, Search, ArrowLeft, Menu } from "lucide-react";
 import {
   useYouTubeChannel,
   useYouTubeChannelVideos,
@@ -29,6 +29,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface YouTubeChannelPageClientProps {
   channelId: string;
@@ -48,7 +49,9 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
   const [accumulatedVideos, setAccumulatedVideos] = useState<YouTubeVideo[]>([]);
   const [postsPageToken, setPostsPageToken] = useState<string | undefined>();
   const [accumulatedPosts, setAccumulatedPosts] = useState<YouTubePost[]>([]);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   // Tab content hooks
   const { data: favoriteVideos = [], isLoading: isLoadingFavorites } = useFavoriteYouTubeVideos();
@@ -334,7 +337,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
             onTabChange={setSidebarTab}
           />
           <div className="flex-1 min-w-0 transition-all duration-300">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
               <div className="mb-6">
                 <h1 className="text-2xl font-semibold">
                   {sidebarTab === "favorites" && "Favorite Videos"}
@@ -367,15 +370,17 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
         currentChannelId={sidebarTab === "channel" ? channelId : undefined}
         activeTab={sidebarTab}
         onTabChange={setSidebarTab}
+        mobileOpen={mobileSidebarOpen}
+        onMobileOpenChange={setMobileSidebarOpen}
       />
 
       {/* Main Content */}
-      <div className="flex-1 min-w-0 transition-all duration-300">
+      <div className="flex-1 min-w-0 transition-all duration-300 lg:pl-64">
         {sidebarTab === "channel" && channel ? (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div ref={heroRef} className="mb-8">
           {channel.bannerImage ? (
-            <div className="relative w-full h-[206px] overflow-hidden rounded-lg">
+            <div className="relative w-full h-32 sm:h-[206px] overflow-hidden rounded-lg">
               <Image
                 src={channel.bannerImage}
                 alt={`${channel.title} banner`}
@@ -387,7 +392,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
               />
             </div>
           ) : (
-            <div className="w-full h-[206px] bg-gradient-to-r from-muted via-muted/80 to-muted rounded-lg" />
+            <div className="w-full h-32 sm:h-[206px] bg-gradient-to-r from-muted via-muted/80 to-muted rounded-lg" />
           )}
         </div>
 
@@ -411,7 +416,20 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
             </div>
 
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold mb-2">{channel.title}</h1>
+              <div className="flex items-start justify-between gap-4 mb-2">
+                <h1 className="text-2xl sm:text-3xl font-bold">{channel.title}</h1>
+                {isMobile && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setMobileSidebarOpen(true)}
+                    className="cursor-pointer flex-shrink-0"
+                  >
+                    <Menu className="h-4 w-4 mr-2" />
+                    Channels
+                  </Button>
+                )}
+              </div>
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-4">
                 <span>{formatSubscriberCount(channel.subscriberCount)} subscribers</span>
                 <span>•</span>
@@ -628,7 +646,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
         </div>
           </div>
         ) : sidebarTab !== "channel" ? (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="mb-6">
               <Button
                 variant="ghost"
