@@ -379,7 +379,9 @@ export function YouTubeAnalyticsDashboard() {
                           {index + 1}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">Video {video.videoId.slice(0, 12)}...</p>
+                          <p className="text-sm font-medium truncate">
+                            {video.videoTitle || `Video ${video.videoId.slice(0, 12)}...`}
+                          </p>
                           <p className="text-xs text-muted-foreground">{video.viewCount} view{video.viewCount !== 1 ? "s" : ""}</p>
                         </div>
                       </div>
@@ -411,7 +413,9 @@ export function YouTubeAnalyticsDashboard() {
                           {index + 1}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">Channel {channel.channelId.slice(0, 12)}...</p>
+                          <p className="text-sm font-medium truncate">
+                            {channel.channelTitle || `Channel ${channel.channelId.slice(0, 12)}...`}
+                          </p>
                           <p className="text-xs text-muted-foreground">{channel.viewCount} view{channel.viewCount !== 1 ? "s" : ""}</p>
                         </div>
                       </div>
@@ -422,6 +426,206 @@ export function YouTubeAnalyticsDashboard() {
             </Card>
           )}
         </div>
+      )}
+
+      {/* Peak Watching Times */}
+      {data?.peakWatchingTimes && data.stats.totalViews > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Peak Watching Hours
+              </CardTitle>
+              <CardDescription>When you watch videos most (by hour of day)</CardDescription>
+            </CardHeader>
+            <CardContent className="pl-2 sm:pl-4">
+              <ChartContainer config={chartConfig} className="h-[250px]">
+                <BarChart data={data.peakWatchingTimes.byHour}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis
+                    dataKey="hour"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    tickFormatter={(value) => `${value}:00`}
+                    className="text-xs"
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    className="text-xs"
+                  />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar
+                    dataKey="views"
+                    fill="var(--color-views)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Peak Watching Days
+              </CardTitle>
+              <CardDescription>When you watch videos most (by day of week)</CardDescription>
+            </CardHeader>
+            <CardContent className="pl-2 sm:pl-4">
+              <ChartContainer config={chartConfig} className="h-[250px]">
+                <BarChart data={data.peakWatchingTimes.byDayOfWeek}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis
+                    dataKey="dayName"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    className="text-xs"
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    className="text-xs"
+                  />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar
+                    dataKey="views"
+                    fill="var(--color-views)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Source and Category Breakdown */}
+      {data && (data.sourceBreakdown.length > 0 || data.categoryBreakdown.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {data.sourceBreakdown.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Source Breakdown
+                </CardTitle>
+                <CardDescription>Where you discover videos</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {data.sourceBreakdown.map((source, index) => (
+                    <div key={source.source} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium">{source.source}</span>
+                        <span className="text-muted-foreground">
+                          {source.views} ({source.percentage.toFixed(1)}%)
+                        </span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div
+                          className="bg-primary h-2 rounded-full transition-all"
+                          style={{ width: `${source.percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {data.categoryBreakdown.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Category Breakdown
+                </CardTitle>
+                <CardDescription>Content categories you watch most</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {data.categoryBreakdown.slice(0, 10).map((category) => (
+                    <div key={category.category} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium">{category.category}</span>
+                        <span className="text-muted-foreground">
+                          {category.views} ({category.percentage.toFixed(1)}%)
+                        </span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div
+                          className="bg-primary h-2 rounded-full transition-all"
+                          style={{ width: `${category.percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Engagement Rates */}
+      {data?.engagementRates && data.stats.totalViews > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Heart className="h-5 w-5" />
+              Engagement Rates
+            </CardTitle>
+            <CardDescription>How often you engage with videos you view</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <div className="text-sm text-muted-foreground">Like Rate</div>
+                <div className="text-2xl font-bold">
+                  {data.engagementRates.likeRate.toFixed(1)}%
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {data.stats.engagement.liked} of {data.stats.totalViews} videos
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm text-muted-foreground">Watchlist Rate</div>
+                <div className="text-2xl font-bold">
+                  {data.engagementRates.watchlistRate.toFixed(1)}%
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {data.stats.engagement.addedToWatchlist} of {data.stats.totalViews} videos
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm text-muted-foreground">Playlist Rate</div>
+                <div className="text-2xl font-bold">
+                  {data.engagementRates.playlistRate.toFixed(1)}%
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {data.stats.engagement.addedToPlaylist} of {data.stats.totalViews} videos
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm text-muted-foreground">Overall Engagement</div>
+                <div className="text-2xl font-bold">
+                  {data.engagementRates.overallEngagementRate.toFixed(1)}%
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Any engagement action
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

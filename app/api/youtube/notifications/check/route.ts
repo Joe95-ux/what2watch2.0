@@ -4,8 +4,17 @@ import { db } from "@/lib/db";
 /**
  * Background job to check for new videos from favorite channels
  * This should be called periodically (e.g., via cron job)
+ * Supports both GET (for Vercel Cron) and POST requests
  */
+export async function GET(request: NextRequest) {
+  return handleNotificationCheck(request);
+}
+
 export async function POST(request: NextRequest) {
+  return handleNotificationCheck(request);
+}
+
+async function handleNotificationCheck(request: NextRequest) {
   try {
     // Optional: Add API key authentication for cron jobs
     const authHeader = request.headers.get("authorization");

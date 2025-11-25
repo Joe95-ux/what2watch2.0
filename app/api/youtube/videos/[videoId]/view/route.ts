@@ -46,12 +46,34 @@ export async function POST(
       );
     }
 
+    // Fetch video category from YouTube API if available
+    let categoryId: string | undefined;
+    const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+    if (YOUTUBE_API_KEY) {
+      try {
+        const response = await fetch(
+          `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=snippet&key=${YOUTUBE_API_KEY}`,
+          { next: { revalidate: 3600 } } // Cache for 1 hour
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (data.items?.[0]?.snippet?.categoryId) {
+            categoryId = data.items[0].snippet.categoryId;
+          }
+        }
+      } catch (error) {
+        // Silently fail - category is optional
+        console.error("Error fetching video category:", error);
+      }
+    }
+
     // Create or update view record
     const view = await db.youTubeVideoView.create({
       data: {
         userId: user?.id,
         videoId,
         channelId,
+        categoryId,
         viewDuration,
         completed,
         source,

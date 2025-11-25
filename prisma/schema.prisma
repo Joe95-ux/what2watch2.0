@@ -981,6 +981,7 @@ model YouTubeVideoView {
   
   videoId       String
   channelId     String
+  categoryId    String?  // YouTube video category ID (e.g., "1" for Film & Animation, "2" for Autos & Vehicles)
   
   // View tracking
   viewDuration  Int?     // Duration watched in seconds
@@ -998,6 +999,7 @@ model YouTubeVideoView {
   @@index([userId])
   @@index([videoId])
   @@index([channelId])
+  @@index([categoryId])
   @@index([createdAt])
   @@index([userId, createdAt])
 }

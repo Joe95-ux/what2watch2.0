@@ -1,7 +1,7 @@
 "use client";
 
 import { Search as SearchIcon, X, SlidersHorizontal, Image as ImageIcon } from "lucide-react";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { TMDBMovie, TMDBSeries, TMDBResponse } from "@/lib/tmdb";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTrendingMovies, useTrendingTV } from "@/hooks/use-movies";
 import Image from "next/image";
 import Link from "next/link";
 import { FiltersSheet, type SearchFilters } from "@/components/filters/filters-sheet";
@@ -58,6 +59,47 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
 
   // Check if mobile (using standard md breakpoint: 768px)
   const isMobile = useIsMobile();
+
+  // Fetch trending content when search is expanded but query is empty
+  const shouldShowTrending = isExpanded && !query.trim();
+  const { data: trendingMovies = [], isLoading: isLoadingTrendingMovies } = useTrendingMovies("week", 1);
+  const { data: trendingTV = [], isLoading: isLoadingTrendingTV } = useTrendingTV("week", 1);
+
+  // Combine and limit trending content to first 10 items (mix of movies and TV)
+  const trendingContent = useMemo(() => {
+    if (!shouldShowTrending) return [];
+    
+    const combined: SearchResult[] = [];
+    
+    // Take first 5 movies
+    const movies = trendingMovies.slice(0, 5).map((movie) => ({
+      id: movie.id,
+      title: movie.title,
+      type: "movie" as const,
+      poster_path: movie.poster_path,
+      release_date: movie.release_date,
+    }));
+    
+    // Take first 5 TV shows
+    const tvShows = trendingTV.slice(0, 5).map((show) => ({
+      id: show.id,
+      title: show.name,
+      type: "tv" as const,
+      poster_path: show.poster_path,
+      first_air_date: show.first_air_date,
+    }));
+    
+    // Interleave: movie, tv, movie, tv, etc. up to 10 total
+    const maxLength = Math.max(movies.length, tvShows.length);
+    for (let i = 0; i < maxLength && combined.length < 10; i++) {
+      if (i < movies.length) combined.push(movies[i]);
+      if (i < tvShows.length && combined.length < 10) combined.push(tvShows[i]);
+    }
+    
+    return combined;
+  }, [shouldShowTrending, trendingMovies, trendingTV]);
+
+  const isLoadingTrending = isLoadingTrendingMovies || isLoadingTrendingTV;
 
   // Prevent hydration mismatch by only showing content after mount
   useEffect(() => {
@@ -180,6 +222,11 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
       setResults([]);
     }
   }, [debouncedQuery, handleSearch]);
+
+  // Determine what to show: trending content or search results
+  const displayResults = query.trim() ? results : trendingContent;
+  const isShowingTrending = shouldShowTrending && !query.trim();
+  const isLoadingDisplay = query.trim() ? isLoading : isLoadingTrending;
 
   const handleSelect = (result: SearchResult) => {
     setIsExpanded(false);
@@ -375,10 +422,10 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
               </Button>
             </div>
             {/* Results Dropdown */}
-            {(query || results.length > 0) && (
+            {(isExpanded && (query || displayResults.length > 0 || isLoadingDisplay)) && (
               <div className="h-auto overflow-hidden border-t">
                 <div className="p-2 max-h-[60vh] overflow-y-auto scrollbar-thin">
-                  {isLoading && (
+                  {isLoadingDisplay && (
                     <div className="space-y-3">
                       {[...Array(3)].map((_, i) => (
                         <div key={i} className="flex items-center gap-3 px-2">
@@ -391,14 +438,19 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
                       ))}
                     </div>
                   )}
-                  {!isLoading && query && results.length === 0 && (
+                  {!isLoadingDisplay && query && results.length === 0 && (
                     <div className="py-6 text-center text-sm text-muted-foreground">
                       No results found.
                     </div>
                   )}
-                  {!isLoading && results.length > 0 && (
+                  {!isLoadingDisplay && displayResults.length > 0 && (
                     <>
-                      {results.map((result) => (
+                      {isShowingTrending && (
+                        <div className="px-2 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                          Trending Now
+                        </div>
+                      )}
+                      {displayResults.map((result) => (
                         <SearchResultItem
                           key={`${result.type}-${result.id}`}
                           result={result}
@@ -509,10 +561,10 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
       </div>
 
       {/* Results Dropdown */}
-      {isExpanded && (query || results.length > 0) && (
+      {isExpanded && (query || displayResults.length > 0 || isLoadingDisplay) && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-50 h-auto overflow-hidden">
           <div className="p-2 max-h-[400px] overflow-y-auto scrollbar-thin">
-            {isLoading && (
+            {isLoadingDisplay && (
               <div className="space-y-3">
                 {[...Array(3)].map((_, i) => (
                   <div key={i} className="flex items-center gap-3 px-2">
@@ -525,14 +577,19 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
                 ))}
               </div>
             )}
-            {!isLoading && query && results.length === 0 && (
+            {!isLoadingDisplay && query && results.length === 0 && (
               <div className="py-6 text-center text-sm text-muted-foreground">
                 No results found.
               </div>
             )}
-            {!isLoading && results.length > 0 && (
+            {!isLoadingDisplay && displayResults.length > 0 && (
               <>
-                {results.map((result) => (
+                {isShowingTrending && (
+                  <div className="px-2 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Trending Now
+                  </div>
+                )}
+                {displayResults.map((result) => (
                   <SearchResultItem
                     key={`${result.type}-${result.id}`}
                     result={result}
@@ -611,7 +668,7 @@ function SearchResultItem({
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <div className="font-medium truncate">{result.title}</div>
+        <div className="text-sm font-medium truncate">{result.title}</div>
         {subtitle && (
           <div className="text-xs text-muted-foreground">{subtitle}</div>
         )}

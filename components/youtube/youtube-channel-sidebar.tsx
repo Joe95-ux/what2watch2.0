@@ -2,12 +2,13 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Heart, Bookmark, Sparkles, Youtube, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Heart, Bookmark, Sparkles, Youtube, X, ChevronLeft, ChevronRight, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useFavoriteChannels } from "@/hooks/use-favorite-channels";
 import { useFavoriteYouTubeVideos } from "@/hooks/use-favorite-youtube-videos";
@@ -15,6 +16,7 @@ import { useYouTubeVideoWatchlist } from "@/hooks/use-youtube-video-watchlist";
 import { useYouTubeRecommendations } from "@/hooks/use-youtube-recommendations";
 import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
 import { getChannelProfilePath } from "@/lib/channel-path";
+import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -37,9 +39,25 @@ export function YouTubeChannelSidebar({
   const router = useRouter();
   const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortByFavorite, setSortByFavorite] = useState(false);
+  const [filterBy, setFilterBy] = useState<"all" | "favorites">("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"default" | "alphabetical-az" | "alphabetical-za">("default");
   const [internalOpen, setInternalOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Fetch channel categories
+  const { data: channelCategoriesData } = useQuery({
+    queryKey: ["youtube-channel-categories"],
+    queryFn: async () => {
+      const response = await fetch("/api/youtube/channels/categories");
+      if (!response.ok) return null;
+      return response.json() as Promise<{
+        channelCategories: Record<string, string[]>;
+        availableCategories: string[];
+      }>;
+    },
+    staleTime: 1000 * 60 * 10, // 10 minutes
+  });
   
   // Use controlled state if provided, otherwise use internal state
   const isOpen = mobileOpen !== undefined ? mobileOpen : internalOpen;
@@ -54,6 +72,20 @@ export function YouTubeChannelSidebar({
   // Combine all channels and filter/search
   const filteredChannels = useMemo(() => {
     let channels = allChannels;
+    const favoriteIds = new Set(favoriteChannels.map((fc) => fc.channelId));
+
+    // Filter by favorites
+    if (filterBy === "favorites") {
+      channels = channels.filter((channel) => favoriteIds.has(channel.id));
+    }
+
+    // Filter by category
+    if (categoryFilter !== "all" && channelCategoriesData?.channelCategories) {
+      channels = channels.filter((channel) => {
+        const channelCats = channelCategoriesData.channelCategories[channel.id] || [];
+        return channelCats.includes(categoryFilter);
+      });
+    }
 
     // Filter by search query
     if (searchQuery.trim()) {
@@ -65,20 +97,35 @@ export function YouTubeChannelSidebar({
       );
     }
 
-    // Sort by favorite if enabled
-    if (sortByFavorite) {
-      const favoriteIds = new Set(favoriteChannels.map((fc) => fc.channelId));
+    // Sort channels
+    if (sortBy === "alphabetical-az") {
+      channels = [...channels].sort((a, b) => {
+        const aTitle = (a.title || "").toLowerCase();
+        const bTitle = (b.title || "").toLowerCase();
+        return aTitle.localeCompare(bTitle);
+      });
+    } else if (sortBy === "alphabetical-za") {
+      channels = [...channels].sort((a, b) => {
+        const aTitle = (a.title || "").toLowerCase();
+        const bTitle = (b.title || "").toLowerCase();
+        return bTitle.localeCompare(aTitle);
+      });
+    } else if (sortBy === "default") {
+      // Sort favorites first, then alphabetical
       channels = [...channels].sort((a, b) => {
         const aIsFavorite = favoriteIds.has(a.id);
         const bIsFavorite = favoriteIds.has(b.id);
         if (aIsFavorite && !bIsFavorite) return -1;
         if (!aIsFavorite && bIsFavorite) return 1;
-        return 0;
+        // If both are favorites or both are not, sort alphabetically
+        const aTitle = (a.title || "").toLowerCase();
+        const bTitle = (b.title || "").toLowerCase();
+        return aTitle.localeCompare(bTitle);
       });
     }
 
     return channels;
-  }, [allChannels, searchQuery, sortByFavorite, favoriteChannels]);
+  }, [allChannels, searchQuery, filterBy, categoryFilter, sortBy, favoriteChannels, channelCategoriesData]);
 
   const handleChannelClick = (channelId: string, slug?: string | null) => {
     router.push(getChannelProfilePath(channelId, slug));
@@ -224,33 +271,19 @@ export function YouTubeChannelSidebar({
             >
               <Sparkles className="h-4 w-4" />
               {!isCollapsed && (
-                <>
-                  <span>Recommendations</span>
-                  {recommendations?.recommendedVideos.length ? (
-                    <span className="ml-auto text-xs text-muted-foreground">
-                      {recommendations.recommendedVideos.length}
-                    </span>
-                  ) : null}
-                </>
+                <span>Recommendations</span>
               )}
             </Button>
           </TooltipTrigger>
           {isCollapsed && (
             <TooltipContent side="right">
-              <div className="flex items-center gap-2">
-                <span>Recommendations</span>
-                {recommendations?.recommendedVideos.length ? (
-                  <span className="text-xs text-muted-foreground">
-                    ({recommendations.recommendedVideos.length})
-                  </span>
-                ) : null}
-              </div>
+              <span>Recommendations</span>
             </TooltipContent>
           )}
         </Tooltip>
       </div>
 
-      {/* Search and Sort - Hidden when collapsed */}
+      {/* Search and Filter - Hidden when collapsed */}
       {!isCollapsed && (
         <div className="p-4 space-y-2 border-b">
           <div className="relative">
@@ -272,15 +305,46 @@ export function YouTubeChannelSidebar({
               </Button>
             )}
           </div>
-          <Button
-            variant={sortByFavorite ? "default" : "outline"}
-            size="sm"
-            className="w-full"
-            onClick={() => setSortByFavorite(!sortByFavorite)}
-          >
-            <Heart className={cn("h-3 w-3 mr-2", sortByFavorite && "fill-current")} />
-            Sort by Favorite
-          </Button>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Filter & Sort</span>
+            </div>
+            <Select value={filterBy} onValueChange={(value) => setFilterBy(value as "all" | "favorites")}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Filter by..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Channels</SelectItem>
+                <SelectItem value="favorites">Favorites Only</SelectItem>
+              </SelectContent>
+            </Select>
+            {channelCategoriesData?.availableCategories && channelCategoriesData.availableCategories.length > 0 && (
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Category..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {channelCategoriesData.availableCategories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Select value={sortBy} onValueChange={(value) => setSortBy(value as "default" | "alphabetical-az" | "alphabetical-za")}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Sort by..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Default (Favorites First)</SelectItem>
+                <SelectItem value="alphabetical-az">Alphabetical (A-Z)</SelectItem>
+                <SelectItem value="alphabetical-za">Alphabetical (Z-A)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       )}
 

@@ -16,16 +16,38 @@ interface AnalyticsResponse {
   };
   topVideos: Array<{
     videoId: string;
+    videoTitle: string | null;
     viewCount: number;
   }>;
   topChannels: Array<{
     channelId: string;
+    channelTitle: string | null;
     viewCount: number;
   }>;
   viewsOverTime: Array<{
     createdAt: Date;
     _count: { id: number };
   }>;
+  peakWatchingTimes: {
+    byHour: Array<{ hour: number; views: number }>;
+    byDayOfWeek: Array<{ day: number; dayName: string; views: number }>;
+  };
+  sourceBreakdown: Array<{
+    source: string;
+    views: number;
+    percentage: number;
+  }>;
+  categoryBreakdown: Array<{
+    category: string;
+    views: number;
+    percentage: number;
+  }>;
+  engagementRates: {
+    likeRate: number;
+    watchlistRate: number;
+    playlistRate: number;
+    overallEngagementRate: number;
+  };
   message?: string;
 }
 

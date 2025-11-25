@@ -91,6 +91,8 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
           >
             <PanelLeft className="h-5 w-5" />
           </Button>
+          {/* Pipe Separator */}
+          <div className="h-4 w-px bg-border flex-shrink-0" />
           <Breadcrumb className="flex-1 min-w-0">
             <BreadcrumbList className="flex items-center gap-1 text-sm text-muted-foreground">
               <BreadcrumbItem className="truncate max-w-[140px]">

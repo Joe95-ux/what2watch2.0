@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Loader2, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { useYouTubeRecommendations } from "@/hooks/use-youtube-recommendations";
 import YouTubeVideoCard from "@/components/youtube/youtube-video-card";
 import { YouTubeVideoCardSkeleton } from "@/components/youtube/youtube-video-card-skeleton";
@@ -11,12 +11,10 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { Button } from "@/components/ui/button";
 
 export function YouTubeRecommendations() {
-  const { data, isLoading, isFetching } = useYouTubeRecommendations(1);
+  const { data, isLoading } = useYouTubeRecommendations(1);
   const videos = data?.recommendedVideos || [];
-  const pagination = data?.pagination;
 
   if (isLoading) {
     return (
@@ -76,54 +74,15 @@ export function YouTubeRecommendations() {
     return null;
   }
 
-  const currentPage = pagination?.page ?? 1;
-  const totalPages = pagination?.totalPages ?? 1;
-  const hasNextPage = pagination?.hasNextPage ?? false;
-  const hasPreviousPage = pagination?.hasPreviousPage ?? false;
-
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5" />
-          <h2 className="text-xl font-semibold">Recommended for You</h2>
-        </div>
-        {/* Pagination controls - visible on mobile/smaller screens */}
-        {pagination && totalPages > 1 && (
-          <div className="flex items-center gap-2 md:hidden">
-            {isFetching && (
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-            )}
-            <span className="text-sm text-muted-foreground">
-              {currentPage} / {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!hasPreviousPage || isFetching}
-              className="h-8 w-8 p-0"
-              onClick={() => {
-                // Navigate to previous page - would need state management if we want this functional
-                // For now, just show the info
-              }}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!hasNextPage || isFetching}
-              className="h-8 w-8 p-0"
-              onClick={() => {
-                // Navigate to next page - would need state management if we want this functional
-                // For now, just show the info
-              }}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
+      {/* Title - separate line */}
+      <div className="flex items-center gap-2">
+        <Sparkles className="h-5 w-5" />
+        <h2 className="text-xl font-semibold">Recommended for You</h2>
       </div>
+      
+      {/* Carousel with mobile controls on top right */}
       <div className="relative group/carousel">
         <Carousel
           opts={{
@@ -151,6 +110,14 @@ export function YouTubeRecommendations() {
               </CarouselItem>
             ))}
           </CarouselContent>
+          {/* Mobile carousel controls - top right, visible on mobile only */}
+          <CarouselPrevious 
+            className="absolute top-0 right-10 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm border shadow-sm hover:bg-background opacity-100 md:hidden z-20"
+          />
+          <CarouselNext 
+            className="absolute top-0 right-0 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm border shadow-sm hover:bg-background opacity-100 md:hidden z-20"
+          />
+          {/* Desktop carousel controls - hidden on mobile, shown on hover */}
           <CarouselPrevious 
             className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10"
           />
