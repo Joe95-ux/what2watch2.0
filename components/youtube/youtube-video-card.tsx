@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import AddYouTubeVideoToPlaylistDropdown from "@/components/playlists/add-youtube-video-to-playlist-dropdown";
 import { useToggleFavoriteYouTubeVideo } from "@/hooks/use-favorite-youtube-videos";
 import { useToggleYouTubeVideoWatchlist } from "@/hooks/use-youtube-video-watchlist";
+import { useTrackYouTubeVideoView } from "@/hooks/use-youtube-analytics";
 
 interface YouTubeVideoCardProps {
   video: YouTubeVideo;
@@ -43,6 +44,7 @@ interface YouTubeVideoCardProps {
   selected?: boolean; // Whether video is selected
   onSelect?: (video: YouTubeVideo, selected: boolean) => void; // Selection callback
   titleLines?: 1 | 2; // Number of lines for title truncation (default: 2)
+  source?: string; // Source identifier for analytics
 }
 
 /**
@@ -91,6 +93,7 @@ export default function YouTubeVideoCard({
   selected = false,
   onSelect,
   titleLines = 2,
+  source = "youtube-card",
 }: YouTubeVideoCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const isMobile = useIsMobile();
@@ -103,6 +106,7 @@ export default function YouTubeVideoCard({
   const [copied, setCopied] = useState(false);
   const toggleVideoFavorite = useToggleFavoriteYouTubeVideo();
   const toggleVideoWatchlist = useToggleYouTubeVideoWatchlist();
+  const trackVideoView = useTrackYouTubeVideoView();
   const videoPayload = useMemo(
     () => ({
       id: video.id,
@@ -134,6 +138,16 @@ export default function YouTubeVideoCard({
       !target.closest('[data-radix-dropdown-menu-trigger]') &&
       !target.closest('[data-radix-dropdown-menu-content]')
     ) {
+      if (isSignedIn) {
+        const resolvedChannelId = channelId || video.channelId;
+        if (resolvedChannelId && !trackVideoView.isPending) {
+          trackVideoView.mutate({
+            videoId: video.id,
+            channelId: resolvedChannelId,
+            source,
+          });
+        }
+      }
       if (onVideoClick) {
         onVideoClick(video);
       } else {
@@ -145,6 +159,16 @@ export default function YouTubeVideoCard({
   const handlePlayClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isSignedIn) {
+      const resolvedChannelId = channelId || video.channelId;
+      if (resolvedChannelId && !trackVideoView.isPending) {
+        trackVideoView.mutate({
+          videoId: video.id,
+          channelId: resolvedChannelId,
+          source,
+        });
+      }
+    }
     if (onVideoClick) {
       onVideoClick(video);
     } else {

@@ -30,6 +30,16 @@ import { cn } from "@/lib/utils";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+
+type SidebarTab = "channel" | "favorites" | "watchlater" | "recommendations";
 
 interface YouTubeChannelPageClientProps {
   channelId: string;
@@ -41,7 +51,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
   const [pageToken, setPageToken] = useState<string | undefined>();
   const [playlistsPageToken, setPlaylistsPageToken] = useState<string | undefined>();
   const [activeTab, setActiveTab] = useState("home");
-  const [sidebarTab, setSidebarTab] = useState<"channel" | "favorites" | "watchlater" | "recommendations">("channel");
+  const [sidebarTab, setSidebarTab] = useState<SidebarTab>("channel");
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,10 +63,72 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
   const heroRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
+  const channelTitle = channel?.title || "Channel";
+  const tabLabelMap: Record<SidebarTab, string> = {
+    channel: channelTitle,
+    favorites: "Favorites",
+    watchlater: "Watch Later",
+    recommendations: "Recommendations",
+  };
+
+  const renderMobileSidebarTriggerNav = () => {
+    if (!isMobile) return null;
+
+    const secondaryLabel = sidebarTab !== "channel" ? tabLabelMap[sidebarTab] : null;
+
+    return (
+      <div className="lg:hidden sticky top-[65px] z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="px-4 py-2 flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setMobileSidebarOpen(true)}
+            className="cursor-pointer h-10 w-10 rounded-full"
+          >
+            <MoreVertical className="h-5 w-5" />
+          </Button>
+          <span className="text-muted-foreground">|</span>
+          <Breadcrumb className="flex-1 min-w-0">
+            <BreadcrumbList className="flex items-center gap-1 text-sm text-muted-foreground">
+              <BreadcrumbItem className="truncate max-w-[140px]">
+                <BreadcrumbLink className="text-foreground font-semibold truncate">
+                  {channelTitle}
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              {secondaryLabel && (
+                <>
+                  <BreadcrumbSeparator className="text-muted-foreground">›</BreadcrumbSeparator>
+                  <BreadcrumbItem className="capitalize text-muted-foreground">
+                    <BreadcrumbPage>{secondaryLabel}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </>
+              )}
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+      </div>
+    );
+  };
+
   // Tab content hooks
   const { data: favoriteVideos = [], isLoading: isLoadingFavorites } = useFavoriteYouTubeVideos();
   const { data: watchlistVideos = [], isLoading: isLoadingWatchlist } = useYouTubeVideoWatchlist();
   const { data: recommendations, isLoading: isLoadingRecommendations } = useYouTubeRecommendations();
+
+  const extractRecommendedVideos = (data: typeof recommendations): YouTubeVideo[] => {
+    if (
+      data &&
+      typeof data === "object" &&
+      "recommendedVideos" in data
+    ) {
+      const videos = (data as { recommendedVideos?: unknown }).recommendedVideos;
+      if (Array.isArray(videos)) {
+        return videos as YouTubeVideo[];
+      }
+    }
+    return [];
+  };
+  const recommendationVideos = extractRecommendedVideos(recommendations);
 
   const {
     data: videosData,
@@ -297,7 +369,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
           </div>
         );
       }
-      if (!recommendations?.recommendedVideos.length) {
+      if (!recommendationVideos.length) {
         return (
           <div className="text-center py-12 text-muted-foreground">
             <p>No recommendations available. Add favorite channels to get recommendations.</p>
@@ -306,7 +378,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
       }
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {recommendations.recommendedVideos.map((video) => (
+          {recommendationVideos.map((video) => (
             <YouTubeVideoCard
               key={video.id}
               video={video}
@@ -337,6 +409,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
             onTabChange={setSidebarTab}
           />
           <div className="flex-1 min-w-0 transition-all duration-300">
+            {renderMobileSidebarTriggerNav()}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
               <div className="mb-6">
                 <h1 className="text-2xl font-semibold">
@@ -376,22 +449,9 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
 
       {/* Main Content */}
       <div className="flex-1 min-w-0 transition-all duration-300 lg:pl-64">
+        {renderMobileSidebarTriggerNav()}
         {sidebarTab === "channel" && channel ? (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Mobile Channels Button - Above Banner */}
-        {isMobile && (
-          <div className="mb-4 flex justify-end">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setMobileSidebarOpen(true)}
-              className="cursor-pointer h-10 w-10 rounded-full"
-            >
-              <MoreVertical className="h-5 w-5" />
-            </Button>
-          </div>
-        )}
-        
         <div ref={heroRef} className="mb-8">
           {channel.bannerImage ? (
             <div className="relative w-full h-32 sm:h-[206px] overflow-hidden rounded-lg">

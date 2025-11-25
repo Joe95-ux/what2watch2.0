@@ -54,14 +54,19 @@ export async function PATCH(
       );
     }
 
+    if (existing.addedByUserId !== user.id) {
+      return NextResponse.json(
+        { error: "You can only update channels you added" },
+        { status: 403 }
+      );
+    }
+
     // Update channel privacy
-    // If marking as private, set addedByUserId to current user
-    // If marking as public, clear addedByUserId
     const updated = await db.youTubeChannel.update({
       where: { channelId },
       data: {
         isPrivate,
-        addedByUserId: isPrivate ? user.id : null,
+        addedByUserId: existing.addedByUserId || user.id,
       },
     });
 

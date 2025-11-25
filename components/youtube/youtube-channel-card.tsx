@@ -23,6 +23,7 @@ interface YouTubeChannelCardProps {
     isActive: boolean;
     isPrivate: boolean;
     addedByUserId: string | null;
+    canManage?: boolean;
     order: number;
     createdAt: string;
     updatedAt: string;
@@ -35,6 +36,7 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
   const [isUpdatingActive, setIsUpdatingActive] = useState(false);
   const [isUpdatingPrivacy, setIsUpdatingPrivacy] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const canManage = Boolean(channel.canManage);
 
   const handleToggleActive = async (isActive: boolean) => {
     setIsUpdatingActive(true);
@@ -248,7 +250,7 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
             id={`active-${channel.id}`}
             checked={channel.isActive}
             onCheckedChange={handleToggleActive}
-            disabled={isUpdatingActive}
+            disabled={isUpdatingActive || !canManage}
           />
           <Label htmlFor={`active-${channel.id}`} className="text-sm cursor-pointer flex items-center gap-1.5">
             {channel.isActive ? (
@@ -265,7 +267,7 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
             id={`privacy-${channel.id}`}
             checked={channel.isPrivate}
             onCheckedChange={handleTogglePrivacy}
-            disabled={isUpdatingPrivacy}
+            disabled={isUpdatingPrivacy || !canManage}
           />
           <Label htmlFor={`privacy-${channel.id}`} className="text-sm cursor-pointer flex items-center gap-1.5">
             <Lock className="h-4 w-4" />
@@ -273,6 +275,11 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
           </Label>
         </div>
       </div>
+      {!canManage && (
+        <p className="mt-3 text-xs text-muted-foreground">
+          Only channels you added can be hidden or made private.
+        </p>
+      )}
     </div>
   );
 }

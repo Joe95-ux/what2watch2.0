@@ -74,7 +74,8 @@ export function YouTubeAnalyticsDashboard() {
         ? parseISO(item.createdAt) 
         : new Date(item.createdAt);
       const dateKey = format(startOfDay(date), "yyyy-MM-dd");
-      viewsMap.set(dateKey, item._count.id);
+      const currentCount = viewsMap.get(dateKey) || 0;
+      viewsMap.set(dateKey, currentCount + item._count.id);
     });
 
     // Fill in all days with view counts

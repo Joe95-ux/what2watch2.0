@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface AnalyticsResponse {
   period: number;
@@ -48,6 +48,44 @@ export function useYouTubeAnalytics(period = 30, channelId?: string) {
     queryKey: ["youtube-analytics", period, channelId],
     queryFn: () => fetchAnalytics(period, channelId),
     staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+}
+
+interface TrackVideoViewInput {
+  videoId: string;
+  channelId: string;
+  viewDuration?: number;
+  completed?: boolean;
+  source?: string;
+  liked?: boolean;
+  addedToWatchlist?: boolean;
+  addedToPlaylist?: boolean;
+}
+
+async function trackVideoView(input: TrackVideoViewInput) {
+  const response = await fetch(`/api/youtube/videos/${input.videoId}/view`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to track video view");
+  }
+
+  return response.json();
+}
+
+export function useTrackYouTubeVideoView() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: trackVideoView,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["youtube-analytics"] });
+    },
   });
 }
 

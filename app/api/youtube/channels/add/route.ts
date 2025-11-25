@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
         channelUrl: channelUrl,
         isActive: true,
         isPrivate: Boolean(isPrivate),
-        addedByUserId: isPrivate ? user.id : null,
+        addedByUserId: user.id,
         order: nextOrder,
       },
     });

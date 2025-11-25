@@ -19,6 +19,7 @@ interface Channel {
   isActive: boolean;
   isPrivate: boolean;
   addedByUserId: string | null;
+  canManage?: boolean;
   order: number;
   createdAt: string;
   updatedAt: string;

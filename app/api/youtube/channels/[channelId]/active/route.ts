@@ -54,6 +54,13 @@ export async function PATCH(
       );
     }
 
+    if (existing.addedByUserId !== user.id) {
+      return NextResponse.json(
+        { error: "You can only update channels you added" },
+        { status: 403 }
+      );
+    }
+
     // Update channel active status
     const updated = await db.youTubeChannel.update({
       where: { channelId },

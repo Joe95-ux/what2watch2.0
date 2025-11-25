@@ -72,9 +72,14 @@ export async function GET(request: NextRequest) {
       return false;
     });
 
+    const channelsWithPermissions = channels.map((channel) => ({
+      ...channel,
+      canManage: channel.addedByUserId === user.id,
+    }));
+
     return NextResponse.json({
-      channels,
-      total: channels.length,
+      channels: channelsWithPermissions,
+      total: channelsWithPermissions.length,
     });
   } catch (error) {
     console.error("[Get Channels for Management API] Error:", error);
