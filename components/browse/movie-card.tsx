@@ -270,7 +270,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
             !target.closest('[data-radix-tooltip-content]') &&
             !isTrailerModalOpen
           ) {
-            handleOpenDetails();
+            // Navigate to details page when clicking on the card
+            router.push(`/${type}/${item.id}`);
           }
         }}
       >
