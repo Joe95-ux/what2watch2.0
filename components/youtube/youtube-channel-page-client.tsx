@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Heart, Youtube, ExternalLink, Loader2, ChevronDown, ChevronUp, Search, ArrowLeft, Menu } from "lucide-react";
+import { Heart, Youtube, ExternalLink, Loader2, ChevronDown, ChevronUp, Search, ArrowLeft, MoreVertical } from "lucide-react";
 import {
   useYouTubeChannel,
   useYouTubeChannelVideos,
@@ -378,6 +378,20 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
       <div className="flex-1 min-w-0 transition-all duration-300 lg:pl-64">
         {sidebarTab === "channel" && channel ? (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Mobile Channels Button - Above Banner */}
+        {isMobile && (
+          <div className="mb-4 flex justify-end">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setMobileSidebarOpen(true)}
+              className="cursor-pointer h-10 w-10 rounded-full"
+            >
+              <MoreVertical className="h-5 w-5" />
+            </Button>
+          </div>
+        )}
+        
         <div ref={heroRef} className="mb-8">
           {channel.bannerImage ? (
             <div className="relative w-full h-32 sm:h-[206px] overflow-hidden rounded-lg">
@@ -416,20 +430,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
             </div>
 
             <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-4 mb-2">
-                <h1 className="text-2xl sm:text-3xl font-bold">{channel.title}</h1>
-                {isMobile && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setMobileSidebarOpen(true)}
-                    className="cursor-pointer flex-shrink-0"
-                  >
-                    <Menu className="h-4 w-4 mr-2" />
-                    Channels
-                  </Button>
-                )}
-              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold mb-2">{channel.title}</h1>
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-4">
                 <span>{formatSubscriberCount(channel.subscriberCount)} subscribers</span>
                 <span>•</span>

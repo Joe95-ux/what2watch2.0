@@ -16,7 +16,7 @@ import { useYouTubeRecommendations } from "@/hooks/use-youtube-recommendations";
 import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
 import { getChannelProfilePath } from "@/lib/channel-path";
 import Image from "next/image";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface YouTubeChannelSidebarProps {
@@ -89,11 +89,24 @@ export function YouTubeChannelSidebar({
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
-      {/* Collapse Button - Reddit style at top */}
-      <div className={cn(
-        "p-2 border-b flex items-center transition-all",
-        isCollapsed ? "justify-center" : "justify-end"
-      )}>
+      {/* Mobile Close Button */}
+      {isMobile && (
+        <div className="p-4 border-b flex items-center justify-between">
+          <h2 className="font-semibold text-lg">Channels</h2>
+          <SheetClose asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <X className="h-4 w-4" />
+            </Button>
+          </SheetClose>
+        </div>
+      )}
+      
+      {/* Collapse Button - Reddit style at top (desktop only) */}
+      {!isMobile && (
+        <div className={cn(
+          "p-2 border-b flex items-center transition-all",
+          isCollapsed ? "justify-center" : "justify-end"
+        )}>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -117,6 +130,7 @@ export function YouTubeChannelSidebar({
           </TooltipContent>
         </Tooltip>
       </div>
+      )}
 
       {/* Top Actions - Reddit style: icon-only when collapsed */}
       <div className={cn(
@@ -366,7 +380,7 @@ export function YouTubeChannelSidebar({
   if (isMobile) {
     return (
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0">
+        <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0 [&>button]:hidden">
           {sidebarContent}
         </SheetContent>
       </Sheet>
