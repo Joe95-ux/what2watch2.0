@@ -285,7 +285,7 @@ export function YouTubeChannelSidebar({
       )}
 
       {/* Channels List */}
-      <ScrollArea className="h-[80vh]">
+      <ScrollArea className="min-h-0">
         <div className={cn("space-y-1", isCollapsed ? "p-1" : "p-2")}>
           {isLoadingChannels || isLoadingFavorites ? (
             <div className="space-y-2">
