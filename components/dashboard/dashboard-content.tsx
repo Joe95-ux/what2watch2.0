@@ -12,6 +12,7 @@ import DashboardRow from "@/components/dashboard/dashboard-row";
 import PlaylistCard from "@/components/browse/playlist-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Clock, Film, Heart, Share2, Youtube } from "lucide-react";
 import {
   Carousel,
@@ -484,48 +485,58 @@ function YouTubeSnapshotSection({ isLoading, totals, highlightVideos }: YouTubeS
       ) : (
         <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
           {/* Saved Videos Section */}
-          <div className="space-y-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <Card>
+            <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-red-500/15 text-red-500">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-red-500/15 text-red-500">
                   <Youtube className="h-5 w-5" />
                 </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Saved videos</p>
-                  <p className="text-xl font-semibold text-foreground">{totals.totalVideos}</p>
+                <div className="flex-1">
+                  <CardTitle className="text-lg">Saved Videos</CardTitle>
+                  <CardDescription className="text-xs">
+                    {totals.favorites} liked • {totals.watchlist} watch later
+                  </CardDescription>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-foreground">{totals.totalVideos}</p>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {totals.favorites} liked • {totals.watchlist} watch later
-              </p>
-            </div>
-            {highlightVideos.length > 0 ? (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {highlightVideos.map((video) => (
-                  <MiniYouTubeVideoCard key={video.id} video={video} />
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-lg border border-dashed border-border/70 px-4 py-6 text-sm text-muted-foreground text-center">
-                Save a YouTube trailer or interview to see it here.
-              </div>
-            )}
-          </div>
+            </CardHeader>
+            <CardContent>
+              {highlightVideos.length > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {highlightVideos.map((video) => (
+                    <MiniYouTubeVideoCard key={video.id} video={video} />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted-foreground text-center">
+                  Save a YouTube trailer or interview to see it here.
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Playlists Section */}
-          <div className="rounded-xl border border-border/70 bg-card/50 p-5 flex flex-col gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Playlists</p>
-              <p className="text-3xl font-bold text-foreground">{totals.playlists}</p>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              You have {totals.playlists === 0 ? "no" : totals.playlists} playlists mixing YouTube clips with your curated
-              lists.
-            </p>
-            <Button variant="secondary" asChild className="cursor-pointer mt-auto">
-              <Link href="/dashboard/playlists">Manage playlists</Link>
-            </Button>
-          </div>
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg">Playlists</CardTitle>
+              <CardDescription className="text-xs">
+                YouTube clips mixed with your curated lists
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div>
+                <p className="text-3xl font-bold text-foreground">{totals.playlists}</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {totals.playlists === 0 ? "No playlists yet" : "Total playlists"}
+                </p>
+              </div>
+              <Button variant="secondary" asChild className="cursor-pointer mt-auto">
+                <Link href="/dashboard/playlists">Manage playlists</Link>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>
@@ -534,8 +545,8 @@ function YouTubeSnapshotSection({ isLoading, totals, highlightVideos }: YouTubeS
 
 function MiniYouTubeVideoCard({ video }: { video: MiniYouTubeVideo }) {
   return (
-    <div className="flex gap-3 rounded-xl border border-border/70 bg-card/70 p-3">
-      <div className="relative h-16 w-28 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+    <div className="flex gap-3 rounded-lg border bg-card p-3 hover:bg-accent/50 transition-colors">
+      <div className="relative h-16 w-28 flex-shrink-0 overflow-hidden rounded-md bg-muted">
         {video.thumbnail ? (
           <Image src={video.thumbnail} alt={video.title} fill className="object-cover" sizes="112px" />
         ) : (
@@ -544,9 +555,9 @@ function MiniYouTubeVideoCard({ video }: { video: MiniYouTubeVideo }) {
           </div>
         )}
       </div>
-      <div className="flex flex-col justify-between">
+      <div className="flex flex-col justify-between min-w-0 flex-1">
         <p className="text-sm font-medium text-foreground line-clamp-2">{video.title}</p>
-        <p className="text-xs text-muted-foreground">{video.channelTitle || "YouTube"}</p>
+        <p className="text-xs text-muted-foreground truncate">{video.channelTitle || "YouTube"}</p>
       </div>
     </div>
   );

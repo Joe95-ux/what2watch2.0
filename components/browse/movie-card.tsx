@@ -72,7 +72,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   
   // On mobile/tablet, always show overlay with details (no hover/scaling needed)
   // Dashboard variant also always shows overlay
-  const shouldShowOverlay = isHovered || isMobile;
+  // On large screens, only show overlay on hover
+  const shouldShowOverlay = isMobile || variant === "dashboard" ? true : isHovered;
 
   const title = "title" in item ? item.title : item.name;
   const posterPath = item.poster_path || item.backdrop_path;
@@ -303,8 +304,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
           <div
             className={cn(
               "absolute inset-0 rounded-lg transition-all duration-500 ease-out",
-              shouldShowOverlay ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1 pointer-events-none",
-              (isMobile || variant === "dashboard") && "opacity-100 translate-y-0 pointer-events-auto"
+              shouldShowOverlay ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-1 pointer-events-none"
             )}
             style={{
               willChange: shouldShowOverlay ? "opacity, transform" : "opacity",
@@ -607,16 +607,6 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                       {title}
                     </h3>
 
-                    {item.overview && (
-                      <p
-                        className={cn(
-                          "text-white/90 line-clamp-2 leading-relaxed",
-                          isMobile ? "text-[10px]" : "text-xs"
-                        )}
-                      >
-                        {item.overview}
-                      </p>
-                    )}
                   </div>
                 </div>
               </>
