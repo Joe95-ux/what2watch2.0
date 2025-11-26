@@ -61,26 +61,22 @@ export async function GET(request: NextRequest) {
       where.isPrivate = false;
     }
 
-    // Get all channels
-    const [channels, total] = await Promise.all([
-      db.youTubeChannel.findMany({
-        where,
-        orderBy: { order: "asc" },
-        skip,
-        take: limit,
-        select: {
-          id: true,
-          channelId: true,
-          slug: true,
-          title: true,
-          thumbnail: true,
-          channelUrl: true,
-          isActive: true,
-          isPrivate: true,
-        },
-      }),
-      db.youTubeChannel.count({ where }),
-    ]);
+    // Get all channels (without pagination first, so we can filter by category after fetching stats)
+    // We'll apply search filter after fetching since we need to filter by category from API data
+    const channels = await db.youTubeChannel.findMany({
+      where,
+      orderBy: { order: "asc" },
+      select: {
+        id: true,
+        channelId: true,
+        slug: true,
+        title: true,
+        thumbnail: true,
+        channelUrl: true,
+        isActive: true,
+        isPrivate: true,
+      },
+    });
 
     // Helper function to extract category name from Freebase topic URL
     const extractCategoryName = (url: string): string => {
@@ -192,7 +188,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Filter by category if specified
+    // Filter by category if specified (after fetching stats/categories from API)
     let filteredChannels = channels;
     if (categoryFilter) {
       filteredChannels = channels.filter((channel) => {
@@ -201,7 +197,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Filter by search query if specified
+    // Filter by search query if specified (after fetching, since we might want to search in categories too)
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filteredChannels = filteredChannels.filter(
@@ -211,11 +207,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Now apply pagination to filtered results
+    const total = filteredChannels.length;
+    const paginatedChannels = filteredChannels.slice(skip, skip + limit);
+
     // Get available categories from all channels (from topicDetails)
     const availableCategories = Array.from(allCategoriesSet).sort();
 
-    // Build response
-    const response = filteredChannels.map((channel) => {
+    // Build response from paginated channels
+    const response = paginatedChannels.map((channel) => {
       const categories = (channelCategoriesMap.get(channel.channelId) || []).slice(0, 4); // Limit to 4 categories
       const rating = ratingsMap.get(channel.channelId);
       const stats = channelStatsMap.get(channel.channelId);
@@ -246,8 +246,8 @@ export async function GET(request: NextRequest) {
       pagination: {
         page,
         limit,
-        total: filteredChannels.length,
-        totalPages: Math.ceil(filteredChannels.length / limit) || 1,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
       },
       availableCategories,
     });

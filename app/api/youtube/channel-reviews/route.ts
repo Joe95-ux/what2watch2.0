@@ -9,6 +9,7 @@ import {
   sanitizeReviewTags as sanitizeTags,
 } from "./utils";
 import { evaluateReviewerBadges } from "@/lib/youtube-review-badges";
+import { moderateContent } from "@/lib/moderation";
 
 const DEFAULT_LIMIT = 6;
 const MAX_LIMIT = 20;
@@ -242,10 +243,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Rating must be between 1 and 5" }, { status: 400 });
     }
 
-    const sanitizedContent = typeof content === "string" ? content.trim() : "";
-    if (!sanitizedContent) {
-      return NextResponse.json({ error: "Review content is required" }, { status: 400 });
+    // Validate and sanitize content with moderation
+    const rawContent = typeof content === "string" ? content : "";
+    const contentModeration = moderateContent(rawContent, {
+      minLength: 20,
+      maxLength: 1500,
+      allowProfanity: false,
+      sanitizeHtml: true,
+    });
+
+    if (!contentModeration.allowed) {
+      return NextResponse.json(
+        { error: contentModeration.error || "Invalid content" },
+        { status: 400 }
+      );
     }
+
+    const sanitizedContent = contentModeration.sanitized || "";
 
     const existingReview = await db.channelReview.findUnique({
       where: {
@@ -272,8 +286,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Channel not found" }, { status: 404 });
     }
 
-    const sanitizedTags = sanitizeTags(tags);
-    const sanitizedTitle = typeof title === "string" ? title.trim() : "";
+    // Sanitize title with HTML sanitization
+    const rawTitle = typeof title === "string" ? title : "";
+    const titleModeration = moderateContent(rawTitle, {
+      minLength: 0,
+      maxLength: 120,
+      allowProfanity: false,
+      sanitizeHtml: true,
+    });
+    const sanitizedTitle = titleModeration.allowed && titleModeration.sanitized
+      ? titleModeration.sanitized
+      : "";
+
+    // Sanitize tags (already handles basic sanitization, but ensure HTML is removed)
+    const sanitizedTags = sanitizeTags(tags).map((tag) => {
+      const tagModeration = moderateContent(tag, {
+        minLength: 1,
+        maxLength: 24,
+        allowProfanity: false,
+        sanitizeHtml: true,
+      });
+      return tagModeration.allowed && tagModeration.sanitized
+        ? tagModeration.sanitized
+        : tag;
+    });
 
     const review = await db.channelReview.create({
       data: {
