@@ -250,7 +250,6 @@ export function ChannelReviewFormSheet({
                 )}
               </div>
             </div>
-          </div>
 
           <div className="border-t border-border pt-6 space-y-3">
             <Button
