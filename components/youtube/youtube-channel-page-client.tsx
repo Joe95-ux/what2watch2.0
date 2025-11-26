@@ -530,9 +530,9 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
                 alt={`${channel.title} banner`}
                 fill
                 className="object-cover"
-                sizes="100vw"
+                sizes="(max-width: 640px) 100vw, (max-width: 1280px) 80vw, 1120px"
                 priority
-                unoptimized
+                quality={90}
               />
             </div>
           ) : (

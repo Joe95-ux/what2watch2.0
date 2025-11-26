@@ -74,7 +74,7 @@ export function ChannelListsExplorer() {
 
   return (
     <div className="w-full max-w-[90rem] mx-auto py-8">
-      <div className="mb-6 flex items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Curated Channel lists</h1>
         {!isMobile && (
           <Button onClick={handleCreateClick} className="gap-2 cursor-pointer">
@@ -118,7 +118,7 @@ export function ChannelListsExplorer() {
           </TabsList>
         )}
         {SCOPES.map((item) => (
-          <TabsContent key={item.value} value={item.value} className="mt-6 px-4 sm:px-6 lg:px-8">
+          <TabsContent key={item.value} value={item.value} className="mt-6">
             {isLoading ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, index) => (

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Heart, Bookmark, Sparkles, Youtube, X, ChevronLeft, ChevronRight, ArrowUpDown, Filter } from "lucide-react";
+import { Search, Heart, Bookmark, Sparkles, Youtube, X, ChevronLeft, ChevronRight, ArrowUpDown, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -302,7 +302,7 @@ export function YouTubeChannelSidebar({
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 pr-24"
             />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0">
               {searchQuery && (
                 <Button
                   variant="ghost"
@@ -372,7 +372,7 @@ export function YouTubeChannelSidebar({
                       (filterBy !== "all" || categoryFilter !== "all") && "bg-primary/10 text-primary"
                     )}
                   >
-                    <Filter className="h-4 w-4" />
+                    <SlidersHorizontal className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">

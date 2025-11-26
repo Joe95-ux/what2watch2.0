@@ -184,12 +184,50 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-[90rem] px-4 py-10 space-y-6">
-        <Skeleton className="h-48 w-full rounded-3xl" />
-        <Skeleton className="h-10 w-1/2 rounded-full" />
-        <div className="grid grid-cols-1 gap-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} className="h-32 w-full rounded-3xl" />
+      <div className="mx-auto max-w-[90rem] px-4 py-10 space-y-8">
+        {/* Back Button Skeleton */}
+        <Skeleton className="h-5 w-32" />
+
+        {/* Header Skeleton */}
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 pb-6 border-b">
+          {/* List Details - Left */}
+          <div className="flex-1 space-y-4">
+            <div>
+              <Skeleton className="h-4 w-24 mb-2" />
+              <Skeleton className="h-9 w-3/4 mb-3" />
+              <Skeleton className="h-5 w-full max-w-md" />
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-1" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-1" />
+              <Skeleton className="h-4 w-28" />
+            </div>
+
+            {/* Tags Skeleton */}
+            <div className="flex flex-wrap gap-2">
+              <Skeleton className="h-6 w-16 rounded-full" />
+              <Skeleton className="h-6 w-20 rounded-full" />
+              <Skeleton className="h-6 w-14 rounded-full" />
+            </div>
+          </div>
+
+          {/* Vertical Divider - Hidden on mobile */}
+          <div className="hidden md:block w-px h-auto bg-border mx-4" />
+
+          {/* Action Buttons - Right */}
+          <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-20" />
+          </div>
+        </div>
+
+        {/* Channels Grid Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <YouTubeChannelCardPageSkeleton key={index} />
           ))}
         </div>
       </div>
