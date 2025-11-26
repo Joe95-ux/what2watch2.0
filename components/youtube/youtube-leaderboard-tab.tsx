@@ -149,10 +149,52 @@ export function YouTubeLeaderboardTab() {
 
       {/* Content */}
       {isLoading ? (
-        <div className="space-y-4 mt-6">
-          {Array.from({ length: 10 }).map((_, index) => (
-            <Skeleton key={index} className="h-20 w-full rounded-lg" />
-          ))}
+        <div className="mt-6">
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16">Rank</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead className="text-right">Reviews</TableHead>
+                  <TableHead className="text-right">Helpful</TableHead>
+                  <TableHead className="text-right pr-8">Avg Rating</TableHead>
+                  <TableHead>Badges</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: 10 }).map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Skeleton className="h-5 w-8" />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-4 w-32" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Skeleton className="h-4 w-12 ml-auto" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Skeleton className="h-4 w-12 ml-auto" />
+                    </TableCell>
+                    <TableCell className="text-right pr-8">
+                      <Skeleton className="h-4 w-12 ml-auto" />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Skeleton className="h-5 w-5 rounded" />
+                        <Skeleton className="h-5 w-5 rounded" />
+                        <Skeleton className="h-5 w-5 rounded" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       ) : sortedLeaderboard.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center mt-6">
