@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import {
   ChannelReview,
@@ -55,12 +56,6 @@ export function ChannelReviewFormSheet({
     }
   }, [isOpen, initialReview]);
 
-  useEffect(() => {
-    document.body.style.overflow = isOpen ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isOpen]);
 
   const isSubmitting = createReview.isPending || updateReview.isPending;
   const canSubmit = content.trim().length >= 20 && rating >= 1 && rating <= 5;
@@ -131,21 +126,9 @@ export function ChannelReviewFormSheet({
   };
 
   return (
-    <>
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
-          onClick={handleClose}
-        />
-      )}
-
-      <div
-        className={cn(
-          "fixed inset-y-0 right-0 z-50 flex w-full max-w-lg flex-col border-l border-border bg-background shadow-2xl transition-transform duration-300 ease-out",
-          isOpen ? "translate-x-0" : "translate-x-full"
-        )}
-      >
-        <div className="flex items-start gap-4 border-b border-border p-6">
+    <Sheet open={isOpen} onOpenChange={handleClose}>
+      <SheetContent side="right" className="w-full sm:w-[500px] overflow-y-auto">
+        <div className="flex items-start gap-4 border-b border-border pb-6 mb-6">
           {channelThumbnail ? (
             <div className="relative h-16 w-16 overflow-hidden rounded-full border border-border">
               <Image
@@ -169,18 +152,9 @@ export function ChannelReviewFormSheet({
             <h2 className="text-2xl font-bold leading-tight">{channelTitle}</h2>
             <p className="text-sm text-muted-foreground">Share your experience with this channel.</p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleClose}
-            className="h-8 w-8 cursor-pointer"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-1 flex-col overflow-hidden">
-          <div className="flex-1 space-y-6 overflow-y-auto p-6">
+        <form onSubmit={handleSubmit} className="flex flex-col space-y-6">
             <div className="space-y-3">
               <Label>Rating</Label>
               <div className="flex items-center gap-2">
@@ -278,7 +252,7 @@ export function ChannelReviewFormSheet({
             </div>
           </div>
 
-          <div className="border-t border-border p-6 space-y-3">
+          <div className="border-t border-border pt-6 space-y-3">
             <Button
               type="submit"
               disabled={!canSubmit || isSubmitting}
@@ -297,8 +271,8 @@ export function ChannelReviewFormSheet({
             </Button>
           </div>
         </form>
-      </div>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }
 

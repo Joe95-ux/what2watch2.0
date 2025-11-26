@@ -21,6 +21,8 @@ interface Channel {
     average: number;
     count: number;
   } | null;
+  subscriberCount?: string;
+  videoCount?: string;
 }
 
 export function YouTubeChannelsTab() {
@@ -42,7 +44,7 @@ export function YouTubeChannelsTab() {
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: "20",
+        limit: "30",
       });
       if (categoryFilter !== "all") {
         params.append("category", categoryFilter);
@@ -99,8 +101,8 @@ export function YouTubeChannelsTab() {
 
       {/* Channels Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {Array.from({ length: 20 }).map((_, index) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 30 }).map((_, index) => (
             <YouTubeChannelCardPageSkeleton key={index} />
           ))}
         </div>
@@ -110,7 +112,7 @@ export function YouTubeChannelsTab() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {channels.map((channel) => (
               <YouTubeChannelCardPage key={channel.id} channel={channel} />
             ))}
