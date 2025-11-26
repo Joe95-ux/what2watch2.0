@@ -11,7 +11,6 @@ import {
   Tag,
   Star,
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -42,6 +41,8 @@ interface ChannelReviewCardProps {
   onTagClick?: (tag: string) => void;
 }
 
+const MAX_REVIEW_LENGTH = 300; // Characters to show before truncating
+
 export function ChannelReviewCard({
   channelId,
   review,
@@ -53,10 +54,16 @@ export function ChannelReviewCard({
   const toggleVote = useToggleChannelReviewVote(channelId);
   const deleteReview = useDeleteChannelReview(channelId);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const displayName = review.user.displayName || review.user.username || "Anonymous";
-  const initials = displayName.slice(0, 2).toUpperCase();
   const canEdit = review.canEdit;
+  
+  // Show more/less logic
+  const shouldTruncate = review.content.length > MAX_REVIEW_LENGTH;
+  const displayContent = shouldTruncate && !isExpanded
+    ? review.content.slice(0, MAX_REVIEW_LENGTH)
+    : review.content;
 
   const handleRequireAuth = async (action: () => Promise<void> | void) => {
     if (!isSignedIn) {
@@ -104,26 +111,14 @@ export function ChannelReviewCard({
     });
 
   return (
-    <div className="rounded-2xl border border-border bg-card/60 p-5 shadow-sm backdrop-blur">
-      <div className="flex items-start gap-4">
-        <Avatar className="h-12 w-12">
-          {review.user.avatarUrl ? (
-            <AvatarImage src={review.user.avatarUrl} alt={displayName} />
-          ) : (
-            <AvatarFallback>{initials}</AvatarFallback>
-          )}
-        </Avatar>
-        <div className="flex-1 min-w-0 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold">{displayName}</p>
-            <span className="text-sm text-muted-foreground">
-              {formatDistanceToNow(new Date(review.createdAt), { addSuffix: true })}
-            </span>
-            {review.isEdited && (
-              <span className="text-xs text-muted-foreground">(edited)</span>
-            )}
-          </div>
+    <div className="relative">
+      {/* Card with tooltip-style connection pointing down to username */}
+      <div className="relative rounded-2xl border border-border bg-card/60 p-5 shadow-sm backdrop-blur mb-2">
+        {/* Tooltip arrow pointing down from card to username */}
+        <div className="absolute -bottom-2 left-0 h-2 w-2 rotate-45 border-r border-b border-border bg-card/60" />
 
+        <div className="space-y-3">
+          {/* Rating - aligned with content */}
           <div className="flex items-center gap-2">
             {Array.from({ length: 5 }).map((_, index) => (
               <Star
@@ -139,11 +134,28 @@ export function ChannelReviewCard({
             <span className="text-sm font-medium text-muted-foreground">{review.rating}/5</span>
           </div>
 
+          {/* Title - aligned with content */}
           {review.title && <p className="text-base font-semibold">{review.title}</p>}
-          <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
-            {review.content}
-          </p>
 
+          {/* Review content */}
+          <div>
+            <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
+              {displayContent}
+              {shouldTruncate && !isExpanded && "..."}
+            </p>
+            {shouldTruncate && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="mt-2 cursor-pointer"
+              >
+                {isExpanded ? "Show less" : "Show more"}
+              </Button>
+            )}
+          </div>
+
+          {/* Tags */}
           {review.tags.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <Tag className="h-3.5 w-3.5 text-muted-foreground" />
@@ -160,41 +172,54 @@ export function ChannelReviewCard({
             </div>
           )}
 
-          <div className="flex items-center gap-2 pt-2">
-            <Button
-              variant={review.viewerVoteType === "UP" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleVote("UP");
-              }}
-              disabled={toggleVote.isPending}
-              className="cursor-pointer gap-2"
-            >
-              <ThumbsUp className="h-4 w-4" />
-              Helpful
-              <span className="text-xs font-medium text-muted-foreground">
-                {review.helpfulCount}
-              </span>
-            </Button>
-            <Button
-              variant={review.viewerVoteType === "DOWN" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleVote("DOWN");
-              }}
-              disabled={toggleVote.isPending}
-              className="cursor-pointer gap-2"
-            >
-              <ThumbsDown className="h-4 w-4" />
-              Not Helpful
-              <span className="text-xs font-medium text-muted-foreground">
-                {review.notHelpfulCount ?? 0}
-              </span>
-            </Button>
+          {/* Action buttons */}
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleVote("UP");
+                }}
+                disabled={toggleVote.isPending}
+                className="cursor-pointer gap-2"
+              >
+                <ThumbsUp
+                  className={cn(
+                    "h-4 w-4",
+                    review.viewerVoteType === "UP" && "fill-black dark:fill-white"
+                  )}
+                />
+                Helpful
+                <span className="text-xs font-medium text-muted-foreground">
+                  {review.helpfulCount}
+                </span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleVote("DOWN");
+                }}
+                disabled={toggleVote.isPending}
+                className="cursor-pointer gap-2"
+              >
+                <ThumbsDown
+                  className={cn(
+                    "h-4 w-4",
+                    review.viewerVoteType === "DOWN" && "fill-black dark:fill-white"
+                  )}
+                />
+                Not Helpful
+                <span className="text-xs font-medium text-muted-foreground">
+                  {review.notHelpfulCount ?? 0}
+                </span>
+              </Button>
+            </div>
 
             {canEdit && (
               <DropdownMenu>
@@ -223,6 +248,21 @@ export function ChannelReviewCard({
             )}
           </div>
         </div>
+      </div>
+
+      {/* Username and Date - Below the card, like tooltip target */}
+      <div className="flex items-center gap-2">
+        <p className="font-semibold text-sm">{displayName}</p>
+        <span className="text-muted-foreground">|</span>
+        <span className="text-sm text-muted-foreground">
+          {formatDistanceToNow(new Date(review.createdAt), { addSuffix: true })}
+        </span>
+        {review.isEdited && (
+          <>
+            <span className="text-muted-foreground">|</span>
+            <span className="text-xs text-muted-foreground">(edited)</span>
+          </>
+        )}
       </div>
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

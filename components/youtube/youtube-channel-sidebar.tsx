@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Heart, Bookmark, Sparkles, Youtube, X, ChevronLeft, ChevronRight, Filter } from "lucide-react";
+import { Search, Heart, Bookmark, Sparkles, Youtube, X, ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -18,7 +18,7 @@ import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
 import { getChannelProfilePath } from "@/lib/channel-path";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
-import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetClose, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface YouTubeChannelSidebarProps {
@@ -44,6 +44,7 @@ export function YouTubeChannelSidebar({
   const [sortBy, setSortBy] = useState<"default" | "alphabetical-az" | "alphabetical-za">("default");
   const [internalOpen, setInternalOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Fetch channel categories
   const { data: channelCategoriesData } = useQuery({
@@ -283,67 +284,95 @@ export function YouTubeChannelSidebar({
         </Tooltip>
       </div>
 
-      {/* Search and Filter - Hidden when collapsed */}
+      {/* Search with Filter/Sort Icons - Hidden when collapsed */}
       {!isCollapsed && (
-        <div className="p-4 space-y-2 border-b">
+        <div className="p-4 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search channels..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-9"
+              className="pl-9 pr-20"
             />
-            {searchQuery && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
-                onClick={() => setSearchQuery("")}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            )}
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Filter & Sort</span>
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => setSearchQuery("")}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+              <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "h-7 w-7 cursor-pointer",
+                      (filterBy !== "all" || categoryFilter !== "all" || sortBy !== "default") && "bg-primary/10 text-primary"
+                    )}
+                  >
+                    <SlidersHorizontal className="h-4 w-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                  <div className="space-y-6 py-4">
+                    <div>
+                      <h2 className="text-lg font-semibold mb-4">Filter & Sort</h2>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Filter by</label>
+                        <Select value={filterBy} onValueChange={(value) => setFilterBy(value as "all" | "favorites")}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Filter by..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Channels</SelectItem>
+                            <SelectItem value="favorites">Favorites Only</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {channelCategoriesData?.availableCategories && channelCategoriesData.availableCategories.length > 0 && (
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Category</label>
+                          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Category..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Categories</SelectItem>
+                              {channelCategoriesData.availableCategories.map((category) => (
+                                <SelectItem key={category} value={category}>
+                                  {category}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Sort by</label>
+                        <Select value={sortBy} onValueChange={(value) => setSortBy(value as "default" | "alphabetical-az" | "alphabetical-za")}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Sort by..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="default">Default (Favorites First)</SelectItem>
+                            <SelectItem value="alphabetical-az">Alphabetical (A-Z)</SelectItem>
+                            <SelectItem value="alphabetical-za">Alphabetical (Z-A)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
-            <Select value={filterBy} onValueChange={(value) => setFilterBy(value as "all" | "favorites")}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Filter by..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Channels</SelectItem>
-                <SelectItem value="favorites">Favorites Only</SelectItem>
-              </SelectContent>
-            </Select>
-            {channelCategoriesData?.availableCategories && channelCategoriesData.availableCategories.length > 0 && (
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Category..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {channelCategoriesData.availableCategories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            <Select value={sortBy} onValueChange={(value) => setSortBy(value as "default" | "alphabetical-az" | "alphabetical-za")}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Sort by..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default">Default (Favorites First)</SelectItem>
-                <SelectItem value="alphabetical-az">Alphabetical (A-Z)</SelectItem>
-                <SelectItem value="alphabetical-za">Alphabetical (Z-A)</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </div>
       )}

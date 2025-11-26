@@ -321,7 +321,7 @@ export function ChannelListBuilder({
                   <Badge
                     key={tag}
                     variant="secondary"
-                    className="flex items-center gap-1 rounded-full px-3 py-1 text-xs"
+                    className="flex items-center gap-1 rounded-full px-3 py-0.5 text-xs"
                   >
                     {tag}
                     <button
@@ -334,7 +334,7 @@ export function ChannelListBuilder({
                   </Badge>
                 ))}
                 {tags.length < 8 && (
-                  <div className="flex items-center gap-2 rounded-full border border-dashed border-border px-3 py-1">
+                  <div className="flex items-center gap-2 rounded-full border border-dashed border-border px-3 py-0.5">
                     <Input
                       value={tagInput}
                       onChange={(event) => setTagInput(event.target.value)}
@@ -345,7 +345,7 @@ export function ChannelListBuilder({
                         }
                       }}
                       placeholder="Add tag"
-                      className="h-7 w-28 border-none bg-transparent px-0 text-xs focus-visible:ring-0"
+                      className="h-7 w-28 border-none bg-transparent px-2 text-xs focus-visible:ring-0"
                     />
                     <Button type="button" variant="ghost" size="icon" onClick={handleAddTag}>
                       <Plus className="h-4 w-4" />

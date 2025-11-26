@@ -50,32 +50,40 @@ export function ChannelListsExplorer() {
   };
 
   return (
-    <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
+    <div className="w-full max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Curated Channel lists</h1>
-        <Button onClick={handleCreateClick} className="gap-2 cursor-pointer">
-          <PlusCircle className="h-4 w-4" />
-          Create list
-        </Button>
+        {!isMobile && (
+          <Button onClick={handleCreateClick} className="gap-2 cursor-pointer">
+            <PlusCircle className="h-4 w-4" />
+            Create list
+          </Button>
+        )}
       </div>
 
       <Tabs value={scope} onValueChange={(value) => setScope(value as ScopeValue)}>
         {isMobile ? (
-          <div className="mb-6">
-            <Select value={scope} onValueChange={(value) => setScope(value as ScopeValue)}>
-              <SelectTrigger className="w-full">
-                <SelectValue>
-                  {SCOPES.find((s) => s.value === scope)?.label || "Trending"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {SCOPES.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <Select value={scope} onValueChange={(value) => setScope(value as ScopeValue)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {SCOPES.find((s) => s.value === scope)?.label || "Trending"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {SCOPES.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handleCreateClick} className="gap-2 cursor-pointer flex-shrink-0">
+              <PlusCircle className="h-4 w-4" />
+              Create list
+            </Button>
           </div>
         ) : (
           <TabsList>

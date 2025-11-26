@@ -1,12 +1,17 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Share2, Pencil, Trash2, ArrowLeftCircle, Users } from "lucide-react";
+import { Share2, Pencil, Trash2, ArrowLeftCircle, Users, Facebook, Twitter, MessageCircle, Mail, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   useDeleteYouTubeChannelList,
   useToggleYouTubeChannelListFollow,
@@ -18,6 +23,7 @@ import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
 import { ChannelListBuilder } from "./channel-list-builder";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
 import { YouTubeChannelCardPage, YouTubeChannelCardPageSkeleton } from "../youtube-channel-card-page";
 
 interface ChannelListDetailProps {
@@ -38,11 +44,17 @@ interface ChannelData {
   } | null;
   subscriberCount: string;
   videoCount: string;
+  note?: string | null;
 }
 
 // Component to fetch and display channels with categories and ratings
 function ChannelListChannelsGrid({ items }: { items: YouTubeChannelListItem[] }) {
   const channelIds = items.map((item) => item.channelId);
+
+  // Create a map of channelId to position to preserve order
+  const positionMap = new Map(
+    items.map((item) => [item.channelId, item.position])
+  );
 
   // Fetch channel data with categories and ratings
   const { data: channelsData, isLoading } = useQuery<{ channels: ChannelData[] }>({
@@ -83,18 +95,22 @@ function ChannelListChannelsGrid({ items }: { items: YouTubeChannelListItem[] })
 
       const channels: ChannelData[] = (data.channels || [])
         .filter((ch) => channelMap.has(ch.channelId))
-        .map((ch) => ({
-          id: channelMap.get(ch.channelId)?.id || ch.id,
-          channelId: ch.channelId,
-          slug: ch.slug || null,
-          title: ch.title || channelMap.get(ch.channelId)?.channelTitle || null,
-          thumbnail: ch.thumbnail || channelMap.get(ch.channelId)?.channelThumbnail || null,
-          channelUrl: ch.channelUrl || channelMap.get(ch.channelId)?.channelUrl || null,
-          categories: ch.categories || [],
-          rating: ch.rating || null,
-          subscriberCount: ch.subscriberCount || channelMap.get(ch.channelId)?.subscriberCount || "0",
-          videoCount: ch.videoCount || channelMap.get(ch.channelId)?.videoCount || "0",
-        }));
+        .map((ch) => {
+          const listItem = channelMap.get(ch.channelId);
+          return {
+            id: listItem?.id || ch.id,
+            channelId: ch.channelId,
+            slug: ch.slug || null,
+            title: ch.title || listItem?.channelTitle || null,
+            thumbnail: ch.thumbnail || listItem?.channelThumbnail || null,
+            channelUrl: ch.channelUrl || listItem?.channelUrl || null,
+            categories: ch.categories || [],
+            rating: ch.rating || null,
+            subscriberCount: ch.subscriberCount || listItem?.subscriberCount || "0",
+            videoCount: ch.videoCount || listItem?.videoCount || "0",
+            note: listItem?.notes || null,
+          };
+        });
 
       // For channels not found in the API response, use the list item data
       const foundChannelIds = new Set(channels.map((ch) => ch.channelId));
@@ -111,8 +127,16 @@ function ChannelListChannelsGrid({ items }: { items: YouTubeChannelListItem[] })
             rating: null,
             subscriberCount: item.subscriberCount || "0",
             videoCount: item.videoCount || "0",
+            note: item.notes || null,
           });
         }
+      });
+
+      // Sort channels by position to preserve order from the list
+      channels.sort((a, b) => {
+        const posA = positionMap.get(a.channelId) ?? Infinity;
+        const posB = positionMap.get(b.channelId) ?? Infinity;
+        return posA - posB;
       });
 
       return { channels };
@@ -160,7 +184,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-10 space-y-6">
+      <div className="mx-auto max-w-[90rem] px-4 py-10 space-y-6">
         <Skeleton className="h-48 w-full rounded-3xl" />
         <Skeleton className="h-10 w-1/2 rounded-full" />
         <div className="grid grid-cols-1 gap-4">
@@ -174,7 +198,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
 
   if (!list) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-20 text-center">
+      <div className="mx-auto max-w-[90rem] px-4 py-20 text-center">
         <h1 className="text-2xl font-bold">Channel list not found</h1>
         <p className="text-muted-foreground">It may have been removed or set to private.</p>
         <Button onClick={() => router.push("/youtube-channel/lists")} className="mt-6 cursor-pointer">
@@ -205,9 +229,43 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
   };
 
   const ownerName = list.user?.displayName || list.user?.username || "Curator";
+  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+
+  const handleSocialShare = (platform: "facebook" | "twitter" | "whatsapp" | "email" | "link") => {
+    const encodedUrl = encodeURIComponent(shareUrl);
+    const encodedTitle = encodeURIComponent(list.name);
+    const encodedDescription = encodeURIComponent(list.description || "");
+
+    if (platform === "link") {
+      navigator.clipboard.writeText(shareUrl);
+      toast.success("Link copied to clipboard!");
+      return;
+    }
+
+    let shareUrl_platform = "";
+    if (platform === "facebook") {
+      shareUrl_platform = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+    } else if (platform === "twitter") {
+      shareUrl_platform = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}${encodedDescription ? ` - ${encodedDescription}` : ""}`;
+    } else if (platform === "whatsapp") {
+      shareUrl_platform = `https://wa.me/?text=${encodedTitle}%20${encodedUrl}`;
+    } else if (platform === "email") {
+      const subject = encodeURIComponent(list.name);
+      const body = encodeURIComponent(`${list.description || ""}\n\n${shareUrl}`);
+      shareUrl_platform = `mailto:?subject=${subject}&body=${body}`;
+    }
+
+    if (shareUrl_platform) {
+      if (platform === "email") {
+        window.location.href = shareUrl_platform;
+      } else {
+        window.open(shareUrl_platform, "_blank", "width=600,height=400");
+      }
+    }
+  };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 space-y-8">
+    <div className="mx-auto max-w-[90rem] px-4 py-10 space-y-8">
       <button
         onClick={() => router.push("/youtube-channel/lists")}
         className="flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
@@ -216,101 +274,119 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
         Back to lists
       </button>
 
-      <div className="rounded-3xl border border-border bg-card/70 p-6 shadow-sm">
-        <div className="flex flex-col gap-6 lg:flex-row">
-          <div className="relative h-56 w-full overflow-hidden rounded-3xl bg-muted lg:w-2/5">
-            {list.coverImage ? (
-              <Image
-                src={list.coverImage}
-                alt={list.name}
-                fill
-                className="object-cover"
-                sizes="400px"
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center text-muted-foreground">
-                No cover image
-              </div>
-            )}
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 pb-6 border-b">
+        {/* List Details - Left */}
+        <div className="flex-1 space-y-4">
+          <div>
+            <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">
+              Channel list
+            </p>
+            <h1 className="text-3xl font-bold">{list.name}</h1>
+            <p className="text-muted-foreground">{list.description}</p>
           </div>
-          <div className="flex-1 space-y-4">
-            <div>
-              <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">
-                Channel list
-              </p>
-              <h1 className="text-3xl font-bold">{list.name}</h1>
-              <p className="text-muted-foreground">{list.description}</p>
+
+          <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+            <span>Curated by {ownerName}</span>
+            <span>•</span>
+            <span>{list._count.items} channels</span>
+            <span>•</span>
+            <span className="inline-flex items-center gap-1">
+              <Users className="h-4 w-4" />
+              {list.followersCount} followers
+            </span>
+          </div>
+
+          {list.tags?.length ? (
+            <div className="flex flex-wrap gap-2">
+              {list.tags.map((tag) => (
+                <Badge key={tag} variant="outline" className="rounded-full">
+                  #{tag}
+                </Badge>
+              ))}
             </div>
+          ) : null}
+        </div>
 
-            <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-              <span>Curated by {ownerName}</span>
-              <span>•</span>
-              <span>{list._count.items} channels</span>
-              <span>•</span>
-              <span className="inline-flex items-center gap-1">
-                <Users className="h-4 w-4" />
-                {list.followersCount} followers
-              </span>
-            </div>
+        {/* Vertical Divider - Hidden on mobile */}
+        <div className="hidden md:block w-px h-auto bg-border mx-4" />
 
-            {list.tags?.length ? (
-              <div className="flex flex-wrap gap-2">
-                {list.tags.map((tag) => (
-                  <Badge key={tag} variant="outline" className="rounded-full">
-                    #{tag}
-                  </Badge>
-                ))}
-              </div>
-            ) : null}
-
-            <div className="flex flex-wrap gap-3">
-              {list.viewerState.isOwner ? (
-                <>
-                  <Button
-                    variant="secondary"
-                    className="gap-2 cursor-pointer"
-                    onClick={() => setBuilderOpen(true)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                    Edit list
-                  </Button>
-                  <Button variant="outline" className="gap-2 cursor-pointer" onClick={handleDelete}>
-                    <Trash2 className="h-4 w-4" />
-                    Delete
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  className="gap-2 cursor-pointer"
-                  variant={list.viewerState.isFollowing ? "secondary" : "default"}
-                  onClick={handleFollowToggle}
-                  disabled={toggleFollow.isPending}
-                >
-                  <Users className="h-4 w-4" />
-                  {list.viewerState.isFollowing ? "Following" : "Follow list"}
-                </Button>
-              )}
+        {/* Action Buttons - Right */}
+        <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
+          {list.viewerState.isOwner ? (
+            <>
               <Button
-                variant="outline"
+                variant="secondary"
                 className="gap-2 cursor-pointer"
-                onClick={async () => {
-                  if (navigator.share) {
-                    await navigator.share({
-                      title: list.name,
-                      text: list.description ?? undefined,
-                      url: window.location.href,
-                    });
-                  } else {
-                    await navigator.clipboard.writeText(window.location.href);
-                    toast.success("Link copied");
-                  }
-                }}
+                onClick={() => setBuilderOpen(true)}
               >
+                <Pencil className="h-4 w-4" />
+                Edit list
+              </Button>
+              <Button variant="outline" className="gap-2 cursor-pointer" onClick={handleDelete}>
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </Button>
+            </>
+          ) : (
+            <Button
+              className={cn(
+                "gap-2 cursor-pointer",
+                list.viewerState.isFollowing && "bg-green-500/20 text-green-700 dark:text-green-400 hover:bg-green-500/30 border-green-500/30"
+              )}
+              variant={list.viewerState.isFollowing ? "outline" : "default"}
+              onClick={handleFollowToggle}
+              disabled={toggleFollow.isPending}
+            >
+              <Users className="h-4 w-4" />
+              {list.viewerState.isFollowing ? "Following" : "Follow list"}
+            </Button>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2 cursor-pointer">
                 <Share2 className="h-4 w-4" />
                 Share
               </Button>
-            </div>
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem
+                onClick={() => handleSocialShare("facebook")}
+                className="cursor-pointer"
+              >
+                <Facebook className="h-4 w-4 mr-2" />
+                Facebook
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleSocialShare("twitter")}
+                className="cursor-pointer"
+              >
+                <Twitter className="h-4 w-4 mr-2" />
+                X (Twitter)
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleSocialShare("whatsapp")}
+                className="cursor-pointer"
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                WhatsApp
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleSocialShare("email")}
+                className="cursor-pointer"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Email
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleSocialShare("link")}
+                className="cursor-pointer"
+              >
+                <Link2 className="h-4 w-4 mr-2" />
+                Copy Link
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

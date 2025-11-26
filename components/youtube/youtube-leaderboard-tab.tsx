@@ -30,6 +30,7 @@ import {
 } from "recharts";
 import { Trophy, Star, ThumbsUp, MessageSquare, Table2, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const SORT_OPTIONS = [
   { value: "reviews", label: "Most Reviews" },
@@ -40,9 +41,13 @@ const SORT_OPTIONS = [
 type SortValue = (typeof SORT_OPTIONS)[number]["value"];
 
 export function YouTubeLeaderboardTab() {
+  const isMobile = useIsMobile();
   const [sortBy, setSortBy] = useState<SortValue>("reviews");
   const [viewMode, setViewMode] = useState<"list" | "table" | "chart">("list");
   const { data: leaderboard = [], isLoading } = useReviewLeaderboard();
+  
+  // Force table view on mobile
+  const effectiveViewMode = isMobile ? "table" : viewMode;
 
   // Sort leaderboard based on selected option
   const sortedLeaderboard = [...leaderboard].sort((a, b) => {
@@ -300,19 +305,21 @@ export function YouTubeLeaderboardTab() {
         </div>
       </div>
 
-      {/* View Tabs */}
+      {/* View Tabs - Hidden on mobile */}
       <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as typeof viewMode)}>
-        <TabsList>
-          <TabsTrigger value="list">List View</TabsTrigger>
-          <TabsTrigger value="table">
-            <Table2 className="h-4 w-4 mr-2" />
-            Table
-          </TabsTrigger>
-          <TabsTrigger value="chart">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Chart
-          </TabsTrigger>
-        </TabsList>
+        {!isMobile && (
+          <TabsList>
+            <TabsTrigger value="list">List View</TabsTrigger>
+            <TabsTrigger value="table">
+              <Table2 className="h-4 w-4 mr-2" />
+              Table
+            </TabsTrigger>
+            <TabsTrigger value="chart">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Chart
+            </TabsTrigger>
+          </TabsList>
+        )}
 
         {/* Content */}
         {isLoading ? (
@@ -327,19 +334,20 @@ export function YouTubeLeaderboardTab() {
             <p className="text-muted-foreground">No reviewers yet.</p>
           </div>
         ) : (
-          <TabsContent value="list" className="mt-6">
-            {renderListView()}
-          </TabsContent>
-        )}
-
-        {!isLoading && sortedLeaderboard.length > 0 && (
           <>
+            {!isMobile && (
+              <TabsContent value="list" className="mt-6">
+                {renderListView()}
+              </TabsContent>
+            )}
             <TabsContent value="table" className="mt-6">
               {renderTableView()}
             </TabsContent>
-            <TabsContent value="chart" className="mt-6">
-              {renderChartView()}
-            </TabsContent>
+            {!isMobile && (
+              <TabsContent value="chart" className="mt-6">
+                {renderChartView()}
+              </TabsContent>
+            )}
           </>
         )}
       </Tabs>

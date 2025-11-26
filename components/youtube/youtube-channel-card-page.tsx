@@ -33,6 +33,7 @@ interface YouTubeChannelCardPageProps {
     } | null;
     subscriberCount?: string;
     videoCount?: string;
+    note?: string | null;
   };
 }
 
@@ -42,6 +43,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
   const channelUrl = channel.channelUrl || `https://www.youtube.com/channel/${channel.channelId}`;
   const displayName = channelTitle.length > 30 ? channelTitle.slice(0, 30) + "..." : channelTitle;
   const profilePath = getChannelProfilePath(channel.channelId, channel.slug);
+  const isInDb = Boolean(channel.slug);
 
   const handleCardClick = (e: React.MouseEvent) => {
     // Don't navigate if clicking on buttons or links
@@ -53,7 +55,20 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
     ) {
       return;
     }
-    router.push(profilePath);
+    if (isInDb) {
+      router.push(profilePath);
+    } else {
+      window.open(channelUrl, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  const handleNameClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isInDb) {
+      router.push(profilePath);
+    } else {
+      window.open(channelUrl, "_blank", "noopener,noreferrer");
+    }
   };
 
   return (
@@ -63,31 +78,62 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
     >
       <div className="flex items-start gap-3 mb-3">
         <div className="relative group flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-          <Link href={profilePath} className="relative group">
-            {channel.thumbnail ? (
-              <Avatar className="h-12 w-12 cursor-pointer ring-2 ring-border group-hover:ring-primary transition-all">
-                <AvatarImage src={channel.thumbnail} alt={channelTitle} />
-                <AvatarFallback>
-                  <Youtube className="h-6 w-6" />
-                </AvatarFallback>
-              </Avatar>
-            ) : (
-              <Avatar className="h-12 w-12 cursor-pointer ring-2 ring-border group-hover:ring-primary transition-all">
-                <AvatarFallback>
-                  <Youtube className="h-6 w-6" />
-                </AvatarFallback>
-              </Avatar>
-            )}
-          </Link>
+          {isInDb ? (
+            <Link href={profilePath} className="relative group">
+              {channel.thumbnail ? (
+                <Avatar className="h-12 w-12 cursor-pointer ring-2 ring-border group-hover:ring-primary transition-all">
+                  <AvatarImage src={channel.thumbnail} alt={channelTitle} />
+                  <AvatarFallback>
+                    <Youtube className="h-6 w-6" />
+                  </AvatarFallback>
+                </Avatar>
+              ) : (
+                <Avatar className="h-12 w-12 cursor-pointer ring-2 ring-border group-hover:ring-primary transition-all">
+                  <AvatarFallback>
+                    <Youtube className="h-6 w-6" />
+                  </AvatarFallback>
+                </Avatar>
+              )}
+            </Link>
+          ) : (
+            <div
+              className="relative group cursor-pointer"
+              onClick={handleNameClick}
+            >
+              {channel.thumbnail ? (
+                <Avatar className="h-12 w-12 ring-2 ring-border group-hover:ring-primary transition-all">
+                  <AvatarImage src={channel.thumbnail} alt={channelTitle} />
+                  <AvatarFallback>
+                    <Youtube className="h-6 w-6" />
+                  </AvatarFallback>
+                </Avatar>
+              ) : (
+                <Avatar className="h-12 w-12 ring-2 ring-border group-hover:ring-primary transition-all">
+                  <AvatarFallback>
+                    <Youtube className="h-6 w-6" />
+                  </AvatarFallback>
+                </Avatar>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
-              <Link href={profilePath} className="block">
-                <h3 className="font-semibold hover:underline truncate flex items-center gap-2">
+              {isInDb ? (
+                <Link href={profilePath} className="block">
+                  <h3 className="font-semibold hover:underline truncate flex items-center gap-2">
+                    {displayName}
+                  </h3>
+                </Link>
+              ) : (
+                <h3
+                  className="font-semibold hover:underline truncate flex items-center gap-2 cursor-pointer"
+                  onClick={handleNameClick}
+                >
                   {displayName}
                 </h3>
-              </Link>
+              )}
               <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                 <div className="flex items-center gap-1">
                   <Users className="h-3 w-3" />
@@ -112,6 +158,13 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
           </div>
         </div>
       </div>
+
+      {/* Note */}
+      {channel.note && (
+        <div className="mb-3">
+          <p className="text-sm text-muted-foreground line-clamp-2">{channel.note}</p>
+        </div>
+      )}
 
       {/* Category Badges */}
       {channel.categories.length > 0 && (

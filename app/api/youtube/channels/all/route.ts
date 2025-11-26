@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-import { Prisma } from "@prisma/client";
 
 interface YouTubeChannelItem {
   id: string;
@@ -45,31 +44,12 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, pageParam);
     const skip = (page - 1) * limit;
 
-    // Build where clause
-    // Show all active channels, but filter private channels based on ownership
-    const where: Prisma.YouTubeChannelWhereInput = {
-      isActive: true,
-    };
-
-    // If user is logged in, show both public channels and their own private channels
-    // If not logged in, only show public channels
-    if (currentUserId) {
-      where.OR = [
-        { isPrivate: false }, // All public channels
-        { 
-          isPrivate: true, 
-          addedByUserId: currentUserId, // Only private channels owned by this user
-        },
-      ];
-    } else {
-      // Not logged in: only show public channels
-      where.isPrivate = false;
-    }
-
-    // Get all channels (without pagination first, so we can filter by category after fetching stats)
-    // We'll apply search filter after fetching since we need to filter by category from API data
-    const channels = await db.youTubeChannel.findMany({
-      where,
+    // Get all active channels first (without privacy filter, so we can filter in memory)
+    // This ensures we get all channels that might be visible, then filter by privacy
+    const allActiveChannels = await db.youTubeChannel.findMany({
+      where: {
+        isActive: true,
+      },
       orderBy: { order: "asc" },
       select: {
         id: true,
@@ -80,10 +60,34 @@ export async function GET(request: NextRequest) {
         channelUrl: true,
         isActive: true,
         isPrivate: true,
+        addedByUserId: true,
       },
     });
 
-    console.log(`[YouTubeChannelsAll] Found ${channels.length} channels in database`);
+    console.log(`[YouTubeChannelsAll] Found ${allActiveChannels.length} active channels in database`);
+
+    // Filter channels based on privacy (same logic as other routes):
+    // Show public channels (isPrivate is false or missing) OR user's private channels
+    const channels = allActiveChannels.filter((channel) => {
+      // Treat missing/null isPrivate as public (default behavior)
+      const isPublic = channel.isPrivate === false || channel.isPrivate === null || channel.isPrivate === undefined;
+      
+      if (isPublic) {
+        return true; // Show all public channels
+      }
+      
+      // If private, only show if user owns it
+      if (channel.isPrivate === true) {
+        if (currentUserId) {
+          return channel.addedByUserId === currentUserId;
+        }
+        return false; // Not logged in, don't show private channels
+      }
+      
+      return false;
+    });
+
+    console.log(`[YouTubeChannelsAll] After privacy filter: ${channels.length} channels visible to user`);
 
     // Helper function to extract category name from Freebase topic URL
     const extractCategoryName = (url: string): string => {
