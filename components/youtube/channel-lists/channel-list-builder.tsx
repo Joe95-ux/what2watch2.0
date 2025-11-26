@@ -137,10 +137,7 @@ export function ChannelListBuilder({
       return;
     }
     if (tags.length >= 8) {
-      toast({
-        title: "Too many tags",
-        description: "You can add up to 8 tags per list.",
-      });
+      toast.error("Too many tags. You can add up to 8 tags per list.");
       return;
     }
     setTags((prev) => [...prev, cleaned]);
@@ -150,19 +147,11 @@ export function ChannelListBuilder({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!name.trim()) {
-      toast({
-        title: "List name required",
-        description: "Give your list a memorable name.",
-        variant: "destructive",
-      });
+      toast.error("List name required. Give your list a memorable name.");
       return;
     }
     if (selectedChannels.length === 0) {
-      toast({
-        title: "Add channels",
-        description: "Select at least one channel to share.",
-        variant: "destructive",
-      });
+      toast.error("Add channels. Select at least one channel to share.");
       return;
     }
 
@@ -183,18 +172,11 @@ export function ChannelListBuilder({
         mode === "create"
           ? await createList.mutateAsync(payload)
           : await updateList.mutateAsync({ listId: initialData!.id, ...payload });
-      toast({
-        title: mode === "create" ? "List published" : "List updated",
-        description: "Your channel list is ready to share.",
-      });
+      toast.success(mode === "create" ? "List published. Your channel list is ready to share." : "List updated. Your channel list is ready to share.");
       onCompleted?.(list);
       onClose();
     } catch (error) {
-      toast({
-        title: "Unable to save list",
-        description: error instanceof Error ? error.message : "Something went wrong",
-        variant: "destructive",
-      });
+      toast.error(error instanceof Error ? error.message : "Unable to save list. Something went wrong.");
     }
   };
 

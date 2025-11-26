@@ -60,11 +60,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
       await toggleFollow.mutateAsync(list.id);
       refetch();
     } catch (error) {
-      toast({
-        title: "Unable to update follow",
-        description: error instanceof Error ? error.message : "Please try again later.",
-        variant: "destructive",
-      });
+      toast.error(error instanceof Error ? error.message : "Unable to update follow. Please try again later.");
     }
   };
 
@@ -72,11 +68,10 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
     if (!confirm("Delete this channel list? This cannot be undone.")) return;
     try {
       await deleteList.mutateAsync(list.id);
-      toast({ title: "List deleted" });
+      toast.success("List deleted");
       router.push("/youtube-channel/lists");
     } catch (error) {
-      toast({
-        title: "Unable to delete list",
+      toast.error(
         description: error instanceof Error ? error.message : "Please try again.",
         variant: "destructive",
       });
@@ -181,7 +176,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
                       })
                     : navigator.clipboard
                         .writeText(window.location.href)
-                        .then(() => toast({ title: "Link copied" }));
+                        .then(() => toast.success("Link copied"));
                 }}
               >
                 <Share2 className="h-4 w-4" />
