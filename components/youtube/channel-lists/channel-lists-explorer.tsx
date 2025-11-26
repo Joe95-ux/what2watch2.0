@@ -64,7 +64,7 @@ export function ChannelListsExplorer() {
         </Button>
       </div>
 
-      <Tabs value={scope} onValueChange={(value: ScopeValue) => setScope(value)}>
+      <Tabs value={scope} onValueChange={(value) => setScope(value as ScopeValue)}>
         <TabsList>
           {SCOPES.map((item) => (
             <TabsTrigger key={item.value} value={item.value} className="px-6">

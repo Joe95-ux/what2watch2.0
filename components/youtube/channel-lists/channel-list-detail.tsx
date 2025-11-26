@@ -71,10 +71,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
       toast.success("List deleted");
       router.push("/youtube-channel/lists");
     } catch (error) {
-      toast.error(
-        description: error instanceof Error ? error.message : "Please try again.",
-        variant: "destructive",
-      });
+      toast.error(error instanceof Error ? error.message : "Unable to delete list. Please try again.");
     }
   };
 
@@ -167,16 +164,17 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
               <Button
                 variant="outline"
                 className="gap-2 cursor-pointer"
-                onClick={() => {
-                  navigator.share
-                    ? navigator.share({
-                        title: list.name,
-                        text: list.description ?? undefined,
-                        url: window.location.href,
-                      })
-                    : navigator.clipboard
-                        .writeText(window.location.href)
-                        .then(() => toast.success("Link copied"));
+                onClick={async () => {
+                  if (navigator.share) {
+                    await navigator.share({
+                      title: list.name,
+                      text: list.description ?? undefined,
+                      url: window.location.href,
+                    });
+                  } else {
+                    await navigator.clipboard.writeText(window.location.href);
+                    toast.success("Link copied");
+                  }
                 }}
               >
                 <Share2 className="h-4 w-4" />
