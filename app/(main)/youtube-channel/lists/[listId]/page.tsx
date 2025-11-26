@@ -1,10 +1,13 @@
 import { ChannelListDetail } from "@/components/youtube/channel-lists/channel-list-detail";
 
-export default function YouTubeChannelListDetailPage({
+interface PageProps {
+  params: Promise<{ listId: string }>;
+}
+
+export default async function YouTubeChannelListDetailPage({
   params,
-}: {
-  params: { listId: string };
-}) {
-  return <ChannelListDetail listId={params.listId} />;
+}: PageProps) {
+  const { listId } = await params;
+  return <ChannelListDetail listId={listId} />;
 }
 
