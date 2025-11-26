@@ -3,6 +3,22 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 
+interface YouTubeChannelItem {
+  id: string;
+  statistics?: {
+    subscriberCount?: string;
+    videoCount?: string;
+  };
+  topicDetails?: {
+    topicCategories?: string[];
+    topicIds?: string[];
+  };
+}
+
+interface YouTubeChannelsResponse {
+  items?: YouTubeChannelItem[];
+}
+
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
 
@@ -110,9 +126,9 @@ export async function GET(request: NextRequest) {
             { next: { revalidate: 300 } }
           );
           if (response.ok) {
-            const data = await response.json();
+            const data = (await response.json()) as YouTubeChannelsResponse;
             if (data.items) {
-              data.items.forEach((item: any) => {
+              data.items.forEach((item) => {
                 // Store stats
                 channelStatsMap.set(item.id, {
                   subscriberCount: item.statistics?.subscriberCount || "0",
@@ -132,17 +148,6 @@ export async function GET(request: NextRequest) {
                         categories.push(categoryName);
                         allCategoriesSet.add(categoryName);
                       }
-                    });
-                  }
-                  
-                  // Extract from topicIds (Freebase IDs) - use as fallback or supplement
-                  if (topicDetails.topicIds && Array.isArray(topicDetails.topicIds)) {
-                    // For topicIds, we can use them as-is or try to map them
-                    // For now, we'll use them as supplementary info
-                    topicDetails.topicIds.forEach((topicId: string) => {
-                      // Freebase IDs look like /m/0xxx
-                      // We can use them as identifiers if needed
-                      // For now, we'll rely primarily on topicCategories
                     });
                   }
                   
