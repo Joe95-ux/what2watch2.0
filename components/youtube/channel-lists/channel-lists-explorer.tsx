@@ -14,6 +14,29 @@ import { useYouTubeChannelLists, YouTubeChannelList } from "@/hooks/use-youtube-
 import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+function ChannelListCardSkeleton() {
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-border bg-card/70 p-4">
+      {/* Stacked Channel Avatars Skeleton */}
+      <div className="relative h-12 flex items-center">
+        <Skeleton className="h-10 w-10 rounded-full" />
+        <Skeleton className="h-10 w-10 rounded-full -ml-5" />
+        <Skeleton className="h-10 w-10 rounded-full -ml-5" />
+        <Skeleton className="h-10 w-10 rounded-full -ml-5" />
+      </div>
+      {/* List Title Skeleton */}
+      <Skeleton className="h-6 w-3/4" />
+      {/* Creator Skeleton */}
+      <Skeleton className="h-4 w-1/2" />
+      {/* Description Skeleton */}
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-5/6" />
+      </div>
+    </div>
+  );
+}
+
 const SCOPES = [
   { value: "public", label: "Trending" },
   { value: "following", label: "Following" },
@@ -50,8 +73,8 @@ export function ChannelListsExplorer() {
   };
 
   return (
-    <div className="w-full max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="w-full max-w-[90rem] mx-auto py-8">
+      <div className="mb-6 flex items-center justify-between px-4 sm:px-6 lg:px-8">
         <h1 className="text-2xl font-semibold">Curated Channel lists</h1>
         {!isMobile && (
           <Button onClick={handleCreateClick} className="gap-2 cursor-pointer">
@@ -95,11 +118,11 @@ export function ChannelListsExplorer() {
           </TabsList>
         )}
         {SCOPES.map((item) => (
-          <TabsContent key={item.value} value={item.value} className="mt-6">
+          <TabsContent key={item.value} value={item.value} className="mt-6 px-4 sm:px-6 lg:px-8">
             {isLoading ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, index) => (
-                  <Skeleton key={index} className="h-[260px] rounded-3xl" />
+                  <ChannelListCardSkeleton key={index} />
                 ))}
               </div>
             ) : lists.length === 0 ? (

@@ -9,6 +9,50 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ChannelReview } from "@/hooks/use-youtube-channel-reviews";
 
+function ChannelReviewCardSkeleton() {
+  return (
+    <div className="relative">
+      {/* Card Skeleton */}
+      <div className="relative rounded-2xl border border-border bg-card/60 p-5 shadow-sm backdrop-blur mb-2">
+        <div className="space-y-3">
+          {/* Rating Skeleton */}
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-4 w-20" />
+          </div>
+          {/* Title Skeleton */}
+          <Skeleton className="h-5 w-3/4" />
+          {/* Content Skeleton */}
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+          </div>
+          {/* Tags Skeleton */}
+          <div className="flex items-center gap-2 pt-1">
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-20" />
+          </div>
+          {/* Action buttons Skeleton */}
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-8 w-28" />
+            </div>
+            <Skeleton className="h-8 w-8 rounded-full" />
+          </div>
+        </div>
+      </div>
+      {/* Username and Date Skeleton */}
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-4 w-1" />
+        <Skeleton className="h-4 w-20" />
+      </div>
+    </div>
+  );
+}
+
 interface RecentReview extends ChannelReview {
   channelTitle: string | null;
   channelThumbnail: string | null;
@@ -49,7 +93,7 @@ export function YouTubeRecentReviewsTab() {
       {isLoading ? (
         <div className="space-y-4">
           {Array.from({ length: 6 }).map((_, index) => (
-            <Skeleton key={index} className="h-48 w-full rounded-2xl" />
+            <ChannelReviewCardSkeleton key={index} />
           ))}
         </div>
       ) : reviews.length === 0 ? (

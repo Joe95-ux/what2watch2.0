@@ -2,13 +2,21 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Heart, Bookmark, Sparkles, Youtube, X, ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { Search, Heart, Bookmark, Sparkles, Youtube, X, ChevronLeft, ChevronRight, ArrowUpDown, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useFavoriteChannels } from "@/hooks/use-favorite-channels";
 import { useFavoriteYouTubeVideos } from "@/hooks/use-favorite-youtube-videos";
@@ -18,7 +26,7 @@ import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
 import { getChannelProfilePath } from "@/lib/channel-path";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
-import { Sheet, SheetContent, SheetClose, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface YouTubeChannelSidebarProps {
@@ -44,7 +52,6 @@ export function YouTubeChannelSidebar({
   const [sortBy, setSortBy] = useState<"default" | "alphabetical-az" | "alphabetical-za">("default");
   const [internalOpen, setInternalOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Fetch channel categories
   const { data: channelCategoriesData } = useQuery({
@@ -293,7 +300,7 @@ export function YouTubeChannelSidebar({
               placeholder="Search channels..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-20"
+              className="pl-9 pr-24"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
               {searchQuery && (
@@ -306,72 +313,119 @@ export function YouTubeChannelSidebar({
                   <X className="h-3 w-3" />
                 </Button>
               )}
-              <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
-                <SheetTrigger asChild>
+              
+              {/* Sort Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
                     className={cn(
                       "h-7 w-7 cursor-pointer",
-                      (filterBy !== "all" || categoryFilter !== "all" || sortBy !== "default") && "bg-primary/10 text-primary"
+                      sortBy !== "default" && "bg-primary/10 text-primary"
                     )}
                   >
-                    <SlidersHorizontal className="h-4 w-4" />
+                    <ArrowUpDown className="h-4 w-4" />
                   </Button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                  <div className="space-y-6 py-4">
-                    <div>
-                      <h2 className="text-lg font-semibold mb-4">Filter & Sort</h2>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Filter by</label>
-                        <Select value={filterBy} onValueChange={(value) => setFilterBy(value as "all" | "favorites")}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Filter by..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Channels</SelectItem>
-                            <SelectItem value="favorites">Favorites Only</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      {channelCategoriesData?.availableCategories && channelCategoriesData.availableCategories.length > 0 && (
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Category</label>
-                          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Category..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All Categories</SelectItem>
-                              {channelCategoriesData.availableCategories.map((category) => (
-                                <SelectItem key={category} value={category}>
-                                  {category}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Sort by</label>
-                        <Select value={sortBy} onValueChange={(value) => setSortBy(value as "default" | "alphabetical-az" | "alphabetical-za")}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Sort by..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="default">Default (Favorites First)</SelectItem>
-                            <SelectItem value="alphabetical-az">Alphabetical (A-Z)</SelectItem>
-                            <SelectItem value="alphabetical-za">Alphabetical (Z-A)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setSortBy("default")}
+                    className={cn(
+                      "cursor-pointer",
+                      sortBy === "default" && "bg-accent"
+                    )}
+                  >
+                    Default (Favorites First)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setSortBy("alphabetical-az")}
+                    className={cn(
+                      "cursor-pointer",
+                      sortBy === "alphabetical-az" && "bg-accent"
+                    )}
+                  >
+                    Alphabetical (A-Z)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setSortBy("alphabetical-za")}
+                    className={cn(
+                      "cursor-pointer",
+                      sortBy === "alphabetical-za" && "bg-accent"
+                    )}
+                  >
+                    Alphabetical (Z-A)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Filter Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "h-7 w-7 cursor-pointer",
+                      (filterBy !== "all" || categoryFilter !== "all") && "bg-primary/10 text-primary"
+                    )}
+                  >
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel>Filter by</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setFilterBy("all")}
+                    className={cn(
+                      "cursor-pointer",
+                      filterBy === "all" && "bg-accent"
+                    )}
+                  >
+                    All Channels
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setFilterBy("favorites")}
+                    className={cn(
+                      "cursor-pointer",
+                      filterBy === "favorites" && "bg-accent"
+                    )}
+                  >
+                    Favorites Only
+                  </DropdownMenuItem>
+                  {channelCategoriesData?.availableCategories && channelCategoriesData.availableCategories.length > 0 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>Category</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => setCategoryFilter("all")}
+                        className={cn(
+                          "cursor-pointer",
+                          categoryFilter === "all" && "bg-accent"
+                        )}
+                      >
+                        All Categories
+                      </DropdownMenuItem>
+                      {channelCategoriesData.availableCategories.map((category) => (
+                        <DropdownMenuItem
+                          key={category}
+                          onClick={() => setCategoryFilter(category)}
+                          className={cn(
+                            "cursor-pointer",
+                            categoryFilter === category && "bg-accent"
+                          )}
+                        >
+                          {category}
+                        </DropdownMenuItem>
+                      ))}
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>

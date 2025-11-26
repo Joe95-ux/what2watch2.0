@@ -115,7 +115,7 @@ export function ChannelReviewCard({
       {/* Card with tooltip-style connection pointing down to username */}
       <div className="relative rounded-2xl border border-border bg-card/60 p-5 shadow-sm backdrop-blur mb-2">
         {/* Tooltip arrow pointing down from card to username */}
-        <div className="absolute -bottom-2 left-0 h-2 w-2 rotate-45 border-r border-b border-border bg-card/60" />
+        <div className="absolute -bottom-[6px] left-[23px] h-[10px] w-[10px] rotate-45 border-r border-b border-border bg-card/60" />
 
         <div className="space-y-3">
           {/* Rating - aligned with content */}
@@ -253,13 +253,13 @@ export function ChannelReviewCard({
       {/* Username and Date - Below the card, like tooltip target */}
       <div className="flex items-center gap-2">
         <p className="font-semibold text-sm">{displayName}</p>
-        <span className="text-muted-foreground">|</span>
+        <span className="text-muted-foreground">•</span>
         <span className="text-sm text-muted-foreground">
           {formatDistanceToNow(new Date(review.createdAt), { addSuffix: true })}
         </span>
         {review.isEdited && (
           <>
-            <span className="text-muted-foreground">|</span>
+            <span className="text-muted-foreground">•</span>
             <span className="text-xs text-muted-foreground">(edited)</span>
           </>
         )}
