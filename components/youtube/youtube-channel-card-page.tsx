@@ -131,7 +131,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
       {/* Rating */}
       {channel.rating && (
         <div className="flex items-center gap-2">
-          <Star className="h-4 w-4 fill-primary text-primary" />
+          <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
           <span className="text-sm font-medium">{channel.rating.average}</span>
           <span className="text-xs text-muted-foreground">({channel.rating.count})</span>
         </div>

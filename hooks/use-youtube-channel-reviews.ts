@@ -16,12 +16,14 @@ export interface ChannelReview {
   content: string;
   tags: string[];
   helpfulCount: number;
+  notHelpfulCount?: number;
   isEdited: boolean;
   status: string;
   createdAt: string;
   updatedAt: string;
   user: ChannelReviewUser;
   viewerHasVoted?: boolean;
+  viewerVoteType?: "UP" | "DOWN" | null;
   canEdit?: boolean;
 }
 
@@ -211,21 +213,153 @@ export function useToggleChannelReviewVote(channelId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (reviewId: string) => {
+    mutationFn: async ({ reviewId, voteType }: { reviewId: string; voteType: "UP" | "DOWN" }) => {
       const response = await fetch(`/api/youtube/channel-reviews/${reviewId}/vote`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ voteType }),
       });
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({ error: "Failed to update vote" }));
-        throw new Error(error.error || "Failed to update vote");
+        const errorWithCode = { ...error, code: error.code || "UNKNOWN_ERROR" };
+        throw errorWithCode;
       }
 
-      return response.json() as Promise<{ added: boolean }>;
+      return response.json() as Promise<{ added: boolean; voteType: "UP" | "DOWN" | null }>;
+    },
+    onMutate: async ({ reviewId, voteType }: { reviewId: string; voteType: "UP" | "DOWN" }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["channel-reviews", channelId] });
+      await queryClient.cancelQueries({ queryKey: ["youtube-review-detail", reviewId] });
+
+      // Snapshot previous values
+      const previousReviews = queryClient.getQueryData<{
+        reviews: ChannelReview[];
+        pagination: { page: number; limit: number; total: number; totalPages: number };
+        stats: ChannelReviewStats;
+        viewerState: ChannelReviewViewerState;
+      }>(["channel-reviews", channelId]);
+
+      const previousReviewDetail = queryClient.getQueryData<{
+        review: ChannelReview;
+      }>(["youtube-review-detail", reviewId]);
+
+      // Optimistically update reviews list
+      if (previousReviews) {
+        queryClient.setQueryData<typeof previousReviews>(
+          ["channel-reviews", channelId],
+          {
+            ...previousReviews,
+            reviews: previousReviews.reviews.map((r) => {
+              if (r.id === reviewId) {
+                const currentVoteType = r.viewerVoteType;
+                const isUpVote = voteType === "UP";
+                const isDownVote = voteType === "DOWN";
+                const wasUpVoted = currentVoteType === "UP";
+                const wasDownVoted = currentVoteType === "DOWN";
+                
+                // Toggle logic: if clicking same vote type, remove vote; otherwise switch
+                let newVoteType: "UP" | "DOWN" | null = null;
+                let newHelpfulCount = r.helpfulCount;
+                let newNotHelpfulCount = r.notHelpfulCount ?? 0;
+                
+                if (isUpVote && wasUpVoted) {
+                  // Remove up vote
+                  newHelpfulCount = Math.max(0, r.helpfulCount - 1);
+                } else if (isDownVote && wasDownVoted) {
+                  // Remove down vote
+                  newNotHelpfulCount = Math.max(0, (r.notHelpfulCount ?? 0) - 1);
+                } else if (isUpVote) {
+                  // Add/switch to up vote
+                  newVoteType = "UP";
+                  newHelpfulCount = wasDownVoted ? r.helpfulCount + 1 : r.helpfulCount + 1;
+                  newNotHelpfulCount = wasDownVoted ? Math.max(0, (r.notHelpfulCount ?? 0) - 1) : (r.notHelpfulCount ?? 0);
+                } else if (isDownVote) {
+                  // Add/switch to down vote
+                  newVoteType = "DOWN";
+                  newHelpfulCount = wasUpVoted ? Math.max(0, r.helpfulCount - 1) : r.helpfulCount;
+                  newNotHelpfulCount = wasUpVoted ? (r.notHelpfulCount ?? 0) + 1 : (r.notHelpfulCount ?? 0) + 1;
+                }
+                
+                return {
+                  ...r,
+                  viewerHasVoted: !!newVoteType,
+                  viewerVoteType: newVoteType,
+                  helpfulCount: newHelpfulCount,
+                  notHelpfulCount: newNotHelpfulCount,
+                };
+              }
+              return r;
+            }),
+          }
+        );
+      }
+
+      // Optimistically update review detail
+      if (previousReviewDetail) {
+        const currentVoteType = previousReviewDetail.review.viewerVoteType;
+        const isUpVote = voteType === "UP";
+        const isDownVote = voteType === "DOWN";
+        const wasUpVoted = currentVoteType === "UP";
+        const wasDownVoted = currentVoteType === "DOWN";
+        
+        let newVoteType: "UP" | "DOWN" | null = null;
+        let newHelpfulCount = previousReviewDetail.review.helpfulCount;
+        let newNotHelpfulCount = previousReviewDetail.review.notHelpfulCount ?? 0;
+        
+        if (isUpVote && wasUpVoted) {
+          newHelpfulCount = Math.max(0, previousReviewDetail.review.helpfulCount - 1);
+        } else if (isDownVote && wasDownVoted) {
+          newNotHelpfulCount = Math.max(0, (previousReviewDetail.review.notHelpfulCount ?? 0) - 1);
+        } else if (isUpVote) {
+          newVoteType = "UP";
+          newHelpfulCount = wasDownVoted ? previousReviewDetail.review.helpfulCount + 1 : previousReviewDetail.review.helpfulCount + 1;
+          newNotHelpfulCount = wasDownVoted ? Math.max(0, (previousReviewDetail.review.notHelpfulCount ?? 0) - 1) : (previousReviewDetail.review.notHelpfulCount ?? 0);
+        } else if (isDownVote) {
+          newVoteType = "DOWN";
+          newHelpfulCount = wasUpVoted ? Math.max(0, previousReviewDetail.review.helpfulCount - 1) : previousReviewDetail.review.helpfulCount;
+          newNotHelpfulCount = wasUpVoted ? (previousReviewDetail.review.notHelpfulCount ?? 0) + 1 : (previousReviewDetail.review.notHelpfulCount ?? 0) + 1;
+        }
+        
+        queryClient.setQueryData<typeof previousReviewDetail>(
+          ["youtube-review-detail", reviewId],
+          {
+            ...previousReviewDetail,
+            review: {
+              ...previousReviewDetail.review,
+              viewerHasVoted: !!newVoteType,
+              viewerVoteType: newVoteType,
+              helpfulCount: newHelpfulCount,
+              notHelpfulCount: newNotHelpfulCount,
+            },
+          }
+        );
+      }
+
+      return { previousReviews, previousReviewDetail };
+    },
+    onError: (error: { error?: string; code?: string }, _variables, context) => {
+      // Rollback on error
+      if (context?.previousReviews) {
+        queryClient.setQueryData(["channel-reviews", channelId], context.previousReviews);
+      }
+      if (context?.previousReviewDetail) {
+        queryClient.setQueryData(
+          ["youtube-review-detail", _variables.reviewId],
+          context.previousReviewDetail
+        );
+      }
+      // Re-throw to be handled by component
+      throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["channel-reviews", channelId],
+        exact: false,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["youtube-review-detail"],
         exact: false,
       });
     },

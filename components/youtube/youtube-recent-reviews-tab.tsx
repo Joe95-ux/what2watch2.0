@@ -62,7 +62,18 @@ export function YouTubeRecentReviewsTab() {
             {reviews.map((review) => (
               <div
                 key={review.id}
-                onClick={() => handleReviewClick(review)}
+                onClick={(e) => {
+                  // Don't navigate if clicking on buttons or interactive elements
+                  const target = e.target as HTMLElement;
+                  if (
+                    target.closest("button") ||
+                    target.closest('[role="button"]') ||
+                    target.closest("a")
+                  ) {
+                    return;
+                  }
+                  handleReviewClick(review);
+                }}
                 className="cursor-pointer"
               >
                 <ChannelReviewCard

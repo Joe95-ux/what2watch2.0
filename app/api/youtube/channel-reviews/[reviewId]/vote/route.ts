@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { evaluateReviewerBadges } from "@/lib/youtube-review-badges";
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ reviewId: string }> }
 ) {
   try {
@@ -24,9 +24,12 @@ export async function POST(
     }
 
     const { reviewId } = await params;
+    const body = await request.json().catch(() => ({}));
+    const voteType = (body.voteType || "UP") as "UP" | "DOWN";
+
     const review = await db.channelReview.findUnique({
       where: { id: reviewId },
-      select: { id: true, userId: true, helpfulCount: true },
+      select: { id: true, userId: true, helpfulCount: true, notHelpfulCount: true },
     });
 
     if (!review) {
@@ -35,7 +38,7 @@ export async function POST(
 
     if (review.userId === user.id) {
       return NextResponse.json(
-        { error: "You cannot vote on your own review" },
+        { error: "You cannot vote on your own review", code: "OWNER_CANNOT_VOTE" },
         { status: 400 }
       );
     }
@@ -49,7 +52,8 @@ export async function POST(
       },
     });
 
-    if (existingVote) {
+    // If user already voted with the same type, remove the vote
+    if (existingVote && existingVote.voteType === voteType) {
       await db.$transaction([
         db.channelReviewVote.delete({
           where: { id: existingVote.id },
@@ -57,32 +61,64 @@ export async function POST(
         db.channelReview.update({
           where: { id: reviewId },
           data: {
-            helpfulCount: Math.max(0, review.helpfulCount - 1),
+            helpfulCount: existingVote.voteType === "UP" 
+              ? Math.max(0, review.helpfulCount - 1)
+              : review.helpfulCount,
+            notHelpfulCount: existingVote.voteType === "DOWN"
+              ? Math.max(0, review.notHelpfulCount - 1)
+              : review.notHelpfulCount,
           },
         }),
       ]);
 
       await evaluateReviewerBadges(review.userId);
-      return NextResponse.json({ added: false });
+      return NextResponse.json({ added: false, voteType: null });
     }
 
+    // If user voted with different type, update the vote
+    if (existingVote && existingVote.voteType !== voteType) {
+      await db.$transaction([
+        db.channelReviewVote.update({
+          where: { id: existingVote.id },
+          data: { voteType },
+        }),
+        db.channelReview.update({
+          where: { id: reviewId },
+          data: {
+            helpfulCount: voteType === "UP"
+              ? review.helpfulCount + 1
+              : Math.max(0, review.helpfulCount - 1),
+            notHelpfulCount: voteType === "DOWN"
+              ? review.notHelpfulCount + 1
+              : Math.max(0, review.notHelpfulCount - 1),
+          },
+        }),
+      ]);
+
+      await evaluateReviewerBadges(review.userId);
+      return NextResponse.json({ added: true, voteType });
+    }
+
+    // Create new vote
     await db.$transaction([
       db.channelReviewVote.create({
         data: {
           reviewId,
           userId: user.id,
+          voteType,
         },
       }),
       db.channelReview.update({
         where: { id: reviewId },
         data: {
-          helpfulCount: review.helpfulCount + 1,
+          helpfulCount: voteType === "UP" ? review.helpfulCount + 1 : review.helpfulCount,
+          notHelpfulCount: voteType === "DOWN" ? review.notHelpfulCount + 1 : review.notHelpfulCount,
         },
       }),
     ]);
 
     await evaluateReviewerBadges(review.userId);
-    return NextResponse.json({ added: true });
+    return NextResponse.json({ added: true, voteType });
   } catch (error) {
     console.error("[ChannelReviews] vote toggle error", error);
     return NextResponse.json({ error: "Failed to update vote" }, { status: 500 });

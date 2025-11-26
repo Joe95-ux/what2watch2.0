@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Star, ThumbsUp, Tag } from "lucide-react";
+import { ArrowLeft, Star, ThumbsUp, ThumbsDown, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -26,6 +26,7 @@ interface ReviewDetail {
   content: string;
   tags: string[];
   helpfulCount: number;
+  notHelpfulCount?: number;
   isEdited: boolean;
   createdAt: string;
   updatedAt: string;
@@ -37,6 +38,7 @@ interface ReviewDetail {
     avatarUrl: string | null;
   };
   viewerHasVoted: boolean;
+  viewerVoteType?: "UP" | "DOWN" | null;
   canEdit: boolean;
 }
 
@@ -60,7 +62,7 @@ export function YouTubeReviewDetailClient({ reviewId }: YouTubeReviewDetailClien
 
   const toggleVote = useToggleChannelReviewVote(review?.channelId || "");
 
-  const handleVote = async () => {
+  const handleVote = async (voteType: "UP" | "DOWN") => {
     if (!isSignedIn) {
       toast.error("Sign in to vote");
       if (openSignIn) {
@@ -74,11 +76,20 @@ export function YouTubeReviewDetailClient({ reviewId }: YouTubeReviewDetailClien
     if (!review) return;
 
     try {
-      await toggleVote.mutateAsync(review.id);
-      toast.success(review.viewerHasVoted ? "Vote removed" : "Vote added");
-    } catch (error) {
+      await toggleVote.mutateAsync({ reviewId: review.id, voteType });
+      const currentVoteType = review.viewerVoteType;
+      if (currentVoteType === voteType) {
+        toast.success("Vote removed");
+      } else {
+        toast.success(voteType === "UP" ? "Helpful vote added" : "Not helpful vote added");
+      }
+    } catch (error: unknown) {
       console.error("[ReviewDetail] vote error", error);
-      toast.error("Unable to update vote");
+      if (error && typeof error === "object" && "code" in error && error.code === "OWNER_CANNOT_VOTE") {
+        toast.info("You cannot vote on your own review");
+      } else {
+        toast.error("Unable to update vote");
+      }
     }
   };
 
@@ -157,7 +168,7 @@ export function YouTubeReviewDetailClient({ reviewId }: YouTubeReviewDetailClien
                     key={index}
                     className={`h-4 w-4 ${
                       index < review.rating
-                        ? "fill-primary text-primary"
+                        ? "fill-yellow-500 text-yellow-500"
                         : "text-muted-foreground"
                     }`}
                   />
@@ -192,11 +203,11 @@ export function YouTubeReviewDetailClient({ reviewId }: YouTubeReviewDetailClien
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-4 border-t">
+          <div className="flex items-center gap-2 pt-4 border-t">
             <Button
-              variant={review.viewerHasVoted ? "secondary" : "ghost"}
+              variant={review.viewerVoteType === "UP" ? "secondary" : "ghost"}
               size="sm"
-              onClick={handleVote}
+              onClick={() => handleVote("UP")}
               disabled={toggleVote.isPending}
               className="gap-2"
             >
@@ -204,6 +215,19 @@ export function YouTubeReviewDetailClient({ reviewId }: YouTubeReviewDetailClien
               Helpful
               <span className="text-xs font-medium text-muted-foreground">
                 {review.helpfulCount}
+              </span>
+            </Button>
+            <Button
+              variant={review.viewerVoteType === "DOWN" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => handleVote("DOWN")}
+              disabled={toggleVote.isPending}
+              className="gap-2"
+            >
+              <ThumbsDown className="h-4 w-4" />
+              Not Helpful
+              <span className="text-xs font-medium text-muted-foreground">
+                {review.notHelpfulCount ?? 0}
               </span>
             </Button>
           </div>

@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     // Get review IDs and check if current user has voted
     const reviewIds = reviews.map((review) => review.id);
-    let viewerVotes = new Set<string>();
+    const viewerVotesMap = new Map<string, "UP" | "DOWN">();
 
     if (currentUserId && reviewIds.length > 0) {
       const votes = await db.channelReviewVote.findMany({
@@ -64,9 +64,11 @@ export async function GET(request: NextRequest) {
           userId: currentUserId,
           reviewId: { in: reviewIds },
         },
-        select: { reviewId: true },
+        select: { reviewId: true, voteType: true },
       });
-      viewerVotes = new Set(votes.map((vote) => vote.reviewId));
+      votes.forEach((vote) => {
+        viewerVotesMap.set(vote.reviewId, (vote.voteType || "UP") as "UP" | "DOWN");
+      });
     }
 
     // Get channel info for reviews
@@ -85,6 +87,7 @@ export async function GET(request: NextRequest) {
 
     const response = reviews.map((review) => {
       const channel = channelMap.get(review.channelId);
+      const viewerVoteType = viewerVotesMap.get(review.id);
       return {
         id: review.id,
         channelId: review.channelId,
@@ -96,13 +99,15 @@ export async function GET(request: NextRequest) {
         content: review.content,
         tags: review.tags,
         helpfulCount: review.helpfulCount,
+        notHelpfulCount: review.notHelpfulCount ?? 0,
         isEdited: review.isEdited,
         status: review.status,
         createdAt: review.createdAt,
         updatedAt: review.updatedAt,
         userId: review.userId,
         user: review.user,
-        viewerHasVoted: viewerVotes.has(review.id),
+        viewerHasVoted: !!viewerVoteType,
+        viewerVoteType: viewerVoteType || null,
         canEdit: currentUserId === review.userId,
       };
     });

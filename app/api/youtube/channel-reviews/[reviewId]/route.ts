@@ -57,14 +57,17 @@ export async function GET(
 
     // Check if user has voted
     let viewerHasVoted = false;
+    let viewerVoteType: "UP" | "DOWN" | null = null;
     if (currentUserId) {
       const vote = await db.channelReviewVote.findFirst({
         where: {
           userId: currentUserId,
           reviewId: review.id,
         },
+        select: { voteType: true },
       });
       viewerHasVoted = Boolean(vote);
+      viewerVoteType = vote ? (vote.voteType as "UP" | "DOWN") : null;
     }
 
     return NextResponse.json({
@@ -78,12 +81,14 @@ export async function GET(
       content: review.content,
       tags: review.tags,
       helpfulCount: review.helpfulCount,
+      notHelpfulCount: review.notHelpfulCount ?? 0,
       isEdited: review.isEdited,
       createdAt: review.createdAt,
       updatedAt: review.updatedAt,
       userId: review.userId,
       user: review.user,
       viewerHasVoted,
+      viewerVoteType,
       canEdit: currentUserId === review.userId,
     });
   } catch (error) {

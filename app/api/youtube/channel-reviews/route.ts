@@ -77,7 +77,7 @@ async function buildResponse(params: {
   ]);
 
   const reviewIds = reviews.map((review) => review.id);
-  let viewerVotes = new Set<string>();
+  const viewerVotesMap = new Map<string, "UP" | "DOWN">();
 
   if (currentUserId && reviewIds.length > 0) {
     const votes = await db.channelReviewVote.findMany({
@@ -85,9 +85,11 @@ async function buildResponse(params: {
         userId: currentUserId,
         reviewId: { in: reviewIds },
       },
-      select: { reviewId: true },
+      select: { reviewId: true, voteType: true },
     });
-    viewerVotes = new Set(votes.map((vote) => vote.reviewId));
+    votes.forEach((vote) => {
+      viewerVotesMap.set(vote.reviewId, (vote.voteType || "UP") as "UP" | "DOWN");
+    });
   }
 
   const ratingDistribution = Array.from({ length: 5 }, (_, index) => {
@@ -116,23 +118,28 @@ async function buildResponse(params: {
     .sort((a, b) => b.count - a.count)
     .slice(0, 12);
 
-  const reviewsWithViewerState = reviews.map((review) => ({
-    id: review.id,
-    channelId: review.channelId,
-    rating: review.rating,
-    title: review.title,
-    content: review.content,
-    tags: review.tags,
-    helpfulCount: review.helpfulCount,
-    isEdited: review.isEdited,
-    status: review.status,
-    createdAt: review.createdAt,
-    updatedAt: review.updatedAt,
-    userId: review.userId,
-    user: review.user,
-    viewerHasVoted: viewerVotes.has(review.id),
-    canEdit: currentUserId === review.userId,
-  }));
+  const reviewsWithViewerState = reviews.map((review) => {
+    const viewerVoteType = viewerVotesMap.get(review.id);
+    return {
+      id: review.id,
+      channelId: review.channelId,
+      rating: review.rating,
+      title: review.title,
+      content: review.content,
+      tags: review.tags,
+      helpfulCount: review.helpfulCount,
+      notHelpfulCount: review.notHelpfulCount ?? 0,
+      isEdited: review.isEdited,
+      status: review.status,
+      createdAt: review.createdAt,
+      updatedAt: review.updatedAt,
+      userId: review.userId,
+      user: review.user,
+      viewerHasVoted: !!viewerVoteType,
+      viewerVoteType: viewerVoteType || null,
+      canEdit: currentUserId === review.userId,
+    };
+  });
 
   return {
     reviews: reviewsWithViewerState,

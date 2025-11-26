@@ -7,7 +7,9 @@ import {
   Edit,
   Trash2,
   ThumbsUp,
+  ThumbsDown,
   Tag,
+  Star,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -69,13 +71,23 @@ export function ChannelReviewCard({
     await action();
   };
 
-  const handleVote = () =>
+  const handleVote = (voteType: "UP" | "DOWN") =>
     handleRequireAuth(async () => {
       try {
-        await toggleVote.mutateAsync(review.id);
-      } catch (error) {
+        await toggleVote.mutateAsync({ reviewId: review.id, voteType });
+        const currentVoteType = review.viewerVoteType;
+        if (currentVoteType === voteType) {
+          toast.success("Vote removed");
+        } else {
+          toast.success(voteType === "UP" ? "Helpful vote added" : "Not helpful vote added");
+        }
+      } catch (error: unknown) {
         console.error("[ChannelReviewCard] vote error", error);
-        toast.error("Unable to update helpful vote.");
+        if (error && typeof error === "object" && "code" in error && error.code === "OWNER_CANNOT_VOTE") {
+          toast.info("You cannot vote on your own review");
+        } else {
+          toast.error("Unable to update vote.");
+        }
       }
     });
 
@@ -114,11 +126,13 @@ export function ChannelReviewCard({
 
           <div className="flex items-center gap-2">
             {Array.from({ length: 5 }).map((_, index) => (
-              <div
+              <Star
                 key={index}
                 className={cn(
-                  "h-2 w-8 rounded-full",
-                  index < review.rating ? "bg-primary" : "bg-muted"
+                  "h-4 w-4",
+                  index < review.rating
+                    ? "fill-yellow-500 text-yellow-500"
+                    : "text-muted-foreground"
                 )}
               />
             ))}
@@ -146,11 +160,15 @@ export function ChannelReviewCard({
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center gap-2 pt-2">
             <Button
-              variant={review.viewerHasVoted ? "secondary" : "ghost"}
+              variant={review.viewerVoteType === "UP" ? "secondary" : "ghost"}
               size="sm"
-              onClick={handleVote}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleVote("UP");
+              }}
               disabled={toggleVote.isPending}
               className="cursor-pointer gap-2"
             >
@@ -158,6 +176,23 @@ export function ChannelReviewCard({
               Helpful
               <span className="text-xs font-medium text-muted-foreground">
                 {review.helpfulCount}
+              </span>
+            </Button>
+            <Button
+              variant={review.viewerVoteType === "DOWN" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleVote("DOWN");
+              }}
+              disabled={toggleVote.isPending}
+              className="cursor-pointer gap-2"
+            >
+              <ThumbsDown className="h-4 w-4" />
+              Not Helpful
+              <span className="text-xs font-medium text-muted-foreground">
+                {review.notHelpfulCount ?? 0}
               </span>
             </Button>
 

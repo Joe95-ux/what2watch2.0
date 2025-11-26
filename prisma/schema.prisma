@@ -845,6 +845,7 @@ model ChannelReview {
   content       String
   tags          String[] @default([])
   helpfulCount  Int      @default(0)
+  notHelpfulCount Int    @default(0)
   isEdited      Boolean  @default(false)
   status        String   @default("published")
 
@@ -866,6 +867,7 @@ model ChannelReviewVote {
   review    ChannelReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
   userId    String        @db.ObjectId
   user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  voteType  String        @default("UP") // "UP" or "DOWN"
   createdAt DateTime      @default(now())
 
   @@unique([reviewId, userId])

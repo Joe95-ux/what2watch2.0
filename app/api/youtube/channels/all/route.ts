@@ -46,18 +46,23 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Build where clause
+    // Show all active channels, but filter private channels based on ownership
     const where: Prisma.YouTubeChannelWhereInput = {
       isActive: true,
     };
 
-    // If user is logged in, show both public and their private channels
+    // If user is logged in, show both public channels and their own private channels
     // If not logged in, only show public channels
     if (currentUserId) {
       where.OR = [
-        { isPrivate: false },
-        { isPrivate: true, addedByUserId: currentUserId },
+        { isPrivate: false }, // All public channels
+        { 
+          isPrivate: true, 
+          addedByUserId: currentUserId, // Only private channels owned by this user
+        },
       ];
     } else {
+      // Not logged in: only show public channels
       where.isPrivate = false;
     }
 
@@ -77,6 +82,8 @@ export async function GET(request: NextRequest) {
         isPrivate: true,
       },
     });
+
+    console.log(`[YouTubeChannelsAll] Found ${channels.length} channels in database`);
 
     // Helper function to extract category name from Freebase topic URL
     const extractCategoryName = (url: string): string => {
@@ -210,6 +217,8 @@ export async function GET(request: NextRequest) {
     // Now apply pagination to filtered results
     const total = filteredChannels.length;
     const paginatedChannels = filteredChannels.slice(skip, skip + limit);
+    
+    console.log(`[YouTubeChannelsAll] After filtering: ${total} total channels, returning ${paginatedChannels.length} for page ${page}`);
 
     // Get available categories from all channels (from topicDetails)
     const availableCategories = Array.from(allCategoriesSet).sort();

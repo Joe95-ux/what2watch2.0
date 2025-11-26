@@ -1,17 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Plus, Minus, Search, X, GripVertical } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, X, GripVertical, Search, Loader2 } from "lucide-react";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import {
   ChannelListItemPayload,
   YouTubeChannelList,
@@ -20,12 +18,13 @@ import {
 } from "@/hooks/use-youtube-channel-lists";
 import { YouTubeChannel } from "@/hooks/use-youtube-channels";
 import { toast } from "sonner";
+import { extractChannelIdFromUrl } from "@/lib/youtube-channels";
 
 interface ChannelListBuilderProps {
   isOpen: boolean;
   onClose: () => void;
   initialData?: YouTubeChannelList | null;
-  availableChannels: YouTubeChannel[];
+  availableChannels?: YouTubeChannel[]; // Optional, kept for backward compatibility but not used
   onCompleted?: (list: YouTubeChannelList) => void;
 }
 
@@ -38,19 +37,39 @@ export function ChannelListBuilder({
   isOpen,
   onClose,
   initialData,
-  availableChannels,
+  availableChannels, // Unused, kept for backward compatibility
   onCompleted,
 }: ChannelListBuilderProps) {
+  // availableChannels is kept for backward compatibility but not used
+  // Channels are now added via the channel extractor/search
   const createList = useCreateYouTubeChannelList();
   const updateList = useUpdateYouTubeChannelList();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
-  const [coverImage, setCoverImage] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
-  const [search, setSearch] = useState("");
+  const [channelSearchInput, setChannelSearchInput] = useState("");
+  const [isSearchingChannels, setIsSearchingChannels] = useState(false);
+  const [searchResults, setSearchResults] = useState<Array<{
+    id: string;
+    title: string;
+    thumbnail?: string;
+    channelUrl: string;
+    subscriberCount?: string;
+    videoCount?: string;
+  }>>([]);
   const [selectedChannels, setSelectedChannels] = useState<SelectedChannel[]>([]);
+
+  // Format count helper
+  const formatCount = (count: string | number | null | undefined): string => {
+    if (!count) return "0";
+    const num = typeof count === "string" ? parseInt(count, 10) : count;
+    if (isNaN(num)) return "0";
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return num.toString();
+  };
 
   const mode: "create" | "edit" = initialData ? "edit" : "create";
   const isSubmitting = createList.isPending || updateList.isPending;
@@ -61,7 +80,6 @@ export function ChannelListBuilder({
       setName(initialData.name);
       setDescription(initialData.description ?? "");
       setIsPublic(initialData.isPublic);
-      setCoverImage(initialData.coverImage ?? "");
       setTags(initialData.tags ?? []);
       setSelectedChannels(
         initialData.items
@@ -82,37 +100,102 @@ export function ChannelListBuilder({
       setName("");
       setDescription("");
       setIsPublic(true);
-      setCoverImage("");
       setTagInput("");
       setTags([]);
+      setChannelSearchInput("");
+      setSearchResults([]);
       setSelectedChannels([]);
     }
   }, [isOpen, initialData]);
 
-  const filteredAvailableChannels = useMemo(() => {
-    if (!availableChannels?.length) return [];
-    const term = search.toLowerCase();
-    return availableChannels.filter((channel) => {
-      if (!term) return true;
-      return channel.title.toLowerCase().includes(term) || channel.channelUrl?.toLowerCase().includes(term);
-    });
-  }, [availableChannels, search]);
+  const handleSearchChannels = async () => {
+    if (!channelSearchInput.trim()) {
+      toast.error("Please enter a channel name or URL");
+      return;
+    }
 
-  const handleAddChannel = (channel: YouTubeChannel) => {
-    if (selectedChannels.some((item) => item.channelId === channel.id)) return;
+    setIsSearchingChannels(true);
+    setSearchResults([]);
+
+    try {
+      const isUrl = channelSearchInput.includes("youtube.com") || channelSearchInput.includes("youtu.be");
+      
+      if (isUrl) {
+        const channelId = extractChannelIdFromUrl(channelSearchInput);
+        if (channelId) {
+          const response = await fetch(`/api/youtube/channels?channelIds=${encodeURIComponent(channelId)}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.channels && data.channels.length > 0) {
+              setSearchResults(data.channels);
+            } else {
+              toast.error("Channel not found. Please check the URL.");
+            }
+          } else {
+            toast.error("Failed to fetch channel information.");
+          }
+        } else {
+          // Try search
+          const searchTerm = channelSearchInput.split("/").pop() || channelSearchInput;
+          await performChannelSearch(searchTerm);
+        }
+      } else {
+        await performChannelSearch(channelSearchInput);
+      }
+    } catch (err) {
+      console.error("Error searching channels:", err);
+      toast.error("An error occurred. Please try again.");
+    } finally {
+      setIsSearchingChannels(false);
+    }
+  };
+
+  const performChannelSearch = async (query: string) => {
+    try {
+      const response = await fetch(`/api/youtube/channels/search?q=${encodeURIComponent(query)}&maxResults=10`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.channels && data.channels.length > 0) {
+          setSearchResults(data.channels);
+        } else {
+          toast.error("No channels found. Try a different search term.");
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.error || "Failed to search for channels.");
+      }
+    } catch (err) {
+      console.error("Error searching channels:", err);
+      toast.error("An error occurred while searching. Please try again.");
+    }
+  };
+
+  const handleAddChannel = (channel: {
+    id: string;
+    title: string;
+    thumbnail?: string;
+    channelUrl: string;
+    subscriberCount?: string;
+    videoCount?: string;
+  }) => {
+    if (selectedChannels.some((item) => item.channelId === channel.id)) {
+      toast.info("Channel already added to list");
+      return;
+    }
     setSelectedChannels((prev) => [
       ...prev,
       {
         channelId: channel.id,
         channelTitle: channel.title,
         channelThumbnail: channel.thumbnail,
-        channelDescription: channel.description,
+        channelDescription: undefined,
         subscriberCount: channel.subscriberCount ?? null,
         videoCount: channel.videoCount ?? null,
         channelUrl: channel.channelUrl,
         notes: "",
       },
     ]);
+    toast.success("Channel added to list");
   };
 
   const handleRemoveChannel = (channelId: string) => {
@@ -160,7 +243,6 @@ export function ChannelListBuilder({
       description: description.trim() || undefined,
       isPublic,
       tags,
-      coverImage: coverImage.trim() || undefined,
       channels: selectedChannels.map((channel, index) => ({
         ...channel,
         position: index + 1,
@@ -180,17 +262,23 @@ export function ChannelListBuilder({
     }
   };
 
-  const availableWithoutSelection = filteredAvailableChannels.filter(
+  const availableWithoutSelection = searchResults.filter(
     (channel) => !selectedChannels.some((item) => item.channelId === channel.id)
   );
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && !isSubmitting && onClose()}>
-      <DialogContent className="max-w-5xl p-0">
-        <DialogHeader className="px-6 pt-6">
-          <DialogTitle>{mode === "create" ? "Create a channel list" : "Edit list"}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="grid gap-6 px-6 pb-6 lg:grid-cols-[1.3fr,0.7fr]">
+    <Sheet open={isOpen} onOpenChange={(open) => !open && !isSubmitting && onClose()}>
+      <SheetContent side="right" className="w-full sm:w-[600px] lg:w-[800px] flex flex-col p-0">
+        {/* Fixed Header */}
+        <div className="flex items-center gap-4 border-b border-border p-4 flex-shrink-0">
+          <div className="flex-1">
+            <h2 className="text-xl font-bold">{mode === "create" ? "Create a channel list" : "Edit list"}</h2>
+            <p className="text-sm text-muted-foreground">Curate and share your favorite YouTube channels</p>
+          </div>
+        </div>
+
+        {/* Scrollable Content */}
+        <form id="channel-list-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-6">
           <div className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="channel-list-name">List name</Label>
@@ -211,29 +299,19 @@ export function ChannelListBuilder({
                 placeholder="Tell everyone why these channels made the cut."
                 rows={4}
                 maxLength={500}
+                className="rounded-lg"
               />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Visibility</Label>
-                <div className="flex items-center justify-between rounded-2xl border border-border p-3">
-                  <div>
-                    <p className="text-sm font-medium">Public list</p>
-                    <p className="text-xs text-muted-foreground">
-                      Anyone can view and follow this list.
-                    </p>
-                  </div>
-                  <Switch checked={isPublic} onCheckedChange={setIsPublic} />
+            <div className="space-y-2">
+              <Label>Visibility</Label>
+              <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                <div>
+                  <p className="text-sm font-medium">Public list</p>
+                  <p className="text-xs text-muted-foreground">
+                    Anyone can view and follow this list.
+                  </p>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="channel-list-cover">Cover image URL (optional)</Label>
-                <Input
-                  id="channel-list-cover"
-                  value={coverImage}
-                  onChange={(event) => setCoverImage(event.target.value)}
-                  placeholder="https://images..."
-                />
+                <Switch checked={isPublic} onCheckedChange={setIsPublic} />
               </div>
             </div>
             <div className="space-y-2">
@@ -282,176 +360,203 @@ export function ChannelListBuilder({
                 <Label>Selected channels</Label>
                 {selectedChannels.length > 1 && (
                   <span className="text-xs text-muted-foreground">
-                    Drag handle to reorder or use arrows.
+                    Use arrows to reorder.
                   </span>
                 )}
               </div>
               {selectedChannels.length === 0 ? (
-                <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-                  No channels added yet. Pick some from the right panel.
+                <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  No channels added yet. Search and add channels below.
                 </div>
               ) : (
-                <ScrollArea className="max-h-[360px] rounded-2xl border border-border">
-                  <div className="divide-y divide-border">
-                    {selectedChannels.map((channel, index) => (
-                      <div key={channel.channelId} className="flex gap-3 p-4">
-                        <div className="flex flex-col items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleReorder(index, "up")}
-                            disabled={index === 0}
-                            className="text-muted-foreground hover:text-foreground disabled:opacity-30"
-                          >
-                            ↑
-                          </button>
-                          <GripVertical className="h-4 w-4 text-muted-foreground" />
-                          <button
-                            type="button"
-                            onClick={() => handleReorder(index, "down")}
-                            disabled={index === selectedChannels.length - 1}
-                            className="text-muted-foreground hover:text-foreground disabled:opacity-30"
-                          >
-                            ↓
-                          </button>
-                        </div>
-                        <div className="flex flex-1 gap-4">
-                          <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border border-border bg-muted">
-                            {channel.channelThumbnail ? (
-                              <Image
-                                src={channel.channelThumbnail}
-                                alt={channel.channelTitle}
-                                fill
-                                className="object-cover"
-                                sizes="64px"
-                              />
-                            ) : (
-                              <span className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                                {channel.channelTitle.slice(0, 2)}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex-1 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-semibold">{channel.channelTitle}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {channel.subscriberCount
-                                    ? `${channel.subscriberCount} subscribers`
-                                    : "Subscriber info unavailable"}
-                                </p>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleRemoveChannel(channel.channelId)}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                            <Textarea
-                              placeholder="Add personal notes or why you love this channel..."
-                              value={channel.notes ?? ""}
-                              onChange={(event) =>
-                                setSelectedChannels((prev) =>
-                                  prev.map((item, idx) =>
-                                    idx === index ? { ...item, notes: event.target.value } : item
-                                  )
-                                )
-                              }
-                              rows={2}
+                <div className="space-y-3 max-h-[300px] overflow-y-auto scrollbar-thin rounded-lg border border-border p-3">
+                  {selectedChannels.map((channel, index) => (
+                    <div key={channel.channelId} className="flex gap-3 p-3 rounded-lg border border-border bg-muted/30">
+                      <div className="flex flex-col items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleReorder(index, "up")}
+                          disabled={index === 0}
+                          className="text-muted-foreground hover:text-foreground disabled:opacity-30 text-xs"
+                        >
+                          ↑
+                        </button>
+                        <GripVertical className="h-3 w-3 text-muted-foreground" />
+                        <button
+                          type="button"
+                          onClick={() => handleReorder(index, "down")}
+                          disabled={index === selectedChannels.length - 1}
+                          className="text-muted-foreground hover:text-foreground disabled:opacity-30 text-xs"
+                        >
+                          ↓
+                        </button>
+                      </div>
+                      <div className="flex flex-1 gap-3">
+                        <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
+                          {channel.channelThumbnail ? (
+                            <Image
+                              src={channel.channelThumbnail}
+                              alt={channel.channelTitle}
+                              fill
+                              className="object-cover"
+                              sizes="48px"
+                              unoptimized
                             />
+                          ) : (
+                            <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-muted-foreground">
+                              {channel.channelTitle.slice(0, 2).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-2 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm truncate">{channel.channelTitle}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {channel.subscriberCount
+                                  ? `${formatCount(channel.subscriberCount)} subscribers`
+                                  : "Subscriber info unavailable"}
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 flex-shrink-0"
+                              onClick={() => handleRemoveChannel(channel.channelId)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
                           </div>
+                          <Textarea
+                            placeholder="Add notes..."
+                            value={channel.notes ?? ""}
+                            onChange={(event) =>
+                              setSelectedChannels((prev) =>
+                                prev.map((item, idx) =>
+                                  idx === index ? { ...item, notes: event.target.value } : item
+                                )
+                              )
+                            }
+                            rows={2}
+                            className="text-xs rounded-lg"
+                          />
                         </div>
                       </div>
-                    ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4 rounded-lg border border-border bg-muted/30 p-4">
+              <div className="space-y-2">
+                <Label htmlFor="channel-search">Add channels</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="channel-search"
+                      value={channelSearchInput}
+                      onChange={(event) => setChannelSearchInput(event.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleSearchChannels();
+                        }
+                      }}
+                      placeholder="Search by name or paste YouTube URL..."
+                      className="pl-9 rounded-lg"
+                    />
                   </div>
-                </ScrollArea>
+                  <Button
+                    type="button"
+                    onClick={handleSearchChannels}
+                    disabled={isSearchingChannels || !channelSearchInput.trim()}
+                    className="rounded-lg"
+                  >
+                    {isSearchingChannels ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Search for any YouTube channel by name or paste a channel URL.
+                </p>
+              </div>
+              {searchResults.length > 0 && (
+                <div className="max-h-[300px] overflow-y-auto scrollbar-thin space-y-3">
+                  {availableWithoutSelection.length === 0 ? (
+                    <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground text-center">
+                      All search results have been added to the list.
+                    </div>
+                  ) : (
+                    availableWithoutSelection.map((channel) => (
+                      <div
+                        key={channel.id}
+                        className="flex items-center gap-3 rounded-lg border border-border bg-background/60 p-3"
+                      >
+                        <div className="relative h-12 w-12 overflow-hidden rounded-lg border border-border bg-muted flex-shrink-0">
+                          {channel.thumbnail ? (
+                            <Image
+                              src={channel.thumbnail}
+                              alt={channel.title}
+                              fill
+                              className="object-cover"
+                              sizes="48px"
+                              unoptimized
+                            />
+                          ) : (
+                            <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-muted-foreground">
+                              {channel.title.slice(0, 2).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold line-clamp-1">{channel.title}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-1">
+                            {channel.subscriberCount
+                              ? `${formatCount(channel.subscriberCount)} subscribers`
+                              : "Subscriber count unavailable"}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="secondary"
+                          className="h-8 w-8 flex-shrink-0 rounded-lg"
+                          onClick={() => handleAddChannel(channel)}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
               )}
             </div>
           </div>
-
-          <div className="space-y-4 rounded-3xl border border-border bg-muted/30 p-4">
-            <div className="space-y-2">
-              <Label htmlFor="channel-search">Add channels</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="channel-search"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search your connected channels..."
-                  className="pl-9"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Showing channels you&apos;ve already connected to what2watch.
-              </p>
-            </div>
-            <ScrollArea className="h-[420px]">
-              <div className="space-y-3">
-                {availableWithoutSelection.length === 0 ? (
-                  <div className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
-                    {availableChannels.length === 0
-                      ? "Add some YouTube channels first, then come back to curate a list."
-                      : "No more channels match your search."}
-                  </div>
-                ) : (
-                  availableWithoutSelection.map((channel) => (
-                    <div
-                      key={channel.id}
-                      className="flex items-center gap-3 rounded-2xl border border-border bg-background/60 p-3"
-                    >
-                      <div className="relative h-12 w-12 overflow-hidden rounded-xl border border-border bg-muted">
-                        {channel.thumbnail ? (
-                          <Image
-                            src={channel.thumbnail}
-                            alt={channel.title}
-                            fill
-                            className="object-cover"
-                            sizes="48px"
-                          />
-                        ) : (
-                          <span className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                            {channel.title.slice(0, 2)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold line-clamp-1">{channel.title}</p>
-                        <p className="text-xs text-muted-foreground line-clamp-1">
-                          {channel.subscriberCount ? `${channel.subscriberCount} subscribers` : channel.channelUrl}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="secondary"
-                        onClick={() => handleAddChannel(channel)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </ScrollArea>
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : mode === "create" ? "Publish list" : "Save changes"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              disabled={isSubmitting}
-              onClick={onClose}
-            >
-              Cancel
-            </Button>
-          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+
+        {/* Fixed Footer */}
+        <div className="border-t border-border p-4 space-y-2 flex-shrink-0">
+          <Button type="submit" form="channel-list-form" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? "Saving..." : mode === "create" ? "Publish list" : "Save changes"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={isSubmitting}
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 

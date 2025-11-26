@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Users, Share2, Pencil, Trash2, ArrowLeftCircle, Youtube } from "lucide-react";
+import { Share2, Pencil, Trash2, ArrowLeftCircle, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,13 +12,142 @@ import {
   useToggleYouTubeChannelListFollow,
   useYouTubeChannelList,
   YouTubeChannelList,
+  YouTubeChannelListItem,
 } from "@/hooks/use-youtube-channel-lists";
 import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
 import { ChannelListBuilder } from "./channel-list-builder";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { YouTubeChannelCardPage, YouTubeChannelCardPageSkeleton } from "../youtube-channel-card-page";
 
 interface ChannelListDetailProps {
   listId: string;
+}
+
+interface ChannelData {
+  id: string;
+  channelId: string;
+  slug?: string | null;
+  title: string | null;
+  thumbnail: string | null;
+  channelUrl: string | null;
+  categories: string[];
+  rating: {
+    average: number;
+    count: number;
+  } | null;
+  subscriberCount: string;
+  videoCount: string;
+}
+
+// Component to fetch and display channels with categories and ratings
+function ChannelListChannelsGrid({ items }: { items: YouTubeChannelListItem[] }) {
+  const channelIds = items.map((item) => item.channelId);
+
+  // Fetch channel data with categories and ratings
+  const { data: channelsData, isLoading } = useQuery<{ channels: ChannelData[] }>({
+    queryKey: ["channel-list-channels", channelIds.join(",")],
+    queryFn: async () => {
+      if (channelIds.length === 0) return { channels: [] };
+
+      // Fetch channels data using the all channels endpoint
+      const params = new URLSearchParams({
+        page: "1",
+        limit: "100", // Should be enough for most lists
+      });
+      // We'll filter by channel IDs on the client side since the API doesn't support filtering by specific IDs
+      const response = await fetch(`/api/youtube/channels/all?${params}`);
+      if (!response.ok) throw new Error("Failed to fetch channels");
+      const data = await response.json() as {
+        channels: Array<{
+          id: string;
+          channelId: string;
+          slug?: string | null;
+          title: string | null;
+          thumbnail: string | null;
+          channelUrl: string | null;
+          categories: string[];
+          rating: {
+            average: number;
+            count: number;
+          } | null;
+          subscriberCount?: string;
+          videoCount?: string;
+        }>;
+      };
+
+      // Filter to only channels in this list and map to the expected format
+      const channelMap = new Map(
+        items.map((item) => [item.channelId, item])
+      );
+
+      const channels: ChannelData[] = (data.channels || [])
+        .filter((ch) => channelMap.has(ch.channelId))
+        .map((ch) => ({
+          id: channelMap.get(ch.channelId)?.id || ch.id,
+          channelId: ch.channelId,
+          slug: ch.slug || null,
+          title: ch.title || channelMap.get(ch.channelId)?.channelTitle || null,
+          thumbnail: ch.thumbnail || channelMap.get(ch.channelId)?.channelThumbnail || null,
+          channelUrl: ch.channelUrl || channelMap.get(ch.channelId)?.channelUrl || null,
+          categories: ch.categories || [],
+          rating: ch.rating || null,
+          subscriberCount: ch.subscriberCount || channelMap.get(ch.channelId)?.subscriberCount || "0",
+          videoCount: ch.videoCount || channelMap.get(ch.channelId)?.videoCount || "0",
+        }));
+
+      // For channels not found in the API response, use the list item data
+      const foundChannelIds = new Set(channels.map((ch) => ch.channelId));
+      items.forEach((item) => {
+        if (!foundChannelIds.has(item.channelId)) {
+          channels.push({
+            id: item.id,
+            channelId: item.channelId,
+            slug: null,
+            title: item.channelTitle,
+            thumbnail: item.channelThumbnail,
+            channelUrl: item.channelUrl,
+            categories: [],
+            rating: null,
+            subscriberCount: item.subscriberCount || "0",
+            videoCount: item.videoCount || "0",
+          });
+        }
+      });
+
+      return { channels };
+    },
+    enabled: channelIds.length > 0,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {items.map((_, index) => (
+          <YouTubeChannelCardPageSkeleton key={index} />
+        ))}
+      </div>
+    );
+  }
+
+  const channels = channelsData?.channels || [];
+
+  if (channels.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border p-10 text-center">
+        <p className="text-muted-foreground">No channels in this list.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {channels.map((channel: ChannelData) => (
+        <YouTubeChannelCardPage key={channel.id} channel={channel} />
+      ))}
+    </div>
+  );
 }
 
 export function ChannelListDetail({ listId }: ChannelListDetailProps) {
@@ -185,67 +314,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
         </div>
       </div>
 
-      <div className="space-y-4">
-        {list.items.map((item) => (
-          <div
-            key={item.id}
-            className="flex flex-col gap-4 rounded-3xl border border-border bg-card/70 p-5 shadow-sm sm:flex-row"
-          >
-            <div className="relative h-32 w-full overflow-hidden rounded-2xl bg-muted sm:w-48">
-              {item.channelThumbnail ? (
-                <Image
-                  src={item.channelThumbnail}
-                  alt={item.channelTitle ?? "Channel"}
-                  fill
-                  className="object-cover"
-                  sizes="200px"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-muted-foreground">
-                  <Youtube className="h-10 w-10" />
-                </div>
-              )}
-            </div>
-            <div className="flex-1 space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-lg font-semibold">{item.channelTitle}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {item.subscriberCount
-                      ? `${item.subscriberCount} subscribers`
-                      : "Subscriber data unavailable"}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="cursor-pointer"
-                  onClick={() =>
-                    window.open(
-                      item.channelUrl ?? `https://www.youtube.com/channel/${item.channelId}`,
-                      "_blank",
-                      "noopener,noreferrer"
-                    )
-                  }
-                >
-                  Visit channel
-                </Button>
-              </div>
-              {item.channelDescription && (
-                <p className="text-sm text-muted-foreground line-clamp-3">{item.channelDescription}</p>
-              )}
-              {item.notes && (
-                <div className="rounded-2xl bg-muted/60 p-3 text-sm text-foreground">
-                  <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground">
-                    Curator notes
-                  </p>
-                  {item.notes}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+      <ChannelListChannelsGrid items={list.items} />
 
       <ChannelListBuilder
         isOpen={builderOpen}
