@@ -71,9 +71,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const { data: cachedVideosData, isLoading: isLoadingCachedVideos } = useContentVideos(type, item.id, shouldFetchVideos);
   
   // On mobile/tablet, always show overlay with details (no hover/scaling needed)
-  // Dashboard variant also always shows overlay
   // On large screens, only show overlay on hover
-  const shouldShowOverlay = isMobile || variant === "dashboard" ? true : isHovered;
+  const shouldShowOverlay = isMobile ? true : isHovered;
 
   const title = "title" in item ? item.title : item.name;
   const posterPath = item.poster_path || item.backdrop_path;

@@ -1,0 +1,21 @@
+export function sanitizeReviewTags(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+
+  const cleaned = input
+    .map((tag) => (typeof tag === "string" ? tag.trim() : ""))
+    .filter((tag) => tag.length > 0)
+    .slice(0, 8);
+
+  const unique = Array.from(new Set(cleaned.map((tag) => tag.toLowerCase())));
+
+  return unique.map((tag) => tag.replace(/^\w/, (char) => char.toUpperCase()));
+}
+
+export function clampChannelReviewRating(value: unknown) {
+  const rating = Number(value);
+  if (Number.isNaN(rating)) return null;
+  if (rating < 1 || rating > 5) return null;
+  return rating;
+}
+
+

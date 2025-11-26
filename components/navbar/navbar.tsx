@@ -27,7 +27,7 @@ const navLinks: NavLink[] = [
   { href: "/lists", label: "Lists" },
   { href: "/members", label: "Members" },
   { href: "/dashboard/my-list", label: "My List" },
-  { href: "/forums", label: "Forums" },
+  { href: "/youtube", label: "YouTube" },
 ];
 
 export default function Navbar() {

@@ -75,6 +75,11 @@ model User {
   youtubeVideoWatchlistItems YouTubeVideoWatchlistItem[]
   youtubeNotifications YouTubeNotification[]
   youtubeVideoViews YouTubeVideoView[]
+  channelReviews ChannelReview[]
+  channelReviewVotes ChannelReviewVote[]
+  youtubeChannelLists YouTubeChannelList[]
+  youtubeChannelListFollows YouTubeChannelListFollow[]
+  youtubeBadges UserYouTubeBadge[]
   activities Activity[]
   followedActivities Activity[] @relation("UserFollowedActivities")
   lists List[]
@@ -829,6 +834,46 @@ model YouTubeChannel {
   @@index([order])
 }
 
+model ChannelReview {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  channelId     String
+  rating        Int
+  title         String?
+  content       String
+  tags          String[] @default([])
+  helpfulCount  Int      @default(0)
+  isEdited      Boolean  @default(false)
+  status        String   @default("published")
+
+  votes         ChannelReviewVote[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, channelId])
+  @@map("channel_reviews")
+  @@index([channelId])
+  @@index([rating])
+  @@index([createdAt])
+}
+
+model ChannelReviewVote {
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
+  reviewId  String        @db.ObjectId
+  review    ChannelReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  userId    String        @db.ObjectId
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+
+  @@unique([reviewId, userId])
+  @@map("channel_review_votes")
+  @@index([reviewId])
+  @@index([userId])
+}
+
 // Favorite Channels - User's favorite YouTube channels
 model FavoriteChannel {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
@@ -1002,4 +1047,96 @@ model YouTubeVideoView {
   @@index([categoryId])
   @@index([createdAt])
   @@index([userId, createdAt])
+}
+
+model YouTubeChannelList {
+  id             String                    @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String                    @db.ObjectId
+  user           User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name           String
+  description    String?
+  coverImage     String?
+  isPublic       Boolean                   @default(false)
+  tags           String[]                  @default([])
+  followersCount Int                       @default(0)
+
+  items          YouTubeChannelListItem[]
+  followedBy     YouTubeChannelListFollow[]
+
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  @@map("youtube_channel_lists")
+  @@index([userId])
+  @@index([isPublic])
+  @@index([followersCount])
+}
+
+model YouTubeChannelListItem {
+  id                String              @id @default(auto()) @map("_id") @db.ObjectId
+  listId            String              @db.ObjectId
+  list              YouTubeChannelList  @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  channelId         String
+  channelTitle      String?
+  channelThumbnail  String?
+  channelDescription String?
+  subscriberCount   String?
+  videoCount        String?
+  channelUrl        String?
+  notes             String?
+  position          Int                 @default(0)
+
+  createdAt         DateTime            @default(now())
+
+  @@map("youtube_channel_list_items")
+  @@index([listId])
+  @@unique([listId, channelId])
+}
+
+model YouTubeChannelListFollow {
+  id        String              @id @default(auto()) @map("_id") @db.ObjectId
+  listId    String              @db.ObjectId
+  list      YouTubeChannelList  @relation(fields: [listId], references: [id], onDelete: Cascade)
+  userId    String              @db.ObjectId
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime            @default(now())
+
+  @@map("youtube_channel_list_follows")
+  @@unique([listId, userId])
+  @@index([listId])
+  @@index([userId])
+}
+
+model YouTubeBadge {
+  id               String               @id @default(auto()) @map("_id") @db.ObjectId
+  slug             String               @unique
+  name             String
+  description      String?
+  icon             String?
+  minReviews       Int                  @default(0)
+  minHelpfulVotes  Int                  @default(0)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  awardedTo        UserYouTubeBadge[]
+
+  @@map("youtube_badges")
+}
+
+model UserYouTubeBadge {
+  id                     String       @id @default(auto()) @map("_id") @db.ObjectId
+  badgeId                String       @db.ObjectId
+  badge                  YouTubeBadge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  userId                 String       @db.ObjectId
+  user                   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  awardedAt              DateTime     @default(now())
+  reason                 String?
+  reviewCountSnapshot    Int          @default(0)
+  helpfulCountSnapshot   Int          @default(0)
+
+  @@map("user_youtube_badges")
+  @@unique([badgeId, userId])
+  @@index([userId])
 }

@@ -24,7 +24,6 @@ import {
   Home,
   Film,
   Tv,
-  MessageSquare,
   Heart,
   List,
   LayoutDashboard,
@@ -78,7 +77,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: "/browse", label: "Browse", icon: Home },
     { href: "/popular?type=movies", label: "Movies", icon: Film },
     { href: "/popular?type=tv", label: "TV Shows", icon: Tv },
-    { href: "/forums", label: "Forums", icon: MessageSquare },
+    { href: "/youtube", label: "YouTube", icon: Youtube },
   ];
 
   // User links

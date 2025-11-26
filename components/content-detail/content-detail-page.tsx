@@ -163,14 +163,14 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
         </div>
 
         {/* Sticky Nav Skeleton */}
-        <div className="sticky top-[65px] z-40 bg-background/95 backdrop-blur-sm border-b border-border">
+        <div className="sticky top-[65px] z-40 bg-background/95 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex gap-6 overflow-x-auto">
-              <Skeleton className="h-12 w-24" />
-              <Skeleton className="h-12 w-24" />
-              <Skeleton className="h-12 w-24" />
-              <Skeleton className="h-12 w-24" />
-              <Skeleton className="h-12 w-24" />
+              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-8 w-24" />
             </div>
           </div>
         </div>

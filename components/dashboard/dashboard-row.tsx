@@ -103,7 +103,7 @@ export default function DashboardRow({ title, items, type, isLoading, href }: Da
       {/* Carousel container with overflow-hidden */}
       <div className="relative group/carousel overflow-hidden">
         <div ref={emblaRef} className="overflow-hidden w-full" style={{ touchAction: 'pan-x' }}>
-          <div className="-ml-2 md:-ml-4 flex gap-3">
+          <div className="flex gap-3">
             {items.map((item) => (
               <div key={item.id} className="basis-[180px] sm:basis-[200px] flex-shrink-0">
                 <div className="relative overflow-hidden">

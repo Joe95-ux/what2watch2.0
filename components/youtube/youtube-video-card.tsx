@@ -45,6 +45,7 @@ interface YouTubeVideoCardProps {
   onSelect?: (video: YouTubeVideo, selected: boolean) => void; // Selection callback
   titleLines?: 1 | 2; // Number of lines for title truncation (default: 2)
   source?: string; // Source identifier for analytics
+  variant?: "default" | "playlist";
 }
 
 /**
@@ -104,6 +105,7 @@ export default function YouTubeVideoCard({
   onSelect,
   titleLines = 2,
   source = "youtube-card",
+  variant = "default",
 }: YouTubeVideoCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const isMobile = useIsMobile();
@@ -161,6 +163,8 @@ export default function YouTubeVideoCard({
   };
   const publishedTime = formatPublishedDate(video.publishedAt);
   const shouldShowActions = true;
+  const isPlaylistVariant = variant === "playlist";
+  const effectiveTitleLines = isPlaylistVariant ? 1 : titleLines;
 
   const handleCardClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -241,13 +245,22 @@ export default function YouTubeVideoCard({
 
   return (
     <div
-      className={cn("relative bg-card rounded-lg overflow-hidden cursor-pointer group", className)}
+      className={cn(
+        "relative bg-card rounded-lg overflow-hidden cursor-pointer group",
+        isPlaylistVariant && "h-full flex flex-col",
+        className
+      )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleCardClick}
     >
       {/* Video Thumbnail */}
-      <div className="relative aspect-video bg-muted overflow-hidden">
+      <div
+        className={cn(
+          "relative bg-muted overflow-hidden",
+          isPlaylistVariant ? "aspect-[4/3] sm:aspect-[3/2]" : "aspect-video"
+        )}
+      >
         {video.thumbnail ? (
           <Image
             src={video.thumbnail}
@@ -490,7 +503,12 @@ export default function YouTubeVideoCard({
       </div>
 
       {/* Video Details */}
-      <div className="bg-card p-3 space-y-2">
+      <div
+        className={cn(
+          "bg-card p-3 space-y-2",
+          isPlaylistVariant && "flex-1 flex flex-col justify-between min-h-[90px]"
+        )}
+      >
         {/* Top Row: Published Time + Add Button */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -548,10 +566,12 @@ export default function YouTubeVideoCard({
         </div>
 
         {/* Title */}
-        <h3 className={cn(
-          "text-sm font-semibold text-foreground",
-          titleLines === 1 ? "line-clamp-1" : "line-clamp-2"
-        )}>
+        <h3
+          className={cn(
+            "text-sm font-semibold text-foreground",
+            effectiveTitleLines === 1 ? "line-clamp-1" : "line-clamp-2"
+          )}
+        >
           {video.title}
         </h3>
 

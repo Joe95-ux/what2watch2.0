@@ -38,6 +38,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { YouTubeChannelReviews } from "@/components/youtube/youtube-channel-reviews";
 
 type SidebarTab = "channel" | "favorites" | "watchlater" | "recommendations";
 
@@ -268,12 +269,12 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
   };
 
   const handleSearchClick = () => {
-    setActiveTab("videos");
+    setActiveTab("home");
     setShowSearch(true);
   };
 
   const filteredVideos = videos.filter((video) => {
-    if (showSearch && searchQuery) {
+    if (showSearch && searchQuery && activeTab === "home") {
       const query = searchQuery.toLowerCase();
       const matchesSearch =
         video.title.toLowerCase().includes(query) || video.description.toLowerCase().includes(query);
@@ -631,7 +632,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
             activeTab={activeTab}
             onTabChange={(tab) => {
               setActiveTab(tab);
-              if (tab !== "videos") {
+              if (tab !== "home") {
                 setShowSearch(false);
                 setSearchQuery("");
               }
@@ -642,7 +643,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
         </div>
 
         <div className="py-8">
-          {showSearch && activeTab === "videos" && (
+          {showSearch && activeTab === "home" && (
             <div className="mb-4">
               <div className="relative max-w-xs">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -774,6 +775,12 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
             </>
           )}
         </div>
+
+        <YouTubeChannelReviews
+          channelId={channelId}
+          channelTitle={channel.title}
+          channelThumbnail={channel.thumbnail}
+        />
           </div>
         ) : sidebarTab !== "channel" ? (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

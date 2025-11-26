@@ -373,6 +373,7 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
                       video={youtubeItem}
                       onVideoClick={(video) => window.open(video.videoUrl, "_blank", "noopener,noreferrer")}
                       channelId={youtubeItem.channelId}
+                      variant="playlist"
                       onRemove={isOwnPlaylist ? async () => {
                         try {
                           const response = await fetch(`/api/youtube/videos/${youtubeItem.id}/playlist?playlistId=${playlistId}&itemId=${youtubeItem.playlistItemId}`, {

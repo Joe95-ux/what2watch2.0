@@ -57,7 +57,7 @@ export default function YouTubeChannelStickyNav({
           className="relative py-4 cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
           aria-label="Search videos"
         >
-          <Search className="h-6 w-6" />
+          <Search className="h-5 w-5" />
         </button>
       </div>
     </div>
