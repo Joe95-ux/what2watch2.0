@@ -219,11 +219,12 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
     : itemsAsTMDB.length > 0 && itemsAsTMDB[0].item.poster_path
     ? getPosterUrl(itemsAsTMDB[0].item.poster_path, "original")
     : null;
+  const totalItems = itemsAsTMDB.length;
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header with Cover */}
-      <div className="relative -mt-[65px] h-[43vh] min-h-[300px] max-h-[500px] overflow-hidden">
+      {/* Banner Section */}
+      <div className="relative -mt-[65px] h-[30vh] min-h-[200px] max-h-[300px] sm:h-[40vh] sm:min-h-[250px] md:h-[50vh] md:min-h-[300px] overflow-hidden">
         {coverImage ? (
           <>
             <img
@@ -236,52 +237,92 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5" />
         )}
+      </div>
 
-        <div className="absolute inset-0 flex items-end">
-          <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 w-full">
-            <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-              <div className="flex-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => router.push("/browse")}
-                  className="mb-4"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Browse
-                </Button>
-                <h1 className="text-4xl font-bold mb-2">{playlist.name}</h1>
-                {playlist.description && (
-                  <p className="text-lg text-muted-foreground mb-4 max-w-2xl">
-                    {playlist.description}
-                  </p>
-                )}
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <span>
-                    {itemsAsTMDB.length} {itemsAsTMDB.length === 1 ? "item" : "items"}
-                  </span>
+      {/* Info Section */}
+      <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+          <div className="flex-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push("/playlists")}
+              className="mb-4"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">{playlist.name}</h1>
+            {playlist.description && (
+              <p className="text-base sm:text-lg text-muted-foreground mb-4 max-w-2xl">
+                {playlist.description}
+              </p>
+            )}
+            <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+              <span>
+                {totalItems} {totalItems === 1 ? "item" : "items"}
+              </span>
+              {playlist.isPublic && (
+                <>
                   <span>•</span>
-                  <span className="text-primary">Public Playlist</span>
-                  {playlistWithUser.user && (
-                    <>
-                      <span>•</span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/users/${playlistWithUser.user?.id}`);
-                        }}
-                        className="hover:text-primary transition-colors cursor-pointer"
-                      >
-                        By {playlistWithUser.user.displayName || playlistWithUser.user.username || "Unknown"}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-              
-              {/* Actions */}
-              {isOwner ? (
-                <div className="flex items-center gap-2">
+                  <span className="text-primary">Public</span>
+                </>
+              )}
+              {playlistWithUser.user && (
+                <>
+                  <span>•</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/users/${playlistWithUser.user?.id}`);
+                    }}
+                    className="hover:text-primary transition-colors cursor-pointer"
+                  >
+                    By {playlistWithUser.user.displayName || playlistWithUser.user.username || "Unknown"}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-2 ml-auto sm:ml-0">
+            {isOwner ? (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsShareDialogOpen(true)}
+                  className="gap-2 cursor-pointer"
+                >
+                  <Share2 className="h-4 w-4" />
+                  Share
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" className="cursor-pointer">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>
+                      <Edit2 className="h-4 w-4 mr-2" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => setIsDeleteDialogOpen(true)}
+                      className="text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              playlistWithUser.user && (
+                <>
+                  <FollowButton userId={playlistWithUser.user.id} />
                   <Button
                     variant="outline"
                     onClick={() => setIsShareDialogOpen(true)}
@@ -290,44 +331,9 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
                     <Share2 className="h-4 w-4" />
                     Share
                   </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="icon" className="cursor-pointer">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>
-                        <Edit2 className="h-4 w-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => setIsDeleteDialogOpen(true)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              ) : (
-                playlistWithUser.user && (
-                  <div className="flex items-center gap-2">
-                    <FollowButton userId={playlistWithUser.user.id} />
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsShareDialogOpen(true)}
-                      className="gap-2 cursor-pointer"
-                    >
-                      <Share2 className="h-4 w-4" />
-                      Share
-                    </Button>
-                  </div>
-                )
-              )}
-            </div>
+                </>
+              )
+            )}
           </div>
         </div>
       </div>

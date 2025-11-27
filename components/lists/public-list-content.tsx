@@ -336,6 +336,9 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
 
   const user = list.user;
   const displayName = user?.displayName || user?.username || "Unknown";
+  const totalItems = list.items?.length || 0;
+  const isPublicList = list.visibility === "PUBLIC";
+  const isFollowersOnly = list.visibility === "FOLLOWERS_ONLY";
 
   // Get cover image from first movie or list cover image
   const coverImage = list.coverImage
@@ -373,7 +376,7 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.back()}
+                onClick={() => router.push("/lists")}
                 className="mb-4"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -385,40 +388,38 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
                   {list.description}
                 </p>
               )}
+              {list.tags && list.tags.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  {list.tags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="rounded-full text-xs">
+                      #{tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                 <span>
-                  {list.items?.length || 0} {list.items?.length === 1 ? "film" : "films"}
+                  {totalItems} {totalItems === 1 ? "item" : "items"}
                 </span>
-                {list.tags && list.tags.length > 0 && (
+                {(isPublicList || isFollowersOnly) && (
                   <>
                     <span>•</span>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {list.tags.slice(0, 3).map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                      {list.tags.length > 3 && (
-                        <span className="text-xs">+{list.tags.length - 3} more</span>
-                      )}
-                    </div>
+                    <span className="text-primary">
+                      {isPublicList ? "Public" : "Followers Only"}
+                    </span>
                   </>
                 )}
                 <span>•</span>
                 <span>Updated {format(new Date(list.updatedAt), "MMM d, yyyy")}</span>
-                <span>•</span>
-                <Badge variant="outline" className="text-xs">
-                  {list.visibility === "PUBLIC" ? "Public" : list.visibility === "FOLLOWERS_ONLY" ? "Followers Only" : "Private"}
-                </Badge>
                 <span>•</span>
                 <Link href={`/users/${user?.id}`} className="hover:text-primary transition-colors cursor-pointer">
                   By {displayName}
                 </Link>
               </div>
             </div>
-            
+
             {/* Actions */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-end gap-2 ml-auto sm:ml-0">
               {/* Like Button - Only for PUBLIC or FOLLOWERS_ONLY lists */}
               {canLike && (
                 <Button
