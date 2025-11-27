@@ -144,6 +144,8 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
           setIsExpanded(false);
           setQuery("");
           setResults([]);
+        } else {
+          setIsExpanded(false);
         }
       }
     };
