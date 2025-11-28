@@ -73,7 +73,7 @@ export function ChannelListsExplorer() {
   };
 
   return (
-    <div className="w-full max-w-[90rem] mx-auto py-8">
+    <div className="w-full max-w-[90rem] mx-auto py-8 px-4 sm:px-0">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Curated Channel lists</h1>
         {!isMobile && (
