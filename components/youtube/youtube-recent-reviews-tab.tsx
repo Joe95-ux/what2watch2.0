@@ -89,7 +89,7 @@ export function YouTubeRecentReviewsTab() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
       {isLoading ? (
         <div className="space-y-4">
           {Array.from({ length: 6 }).map((_, index) => (

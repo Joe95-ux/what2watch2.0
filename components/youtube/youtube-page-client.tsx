@@ -22,8 +22,8 @@ export function YouTubePageClient() {
   return (
     <div className="min-h-screen bg-background">
       {/* Sticky Nav */}
-      <div className="sticky top-[65px] z-50 bg-background/95 backdrop-blur-md border-b border-border shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="sticky top-[65px] z-40 bg-background/95 backdrop-blur-md border-b border-border shadow-sm">
+        <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-8 overflow-x-auto scrollbar-hide">
             {tabs.map((tab) => {
               const Icon = tab.icon;
@@ -51,7 +51,7 @@ export function YouTubePageClient() {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsContent value="channels" className="mt-0">
             <YouTubeChannelsTab />

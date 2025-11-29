@@ -120,7 +120,7 @@ export function ChannelListsExplorer() {
         {SCOPES.map((item) => (
           <TabsContent key={item.value} value={item.value} className="mt-6">
             {isLoading ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {Array.from({ length: 6 }).map((_, index) => (
                   <ChannelListCardSkeleton key={index} />
                 ))}
@@ -141,7 +141,7 @@ export function ChannelListsExplorer() {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {lists.map((list) => (
                   <ChannelListCard key={list.id} list={list} />
                 ))}
