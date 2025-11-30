@@ -1,8 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useReviews } from "@/hooks/use-reviews";
+import { useReviews, useTMDBReviews } from "@/hooks/use-reviews";
 import ReviewCard from "@/components/reviews/review-card";
+import TMDBReviewCard from "@/components/reviews/tmdb-review-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import WriteReviewDialog from "@/components/reviews/write-review-dialog";
@@ -29,13 +30,24 @@ export default function ReviewsSection({
   const router = useRouter();
   const { user } = useUser();
   const [writeDialogOpen, setWriteDialogOpen] = useState(false);
-  const { data, isLoading } = useReviews(tmdbId, mediaType, {
+  
+  // Fetch user reviews
+  const { data: userReviewsData, isLoading: userReviewsLoading } = useReviews(tmdbId, mediaType, {
     sortBy: "featured",
     limit: 3,
   });
 
-  const reviews = data?.reviews || [];
-  const totalReviews = data?.pagination.total || 0;
+  // Fetch TMDB reviews (show top 2)
+  const { data: tmdbReviewsData, isLoading: tmdbReviewsLoading } = useTMDBReviews(tmdbId, mediaType, 1);
+
+  const userReviews = userReviewsData?.reviews || [];
+  const totalUserReviews = userReviewsData?.pagination.total || 0;
+  const tmdbReviews = tmdbReviewsData?.results?.slice(0, 2) || [];
+  const totalTMDBReviews = tmdbReviewsData?.total_results || 0;
+
+  const isLoading = userReviewsLoading || tmdbReviewsLoading;
+  const hasAnyReviews = userReviews.length > 0 || tmdbReviews.length > 0;
+  const totalReviews = totalUserReviews + totalTMDBReviews;
 
   return (
     <section className="py-12">
@@ -56,7 +68,7 @@ export default function ReviewsSection({
             <Skeleton key={i} className="h-48 w-full rounded-lg" />
           ))}
         </div>
-      ) : reviews.length === 0 ? (
+      ) : !hasAnyReviews ? (
         <div className="text-center text-muted-foreground py-12 border border-border rounded-lg">
           <p className="text-sm mb-4">No reviews yet</p>
           {user && (
@@ -72,11 +84,26 @@ export default function ReviewsSection({
       ) : (
         <>
           <div className="space-y-4 mb-6">
-            {reviews.map((review) => (
-              <ReviewCard key={review.id} review={review} />
-            ))}
+            {/* Show TMDB reviews first */}
+            {tmdbReviews.length > 0 && (
+              <>
+                {tmdbReviews.map((review) => (
+                  <TMDBReviewCard key={review.id} review={review} />
+                ))}
+              </>
+            )}
+            
+            {/* Then show user reviews */}
+            {userReviews.length > 0 && (
+              <>
+                {userReviews.map((review) => (
+                  <ReviewCard key={review.id} review={review} />
+                ))}
+              </>
+            )}
           </div>
-          {totalReviews > 3 && (
+          
+          {(totalUserReviews > 3 || totalTMDBReviews > 2) && (
             <div className="text-center">
               <Button
                 variant="outline"
@@ -85,7 +112,7 @@ export default function ReviewsSection({
                 }
                 className="cursor-pointer"
               >
-                View All {totalReviews} Reviews
+                View All Reviews
               </Button>
             </div>
           )}

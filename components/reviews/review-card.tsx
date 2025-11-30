@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Star, ThumbsUp, ThumbsDown, MoreVertical, Share2, Facebook, Twitter, Mail, Link2, Flag, ChevronDown, ChevronUp, Edit, Trash2 } from "lucide-react";
+import { Star, ThumbsUp, ThumbsDown, MoreVertical, Facebook, Twitter, Mail, Link2, Flag, ChevronDown, ChevronUp, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -140,7 +140,7 @@ export default function ReviewCard({
       setCopied(true);
       toast.success("Link copied to clipboard!");
       setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
+    } catch {
       toast.error("Failed to copy link");
     }
   };
@@ -177,58 +177,139 @@ export default function ReviewCard({
   };
 
   return (
-    <div 
-      id={`review-${review.id}`} 
-      className={cn(
-        "bg-card border border-border rounded-lg p-6 hover:shadow-md transition-shadow scroll-mt-4",
-        !isExpanded && hasMoreContent && "flex flex-col"
-      )}
-    >
-      <div className="flex items-start gap-4 mb-4">
-        <Link
-          href={`/user/${review.user.username || review.user.id}`}
-          className="flex-shrink-0"
-        >
-          {avatarUrl ? (
-            <div className="relative w-10 h-10 rounded-full overflow-hidden">
-              <Image
-                src={avatarUrl}
-                alt={displayName}
-                fill
-                className="object-cover"
-                unoptimized
-              />
+    <div className="relative" id={`review-${review.id}`}>
+      {/* Card with tooltip-style connection pointing down to username */}
+      <div className="relative rounded-2xl border border-border bg-card/60 p-5 shadow-sm backdrop-blur mb-2 scroll-mt-4">
+        {/* Tooltip arrow pointing down from card to username */}
+        <div className="absolute -bottom-[6px] left-[23px] h-[10px] w-[10px] rotate-45 border-r border-b border-border bg-card/60" />
+
+        <div className="space-y-3">
+          {/* Rating */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <Star
+                  key={i}
+                  className={cn(
+                    "h-3 w-3",
+                    i < review.rating
+                      ? "text-yellow-400 fill-yellow-400"
+                      : "text-muted-foreground"
+                  )}
+                />
+              ))}
             </div>
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-              <span className="text-sm font-medium">{initials}</span>
-            </div>
-          )}
-        </Link>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Link
-                href={`/user/${review.user.username || review.user.id}`}
-                className="font-semibold hover:text-primary transition-colors cursor-pointer"
-              >
-                {displayName}
-              </Link>
-              <span className="text-sm text-muted-foreground">•</span>
-              <span className="text-sm text-muted-foreground">
-                {formatDistanceToNow(new Date(review.createdAt), {
-                  addSuffix: true,
-                })}
+            <span className="text-sm font-medium">{review.rating}/10</span>
+            {review.isFeatured && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium ml-2">
+                Featured
               </span>
-              {review.isFeatured && (
-                <>
-                  <span className="text-sm text-muted-foreground">•</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                    Featured
-                  </span>
-                </>
-              )}
+            )}
+          </div>
+
+          {/* Title */}
+          {review.title && (
+            <h3 className="font-semibold text-base">{review.title}</h3>
+          )}
+
+          {/* Review content */}
+          <div>
+            {review.containsSpoilers && !showSpoiler ? (
+              <>
+                <div className="flex items-center gap-2 text-destructive mb-2">
+                  <span className="font-medium text-sm">Spoiler</span>
+                  <button
+                    onClick={() => setShowSpoiler(true)}
+                    className="flex items-center gap-1 text-destructive hover:text-destructive/80 transition-colors cursor-pointer"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                </div>
+                <p className="text-sm text-muted-foreground italic">
+                  This review contains spoilers. Click to reveal.
+                </p>
+              </>
+            ) : (
+              <>
+                {review.containsSpoilers && showSpoiler && (
+                  <div className="flex items-center gap-2 text-destructive mb-2">
+                    <span className="font-medium text-sm">Spoiler</span>
+                    <button
+                      onClick={() => setShowSpoiler(false)}
+                      className="flex items-center gap-1 text-destructive hover:text-destructive/80 transition-colors cursor-pointer"
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+                <p className={cn(
+                  "text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap",
+                  shouldTruncate && !isExpanded && "line-clamp-4"
+                )}>
+                  {displayContent}
+                  {shouldTruncate && !isExpanded && "..."}
+                </p>
+                {hasMoreContent && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="mt-2 cursor-pointer"
+                  >
+                    {isExpanded ? "Show less" : "Show more"}
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleHelpful}
+                disabled={helpfulLoading}
+                className={cn(
+                  "cursor-pointer gap-2",
+                  hasUserReacted("helpful") && "text-primary"
+                )}
+              >
+                <ThumbsUp 
+                  className={cn(
+                    "h-4 w-4",
+                    hasUserReacted("helpful") && "fill-black dark:fill-white"
+                  )}
+                />
+                Helpful
+                <span className="text-xs font-medium text-muted-foreground">
+                  {helpfulCount}
+                </span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDislike}
+                disabled={dislikeLoading}
+                className={cn(
+                  "cursor-pointer gap-2",
+                  hasUserReacted("dislike") && "text-primary"
+                )}
+              >
+                <ThumbsDown 
+                  className={cn(
+                    "h-4 w-4",
+                    hasUserReacted("dislike") && "fill-black dark:fill-white"
+                  )}
+                />
+                Not Helpful
+                <span className="text-xs font-medium text-muted-foreground">
+                  {dislikeCount}
+                </span>
+              </Button>
             </div>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -301,111 +382,40 @@ export default function ReviewCard({
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="flex items-center gap-1">
-              {Array.from({ length: 10 }).map((_, i) => (
-                <Star
-                  key={i}
-                  className={cn(
-                    "h-3 w-3",
-                    i < review.rating
-                      ? "text-yellow-400 fill-yellow-400"
-                      : "text-muted-foreground"
-                  )}
-                />
-              ))}
-            </div>
-            <span className="text-sm font-medium">{review.rating}/10</span>
-          </div>
         </div>
       </div>
 
-      {review.title && (
-        <h3 className="font-semibold mb-2 text-lg">{review.title}</h3>
-      )}
-      <div className="mb-4">
-        {review.containsSpoilers && !showSpoiler ? (
-          <>
-            <div className="flex items-center gap-2 text-destructive mb-2">
-              <span className="font-medium">Spoiler</span>
-              <button
-                onClick={() => setShowSpoiler(true)}
-                className="flex items-center gap-1 text-destructive hover:text-destructive/80 transition-colors cursor-pointer"
-              >
-                <ChevronDown className="h-4 w-4" />
-              </button>
+      {/* Username and Date - Below the card, like tooltip target */}
+      <div className="flex items-center gap-2">
+        <Link
+          href={`/user/${review.user.username || review.user.id}`}
+          className="flex items-center gap-2"
+        >
+          {avatarUrl ? (
+            <div className="relative w-6 h-6 rounded-full overflow-hidden flex-shrink-0">
+              <Image
+                src={avatarUrl}
+                alt={displayName}
+                fill
+                className="object-cover"
+                unoptimized
+              />
             </div>
-            <p className="text-sm text-muted-foreground italic">
-              This review contains spoilers. Click to reveal.
-            </p>
-          </>
-        ) : (
-          <>
-            {review.containsSpoilers && showSpoiler && (
-              <div className="flex items-center gap-2 text-destructive mb-2">
-                <span className="font-medium">Spoiler</span>
-                <button
-                  onClick={() => setShowSpoiler(false)}
-                  className="flex items-center gap-1 text-destructive hover:text-destructive/80 transition-colors cursor-pointer"
-                >
-                  <ChevronUp className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-            <p className={cn(
-              "text-muted-foreground",
-              shouldTruncate ? "line-clamp-3" : "whitespace-pre-wrap"
-            )}>
-              {displayContent}
-              {shouldTruncate && "..."}
-            </p>
-            {hasMoreContent && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="mt-2 cursor-pointer"
-              >
-                {isExpanded ? "Show less" : "Show more"}
-              </Button>
-            )}
-          </>
-        )}
-      </div>
-
-      <div className="flex items-center gap-4 flex-wrap">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleHelpful}
-          disabled={helpfulLoading}
-          className={cn(
-            "cursor-pointer",
-            hasUserReacted("helpful") && "text-primary"
+          ) : (
+            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+              <span className="text-xs font-medium">{initials}</span>
+            </div>
           )}
-        >
-          <ThumbsUp 
-            className="h-4 w-4 mr-1"
-            fill={hasUserReacted("helpful") ? "currentColor" : "none"}
-          />
-          Helpful ({helpfulCount})
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleDislike}
-          disabled={dislikeLoading}
-          className={cn(
-            "cursor-pointer",
-            hasUserReacted("dislike") && "text-primary"
-          )}
-        >
-          <ThumbsDown 
-            className="h-4 w-4 mr-1"
-            fill={hasUserReacted("dislike") ? "currentColor" : "none"}
-          />
-          {dislikeCount}
-        </Button>
+          <span className="font-semibold text-sm hover:text-primary transition-colors cursor-pointer">
+            {displayName}
+          </span>
+        </Link>
+        <span className="text-muted-foreground">•</span>
+        <span className="text-sm text-muted-foreground">
+          {formatDistanceToNow(new Date(review.createdAt), {
+            addSuffix: true,
+          })}
+        </span>
       </div>
 
       <ReportReviewDialog

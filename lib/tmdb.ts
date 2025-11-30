@@ -683,3 +683,43 @@ export async function getTVSeasons(tvId: number): Promise<{ id: number; seasons:
 export async function getTVSeasonDetails(tvId: number, seasonNumber: number): Promise<TMDBTVSeasonDetails> {
   return fetchTMDB<TMDBTVSeasonDetails>(`/tv/${tvId}/season/${seasonNumber}`);
 }
+
+/**
+ * TMDB Review interfaces
+ */
+export interface TMDBReview {
+  author: string;
+  author_details: {
+    name: string;
+    username: string;
+    avatar_path: string | null;
+    rating: number | null;
+  };
+  content: string;
+  created_at: string;
+  id: string;
+  updated_at: string;
+  url: string;
+}
+
+export interface TMDBReviewsResponse {
+  id: number;
+  page: number;
+  results: TMDBReview[];
+  total_pages: number;
+  total_results: number;
+}
+
+/**
+ * Get movie reviews from TMDB
+ */
+export async function getMovieReviews(movieId: number, page: number = 1): Promise<TMDBReviewsResponse> {
+  return fetchTMDB<TMDBReviewsResponse>(`/movie/${movieId}/reviews`, { page });
+}
+
+/**
+ * Get TV show reviews from TMDB
+ */
+export async function getTVReviews(tvId: number, page: number = 1): Promise<TMDBReviewsResponse> {
+  return fetchTMDB<TMDBReviewsResponse>(`/tv/${tvId}/reviews`, { page });
+}

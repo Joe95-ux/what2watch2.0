@@ -211,3 +211,59 @@ export function useToggleReviewReaction() {
   });
 }
 
+/**
+ * TMDB Review interfaces and hook
+ */
+export interface TMDBReview {
+  author: string;
+  author_details: {
+    name: string;
+    username: string;
+    avatar_path: string | null;
+    rating: number | null;
+  };
+  content: string;
+  created_at: string;
+  id: string;
+  updated_at: string;
+  url: string;
+}
+
+export interface TMDBReviewsResponse {
+  id: number;
+  page: number;
+  results: TMDBReview[];
+  total_pages: number;
+  total_results: number;
+}
+
+export function useTMDBReviews(
+  tmdbId: number | null,
+  mediaType: "movie" | "tv" | null,
+  page: number = 1
+) {
+  return useQuery({
+    queryKey: ["tmdb-reviews", tmdbId, mediaType, page],
+    queryFn: async () => {
+      if (!tmdbId || !mediaType) return null;
+
+      const params = new URLSearchParams({
+        tmdbId: tmdbId.toString(),
+        mediaType,
+        page: page.toString(),
+      });
+
+      const response = await fetch(`/api/reviews/tmdb?${params.toString()}`);
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: "Failed to fetch TMDB reviews" }));
+        throw new Error(error.error || "Failed to fetch TMDB reviews");
+      }
+      const data = await response.json();
+      return data as TMDBReviewsResponse;
+    },
+    enabled: !!tmdbId && !!mediaType,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+}
+
