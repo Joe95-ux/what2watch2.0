@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface Channel {
   id: string;
@@ -23,12 +22,14 @@ interface Channel {
   } | null;
   subscriberCount?: string;
   videoCount?: string;
+  inUserPool?: boolean;
 }
 
 export function YouTubeChannelsTab() {
   const [page, setPage] = useState(1);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [poolFilter, setPoolFilter] = useState<"all" | "inMyFeed" | "notInMyFeed">("all");
 
   const { data, isLoading } = useQuery<{
     channels: Channel[];
@@ -58,7 +59,13 @@ export function YouTubeChannelsTab() {
     },
   });
 
-  const channels = data?.channels ?? [];
+  // Filter channels by pool filter
+  let channels = data?.channels ?? [];
+  if (poolFilter === "inMyFeed") {
+    channels = channels.filter((c) => c.inUserPool === true);
+  } else if (poolFilter === "notInMyFeed") {
+    channels = channels.filter((c) => c.inUserPool !== true);
+  }
   const pagination = data?.pagination;
   const availableCategories = data?.availableCategories ?? [];
 
@@ -79,6 +86,19 @@ export function YouTubeChannelsTab() {
             className="pl-10"
           />
         </div>
+        <Select value={poolFilter} onValueChange={(value) => {
+          setPoolFilter(value as typeof poolFilter);
+          setPage(1);
+        }}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Channels</SelectItem>
+            <SelectItem value="inMyFeed">In My Feed</SelectItem>
+            <SelectItem value="notInMyFeed">Not In My Feed</SelectItem>
+          </SelectContent>
+        </Select>
         {availableCategories.length > 0 && (
           <Select value={categoryFilter} onValueChange={(value) => {
             setCategoryFilter(value);

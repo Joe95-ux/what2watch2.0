@@ -11,6 +11,16 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   ChannelListItemPayload,
   YouTubeChannelList,
   useCreateYouTubeChannelList,
@@ -37,10 +47,9 @@ export function ChannelListBuilder({
   isOpen,
   onClose,
   initialData,
-  availableChannels, // Unused, kept for backward compatibility
   onCompleted,
 }: ChannelListBuilderProps) {
-  // availableChannels is kept for backward compatibility but not used
+  // availableChannels prop is kept for backward compatibility but not used
   // Channels are now added via the channel extractor/search
   const createList = useCreateYouTubeChannelList();
   const updateList = useUpdateYouTubeChannelList();
@@ -60,6 +69,16 @@ export function ChannelListBuilder({
     videoCount?: string;
   }>>([]);
   const [selectedChannels, setSelectedChannels] = useState<SelectedChannel[]>([]);
+  const [pendingChannel, setPendingChannel] = useState<{
+    id: string;
+    title: string;
+    thumbnail?: string;
+    channelUrl: string;
+    subscriberCount?: string;
+    videoCount?: string;
+  } | null>(null);
+  const [addToUserPool, setAddToUserPool] = useState(false);
+  const [isAddingChannel, setIsAddingChannel] = useState(false);
 
   // Format count helper
   const formatCount = (count: string | number | null | undefined): string => {
@@ -170,7 +189,7 @@ export function ChannelListBuilder({
     }
   };
 
-  const handleAddChannel = (channel: {
+  const handleAddChannel = async (channel: {
     id: string;
     title: string;
     thumbnail?: string;
@@ -182,6 +201,32 @@ export function ChannelListBuilder({
       toast.info("Channel already added to list");
       return;
     }
+
+    // Check if channel exists in app pool
+    try {
+      const checkResponse = await fetch(`/api/youtube/channels/check`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channelIds: [channel.id] }),
+      });
+
+      if (checkResponse.ok) {
+        const checkData = await checkResponse.json();
+        const existsInAppPool = checkData.existingIds?.includes(channel.id);
+
+        if (!existsInAppPool) {
+          // Channel not in app pool - show dialog
+          setPendingChannel(channel);
+          setAddToUserPool(false);
+          return;
+        }
+      }
+    } catch (error) {
+      console.error("Error checking channel existence:", error);
+      // Continue with adding to list even if check fails
+    }
+
+    // Channel exists in app pool or check failed - add directly to list
     setSelectedChannels((prev) => [
       ...prev,
       {
@@ -196,6 +241,55 @@ export function ChannelListBuilder({
       },
     ]);
     toast.success("Channel added to list");
+  };
+
+  const handleConfirmAddChannel = async () => {
+    if (!pendingChannel) return;
+
+    setIsAddingChannel(true);
+    try {
+      // Add channel to app pool (and optionally to user pool)
+      const response = await fetch("/api/youtube/channels/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channelId: pendingChannel.id,
+          addToUserPool: addToUserPool,
+        }),
+      });
+
+      if (response.ok) {
+        // Now add to list
+        setSelectedChannels((prev) => [
+          ...prev,
+          {
+            channelId: pendingChannel.id,
+            channelTitle: pendingChannel.title,
+            channelThumbnail: pendingChannel.thumbnail,
+            channelDescription: undefined,
+            subscriberCount: pendingChannel.subscriberCount ?? null,
+            videoCount: pendingChannel.videoCount ?? null,
+            channelUrl: pendingChannel.channelUrl,
+            notes: "",
+          },
+        ]);
+        toast.success(
+          addToUserPool
+            ? "Channel added to app pool and your feed, and added to list"
+            : "Channel added to app pool and added to list"
+        );
+        setPendingChannel(null);
+        setAddToUserPool(false);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.error || "Failed to add channel");
+      }
+    } catch (error) {
+      console.error("Error adding channel:", error);
+      toast.error("Failed to add channel. Please try again.");
+    } finally {
+      setIsAddingChannel(false);
+    }
   };
 
   const handleRemoveChannel = (channelId: string) => {
@@ -556,6 +650,62 @@ export function ChannelListBuilder({
           </Button>
         </div>
       </SheetContent>
+
+      {/* Dialog for adding new channel to app pool */}
+      <AlertDialog open={!!pendingChannel} onOpenChange={(open) => !open && setPendingChannel(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Add Channel to App Pool</AlertDialogTitle>
+            <AlertDialogDescription>
+              This channel is not in the app pool yet. It will be added to the app pool so others can discover it.
+              {pendingChannel && (
+                <div className="mt-4 flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30">
+                  {pendingChannel.thumbnail && (
+                    <div className="relative h-12 w-12 overflow-hidden rounded-lg border border-border bg-muted flex-shrink-0">
+                      <Image
+                        src={pendingChannel.thumbnail}
+                        alt={pendingChannel.title}
+                        fill
+                        className="object-cover"
+                        sizes="48px"
+                        unoptimized
+                      />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold line-clamp-1">{pendingChannel.title}</p>
+                    {pendingChannel.subscriberCount && (
+                      <p className="text-xs text-muted-foreground">
+                        {formatCount(pendingChannel.subscriberCount)} subscribers
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center justify-between rounded-lg border border-border p-3">
+              <div className="flex-1">
+                <p className="text-sm font-medium">Add to My Feed</p>
+                <p className="text-xs text-muted-foreground">
+                  Also add this channel to your personal feed so you can see it on your dashboard.
+                </p>
+              </div>
+              <Switch checked={addToUserPool} onCheckedChange={setAddToUserPool} />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isAddingChannel}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmAddChannel}
+              disabled={isAddingChannel}
+            >
+              {isAddingChannel ? "Adding..." : "Add Channel"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   );
 }

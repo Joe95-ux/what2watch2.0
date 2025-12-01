@@ -30,9 +30,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { channelId, isPrivate = false } = body;
+    const { channelId, addToUserPool = false } = body;
 
-    console.log("[Add Channel ID API] Request received:", { channelId, isPrivate });
+    console.log("[Add Channel ID API] Request received:", { channelId, addToUserPool });
 
     if (!channelId || typeof channelId !== "string") {
       console.error("[Add Channel ID API] Invalid channelId:", channelId);
@@ -109,8 +109,8 @@ export async function POST(request: NextRequest) {
       // Continue without channel details - they can be fetched later
     }
 
-    // Add channel to database
-    console.log("[Add Channel ID API] Adding channel to database...");
+    // Add channel to app pool (always)
+    console.log("[Add Channel ID API] Adding channel to app pool...");
     const newChannel = await db.youTubeChannel.create({
       data: {
         channelId,
@@ -119,18 +119,51 @@ export async function POST(request: NextRequest) {
         thumbnail: channelThumbnail,
         channelUrl: channelUrl,
         isActive: true,
-        isPrivate: Boolean(isPrivate),
+        isPrivate: false, // All channels in app pool are public
         addedByUserId: user.id,
         order: nextOrder,
       },
     });
 
-    console.log("[Add Channel ID API] Channel added successfully:", newChannel.id);
+    console.log("[Add Channel ID API] Channel added to app pool successfully:", newChannel.id);
+
+    // If user wants to add to their personal pool, add it
+    if (addToUserPool) {
+      try {
+        // Check if already in user's pool
+        const existingInPool = await db.favoriteChannel.findUnique({
+          where: {
+            userId_channelId: {
+              userId: user.id,
+              channelId,
+            },
+          },
+        });
+
+        if (!existingInPool) {
+          await db.favoriteChannel.create({
+            data: {
+              userId: user.id,
+              channelId: newChannel.channelId,
+              slug: newChannel.slug,
+              title: newChannel.title,
+              thumbnail: newChannel.thumbnail,
+              channelUrl: newChannel.channelUrl,
+            },
+          });
+          console.log("[Add Channel ID API] Channel added to user pool");
+        }
+      } catch (error) {
+        console.error("[Add Channel ID API] Error adding to user pool:", error);
+        // Don't fail the whole request if adding to user pool fails
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      message: "Channel ID added successfully. The page will refresh to show the new channel.",
+      message: "Channel added successfully. The page will refresh to show the new channel.",
       channelId: newChannel.channelId,
+      addedToUserPool: addToUserPool,
     });
   } catch (error) {
     console.error("[Add Channel ID API] Unexpected error:", error);

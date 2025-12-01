@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Check, Youtube, Search, Loader2, AlertCircle, Plus, Lock, ArrowRight } from "lucide-react";
+import { Copy, Check, Youtube, Search, Loader2, AlertCircle, Plus, UserPlus, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { extractChannelIdFromUrl } from "@/lib/youtube-channels";
 import { useQueryClient } from "@tanstack/react-query";
@@ -32,7 +32,7 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
-  const [privateChannels, setPrivateChannels] = useState<Set<string>>(new Set());
+  const [addToUserPoolChannels, setAddToUserPoolChannels] = useState<Set<string>>(new Set());
   const [existingChannels, setExistingChannels] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
@@ -153,13 +153,13 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
 
   const addChannelId = async (channelId: string) => {
     try {
-      const isPrivate = privateChannels.has(channelId);
+      const addToUserPool = addToUserPoolChannels.has(channelId);
       const response = await fetch("/api/youtube/channels/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ channelId, isPrivate }),
+        body: JSON.stringify({ channelId, addToUserPool }),
       });
 
       if (response.ok) {
@@ -197,26 +197,25 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
     }
   };
 
-  const updateChannelPrivacy = async (channelId: string, isPrivate: boolean) => {
+  const toggleUserPool = async (channelId: string, addToPool: boolean) => {
     try {
-      const response = await fetch(`/api/youtube/channels/${channelId}/privacy`, {
-        method: "PATCH",
+      const response = await fetch("/api/youtube/channels/pool", {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ isPrivate }),
+        body: JSON.stringify({ channelId, action: addToPool ? "add" : "remove" }),
       });
 
       if (response.ok) {
-        const newPrivateChannels = new Set(privateChannels);
-        if (isPrivate) {
-          newPrivateChannels.add(channelId);
+        const newUserPoolChannels = new Set(addToUserPoolChannels);
+        if (addToPool) {
+          newUserPoolChannels.add(channelId);
         } else {
-          newPrivateChannels.delete(channelId);
+          newUserPoolChannels.delete(channelId);
         }
-        setPrivateChannels(newPrivateChannels);
-        setAddedIds((prev) => new Set(prev).add(channelId));
-        toast.success(`Channel marked as ${isPrivate ? "private" : "public"}`);
+        setAddToUserPoolChannels(newUserPoolChannels);
+        toast.success(addToPool ? "Channel added to your feed" : "Channel removed from your feed");
         
         await queryClient.invalidateQueries({ queryKey: ["youtube-channels"] });
         await queryClient.invalidateQueries({ queryKey: ["youtube-channels-manage"] });
@@ -224,12 +223,12 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
         await queryClient.refetchQueries({ queryKey: ["youtube-channels-manage"] });
       } else {
         const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error || errorData.message || "Failed to update channel privacy";
+        const errorMessage = errorData.error || errorData.message || "Failed to update channel pool";
         toast.error(errorMessage);
       }
     } catch (err) {
-      console.error("[YT CID Extractor] Error updating channel privacy:", err);
-      const errorMessage = err instanceof Error ? err.message : "Failed to update channel privacy. Please try again.";
+      console.error("[YT CID Extractor] Error updating channel pool:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to update channel pool. Please try again.";
       toast.error(errorMessage);
     }
   };
@@ -363,52 +362,35 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
                     <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                   </a>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {(!existingChannels.has(channel.id) || addedIds.has(channel.id)) && (
-                      <div className="flex items-center gap-2 px-3 py-1.5 border rounded-md bg-background">
-                        <Checkbox
-                          id={`private-${channel.id}`}
-                          checked={privateChannels.has(channel.id)}
-                          onCheckedChange={(checked) => {
-                            const newPrivateChannels = new Set(privateChannels);
-                            if (checked) {
-                              newPrivateChannels.add(channel.id);
-                            } else {
-                              newPrivateChannels.delete(channel.id);
-                            }
-                            setPrivateChannels(newPrivateChannels);
-                            
-                            if (addedIds.has(channel.id) && existingChannels.has(channel.id)) {
-                              updateChannelPrivacy(channel.id, Boolean(checked));
-                            }
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <Label
-                          htmlFor={`private-${channel.id}`}
-                          className="text-xs cursor-pointer flex items-center gap-1.5 font-medium"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Lock className="h-3 w-3" />
-                          Private
-                        </Label>
-                      </div>
-                    )}
-                    {existingChannels.has(channel.id) && !addedIds.has(channel.id) && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const isPrivate = privateChannels.has(channel.id);
-                          updateChannelPrivacy(channel.id, isPrivate);
-                          setAddedIds((prev) => new Set(prev).add(channel.id));
+                    <div className="flex items-center gap-2 px-3 py-1.5 border rounded-md bg-background">
+                      <Checkbox
+                        id={`user-pool-${channel.id}`}
+                        checked={addToUserPoolChannels.has(channel.id)}
+                        onCheckedChange={(checked) => {
+                          const newUserPoolChannels = new Set(addToUserPoolChannels);
+                          if (checked) {
+                            newUserPoolChannels.add(channel.id);
+                          } else {
+                            newUserPoolChannels.delete(channel.id);
+                          }
+                          setAddToUserPoolChannels(newUserPoolChannels);
+                          
+                          // If channel already exists in app pool, update user pool immediately
+                          if (existingChannels.has(channel.id)) {
+                            toggleUserPool(channel.id, Boolean(checked));
+                          }
                         }}
-                        className="gap-2"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <Label
+                        htmlFor={`user-pool-${channel.id}`}
+                        className="text-xs cursor-pointer flex items-center gap-1.5 font-medium"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <Lock className="h-3.5 w-3.5" />
-                        Update
-                      </Button>
-                    )}
+                        <UserPlus className="h-3 w-3" />
+                        Add to My Feed
+                      </Label>
+                    </div>
                     {!existingChannels.has(channel.id) && (
                       <Button
                         variant="default"

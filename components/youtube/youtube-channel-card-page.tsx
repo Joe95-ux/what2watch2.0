@@ -5,10 +5,13 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Star, Users, Video, ExternalLink, Youtube } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Star, Users, Video, ExternalLink, Youtube, Plus, X } from "lucide-react";
 import { getChannelProfilePath } from "@/lib/channel-path";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useChannelPool } from "@/hooks/use-channel-pool";
+import { useUser } from "@clerk/nextjs";
 
 function formatCount(count: string | number): string {
   const num = typeof count === "string" ? parseInt(count, 10) : count;
@@ -34,16 +37,29 @@ interface YouTubeChannelCardPageProps {
     subscriberCount?: string;
     videoCount?: string;
     note?: string | null;
+    inUserPool?: boolean;
   };
 }
 
 export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps) {
   const router = useRouter();
+  const { isSignedIn } = useUser();
+  const { addToPool, removeFromPool } = useChannelPool();
   const channelTitle = channel.title || "Unknown Channel";
   const channelUrl = channel.channelUrl || `https://www.youtube.com/channel/${channel.channelId}`;
   const displayName = channelTitle.length > 30 ? channelTitle.slice(0, 30) + "..." : channelTitle;
   const profilePath = getChannelProfilePath(channel.channelId, channel.slug);
   const isInDb = Boolean(channel.slug);
+  const inUserPool = channel.inUserPool ?? false;
+
+  const handlePoolAction = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (inUserPool) {
+      removeFromPool.mutate(channel.channelId);
+    } else {
+      addToPool.mutate(channel.channelId);
+    }
+  };
 
   const handleCardClick = (e: React.MouseEvent) => {
     // Don't navigate if clicking on buttons or links
@@ -120,20 +136,27 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
-              {isInDb ? (
-                <Link href={profilePath} className="block">
-                  <h3 className="font-semibold hover:underline truncate flex items-center gap-2">
+              <div className="flex items-center gap-2">
+                {isInDb ? (
+                  <Link href={profilePath} className="block">
+                    <h3 className="font-semibold hover:underline truncate flex items-center gap-2">
+                      {displayName}
+                    </h3>
+                  </Link>
+                ) : (
+                  <h3
+                    className="font-semibold hover:underline truncate flex items-center gap-2 cursor-pointer"
+                    onClick={handleNameClick}
+                  >
                     {displayName}
                   </h3>
-                </Link>
-              ) : (
-                <h3
-                  className="font-semibold hover:underline truncate flex items-center gap-2 cursor-pointer"
-                  onClick={handleNameClick}
-                >
-                  {displayName}
-                </h3>
-              )}
+                )}
+                {isSignedIn && inUserPool && (
+                  <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">
+                    In My Feed
+                  </Badge>
+                )}
+              </div>
               <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                 <div className="flex items-center gap-1">
                   <Users className="h-3 w-3" />
@@ -183,11 +206,34 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
 
       {/* Rating */}
       {channel.rating && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mb-3">
           <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
           <span className="text-sm font-medium">{channel.rating.average}</span>
           <span className="text-xs text-muted-foreground">({channel.rating.count})</span>
         </div>
+      )}
+
+      {/* Pool Action Button */}
+      {isSignedIn && (
+        <Button
+          variant={inUserPool ? "outline" : "default"}
+          size="sm"
+          onClick={handlePoolAction}
+          disabled={addToPool.isPending || removeFromPool.isPending}
+          className="w-full"
+        >
+          {inUserPool ? (
+            <>
+              <X className="h-4 w-4 mr-2" />
+              Remove from My Feed
+            </>
+          ) : (
+            <>
+              <Plus className="h-4 w-4 mr-2" />
+              Add to My Feed
+            </>
+          )}
+        </Button>
       )}
     </div>
   );
