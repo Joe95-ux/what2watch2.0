@@ -41,6 +41,34 @@ export async function POST(
       );
     }
 
+    // Declare variables for channel details
+    let channelTitle: string | undefined;
+    let channelThumbnail: string | undefined;
+    let channelUrl: string | undefined;
+
+    // Fetch channel details from YouTube API to cache (optional, for updating cached data)
+    const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+    if (YOUTUBE_API_KEY) {
+      try {
+        const response = await fetch(
+          `https://www.googleapis.com/youtube/v3/channels?id=${channelId}&part=snippet&key=${YOUTUBE_API_KEY}`,
+          { next: { revalidate: 3600 } }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (data.items?.[0]) {
+            const item = data.items[0];
+            channelTitle = item.snippet.title;
+            channelThumbnail = item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url;
+            channelUrl = `https://www.youtube.com/${item.snippet.customUrl || `channel/${item.id}`}`;
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching channel details:", error);
+        // Continue without cached data
+      }
+    }
+
     // Check if already in feed (FavoriteChannel exists)
     const existing = await db.favoriteChannel.findUnique({
       where: {
@@ -83,12 +111,6 @@ export async function POST(
       });
     }
 
-    // Fetch channel details from YouTube API to cache
-    const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
-    let channelTitle: string | undefined;
-    let channelThumbnail: string | undefined;
-    let channelUrl: string | undefined;
-
     if (YOUTUBE_API_KEY) {
       try {
         const response = await fetch(
@@ -110,7 +132,7 @@ export async function POST(
       }
     }
 
-    // Create favorite
+    // Create favorite (channel not in feed yet)
     const channelRecord = await db.youTubeChannel.findUnique({
       where: { channelId },
       select: { slug: true },
