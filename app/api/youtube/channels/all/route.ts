@@ -216,7 +216,6 @@ export async function GET(request: NextRequest) {
 
     // Build response from paginated channels
     const response = paginatedChannels.map((channel) => {
-      const categories = (channelCategoriesMap.get(channel.channelId) || []).slice(0, 4); // Limit to 4 categories
       const rating = ratingsMap.get(channel.channelId);
       const stats = channelStatsMap.get(channel.channelId);
 
@@ -230,7 +229,7 @@ export async function GET(request: NextRequest) {
         isActive: channel.isActive,
         isPrivate: channel.isPrivate,
         inUserPool: currentUserId ? userChannelPoolIds.has(channel.channelId) : false,
-        categories,
+        categories: (channelCategoriesMap.get(channel.channelId) || []).slice(0, 6), // Limit to 6 categories
         rating: rating
           ? {
               average: Number(rating.average.toFixed(1)),
