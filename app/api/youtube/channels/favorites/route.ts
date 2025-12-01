@@ -29,10 +29,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get favorite channels
+    // Get favorite channels (only those marked as favorite)
     const favorites = await db.favoriteChannel.findMany({
       where: {
         userId: user.id,
+        isFavorite: true, // Only return channels marked as favorites
       },
       orderBy: {
         createdAt: "desc",

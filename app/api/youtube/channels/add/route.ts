@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { generateUniqueChannelSlug } from "@/lib/channel-slug";
 
@@ -149,6 +149,7 @@ export async function POST(request: NextRequest) {
               title: newChannel.title,
               thumbnail: newChannel.thumbnail,
               channelUrl: newChannel.channelUrl,
+              isFavorite: false, // Not favorited by default, just in feed
             },
           });
           console.log("[Add Channel ID API] Channel added to user pool");

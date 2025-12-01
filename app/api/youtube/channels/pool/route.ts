@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Add to user's pool (FavoriteChannel represents user's channel pool)
+      // When adding via pool, isFavorite defaults to false
       const favoriteChannel = await db.favoriteChannel.create({
         data: {
           userId: user.id,
@@ -87,6 +88,7 @@ export async function POST(request: NextRequest) {
           title: channel.title,
           thumbnail: channel.thumbnail,
           channelUrl: channel.channelUrl,
+          isFavorite: false, // Not favorited by default, just in feed
         },
       });
 

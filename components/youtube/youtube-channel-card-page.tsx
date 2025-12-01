@@ -151,11 +151,6 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
                     {displayName}
                   </h3>
                 )}
-                {isSignedIn && inUserPool && (
-                  <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">
-                    In My Feed
-                  </Badge>
-                )}
               </div>
               <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                 <div className="flex items-center gap-1">
@@ -207,33 +202,53 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
       {/* Rating */}
       {channel.rating && (
         <div className="flex items-center gap-2 mb-3">
-          <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+          <div className="flex items-center gap-0.5">
+            {Array.from({ length: 5 }).map((_, index) => {
+              const rating = Math.round(channel.rating.average);
+              const isFilled = index < rating;
+              return (
+                <Star
+                  key={index}
+                  className={cn(
+                    "h-4 w-4",
+                    isFilled
+                      ? "fill-yellow-500 text-yellow-500"
+                      : "fill-none text-muted-foreground/30"
+                  )}
+                />
+              );
+            })}
+          </div>
           <span className="text-sm font-medium">{channel.rating.average}</span>
           <span className="text-xs text-muted-foreground">({channel.rating.count})</span>
         </div>
       )}
 
-      {/* Pool Action Button */}
+      {/* Pool Action Footer Button - Trello style */}
       {isSignedIn && (
-        <Button
-          variant={inUserPool ? "outline" : "default"}
-          size="sm"
-          onClick={handlePoolAction}
-          disabled={addToPool.isPending || removeFromPool.isPending}
-          className="w-full"
-        >
-          {inUserPool ? (
-            <>
-              <X className="h-4 w-4 mr-2" />
-              Remove from My Feed
-            </>
-          ) : (
-            <>
-              <Plus className="h-4 w-4 mr-2" />
-              Add to My Feed
-            </>
-          )}
-        </Button>
+        <div className="mt-3 pt-3 border-t border-border/50">
+          <button
+            onClick={handlePoolAction}
+            disabled={addToPool.isPending || removeFromPool.isPending}
+            className={cn(
+              "text-xs text-muted-foreground hover:text-foreground transition-colors",
+              "disabled:opacity-50 disabled:cursor-not-allowed",
+              "flex items-center gap-1.5 w-full"
+            )}
+          >
+            {inUserPool ? (
+              <>
+                <X className="h-3.5 w-3.5" />
+                <span>Remove from My Feed</span>
+              </>
+            ) : (
+              <>
+                <Plus className="h-3.5 w-3.5" />
+                <span>Add to My Feed</span>
+              </>
+            )}
+          </button>
+        </div>
       )}
     </div>
   );

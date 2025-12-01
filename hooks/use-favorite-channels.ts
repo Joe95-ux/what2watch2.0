@@ -8,6 +8,7 @@ export interface FavoriteChannel {
   title?: string;
   thumbnail?: string;
   channelUrl?: string;
+  isFavorite?: boolean; // Whether this channel is favorited (vs just in feed)
   createdAt: string;
 }
 

@@ -877,6 +877,9 @@ model ChannelReviewVote {
 }
 
 // Favorite Channels - User's favorite YouTube channels
+// This model serves dual purpose:
+// 1. Channels in user's feed (user pool) - all records
+// 2. Favorite channels - records where isFavorite = true
 model FavoriteChannel {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
   userId        String   @db.ObjectId
@@ -889,11 +892,15 @@ model FavoriteChannel {
   thumbnail     String?  // Channel thumbnail URL (cached)
   channelUrl    String?  // Full YouTube channel URL (cached)
   
+  // Favorite flag - distinguishes favorited channels from channels just in feed
+  isFavorite    Boolean  @default(false)
+  
   createdAt     DateTime @default(now())
 
   @@unique([userId, channelId])
   @@map("favorite_channels")
   @@index([userId])
+  @@index([isFavorite])
   @@index([createdAt])
 }
 

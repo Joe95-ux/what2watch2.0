@@ -41,7 +41,7 @@ export async function POST(
       );
     }
 
-    // Check if already favorited
+    // Check if already in feed (FavoriteChannel exists)
     const existing = await db.favoriteChannel.findUnique({
       where: {
         userId_channelId: {
@@ -52,10 +52,35 @@ export async function POST(
     });
 
     if (existing) {
-      return NextResponse.json(
-        { error: "Channel already favorited", favorite: existing },
-        { status: 400 }
-      );
+      // If already in feed, just mark as favorite
+      if (existing.isFavorite) {
+        return NextResponse.json(
+          { error: "Channel already favorited", favorite: existing },
+          { status: 400 }
+        );
+      }
+      
+      // Update existing record to mark as favorite
+      const updated = await db.favoriteChannel.update({
+        where: {
+          userId_channelId: {
+            userId: user.id,
+            channelId,
+          },
+        },
+        data: {
+          isFavorite: true,
+          // Update cached data if available
+          title: channelTitle || existing.title,
+          thumbnail: channelThumbnail || existing.thumbnail,
+          channelUrl: channelUrl || existing.channelUrl,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        favorite: updated,
+      });
     }
 
     // Fetch channel details from YouTube API to cache
@@ -99,6 +124,7 @@ export async function POST(
         title: channelTitle,
         thumbnail: channelThumbnail,
         channelUrl,
+        isFavorite: true, // Mark as favorite
       },
     });
 
@@ -182,13 +208,42 @@ export async function DELETE(
       );
     }
 
-    // Delete favorite
-    await db.favoriteChannel.delete({
+    // Check if channel exists in feed
+    const existing = await db.favoriteChannel.findUnique({
       where: {
         userId_channelId: {
           userId: user.id,
           channelId,
         },
+      },
+    });
+
+    if (!existing) {
+      return NextResponse.json({
+        success: true,
+        message: "Channel not in favorites",
+      });
+    }
+
+    // If channel is only in feed (not favorited), nothing to do
+    if (!existing.isFavorite) {
+      return NextResponse.json({
+        success: true,
+        message: "Channel not favorited",
+      });
+    }
+
+    // If channel is in feed and favorited, just unmark as favorite (keep in feed)
+    // Only delete if user wants to remove from feed entirely (handled by pool API)
+    await db.favoriteChannel.update({
+      where: {
+        userId_channelId: {
+          userId: user.id,
+          channelId,
+        },
+      },
+      data: {
+        isFavorite: false,
       },
     });
 

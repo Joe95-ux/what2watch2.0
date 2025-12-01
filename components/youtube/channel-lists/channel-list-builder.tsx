@@ -29,6 +29,7 @@ import {
 import { YouTubeChannel } from "@/hooks/use-youtube-channels";
 import { toast } from "sonner";
 import { extractChannelIdFromUrl } from "@/lib/youtube-channels";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ChannelListBuilderProps {
   isOpen: boolean;
@@ -53,6 +54,7 @@ export function ChannelListBuilder({
   // Channels are now added via the channel extractor/search
   const createList = useCreateYouTubeChannelList();
   const updateList = useUpdateYouTubeChannelList();
+  const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
@@ -247,6 +249,8 @@ export function ChannelListBuilder({
     if (!pendingChannel) return;
 
     setIsAddingChannel(true);
+    const loadingToast = toast.loading("Adding channel to app pool...");
+    
     try {
       // Add channel to app pool (and optionally to user pool)
       const response = await fetch("/api/youtube/channels/add", {
@@ -259,6 +263,9 @@ export function ChannelListBuilder({
       });
 
       if (response.ok) {
+        // Invalidate channels query to update UI (so "Add to My Feed" button updates)
+        await queryClient.invalidateQueries({ queryKey: ["youtube-channels-all"] });
+        
         // Now add to list
         setSelectedChannels((prev) => [
           ...prev,
@@ -273,6 +280,8 @@ export function ChannelListBuilder({
             notes: "",
           },
         ]);
+        
+        toast.dismiss(loadingToast);
         toast.success(
           addToUserPool
             ? "Channel added to app pool and your feed, and added to list"
@@ -282,10 +291,12 @@ export function ChannelListBuilder({
         setAddToUserPool(false);
       } else {
         const errorData = await response.json().catch(() => ({}));
+        toast.dismiss(loadingToast);
         toast.error(errorData.error || "Failed to add channel");
       }
     } catch (error) {
       console.error("Error adding channel:", error);
+      toast.dismiss(loadingToast);
       toast.error("Failed to add channel. Please try again.");
     } finally {
       setIsAddingChannel(false);
@@ -696,10 +707,13 @@ export function ChannelListBuilder({
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isAddingChannel}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isAddingChannel} className="cursor-pointer">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmAddChannel}
               disabled={isAddingChannel}
+              className="cursor-pointer"
             >
               {isAddingChannel ? "Adding..." : "Add Channel"}
             </AlertDialogAction>
