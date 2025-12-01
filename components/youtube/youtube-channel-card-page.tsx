@@ -204,7 +204,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
         <div className="flex items-center gap-2 mb-3">
           <div className="flex items-center gap-0.5">
             {Array.from({ length: 5 }).map((_, index) => {
-              const rating = Math.round(channel.rating.average);
+              const rating = Math.round(channel.rating?.average ?? 0);
               const isFilled = index < rating;
               return (
                 <Star
