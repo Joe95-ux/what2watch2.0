@@ -1,6 +1,7 @@
 "use client";
 
-import { Trophy, Award } from "lucide-react";
+import Image from "next/image";
+import { Award } from "lucide-react";
 
 interface AwardsSectionProps {
   awards: string | null;
@@ -34,8 +35,15 @@ export default function AwardsSection({ awards }: AwardsSectionProps) {
       <div className="rounded-lg border border-border bg-card/50 p-6">
         {hasOscars && (
           <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-500/20">
-              <Trophy className="h-6 w-6 text-yellow-500" />
+            <div className="flex items-center justify-center w-12 h-12">
+              <Image
+                src="/oscar-icon.png"
+                alt="Oscar"
+                width={48}
+                height={48}
+                className="object-contain"
+                unoptimized
+              />
             </div>
             <div>
               <p className="font-semibold text-lg">
