@@ -89,7 +89,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
 
   return (
     <div
-      className="border rounded-lg p-4 hover:border-primary/50 transition-colors cursor-pointer relative"
+      className="border rounded-lg p-4 hover:border-primary/50 transition-colors cursor-pointer relative pb-14"
       onClick={handleCardClick}
     >
       <div className="flex items-start gap-3 mb-3">
@@ -226,7 +226,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
 
       {/* Pool Action Footer Button - Trello style */}
       {isSignedIn && (
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border/50 bg-card/95 backdrop-blur-sm">
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border/50">
           <button
             onClick={handlePoolAction}
             disabled={addToPool.isPending || removeFromPool.isPending}
