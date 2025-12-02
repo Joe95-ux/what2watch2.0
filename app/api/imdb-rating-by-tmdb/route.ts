@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     try {
       if (type === "movie") {
         const details = await getMovieDetails(tmdbIdNum);
-        imdbId = details.imdb_id || null;
+        imdbId = details.external_ids?.imdb_id || null;
         tmdbRating = details.vote_average > 0 ? details.vote_average : null;
       } else if (type === "tv") {
         const details = await getTVDetails(tmdbIdNum);

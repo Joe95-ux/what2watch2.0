@@ -372,8 +372,8 @@ export async function getPersonImages(personId: number): Promise<TMDBPersonImage
 /**
  * Get movie details
  */
-export async function getMovieDetails(movieId: number): Promise<TMDBMovie & { genres: TMDBGenre[]; runtime: number; budget: number; revenue: number }> {
-  return fetchTMDB(`/movie/${movieId}`, { append_to_response: "credits,images,similar" });
+export async function getMovieDetails(movieId: number): Promise<TMDBMovie & { genres: TMDBGenre[]; runtime: number; budget: number; revenue: number; external_ids?: { imdb_id?: string | null } }> {
+  return fetchTMDB(`/movie/${movieId}`, { append_to_response: "credits,images,similar,external_ids" });
 }
 
 /**
