@@ -197,7 +197,7 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
           <ChevronRight className="h-6 w-6 text-white" />
         </button>
         <div ref={emblaRef} className="overflow-hidden w-full" style={{ touchAction: 'pan-x' }}>
-          <div className="-ml-2 md:-ml-4 flex gap-3">
+          <div className="flex gap-3">
             {items.map((item) => (
               <div key={item.id} className="basis-[180px] sm:basis-[200px] flex-shrink-0">
                 <div className="relative overflow-hidden">

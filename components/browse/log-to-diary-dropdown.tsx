@@ -92,7 +92,7 @@ export default function LogToDiaryDropdown({ item, type, trigger }: LogToDiaryDr
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="z-[110] w-80 h-auto overflow-hidden p-0"
+        className="z-[110] w-80 h-auto overflow-hidden p-0 flex flex-col max-h-[500px]"
         onClick={(e) => {
           e.stopPropagation();
         }}
@@ -101,7 +101,7 @@ export default function LogToDiaryDropdown({ item, type, trigger }: LogToDiaryDr
           <DropdownMenuLabel className="p-4 pb-2">Log to Diary</DropdownMenuLabel>
           <DropdownMenuSeparator />
         </div>
-        <div className="p-4 pt-2 max-h-[400px] overflow-y-auto scrollbar-thin">
+        <div className="p-4 pt-2 flex-1 overflow-y-auto scrollbar-thin min-h-0">
           <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
           {/* Like and Watchlist Buttons */}
           <div className="flex items-center gap-2">
@@ -261,7 +261,10 @@ export default function LogToDiaryDropdown({ item, type, trigger }: LogToDiaryDr
               Separate multiple tags with commas
             </p>
           </div>
-          <div className="flex justify-end gap-2 pt-2">
+          </div>
+        </div>
+        <div className="sticky bottom-0 z-10 bg-background border-t border-border px-4 py-3">
+          <div className="flex justify-end gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -286,7 +289,6 @@ export default function LogToDiaryDropdown({ item, type, trigger }: LogToDiaryDr
             >
               {logViewing.isPending ? "Logging..." : "Log Film"}
             </Button>
-          </div>
           </div>
         </div>
       </DropdownMenuContent>

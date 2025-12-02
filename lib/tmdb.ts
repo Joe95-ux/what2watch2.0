@@ -379,8 +379,8 @@ export async function getMovieDetails(movieId: number): Promise<TMDBMovie & { ge
 /**
  * Get TV show details
  */
-export async function getTVDetails(tvId: number): Promise<TMDBSeries & { genres: TMDBGenre[]; number_of_seasons: number; number_of_episodes: number; episode_run_time: number[] }> {
-  return fetchTMDB(`/tv/${tvId}`, { append_to_response: "credits,images,similar" });
+export async function getTVDetails(tvId: number): Promise<TMDBSeries & { genres: TMDBGenre[]; number_of_seasons: number; number_of_episodes: number; episode_run_time: number[]; external_ids?: { imdb_id?: string | null } }> {
+  return fetchTMDB(`/tv/${tvId}`, { append_to_response: "credits,images,similar,external_ids" });
 }
 
 /**

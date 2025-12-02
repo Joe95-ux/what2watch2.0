@@ -63,8 +63,8 @@ export default function Navbar() {
     <nav className={cn(
       "sticky top-0 z-50 w-full backdrop-blur-md transition-all duration-300 ease-in-out",
       hasHeroSection 
-        ? "bg-black/60 border-b border-[rgba(255,255,255,0.1)] shadow-sm"
-        : "bg-background/95 dark:bg-background/80 border-b border-border/50 supports-[backdrop-filter]:bg-background/80 dark:supports-[backdrop-filter]:bg-background/60"
+        ? "bg-black/80 border-b border-[rgba(255,255,255,0.1)] shadow-sm"
+        : "bg-background/95 dark:bg-background/80 border-b border-border/50 supports-[backdrop-filter]:bg-background/80 dark:supports-[backdrop-filter]:bg-background/80"
     )}>
       <div className={cn(
         "w-full flex h-16 items-center px-4 sm:px-6 lg:px-8",

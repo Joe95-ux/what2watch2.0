@@ -327,7 +327,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
               <div className="relative flex-1">
                 <SearchIcon className={cn(
                   "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors duration-300",
-                  hasHeroSection ? "text-white/80" : "text-muted-foreground"
+                  hasHeroSection ? "text-white/90" : "text-muted-foreground"
                 )} />
                 <Input
                   ref={inputRef}
@@ -342,7 +342,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
                   }}
                   className={cn(
                     "pl-9 pr-20 h-10 transition-colors duration-300",
-                    hasHeroSection && "bg-white/10 border-[rgba(255,255,255,0.1)] text-white placeholder:text-white/60 focus:border-[rgba(255,255,255,0.2)] focus:ring-white/20"
+                    hasHeroSection && "bg-white/10 border-[rgba(255,255,255,0.1)] text-white placeholder:text-white/80 focus:border-[rgba(255,255,255,0.2)] focus:ring-white/20"
                   )}
                   autoFocus
                 />

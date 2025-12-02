@@ -98,7 +98,7 @@ export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChang
           </div>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto scrollbar-thin min-h-0">
+          <div className="flex-1 overflow-y-auto scrollbar-thin min-h-0 px-2">
             {isLoading ? (
               <DropdownMenuItem disabled>Loading playlists...</DropdownMenuItem>
             ) : playlists.length === 0 ? (
@@ -135,7 +135,7 @@ export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChang
           </div>
 
           {/* Fixed Footer */}
-          <div className="border-t border-border">
+          <div className="px-1">
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               onClick={(e) => {

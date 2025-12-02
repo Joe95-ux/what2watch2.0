@@ -34,6 +34,7 @@ interface TVDetails extends TMDBSeries {
   last_air_date?: string;
   status?: string;
   created_by?: Array<{ id: number; name: string; profile_path: string | null }>;
+  imdb_id?: string;
 }
 
 /**
@@ -298,5 +299,82 @@ function mapTmdbProvider(
 function hasOffers(data: JustWatchAvailabilityResponse) {
   if (!data) return false;
   return data.allOffers && data.allOffers.length > 0;
+}
+
+/**
+ * Hook to fetch IMDb rating (with TMDB fallback)
+ */
+export function useIMDBRating(imdbId: string | null | undefined, tmdbRating: number | null) {
+  return useQuery({
+    queryKey: ["imdb-rating", imdbId, tmdbRating],
+    queryFn: async () => {
+      if (!imdbId) {
+        // Fallback to TMDB rating if no IMDb ID
+        if (tmdbRating && tmdbRating > 0) {
+          return { rating: tmdbRating, source: "tmdb" as const };
+        }
+        return null;
+      }
+
+      const params = new URLSearchParams({
+        imdbId,
+        ...(tmdbRating && tmdbRating > 0 && { tmdbRating: tmdbRating.toString() }),
+      });
+
+      const response = await fetch(`/api/imdb-rating?${params.toString()}`);
+      if (!response.ok) {
+        // Fallback to TMDB rating on error
+        if (tmdbRating && tmdbRating > 0) {
+          return { rating: tmdbRating, source: "tmdb" as const };
+        }
+        return null;
+      }
+
+      const data = await response.json();
+      return data as { rating: number; votes?: number; source: "imdb" | "tmdb" };
+    },
+    enabled: !!imdbId || (!!tmdbRating && tmdbRating > 0),
+    staleTime: 24 * 60 * 60 * 1000, // 24 hours (IMDb ratings don't change often)
+    gcTime: 7 * 24 * 60 * 60 * 1000, // 7 days
+    retry: 1,
+  });
+}
+
+/**
+ * Hook to fetch full OMDB data (ratings, awards, box office, etc.)
+ */
+export function useOMDBData(imdbId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["omdb-data", imdbId],
+    queryFn: async () => {
+      if (!imdbId) return null;
+
+      const response = await fetch(`/api/omdb?imdbId=${imdbId}`);
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = await response.json();
+      return data as {
+        imdbRating: number | null;
+        imdbVotes: number | null;
+        metascore: number | null;
+        rottenTomatoes: {
+          critic?: number | null;
+          audience?: number | null;
+        } | null;
+        awards: string | null;
+        rated: string | null;
+        boxOffice: string | null;
+        production: string | null;
+        dvd: string | null;
+        website: string | null;
+      };
+    },
+    enabled: !!imdbId,
+    staleTime: 24 * 60 * 60 * 1000, // 24 hours
+    gcTime: 7 * 24 * 60 * 60 * 1000, // 7 days
+    retry: 1,
+  });
 }
 

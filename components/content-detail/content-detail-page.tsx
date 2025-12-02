@@ -155,8 +155,8 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
               </div>
               {/* Stats Skeleton */}
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-                <Skeleton className="h-24 rounded-lg" />
-                <Skeleton className="h-24 rounded-lg" />
+                <Skeleton className="h-24 lg:h-28 rounded-lg" />
+                <Skeleton className="h-24 lg:h-28 rounded-lg" />
               </div>
             </div>
           </div>

@@ -5,10 +5,13 @@ import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { JustWatchAvailabilityResponse, JustWatchOffer } from "@/lib/justwatch";
 import { createPersonSlug } from "@/lib/person-utils";
+import { useOMDBData } from "@/hooks/use-content-details";
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import RatingsSection from "./ratings-section";
+import AwardsSection from "./awards-section";
 
 interface DetailsType {
   release_date?: string;
@@ -23,6 +26,7 @@ interface DetailsType {
   number_of_seasons?: number;
   number_of_episodes?: number;
   genres?: Array<{ id: number; name: string }>;
+  imdb_id?: string;
   credits?: {
     crew?: Array<{
       id: number;
@@ -65,6 +69,9 @@ export default function OverviewSection({
   const displaySynopsis = shouldTruncate && !isExpanded
     ? synopsis.slice(0, MAX_SYNOPSIS_LENGTH) + "..."
     : synopsis;
+
+  // Fetch OMDB data if IMDb ID is available
+  const { data: omdbData } = useOMDBData(details?.imdb_id || null);
 
   const director = details?.credits?.crew?.find((person) => person.job === "Director");
   const writers = details?.credits?.crew
@@ -146,7 +153,23 @@ export default function OverviewSection({
             <OverviewInfoRow label="Country" value={countries} />
           </div>
 
-          <DetailsGrid type={type} details={details} />
+          {/* Ratings Section */}
+          {type === "movie" && (
+            <RatingsSection
+              imdbRating={omdbData?.imdbRating || null}
+              imdbVotes={omdbData?.imdbVotes || null}
+              metascore={omdbData?.metascore || null}
+              rottenTomatoes={omdbData?.rottenTomatoes || null}
+              tmdbRating={item.vote_average > 0 ? item.vote_average : null}
+            />
+          )}
+
+          {/* Awards Section */}
+          {type === "movie" && omdbData?.awards && (
+            <AwardsSection awards={omdbData.awards} />
+          )}
+
+          <DetailsGrid type={type} details={details} omdbData={omdbData} />
         </div>
 
         <div className="lg:col-span-5 space-y-4">
@@ -294,7 +317,21 @@ function JustWatchCredit() {
   );
 }
 
-function DetailsGrid({ type, details }: { type: "movie" | "tv"; details: DetailsType | null }) {
+function DetailsGrid({ 
+  type, 
+  details,
+  omdbData,
+}: { 
+  type: "movie" | "tv"; 
+  details: DetailsType | null;
+  omdbData?: {
+    rated?: string | null;
+    boxOffice?: string | null;
+    production?: string | null;
+    dvd?: string | null;
+    website?: string | null;
+  } | null;
+}) {
   const formatDate = (date: string | null | undefined): string => {
     if (!date) return "N/A";
     return new Date(date).toLocaleDateString("en-US", {
@@ -330,17 +367,39 @@ function DetailsGrid({ type, details }: { type: "movie" | "tv"; details: Details
   const seasons = type === "tv" && details?.number_of_seasons ? details.number_of_seasons : null;
   const episodes = type === "tv" && details?.number_of_episodes ? details.number_of_episodes : null;
 
-  const detailItems: Array<{ label: string; value: string }> = [
+  const formatOMDBDate = (dateStr: string | null | undefined): string | null => {
+    if (!dateStr || dateStr === "N/A") return null;
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return null;
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch {
+      return null;
+    }
+  };
+
+  const detailItems: Array<{ label: string; value: string; link?: string }> = [
     releaseDate && { label: type === "movie" ? "Release Date" : "First Air Date", value: releaseDate },
     runtime && { label: type === "movie" ? "Runtime" : "Episode Runtime", value: runtime },
     { label: "Country", value: country },
     { label: "Language", value: language },
     { label: "Status", value: status },
+    // OMDB data (movies only)
+    type === "movie" && omdbData?.rated && { label: "Rated", value: omdbData.rated },
+    type === "movie" && omdbData?.boxOffice && { label: "Box Office", value: omdbData.boxOffice },
+    type === "movie" && omdbData?.production && { label: "Production", value: omdbData.production },
+    type === "movie" && omdbData?.dvd && formatOMDBDate(omdbData.dvd) && { label: "DVD Release", value: formatOMDBDate(omdbData.dvd)! },
+    type === "movie" && omdbData?.website && { label: "Website", value: "Official Site", link: omdbData.website },
+    // TMDB data
     budget && { label: "Budget", value: budget },
     revenue && { label: "Revenue", value: revenue },
     seasons && { label: "Seasons", value: seasons.toString() },
     episodes && { label: "Episodes", value: episodes.toString() },
-  ].filter((item): item is { label: string; value: string } => Boolean(item));
+  ].filter((item): item is { label: string; value: string; link?: string } => Boolean(item));
 
   return (
     <div>
@@ -349,7 +408,18 @@ function DetailsGrid({ type, details }: { type: "movie" | "tv"; details: Details
         {detailItems.map((item, index) => (
           <div key={index}>
             <p className="text-sm text-muted-foreground mb-1">{item.label}</p>
-            <p className="font-medium">{item.value}</p>
+            {item.link ? (
+              <a
+                href={item.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-primary hover:underline cursor-pointer"
+              >
+                {item.value}
+              </a>
+            ) : (
+              <p className="font-medium">{item.value}</p>
+            )}
           </div>
         ))}
       </div>

@@ -17,6 +17,7 @@ interface TVDetails extends TMDBSeries {
   last_air_date?: string;
   status?: string;
   created_by?: Array<{ id: number; name: string; profile_path: string | null }>;
+  imdb_id?: string;
 }
 
 export async function GET(
@@ -76,7 +77,13 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(details, {
+    // Extract IMDb ID from external_ids if available
+    const tvDetailsWithImdb: TVDetails = {
+      ...details,
+      imdb_id: details.external_ids?.imdb_id || undefined,
+    };
+
+    return NextResponse.json(tvDetailsWithImdb, {
       headers: {
         'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
       },

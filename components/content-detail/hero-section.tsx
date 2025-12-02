@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
 import { useToggleFavorite } from "@/hooks/use-favorites";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
+import { useIMDBRating } from "@/hooks/use-content-details";
 import { cn } from "@/lib/utils";
 import TrailerModal from "@/components/browse/trailer-modal";
 import { CircleActionButton } from "@/components/browse/circle-action-button";
@@ -26,6 +27,7 @@ interface DetailsType {
   runtime?: number;
   episode_run_time?: number[];
   genres?: Array<{ id: number; name: string }>;
+  imdb_id?: string;
   images?: {
     backdrops?: Array<{ file_path: string }>;
     posters?: Array<{ file_path: string }>;
@@ -58,6 +60,15 @@ export default function HeroSection({ item, type, details, trailer, videosData }
     (details?.images?.backdrops?.length ?? 0) +
     (details?.images?.posters?.length ?? 0) +
     (details?.images?.stills?.length ?? 0);
+
+  // Fetch IMDb rating (with TMDB fallback)
+  const imdbId = details?.imdb_id || null;
+  const tmdbRating = item.vote_average > 0 ? item.vote_average : null;
+  const { data: ratingData } = useIMDBRating(imdbId, tmdbRating);
+  
+  // Use IMDb rating if available, otherwise fall back to TMDB
+  const displayRating = ratingData?.rating || tmdbRating;
+  const ratingSource = ratingData?.source || (tmdbRating ? "tmdb" : null);
 
   const formatRuntime = (minutes: number | number[] | undefined, isTV: boolean = false): string | null => {
     if (!minutes) return null;
@@ -233,10 +244,13 @@ export default function HeroSection({ item, type, details, trailer, videosData }
           <div className="flex flex-col sm:flex-row justify-start sm:justify-between sm:items-center gap-3">
             <h1 className="text-[1.3rem] sm:text-3xl font-semibold text-foreground">{title}</h1>
             <div className="inline-flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              {item.vote_average > 0 && (
+              {displayRating && displayRating > 0 && (
                 <div className="flex items-center gap-2 text-foreground">
                   <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                  <span className="font-semibold">{item.vote_average.toFixed(1)}</span>
+                  <span className="font-semibold">{displayRating.toFixed(1)}</span>
+                  {ratingSource === "imdb" && (
+                    <span className="text-xs text-muted-foreground">IMDb</span>
+                  )}
                 </div>
               )}
               {releaseYear && <span>{releaseYear}</span>}
@@ -302,7 +316,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
           </div>
 
           {/* Banner Column */}
-          <div className="relative rounded-lg bg-muted/20 overflow-hidden min-h-[260px] border border-white/10">
+          <div className="relative rounded-lg bg-muted/20 overflow-hidden min-h-[260px] md:min-h-[400px] lg:min-h-[260px] border border-white/10">
             {backdropPath ? (
               <Image
                 src={getBackdropUrl(backdropPath, "w1280")}
@@ -317,6 +331,42 @@ export default function HeroSection({ item, type, details, trailer, videosData }
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
 
+            {/* Action Buttons - Top Right (visible when poster is in middle column, below lg breakpoint) */}
+            {posterPath && (
+              <div className="absolute top-4 right-4 flex gap-2 md:flex lg:hidden z-10">
+                <CircleActionButton
+                  size="md"
+                  className="bg-black/70 text-white border-white/30 hover:bg-black/80 hover:border-white/60 shadow-lg"
+                  aria-label="Toggle watchlist"
+                  onClick={async () => {
+                    await toggleWatchlist.toggle(item, type);
+                  }}
+                >
+                  <Bookmark
+                    className={cn(
+                      "h-4 w-4",
+                      toggleWatchlist.isInWatchlist(item.id, type)
+                        ? "text-blue-400 fill-blue-400"
+                        : "text-white"
+                    )}
+                  />
+                </CircleActionButton>
+                <AddToPlaylistDropdown
+                  item={item}
+                  type={type}
+                  trigger={
+                    <CircleActionButton
+                      size="md"
+                      className="bg-black/70 text-white border-white/30 hover:bg-black/80 hover:border-white/60 shadow-lg"
+                      aria-label="Add to playlist"
+                    >
+                      <Plus className="h-4 w-4 text-white" />
+                    </CircleActionButton>
+                  }
+                />
+              </div>
+            )}
+
             <div className="absolute bottom-6 left-6 right-6">
               <div className="flex items-center gap-4">
                 {posterPath && (
@@ -329,38 +379,6 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                       sizes="96px"
                       unoptimized
                     />
-                    <div className="absolute top-2 right-2 flex gap-2">
-                      <CircleActionButton
-                        size="md"
-                        className="bg-black/70 text-white border-white/30 hover:bg-black/80 hover:border-white/60 shadow-lg"
-                        aria-label="Toggle watchlist"
-                        onClick={async () => {
-                          await toggleWatchlist.toggle(item, type);
-                        }}
-                      >
-                        <Bookmark
-                          className={cn(
-                            "h-4 w-4",
-                            toggleWatchlist.isInWatchlist(item.id, type)
-                              ? "text-blue-400 fill-blue-400"
-                              : "text-white"
-                          )}
-                        />
-                      </CircleActionButton>
-                      <AddToPlaylistDropdown
-                        item={item}
-                        type={type}
-                        trigger={
-                          <CircleActionButton
-                            size="md"
-                            className="bg-black/70 text-white border-white/30 hover:bg-black/80 hover:border-white/60 shadow-lg"
-                            aria-label="Add to playlist"
-                          >
-                            <Plus className="h-4 w-4 text-white" />
-                          </CircleActionButton>
-                        }
-                      />
-                    </div>
                   </div>
                 )}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
