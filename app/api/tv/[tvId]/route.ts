@@ -17,6 +17,9 @@ interface TVDetails extends TMDBSeries {
   last_air_date?: string;
   status?: string;
   created_by?: Array<{ id: number; name: string; profile_path: string | null }>;
+  external_ids?: {
+    imdb_id?: string | null;
+  };
   imdb_id?: string;
 }
 
