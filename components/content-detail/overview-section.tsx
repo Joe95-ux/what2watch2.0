@@ -10,8 +10,8 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import RatingsSection from "./ratings-section";
 import AwardsSection from "./awards-section";
+import { RatingsRow } from "./ratings-row";
 
 interface DetailsType {
   release_date?: string;
@@ -151,18 +151,18 @@ export default function OverviewSection({
               cast={topCast}
             />
             <OverviewInfoRow label="Country" value={countries} />
+            {/* Ratings Row - show in table for both movies and TV */}
+            <div className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
+              <span className="text-muted-foreground">Ratings</span>
+              <RatingsRow
+                imdbRating={omdbData?.imdbRating || null}
+                imdbVotes={omdbData?.imdbVotes || null}
+                metascore={omdbData?.metascore || null}
+                rottenTomatoes={omdbData?.rottenTomatoes || null}
+                tmdbRating={item.vote_average > 0 ? item.vote_average : null}
+              />
+            </div>
           </div>
-
-          {/* Ratings Section */}
-          {type === "movie" && (
-            <RatingsSection
-              imdbRating={omdbData?.imdbRating || null}
-              imdbVotes={omdbData?.imdbVotes || null}
-              metascore={omdbData?.metascore || null}
-              rottenTomatoes={omdbData?.rottenTomatoes || null}
-              tmdbRating={item.vote_average > 0 ? item.vote_average : null}
-            />
-          )}
 
           {/* Awards Section */}
           {type === "movie" && omdbData?.awards && (

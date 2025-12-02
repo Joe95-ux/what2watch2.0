@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
-import { Star, Play, Plus, Heart, Maximize2, Bookmark, Volume2, VolumeX, BookCheck, MoreVertical, Trash2 } from "lucide-react";
+import { Play, Plus, Heart, Maximize2, Bookmark, Volume2, VolumeX, BookCheck, MoreVertical, Trash2 } from "lucide-react";
+import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries, getPosterUrl, TMDBVideo, getYouTubeEmbedUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
@@ -579,8 +580,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                       )}
                     >
                       {item.vote_average !== undefined && item.vote_average > 0 && (
-                        <div className="flex items-center gap-0.5">
-                          <Star className={cn("text-yellow-400 fill-yellow-400", isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
+                        <div className="flex items-center gap-1">
+                          <IMDBBadge size={isMobile ? 16 : 20} className="border-lg" />
                           <span className={cn("font-semibold text-white", isMobile ? "text-[10px]" : "text-xs")}>
                             {item.vote_average.toFixed(1)}
                           </span>

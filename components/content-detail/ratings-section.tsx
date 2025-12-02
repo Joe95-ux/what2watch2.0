@@ -1,6 +1,7 @@
 "use client";
 
-import { Star, Award, TrendingUp } from "lucide-react";
+import { Award, StarIcon, TrendingUp } from "lucide-react";
+import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { cn } from "@/lib/utils";
 
 interface RatingsSectionProps {
@@ -59,7 +60,7 @@ export default function RatingsSection({
         {(imdbRating || tmdbRating) && (
           <div className="rounded-lg border border-border bg-card/50 p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+              <IMDBBadge size={24} className="border-lg" />
               <span className="text-sm font-medium text-muted-foreground">IMDb</span>
             </div>
             <div className="flex items-baseline gap-2">
@@ -113,7 +114,7 @@ export default function RatingsSection({
         {!imdbRating && tmdbRating && (
           <div className="rounded-lg border border-border bg-card/50 p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Star className="h-4 w-4 text-blue-400 fill-blue-400" />
+              <StarIcon className="h-4 w-4 text-blue-400 fill-blue-400" />
               <span className="text-sm font-medium text-muted-foreground">TMDB</span>
             </div>
             <div className="flex items-baseline gap-2">

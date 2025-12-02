@@ -14,6 +14,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
+import { IMDBBadge } from "@/components/ui/imdb-badge";
 
 interface MoreLikeThisCardProps {
   item: TMDBMovie | TMDBSeries;
@@ -71,10 +72,8 @@ export default function MoreLikeThisCard({
   
   const runtimeText = formatRuntime(runtime || initialRuntime);
   
-  // Get parental rating - TMDB doesn't always provide this, so we'll use a simple fallback
-  const parentalRating = type === "movie" 
-    ? ((item as TMDBMovie).adult ? "R" : "PG-13")
-    : "TV-MA";
+  // Get rating for display (use vote_average as IMDB rating fallback)
+  const displayRating = item.vote_average && item.vote_average > 0 ? item.vote_average : null;
 
   // Reset fetch attempt tracking when item changes
   useEffect(() => {
@@ -292,14 +291,19 @@ export default function MoreLikeThisCard({
 
         {/* Section 2: Movie Details */}
         <div className="bg-muted/60 dark:bg-card border-t border-border/50 p-3 space-y-2">
-          {/* Top Row: Release Date + Parental Control + Add Button */}
+          {/* Top Row: Release Date + Rating + Add Button */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               {year && <span>{year}</span>}
-              {year && <span>•</span>}
-              <span className="px-1.5 py-0.5 bg-muted rounded text-xs font-medium">
-                {parentalRating}
-              </span>
+              {year && displayRating && <span>•</span>}
+              {displayRating && (
+                <div className="flex items-center gap-1">
+                  <IMDBBadge size={16} className="border-lg" />
+                  <span className="font-medium text-foreground">
+                    {displayRating.toFixed(1)}
+                  </span>
+                </div>
+              )}
             </div>
             <Tooltip
               open={playlistTooltipOpen && !isPlaylistDropdownOpen}
