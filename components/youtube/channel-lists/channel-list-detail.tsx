@@ -49,7 +49,7 @@ interface ChannelData {
 }
 
 // Component to fetch and display channels with categories and ratings
-function ChannelListChannelsGrid({ items }: { items: YouTubeChannelListItem[] }) {
+function ChannelListChannelsGrid({ items, listId }: { items: YouTubeChannelListItem[]; listId: string }) {
   const channelIds = items.map((item) => item.channelId);
 
   // Create a map of channelId to position to preserve order
@@ -59,7 +59,7 @@ function ChannelListChannelsGrid({ items }: { items: YouTubeChannelListItem[] })
 
   // Fetch channel data with categories and ratings
   const { data: channelsData, isLoading } = useQuery<{ channels: ChannelData[] }>({
-    queryKey: ["channel-list-channels", channelIds.join(",")],
+    queryKey: ["channel-list-channels", listId, channelIds.join(",")],
     queryFn: async () => {
       if (channelIds.length === 0) return { channels: [] };
 
@@ -146,7 +146,7 @@ function ChannelListChannelsGrid({ items }: { items: YouTubeChannelListItem[] })
       return { channels };
     },
     enabled: channelIds.length > 0,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 0, // Always refetch when query key changes (e.g., when list is updated)
   });
 
   if (isLoading) {
@@ -432,7 +432,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
         </div>
       </div>
 
-      <ChannelListChannelsGrid items={list.items} />
+      <ChannelListChannelsGrid items={list.items} listId={list.id} />
 
       <ChannelListBuilder
         isOpen={builderOpen}

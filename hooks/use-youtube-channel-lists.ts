@@ -186,6 +186,8 @@ export function useUpdateYouTubeChannelList() {
       queryClient.invalidateQueries({ queryKey: ["youtube-channel-lists"] });
       queryClient.invalidateQueries({ queryKey: ["youtube-channel-lists", "mine"] });
       queryClient.invalidateQueries({ queryKey: ["youtube-channel-list", list.id] });
+      // Invalidate channel list channels query to refresh the channels grid
+      queryClient.invalidateQueries({ queryKey: ["channel-list-channels", list.id] });
     },
   });
 }
