@@ -505,7 +505,7 @@ export default function YouTubeVideoCard({
       {/* Video Details */}
       <div
         className={cn(
-          "bg-card p-3 space-y-2",
+          "bg-muted/60 dark:bg-card p-3 space-y-2",
           isPlaylistVariant && "flex-1 flex flex-col justify-between min-h-[90px]"
         )}
       >
@@ -541,7 +541,7 @@ export default function YouTubeVideoCard({
                           e.stopPropagation();
                         }}
                       >
-                        <Plus className="h-3 w-3 text-black dark:text-white" />
+                        <Plus className="h-3 w-3 text-white" />
                       </CircleActionButton>
                     }
                   />
@@ -555,7 +555,7 @@ export default function YouTubeVideoCard({
                     void requireAuth(async () => undefined, "Sign in to manage playlists.");
                   }}
                 >
-                  <Plus className="h-3 w-3 text-black dark:text-white" />
+                  <Plus className="h-3 w-3 text-white" />
                 </CircleActionButton>
               )}
             </TooltipTrigger>

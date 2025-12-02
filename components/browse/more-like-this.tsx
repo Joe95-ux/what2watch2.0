@@ -103,13 +103,13 @@ export default function MoreLikeThis({
               size="sm"
               onClick={handleToggle}
               disabled={isLoading}
-              className="h-12 w-12 rounded-full p-0 bg-white/10 text-black dark:text-white border-slate-300 dark:border-white/30 hover:bg-white/20 hover:border-slate-400 dark:hover:border-white/50 backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer"
+              className="h-12 w-12 rounded-full p-0 bg-black/60 text-white border border-white/30 hover:bg-black/70 hover:border-white/40 backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer"
               aria-label={isExpanded ? "Show less" : "Show more"}
             >
               {isExpanded ? (
-                <ChevronUp className="size-6 text-black dark:text-white" />
+                <ChevronUp className="size-6 text-white" />
               ) : (
-                <ChevronDown className="size-6 text-black dark:text-white" />
+                <ChevronDown className="size-6 text-white" />
               )}
             </Button>
           </div>

@@ -276,7 +276,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
       >
         <div
           className={cn(
-            "relative block aspect-[2/3] rounded-lg overflow-hidden group",
+            "relative block aspect-[2/3] rounded-lg overflow-hidden group border border-border/50 shadow-sm",
             isHovered && !isMobile && "z-40"
           )}
         >

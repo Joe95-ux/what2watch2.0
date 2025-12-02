@@ -87,34 +87,24 @@ export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChang
         </DropdownMenuTrigger>
         <DropdownMenuContent 
           align="end" 
-          className="w-56 z-[110]"
+          className="w-56 z-[110] p-0 flex flex-col max-h-[400px]"
           onClick={(e) => {
             e.stopPropagation();
           }}
         >
-          <DropdownMenuLabel>Add to Playlist</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {isLoading ? (
-            <DropdownMenuItem disabled>Loading playlists...</DropdownMenuItem>
-          ) : playlists.length === 0 ? (
-            <>
+          {/* Fixed Header */}
+          <div className="px-2 py-1.5 border-b border-border">
+            <DropdownMenuLabel className="px-2">Add to Playlist</DropdownMenuLabel>
+          </div>
+
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto scrollbar-thin min-h-0">
+            {isLoading ? (
+              <DropdownMenuItem disabled>Loading playlists...</DropdownMenuItem>
+            ) : playlists.length === 0 ? (
               <DropdownMenuItem disabled>No playlists yet</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsDropdownOpen(false);
-                  setIsCreateModalOpen(true);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Playlist
-              </DropdownMenuItem>
-            </>
-          ) : (
-            <>
-              {playlists.map((playlist) => {
+            ) : (
+              playlists.map((playlist) => {
                 const isInPlaylist = isItemInPlaylist(playlist);
                 return (
                   <DropdownMenuItem
@@ -140,21 +130,25 @@ export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChang
                     )}
                   </DropdownMenuItem>
                 );
-              })}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsDropdownOpen(false);
-                  setIsCreateModalOpen(true);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create New Playlist
-              </DropdownMenuItem>
-            </>
-          )}
+              })
+            )}
+          </div>
+
+          {/* Fixed Footer */}
+          <div className="border-t border-border">
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDropdownOpen(false);
+                setIsCreateModalOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              {playlists.length === 0 ? "Create Playlist" : "Create New Playlist"}
+            </DropdownMenuItem>
+          </div>
         </DropdownMenuContent>
       </DropdownMenu>
 

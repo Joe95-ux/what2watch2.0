@@ -180,7 +180,7 @@ export default function MoreLikeThisCard({
         onClick={handleCardClick}
       >
         {/* Section 1: Movie Poster - Reduced height */}
-        <div className="relative aspect-[5/5] bg-muted overflow-hidden">
+        <div className="relative aspect-[5/5] bg-muted overflow-hidden border-b border-border/50">
           {posterPath ? (
             <Image
               src={getPosterUrl(posterPath, "w500")}
@@ -291,7 +291,7 @@ export default function MoreLikeThisCard({
         </div>
 
         {/* Section 2: Movie Details */}
-        <div className="bg-card p-3 space-y-2">
+        <div className="bg-muted/60 dark:bg-card border-t border-border/50 p-3 space-y-2">
           {/* Top Row: Release Date + Parental Control + Add Button */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -319,15 +319,15 @@ export default function MoreLikeThisCard({
                         }
                       }}
                       trigger={
-                        <CircleActionButton
-                          size="sm"
-                          onClick={(e: React.MouseEvent) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                        >
-                          <Plus className="h-3 w-3 text-black dark:text-white" />
-                        </CircleActionButton>
+                  <CircleActionButton
+                    size="sm"
+                    onClick={(e: React.MouseEvent) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                  >
+                    <Plus className="h-3 w-3 text-white" />
+                  </CircleActionButton>
                       }
                     />
                   </div>
@@ -340,7 +340,7 @@ export default function MoreLikeThisCard({
                       void requireAuth(async () => undefined, "Sign in to manage playlists.");
                     }}
                   >
-                    <Plus className="h-3 w-3 text-black dark:text-white" />
+                    <Plus className="h-3 w-3 text-white" />
                   </CircleActionButton>
                 )}
               </TooltipTrigger>

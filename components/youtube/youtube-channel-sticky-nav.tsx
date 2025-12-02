@@ -27,9 +27,9 @@ export default function YouTubeChannelStickyNav({
   return (
     <div
       className={cn(
-        "sticky top-0 z-50 transition-all duration-300 flex-1",
+        "sticky top-0 z-40 transition-all duration-300 flex-1",
         isScrolled
-          ? "bg-background/95 backdrop-blur-md border-b border-border shadow-sm"
+          ? "bg-background/95 backdrop-blur-md border-b border-border/50 shadow-sm"
           : "bg-transparent"
       )}
     >
