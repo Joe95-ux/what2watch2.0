@@ -33,7 +33,7 @@ export default function DashboardContent() {
   const { user } = useUser();
   const { data: favorites = [], isLoading: isLoadingFavorites } = useFavorites();
   const { data: playlists = [], isLoading: isLoadingPlaylists } = usePlaylists();
-  const { data: recentlyViewed = [], isLoading: isLoadingRecentlyViewed } = useRecentlyViewed();
+  const { data: recentlyViewed, isLoading: isLoadingRecentlyViewed } = useRecentlyViewed();
   const { data: playlistAnalytics, isLoading: isLoadingPlaylistAnalytics } = usePlaylistAnalytics(); // Show all data by default
   const { data: preferences } = useUserPreferences();
   const { data: favoriteYouTubeVideos = [], isLoading: isLoadingYouTubeFavorites } = useFavoriteYouTubeVideos();
@@ -81,7 +81,9 @@ export default function DashboardContent() {
 
   // Convert recently viewed to TMDB format
   const recentlyViewedItems = useMemo(() => {
-    return recentlyViewed.slice(0, 10).map(recentlyViewedToTMDBItem);
+    if (!recentlyViewed?.pages) return [];
+    const allItems = recentlyViewed.pages.flatMap(page => page.items);
+    return allItems.slice(0, 10).map(recentlyViewedToTMDBItem);
   }, [recentlyViewed]);
 
   // Convert favorites to TMDB format
@@ -127,7 +129,7 @@ export default function DashboardContent() {
     return {
       watchlistCount: favorites.length,
       playlistCount: playlists.length,
-      recentlyViewedCount: recentlyViewed.length,
+      recentlyViewedCount: recentlyViewed?.pages ? recentlyViewed.pages.reduce((sum, page) => sum + page.items.length, 0) : 0,
       totalItems: favorites.length + playlists.reduce((acc, p) => acc + (p._count?.items || 0), 0),
       playlistReach: {
         total: playlistAnalytics?.totals.totalEngagement ?? shares + visits,

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
+import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface RatingsRowProps {

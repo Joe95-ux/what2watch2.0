@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 
 export interface RecentlyViewedItem {
@@ -15,18 +15,30 @@ export interface RecentlyViewedItem {
   viewedAt: string;
 }
 
-// Fetch recently viewed items
+interface RecentlyViewedResponse {
+  items: RecentlyViewedItem[];
+  hasMore: boolean;
+  total: number;
+}
+
+// Fetch recently viewed items with infinite loading
 export function useRecentlyViewed() {
-  return useQuery<RecentlyViewedItem[]>({
+  return useInfiniteQuery<RecentlyViewedResponse>({
     queryKey: ["recently-viewed"],
-    queryFn: async () => {
-      const response = await fetch("/api/recently-viewed");
+    queryFn: async ({ pageParam = 1 }) => {
+      const response = await fetch(`/api/recently-viewed?page=${pageParam}&pageSize=20`);
       if (!response.ok) {
         throw new Error("Failed to fetch recently viewed");
       }
-      const data = await response.json();
-      return data.items || [];
+      return response.json();
     },
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.hasMore) {
+        return allPages.length + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }

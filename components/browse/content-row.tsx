@@ -22,9 +22,11 @@ interface ContentRowProps {
   isClearing?: boolean;
   titleAction?: React.ReactNode; // Optional action element next to title (e.g., dropdown)
   viewAllHref?: string; // Optional href for "View All" button
+  onLoadMore?: () => void; // Callback when user scrolls to the end
+  isLoadingMore?: boolean; // Whether more items are being loaded
 }
 
-export default function ContentRow({ title, items, type, isLoading, href, showClearButton, onClear, isClearing, titleAction, viewAllHref }: ContentRowProps) {
+export default function ContentRow({ title, items, type, isLoading, href, showClearButton, onClear, isClearing, titleAction, viewAllHref, onLoadMore, isLoadingMore }: ContentRowProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "start",
     slidesToScroll: 5,
@@ -216,6 +218,14 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
                 </div>
               </div>
             ))}
+            {/* Loading indicator for infinite loading */}
+            {isLoadingMore && (
+              <div className="basis-[180px] sm:basis-[200px] flex-shrink-0 flex items-center justify-center">
+                <div className="w-full aspect-[2/3] bg-muted rounded-lg animate-pulse flex items-center justify-center">
+                  <span className="text-muted-foreground text-sm">Loading...</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

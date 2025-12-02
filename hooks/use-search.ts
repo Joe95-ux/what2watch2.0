@@ -46,7 +46,7 @@ export function useSearch(params: SearchParams) {
       }
       return response.json() as Promise<TMDBResponse<TMDBMovie | TMDBSeries>>;
     },
-    enabled: !!(params.query || params.genre || params.year || (params.minRating && params.minRating > 0) || params.runtimeMin !== undefined || params.runtimeMax !== undefined || params.withOriginCountry),
+    enabled: !!(params.query || params.genre || params.year || (params.minRating && params.minRating > 0) || params.runtimeMin !== undefined || params.runtimeMax !== undefined || params.withOriginCountry || params.sortBy),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
   });

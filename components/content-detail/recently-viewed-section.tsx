@@ -11,6 +11,8 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import MoreLikeThisCard from "@/components/browse/more-like-this-card";
+import { useMemo, useEffect, useState } from "react";
+import type { CarouselApi } from "@/components/ui/carousel";
 
 interface RecentlyViewedSectionProps {
   currentItemId: number;
@@ -18,14 +20,38 @@ interface RecentlyViewedSectionProps {
 }
 
 export default function RecentlyViewedSection({ currentItemId, currentType }: RecentlyViewedSectionProps) {
-  const { data: recentlyViewed = [], isLoading } = useRecentlyViewed();
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useRecentlyViewed();
   const router = useRouter();
+  const [api, setApi] = useState<CarouselApi>();
 
-  // Filter out current item and convert to TMDB format
-  const items = recentlyViewed
-    .filter((item) => !(item.tmdbId === currentItemId && item.mediaType === currentType))
-    .map(recentlyViewedToTMDBItem)
-    .slice(0, 20); // Limit to 20 items
+  // Flatten all pages into a single array and filter out current item
+  const items = useMemo(() => {
+    if (!data?.pages) return [];
+    const allItems = data.pages.flatMap(page => page.items);
+    return allItems
+      .filter((item) => !(item.tmdbId === currentItemId && item.mediaType === currentType))
+      .map(recentlyViewedToTMDBItem);
+  }, [data, currentItemId, currentType]);
+
+  // Detect scroll end and load more
+  useEffect(() => {
+    if (!api || !hasNextPage || isFetchingNextPage) return;
+
+    const handleSelect = () => {
+      const selectedIndex = api.selectedScrollSnap();
+      const slidesCount = api.scrollSnapList().length;
+      
+      // If we're within 3 slides of the end, load more
+      if (selectedIndex >= slidesCount - 3) {
+        fetchNextPage();
+      }
+    };
+
+    api.on("select", handleSelect);
+    return () => {
+      api.off("select", handleSelect);
+    };
+  }, [api, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   if (isLoading) {
     return (
@@ -49,6 +75,7 @@ export default function RecentlyViewedSection({ currentItemId, currentType }: Re
       <h2 className="text-2xl font-bold mb-6">Recently Viewed</h2>
       <div className="relative group/carousel">
         <Carousel
+          setApi={setApi}
           opts={{
             align: "start",
             slidesToScroll: 5,

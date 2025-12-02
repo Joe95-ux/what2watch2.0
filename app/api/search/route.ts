@@ -14,7 +14,7 @@ const createEmptyResponse = (): TMDBResponse<TMDBMovie | TMDBSeries> => ({
   total_results: 0,
 });
 
-export async function GET(request: NextRequest): Promise<NextResponse<TMDBResponse<TMDBMovie | TMDBSeries> | ErrorResponse>> {
+export async function GET(request: NextRequest): Promise<NextResponse<TMDBResponse<TMDBMovie | TMDBSeries> | TMDBSearchPersonResponse | ErrorResponse>> {
   try {
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get("query");
@@ -49,13 +49,14 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
     const runtimeMax = runtimeMaxParam ? parseInt(runtimeMaxParam, 10) : undefined;
     const withOriginCountry = searchParams.get("withOriginCountry") || undefined;
 
-    // Allow requests with filters even without query
+    // Allow requests with filters or sortBy even without query
     const hasQuery = query && query.trim().length > 0;
     const hasFilters = !!(genre || year || yearFrom || yearTo || minRating || runtimeMin !== undefined || runtimeMax !== undefined || withOriginCountry);
+    const hasSortBy = sortBy && sortBy !== "popularity.desc"; // If sortBy is specified and not default
     
-    if (!hasQuery && !hasFilters) {
+    if (!hasQuery && !hasFilters && !hasSortBy) {
       return NextResponse.json(
-        { error: "Query parameter or filters are required" },
+        { error: "Query parameter, filters, or sortBy are required" },
         { status: 400 }
       );
     }
@@ -72,11 +73,14 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
       setTimeout(() => reject(new Error("Request timeout")), 15000); // 15 second total timeout
     });
 
-    let results: TMDBResponse<TMDBMovie | TMDBSeries>;
+    let results: TMDBResponse<TMDBMovie | TMDBSeries> | TMDBSearchPersonResponse;
 
     try {
-      // If filters are provided, use discover instead of search
-      if (genre || year || yearFrom || yearTo || minRating || runtimeMin !== undefined || runtimeMax !== undefined || withOriginCountry) {
+      // Person search only works with query, not with filters
+      if (type === "person" && query) {
+        // Person search
+        results = await Promise.race([searchPerson(query, page), timeoutPromise]);
+      } else if (hasFilters || (hasSortBy && !hasQuery)) {
         // For multiple genres, use OR logic (search each genre separately and combine)
         // TMDB's with_genres uses AND logic, which is too restrictive
         if (genre && genre.length > 1) {

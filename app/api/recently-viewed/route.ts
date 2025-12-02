@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 
 // GET - Fetch recently viewed items for the current user
-export async function GET(): Promise<NextResponse<{ items: unknown[] } | { error: string }>> {
+export async function GET(request: NextRequest): Promise<NextResponse<{ items: unknown[]; hasMore: boolean; total: number } | { error: string }>> {
   try {
     const { userId } = await auth();
 
@@ -20,14 +20,32 @@ export async function GET(): Promise<NextResponse<{ items: unknown[] } | { error
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Fetch recently viewed items, ordered by most recent first, limit to 20
+    // Get pagination parameters
+    const searchParams = request.nextUrl.searchParams;
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
+    const skip = (page - 1) * pageSize;
+
+    // Fetch total count
+    const total = await db.recentlyViewed.count({
+      where: { userId: user.id },
+    });
+
+    // Fetch recently viewed items, ordered by most recent first
     const recentlyViewed = await db.recentlyViewed.findMany({
       where: { userId: user.id },
       orderBy: { viewedAt: "desc" },
-      take: 20,
+      skip,
+      take: pageSize,
     });
 
-    return NextResponse.json({ items: recentlyViewed });
+    const hasMore = skip + recentlyViewed.length < total;
+
+    return NextResponse.json({ 
+      items: recentlyViewed,
+      hasMore,
+      total,
+    });
   } catch (error) {
     console.error("Error fetching recently viewed:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

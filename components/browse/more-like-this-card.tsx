@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
-import { Play, Plus, Heart, Bookmark } from "lucide-react";
+import { Play, Plus, Heart, Bookmark, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
 import { CircleActionButton } from "./circle-action-button";
@@ -14,7 +14,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
-import { IMDBBadge } from "@/components/ui/imdb-badge";
 
 interface MoreLikeThisCardProps {
   item: TMDBMovie | TMDBSeries;
@@ -298,7 +297,7 @@ export default function MoreLikeThisCard({
               {year && displayRating && <span>•</span>}
               {displayRating && (
                 <div className="flex items-center gap-1">
-                  <IMDBBadge size={16} />
+                  <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
                   <span className="font-medium text-foreground">
                     {displayRating.toFixed(1)}
                   </span>

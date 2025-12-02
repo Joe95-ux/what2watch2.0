@@ -1,6 +1,6 @@
 "use client";
 
-import { Award, StarIcon, TrendingUp } from "lucide-react";
+import { Award, StarIcon, TrendingUp, Star } from "lucide-react";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { cn } from "@/lib/utils";
 
@@ -56,8 +56,8 @@ export default function RatingsSection({
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">Ratings</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* IMDb Rating */}
-        {(imdbRating || tmdbRating) && (
+        {/* IMDb Rating - only show if we have actual IMDb rating */}
+        {imdbRating && (
           <div className="rounded-lg border border-border bg-card/50 p-4">
             <div className="flex items-center gap-2 mb-2">
               <IMDBBadge size={24} />
@@ -65,7 +65,7 @@ export default function RatingsSection({
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold">
-                {imdbRating ? imdbRating.toFixed(1) : tmdbRating?.toFixed(1) || "N/A"}
+                {imdbRating.toFixed(1)}
               </span>
               <span className="text-sm text-muted-foreground">/ 10</span>
             </div>
@@ -74,6 +74,21 @@ export default function RatingsSection({
                 {formatVotes(imdbVotes)} votes
               </p>
             )}
+          </div>
+        )}
+        {/* TMDB Rating - show separately if no IMDb rating */}
+        {!imdbRating && tmdbRating && (
+          <div className="rounded-lg border border-border bg-card/50 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+              <span className="text-sm font-medium text-muted-foreground">TMDB</span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold">
+                {tmdbRating.toFixed(1)}
+              </span>
+              <span className="text-sm text-muted-foreground">/ 10</span>
+            </div>
           </div>
         )}
 

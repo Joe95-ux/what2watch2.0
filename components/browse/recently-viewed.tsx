@@ -2,15 +2,18 @@
 
 import { useRecentlyViewed, useClearRecentlyViewed, recentlyViewedToTMDBItem } from "@/hooks/use-recently-viewed";
 import ContentRow from "./content-row";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 export default function RecentlyViewed() {
-  const { data: recentlyViewed = [], isLoading } = useRecentlyViewed();
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useRecentlyViewed();
   const clearRecentlyViewed = useClearRecentlyViewed();
   const [isClearing, setIsClearing] = useState(false);
 
-  // Convert recently viewed items to TMDB format
-  const items = recentlyViewed.map(recentlyViewedToTMDBItem);
+  // Flatten all pages into a single array
+  const items = useMemo(() => {
+    if (!data?.pages) return [];
+    return data.pages.flatMap(page => page.items.map(recentlyViewedToTMDBItem));
+  }, [data]);
 
   const handleClear = async () => {
     setIsClearing(true);
@@ -42,6 +45,8 @@ export default function RecentlyViewed() {
       showClearButton={items.length > 0}
       onClear={handleClear}
       isClearing={isClearing}
+      onLoadMore={hasNextPage ? fetchNextPage : undefined}
+      isLoadingMore={isFetchingNextPage}
     />
   );
 }
