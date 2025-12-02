@@ -60,7 +60,7 @@ export default function RatingsSection({
         {(imdbRating || tmdbRating) && (
           <div className="rounded-lg border border-border bg-card/50 p-4">
             <div className="flex items-center gap-2 mb-2">
-              <IMDBBadge size={24} className="border-lg" />
+              <IMDBBadge size={24} />
               <span className="text-sm font-medium text-muted-foreground">IMDb</span>
             </div>
             <div className="flex items-baseline gap-2">

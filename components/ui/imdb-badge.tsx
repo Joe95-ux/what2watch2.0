@@ -9,11 +9,11 @@ interface IMDBBadgeProps {
 export function IMDBBadge({ className, size = 24 }: IMDBBadgeProps) {
   return (
     <Image
-      src="/imdb-badge.png"
+      src="/imdb-logo.png"
       alt="IMDb"
       width={size}
       height={size}
-      className={cn("rounded-lg border", className)}
+      className={className}
       unoptimized
     />
   );

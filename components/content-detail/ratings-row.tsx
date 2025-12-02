@@ -44,7 +44,7 @@ export function RatingsRow({
       {/* IMDb Rating */}
       {displayRating && (
         <div className="flex items-center gap-1.5">
-          <IMDBBadge size={24} className="border-lg" />
+          <IMDBBadge size={24} />
           <span className="font-medium text-sm">
             {displayRating.toFixed(1)}
             {imdbVotes && (
@@ -60,11 +60,10 @@ export function RatingsRow({
       {rottenTomatoes?.critic && (
         <div className="flex items-center gap-1.5">
           <Image
-            src="/tomato.png"
+            src="/rotten-tomatoes-fresh.png"
             alt="Rotten Tomatoes"
             width={24}
             height={24}
-            className="rounded-lg border-lg"
             unoptimized
           />
           <span className="font-medium text-sm">

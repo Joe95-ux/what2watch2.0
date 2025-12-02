@@ -298,7 +298,7 @@ export default function MoreLikeThisCard({
               {year && displayRating && <span>•</span>}
               {displayRating && (
                 <div className="flex items-center gap-1">
-                  <IMDBBadge size={16} className="border-lg" />
+                  <IMDBBadge size={16} />
                   <span className="font-medium text-foreground">
                     {displayRating.toFixed(1)}
                   </span>

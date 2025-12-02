@@ -581,7 +581,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                     >
                       {item.vote_average !== undefined && item.vote_average > 0 && (
                         <div className="flex items-center gap-1">
-                          <IMDBBadge size={isMobile ? 16 : 20} className="border-lg" />
+                          <IMDBBadge size={isMobile ? 16 : 20} />
                           <span className={cn("font-semibold text-white", isMobile ? "text-[10px]" : "text-xs")}>
                             {item.vote_average.toFixed(1)}
                           </span>

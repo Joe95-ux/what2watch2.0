@@ -6,6 +6,13 @@ import { Star } from "lucide-react";
 import { getPosterUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 interface TVSeasonsSectionProps {
   seasons: Array<{
@@ -75,22 +82,43 @@ export default function TVSeasonsSection({
     <section className="py-12">
       <h2 className="text-2xl font-bold mb-6">Seasons & Episodes</h2>
 
-      {/* Season Selector - Scrollable */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-4 mb-6">
-        {regularSeasons.map((season) => (
-          <button
-            key={season.id}
-            onClick={(e) => handleSeasonSelect(e, season.season_number)}
-            className={cn(
-              "px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 cursor-pointer",
-              selectedSeason === season.season_number
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted hover:bg-muted/80"
-            )}
-          >
-            {season.name || `Season ${season.season_number}`}
-          </button>
-        ))}
+      {/* Season Selector - Carousel */}
+      <div className="relative group/carousel mb-6">
+        <Carousel
+          opts={{
+            align: "start",
+            slidesToScroll: 3,
+            breakpoints: {
+              "(max-width: 640px)": { slidesToScroll: 2 },
+              "(max-width: 1024px)": { slidesToScroll: 3 },
+            },
+          }}
+          className="w-full"
+        >
+          <CarouselContent className="-ml-2 gap-2">
+            {regularSeasons.map((season) => (
+              <CarouselItem key={season.id} className="pl-2 basis-auto">
+                <button
+                  onClick={(e) => handleSeasonSelect(e, season.season_number)}
+                  className={cn(
+                    "px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap cursor-pointer h-[42px]",
+                    selectedSeason === season.season_number
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted hover:bg-muted/80"
+                  )}
+                >
+                  {season.name || `Season ${season.season_number}`}
+                </button>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious 
+            className="left-0 h-[42px] w-[45px] rounded-l-md rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+          />
+          <CarouselNext 
+            className="right-0 h-[42px] w-[45px] rounded-r-md rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+          />
+        </Carousel>
       </div>
 
       {/* Episodes Table */}

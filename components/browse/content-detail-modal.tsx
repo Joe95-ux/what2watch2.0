@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { X, Play, Plus, Heart, Star, Clock, Volume2, VolumeX, ArrowLeft, BookOpen, BookCheck, CalendarIcon } from "lucide-react";
+import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { TMDBMovie, TMDBSeries, getBackdropUrl, getPosterUrl, getYouTubeEmbedUrl, TMDBVideo } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,12 +19,20 @@ import {
   useRecommendedMovies,
   useSimilarTV,
   useRecommendedTV,
+  useOMDBData,
 } from "@/hooks/use-content-details";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import VideosCarousel from "./videos-carousel";
 import TrailerModal from "./trailer-modal";
 import MoreLikeThis from "./more-like-this";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import { useAddRecentlyViewed } from "@/hooks/use-recently-viewed";
 import { useToggleFavorite } from "@/hooks/use-favorites";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
@@ -188,6 +197,10 @@ export default function ContentDetailModal({
 
   const details = type === "movie" ? movieDetails : tvDetails;
   const isLoading = type === "movie" ? isLoadingMovie : isLoadingTV;
+  
+  // Fetch OMDB data for ratings
+  const imdbId = details?.imdb_id || null;
+  const { data: omdbData } = useOMDBData(imdbId);
 
   const title = "title" in item ? item.title : item.name;
   const backdropPath = item.backdrop_path || item.poster_path;
@@ -336,11 +349,15 @@ export default function ContentDetailModal({
                     {title}
                   </h1>
                   <div className="flex items-center gap-4 mb-6 flex-wrap">
-                    {item.vote_average > 0 && (
+                    {(omdbData?.imdbRating || (item.vote_average > 0 && !omdbData?.imdbRating)) && (
                       <div className="flex items-center gap-1.5">
-                        <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+                        {omdbData?.imdbRating ? (
+                          <IMDBBadge size={24} />
+                        ) : (
+                          <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+                        )}
                         <span className="text-white/90 font-semibold">
-                          {item.vote_average.toFixed(1)}
+                          {omdbData?.imdbRating ? omdbData.imdbRating.toFixed(1) : item.vote_average.toFixed(1)}
                         </span>
                       </div>
                     )}
@@ -384,8 +401,7 @@ export default function ContentDetailModal({
                         onClick={(e) => e.stopPropagation()}
                         className="no-close"
                       >
-                        <Play className="size-5 md:size-6 mr-2.5 fill-black dark:fill-black" />
-                        Play
+                        View More
                       </Link>
                     </Button>
                     <Tooltip
@@ -790,22 +806,43 @@ function TVSeasonsSection({
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Seasons & Episodes</h3>
       
-      {/* Season Selector */}
-      <div className="flex flex-wrap gap-2">
-        {regularSeasons.map((season) => (
-          <button
-            key={season.id}
-            onClick={(e) => handleSeasonSelect(e, season.season_number)}
-            className={cn(
-              "px-4 py-2 rounded-md text-sm font-medium transition-all no-close",
-              selectedSeason === season.season_number
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted hover:bg-muted/80"
-            )}
-          >
-            {season.name || `Season ${season.season_number}`}
-          </button>
-        ))}
+      {/* Season Selector - Carousel */}
+      <div className="relative group/carousel mb-6">
+        <Carousel
+          opts={{
+            align: "start",
+            slidesToScroll: 3,
+            breakpoints: {
+              "(max-width: 640px)": { slidesToScroll: 2 },
+              "(max-width: 1024px)": { slidesToScroll: 3 },
+            },
+          }}
+          className="w-full"
+        >
+          <CarouselContent className="-ml-2 gap-2">
+            {regularSeasons.map((season) => (
+              <CarouselItem key={season.id} className="pl-2 basis-auto">
+                <button
+                  onClick={(e) => handleSeasonSelect(e, season.season_number)}
+                  className={cn(
+                    "px-4 py-2 rounded-md text-sm font-medium transition-all no-close whitespace-nowrap cursor-pointer h-[42px]",
+                    selectedSeason === season.season_number
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted hover:bg-muted/80"
+                  )}
+                >
+                  {season.name || `Season ${season.season_number}`}
+                </button>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious 
+            className="left-0 h-[42px] w-[45px] rounded-l-md rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+          />
+          <CarouselNext 
+            className="right-0 h-[42px] w-[45px] rounded-r-md rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+          />
+        </Carousel>
       </div>
 
       {/* Episodes Table */}
