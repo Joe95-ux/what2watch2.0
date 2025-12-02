@@ -45,6 +45,7 @@ interface ChannelData {
   subscriberCount: string;
   videoCount: string;
   note?: string | null;
+  inUserPool?: boolean;
 }
 
 // Component to fetch and display channels with categories and ratings
@@ -85,6 +86,7 @@ function ChannelListChannelsGrid({ items }: { items: YouTubeChannelListItem[] })
           } | null;
           subscriberCount?: string;
           videoCount?: string;
+          inUserPool?: boolean;
         }>;
       };
 
@@ -109,6 +111,7 @@ function ChannelListChannelsGrid({ items }: { items: YouTubeChannelListItem[] })
             subscriberCount: ch.subscriberCount || listItem?.subscriberCount || "0",
             videoCount: ch.videoCount || listItem?.videoCount || "0",
             note: listItem?.notes || null,
+            inUserPool: ch.inUserPool ?? false,
           };
         });
 
@@ -128,6 +131,7 @@ function ChannelListChannelsGrid({ items }: { items: YouTubeChannelListItem[] })
             subscriberCount: item.subscriberCount || "0",
             videoCount: item.videoCount || "0",
             note: item.notes || null,
+            inUserPool: false, // Default to false for channels not in API response
           });
         }
       });

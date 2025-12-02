@@ -231,19 +231,19 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
             onClick={handlePoolAction}
             disabled={addToPool.isPending || removeFromPool.isPending}
             className={cn(
-              "text-xs text-muted-foreground hover:text-foreground transition-colors",
+              "text-sm text-muted-foreground hover:text-foreground transition-colors",
               "disabled:opacity-50 disabled:cursor-not-allowed",
               "flex items-center justify-center gap-1.5 w-full cursor-pointer"
             )}
           >
             {inUserPool ? (
               <>
-                <X className="h-3.5 w-3.5" />
+                <X className="h-4 w-4" />
                 <span>Remove from My Feed</span>
               </>
             ) : (
               <>
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-4 w-4" />
                 <span>Add to My Feed</span>
               </>
             )}
