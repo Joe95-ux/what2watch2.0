@@ -6,6 +6,7 @@ export const movieQueryKeys = {
   all: ["movies"] as const,
   popular: (page: number) => [...movieQueryKeys.all, "popular", page] as const,
   nowPlaying: (page: number) => [...movieQueryKeys.all, "now-playing", page] as const,
+  topRated: (page: number) => [...movieQueryKeys.all, "top-rated", page] as const,
   trending: (timeWindow: "day" | "week", page: number) =>
     [...movieQueryKeys.all, "trending", timeWindow, page] as const,
   personalized: (genreId: number) => [...movieQueryKeys.all, "personalized", genreId] as const,
@@ -15,6 +16,7 @@ export const movieQueryKeys = {
 export const tvQueryKeys = {
   all: ["tv"] as const,
   popular: (page: number) => [...tvQueryKeys.all, "popular", page] as const,
+  topRated: (page: number) => [...tvQueryKeys.all, "top-rated", page] as const,
   onTheAir: (page: number) => [...tvQueryKeys.all, "on-the-air", page] as const,
   trending: (timeWindow: "day" | "week", page: number) =>
     [...tvQueryKeys.all, "trending", timeWindow, page] as const,
@@ -53,6 +55,20 @@ const fetchTrendingMovies = async (
 const fetchPopularTV = async (page: number = 1): Promise<TMDBSeries[]> => {
   const res = await fetch(`/api/tv/popular?page=${page}`);
   if (!res.ok) throw new Error("Failed to fetch popular TV shows");
+  const data = await res.json();
+  return data.results || [];
+};
+
+const fetchTopRatedMovies = async (page: number = 1): Promise<TMDBMovie[]> => {
+  const res = await fetch(`/api/movies/top-rated?page=${page}`);
+  if (!res.ok) throw new Error("Failed to fetch top rated movies");
+  const data = await res.json();
+  return data.results || [];
+};
+
+const fetchTopRatedTV = async (page: number = 1): Promise<TMDBSeries[]> => {
+  const res = await fetch(`/api/tv/top-rated?page=${page}`);
+  if (!res.ok) throw new Error("Failed to fetch top rated TV shows");
   const data = await res.json();
   return data.results || [];
 };
@@ -228,6 +244,24 @@ export function useTrendingTV(
     queryKey: tvQueryKeys.trending(timeWindow, page),
     queryFn: () => fetchTrendingTV(timeWindow, page),
     staleTime: 1000 * 60 * 60, // 1 hour (trending updates less frequently than expected)
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
+  });
+}
+
+export function useTopRatedMovies(page: number = 1) {
+  return useQuery({
+    queryKey: movieQueryKeys.topRated(page),
+    queryFn: () => fetchTopRatedMovies(page),
+    staleTime: 1000 * 60 * 60 * 2, // 2 hours (top rated content doesn't change often)
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
+  });
+}
+
+export function useTopRatedTV(page: number = 1) {
+  return useQuery({
+    queryKey: tvQueryKeys.topRated(page),
+    queryFn: () => fetchTopRatedTV(page),
+    staleTime: 1000 * 60 * 60 * 2, // 2 hours (top rated content doesn't change often)
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }

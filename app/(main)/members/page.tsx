@@ -163,15 +163,27 @@ export default function MembersPage() {
                     </p>
                   )}
 
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
                     <span>{user.followersCount} followers</span>
                     <span>•</span>
                     <span>{user.listsCount} lists</span>
                   </div>
 
-                  {isSignedIn && currentUser?.id !== user.id && (
-                    <FollowButton userId={user.id} size="sm" variant="default" />
-                  )}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                    >
+                      <Link href={`/users/${user.id}`}>
+                        View Profile
+                      </Link>
+                    </Button>
+                    {isSignedIn && currentUser?.id !== user.id && (
+                      <FollowButton userId={user.id} size="sm" variant="default" />
+                    )}
+                  </div>
                 </div>
               );
             })}

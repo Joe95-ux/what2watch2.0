@@ -3,6 +3,8 @@
 import {
   usePopularMovies,
   usePopularTV,
+  useTopRatedMovies,
+  useTopRatedTV,
   usePersonalizedContent,
 } from "@/hooks/use-movies";
 import { usePublicLists } from "@/components/lists/public-lists-content";
@@ -101,6 +103,7 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
   const [yearFilter, setYearFilter] = useState<YearFilter>(savedFilters.yearFilter);
   const [regionFilter, setRegionFilter] = useState<RegionFilter>(savedFilters.regionFilter);
   const [popularTab, setPopularTab] = useState<"movies" | "tv">("movies");
+  const [topRatedTab, setTopRatedTab] = useState<"movies" | "tv">("movies");
   const [nollywoodContentType, setNollywoodContentType] = useState<"movies" | "tv" | "youtube">(savedFilters.nollywoodContentType);
 
   // Save filters to localStorage whenever they change
@@ -126,6 +129,8 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
   // Fetch data
   const { data: popularMovies = [], isLoading: isLoadingPopularMovies } = usePopularMovies(1);
   const { data: popularTV = [], isLoading: isLoadingPopularTV } = usePopularTV(1);
+  const { data: topRatedMovies = [], isLoading: isLoadingTopRatedMovies } = useTopRatedMovies(1);
+  const { data: topRatedTV = [], isLoading: isLoadingTopRatedTV } = useTopRatedTV(1);
   const { data: personalizedContent = [], isLoading: isLoadingPersonalized } = usePersonalizedContent(
     favoriteGenres,
     preferredTypes.length > 0 ? preferredTypes : ["movie", "tv"]
@@ -324,6 +329,8 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
   const uniqueFilteredContent = filterUnique(filteredContent, 20);
   const uniquePopularMovies = filterUnique(popularMovies);
   const uniquePopularTV = filterUnique(popularTV);
+  const uniqueTopRatedMovies = filterUnique(topRatedMovies);
+  const uniqueTopRatedTV = filterUnique(topRatedTV);
 
   return (
     <div className="min-h-screen bg-background">
@@ -448,6 +455,47 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
                 type="tv"
                 isLoading={isLoadingPopularTV}
                 href="/popular?type=tv"
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Top Rated Section with Tabs */}
+        <div className="mb-12">
+          <Tabs value={topRatedTab} onValueChange={(v) => setTopRatedTab(v as "movies" | "tv")}>
+            <div className="px-4 sm:px-6 lg:px-8 group flex items-center gap-4 mb-6">
+              <Link 
+                href={`/search?type=${topRatedTab}&sortBy=vote_average.desc`}
+                className="inline-flex items-center gap-2 transition-all duration-300"
+              >
+                <h2 className="text-2xl font-medium text-foreground group-hover:text-primary transition-colors">
+                  Top Rated
+                </h2>
+                <CaretRight 
+                  className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" 
+                />
+              </Link>
+              <TabsList>
+                <TabsTrigger value="movies">Movies</TabsTrigger>
+                <TabsTrigger value="tv">TV Shows</TabsTrigger>
+              </TabsList>
+            </div>
+            <TabsContent value="movies">
+              <ContentRow
+                title=""
+                items={uniqueTopRatedMovies}
+                type="movie"
+                isLoading={isLoadingTopRatedMovies}
+                href="/search?type=movie&sortBy=vote_average.desc"
+              />
+            </TabsContent>
+            <TabsContent value="tv">
+              <ContentRow
+                title=""
+                items={uniqueTopRatedTV}
+                type="tv"
+                isLoading={isLoadingTopRatedTV}
+                href="/search?type=tv&sortBy=vote_average.desc"
               />
             </TabsContent>
           </Tabs>

@@ -97,7 +97,7 @@ export default function LogToDiaryDropdown({ item, type, trigger }: LogToDiaryDr
           e.stopPropagation();
         }}
       >
-        <div className="sticky top-0 z-10 bg-background">
+        <div className="sticky top-0 z-10">
           <DropdownMenuLabel className="p-4 pb-2">Log to Diary</DropdownMenuLabel>
           <DropdownMenuSeparator />
         </div>
@@ -263,7 +263,7 @@ export default function LogToDiaryDropdown({ item, type, trigger }: LogToDiaryDr
           </div>
           </div>
         </div>
-        <div className="sticky bottom-0 z-10 bg-background border-t border-border px-4 py-3">
+        <div className="sticky bottom-0 z-10 border-t border-border px-4 py-3">
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"

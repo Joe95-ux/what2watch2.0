@@ -233,7 +233,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
               trigger={
                 <Button
                   size="sm"
-                  className="inline-flex items-center gap-2 rounded-full bg-primary/85 text-primary-foreground hover:bg-primary px-4 py-2"
+                  className="inline-flex items-center gap-2 rounded-full bg-primary/85 text-primary-foreground hover:bg-primary px-4 py-2 cursor-pointer"
                 >
                   <Clapperboard className="h-4 w-4" />
                   Log
