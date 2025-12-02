@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
-import { Play, Plus, Heart, Maximize2, Bookmark, Volume2, VolumeX, BookCheck, MoreVertical, Trash2, Star } from "lucide-react";
+import { Play, Plus, Heart, Maximize2, Bookmark, Volume2, VolumeX, BookCheck, MoreVertical, Trash2 } from "lucide-react";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries, getPosterUrl, TMDBVideo, getYouTubeEmbedUrl } from "@/lib/tmdb";
@@ -25,6 +25,7 @@ import { useContentVideos } from "@/hooks/use-content-details";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
 import MoreLikeThisCard from "./more-like-this-card";
+import { useQuery } from "@tanstack/react-query";
 
 interface MovieCardProps {
   item: TMDBMovie | TMDBSeries;
@@ -80,6 +81,19 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const releaseDate = type === "movie" ? (item as TMDBMovie).release_date : (item as TMDBSeries).first_air_date;
   const year = releaseDate ? new Date(releaseDate).getFullYear() : null;
   const hideOverlayForAudio = !isVideoMuted && !isMobile && variant !== "dashboard";
+
+  // Fetch IMDb rating
+  const { data: ratingData } = useQuery({
+    queryKey: ["imdb-rating-by-tmdb", item.id, type],
+    queryFn: async () => {
+      const response = await fetch(`/api/imdb-rating-by-tmdb?tmdbId=${item.id}&type=${type}`);
+      if (!response.ok) return null;
+      return response.json() as Promise<{ rating: number | null; source: "imdb" | "tmdb" | null } | null>;
+    },
+    staleTime: 24 * 60 * 60 * 1000, // 24 hours
+    gcTime: 7 * 24 * 60 * 60 * 1000, // 7 days
+    retry: 1,
+  });
 
   // Reset fetch state when item changes
   useEffect(() => {
@@ -579,14 +593,12 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                         isMobile ? "gap-1" : "gap-2"
                       )}
                     >
-                      {item.vote_average !== undefined && item.vote_average > 0 && (
-                        <div className="flex items-center gap-1">
-                          <Star className={cn("text-yellow-400 fill-yellow-400", isMobile ? "h-3 w-3" : "h-4 w-4")} />
-                          <span className={cn("font-semibold text-white", isMobile ? "text-[10px]" : "text-xs")}>
-                            {item.vote_average.toFixed(1)}
-                          </span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1">
+                        <IMDBBadge size={isMobile ? 16 : 20} />
+                        <span className={cn("font-semibold text-white", isMobile ? "text-[10px]" : "text-xs")}>
+                          {ratingData?.rating ? ratingData.rating.toFixed(1) : "N/A"}
+                        </span>
+                      </div>
                       {year && (
                         <>
                           <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-xs")}>•</span>

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
+import { TMDBMovie, TMDBSeries, TMDBResponse } from "@/lib/tmdb";
 
 // Query keys
 export const movieQueryKeys = {
@@ -59,18 +59,16 @@ const fetchPopularTV = async (page: number = 1): Promise<TMDBSeries[]> => {
   return data.results || [];
 };
 
-const fetchTopRatedMovies = async (page: number = 1): Promise<TMDBMovie[]> => {
+const fetchTopRatedMovies = async (page: number = 1): Promise<TMDBResponse<TMDBMovie>> => {
   const res = await fetch(`/api/movies/top-rated?page=${page}`);
   if (!res.ok) throw new Error("Failed to fetch top rated movies");
-  const data = await res.json();
-  return data.results || [];
+  return res.json();
 };
 
-const fetchTopRatedTV = async (page: number = 1): Promise<TMDBSeries[]> => {
+const fetchTopRatedTV = async (page: number = 1): Promise<TMDBResponse<TMDBSeries>> => {
   const res = await fetch(`/api/tv/top-rated?page=${page}`);
   if (!res.ok) throw new Error("Failed to fetch top rated TV shows");
-  const data = await res.json();
-  return data.results || [];
+  return res.json();
 };
 
 const fetchTrendingTV = async (

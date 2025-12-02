@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
-import { Play, Plus, Heart, Bookmark, Star } from "lucide-react";
+import { Play, Plus, Heart, Bookmark } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
 import { CircleActionButton } from "./circle-action-button";
@@ -14,6 +14,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { IMDBBadge } from "@/components/ui/imdb-badge";
 
 interface MoreLikeThisCardProps {
   item: TMDBMovie | TMDBSeries;
@@ -71,8 +73,18 @@ export default function MoreLikeThisCard({
   
   const runtimeText = formatRuntime(runtime || initialRuntime);
   
-  // Get rating for display (use vote_average as IMDB rating fallback)
-  const displayRating = item.vote_average && item.vote_average > 0 ? item.vote_average : null;
+  // Fetch IMDb rating
+  const { data: ratingData } = useQuery({
+    queryKey: ["imdb-rating-by-tmdb", item.id, type],
+    queryFn: async () => {
+      const response = await fetch(`/api/imdb-rating-by-tmdb?tmdbId=${item.id}&type=${type}`);
+      if (!response.ok) return null;
+      return response.json() as Promise<{ rating: number | null; source: "imdb" | "tmdb" | null } | null>;
+    },
+    staleTime: 24 * 60 * 60 * 1000, // 24 hours
+    gcTime: 7 * 24 * 60 * 60 * 1000, // 7 days
+    retry: 1,
+  });
 
   // Reset fetch attempt tracking when item changes
   useEffect(() => {
@@ -294,15 +306,13 @@ export default function MoreLikeThisCard({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               {year && <span>{year}</span>}
-              {year && displayRating && <span>•</span>}
-              {displayRating && (
-                <div className="flex items-center gap-1">
-                  <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
-                  <span className="font-medium text-foreground">
-                    {displayRating.toFixed(1)}
-                  </span>
-                </div>
-              )}
+              {year && <span>•</span>}
+              <div className="flex items-center gap-1">
+                <IMDBBadge size={16} />
+                <span className="font-medium text-foreground">
+                  {ratingData?.rating ? ratingData.rating.toFixed(1) : "N/A"}
+                </span>
+              </div>
             </div>
             <Tooltip
               open={playlistTooltipOpen && !isPlaylistDropdownOpen}

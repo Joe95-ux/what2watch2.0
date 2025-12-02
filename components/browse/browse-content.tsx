@@ -129,8 +129,11 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
   // Fetch data
   const { data: popularMovies = [], isLoading: isLoadingPopularMovies } = usePopularMovies(1);
   const { data: popularTV = [], isLoading: isLoadingPopularTV } = usePopularTV(1);
-  const { data: topRatedMovies = [], isLoading: isLoadingTopRatedMovies } = useTopRatedMovies(1);
-  const { data: topRatedTV = [], isLoading: isLoadingTopRatedTV } = useTopRatedTV(1);
+  const { data: topRatedMoviesData, isLoading: isLoadingTopRatedMovies } = useTopRatedMovies(1);
+  const { data: topRatedTVData, isLoading: isLoadingTopRatedTV } = useTopRatedTV(1);
+  
+  const topRatedMovies = topRatedMoviesData?.results || [];
+  const topRatedTV = topRatedTVData?.results || [];
   const { data: personalizedContent = [], isLoading: isLoadingPersonalized } = usePersonalizedContent(
     favoriteGenres,
     preferredTypes.length > 0 ? preferredTypes : ["movie", "tv"]
@@ -465,7 +468,7 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
           <Tabs value={topRatedTab} onValueChange={(v) => setTopRatedTab(v as "movies" | "tv")}>
             <div className="px-4 sm:px-6 lg:px-8 group flex items-center gap-4 mb-6">
               <Link 
-                href={`/search?type=${topRatedTab}&sortBy=vote_average.desc`}
+                href={`/top-rated?type=${topRatedTab === "movies" ? "movies" : "tv"}`}
                 className="inline-flex items-center gap-2 transition-all duration-300"
               >
                 <h2 className="text-2xl font-medium text-foreground group-hover:text-primary transition-colors">
@@ -486,7 +489,7 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
                 items={uniqueTopRatedMovies}
                 type="movie"
                 isLoading={isLoadingTopRatedMovies}
-                href="/search?type=movie&sortBy=vote_average.desc"
+                href="/top-rated?type=movies"
               />
             </TabsContent>
             <TabsContent value="tv">
@@ -495,7 +498,7 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
                 items={uniqueTopRatedTV}
                 type="tv"
                 isLoading={isLoadingTopRatedTV}
-                href="/search?type=tv&sortBy=vote_average.desc"
+                href="/top-rated?type=tv"
               />
             </TabsContent>
           </Tabs>
