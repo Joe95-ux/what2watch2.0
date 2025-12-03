@@ -1,6 +1,6 @@
 "use client";
 
-import { useRecentlyViewed, recentlyViewedToTMDBItem } from "@/hooks/use-recently-viewed";
+import { useRecentlyViewed, useClearRecentlyViewed, recentlyViewedToTMDBItem } from "@/hooks/use-recently-viewed";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -13,6 +13,8 @@ import {
 import MoreLikeThisCard from "@/components/browse/more-like-this-card";
 import { useMemo, useEffect, useState } from "react";
 import type { CarouselApi } from "@/components/ui/carousel";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 
 interface RecentlyViewedSectionProps {
   currentItemId: number;
@@ -21,8 +23,10 @@ interface RecentlyViewedSectionProps {
 
 export default function RecentlyViewedSection({ currentItemId, currentType }: RecentlyViewedSectionProps) {
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useRecentlyViewed();
+  const clearRecentlyViewed = useClearRecentlyViewed();
   const router = useRouter();
   const [api, setApi] = useState<CarouselApi>();
+  const [isClearing, setIsClearing] = useState(false);
 
   // Flatten all pages into a single array and filter out current item
   const items = useMemo(() => {
@@ -53,6 +57,17 @@ export default function RecentlyViewedSection({ currentItemId, currentType }: Re
     };
   }, [api, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  const handleClear = async () => {
+    setIsClearing(true);
+    try {
+      await clearRecentlyViewed.mutateAsync();
+    } catch (error) {
+      console.error("Error clearing recently viewed:", error);
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <section className="py-12">
@@ -72,7 +87,21 @@ export default function RecentlyViewedSection({ currentItemId, currentType }: Re
 
   return (
     <section className="py-12">
-      <h2 className="text-2xl font-bold mb-6">Recently Viewed</h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold">Recently Viewed</h2>
+        {items.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleClear}
+            disabled={isClearing}
+            className="gap-2"
+          >
+            <Trash2 className="h-4 w-4" />
+            {isClearing ? "Clearing..." : "Clear"}
+          </Button>
+        )}
+      </div>
       <div className="relative group/carousel">
         <Carousel
           setApi={setApi}

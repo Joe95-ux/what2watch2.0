@@ -12,6 +12,7 @@ import {
   useRecommendedTV,
   useWatchProviders,
 } from "@/hooks/use-content-details";
+import { useAddRecentlyViewed } from "@/hooks/use-recently-viewed";
 import HeroSection from "./hero-section";
 import StickyNav from "./sticky-nav";
 import OverviewSection from "./overview-section";
@@ -80,6 +81,9 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
     isLoading: isLoadingWatchAvailability,
   } = useWatchProviders(type, item.id);
 
+  // Track recently viewed
+  const addRecentlyViewed = useAddRecentlyViewed();
+
   const details = type === "movie" ? movieDetails : tvDetails;
   const isLoading = type === "movie" ? isLoadingMovie : isLoadingTV;
 
@@ -106,6 +110,21 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
       }
     }
   }, [type, seasonsData, selectedSeason]);
+
+  // Track recently viewed when page loads
+  useEffect(() => {
+    const title = type === "movie" ? (item as TMDBMovie).title : (item as TMDBSeries).name;
+    addRecentlyViewed.mutate({
+      tmdbId: item.id,
+      mediaType: type,
+      title: title,
+      posterPath: item.poster_path || null,
+      backdropPath: item.backdrop_path || null,
+      releaseDate: "release_date" in item ? item.release_date || null : null,
+      firstAirDate: "first_air_date" in item ? item.first_air_date || null : null,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.id, type]); // Only depend on item.id and type - mutation function is stable
 
   // Get cast and crew from details (with type assertion for credits)
   const detailsWithExtras = details as DetailsWithCredits | null;
