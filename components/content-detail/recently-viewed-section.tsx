@@ -116,7 +116,7 @@ export default function RecentlyViewedSection({ currentItemId, currentType }: Re
           }}
           className="w-full"
         >
-          <CarouselContent className="-ml-2 md:-ml-4 gap-3">
+          <CarouselContent className="-ml-2 md:-ml-4 gap-0">
             {items.map((item) => {
               const itemType = "title" in item ? "movie" : "tv";
               return (

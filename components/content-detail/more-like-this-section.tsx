@@ -54,7 +54,7 @@ export default function MoreLikeThisSection({ items, isLoading, type }: MoreLike
           }}
           className="w-full"
         >
-          <CarouselContent className="-ml-2 md:-ml-4 gap-3">
+          <CarouselContent className="-ml-2 md:-ml-4 gap-0">
             {items.map((item) => (
               <CarouselItem key={item.id} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px]">
                 <MoreLikeThisCard
