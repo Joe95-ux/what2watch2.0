@@ -5,6 +5,7 @@ import Image from "next/image";
 import { List } from "@/hooks/use-lists";
 import { getPosterUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
+import { Heart, MessageCircle } from "lucide-react";
 
 interface ListCardProps {
   list: List;
@@ -27,9 +28,11 @@ export default function ListCard({ list, className, variant = "carousel" }: List
   };
 
   const posters = getListPosters();
-  const hasDeckEffect = posters.length > 1;
+  const hasStackedPosters = posters.length > 1;
   const itemCount = list._count?.items || list.items?.length || 0;
   const displayName = list.user?.displayName || list.user?.username || "Unknown";
+  const likeCount = list._count?.likedBy || 0;
+  const commentCount = list._count?.comments || 0;
 
   return (
     <div
@@ -42,20 +45,23 @@ export default function ListCard({ list, className, variant = "carousel" }: List
       onClick={() => router.push(`/lists/${list.id}`)}
     >
       <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-muted border border-border hover:border-primary/50 transition-colors">
-        {/* Deck of Cards Effect - Stacked like Letterboxd */}
-        {hasDeckEffect ? (
-          <div className="relative w-full h-full overflow-hidden">
+        {/* Stacked Posters - Letterboxd style like YouTube channel avatars */}
+        {hasStackedPosters ? (
+          <div className="relative w-full h-full">
             {posters.map((poster, index) => {
-              // Each card is slightly offset to reveal the one below
-              // Top card (index 0) has no offset, each subsequent card is offset by 3px
-              const offsetX = index * 3; // Horizontal offset
-              const offsetY = index * 3; // Vertical offset
+              // Stack posters with negative margin like YouTube channel avatars
+              // First poster (index 0) has no offset, each subsequent poster overlaps
+              const offsetX = index * 4; // Horizontal offset (slightly more than avatars for rectangular posters)
+              const offsetY = index * 4; // Vertical offset
               const zIndex = posters.length - index; // First poster on top
               
               return (
                 <div
                   key={index}
-                  className="absolute inset-0"
+                  className={cn(
+                    "absolute inset-0 rounded-lg overflow-hidden border-2 border-background",
+                    index > 0 && "shadow-lg"
+                  )}
                   style={{
                     transform: `translate(${offsetX}px, ${offsetY}px)`,
                     zIndex,
@@ -65,12 +71,29 @@ export default function ListCard({ list, className, variant = "carousel" }: List
                     src={poster}
                     alt={`${list.name} - Film ${index + 1}`}
                     fill
-                    className="object-cover rounded-lg transition-transform duration-500 group-hover:scale-110"
+                    className="object-cover transition-transform duration-500 group-hover:scale-110"
                     sizes="(max-width: 640px) 180px, 200px"
                   />
                 </div>
               );
             })}
+            {/* Blur effect to indicate more films */}
+            {list.items.length > posters.length && (
+              <div
+                className={cn(
+                  "absolute inset-0 rounded-lg overflow-hidden border-2 border-background bg-muted/60 backdrop-blur-md flex items-center justify-center",
+                  "shadow-lg"
+                )}
+                style={{
+                  transform: `translate(${posters.length * 4}px, ${posters.length * 4}px)`,
+                  zIndex: 0,
+                }}
+              >
+                <span className="text-xs font-semibold text-muted-foreground">
+                  +{list.items.length - posters.length}
+                </span>
+              </div>
+            )}
           </div>
         ) : posters.length === 1 ? (
           <Image
@@ -94,58 +117,42 @@ export default function ListCard({ list, className, variant = "carousel" }: List
           </div>
         )}
 
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-
-        {/* List Info Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
-          <h3 className="font-semibold text-white text-sm mb-1 line-clamp-1 drop-shadow-lg">
-            {list.name}
-          </h3>
-          <p className="text-xs text-white/90 drop-shadow">
-            {itemCount} {itemCount === 1 ? "film" : "films"}
-          </p>
-          {list.user && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/users/${list.user?.id}`);
-              }}
-              className="text-xs text-white/80 mt-1 drop-shadow hover:text-white transition-colors cursor-pointer"
-            >
-              by {displayName}
-            </button>
-          )}
-        </div>
-
-        {/* Item Count Badge - Same as playlist card */}
-        <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm rounded-full px-2 py-1">
-          <span className="text-xs font-medium text-white">
-            {itemCount}
-          </span>
-        </div>
+        {/* Tags - Bottom Left (if any) */}
+        {list.tags && list.tags.length > 0 && (
+          <div className="absolute bottom-2 left-2 flex flex-wrap gap-1 max-w-[70%] opacity-0 group-hover:opacity-100 transition-opacity z-10">
+            {list.tags.slice(0, 2).map((tag) => (
+              <span
+                key={tag}
+                className="text-xs px-2 py-0.5 bg-black/60 backdrop-blur-sm text-white rounded"
+              >
+                {tag}
+              </span>
+            ))}
+            {list.tags.length > 2 && (
+              <span className="text-xs px-2 py-0.5 bg-black/60 backdrop-blur-sm text-white rounded">
+                +{list.tags.length - 2}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Title below card (visible on mobile, hidden on desktop where overlay shows) - Same as playlist card */}
-      <div className="mt-2 md:hidden">
-        <h3 className="font-semibold text-sm line-clamp-1">{list.name}</h3>
-        <p className="text-xs text-muted-foreground">
-          {itemCount} {itemCount === 1 ? "film" : "films"}
-          {list.user && (
-            <>
-              {" • "}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  router.push(`/users/${list.user?.id}`);
-                }}
-                className="hover:text-foreground transition-colors cursor-pointer"
-              >
-                by {displayName}
-              </button>
-            </>
-          )}
-        </p>
+      {/* Title and Meta Info Below Card - Always visible like dashboard lists */}
+      <div className="mt-2">
+        <h3 className="text-[16px] font-semibold line-clamp-1 mb-1">{list.name}</h3>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span>{displayName}</span>
+          <span>•</span>
+          <span className="flex items-center gap-1">
+            <Heart className="h-3 w-3" />
+            {likeCount}
+          </span>
+          <span>•</span>
+          <span className="flex items-center gap-1">
+            <MessageCircle className="h-3 w-3" />
+            {commentCount}
+          </span>
+        </div>
       </div>
     </div>
   );

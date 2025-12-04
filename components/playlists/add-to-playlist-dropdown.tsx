@@ -87,7 +87,7 @@ export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChang
         </DropdownMenuTrigger>
         <DropdownMenuContent 
           align="end" 
-          className="w-56 z-[110] p-0 flex flex-col max-h-[400px]"
+          className="w-72 z-[110] p-0 flex flex-col max-h-[400px]"
           onClick={(e) => {
             e.stopPropagation();
           }}

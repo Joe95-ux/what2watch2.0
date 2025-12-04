@@ -1,16 +1,18 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import ListCard from "@/components/browse/list-card";
 import { List } from "@/hooks/use-lists";
-import { ClipboardList, Plus } from "lucide-react";
+import { ClipboardList, Plus, Grid3x3, Table2 } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { MembersSidebar } from "./members-sidebar";
+import CreateListModal from "./create-list-modal";
+import { format } from "date-fns";
 
 // Fetch public lists (no authentication required)
 const fetchPublicLists = async (limit?: number): Promise<List[]> => {
@@ -45,6 +47,8 @@ export default function PublicListsContent() {
   const { data: lists = [], isLoading, refetch } = usePublicLists(50);
   const { isSignedIn } = useUser();
   const router = useRouter();
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Refetch when component mounts to ensure fresh data
   useEffect(() => {
@@ -56,17 +60,45 @@ export default function PublicListsContent() {
       <div className="flex gap-6">
         {/* Main Content */}
         <div className="flex-1 min-w-0">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight mb-2">Discover Lists</h1>
-            <p className="text-muted-foreground">
-              Explore curated lists of films from the community
-            </p>
+          <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 mb-6">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight mb-2">Discover Lists</h1>
+              <p className="text-muted-foreground">
+                Explore curated lists of films from the community
+              </p>
+            </div>
+            {isSignedIn && (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 border rounded-lg p-1">
+                  <Button
+                    variant={viewMode === "grid" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode("grid")}
+                    className="h-8"
+                  >
+                    <Grid3x3 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === "table" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode("table")}
+                    className="h-8"
+                  >
+                    <Table2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Button onClick={() => setIsCreateModalOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create List
+                </Button>
+              </div>
+            )}
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div className={viewMode === "grid" ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" : "space-y-4"}>
               {Array.from({ length: 12 }).map((_, i) => (
-                <Skeleton key={i} className="aspect-[3/4] w-full rounded-lg" />
+                <Skeleton key={i} className={viewMode === "grid" ? "aspect-[3/4] w-full rounded-lg" : "h-24"} />
               ))}
             </div>
           ) : lists.length === 0 ? (
@@ -77,7 +109,7 @@ export default function PublicListsContent() {
                 Be the first to create a public list!
               </p>
               {isSignedIn ? (
-                <Button onClick={() => router.push("/dashboard/lists")} className="cursor-pointer">
+                <Button onClick={() => setIsCreateModalOpen(true)} className="cursor-pointer">
                   <Plus className="h-4 w-4 mr-2" />
                   Create Your First List
                 </Button>
@@ -91,7 +123,7 @@ export default function PublicListsContent() {
                 </div>
               )}
             </div>
-          ) : (
+          ) : viewMode === "grid" ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {lists.map((list: List) => (
                 <ListCard
@@ -101,12 +133,59 @@ export default function PublicListsContent() {
                 />
               ))}
             </div>
+          ) : (
+            <div className="border rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="text-left p-4 font-semibold">Name</th>
+                    <th className="text-left p-4 font-semibold">Films</th>
+                    <th className="text-left p-4 font-semibold">Creator</th>
+                    <th className="text-left p-4 font-semibold">Updated</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lists.map((list) => (
+                    <tr key={list.id} className="border-t hover:bg-muted/50 cursor-pointer" onClick={() => router.push(`/lists/${list.id}`)}>
+                      <td className="p-4">
+                        <div className="font-medium">{list.name}</div>
+                        {list.description && (
+                          <div className="text-sm text-muted-foreground line-clamp-1">
+                            {list.description}
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        <span className="text-sm">{list._count?.items || list.items?.length || 0}</span>
+                      </td>
+                      <td className="p-4">
+                        <span className="text-sm">
+                          {list.user?.displayName || list.user?.username || "Unknown"}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <span className="text-sm text-muted-foreground">
+                          {format(new Date(list.updatedAt), "MMM d, yyyy")}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
         {/* Members Sidebar */}
         <MembersSidebar />
       </div>
+
+      {isSignedIn && (
+        <CreateListModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
