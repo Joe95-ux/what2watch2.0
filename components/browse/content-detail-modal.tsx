@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { X, Play, Plus, Heart, Star, Clock, Volume2, VolumeX, ArrowLeft, BookOpen, BookCheck, CalendarIcon } from "lucide-react";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
+import Script from "next/script";
 import { TMDBMovie, TMDBSeries, getBackdropUrl, getPosterUrl, getYouTubeEmbedUrl, TMDBVideo } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -122,6 +123,23 @@ export default function ContentDetailModal({
   // Track recently viewed
   const addRecentlyViewed = useAddRecentlyViewed();
   const toggleFavorite = useToggleFavorite();
+
+  // Re-initialize JustWatch widget when item changes
+  useEffect(() => {
+    if (isOpen && isSheetMounted && typeof window !== "undefined") {
+      // Wait for widget script to load and then trigger widget initialization
+      const initWidget = () => {
+        const jwWidget = (window as Window & { JW_Widget?: { init: () => void } }).JW_Widget;
+        if (jwWidget) {
+          jwWidget.init();
+        } else {
+          // If widget script hasn't loaded yet, wait a bit and try again
+          setTimeout(initWidget, 100);
+        }
+      };
+      initWidget();
+    }
+  }, [isOpen, isSheetMounted, item.id, type]);
 
   // Consistent click handler to prevent propagation
   const handleButtonClick = useCallback((e: React.MouseEvent, callback: () => void) => {
@@ -258,7 +276,14 @@ export default function ContentDetailModal({
   }, []);
 
   return (
-    <Sheet open={isOpen} onOpenChange={handleOpenChange}>
+    <>
+      {/* JustWatch Widget Script */}
+      <Script
+        src="https://widget.justwatch.com/justwatch_widget.js"
+        strategy="afterInteractive"
+        id="justwatch-widget-script"
+      />
+      <Sheet open={isOpen} onOpenChange={handleOpenChange}>
       <SheetContent 
         side="right"
         className="!w-full sm:!w-[90vw] lg:!w-[80vw] xl:!max-w-[60rem] !h-full overflow-y-auto p-0 gap-0 [&>button]:hidden"
@@ -686,6 +711,28 @@ export default function ContentDetailModal({
                       )}
                     </div>
                   )}
+
+                  {/* JustWatch Widget */}
+                  <div className="mt-6">
+                    <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Where to Watch</h3>
+                    <div
+                      data-jw-widget
+                      data-api-key="kdXlICVx4d6qwyZYSThFxvVKAhQtwtqY"
+                      data-title={title}
+                      data-year={
+                        type === "movie"
+                          ? details && "release_date" in details && details.release_date
+                            ? new Date(details.release_date).getFullYear()
+                            : undefined
+                          : details && "first_air_date" in details && details.first_air_date
+                          ? new Date(details.first_air_date).getFullYear()
+                          : undefined
+                      }
+                      data-theme="dark"
+                      data-offer-label="price"
+                      data-scale="1"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -737,6 +784,7 @@ export default function ContentDetailModal({
 
       </SheetContent>
     </Sheet>
+    </>
   );
 }
 
