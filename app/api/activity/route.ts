@@ -126,7 +126,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ activiti
     if (search && search.trim().length > 0) {
       const searchLower = search.trim().toLowerCase();
       activities = activities.filter(
-        (activity) =>
+        (activity: typeof activities[0]) =>
           (activity.title?.toLowerCase().includes(searchLower)) ||
           (activity.listName?.toLowerCase().includes(searchLower)) ||
           (activity.user.displayName?.toLowerCase().includes(searchLower)) ||
