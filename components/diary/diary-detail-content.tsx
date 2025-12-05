@@ -71,7 +71,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
   const [commentFilter, setCommentFilter] = useState("newest");
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
   
-  // Initialize JustWatch widget when component mounts
+  // Initialize JustWatch widget when component mounts or title changes
   useEffect(() => {
     if (typeof window !== "undefined") {
       const initWidget = () => {
@@ -83,9 +83,11 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
           setTimeout(initWidget, 100);
         }
       };
-      initWidget();
+      // Delay initialization to ensure DOM is ready and widget container exists
+      const timeoutId = setTimeout(initWidget, 300);
+      return () => clearTimeout(timeoutId);
     }
-  }, [log.tmdbId, log.mediaType]);
+  }, [log.tmdbId, log.mediaType, log.title]);
   
   const updateLog = useUpdateViewingLog();
   const deleteLog = useDeleteViewingLog();
@@ -343,7 +345,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                   <span>No likes yet</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Eye className="h-4 w-4 text-green-500 fill-green-500" />
+                  <Eye className="h-6 w-6 text-green-500" />
                   <span>Watched</span>
                 </div>
               </div>

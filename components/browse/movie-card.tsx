@@ -427,7 +427,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                               className={cn(
                                 "h-4 w-4 mr-2",
                                 isWatched
-                                  ? "text-green-500 fill-green-500"
+                                  ? "text-green-500"
                                   : "text-muted-foreground"
                               )}
                             />

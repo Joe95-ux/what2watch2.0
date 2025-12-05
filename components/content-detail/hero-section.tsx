@@ -262,7 +262,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                     className={cn(
                       "h-5 w-5",
                       isWatched
-                        ? "text-green-500 fill-green-500"
+                        ? "text-green-500"
                         : "text-white"
                     )}
                   />

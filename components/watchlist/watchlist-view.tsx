@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Bookmark, Film, Tv, Trash2, Grid3x3, Table2, List, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Filter, Share2, Edit2, MoreVertical, Download, Plus, Eye, Lock, Check, Copy, Move, Star, Facebook, Twitter, MessageCircle, Mail, Link2 } from "lucide-react";
+import { Bookmark, Film, Tv, Trash2, Grid3x3, Table2, List, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Filter, Share2, Edit2, MoreVertical, Download, Plus, Eye, Lock, Check, Copy, Move, Star, Facebook, Twitter, MessageCircle, Mail, Link2, GripVertical } from "lucide-react";
 import Image from "next/image";
 import { getPosterUrl } from "@/lib/tmdb";
 import { format } from "date-fns";
@@ -41,7 +41,12 @@ import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-log
 import { useUser } from "@clerk/nextjs";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { useLists, useUpdateList, useCreateList } from "@/hooks/use-lists";
-import { useReorderWatchlist } from "@/hooks/use-watchlist";
+import { useReorderWatchlist, useAddToWatchlist } from "@/hooks/use-watchlist";
+import { createPersonSlug } from "@/lib/person-utils";
+import { useSearch } from "@/hooks/use-search";
+import { useDebounce } from "@/hooks/use-debounce";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "../ui/scroll-area";
 
 type SortField = "createdAt" | "title" | "releaseYear";
 type SortOrder = "asc" | "desc";
@@ -111,8 +116,36 @@ export default function WatchlistView({
 }: WatchlistViewProps) {
   const router = useRouter();
 
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [isEditMode, setIsEditMode] = useState(false);
+  // Persist viewMode and isEditMode in localStorage
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("watchlist-viewMode");
+      return (saved as ViewMode) || "grid";
+    }
+    return "grid";
+  });
+  
+  const [isEditMode, setIsEditMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("watchlist-editMode");
+      return saved === "true";
+    }
+    return false;
+  });
+  
+  // Save viewMode to localStorage when it changes
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("watchlist-viewMode", viewMode);
+    }
+  }, [viewMode]);
+  
+  // Save isEditMode to localStorage when it changes
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("watchlist-editMode", isEditMode.toString());
+    }
+  }, [isEditMode]);
   
   // In edit mode, force detailed view
   const effectiveViewMode = isEditMode ? "detailed" : viewMode;
@@ -126,10 +159,54 @@ export default function WatchlistView({
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
+  const [isAddToWatchlistOpen, setIsAddToWatchlistOpen] = useState(false);
+  const [addSearchQuery, setAddSearchQuery] = useState("");
   const { isSignedIn } = useUser();
   const reorderWatchlist = useReorderWatchlist();
+  const addToWatchlist = useAddToWatchlist();
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   const [dragOverItemId, setDragOverItemId] = useState<string | null>(null);
+  
+  // Search functionality for adding to watchlist
+  const debouncedAddSearchQuery = useDebounce(addSearchQuery, 300);
+  const { data: searchResults, isLoading: isSearchLoading } = useSearch({
+    query: debouncedAddSearchQuery,
+    type: "all",
+    page: 1,
+  });
+  
+  // Handle manual position change
+  const handlePositionChange = async (itemId: string, newPosition: number) => {
+    if (newPosition < 1 || newPosition > filteredAndSorted.length) {
+      toast.error(`Position must be between 1 and ${filteredAndSorted.length}`);
+      return;
+    }
+    
+    const currentIndex = filteredAndSorted.findIndex(({ watchlistItem }) => watchlistItem.id === itemId);
+    if (currentIndex === -1) return;
+    
+    const targetIndex = newPosition - 1; // Convert to 0-based index
+    if (currentIndex === targetIndex) return;
+    
+    // Create new array with reordered items
+    const reordered = [...filteredAndSorted];
+    const [movedItem] = reordered.splice(currentIndex, 1);
+    reordered.splice(targetIndex, 0, movedItem);
+    
+    // Assign sequential order numbers (1-based)
+    const itemsToUpdate = reordered.map(({ watchlistItem: item }, idx) => ({
+      id: item.id,
+      order: idx + 1,
+    }));
+    
+    try {
+      await reorderWatchlist.mutateAsync(itemsToUpdate);
+      toast.success("Position updated");
+    } catch (error) {
+      toast.error("Failed to update position");
+      console.error(error);
+    }
+  };
 
   // Convert watchlist items to TMDB format for display
   const watchlistAsTMDB = useMemo(() => {
@@ -521,7 +598,7 @@ export default function WatchlistView({
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-end gap-2 ml-auto sm:ml-0 overflow-x-auto">
+            <div className="flex items-center justify-end gap-2 ml-auto sm:ml-0 overflow-x-auto sm:overflow-x-visible">
               {enableCreateList && (
                 <Button
                   variant="outline"
@@ -631,42 +708,157 @@ export default function WatchlistView({
 
         {/* Bulk Actions Bar */}
         {isEditMode && enableRemove && (
-          <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 border-b border-border bg-muted/30">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={toggleSelectAll}
-                  className="cursor-pointer"
-                >
-                  {selectedItems.size === filteredAndSorted.length ? (
-                    <>
-                      <X className="h-4 w-4 mr-2" />
-                      Deselect All
-                    </>
-                  ) : (
-                    <>
-                      <Check className="h-4 w-4 mr-2" />
-                      Select All
-                    </>
-                  )}
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  {selectedItems.size} of {filteredAndSorted.length} selected
-                </span>
-              </div>
-              <div className="flex items-center gap-2 overflow-x-auto">
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleBulkRemove}
-                  disabled={selectedItems.size === 0}
-                  className="cursor-pointer"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Remove Selected
-                </Button>
+          <div className="w-full mt-[1rem]">
+            <div className="mx-auto max-w-[76rem] px-4 sm:px-6 lg:px-8">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 py-4 border-b border-border bg-muted/30 rounded-lg px-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={toggleSelectAll}
+                    className="cursor-pointer w-full sm:w-auto"
+                  >
+                    {selectedItems.size === filteredAndSorted.length ? (
+                      <>
+                        <X className="h-4 w-4 mr-2" />
+                        Deselect All
+                      </>
+                    ) : (
+                      <>
+                        <Check className="h-4 w-4 mr-2" />
+                        Select All
+                      </>
+                    )}
+                  </Button>
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">
+                    {selectedItems.size} of {filteredAndSorted.length} selected
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Popover open={isAddToWatchlistOpen} onOpenChange={setIsAddToWatchlistOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="cursor-pointer w-full sm:w-auto hover:bg-primary/10"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add to Watchlist
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0" align="end">
+                      <div className="p-4 border-b">
+                        <Input
+                          placeholder="Search movies or TV shows..."
+                          value={addSearchQuery}
+                          onChange={(e) => setAddSearchQuery(e.target.value)}
+                          className="w-full"
+                          autoFocus
+                        />
+                      </div>
+                      {debouncedAddSearchQuery.trim() && (
+                        <ScrollArea className="h-[400px] p-2">
+                          {isSearchLoading ? (
+                            <div className="p-4 text-center text-sm text-muted-foreground">
+                              Searching...
+                            </div>
+                          ) : searchResults?.results && searchResults.results.length > 0 ? (
+                            <div className="p-2">
+                              {searchResults.results.map((item) => {
+                                const isMovie = "title" in item;
+                                const title = isMovie ? item.title : item.name;
+                                const mediaType = isMovie ? "movie" : "tv";
+                                const isInWatchlist = watchlist.some(
+                                  (w) => w.tmdbId === item.id && w.mediaType === mediaType
+                                );
+                                
+                                return (
+                                  <button
+                                    key={`${item.id}-${mediaType}`}
+                                    onClick={async () => {
+                                      if (isInWatchlist) {
+                                        toast.error(`${title} is already in your watchlist`);
+                                        return;
+                                      }
+                                      
+                                      try {
+                                        await addToWatchlist.mutateAsync({
+                                          tmdbId: item.id,
+                                          mediaType,
+                                          title,
+                                          posterPath: item.poster_path || null,
+                                          backdropPath: item.backdrop_path || null,
+                                          releaseDate: isMovie ? item.release_date || undefined : undefined,
+                                          firstAirDate: !isMovie ? item.first_air_date || undefined : undefined,
+                                        });
+                                        toast.success(`Added ${title} to watchlist`);
+                                        setAddSearchQuery("");
+                                        setIsAddToWatchlistOpen(false);
+                                      } catch (error) {
+                                        toast.error("Failed to add to watchlist");
+                                        console.error(error);
+                                      }
+                                    }}
+                                    disabled={isInWatchlist || addToWatchlist.isPending}
+                                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {item.poster_path ? (
+                                      <div className="relative w-12 h-16 rounded overflow-hidden flex-shrink-0 bg-muted">
+                                        <Image
+                                          src={getPosterUrl(item.poster_path)}
+                                          alt={title}
+                                          fill
+                                          className="object-cover"
+                                          sizes="48px"
+                                        />
+                                      </div>
+                                    ) : (
+                                      <div className="w-12 h-16 rounded bg-muted flex-shrink-0 flex items-center justify-center">
+                                        {isMovie ? (
+                                          <Film className="h-6 w-6 text-muted-foreground" />
+                                        ) : (
+                                          <Tv className="h-6 w-6 text-muted-foreground" />
+                                        )}
+                                      </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-medium truncate">{title}</div>
+                                      <div className="text-sm text-muted-foreground flex items-center gap-2">
+                                        <span className="capitalize">{mediaType}</span>
+                                        {(isMovie ? item.release_date : item.first_air_date) && (
+                                          <>
+                                            <span>•</span>
+                                            <span>
+                                              {new Date(
+                                                isMovie ? item.release_date! : item.first_air_date!
+                                              ).getFullYear()}
+                                            </span>
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
+                                    {isInWatchlist && (
+                                      <Check className="h-5 w-5 text-primary flex-shrink-0" />
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="p-4 text-center text-sm text-muted-foreground">
+                              No results found
+                            </div>
+                          )}
+                        </ScrollArea>
+                      )}
+                      {!debouncedAddSearchQuery.trim() && (
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                          Start typing to search for movies or TV shows
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
             </div>
           </div>
@@ -677,7 +869,7 @@ export default function WatchlistView({
           {/* View Mode Toggle and Filters / Edit Mode Actions */}
           <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             {isEditMode && enableEdit ? (
-              <div className="flex items-center gap-2 overflow-x-auto">
+              <div className="flex items-center gap-2 overflow-x-auto sm:overflow-x-visible">
                 <Button
                   variant="outline"
                   size="sm"
@@ -1070,7 +1262,9 @@ export default function WatchlistView({
                   isSelected={selectedItems.has(watchlistItem.id)}
                   order={isEditMode ? (watchlistItem.order > 0 ? watchlistItem.order : index + 1) : undefined}
                   index={index}
+                  totalItems={filteredAndSorted.length}
                   onSelect={() => toggleItemSelection(watchlistItem.id)}
+                  onPositionChange={handlePositionChange}
                   onRemove={enableRemove ? () => {
                     setItemToRemove({
                       tmdbId: watchlistItem.tmdbId,
@@ -1260,6 +1454,7 @@ interface DetailedWatchlistItemProps {
   isSelected: boolean;
   order?: number;
   index: number;
+  totalItems: number;
   onSelect: () => void;
   onRemove?: () => void;
   onItemClick: () => void;
@@ -1268,6 +1463,7 @@ interface DetailedWatchlistItemProps {
   onDragOver: (e: React.DragEvent) => void;
   onDragLeave: () => void;
   onDrop: () => void;
+  onPositionChange: (itemId: string, newPosition: number) => void;
   isDragging: boolean;
   isDragOver: boolean;
 }
@@ -1280,6 +1476,7 @@ function DetailedWatchlistItem({
   isSelected,
   order,
   index,
+  totalItems,
   onSelect,
   onRemove,
   onItemClick,
@@ -1288,9 +1485,13 @@ function DetailedWatchlistItem({
   onDragOver,
   onDragLeave,
   onDrop,
+  onPositionChange,
   isDragging,
   isDragOver,
 }: DetailedWatchlistItemProps) {
+  const [isEditingPosition, setIsEditingPosition] = useState(false);
+  const [positionValue, setPositionValue] = useState<string>(order?.toString() || "");
+  const router = useRouter();
   const { isSignedIn } = useUser();
   const quickWatch = useQuickWatch();
   const unwatch = useUnwatch();
@@ -1310,6 +1511,10 @@ function DetailedWatchlistItem({
       crew?: Array<{ id: number; name: string; job: string; department: string; profile_path: string | null }>;
     };
     external_ids?: { imdb_id?: string | null };
+    runtime?: number;
+    episode_run_time?: number[];
+    release_date?: string;
+    first_air_date?: string;
   }) | null;
   
   // Fetch IMDb rating
@@ -1319,11 +1524,18 @@ function DetailedWatchlistItem({
   const displayRating = ratingData?.rating || tmdbRating;
   const ratingSource = ratingData?.source || (tmdbRating ? "tmdb" : null);
   
-  const releaseYear = watchlistItem.releaseDate 
-    ? new Date(watchlistItem.releaseDate).getFullYear() 
-    : watchlistItem.firstAirDate 
-    ? new Date(watchlistItem.firstAirDate).getFullYear() 
-    : null;
+  // Get release date
+  const releaseDate = type === "movie" 
+    ? (detailsWithCredits?.release_date || watchlistItem.releaseDate)
+    : (detailsWithCredits?.first_air_date || watchlistItem.firstAirDate);
+  const releaseYear = releaseDate ? new Date(releaseDate).getFullYear() : null;
+  const formattedReleaseDate = releaseDate ? format(new Date(releaseDate), "MMM d, yyyy") : null;
+  
+  // Get runtime
+  const runtime = type === "movie" 
+    ? detailsWithCredits?.runtime 
+    : detailsWithCredits?.episode_run_time?.[0];
+  const formattedRuntime = runtime ? `${Math.floor(runtime / 60)}h ${runtime % 60}m` : null;
   
   // Get synopsis
   const synopsis = details?.overview || item.overview || "";
@@ -1336,7 +1548,7 @@ function DetailedWatchlistItem({
   const creator = type === "tv" ? (details as { created_by?: Array<{ id: number; name: string; profile_path: string | null }> })?.created_by?.[0] : null;
   const directorOrCreator = type === "movie" ? director : creator;
   
-  // Get top 3 cast members
+  // Get top 3 cast members with IDs
   const topCast = detailsWithCredits?.credits?.cast?.slice(0, 3) || [];
   
   const handleWatchToggle = async (e: React.MouseEvent) => {
@@ -1367,34 +1579,61 @@ function DetailedWatchlistItem({
     }
   };
   
+  // Update position value when order changes
+  useEffect(() => {
+    if (order) {
+      setPositionValue(order.toString());
+    }
+  }, [order]);
+  
+  const handlePositionSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const numValue = parseInt(positionValue, 10);
+    if (!isNaN(numValue) && numValue >= 1 && numValue <= totalItems) {
+      onPositionChange(watchlistItem.id, numValue);
+      setIsEditingPosition(false);
+    } else {
+      toast.error(`Position must be between 1 and ${totalItems}`);
+      setPositionValue(order?.toString() || "");
+    }
+  };
+  
   return (
     <div
-      draggable={isEditMode}
-      onDragStart={(e) => {
-        if (isEditMode) {
-          onDragStart();
-          e.dataTransfer.effectAllowed = "move";
-        }
-      }}
-      onDragEnd={onDragEnd}
+      className={cn(
+        "relative flex gap-4 p-4 rounded-lg border border-border bg-card transition-all group",
+        isEditMode && isSelected && "bg-primary/10 border-primary",
+        !isEditMode && "cursor-pointer hover:border-primary/50",
+        isDragging && "opacity-50 scale-95 z-50",
+        isDragOver && "border-primary border-2 bg-primary/5 translate-y-2"
+      )}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={(e) => {
         e.preventDefault();
         onDrop();
       }}
-      className={cn(
-        "flex gap-4 p-4 rounded-lg border border-border bg-card transition-colors group",
-        isEditMode && isSelected && "bg-primary/10 border-primary",
-        !isEditMode && "cursor-pointer hover:border-primary/50",
-        isEditMode && "cursor-move",
-        isDragging && "opacity-50",
-        isDragOver && "border-primary border-2 bg-primary/5"
-      )}
       onClick={onItemClick}
     >
       {isEditMode && (
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 flex items-center gap-2">
+          {/* Grab Handle */}
+          <div
+            draggable
+            onDragStart={(e) => {
+              onDragStart();
+              e.dataTransfer.effectAllowed = "move";
+              e.stopPropagation();
+            }}
+            onDragEnd={onDragEnd}
+            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="h-5 w-5" />
+          </div>
+          
+          {/* Checkbox */}
           <Button
             variant={isSelected ? "default" : "outline"}
             size="icon"
@@ -1413,72 +1652,163 @@ function DetailedWatchlistItem({
               <div className="h-3 w-3 border-2 border-current rounded" />
             )}
           </Button>
-        </div>
-      )}
-      {watchlistItem.posterPath ? (
-        <div className="relative w-20 h-28 sm:w-24 sm:h-36 rounded overflow-hidden flex-shrink-0 bg-muted">
-          <Image
-            src={getPosterUrl(watchlistItem.posterPath)}
-            alt={watchlistItem.title}
-            fill
-            className="object-cover"
-            sizes="96px"
-          />
-        </div>
-      ) : (
-        <div className="w-20 h-28 sm:w-24 sm:h-36 rounded bg-muted flex-shrink-0 flex items-center justify-center">
-          {type === "movie" ? (
-            <Film className="h-8 w-8 text-muted-foreground" />
+          
+          {/* Position Input */}
+          {isEditingPosition ? (
+            <form onSubmit={handlePositionSubmit} onClick={(e) => e.stopPropagation()}>
+              <Input
+                type="number"
+                min={1}
+                max={totalItems}
+                value={positionValue}
+                onChange={(e) => setPositionValue(e.target.value)}
+                onBlur={() => {
+                  setIsEditingPosition(false);
+                  setPositionValue(order?.toString() || "");
+                }}
+                className="w-16 h-6 text-xs text-center"
+                autoFocus
+              />
+            </form>
           ) : (
-            <Tv className="h-8 w-8 text-muted-foreground" />
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsEditingPosition(true);
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground min-w-[2rem] text-center"
+            >
+              {order || index + 1}
+            </button>
           )}
         </div>
       )}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-4 mb-2">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-2">
-                  {isEditMode && order !== undefined && (
-                    <span className="text-lg font-semibold text-muted-foreground min-w-[2rem]">
-                      {order}.
-                    </span>
-                  )}
-                  <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
-                    {watchlistItem.title}
-                  </h3>
-              {displayRating && displayRating > 0 && (
-                <div className="flex items-center gap-1.5">
-                  {ratingSource === "imdb" ? (
-                    <IMDBBadge size={16} />
-                  ) : (
-                    <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                  )}
-                  <span className="text-sm font-semibold">{displayRating.toFixed(1)}</span>
-                </div>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 cursor-pointer"
-                onClick={handleWatchToggle}
-              >
-                <Eye
-                  className={cn(
-                    "h-4 w-4",
-                    isWatched
-                      ? "text-green-500 fill-green-500"
-                      : "text-muted-foreground"
-                  )}
-                />
-              </Button>
+      {/* Drag Over Indicator */}
+      {isDragOver && !isDragging && (
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-l" />
+      )}
+      {/* Layout: Poster and Content */}
+      <div className="flex flex-row gap-4 flex-1 min-w-0">
+        {/* Poster */}
+        {watchlistItem.posterPath ? (
+          <div className="relative w-20 h-28 sm:w-24 sm:h-36 rounded overflow-hidden flex-shrink-0 bg-muted">
+            <Image
+              src={getPosterUrl(watchlistItem.posterPath)}
+              alt={watchlistItem.title}
+              fill
+              className="object-cover"
+              sizes="96px"
+            />
+          </div>
+        ) : (
+          <div className="w-20 h-28 sm:w-24 sm:h-36 rounded bg-muted flex-shrink-0 flex items-center justify-center">
+            {type === "movie" ? (
+              <Film className="h-8 w-8 text-muted-foreground" />
+            ) : (
+              <Tv className="h-8 w-8 text-muted-foreground" />
+            )}
+          </div>
+        )}
+        
+        {/* Content Container */}
+        <div className="flex-1 min-w-0 flex flex-col">
+          {/* First Row: Title and Details */}
+          <div className="flex items-start justify-between gap-4 mb-2">
+            <div className="flex-1 min-w-0">
+              {/* 1. Title */}
+              <div className="flex items-center gap-3 mb-2">
+                <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
+                  {watchlistItem.title}
+                </h3>
+                <span className="text-sm text-muted-foreground capitalize">({type})</span>
+              </div>
+              
+              {/* 2. Release date, runtime, rated, metascore, imdb rating, eye icon */}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
+                {formattedReleaseDate && <span>{formattedReleaseDate}</span>}
+                {formattedRuntime && (
+                  <>
+                    {formattedReleaseDate && <span>•</span>}
+                    <span>{formattedRuntime}</span>
+                  </>
+                )}
+                {/* Rated - placeholder for now, would need rating data */}
+                {/* Metascore - placeholder for now, would need external API */}
+                {displayRating && displayRating > 0 && (
+                  <>
+                    {(formattedReleaseDate || formattedRuntime) && <span>•</span>}
+                    <div className="flex items-center gap-1.5">
+                      {ratingSource === "imdb" ? (
+                        <IMDBBadge size={16} />
+                      ) : (
+                        <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                      )}
+                      <span className="font-semibold">{displayRating.toFixed(1)}</span>
+                    </div>
+                  </>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 cursor-pointer"
+                  onClick={handleWatchToggle}
+                >
+                  <Eye
+                    className={cn(
+                      "h-4 w-4",
+                      isWatched
+                        ? "text-green-500"
+                        : "text-muted-foreground"
+                    )}
+                  />
+                </Button>
+                {isWatched && <span className="text-sm text-muted-foreground">Watched</span>}
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-              {releaseYear && <span>{releaseYear}</span>}
-              {releaseYear && <span>•</span>}
-              <span className="capitalize">{type}</span>
-              <span>•</span>
-              <span>Added {format(new Date(watchlistItem.createdAt), "MMM d, yyyy")}</span>
-            </div>
+          </div>
+          
+          {/* Second Row: Synopsis and Cast (mobile only - below details) */}
+          <div className="flex flex-col sm:hidden gap-2">
+            {synopsis && (
+              <p className="text-sm text-muted-foreground line-clamp-2">
+                {truncatedSynopsis}
+              </p>
+            )}
+            {(directorOrCreator || topCast.length > 0) && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+                {directorOrCreator && (
+                  <>
+                    <span className="font-medium">Director:</span>
+                    <span>{directorOrCreator.name}</span>
+                    {topCast.length > 0 && <span>•</span>}
+                  </>
+                )}
+                {topCast.length > 0 && (
+                  <>
+                    <span className="font-medium">Stars:</span>
+                    {topCast.map((actor: { id: number; name: string }, index: number) => (
+                      <span key={actor.id}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/person/${createPersonSlug(actor.id, actor.name)}`);
+                          }}
+                          className="text-primary underline hover:text-primary/80 transition-colors"
+                        >
+                          {actor.name}
+                        </button>
+                        {index < topCast.length - 1 && ", "}
+                      </span>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+          
+          {/* Desktop: Synopsis and Cast (inline with details) */}
+          <div className="hidden sm:block">
             {synopsis && (
               <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
                 {truncatedSynopsis}
@@ -1496,9 +1826,17 @@ function DetailedWatchlistItem({
                 {topCast.length > 0 && (
                   <>
                     <span className="font-medium">Stars:</span>
-                    {topCast.map((actor: { name: string }, index: number) => (
-                      <span key={index}>
-                        {actor.name}
+                    {topCast.map((actor: { id: number; name: string }, index: number) => (
+                      <span key={actor.id}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/person/${createPersonSlug(actor.id, actor.name)}`);
+                          }}
+                          className="text-primary underline hover:text-primary/80 transition-colors"
+                        >
+                          {actor.name}
+                        </button>
                         {index < topCast.length - 1 && ", "}
                       </span>
                     ))}
@@ -1507,7 +1845,11 @@ function DetailedWatchlistItem({
               </div>
             )}
           </div>
-          {!isEditMode && onRemove && (
+        </div>
+        
+        {/* Remove button - only shown when not in edit mode */}
+        {!isEditMode && onRemove && (
+          <div className="absolute top-4 right-4">
             <Button
               variant="ghost"
               size="icon"
@@ -1519,8 +1861,8 @@ function DetailedWatchlistItem({
             >
               <Trash2 className="h-4 w-4" />
             </Button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1662,10 +2004,22 @@ function CopyToListModal({ isOpen, onClose, selectedItems, onSuccess }: CopyToLi
           </Button>
           <Button 
             onClick={handleCopy} 
-            disabled={isCreatingNew && !newListName.trim() || !isCreatingNew && !selectedListId}
+            disabled={
+              (isCreatingNew && !newListName.trim()) || 
+              (!isCreatingNew && !selectedListId) ||
+              createList.isPending ||
+              updateList.isPending
+            }
             className="cursor-pointer"
           >
-            Copy
+            {(createList.isPending || updateList.isPending) ? (
+              <>
+                <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                Copying...
+              </>
+            ) : (
+              "Copy"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1698,8 +2052,10 @@ function MoveToListModal({ isOpen, onClose, selectedItems, onRemove, onSuccess }
   const [selectedListId, setSelectedListId] = useState<string>("");
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [newListName, setNewListName] = useState("");
+  const [isRemoving, setIsRemoving] = useState(false);
   
   const handleMove = async () => {
+    setIsRemoving(true);
     try {
       if (isCreatingNew) {
         // Create new list with items
@@ -1778,6 +2134,8 @@ function MoveToListModal({ isOpen, onClose, selectedItems, onRemove, onSuccess }
     } catch (error) {
       toast.error("Failed to move items");
       console.error(error);
+    } finally {
+      setIsRemoving(false);
     }
   };
   
@@ -1827,10 +2185,23 @@ function MoveToListModal({ isOpen, onClose, selectedItems, onRemove, onSuccess }
           </Button>
           <Button 
             onClick={handleMove} 
-            disabled={isCreatingNew && !newListName.trim() || !isCreatingNew && !selectedListId}
+            disabled={
+              (isCreatingNew && !newListName.trim()) || 
+              (!isCreatingNew && !selectedListId) ||
+              createList.isPending ||
+              updateList.isPending ||
+              isRemoving
+            }
             className="cursor-pointer"
           >
-            Move
+            {(createList.isPending || updateList.isPending || isRemoving) ? (
+              <>
+                <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                Moving...
+              </>
+            ) : (
+              "Move"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
