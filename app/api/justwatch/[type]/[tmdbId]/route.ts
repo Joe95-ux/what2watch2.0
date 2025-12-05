@@ -1,16 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getJustWatchAvailability } from "@/lib/justwatch";
 
-interface RouteParams {
-  params: Promise<{
-    type: "movie" | "tv";
-    tmdbId: string;
-  }>;
-}
-
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ type: string; tmdbId: string }> }
+) {
   try {
     const { type, tmdbId: tmdbIdStr } = await params;
+    
+    // Validate type parameter
+    if (type !== "movie" && type !== "tv") {
+      return NextResponse.json(
+        { error: "Invalid type. Must be 'movie' or 'tv'" },
+        { status: 400 }
+      );
+    }
+    
+    // Type narrowing: type is now "movie" | "tv"
+    const validType = type as "movie" | "tv";
     let country = request.nextUrl.searchParams.get("country") ?? "US";
     
     // Validate and normalize country code
@@ -38,9 +45,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Debug logging
-    console.log("[JustWatch API] Request:", { type, tmdbId, country });
+    console.log("[JustWatch API] Request:", { type: validType, tmdbId, country });
     
-    const data = await getJustWatchAvailability(type, tmdbId, country);
+    const data = await getJustWatchAvailability(validType, tmdbId, country);
 
     if (!data) {
       console.error("[JustWatch API] No data returned from getJustWatchAvailability");
