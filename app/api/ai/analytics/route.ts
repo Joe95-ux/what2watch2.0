@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { Prisma } from "@prisma/client";
+import { Prisma, AiChatIntent } from "@prisma/client";
 import { db } from "@/lib/db";
 
 const DEFAULT_RANGE_DAYS = 30;
-enum AiChatIntent {
-  RECOMMENDATION = "RECOMMENDATION",
-  INFORMATION = "INFORMATION",
-}
 
 export async function GET(request: NextRequest) {
   try {
