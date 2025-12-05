@@ -141,7 +141,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ activiti
     let groupedActivities: Record<string, typeof activities> | null = null;
     if (groupBy && (groupBy === "day" || groupBy === "week" || groupBy === "month")) {
       groupedActivities = {};
-      activities.forEach((activity) => {
+      activities.forEach((activity: typeof activities[0]) => {
         const date = new Date(activity.createdAt);
         let key: string;
 

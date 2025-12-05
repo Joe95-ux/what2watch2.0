@@ -228,7 +228,7 @@ export async function GET(
     if (search && search.trim().length > 0) {
       const searchLower = search.trim().toLowerCase();
       activities = activities.filter(
-        (activity) =>
+        (activity: typeof activities[0]) =>
           (activity.title?.toLowerCase().includes(searchLower)) ||
           (activity.listName?.toLowerCase().includes(searchLower)) ||
           (activity.user.displayName?.toLowerCase().includes(searchLower)) ||
@@ -243,7 +243,7 @@ export async function GET(
     let groupedActivities: Record<string, typeof activities> | null = null;
     if (groupBy && (groupBy === "day" || groupBy === "week" || groupBy === "month")) {
       groupedActivities = {};
-      activities.forEach((activity) => {
+      activities.forEach((activity: typeof activities[0]) => {
         const date = new Date(activity.createdAt);
         let key: string;
 
