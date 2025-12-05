@@ -133,6 +133,52 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
       },
     });
 
+    // Create or update review if notes are provided
+    if (notes && notes.trim().length > 0) {
+      try {
+        // Convert 1-5 rating to 1-10 rating (multiply by 2)
+        const reviewRating = rating ? rating * 2 : 5; // Default to 5/10 if no rating
+
+        // Check if review already exists
+        const existingReview = await db.review.findUnique({
+          where: {
+            userId_tmdbId_mediaType: {
+              userId: user.id,
+              tmdbId,
+              mediaType,
+            },
+          },
+        });
+
+        if (existingReview) {
+          // Update existing review
+          await db.review.update({
+            where: { id: existingReview.id },
+            data: {
+              rating: reviewRating,
+              content: notes.trim(),
+              containsSpoilers: false, // Could be enhanced to detect spoilers
+            },
+          });
+        } else {
+          // Create new review
+          await db.review.create({
+            data: {
+              userId: user.id,
+              tmdbId,
+              mediaType,
+              rating: reviewRating,
+              content: notes.trim(),
+              containsSpoilers: false,
+            },
+          });
+        }
+      } catch (error) {
+        // Silently fail - review creation is not critical
+        console.error("Failed to create/update review from viewing log:", error);
+      }
+    }
+
     // Create activities for logging, rating, and reviewing
     try {
       const activities: Array<{

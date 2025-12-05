@@ -22,7 +22,10 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ watchlis
 
     const watchlist = await db.watchlistItem.findMany({
       where: { userId: user.id },
-      orderBy: { createdAt: "desc" },
+      orderBy: [
+        { order: "asc" },
+        { createdAt: "desc" },
+      ],
     });
 
     return NextResponse.json({ watchlist });
@@ -79,6 +82,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
       return NextResponse.json({ success: true, watchlistItem: existing });
     }
 
+    // Get the highest order value and add 1, or set to 0 if no items have order
+    const maxOrderItem = await db.watchlistItem.findFirst({
+      where: { userId: user.id },
+      orderBy: { order: "desc" },
+      select: { order: true },
+    });
+    const newOrder = maxOrderItem && maxOrderItem.order > 0 ? maxOrderItem.order + 1 : 0;
+
     const watchlistItem = await db.watchlistItem.create({
       data: {
         userId: user.id,
@@ -89,6 +100,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
         backdropPath: backdropPath || null,
         releaseDate: releaseDate || null,
         firstAirDate: firstAirDate || null,
+        order: newOrder,
       },
     });
 

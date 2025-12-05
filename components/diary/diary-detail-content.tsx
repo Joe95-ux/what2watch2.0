@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Heart, Star, CalendarIcon, Play, Edit, Trash2, Share2, Plus, 
-  MessageSquare, ArrowLeft, BookOpen, Reply, MoreVertical, Filter, ChevronDown, ChevronUp, Smile, Bookmark
+  MessageSquare, ArrowLeft, BookOpen, Reply, MoreVertical, Filter, ChevronDown, ChevronUp, Smile, Bookmark, Eye
 } from "lucide-react";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import { cn } from "@/lib/utils";
@@ -44,6 +44,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
 import CreatePlaylistModal from "@/components/playlists/create-playlist-modal";
 import TrailerModal from "@/components/browse/trailer-modal";
+import Script from "next/script";
+import Link from "next/link";
 
 interface DiaryDetailContentProps {
   log: ViewingLog;
@@ -68,6 +70,22 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
   const [commentFilter, setCommentFilter] = useState("newest");
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
+  
+  // Initialize JustWatch widget when component mounts
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const initWidget = () => {
+        const jwWidget = (window as Window & { JW_Widget?: { init: () => void } }).JW_Widget;
+        if (jwWidget) {
+          jwWidget.init();
+        } else {
+          // If widget script hasn't loaded yet, wait a bit and try again
+          setTimeout(initWidget, 100);
+        }
+      };
+      initWidget();
+    }
+  }, [log.tmdbId, log.mediaType]);
   
   const updateLog = useUpdateViewingLog();
   const deleteLog = useDeleteViewingLog();
@@ -210,7 +228,10 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
           
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
             {posterPath && (
-              <div className="relative w-32 h-48 sm:w-40 sm:h-60 md:w-48 md:h-72 rounded-lg overflow-hidden flex-shrink-0 shadow-lg">
+              <Link 
+                href={`/${log.mediaType}/${log.tmdbId}`}
+                className="relative w-32 h-48 sm:w-40 sm:h-60 md:w-48 md:h-72 rounded-lg overflow-hidden flex-shrink-0 shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
+              >
                 <Image
                   src={getPosterUrl(posterPath, "w500")}
                   alt={title}
@@ -218,7 +239,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                   className="object-cover"
                   unoptimized
                 />
-              </div>
+              </Link>
             )}
             
             <div className="flex-1 pt-2 sm:pt-0">
@@ -315,10 +336,16 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                 </div>
               )}
               
-              {/* Review Likes - placeholder for future implementation */}
-              <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
-                <Heart className="h-4 w-4" />
-                <span>No likes yet</span>
+              {/* Review Likes and Watch Status */}
+              <div className="flex items-center gap-4 mb-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Heart className="h-4 w-4" />
+                  <span>No likes yet</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Eye className="h-4 w-4 text-green-500 fill-green-500" />
+                  <span>Watched</span>
+                </div>
               </div>
               
               {/* Actions */}
@@ -442,12 +469,30 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
           
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Watch Providers - Placeholder */}
+            {/* JustWatch Widget */}
             <div className="sm:bg-card sm:border sm:rounded-lg p-0 sm:p-6">
               <h3 className="text-lg font-semibold mb-4">Where to Watch</h3>
-              <div className="text-center text-muted-foreground py-8">
-                <p className="text-sm">Watch provider information coming soon</p>
-              </div>
+              <div
+                data-jw-widget
+                data-api-key="kdXlICVx4d6qwyZYSThFxvVKAhQtwtqY"
+                data-title={title}
+                data-year={
+                  log.mediaType === "movie"
+                    ? log.releaseDate
+                      ? new Date(log.releaseDate).getFullYear()
+                      : details && "release_date" in details && details.release_date
+                      ? new Date(details.release_date).getFullYear()
+                      : undefined
+                    : log.firstAirDate
+                    ? new Date(log.firstAirDate).getFullYear()
+                    : details && "first_air_date" in details && details.first_air_date
+                    ? new Date(details.first_air_date).getFullYear()
+                    : undefined
+                }
+                data-theme="dark"
+                data-offer-label="price"
+                data-scale="1"
+              />
             </div>
           </div>
         </div>
@@ -519,6 +564,13 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
       <CreatePlaylistModal
         isOpen={isCreatePlaylistModalOpen}
         onClose={() => setIsCreatePlaylistModalOpen(false)}
+      />
+
+      {/* JustWatch Widget Script */}
+      <Script
+        src="https://widget.justwatch.com/justwatch_widget.js"
+        strategy="afterInteractive"
+        id="justwatch-widget-script"
       />
     </div>
   );

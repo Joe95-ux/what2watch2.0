@@ -10,6 +10,7 @@ export interface WatchlistItem {
   backdropPath: string | null;
   releaseDate: string | null;
   firstAirDate: string | null;
+  order: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -95,6 +96,7 @@ export function useAddToWatchlist() {
           backdropPath: newItem.backdropPath || null,
           releaseDate: newItem.releaseDate || null,
           firstAirDate: newItem.firstAirDate || null,
+          order: 0,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -228,6 +230,30 @@ export function useUpdateWatchlistPublicStatus() {
     mutationFn: updateWatchlistPublicStatus,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["watchlist-public-status"] });
+    },
+  });
+}
+
+// Reorder watchlist items
+const reorderWatchlist = async (items: Array<{ id: string; order: number }>): Promise<void> => {
+  const res = await fetch("/api/watchlist/reorder", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to reorder watchlist");
+  }
+};
+
+export function useReorderWatchlist() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: reorderWatchlist,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["watchlist"] });
     },
   });
 }

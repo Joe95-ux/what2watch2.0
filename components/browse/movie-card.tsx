@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
-import { Play, Plus, Heart, Maximize2, Bookmark, Volume2, VolumeX, BookCheck, MoreVertical, Trash2, Check } from "lucide-react";
+import { Play, Plus, Heart, Maximize2, Bookmark, Volume2, VolumeX, BookCheck, MoreVertical, Trash2, Eye } from "lucide-react";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries, getPosterUrl, TMDBVideo, getYouTubeEmbedUrl } from "@/lib/tmdb";
@@ -423,7 +423,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                             }}
                             className="cursor-pointer text-[0.8rem]"
                           >
-                            <Check
+                            <Eye
                               className={cn(
                                 "h-4 w-4 mr-2",
                                 isWatched

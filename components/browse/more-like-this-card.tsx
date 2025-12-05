@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
-import { Play, Plus, Heart, Bookmark, MoreVertical, Check } from "lucide-react";
+import { Play, Plus, Heart, Bookmark, MoreVertical, Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
 import { CircleActionButton } from "./circle-action-button";
@@ -279,7 +279,7 @@ export default function MoreLikeThisCard({
                   }}
                   className="cursor-pointer text-[0.8rem]"
                 >
-                  <Check
+                  <Eye
                     className={cn(
                       "h-4 w-4 mr-2",
                       isWatched

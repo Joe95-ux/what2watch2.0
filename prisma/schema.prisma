@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "mongodb"
-  url      = env("DATABASE_URL")
+  // The `url` property is deprecated in schema files as of Prisma 5. Move it to prisma.config.ts.
 }
 
 // User model - synced with Clerk
@@ -158,6 +158,9 @@ model WatchlistItem {
   releaseDate   String?  // For movies
   firstAirDate  String?  // For TV shows
   
+  // Order/priority (1-based, 0 means not ordered)
+  order         Int      @default(0)
+  
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -165,6 +168,7 @@ model WatchlistItem {
   @@map("watchlist_items")
   @@index([userId])
   @@index([createdAt])
+  @@index([userId, order])
 }
 
 enum PlaylistVisibility {

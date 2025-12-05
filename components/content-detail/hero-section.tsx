@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type ReactNode } from "react";
 import Image from "next/image";
-import { Play, Heart, Bookmark, Plus, Clapperboard, Images, Star, Check } from "lucide-react";
+import { Play, Heart, Bookmark, Plus, Clapperboard, Images, Star, Eye } from "lucide-react";
 import {
   TMDBMovie,
   TMDBSeries,
@@ -24,6 +24,7 @@ import MediaModal from "./media-modal";
 import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-logs";
 import { toast } from "sonner";
 import { useUser, useClerk } from "@clerk/nextjs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface DetailsType {
   release_date?: string;
@@ -220,67 +221,81 @@ export default function HeroSection({ item, type, details, trailer, videosData }
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-end gap-3 mt-[14px] md:mt-0">
-            <CircleActionButton
-              size="md"
-              aria-label="Mark as watched"
-              onClick={async () => {
-                if (!isSignedIn) {
-                  toast.error("Sign in to mark films as watched.");
-                  if (openSignIn) {
-                    openSignIn({
-                      afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
-                    });
-                  }
-                  return;
-                }
-                try {
-                  if (isWatched && watchedLogId) {
-                    await unwatch.mutateAsync(watchedLogId);
-                    toast.success("Removed from watched");
-                  } else {
-                    const title = "title" in item ? item.title : item.name;
-                    await quickWatch.mutateAsync({
-                      tmdbId: item.id,
-                      mediaType: type,
-                      title,
-                      posterPath: item.poster_path || null,
-                      backdropPath: item.backdrop_path || null,
-                      releaseDate: "release_date" in item ? item.release_date || null : null,
-                      firstAirDate: "first_air_date" in item ? item.first_air_date || null : null,
-                    });
-                    toast.success("Marked as watched");
-                  }
-                } catch {
-                  toast.error("Failed to update watched status");
-                }
-              }}
-            >
-              <Check
-                className={cn(
-                  "h-5 w-5",
-                  isWatched
-                    ? "text-green-500 fill-green-500"
-                    : "text-white"
-                )}
-              />
-            </CircleActionButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <CircleActionButton
+                  size="md"
+                  aria-label="Mark as watched"
+                  onClick={async () => {
+                    if (!isSignedIn) {
+                      toast.error("Sign in to mark films as watched.");
+                      if (openSignIn) {
+                        openSignIn({
+                          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                        });
+                      }
+                      return;
+                    }
+                    try {
+                      if (isWatched && watchedLogId) {
+                        await unwatch.mutateAsync(watchedLogId);
+                        toast.success("Removed from watched");
+                      } else {
+                        const title = "title" in item ? item.title : item.name;
+                        await quickWatch.mutateAsync({
+                          tmdbId: item.id,
+                          mediaType: type,
+                          title,
+                          posterPath: item.poster_path || null,
+                          backdropPath: item.backdrop_path || null,
+                          releaseDate: "release_date" in item ? item.release_date || null : null,
+                          firstAirDate: "first_air_date" in item ? item.first_air_date || null : null,
+                        });
+                        toast.success("Marked as watched");
+                      }
+                    } catch {
+                      toast.error("Failed to update watched status");
+                    }
+                  }}
+                >
+                  <Eye
+                    className={cn(
+                      "h-5 w-5",
+                      isWatched
+                        ? "text-green-500 fill-green-500"
+                        : "text-white"
+                    )}
+                  />
+                </CircleActionButton>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isWatched ? "Mark as unwatched" : "Mark as watched"}
+              </TooltipContent>
+            </Tooltip>
             <span className="h-6 w-px bg-white/20" />
-            <CircleActionButton
-              size="md"
-              aria-label="Toggle favorite"
-              onClick={async () => {
-                await toggleFavorite.toggle(item, type);
-              }}
-            >
-              <Heart
-                className={cn(
-                  "h-5 w-5",
-                  toggleFavorite.isFavorite(item.id, type)
-                    ? "text-red-500 fill-red-500"
-                    : "text-white"
-                )}
-              />
-            </CircleActionButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <CircleActionButton
+                  size="md"
+                  aria-label="Toggle favorite"
+                  onClick={async () => {
+                    await toggleFavorite.toggle(item, type);
+                  }}
+                >
+                  <Heart
+                    className={cn(
+                      "h-5 w-5",
+                      toggleFavorite.isFavorite(item.id, type)
+                        ? "text-red-500 fill-red-500"
+                        : "text-white"
+                    )}
+                  />
+                </CircleActionButton>
+              </TooltipTrigger>
+              <TooltipContent>
+                {toggleFavorite.isFavorite(item.id, type) ? "Remove from favorites" : "Add to favorites"}
+              </TooltipContent>
+            </Tooltip>
             <span className="h-6 w-px bg-white/20" />
             <LogToDiaryDropdown
               item={item}
@@ -336,23 +351,30 @@ export default function HeroSection({ item, type, details, trailer, videosData }
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
 
             <div className="absolute top-4 left-4 flex gap-3">
-              <CircleActionButton
-                size="lg"
-                className="bg-black/70 text-white border-white/30 hover:bg-black/80 hover:border-white/60 shadow-lg"
-                onClick={async () => {
-                  await toggleWatchlist.toggle(item, type);
-                }}
-                aria-label="Toggle watchlist"
-              >
-                <Bookmark
-                  className={cn(
-                    "h-5 w-5",
-                    toggleWatchlist.isInWatchlist(item.id, type)
-                      ? "text-blue-500 fill-blue-500"
-                      : "text-white"
-                  )}
-                />
-              </CircleActionButton>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <CircleActionButton
+                    size="lg"
+                    className="bg-black/70 text-white border-white/30 hover:bg-black/80 hover:border-white/60 shadow-lg"
+                    onClick={async () => {
+                      await toggleWatchlist.toggle(item, type);
+                    }}
+                    aria-label="Toggle watchlist"
+                  >
+                    <Bookmark
+                      className={cn(
+                        "h-5 w-5",
+                        toggleWatchlist.isInWatchlist(item.id, type)
+                          ? "text-blue-500 fill-blue-500"
+                          : "text-white"
+                      )}
+                    />
+                  </CircleActionButton>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
+                </TooltipContent>
+              </Tooltip>
             </div>
 
             <div className="absolute top-4 right-4">
@@ -360,13 +382,20 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                 item={item}
                 type={type}
                 trigger={
-                  <CircleActionButton
-                    size="lg"
-                    className="bg-black/70 text-white border-white/30 hover:bg-black/80 hover:border-white/60 shadow-lg"
-                    aria-label="Add to playlist"
-                  >
-                    <Plus className="h-5 w-5 text-white" />
-                  </CircleActionButton>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <CircleActionButton
+                        size="lg"
+                        className="bg-black/70 text-white border-white/30 hover:bg-black/80 hover:border-white/60 shadow-lg"
+                        aria-label="Add to playlist"
+                      >
+                        <Plus className="h-5 w-5 text-white" />
+                      </CircleActionButton>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Add to playlist
+                    </TooltipContent>
+                  </Tooltip>
                 }
               />
             </div>
@@ -391,34 +420,48 @@ export default function HeroSection({ item, type, details, trailer, videosData }
             {/* Action Buttons - Top Right (visible when poster is in middle column, below lg breakpoint) */}
             {posterPath && (
               <div className="absolute top-4 right-4 flex gap-2 md:flex lg:hidden z-10">
-                <CircleActionButton
-                  size="md"
-                  className="bg-black/70 text-white border-white/30 hover:bg-black/80 hover:border-white/60 shadow-lg"
-                  aria-label="Toggle watchlist"
-                  onClick={async () => {
-                    await toggleWatchlist.toggle(item, type);
-                  }}
-                >
-                  <Bookmark
-                    className={cn(
-                      "h-4 w-4",
-                      toggleWatchlist.isInWatchlist(item.id, type)
-                        ? "text-blue-400 fill-blue-400"
-                        : "text-white"
-                    )}
-                  />
-                </CircleActionButton>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <CircleActionButton
+                      size="md"
+                      className="bg-black/70 text-white border-white/30 hover:bg-black/80 hover:border-white/60 shadow-lg"
+                      aria-label="Toggle watchlist"
+                      onClick={async () => {
+                        await toggleWatchlist.toggle(item, type);
+                      }}
+                    >
+                      <Bookmark
+                        className={cn(
+                          "h-4 w-4",
+                          toggleWatchlist.isInWatchlist(item.id, type)
+                            ? "text-blue-400 fill-blue-400"
+                            : "text-white"
+                        )}
+                      />
+                    </CircleActionButton>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
+                  </TooltipContent>
+                </Tooltip>
                 <AddToPlaylistDropdown
                   item={item}
                   type={type}
                   trigger={
-                    <CircleActionButton
-                      size="md"
-                      className="bg-black/70 text-white border-white/30 hover:bg-black/80 hover:border-white/60 shadow-lg"
-                      aria-label="Add to playlist"
-                    >
-                      <Plus className="h-4 w-4 text-white" />
-                    </CircleActionButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <CircleActionButton
+                          size="md"
+                          className="bg-black/70 text-white border-white/30 hover:bg-black/80 hover:border-white/60 shadow-lg"
+                          aria-label="Add to playlist"
+                        >
+                          <Plus className="h-4 w-4 text-white" />
+                        </CircleActionButton>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Add to playlist
+                      </TooltipContent>
+                    </Tooltip>
                   }
                 />
               </div>
