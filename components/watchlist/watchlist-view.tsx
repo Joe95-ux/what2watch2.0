@@ -112,6 +112,7 @@ export default function WatchlistView({
   const router = useRouter();
 
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [isEditMode, setIsEditMode] = useState(false);
   
   // In edit mode, force detailed view
   const effectiveViewMode = isEditMode ? "detailed" : viewMode;
@@ -122,7 +123,6 @@ export default function WatchlistView({
   const [itemToRemove, setItemToRemove] = useState<{ tmdbId: number; mediaType: string; title: string } | null>(null);
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
   const [isCreateListModalOpen, setIsCreateListModalOpen] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
