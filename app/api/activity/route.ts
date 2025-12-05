@@ -26,7 +26,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ activiti
       select: { followingId: true },
     });
 
-    const followingIds = following.map((f) => f.followingId);
+    const followingIds = following.map((f: { followingId: string }) => f.followingId);
     
     // Include current user's own activities
     const userIds = [user.id, ...followingIds];
