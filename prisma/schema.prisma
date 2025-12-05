@@ -30,6 +30,9 @@ model User {
   showLikedInActivity Boolean @default(true)
   showFollowedInActivity Boolean @default(true)
   
+  // Watchlist visibility
+  watchlistIsPublic Boolean @default(true) // Whether user's watchlist is publicly viewable
+  
   // Notification preferences
   emailNotifications Boolean @default(true)
   pushNotifications Boolean @default(true)

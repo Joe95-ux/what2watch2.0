@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
-import { Play, Plus, Heart, Maximize2, Bookmark, Volume2, VolumeX, BookCheck, MoreVertical, Trash2 } from "lucide-react";
+import { Play, Plus, Heart, Maximize2, Bookmark, Volume2, VolumeX, BookCheck, MoreVertical, Trash2, Check } from "lucide-react";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries, getPosterUrl, TMDBVideo, getYouTubeEmbedUrl } from "@/lib/tmdb";
@@ -26,6 +26,7 @@ import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
 import MoreLikeThisCard from "./more-like-this-card";
 import { useQuery } from "@tanstack/react-query";
+import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-logs";
 
 interface MovieCardProps {
   item: TMDBMovie | TMDBSeries;
@@ -50,6 +51,11 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const [allVideos, setAllVideos] = useState<TMDBVideo[]>([]);
   const toggleFavorite = useToggleFavorite();
   const toggleWatchlist = useToggleWatchlist();
+  const quickWatch = useQuickWatch();
+  const unwatch = useUnwatch();
+  const { data: watchedData } = useIsWatched(item.id, type);
+  const isWatched = watchedData?.isWatched || false;
+  const watchedLogId = watchedData?.logId || null;
   const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(true);
@@ -384,6 +390,49 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                             e.stopPropagation();
                           }}
                         >
+                          <DropdownMenuItem
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (!isSignedIn) {
+                                promptSignIn("Sign in to mark films as watched.");
+                                setIsActionsDropdownOpen(false);
+                                return;
+                              }
+                              try {
+                                if (isWatched && watchedLogId) {
+                                  await unwatch.mutateAsync(watchedLogId);
+                                  toast.success("Removed from watched");
+                                } else {
+                                  const title = "title" in item ? item.title : item.name;
+                                  await quickWatch.mutateAsync({
+                                    tmdbId: item.id,
+                                    mediaType: type,
+                                    title,
+                                    posterPath: item.poster_path || null,
+                                    backdropPath: item.backdrop_path || null,
+                                    releaseDate: "release_date" in item ? item.release_date || null : null,
+                                    firstAirDate: "first_air_date" in item ? item.first_air_date || null : null,
+                                  });
+                                  toast.success("Marked as watched");
+                                }
+                              } catch {
+                                toast.error("Failed to update watched status");
+                              }
+                              setIsActionsDropdownOpen(false);
+                            }}
+                            className="cursor-pointer text-[0.8rem]"
+                          >
+                            <Check
+                              className={cn(
+                                "h-4 w-4 mr-2",
+                                isWatched
+                                  ? "text-green-500 fill-green-500"
+                                  : "text-muted-foreground"
+                              )}
+                            />
+                            {isWatched ? "Mark as Unwatched" : "Mark as Watched"}
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={async (e) => {
                               e.preventDefault();

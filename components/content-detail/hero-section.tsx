@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type ReactNode } from "react";
 import Image from "next/image";
-import { Play, Heart, Bookmark, Plus, Clapperboard, Images, Star } from "lucide-react";
+import { Play, Heart, Bookmark, Plus, Clapperboard, Images, Star, Check } from "lucide-react";
 import {
   TMDBMovie,
   TMDBSeries,
@@ -21,6 +21,9 @@ import TrailerModal from "@/components/browse/trailer-modal";
 import { CircleActionButton } from "@/components/browse/circle-action-button";
 import LogToDiaryDropdown from "@/components/browse/log-to-diary-dropdown";
 import MediaModal from "./media-modal";
+import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-logs";
+import { toast } from "sonner";
+import { useUser, useClerk } from "@clerk/nextjs";
 
 interface DetailsType {
   release_date?: string;
@@ -51,6 +54,13 @@ export default function HeroSection({ item, type, details, trailer, videosData }
   const [trailerDuration, setTrailerDuration] = useState<number | null>(null);
   const toggleFavorite = useToggleFavorite();
   const toggleWatchlist = useToggleWatchlist();
+  const quickWatch = useQuickWatch();
+  const unwatch = useUnwatch();
+  const { data: watchedData } = useIsWatched(item.id, type);
+  const isWatched = watchedData?.isWatched || false;
+  const watchedLogId = watchedData?.logId || null;
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
 
   const title = type === "movie" ? (item as TMDBMovie).title : (item as TMDBSeries).name;
   const posterPath = item.poster_path || item.backdrop_path;
@@ -210,6 +220,51 @@ export default function HeroSection({ item, type, details, trailer, videosData }
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-end gap-3 mt-[14px] md:mt-0">
+            <CircleActionButton
+              size="md"
+              aria-label="Mark as watched"
+              onClick={async () => {
+                if (!isSignedIn) {
+                  toast.error("Sign in to mark films as watched.");
+                  if (openSignIn) {
+                    openSignIn({
+                      afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                    });
+                  }
+                  return;
+                }
+                try {
+                  if (isWatched && watchedLogId) {
+                    await unwatch.mutateAsync(watchedLogId);
+                    toast.success("Removed from watched");
+                  } else {
+                    const title = "title" in item ? item.title : item.name;
+                    await quickWatch.mutateAsync({
+                      tmdbId: item.id,
+                      mediaType: type,
+                      title,
+                      posterPath: item.poster_path || null,
+                      backdropPath: item.backdrop_path || null,
+                      releaseDate: "release_date" in item ? item.release_date || null : null,
+                      firstAirDate: "first_air_date" in item ? item.first_air_date || null : null,
+                    });
+                    toast.success("Marked as watched");
+                  }
+                } catch {
+                  toast.error("Failed to update watched status");
+                }
+              }}
+            >
+              <Check
+                className={cn(
+                  "h-5 w-5",
+                  isWatched
+                    ? "text-green-500 fill-green-500"
+                    : "text-white"
+                )}
+              />
+            </CircleActionButton>
+            <span className="h-6 w-px bg-white/20" />
             <CircleActionButton
               size="md"
               aria-label="Toggle favorite"

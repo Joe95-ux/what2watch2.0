@@ -223,3 +223,87 @@ export function useUpdateViewingLog() {
   });
 }
 
+// Check if a film is watched (has a viewing log)
+const checkIsWatched = async (tmdbId: number, mediaType: "movie" | "tv"): Promise<{ isWatched: boolean; logId: string | null }> => {
+  const res = await fetch(`/api/viewing-logs/check?tmdbId=${tmdbId}&mediaType=${mediaType}`);
+  if (!res.ok) return { isWatched: false, logId: null };
+  const data = await res.json();
+  return { isWatched: data.isWatched || false, logId: data.logId || null };
+};
+
+// Hook to check if a film is watched
+export function useIsWatched(tmdbId: number | null, mediaType: "movie" | "tv") {
+  return useQuery<{ isWatched: boolean; logId: string | null }>({
+    queryKey: ["is-watched", tmdbId, mediaType],
+    queryFn: () => checkIsWatched(tmdbId!, mediaType),
+    enabled: !!tmdbId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+}
+
+// Hook for quick watch (one-click mark as watched with today's date)
+export function useQuickWatch() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: {
+      tmdbId: number;
+      mediaType: "movie" | "tv";
+      title: string;
+      posterPath?: string | null;
+      backdropPath?: string | null;
+      releaseDate?: string | null;
+      firstAirDate?: string | null;
+    }) => {
+      // Quick log with today's date, no rating/notes
+      const log = await createViewingLog({
+        ...params,
+        watchedAt: new Date().toISOString(), // Default to today
+        rating: null,
+        notes: null,
+        tags: [],
+      });
+      
+      // Create activity for logging film
+      try {
+        await fetch("/api/activity", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "LOGGED_FILM",
+            tmdbId: params.tmdbId,
+            mediaType: params.mediaType,
+            title: params.title,
+            posterPath: params.posterPath,
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to create activity:", error);
+      }
+      
+      return log;
+    },
+    onSuccess: () => {
+      // Invalidate viewing logs and watched status queries
+      queryClient.invalidateQueries({ queryKey: ["viewing-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["is-watched"] });
+    },
+  });
+}
+
+// Hook to unwatch (delete the most recent log for a film)
+export function useUnwatch() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (logId: string) => {
+      await deleteViewingLog(logId);
+    },
+    onSuccess: () => {
+      // Invalidate viewing logs and watched status queries
+      queryClient.invalidateQueries({ queryKey: ["viewing-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["is-watched"] });
+    },
+  });
+}
+

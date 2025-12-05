@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
-import { Play, Plus, Heart, Bookmark } from "lucide-react";
+import { Play, Plus, Heart, Bookmark, MoreVertical, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
 import { CircleActionButton } from "./circle-action-button";
@@ -16,6 +16,13 @@ import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-logs";
 
 interface MoreLikeThisCardProps {
   item: TMDBMovie | TMDBSeries;
@@ -45,13 +52,15 @@ export default function MoreLikeThisCard({
   const attemptedRuntimeFetchRef = useRef<number | null>(null); // Track which item ID we've attempted to fetch
   const toggleFavorite = useToggleFavorite();
   const toggleWatchlist = useToggleWatchlist();
+  const quickWatch = useQuickWatch();
+  const unwatch = useUnwatch();
+  const { data: watchedData } = useIsWatched(item.id, type);
+  const isWatched = watchedData?.isWatched || false;
+  const watchedLogId = watchedData?.logId || null;
   const isMobile = useIsMobile();
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
-  const [playlistTooltipOpen, setPlaylistTooltipOpen] = useState(false);
-  const [isPlaylistDropdownOpen, setIsPlaylistDropdownOpen] = useState(false);
-  
-  const hasParent = !!parentItem && !!parentType;
+  const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
 
   const title = "title" in item ? item.title : item.name;
   const posterPath = item.poster_path || item.backdrop_path;
@@ -208,60 +217,124 @@ export default function MoreLikeThisCard({
             </div>
           )}
 
-          {/* Like and Watchlist Buttons - Top Left */}
-          <div className="absolute top-2 left-2 z-[5] flex gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
+          {/* Actions Menu - Top Left */}
+          <div className="absolute top-2 left-2 z-[5]">
+            <DropdownMenu open={isActionsDropdownOpen} onOpenChange={setIsActionsDropdownOpen}>
+              <DropdownMenuTrigger asChild>
                 <CircleActionButton
                   size="sm"
-                  onClick={async (e: React.MouseEvent) => {
+                  className="bg-black/60 hover:bg-black/80 backdrop-blur-sm"
+                  onClick={(e: React.MouseEvent) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                >
+                  <MoreVertical className="h-3 w-3 text-white" />
+                </CircleActionButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="w-48 z-[110]"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                }}
+              >
+                <DropdownMenuItem
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!isSignedIn) {
+                      promptSignIn("Sign in to mark films as watched.");
+                      setIsActionsDropdownOpen(false);
+                      return;
+                    }
+                    try {
+                      if (isWatched && watchedLogId) {
+                        await unwatch.mutateAsync(watchedLogId);
+                        toast.success("Removed from watched");
+                      } else {
+                        const title = "title" in item ? item.title : item.name;
+                        await quickWatch.mutateAsync({
+                          tmdbId: item.id,
+                          mediaType: type,
+                          title,
+                          posterPath: item.poster_path || null,
+                          backdropPath: item.backdrop_path || null,
+                          releaseDate: "release_date" in item ? item.release_date || null : null,
+                          firstAirDate: "first_air_date" in item ? item.first_air_date || null : null,
+                        });
+                        toast.success("Marked as watched");
+                      }
+                    } catch {
+                      toast.error("Failed to update watched status");
+                    }
+                    setIsActionsDropdownOpen(false);
+                  }}
+                  className="cursor-pointer text-[0.8rem]"
+                >
+                  <Check
+                    className={cn(
+                      "h-4 w-4 mr-2",
+                      isWatched
+                        ? "text-green-500 fill-green-500"
+                        : "text-muted-foreground"
+                    )}
+                  />
+                  {isWatched ? "Mark as Unwatched" : "Mark as Watched"}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={async (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     await requireAuth(
                       () => toggleFavorite.toggle(item, type),
                       "Sign in to like titles."
                     );
+                    setIsActionsDropdownOpen(false);
                   }}
+                  className="cursor-pointer text-[0.8rem]"
                 >
-                  <Heart 
-                    className={`h-3 w-3 ${
+                  <Heart
+                    className={cn(
+                      "h-4 w-4 mr-2",
                       toggleFavorite.isFavorite(item.id, type)
                         ? "text-red-500 fill-red-500"
-                        : "text-white"
-                    }`} 
+                        : "text-muted-foreground"
+                    )}
                   />
-                </CircleActionButton>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <CircleActionButton
-                  size="sm"
-                  onClick={async (e: React.MouseEvent) => {
+                  {toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={async (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     await requireAuth(
                       () => toggleWatchlist.toggle(item, type),
                       "Sign in to manage your watchlist."
                     );
+                    setIsActionsDropdownOpen(false);
                   }}
+                  className="cursor-pointer text-[0.8rem]"
                 >
-                  <Bookmark 
-                    className={`h-3 w-3 ${
+                  <Bookmark
+                    className={cn(
+                      "h-4 w-4 mr-2",
                       toggleWatchlist.isInWatchlist(item.id, type)
                         ? "text-blue-500 fill-blue-500"
-                        : "text-white"
-                    }`} 
+                        : "text-muted-foreground"
+                    )}
                   />
-                </CircleActionButton>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from Watchlist" : "Add to Watchlist"}</p>
-              </TooltipContent>
-            </Tooltip>
+                  {toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from Watchlist" : "Add to Watchlist"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Runtime - Top Right */}
@@ -314,10 +387,7 @@ export default function MoreLikeThisCard({
                 </span>
               </div>
             </div>
-            <Tooltip
-              open={playlistTooltipOpen && !isPlaylistDropdownOpen}
-              onOpenChange={(open) => setPlaylistTooltipOpen(open)}
-            >
+            <Tooltip>
               <TooltipTrigger asChild>
                 {isSignedIn ? (
                   <div>
@@ -325,22 +395,16 @@ export default function MoreLikeThisCard({
                       item={item}
                       type={type}
                       onAddSuccess={onAddToPlaylist}
-                      onOpenChange={(open) => {
-                        setIsPlaylistDropdownOpen(open);
-                        if (open) {
-                          setPlaylistTooltipOpen(false);
-                        }
-                      }}
                       trigger={
-                  <CircleActionButton
-                    size="sm"
-                    onClick={(e: React.MouseEvent) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                  >
-                    <Plus className="h-3 w-3 text-white" />
-                  </CircleActionButton>
+                        <CircleActionButton
+                          size="sm"
+                          onClick={(e: React.MouseEvent) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                        >
+                          <Plus className="h-3 w-3 text-white" />
+                        </CircleActionButton>
                       }
                     />
                   </div>

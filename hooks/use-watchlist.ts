@@ -190,3 +190,45 @@ export function useToggleWatchlist() {
   };
 }
 
+// Fetch watchlist public status
+const fetchWatchlistPublicStatus = async (): Promise<boolean> => {
+  const res = await fetch("/api/watchlist/public-status");
+  if (!res.ok) throw new Error("Failed to fetch watchlist public status");
+  const data = await res.json();
+  return data.isPublic ?? true;
+};
+
+// Update watchlist public status
+const updateWatchlistPublicStatus = async (isPublic: boolean): Promise<boolean> => {
+  const res = await fetch("/api/watchlist/public-status", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ isPublic }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to update watchlist public status");
+  }
+  const data = await res.json();
+  return data.isPublic;
+};
+
+export function useWatchlistPublicStatus() {
+  return useQuery({
+    queryKey: ["watchlist-public-status"],
+    queryFn: fetchWatchlistPublicStatus,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+}
+
+export function useUpdateWatchlistPublicStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateWatchlistPublicStatus,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["watchlist-public-status"] });
+    },
+  });
+}
+
