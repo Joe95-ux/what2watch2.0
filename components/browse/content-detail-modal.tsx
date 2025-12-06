@@ -132,10 +132,12 @@ export default function ContentDetailModal({
     type === "tv" ? item.id : null
   );
   
-  // Get IMDB ID from details
+  // Get IMDB ID from details (with type assertion for external_ids)
+  const movieDetailsWithExternalIds = movieDetails as (typeof movieDetails & { external_ids?: { imdb_id?: string | null } }) | null | undefined;
+  const tvDetailsWithExternalIds = tvDetails as (typeof tvDetails & { external_ids?: { imdb_id?: string | null } }) | null | undefined;
   const imdbId = type === "movie" 
-    ? (movieDetails?.external_ids?.imdb_id || movieDetails?.imdb_id || null)
-    : (tvDetails?.external_ids?.imdb_id || tvDetails?.imdb_id || null);
+    ? (movieDetailsWithExternalIds?.external_ids?.imdb_id || (movieDetailsWithExternalIds as any)?.imdb_id || null)
+    : (tvDetailsWithExternalIds?.external_ids?.imdb_id || (tvDetailsWithExternalIds as any)?.imdb_id || null);
 
   // Re-initialize JustWatch widget when item changes
   useEffect(() => {
