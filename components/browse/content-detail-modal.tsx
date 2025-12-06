@@ -124,6 +124,14 @@ export default function ContentDetailModal({
   const addRecentlyViewed = useAddRecentlyViewed();
   const toggleFavorite = useToggleFavorite();
 
+  // Fetch details based on type
+  const { data: movieDetails, isLoading: isLoadingMovie } = useMovieDetails(
+    type === "movie" ? item.id : null
+  );
+  const { data: tvDetails, isLoading: isLoadingTV } = useTVDetails(
+    type === "tv" ? item.id : null
+  );
+  
   // Get IMDB ID from details
   const imdbId = type === "movie" 
     ? (movieDetails?.external_ids?.imdb_id || movieDetails?.imdb_id || null)
@@ -170,14 +178,6 @@ export default function ContentDetailModal({
     e.stopPropagation();
     callback();
   }, []);
-
-  // Fetch details based on type
-  const { data: movieDetails, isLoading: isLoadingMovie } = useMovieDetails(
-    type === "movie" ? item.id : null
-  );
-  const { data: tvDetails, isLoading: isLoadingTV } = useTVDetails(
-    type === "tv" ? item.id : null
-  );
   const { data: videosData } = useContentVideos(type, item.id);
   const { data: seasonsData } = useTVSeasons(type === "tv" ? item.id : null);
   const { data: seasonDetails, isLoading: isLoadingSeasonDetails } = useTVSeasonDetails(
