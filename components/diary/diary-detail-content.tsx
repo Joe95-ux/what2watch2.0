@@ -569,11 +569,16 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
       />
 
       {/* JustWatch Widget Script */}
-      <Script
-        src="https://widget.justwatch.com/justwatch_widget.js"
-        strategy="afterInteractive"
-        id="justwatch-widget-script"
-      />
+      {typeof window !== "undefined" && (
+        <Script
+          src="https://widget.justwatch.com/justwatch_widget.js"
+          strategy="afterInteractive"
+          id="justwatch-widget-script"
+          onError={(e) => {
+            console.error("Failed to load JustWatch widget script:", e);
+          }}
+        />
+      )}
     </div>
   );
 }

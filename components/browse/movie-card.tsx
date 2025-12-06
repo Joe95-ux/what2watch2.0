@@ -431,7 +431,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                                   : "text-muted-foreground"
                               )}
                             />
-                            {isWatched ? "Mark as Unwatched" : "Mark as Watched"}
+                            {isWatched ? "Watched" : "Mark as Watched"}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={async (e) => {

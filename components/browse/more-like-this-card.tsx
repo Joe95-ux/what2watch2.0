@@ -287,7 +287,7 @@ export default function MoreLikeThisCard({
                         : "text-muted-foreground"
                     )}
                   />
-                  {isWatched ? "Mark as Unwatched" : "Mark as Watched"}
+                  {isWatched ? "Watched" : "Mark as Watched"}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={async (e) => {

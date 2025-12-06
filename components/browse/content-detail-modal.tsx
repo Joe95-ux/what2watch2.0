@@ -129,15 +129,33 @@ export default function ContentDetailModal({
     if (isOpen && isSheetMounted && typeof window !== "undefined") {
       // Wait for widget script to load and then trigger widget initialization
       const initWidget = () => {
-        const jwWidget = (window as Window & { JW_Widget?: { init: () => void } }).JW_Widget;
-        if (jwWidget) {
-          jwWidget.init();
-        } else {
-          // If widget script hasn't loaded yet, wait a bit and try again
-          setTimeout(initWidget, 100);
+        try {
+          const jwWidget = (window as Window & { JW_Widget?: { init: () => void } }).JW_Widget;
+          if (jwWidget) {
+            // Check if widget container exists
+            const widgetContainer = document.querySelector('[data-jw-widget]');
+            if (widgetContainer) {
+              jwWidget.init();
+            }
+          } else {
+            // If widget script hasn't loaded yet, wait a bit and try again (max 10 attempts)
+            let attempts = 0;
+            const maxAttempts = 10;
+            const retry = () => {
+              attempts++;
+              if (attempts < maxAttempts) {
+                setTimeout(initWidget, 100);
+              }
+            };
+            setTimeout(retry, 100);
+          }
+        } catch (error) {
+          console.error("Error initializing JustWatch widget:", error);
         }
       };
-      initWidget();
+      // Delay initialization to ensure DOM is ready
+      const timeoutId = setTimeout(initWidget, 500);
+      return () => clearTimeout(timeoutId);
     }
   }, [isOpen, isSheetMounted, item.id, type]);
 
@@ -713,26 +731,26 @@ export default function ContentDetailModal({
                   )}
 
                   {/* JustWatch Widget */}
-                  <div className="mt-6">
-                    <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Where to Watch</h3>
-                    <div
-                      data-jw-widget
-                      data-api-key="kdXlICVx4d6qwyZYSThFxvVKAhQtwtqY"
-                      data-title={title}
-                      data-year={
-                        type === "movie"
+                  {title && (
+                    <div className="mt-6">
+                      <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Where to Watch</h3>
+                      <div
+                        data-jw-widget
+                        data-api-key="kdXlICVx4d6qwyZYSThFxvVKAhQtwtqY"
+                        data-title={title}
+                        {...(type === "movie"
                           ? details && "release_date" in details && details.release_date
-                            ? new Date(details.release_date).getFullYear()
-                            : undefined
+                            ? { "data-year": new Date(details.release_date).getFullYear() }
+                            : {}
                           : details && "first_air_date" in details && details.first_air_date
-                          ? new Date(details.first_air_date).getFullYear()
-                          : undefined
-                      }
-                      data-theme="dark"
-                      data-offer-label="price"
-                      data-scale="1"
-                    />
-                  </div>
+                          ? { "data-year": new Date(details.first_air_date).getFullYear() }
+                          : {})}
+                        data-theme="dark"
+                        data-offer-label="price"
+                        data-scale="1"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 

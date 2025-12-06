@@ -7,7 +7,32 @@ import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Bookmark, Film, Tv, Trash2, Grid3x3, Table2, List, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Filter, Share2, Edit2, MoreVertical, Download, Plus, Eye, Lock, Check, Copy, Move, Star, Facebook, Twitter, MessageCircle, Mail, Link2, GripVertical } from "lucide-react";
+import {
+  Bookmark,
+  Film,
+  Tv,
+  Trash2,
+  Grid3x3,
+  Table2,
+  List,
+  Search,
+  X,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Filter,
+  Edit2,
+  MoreVertical,
+  Download,
+  Plus,
+  Eye,
+  Lock,
+  Check,
+  Copy,
+  Move,
+  Star,
+  GripVertical,
+} from "lucide-react";
 import Image from "next/image";
 import { getPosterUrl } from "@/lib/tmdb";
 import { format } from "date-fns";
@@ -27,7 +52,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -36,8 +67,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { WatchlistItem } from "@/hooks/use-watchlist";
-import { useMovieDetails, useTVDetails, useIMDBRating } from "@/hooks/use-content-details";
-import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-logs";
+import {
+  useMovieDetails,
+  useTVDetails,
+  useIMDBRating,
+  useOMDBData,
+} from "@/hooks/use-content-details";
+import {
+  useIsWatched,
+  useQuickWatch,
+  useUnwatch,
+} from "@/hooks/use-viewing-logs";
 import { useUser } from "@clerk/nextjs";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { useLists, useUpdateList, useCreateList } from "@/hooks/use-lists";
@@ -45,7 +85,12 @@ import { useReorderWatchlist, useAddToWatchlist } from "@/hooks/use-watchlist";
 import { createPersonSlug } from "@/lib/person-utils";
 import { useSearch } from "@/hooks/use-search";
 import { useDebounce } from "@/hooks/use-debounce";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ShareDropdown } from "@/components/ui/share-dropdown";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { ScrollArea } from "../ui/scroll-area";
 
 type SortField = "createdAt" | "title" | "releaseYear";
@@ -63,10 +108,10 @@ interface WatchlistViewProps {
     displayName?: string | null;
     avatarUrl?: string | null;
   } | null;
-  
+
   // Permissions
   isOwner: boolean;
-  
+
   // Owner-only features
   enableRemove?: boolean;
   enableEdit?: boolean;
@@ -76,16 +121,16 @@ interface WatchlistViewProps {
   isPublic?: boolean;
   onTogglePublic?: (checked: boolean) => Promise<void>;
   onRemove?: (tmdbId: number, mediaType: "movie" | "tv") => Promise<void>;
-  
+
   // Share (available to everyone)
   shareUrl: string;
   onShare?: () => void;
-  
+
   // Empty state
   emptyTitle?: string;
   emptyDescription?: string;
   emptyAction?: React.ReactNode;
-  
+
   // Error state
   errorTitle?: string;
   errorDescription?: string;
@@ -124,7 +169,7 @@ export default function WatchlistView({
     }
     return "grid";
   });
-  
+
   const [isEditMode, setIsEditMode] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("watchlist-editMode");
@@ -132,29 +177,36 @@ export default function WatchlistView({
     }
     return false;
   });
-  
+
   // Save viewMode to localStorage when it changes
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("watchlist-viewMode", viewMode);
     }
   }, [viewMode]);
-  
+
   // Save isEditMode to localStorage when it changes
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("watchlist-editMode", isEditMode.toString());
     }
   }, [isEditMode]);
-  
+
   // In edit mode, force detailed view
   const effectiveViewMode = isEditMode ? "detailed" : viewMode;
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [sortField, setSortField] = useState<SortField>("createdAt");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [searchQuery, setSearchQuery] = useState("");
-  const [itemToRemove, setItemToRemove] = useState<{ tmdbId: number; mediaType: string; title: string } | null>(null);
-  const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
+  const [itemToRemove, setItemToRemove] = useState<{
+    tmdbId: number;
+    mediaType: string;
+    title: string;
+  } | null>(null);
+  const [selectedItem, setSelectedItem] = useState<{
+    item: TMDBMovie | TMDBSeries;
+    type: "movie" | "tv";
+  } | null>(null);
   const [isCreateListModalOpen, setIsCreateListModalOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
@@ -166,7 +218,7 @@ export default function WatchlistView({
   const addToWatchlist = useAddToWatchlist();
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   const [dragOverItemId, setDragOverItemId] = useState<string | null>(null);
-  
+
   // Search functionality for adding to watchlist
   const debouncedAddSearchQuery = useDebounce(addSearchQuery, 300);
   const { data: searchResults, isLoading: isSearchLoading } = useSearch({
@@ -174,39 +226,7 @@ export default function WatchlistView({
     type: "all",
     page: 1,
   });
-  
-  // Handle manual position change
-  const handlePositionChange = async (itemId: string, newPosition: number) => {
-    if (newPosition < 1 || newPosition > filteredAndSorted.length) {
-      toast.error(`Position must be between 1 and ${filteredAndSorted.length}`);
-      return;
-    }
-    
-    const currentIndex = filteredAndSorted.findIndex(({ watchlistItem }) => watchlistItem.id === itemId);
-    if (currentIndex === -1) return;
-    
-    const targetIndex = newPosition - 1; // Convert to 0-based index
-    if (currentIndex === targetIndex) return;
-    
-    // Create new array with reordered items
-    const reordered = [...filteredAndSorted];
-    const [movedItem] = reordered.splice(currentIndex, 1);
-    reordered.splice(targetIndex, 0, movedItem);
-    
-    // Assign sequential order numbers (1-based)
-    const itemsToUpdate = reordered.map(({ watchlistItem: item }, idx) => ({
-      id: item.id,
-      order: idx + 1,
-    }));
-    
-    try {
-      await reorderWatchlist.mutateAsync(itemsToUpdate);
-      toast.success("Position updated");
-    } catch (error) {
-      toast.error("Failed to update position");
-      console.error(error);
-    }
-  };
+
 
   // Convert watchlist items to TMDB format for display
   const watchlistAsTMDB = useMemo(() => {
@@ -251,24 +271,27 @@ export default function WatchlistView({
   // Filter and sort
   const filteredAndSorted = useMemo(() => {
     let filtered = [...watchlistAsTMDB];
-    
+
     // In edit mode, sort by order first (items with order > 0), then by createdAt
     if (isEditMode) {
       filtered.sort((a, b) => {
         const aOrder = a.watchlistItem.order || 0;
         const bOrder = b.watchlistItem.order || 0;
-        
+
         // Items with order come first
         if (aOrder > 0 && bOrder === 0) return -1;
         if (aOrder === 0 && bOrder > 0) return 1;
-        
+
         // If both have order, sort by order
         if (aOrder > 0 && bOrder > 0) {
           return aOrder - bOrder;
         }
-        
+
         // If neither has order, sort by createdAt
-        return new Date(b.watchlistItem.createdAt).getTime() - new Date(a.watchlistItem.createdAt).getTime();
+        return (
+          new Date(b.watchlistItem.createdAt).getTime() -
+          new Date(a.watchlistItem.createdAt).getTime()
+        );
       });
     }
 
@@ -276,7 +299,8 @@ export default function WatchlistView({
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter((entry) => {
-        const title = "title" in entry.item ? entry.item.title : entry.item.name;
+        const title =
+          "title" in entry.item ? entry.item.title : entry.item.name;
         return title?.toLowerCase().includes(query);
       });
     }
@@ -297,19 +321,23 @@ export default function WatchlistView({
           bValue = new Date(b.watchlistItem.createdAt).getTime();
           break;
         case "title":
-          aValue = ("title" in a.item ? a.item.title : a.item.name || "").toLowerCase();
-          bValue = ("title" in b.item ? b.item.title : b.item.name || "").toLowerCase();
+          aValue = (
+            "title" in a.item ? a.item.title : a.item.name || ""
+          ).toLowerCase();
+          bValue = (
+            "title" in b.item ? b.item.title : b.item.name || ""
+          ).toLowerCase();
           break;
         case "releaseYear":
-          aValue = a.watchlistItem.releaseDate 
-            ? new Date(a.watchlistItem.releaseDate).getFullYear() 
-            : a.watchlistItem.firstAirDate 
-            ? new Date(a.watchlistItem.firstAirDate).getFullYear() 
+          aValue = a.watchlistItem.releaseDate
+            ? new Date(a.watchlistItem.releaseDate).getFullYear()
+            : a.watchlistItem.firstAirDate
+            ? new Date(a.watchlistItem.firstAirDate).getFullYear()
             : 0;
-          bValue = b.watchlistItem.releaseDate 
-            ? new Date(b.watchlistItem.releaseDate).getFullYear() 
-            : b.watchlistItem.firstAirDate 
-            ? new Date(b.watchlistItem.firstAirDate).getFullYear() 
+          bValue = b.watchlistItem.releaseDate
+            ? new Date(b.watchlistItem.releaseDate).getFullYear()
+            : b.watchlistItem.firstAirDate
+            ? new Date(b.watchlistItem.firstAirDate).getFullYear()
             : 0;
           break;
         default:
@@ -330,11 +358,17 @@ export default function WatchlistView({
   const handleRemove = async () => {
     if (!itemToRemove || !onRemove) return;
     try {
-      await onRemove(itemToRemove.tmdbId, itemToRemove.mediaType as "movie" | "tv");
+      await onRemove(
+        itemToRemove.tmdbId,
+        itemToRemove.mediaType as "movie" | "tv"
+      );
       toast.success("Removed from watchlist");
       setItemToRemove(null);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to remove from watchlist";
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to remove from watchlist";
       toast.error(errorMessage);
     }
   };
@@ -342,15 +376,22 @@ export default function WatchlistView({
   const handleBulkRemove = async () => {
     if (selectedItems.size === 0 || !onRemove) return;
     try {
-      const itemsToRemove = filteredAndSorted.filter(({ watchlistItem }) => 
+      const itemsToRemove = filteredAndSorted.filter(({ watchlistItem }) =>
         selectedItems.has(watchlistItem.id)
       );
-      
+
       for (const { watchlistItem } of itemsToRemove) {
-        await onRemove(watchlistItem.tmdbId, watchlistItem.mediaType as "movie" | "tv");
+        await onRemove(
+          watchlistItem.tmdbId,
+          watchlistItem.mediaType as "movie" | "tv"
+        );
       }
-      
-      toast.success(`Removed ${selectedItems.size} item${selectedItems.size > 1 ? "s" : ""} from watchlist`);
+
+      toast.success(
+        `Removed ${selectedItems.size} item${
+          selectedItems.size > 1 ? "s" : ""
+        } from watchlist`
+      );
       setSelectedItems(new Set());
       setIsEditMode(false);
     } catch (error) {
@@ -361,10 +402,10 @@ export default function WatchlistView({
   const handleExportCSV = () => {
     const headers = ["Title", "Type", "Release Year", "Added Date"];
     const rows = filteredAndSorted.map(({ watchlistItem, type }) => {
-      const releaseYear = watchlistItem.releaseDate 
-        ? new Date(watchlistItem.releaseDate).getFullYear() 
-        : watchlistItem.firstAirDate 
-        ? new Date(watchlistItem.firstAirDate).getFullYear() 
+      const releaseYear = watchlistItem.releaseDate
+        ? new Date(watchlistItem.releaseDate).getFullYear()
+        : watchlistItem.firstAirDate
+        ? new Date(watchlistItem.firstAirDate).getFullYear()
         : "";
       const addedDate = format(new Date(watchlistItem.createdAt), "yyyy-MM-dd");
       return [
@@ -377,78 +418,32 @@ export default function WatchlistView({
 
     const csvContent = [
       headers.join(","),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `watchlist-${format(new Date(), "yyyy-MM-dd")}.csv`);
+    link.setAttribute(
+      "download",
+      `watchlist-${format(new Date(), "yyyy-MM-dd")}.csv`
+    );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     toast.success("Watchlist exported to CSV");
-  };
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      toast.success("Link copied to clipboard!");
-      if (onShare) onShare();
-    } catch {
-      toast.error("Failed to copy link");
-    }
-  };
-
-  const handleSocialShare = (platform: "facebook" | "twitter" | "whatsapp" | "email" | "link") => {
-    if (!shareUrl) {
-      toast.error("Watchlist is not public. Make it public to share.");
-      return;
-    }
-
-    const encodedUrl = encodeURIComponent(shareUrl);
-    const userName = user?.displayName || user?.username || "User";
-    const encodedTitle = encodeURIComponent(`${userName}'s Watchlist`);
-    const encodedDescription = encodeURIComponent(`Check out ${userName}'s watchlist on What2Watch`);
-
-    if (platform === "link") {
-      handleCopyLink();
-      return;
-    }
-
-    let shareUrl_platform = "";
-    if (platform === "facebook") {
-      shareUrl_platform = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
-    } else if (platform === "twitter") {
-      shareUrl_platform = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}${encodedDescription ? ` - ${encodedDescription}` : ""}`;
-    } else if (platform === "whatsapp") {
-      shareUrl_platform = `https://wa.me/?text=${encodedTitle}%20${encodedUrl}`;
-    } else if (platform === "email") {
-      const subject = encodeURIComponent(`${userName}'s Watchlist`);
-      const body = encodeURIComponent(`Check out ${userName}'s watchlist:\n\n${shareUrl}`);
-      shareUrl_platform = `mailto:?subject=${subject}&body=${body}`;
-    }
-
-    if (shareUrl_platform) {
-      if (platform === "email") {
-        window.location.href = shareUrl_platform;
-      } else {
-        window.open(shareUrl_platform, "_blank", "width=600,height=400");
-      }
-      if (onShare) {
-        onShare();
-      }
-    }
   };
 
   const handleTogglePublic = async (checked: boolean) => {
     if (!onTogglePublic) return;
     try {
       await onTogglePublic(checked);
-      toast.success(checked ? "Watchlist is now public" : "Watchlist is now private");
+      toast.success(
+        checked ? "Watchlist is now public" : "Watchlist is now private"
+      );
     } catch (error) {
       toast.error("Failed to update watchlist visibility");
     }
@@ -468,7 +463,9 @@ export default function WatchlistView({
     if (selectedItems.size === filteredAndSorted.length) {
       setSelectedItems(new Set());
     } else {
-      setSelectedItems(new Set(filteredAndSorted.map(({ watchlistItem }) => watchlistItem.id)));
+      setSelectedItems(
+        new Set(filteredAndSorted.map(({ watchlistItem }) => watchlistItem.id))
+      );
     }
   };
 
@@ -485,9 +482,14 @@ export default function WatchlistView({
   }, [searchQuery, filterType]);
 
   // Get banner image from first item
-  const bannerImage = filteredAndSorted.length > 0 && filteredAndSorted[0].watchlistItem.backdropPath
-    ? getPosterUrl(filteredAndSorted[0].watchlistItem.backdropPath, "original")
-    : null;
+  const bannerImage =
+    filteredAndSorted.length > 0 &&
+    filteredAndSorted[0].watchlistItem.backdropPath
+      ? getPosterUrl(
+          filteredAndSorted[0].watchlistItem.backdropPath,
+          "original"
+        )
+      : null;
 
   if (isLoading) {
     return (
@@ -505,7 +507,7 @@ export default function WatchlistView({
     );
   }
 
-  if (!watchlist || watchlist.length === 0 && !isLoading) {
+  if (!watchlist || (watchlist.length === 0 && !isLoading)) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -549,39 +551,54 @@ export default function WatchlistView({
                 <div className="flex items-center gap-3 mb-4">
                   <Link href={`/users/${user.id}`}>
                     <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 ring-primary transition-all">
-                      <AvatarImage src={user.avatarUrl || undefined} alt={user.displayName || user.username || "User"} />
+                      <AvatarImage
+                        src={user.avatarUrl || undefined}
+                        alt={user.displayName || user.username || "User"}
+                      />
                       <AvatarFallback>
-                        {(user.displayName || user.username || "U")[0].toUpperCase()}
+                        {(user.displayName ||
+                          user.username ||
+                          "U")[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                   </Link>
                   <div>
-                    <Link 
+                    <Link
                       href={`/users/${user.id}`}
                       className="text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer"
                     >
                       {user.displayName || user.username || "Unknown"}
                     </Link>
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">Watchlist</h1>
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">
+                      Watchlist
+                    </h1>
                   </div>
                 </div>
               ) : (
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">Watchlist</h1>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
+                  Watchlist
+                </h1>
               )}
               <p className="text-base sm:text-lg text-muted-foreground mb-4 max-w-2xl">
-                {user && !isOwner 
-                  ? `A collection of movies and TV shows ${user.displayName || user.username || "this user"} wants to watch.`
-                  : "Your personal collection of movies and TV shows you want to watch. Save titles as you discover them, organize your viewing queue, and never lose track of what to watch next."
-                }
+                {user && !isOwner
+                  ? `A collection of movies and TV shows ${
+                      user.displayName || user.username || "this user"
+                    } wants to watch.`
+                  : "Your personal collection of movies and TV shows you want to watch. Save titles as you discover them, organize your viewing queue, and never lose track of what to watch next."}
               </p>
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span>
-                  {filteredAndSorted.length} of {watchlist.length} {watchlist.length === 1 ? "item" : "items"}
+                  {filteredAndSorted.length} of {watchlist.length}{" "}
+                  {watchlist.length === 1 ? "item" : "items"}
                 </span>
                 {isPublicProp !== undefined && (
                   <>
                     <span>•</span>
-                    <span className={isPublicProp ? "text-primary" : "text-muted-foreground"}>
+                    <span
+                      className={
+                        isPublicProp ? "text-primary" : "text-muted-foreground"
+                      }
+                    >
                       {isPublicProp ? "Public" : "Private"}
                     </span>
                   </>
@@ -590,7 +607,8 @@ export default function WatchlistView({
                   <>
                     <span>•</span>
                     <Badge variant="secondary" className="text-xs">
-                      {activeFilterCount} {activeFilterCount === 1 ? "filter" : "filters"} active
+                      {activeFilterCount}{" "}
+                      {activeFilterCount === 1 ? "filter" : "filters"} active
                     </Badge>
                   </>
                 )}
@@ -598,110 +616,99 @@ export default function WatchlistView({
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-end gap-2 ml-auto sm:ml-0 overflow-x-auto sm:overflow-x-visible">
-              {enableCreateList && (
-                <Button
-                  variant="outline"
-                  onClick={() => setIsCreateListModalOpen(true)}
-                  className="gap-2 cursor-pointer"
-                >
-                  <Plus className="h-4 w-4" />
-                  Create List
-                </Button>
-              )}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-2 cursor-pointer">
-                    <Share2 className="h-4 w-4" />
-                    Share
+            <div className="overflow-x-auto">
+              <div className="flex items-center justify-end gap-2 ml-auto sm:ml-0">
+                {enableCreateList && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsCreateListModalOpen(true)}
+                    className="gap-2 cursor-pointer"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Create List
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem
-                    onClick={() => handleSocialShare("facebook")}
-                    className="cursor-pointer"
-                  >
-                    <Facebook className="h-4 w-4 mr-2" />
-                    Facebook
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleSocialShare("twitter")}
-                    className="cursor-pointer"
-                  >
-                    <Twitter className="h-4 w-4 mr-2" />
-                    X (Twitter)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleSocialShare("whatsapp")}
-                    className="cursor-pointer"
-                  >
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    WhatsApp
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleSocialShare("email")}
-                    className="cursor-pointer"
-                  >
-                    <Mail className="h-4 w-4 mr-2" />
-                    Email
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleSocialShare("link")}
-                    className="cursor-pointer"
-                  >
-                    <Link2 className="h-4 w-4 mr-2" />
-                    Copy Link
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              {enablePublicToggle && onTogglePublic && (
-                <div 
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-md border",
-                    isPublicProp 
-                      ? "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400" 
-                      : "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
-                  )} 
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Switch
-                    id="public-toggle"
-                    checked={isPublicProp ?? false}
-                    onCheckedChange={handleTogglePublic}
-                  />
-                  <Label htmlFor="public-toggle" className="text-sm cursor-pointer flex items-center gap-1.5">
-                    {isPublicProp ? (
-                      <Eye className="h-4 w-4" />
-                    ) : (
-                      <Lock className="h-4 w-4" />
+                )}
+                <ShareDropdown
+                  shareUrl={shareUrl}
+                  title={
+                    user
+                      ? `${
+                          user.displayName || user.username || "User"
+                        }'s Watchlist`
+                      : "Watchlist"
+                  }
+                  description={
+                    user
+                      ? `Check out ${
+                          user.displayName || user.username || "User"
+                        }'s watchlist on What2Watch`
+                      : "Check out this watchlist"
+                  }
+                  onShare={onShare}
+                  className="gap-2 cursor-pointer"
+                />
+                {enablePublicToggle && onTogglePublic && (
+                  <div
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 rounded-md border",
+                      isPublicProp
+                        ? "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
+                        : "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
                     )}
-                    {isPublicProp ? "Public" : "Private"}
-                  </Label>
-                </div>
-              )}
-              {(enableEdit || enableExport) && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon" className="cursor-pointer">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {enableEdit && (
-                      <DropdownMenuItem onClick={() => setIsEditMode(!isEditMode)} className="cursor-pointer">
-                        <Edit2 className="h-4 w-4 mr-2" />
-                        {isEditMode ? "Exit Edit Mode" : "Edit"}
-                      </DropdownMenuItem>
-                    )}
-                    {enableExport && (
-                      <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer">
-                        <Download className="h-4 w-4 mr-2" />
-                        Export CSV
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Switch
+                      id="public-toggle"
+                      checked={isPublicProp ?? false}
+                      onCheckedChange={handleTogglePublic}
+                    />
+                    <Label
+                      htmlFor="public-toggle"
+                      className="text-sm cursor-pointer flex items-center gap-1.5"
+                    >
+                      {isPublicProp ? (
+                        <Eye className="h-4 w-4" />
+                      ) : (
+                        <Lock className="h-4 w-4" />
+                      )}
+                      {isPublicProp ? "Public" : "Private"}
+                    </Label>
+                  </div>
+                )}
+                {(enableEdit || enableExport) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="cursor-pointer"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {enableEdit && (
+                        <DropdownMenuItem
+                          onClick={() => setIsEditMode(!isEditMode)}
+                          className="cursor-pointer"
+                        >
+                          <Edit2 className="h-4 w-4 mr-2" />
+                          {isEditMode ? "Exit Edit Mode" : "Edit"}
+                        </DropdownMenuItem>
+                      )}
+                      {enableExport && (
+                        <DropdownMenuItem
+                          onClick={handleExportCSV}
+                          className="cursor-pointer"
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Export CSV
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -709,7 +716,7 @@ export default function WatchlistView({
         {/* Bulk Actions Bar */}
         {isEditMode && enableRemove && (
           <div className="w-full mt-[1rem]">
-            <div className="mx-auto max-w-[76rem] px-4 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-[76rem] px-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 py-4 border-b border-border bg-muted/30 rounded-lg px-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
                   <Button
@@ -735,7 +742,10 @@ export default function WatchlistView({
                   </span>
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <Popover open={isAddToWatchlistOpen} onOpenChange={setIsAddToWatchlistOpen}>
+                  <Popover
+                    open={isAddToWatchlistOpen}
+                    onOpenChange={setIsAddToWatchlistOpen}
+                  >
                     <PopoverTrigger asChild>
                       <Button
                         variant="ghost"
@@ -762,44 +772,60 @@ export default function WatchlistView({
                             <div className="p-4 text-center text-sm text-muted-foreground">
                               Searching...
                             </div>
-                          ) : searchResults?.results && searchResults.results.length > 0 ? (
+                          ) : searchResults?.results &&
+                            searchResults.results.length > 0 ? (
                             <div className="p-2">
                               {searchResults.results.map((item) => {
                                 const isMovie = "title" in item;
                                 const title = isMovie ? item.title : item.name;
                                 const mediaType = isMovie ? "movie" : "tv";
                                 const isInWatchlist = watchlist.some(
-                                  (w) => w.tmdbId === item.id && w.mediaType === mediaType
+                                  (w) =>
+                                    w.tmdbId === item.id &&
+                                    w.mediaType === mediaType
                                 );
-                                
+
                                 return (
                                   <button
                                     key={`${item.id}-${mediaType}`}
                                     onClick={async () => {
                                       if (isInWatchlist) {
-                                        toast.error(`${title} is already in your watchlist`);
+                                        toast.error(
+                                          `${title} is already in your watchlist`
+                                        );
                                         return;
                                       }
-                                      
+
                                       try {
                                         await addToWatchlist.mutateAsync({
                                           tmdbId: item.id,
                                           mediaType,
                                           title,
                                           posterPath: item.poster_path || null,
-                                          backdropPath: item.backdrop_path || null,
-                                          releaseDate: isMovie ? item.release_date || undefined : undefined,
-                                          firstAirDate: !isMovie ? item.first_air_date || undefined : undefined,
+                                          backdropPath:
+                                            item.backdrop_path || null,
+                                          releaseDate: isMovie
+                                            ? item.release_date || undefined
+                                            : undefined,
+                                          firstAirDate: !isMovie
+                                            ? item.first_air_date || undefined
+                                            : undefined,
                                         });
-                                        toast.success(`Added ${title} to watchlist`);
+                                        toast.success(
+                                          `Added ${title} to watchlist`
+                                        );
                                         setAddSearchQuery("");
                                         setIsAddToWatchlistOpen(false);
                                       } catch (error) {
-                                        toast.error("Failed to add to watchlist");
+                                        toast.error(
+                                          "Failed to add to watchlist"
+                                        );
                                         console.error(error);
                                       }
                                     }}
-                                    disabled={isInWatchlist || addToWatchlist.isPending}
+                                    disabled={
+                                      isInWatchlist || addToWatchlist.isPending
+                                    }
                                     className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     {item.poster_path ? (
@@ -822,15 +848,23 @@ export default function WatchlistView({
                                       </div>
                                     )}
                                     <div className="flex-1 min-w-0">
-                                      <div className="font-medium truncate">{title}</div>
+                                      <div className="font-medium truncate">
+                                        {title}
+                                      </div>
                                       <div className="text-sm text-muted-foreground flex items-center gap-2">
-                                        <span className="capitalize">{mediaType}</span>
-                                        {(isMovie ? item.release_date : item.first_air_date) && (
+                                        <span className="capitalize">
+                                          {mediaType}
+                                        </span>
+                                        {(isMovie
+                                          ? item.release_date
+                                          : item.first_air_date) && (
                                           <>
                                             <span>•</span>
                                             <span>
                                               {new Date(
-                                                isMovie ? item.release_date! : item.first_air_date!
+                                                isMovie
+                                                  ? item.release_date!
+                                                  : item.first_air_date!
                                               ).getFullYear()}
                                             </span>
                                           </>
@@ -869,37 +903,39 @@ export default function WatchlistView({
           {/* View Mode Toggle and Filters / Edit Mode Actions */}
           <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             {isEditMode && enableEdit ? (
-              <div className="flex items-center gap-2 overflow-x-auto sm:overflow-x-visible">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsCopyModalOpen(true)}
-                  disabled={selectedItems.size === 0}
-                  className="cursor-pointer"
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy ({selectedItems.size})
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsMoveModalOpen(true)}
-                  disabled={selectedItems.size === 0}
-                  className="cursor-pointer"
-                >
-                  <Move className="h-4 w-4 mr-2" />
-                  Move ({selectedItems.size})
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleBulkRemove}
-                  disabled={selectedItems.size === 0}
-                  className="cursor-pointer"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete ({selectedItems.size})
-                </Button>
+              <div className="overflow-x-auto">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsCopyModalOpen(true)}
+                    disabled={selectedItems.size === 0}
+                    className="cursor-pointer"
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy ({selectedItems.size})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsMoveModalOpen(true)}
+                    disabled={selectedItems.size === 0}
+                    className="cursor-pointer"
+                  >
+                    <Move className="h-4 w-4 mr-2" />
+                    Move ({selectedItems.size})
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleBulkRemove}
+                    disabled={selectedItems.size === 0}
+                    className="cursor-pointer"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete ({selectedItems.size})
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -945,7 +981,10 @@ export default function WatchlistView({
                 />
               </div>
 
-              <Select value={filterType} onValueChange={(v) => setFilterType(v as FilterType)}>
+              <Select
+                value={filterType}
+                onValueChange={(v) => setFilterType(v as FilterType)}
+              >
                 <SelectTrigger className="w-[120px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -956,8 +995,8 @@ export default function WatchlistView({
                 </SelectContent>
               </Select>
 
-              <Select 
-                value={`${sortField}-${sortOrder}`} 
+              <Select
+                value={`${sortField}-${sortOrder}`}
                 onValueChange={(v) => {
                   const [field, order] = v.split("-");
                   setSortField(field as SortField);
@@ -972,8 +1011,12 @@ export default function WatchlistView({
                   <SelectItem value="createdAt-asc">Oldest Added</SelectItem>
                   <SelectItem value="title-asc">Title (A-Z)</SelectItem>
                   <SelectItem value="title-desc">Title (Z-A)</SelectItem>
-                  <SelectItem value="releaseYear-desc">Release Year (Newest)</SelectItem>
-                  <SelectItem value="releaseYear-asc">Release Year (Oldest)</SelectItem>
+                  <SelectItem value="releaseYear-desc">
+                    Release Year (Newest)
+                  </SelectItem>
+                  <SelectItem value="releaseYear-asc">
+                    Release Year (Oldest)
+                  </SelectItem>
                 </SelectContent>
               </Select>
 
@@ -995,11 +1038,17 @@ export default function WatchlistView({
           {filteredAndSorted.length === 0 && watchlist.length > 0 ? (
             <div className="text-center py-12">
               <Filter className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No items match your filters</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                No items match your filters
+              </h3>
               <p className="text-muted-foreground mb-4">
                 Try adjusting your filters to see more results.
               </p>
-              <Button variant="outline" onClick={clearFilters} className="cursor-pointer">
+              <Button
+                variant="outline"
+                onClick={clearFilters}
+                className="cursor-pointer"
+              >
                 Clear All Filters
               </Button>
             </div>
@@ -1007,9 +1056,7 @@ export default function WatchlistView({
             <div className="text-center py-12">
               <Bookmark className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">{emptyTitle}</h3>
-              <p className="text-muted-foreground mb-4">
-                {emptyDescription}
-              </p>
+              <p className="text-muted-foreground mb-4">{emptyDescription}</p>
               {emptyAction}
             </div>
           ) : effectiveViewMode === "grid" ? (
@@ -1019,7 +1066,11 @@ export default function WatchlistView({
                   {isEditMode && enableEdit && (
                     <div className="absolute top-2 left-2 z-10">
                       <Button
-                        variant={selectedItems.has(watchlistItem.id) ? "default" : "outline"}
+                        variant={
+                          selectedItems.has(watchlistItem.id)
+                            ? "default"
+                            : "outline"
+                        }
                         size="icon"
                         className={cn(
                           "h-8 w-8 cursor-pointer",
@@ -1044,13 +1095,17 @@ export default function WatchlistView({
                         type: clickedType,
                       })
                     }
-                    onRemove={enableRemove ? () => {
-                      setItemToRemove({
-                        tmdbId: watchlistItem.tmdbId,
-                        mediaType: watchlistItem.mediaType,
-                        title: watchlistItem.title,
-                      });
-                    } : undefined}
+                    onRemove={
+                      enableRemove
+                        ? () => {
+                            setItemToRemove({
+                              tmdbId: watchlistItem.tmdbId,
+                              mediaType: watchlistItem.mediaType,
+                              title: watchlistItem.title,
+                            });
+                          }
+                        : undefined
+                    }
                   />
                 </div>
               ))}
@@ -1077,7 +1132,7 @@ export default function WatchlistView({
                           </Button>
                         </th>
                       )}
-                      <th 
+                      <th
                         className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors"
                         onClick={() => {
                           if (sortField === "title") {
@@ -1090,13 +1145,21 @@ export default function WatchlistView({
                       >
                         <div className="flex items-center">
                           Title
-                          {sortField === "title" ? (sortOrder === "asc" ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />) : <ArrowUpDown className="h-3 w-3 ml-1" />}
+                          {sortField === "title" ? (
+                            sortOrder === "asc" ? (
+                              <ArrowUp className="h-3 w-3 ml-1" />
+                            ) : (
+                              <ArrowDown className="h-3 w-3 ml-1" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="h-3 w-3 ml-1" />
+                          )}
                         </div>
                       </th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         Type
                       </th>
-                      <th 
+                      <th
                         className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors"
                         onClick={() => {
                           if (sortField === "releaseYear") {
@@ -1109,10 +1172,18 @@ export default function WatchlistView({
                       >
                         <div className="flex items-center">
                           Year
-                          {sortField === "releaseYear" ? (sortOrder === "asc" ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />) : <ArrowUpDown className="h-3 w-3 ml-1" />}
+                          {sortField === "releaseYear" ? (
+                            sortOrder === "asc" ? (
+                              <ArrowUp className="h-3 w-3 ml-1" />
+                            ) : (
+                              <ArrowDown className="h-3 w-3 ml-1" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="h-3 w-3 ml-1" />
+                          )}
                         </div>
                       </th>
-                      <th 
+                      <th
                         className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors"
                         onClick={() => {
                           if (sortField === "createdAt") {
@@ -1125,7 +1196,15 @@ export default function WatchlistView({
                       >
                         <div className="flex items-center">
                           Added
-                          {sortField === "createdAt" ? (sortOrder === "asc" ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />) : <ArrowUpDown className="h-3 w-3 ml-1" />}
+                          {sortField === "createdAt" ? (
+                            sortOrder === "asc" ? (
+                              <ArrowUp className="h-3 w-3 ml-1" />
+                            ) : (
+                              <ArrowDown className="h-3 w-3 ml-1" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="h-3 w-3 ml-1" />
+                          )}
                         </div>
                       </th>
                       {!isEditMode && enableRemove && (
@@ -1137,18 +1216,20 @@ export default function WatchlistView({
                   </thead>
                   <tbody className="divide-y divide-border">
                     {filteredAndSorted.map(({ type, watchlistItem }) => {
-                      const releaseYear = watchlistItem.releaseDate 
-                        ? new Date(watchlistItem.releaseDate).getFullYear() 
-                        : watchlistItem.firstAirDate 
-                        ? new Date(watchlistItem.firstAirDate).getFullYear() 
+                      const releaseYear = watchlistItem.releaseDate
+                        ? new Date(watchlistItem.releaseDate).getFullYear()
+                        : watchlistItem.firstAirDate
+                        ? new Date(watchlistItem.firstAirDate).getFullYear()
                         : "—";
-                      
+
                       return (
                         <tr
                           key={watchlistItem.id}
                           className={cn(
                             "hover:bg-muted/20 transition-colors group cursor-pointer",
-                            isEditMode && selectedItems.has(watchlistItem.id) && "bg-primary/10"
+                            isEditMode &&
+                              selectedItems.has(watchlistItem.id) &&
+                              "bg-primary/10"
                           )}
                           onClick={() => {
                             if (isEditMode) {
@@ -1161,11 +1242,16 @@ export default function WatchlistView({
                           {isEditMode && enableEdit && (
                             <td className="px-4 py-4">
                               <Button
-                                variant={selectedItems.has(watchlistItem.id) ? "default" : "outline"}
+                                variant={
+                                  selectedItems.has(watchlistItem.id)
+                                    ? "default"
+                                    : "outline"
+                                }
                                 size="icon"
                                 className={cn(
                                   "h-6 w-6 cursor-pointer",
-                                  selectedItems.has(watchlistItem.id) && "bg-primary"
+                                  selectedItems.has(watchlistItem.id) &&
+                                    "bg-primary"
                                 )}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1220,7 +1306,10 @@ export default function WatchlistView({
                           </td>
                           <td className="px-4 py-4">
                             <span className="text-sm text-muted-foreground">
-                              {format(new Date(watchlistItem.createdAt), "MMM d, yyyy")}
+                              {format(
+                                new Date(watchlistItem.createdAt),
+                                "MMM d, yyyy"
+                              )}
                             </span>
                           </td>
                           {!isEditMode && enableRemove && (
@@ -1260,18 +1349,27 @@ export default function WatchlistView({
                   watchlistItem={watchlistItem}
                   isEditMode={isEditMode && enableEdit}
                   isSelected={selectedItems.has(watchlistItem.id)}
-                  order={isEditMode ? (watchlistItem.order > 0 ? watchlistItem.order : index + 1) : undefined}
+                  order={
+                    isEditMode
+                      ? watchlistItem.order > 0
+                        ? watchlistItem.order
+                        : index + 1
+                      : undefined
+                  }
                   index={index}
                   totalItems={filteredAndSorted.length}
                   onSelect={() => toggleItemSelection(watchlistItem.id)}
-                  onPositionChange={handlePositionChange}
-                  onRemove={enableRemove ? () => {
-                    setItemToRemove({
-                      tmdbId: watchlistItem.tmdbId,
-                      mediaType: watchlistItem.mediaType,
-                      title: watchlistItem.title,
-                    });
-                  } : undefined}
+                  onRemove={
+                    enableRemove
+                      ? () => {
+                          setItemToRemove({
+                            tmdbId: watchlistItem.tmdbId,
+                            mediaType: watchlistItem.mediaType,
+                            title: watchlistItem.title,
+                          });
+                        }
+                      : undefined
+                  }
                   onItemClick={() => {
                     if (isEditMode) {
                       toggleItemSelection(watchlistItem.id);
@@ -1296,24 +1394,34 @@ export default function WatchlistView({
                     }
                   }}
                   onDrop={async () => {
-                    if (!draggedItemId || draggedItemId === watchlistItem.id || !isEditMode) return;
-                    
-                    const draggedIndex = filteredAndSorted.findIndex(({ watchlistItem: item }) => item.id === draggedItemId);
+                    if (
+                      !draggedItemId ||
+                      draggedItemId === watchlistItem.id ||
+                      !isEditMode
+                    )
+                      return;
+
+                    const draggedIndex = filteredAndSorted.findIndex(
+                      ({ watchlistItem: item }) => item.id === draggedItemId
+                    );
                     const dropIndex = index;
-                    
-                    if (draggedIndex === -1 || draggedIndex === dropIndex) return;
-                    
+
+                    if (draggedIndex === -1 || draggedIndex === dropIndex)
+                      return;
+
                     // Create new array with reordered items
                     const reordered = [...filteredAndSorted];
                     const [draggedItem] = reordered.splice(draggedIndex, 1);
                     reordered.splice(dropIndex, 0, draggedItem);
-                    
+
                     // Assign sequential order numbers (1-based)
-                    const itemsToUpdate = reordered.map(({ watchlistItem: item }, idx) => ({
-                      id: item.id,
-                      order: idx + 1,
-                    }));
-                    
+                    const itemsToUpdate = reordered.map(
+                      ({ watchlistItem: item }, idx) => ({
+                        id: item.id,
+                        order: idx + 1,
+                      })
+                    );
+
                     try {
                       await reorderWatchlist.mutateAsync(itemsToUpdate);
                       toast.success("Watchlist reordered");
@@ -1321,7 +1429,7 @@ export default function WatchlistView({
                       toast.error("Failed to reorder watchlist");
                       console.error(error);
                     }
-                    
+
                     setDraggedItemId(null);
                     setDragOverItemId(null);
                   }}
@@ -1334,22 +1442,33 @@ export default function WatchlistView({
         </div>
       </div>
 
-
       {/* Remove Confirmation Dialog */}
       {enableRemove && (
-        <Dialog open={!!itemToRemove} onOpenChange={(open) => !open && setItemToRemove(null)}>
+        <Dialog
+          open={!!itemToRemove}
+          onOpenChange={(open) => !open && setItemToRemove(null)}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Remove from Watchlist</DialogTitle>
               <DialogDescription>
-                Are you sure you want to remove &quot;{itemToRemove?.title}&quot; from your watchlist?
+                Are you sure you want to remove &quot;{itemToRemove?.title}
+                &quot; from your watchlist?
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setItemToRemove(null)} className="cursor-pointer">
+              <Button
+                variant="outline"
+                onClick={() => setItemToRemove(null)}
+                className="cursor-pointer"
+              >
                 Cancel
               </Button>
-              <Button variant="destructive" onClick={handleRemove} className="cursor-pointer">
+              <Button
+                variant="destructive"
+                onClick={handleRemove}
+                className="cursor-pointer"
+              >
                 Remove
               </Button>
             </DialogFooter>
@@ -1380,26 +1499,34 @@ export default function WatchlistView({
         <CopyToListModal
           isOpen={isCopyModalOpen}
           onClose={() => setIsCopyModalOpen(false)}
-          selectedItems={Array.from(selectedItems).map(id => {
-            const found = filteredAndSorted.find(({ watchlistItem }) => watchlistItem.id === id);
-            return found ? { 
-              tmdbId: found.watchlistItem.tmdbId, 
-              mediaType: found.watchlistItem.mediaType,
-              title: found.watchlistItem.title,
-              posterPath: found.watchlistItem.posterPath,
-              backdropPath: found.watchlistItem.backdropPath,
-              releaseDate: found.watchlistItem.releaseDate,
-              firstAirDate: found.watchlistItem.firstAirDate,
-            } : null;
-          }).filter(Boolean) as Array<{
-            tmdbId: number;
-            mediaType: "movie" | "tv";
-            title: string;
-            posterPath: string | null;
-            backdropPath: string | null;
-            releaseDate: string | null;
-            firstAirDate: string | null;
-          }>}
+          selectedItems={
+            Array.from(selectedItems)
+              .map((id) => {
+                const found = filteredAndSorted.find(
+                  ({ watchlistItem }) => watchlistItem.id === id
+                );
+                return found
+                  ? {
+                      tmdbId: found.watchlistItem.tmdbId,
+                      mediaType: found.watchlistItem.mediaType,
+                      title: found.watchlistItem.title,
+                      posterPath: found.watchlistItem.posterPath,
+                      backdropPath: found.watchlistItem.backdropPath,
+                      releaseDate: found.watchlistItem.releaseDate,
+                      firstAirDate: found.watchlistItem.firstAirDate,
+                    }
+                  : null;
+              })
+              .filter(Boolean) as Array<{
+              tmdbId: number;
+              mediaType: "movie" | "tv";
+              title: string;
+              posterPath: string | null;
+              backdropPath: string | null;
+              releaseDate: string | null;
+              firstAirDate: string | null;
+            }>
+          }
           onSuccess={() => {
             setIsCopyModalOpen(false);
             setSelectedItems(new Set());
@@ -1412,28 +1539,36 @@ export default function WatchlistView({
         <MoveToListModal
           isOpen={isMoveModalOpen}
           onClose={() => setIsMoveModalOpen(false)}
-          selectedItems={Array.from(selectedItems).map(id => {
-            const found = filteredAndSorted.find(({ watchlistItem }) => watchlistItem.id === id);
-            return found ? { 
-              id: found.watchlistItem.id,
-              tmdbId: found.watchlistItem.tmdbId, 
-              mediaType: found.watchlistItem.mediaType,
-              title: found.watchlistItem.title,
-              posterPath: found.watchlistItem.posterPath,
-              backdropPath: found.watchlistItem.backdropPath,
-              releaseDate: found.watchlistItem.releaseDate,
-              firstAirDate: found.watchlistItem.firstAirDate,
-            } : null;
-          }).filter(Boolean) as Array<{
-            id: string;
-            tmdbId: number;
-            mediaType: "movie" | "tv";
-            title: string;
-            posterPath: string | null;
-            backdropPath: string | null;
-            releaseDate: string | null;
-            firstAirDate: string | null;
-          }>}
+          selectedItems={
+            Array.from(selectedItems)
+              .map((id) => {
+                const found = filteredAndSorted.find(
+                  ({ watchlistItem }) => watchlistItem.id === id
+                );
+                return found
+                  ? {
+                      id: found.watchlistItem.id,
+                      tmdbId: found.watchlistItem.tmdbId,
+                      mediaType: found.watchlistItem.mediaType,
+                      title: found.watchlistItem.title,
+                      posterPath: found.watchlistItem.posterPath,
+                      backdropPath: found.watchlistItem.backdropPath,
+                      releaseDate: found.watchlistItem.releaseDate,
+                      firstAirDate: found.watchlistItem.firstAirDate,
+                    }
+                  : null;
+              })
+              .filter(Boolean) as Array<{
+              id: string;
+              tmdbId: number;
+              mediaType: "movie" | "tv";
+              title: string;
+              posterPath: string | null;
+              backdropPath: string | null;
+              releaseDate: string | null;
+              firstAirDate: string | null;
+            }>
+          }
           onRemove={onRemove}
           onSuccess={() => {
             setIsMoveModalOpen(false);
@@ -1463,7 +1598,6 @@ interface DetailedWatchlistItemProps {
   onDragOver: (e: React.DragEvent) => void;
   onDragLeave: () => void;
   onDrop: () => void;
-  onPositionChange: (itemId: string, newPosition: number) => void;
   isDragging: boolean;
   isDragOver: boolean;
 }
@@ -1485,12 +1619,9 @@ function DetailedWatchlistItem({
   onDragOver,
   onDragLeave,
   onDrop,
-  onPositionChange,
   isDragging,
   isDragOver,
 }: DetailedWatchlistItemProps) {
-  const [isEditingPosition, setIsEditingPosition] = useState(false);
-  const [positionValue, setPositionValue] = useState<string>(order?.toString() || "");
   const router = useRouter();
   const { isSignedIn } = useUser();
   const quickWatch = useQuickWatch();
@@ -1498,59 +1629,104 @@ function DetailedWatchlistItem({
   const { data: watchedData } = useIsWatched(item.id, type);
   const isWatched = watchedData?.isWatched || false;
   const watchedLogId = watchedData?.logId || null;
-  
+
   // Fetch details for synopsis, director, and cast
-  const { data: movieDetails } = useMovieDetails(type === "movie" ? item.id : null);
+  const { data: movieDetails } = useMovieDetails(
+    type === "movie" ? item.id : null
+  );
   const { data: tvDetails } = useTVDetails(type === "tv" ? item.id : null);
   const details = type === "movie" ? movieDetails : tvDetails;
-  
+
   // Type assertion for credits (they're included via append_to_response but not in types)
-  const detailsWithCredits = details as (typeof details & {
-    credits?: {
-      cast?: Array<{ id: number; name: string; character: string; profile_path: string | null }>;
-      crew?: Array<{ id: number; name: string; job: string; department: string; profile_path: string | null }>;
-    };
-    external_ids?: { imdb_id?: string | null };
-    runtime?: number;
-    episode_run_time?: number[];
-    release_date?: string;
-    first_air_date?: string;
-  }) | null;
-  
-  // Fetch IMDb rating
-  const imdbId = detailsWithCredits?.external_ids?.imdb_id || details?.imdb_id || null;
+  const detailsWithCredits = details as
+    | (typeof details & {
+        credits?: {
+          cast?: Array<{
+            id: number;
+            name: string;
+            character: string;
+            profile_path: string | null;
+          }>;
+          crew?: Array<{
+            id: number;
+            name: string;
+            job: string;
+            department: string;
+            profile_path: string | null;
+          }>;
+        };
+        external_ids?: { imdb_id?: string | null };
+        runtime?: number;
+        episode_run_time?: number[];
+        release_date?: string;
+        first_air_date?: string;
+      })
+    | null;
+
+  // Fetch IMDb rating and OMDB data
+  const imdbId =
+    detailsWithCredits?.external_ids?.imdb_id || details?.imdb_id || null;
   const tmdbRating = item.vote_average > 0 ? item.vote_average : null;
   const { data: ratingData } = useIMDBRating(imdbId, tmdbRating);
+  const { data: omdbData } = useOMDBData(imdbId);
   const displayRating = ratingData?.rating || tmdbRating;
   const ratingSource = ratingData?.source || (tmdbRating ? "tmdb" : null);
-  
+
+  // Get rated and metascore from OMDB
+  const rated = omdbData?.rated || null;
+  const metascore = omdbData?.metascore || null;
+
+  // Get number of episodes for TV shows
+  const numberOfEpisodes =
+    type === "tv"
+      ? (details as { number_of_episodes?: number })?.number_of_episodes || null
+      : null;
+
   // Get release date
-  const releaseDate = type === "movie" 
-    ? (detailsWithCredits?.release_date || watchlistItem.releaseDate)
-    : (detailsWithCredits?.first_air_date || watchlistItem.firstAirDate);
+  const releaseDate =
+    type === "movie"
+      ? detailsWithCredits?.release_date || watchlistItem.releaseDate
+      : detailsWithCredits?.first_air_date || watchlistItem.firstAirDate;
   const releaseYear = releaseDate ? new Date(releaseDate).getFullYear() : null;
-  const formattedReleaseDate = releaseDate ? format(new Date(releaseDate), "MMM d, yyyy") : null;
-  
+  const formattedReleaseDate = releaseDate
+    ? format(new Date(releaseDate), "MMM d, yyyy")
+    : null;
+
   // Get runtime
-  const runtime = type === "movie" 
-    ? detailsWithCredits?.runtime 
-    : detailsWithCredits?.episode_run_time?.[0];
-  const formattedRuntime = runtime ? `${Math.floor(runtime / 60)}h ${runtime % 60}m` : null;
-  
+  const runtime =
+    type === "movie"
+      ? detailsWithCredits?.runtime
+      : detailsWithCredits?.episode_run_time?.[0];
+  const formattedRuntime = runtime
+    ? `${Math.floor(runtime / 60)}h ${runtime % 60}m`
+    : null;
+
   // Get synopsis
   const synopsis = details?.overview || item.overview || "";
-  const truncatedSynopsis = synopsis.length > 150 
-    ? synopsis.slice(0, 150) + "..." 
-    : synopsis;
-  
+  const truncatedSynopsis =
+    synopsis.length > 150 ? synopsis.slice(0, 150) + "..." : synopsis;
+
   // Get director (for movies) or creator (for TV)
-  const director = detailsWithCredits?.credits?.crew?.find((person) => person.job === "Director");
-  const creator = type === "tv" ? (details as { created_by?: Array<{ id: number; name: string; profile_path: string | null }> })?.created_by?.[0] : null;
+  const director = detailsWithCredits?.credits?.crew?.find(
+    (person) => person.job === "Director"
+  );
+  const creator =
+    type === "tv"
+      ? (
+          details as {
+            created_by?: Array<{
+              id: number;
+              name: string;
+              profile_path: string | null;
+            }>;
+          }
+        )?.created_by?.[0]
+      : null;
   const directorOrCreator = type === "movie" ? director : creator;
-  
+
   // Get top 3 cast members with IDs
   const topCast = detailsWithCredits?.credits?.cast?.slice(0, 3) || [];
-  
+
   const handleWatchToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!isSignedIn) {
@@ -1569,8 +1745,10 @@ function DetailedWatchlistItem({
           title,
           posterPath: item.poster_path || null,
           backdropPath: item.backdrop_path || null,
-          releaseDate: "release_date" in item ? item.release_date || null : null,
-          firstAirDate: "first_air_date" in item ? item.first_air_date || null : null,
+          releaseDate:
+            "release_date" in item ? item.release_date || null : null,
+          firstAirDate:
+            "first_air_date" in item ? item.first_air_date || null : null,
         });
         toast.success("Marked as watched");
       }
@@ -1578,27 +1756,8 @@ function DetailedWatchlistItem({
       toast.error("Failed to update watched status");
     }
   };
-  
-  // Update position value when order changes
-  useEffect(() => {
-    if (order) {
-      setPositionValue(order.toString());
-    }
-  }, [order]);
-  
-  const handlePositionSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const numValue = parseInt(positionValue, 10);
-    if (!isNaN(numValue) && numValue >= 1 && numValue <= totalItems) {
-      onPositionChange(watchlistItem.id, numValue);
-      setIsEditingPosition(false);
-    } else {
-      toast.error(`Position must be between 1 and ${totalItems}`);
-      setPositionValue(order?.toString() || "");
-    }
-  };
-  
+
+
   return (
     <div
       className={cn(
@@ -1608,6 +1767,14 @@ function DetailedWatchlistItem({
         isDragging && "opacity-50 scale-95 z-50",
         isDragOver && "border-primary border-2 bg-primary/5 translate-y-2"
       )}
+      draggable={isEditMode}
+      onDragStart={(e) => {
+        if (isEditMode) {
+          onDragStart();
+          e.dataTransfer.effectAllowed = "move";
+        }
+      }}
+      onDragEnd={onDragEnd}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={(e) => {
@@ -1618,29 +1785,18 @@ function DetailedWatchlistItem({
     >
       {isEditMode && (
         <div className="flex-shrink-0 flex items-center gap-2">
-          {/* Grab Handle */}
+          {/* Grab Handle - Visual indicator only */}
           <div
-            draggable
-            onDragStart={(e) => {
-              onDragStart();
-              e.dataTransfer.effectAllowed = "move";
-              e.stopPropagation();
-            }}
-            onDragEnd={onDragEnd}
-            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
-            onClick={(e) => e.stopPropagation()}
+            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors pointer-events-none"
           >
             <GripVertical className="h-5 w-5" />
           </div>
-          
+
           {/* Checkbox */}
           <Button
             variant={isSelected ? "default" : "outline"}
             size="icon"
-            className={cn(
-              "h-6 w-6 cursor-pointer",
-              isSelected && "bg-primary"
-            )}
+            className={cn("h-6 w-6 cursor-pointer", isSelected && "bg-primary")}
             onClick={(e) => {
               e.stopPropagation();
               onSelect();
@@ -1652,36 +1808,6 @@ function DetailedWatchlistItem({
               <div className="h-3 w-3 border-2 border-current rounded" />
             )}
           </Button>
-          
-          {/* Position Input */}
-          {isEditingPosition ? (
-            <form onSubmit={handlePositionSubmit} onClick={(e) => e.stopPropagation()}>
-              <Input
-                type="number"
-                min={1}
-                max={totalItems}
-                value={positionValue}
-                onChange={(e) => setPositionValue(e.target.value)}
-                onBlur={() => {
-                  setIsEditingPosition(false);
-                  setPositionValue(order?.toString() || "");
-                }}
-                className="w-16 h-6 text-xs text-center"
-                autoFocus
-              />
-            </form>
-          ) : (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsEditingPosition(true);
-              }}
-              className="text-xs text-muted-foreground hover:text-foreground min-w-[2rem] text-center"
-            >
-              {order || index + 1}
-            </button>
-          )}
         </div>
       )}
       {/* Drag Over Indicator */}
@@ -1689,181 +1815,259 @@ function DetailedWatchlistItem({
         <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-l" />
       )}
       {/* Layout: Poster and Content */}
-      <div className="flex flex-row gap-4 flex-1 min-w-0">
-        {/* Poster */}
-        {watchlistItem.posterPath ? (
-          <div className="relative w-20 h-28 sm:w-24 sm:h-36 rounded overflow-hidden flex-shrink-0 bg-muted">
-            <Image
-              src={getPosterUrl(watchlistItem.posterPath)}
-              alt={watchlistItem.title}
-              fill
-              className="object-cover"
-              sizes="96px"
-            />
-          </div>
-        ) : (
-          <div className="w-20 h-28 sm:w-24 sm:h-36 rounded bg-muted flex-shrink-0 flex items-center justify-center">
-            {type === "movie" ? (
-              <Film className="h-8 w-8 text-muted-foreground" />
-            ) : (
-              <Tv className="h-8 w-8 text-muted-foreground" />
-            )}
-          </div>
-        )}
-        
-        {/* Content Container */}
-        <div className="flex-1 min-w-0 flex flex-col">
-          {/* First Row: Title and Details */}
-          <div className="flex items-start justify-between gap-4 mb-2">
-            <div className="flex-1 min-w-0">
-              {/* 1. Title */}
-              <div className="flex items-center gap-3 mb-2">
-                <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
-                  {watchlistItem.title}
-                </h3>
-                <span className="text-sm text-muted-foreground capitalize">({type})</span>
-              </div>
-              
-              {/* 2. Release date, runtime, rated, metascore, imdb rating, eye icon */}
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
-                {formattedReleaseDate && <span>{formattedReleaseDate}</span>}
-                {formattedRuntime && (
-                  <>
-                    {formattedReleaseDate && <span>•</span>}
-                    <span>{formattedRuntime}</span>
-                  </>
-                )}
-                {/* Rated - placeholder for now, would need rating data */}
-                {/* Metascore - placeholder for now, would need external API */}
-                {displayRating && displayRating > 0 && (
-                  <>
-                    {(formattedReleaseDate || formattedRuntime) && <span>•</span>}
-                    <div className="flex items-center gap-1.5">
-                      {ratingSource === "imdb" ? (
-                        <IMDBBadge size={16} />
-                      ) : (
-                        <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+      {/* Mobile: Two divs - First div: Poster + First 3 Lines, Second div: Synopsis + Cast */}
+      {/* Desktop: Single row with all content */}
+      <div className="flex flex-col sm:flex-row gap-4 flex-1 min-w-0">
+        {/* First Div: Poster + First 3 Lines (Mobile) or Poster only (Desktop) */}
+        <div className="flex flex-row gap-4 flex-1 min-w-0">
+          {/* Poster */}
+          {watchlistItem.posterPath ? (
+            <div className="relative w-20 h-28 sm:w-24 sm:h-36 rounded overflow-hidden flex-shrink-0 bg-muted">
+              <Image
+                src={getPosterUrl(watchlistItem.posterPath)}
+                alt={watchlistItem.title}
+                fill
+                className="object-cover"
+                sizes="96px"
+              />
+            </div>
+          ) : (
+            <div className="w-20 h-28 sm:w-24 sm:h-36 rounded bg-muted flex-shrink-0 flex items-center justify-center">
+              {type === "movie" ? (
+                <Film className="h-8 w-8 text-muted-foreground" />
+              ) : (
+                <Tv className="h-8 w-8 text-muted-foreground" />
+              )}
+            </div>
+          )}
+
+          {/* First 3 Lines */}
+          <div className="flex-1 min-w-0 flex flex-col">
+            {/* Line 1: Order. Title */}
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm text-muted-foreground">
+                {isEditMode ? index + 1 : (order || index + 1)}.
+              </span>
+              <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
+                {watchlistItem.title}
+              </h3>
+            </div>
+
+            {/* Line 2: Release year, runtime/episodes, rated, metascore */}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
+              {releaseYear && <span>{releaseYear}</span>}
+              {type === "movie"
+                ? formattedRuntime && (
+                    <>
+                      {releaseYear && <span>•</span>}
+                      <span>{formattedRuntime}</span>
+                    </>
+                  )
+                : numberOfEpisodes && (
+                    <>
+                      {releaseYear && <span>•</span>}
+                      <span>{numberOfEpisodes} episodes</span>
+                    </>
+                  )}
+              {rated && (
+                <>
+                  {(releaseYear || formattedRuntime || numberOfEpisodes) && (
+                    <span>•</span>
+                  )}
+                  <span>{rated}</span>
+                </>
+              )}
+              {metascore && (
+                <>
+                  {(releaseYear ||
+                    formattedRuntime ||
+                    numberOfEpisodes ||
+                    rated) && <span>•</span>}
+                  <span>Metascore: {metascore}</span>
+                </>
+              )}
+            </div>
+
+            {/* Line 3: IMDb rating and watched status */}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
+              {displayRating && displayRating > 0 && (
+                <div className="flex items-center gap-1.5">
+                  {ratingSource === "imdb" ? (
+                    <IMDBBadge size={16} />
+                  ) : (
+                    <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                  )}
+                  <span className="font-semibold">
+                    {displayRating.toFixed(1)}
+                  </span>
+                </div>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 cursor-pointer"
+                onClick={handleWatchToggle}
+              >
+                <Eye
+                  className={cn(
+                    "h-4 w-4",
+                    isWatched ? "text-green-500" : "text-muted-foreground"
+                  )}
+                />
+              </Button>
+              {isWatched ? (
+                <span className="text-sm text-muted-foreground">Watched</span>
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  Mark as watched
+                </span>
+              )}
+            </div>
+
+            {/* Desktop: Synopsis and Cast (below first 3 lines) */}
+            <div className="hidden sm:block">
+              {synopsis && (
+                <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                  {truncatedSynopsis}
+                </p>
+              )}
+              {(directorOrCreator || topCast.length > 0) && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+                  {directorOrCreator && (
+                    <>
+                      <span className="font-medium">Director:</span>
+                      {director && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(
+                              `/person/${createPersonSlug(
+                                director.id,
+                                director.name
+                              )}`
+                            );
+                          }}
+                          className="text-primary underline hover:text-primary/80 transition-colors"
+                        >
+                          {directorOrCreator.name}
+                        </button>
                       )}
-                      <span className="font-semibold">{displayRating.toFixed(1)}</span>
-                    </div>
-                  </>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 cursor-pointer"
-                  onClick={handleWatchToggle}
-                >
-                  <Eye
-                    className={cn(
-                      "h-4 w-4",
-                      isWatched
-                        ? "text-green-500"
-                        : "text-muted-foreground"
-                    )}
-                  />
-                </Button>
-                {isWatched && <span className="text-sm text-muted-foreground">Watched</span>}
-              </div>
+                      {!director && <span>{directorOrCreator.name}</span>}
+                      {topCast.length > 0 && <span>•</span>}
+                    </>
+                  )}
+                  {topCast.length > 0 && (
+                    <>
+                      <span className="font-medium">Stars:</span>
+                      {topCast.map(
+                        (
+                          actor: { id: number; name: string },
+                          index: number
+                        ) => (
+                          <span key={actor.id}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(
+                                  `/person/${createPersonSlug(
+                                    actor.id,
+                                    actor.name
+                                  )}`
+                                );
+                              }}
+                              className="text-primary underline hover:text-primary/80 transition-colors"
+                            >
+                              {actor.name}
+                            </button>
+                            {index < topCast.length - 1 && ", "}
+                          </span>
+                        )
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
-          
-          {/* Second Row: Synopsis and Cast (mobile only - below details) */}
-          <div className="flex flex-col sm:hidden gap-2">
-            {synopsis && (
-              <p className="text-sm text-muted-foreground line-clamp-2">
-                {truncatedSynopsis}
-              </p>
-            )}
-            {(directorOrCreator || topCast.length > 0) && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
-                {directorOrCreator && (
-                  <>
-                    <span className="font-medium">Director:</span>
-                    <span>{directorOrCreator.name}</span>
-                    {topCast.length > 0 && <span>•</span>}
-                  </>
-                )}
-                {topCast.length > 0 && (
-                  <>
-                    <span className="font-medium">Stars:</span>
-                    {topCast.map((actor: { id: number; name: string }, index: number) => (
-                      <span key={actor.id}>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/person/${createPersonSlug(actor.id, actor.name)}`);
-                          }}
-                          className="text-primary underline hover:text-primary/80 transition-colors"
-                        >
-                          {actor.name}
-                        </button>
-                        {index < topCast.length - 1 && ", "}
-                      </span>
-                    ))}
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-          
-          {/* Desktop: Synopsis and Cast (inline with details) */}
-          <div className="hidden sm:block">
-            {synopsis && (
-              <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                {truncatedSynopsis}
-              </p>
-            )}
-            {(directorOrCreator || topCast.length > 0) && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
-                {directorOrCreator && (
-                  <>
-                    <span className="font-medium">Director:</span>
-                    <span>{directorOrCreator.name}</span>
-                    {topCast.length > 0 && <span>•</span>}
-                  </>
-                )}
-                {topCast.length > 0 && (
-                  <>
-                    <span className="font-medium">Stars:</span>
-                    {topCast.map((actor: { id: number; name: string }, index: number) => (
-                      <span key={actor.id}>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/person/${createPersonSlug(actor.id, actor.name)}`);
-                          }}
-                          className="text-primary underline hover:text-primary/80 transition-colors"
-                        >
-                          {actor.name}
-                        </button>
-                        {index < topCast.length - 1 && ", "}
-                      </span>
-                    ))}
-                  </>
-                )}
-              </div>
-            )}
-          </div>
         </div>
-        
-        {/* Remove button - only shown when not in edit mode */}
-        {!isEditMode && onRemove && (
-          <div className="absolute top-4 right-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive flex-shrink-0"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove();
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
+
+        {/* Second Div: Synopsis and Cast (mobile only) */}
+        <div className="flex flex-col sm:hidden gap-2">
+          {synopsis && (
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {truncatedSynopsis}
+            </p>
+          )}
+          {(directorOrCreator || topCast.length > 0) && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+              {directorOrCreator && (
+                <>
+                  <span className="font-medium">Director:</span>
+                  {director && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(
+                          `/person/${createPersonSlug(
+                            director.id,
+                            director.name
+                          )}`
+                        );
+                      }}
+                      className="text-primary underline hover:text-primary/80 transition-colors"
+                    >
+                      {directorOrCreator.name}
+                    </button>
+                  )}
+                  {!director && <span>{directorOrCreator.name}</span>}
+                  {topCast.length > 0 && <span>•</span>}
+                </>
+              )}
+              {topCast.length > 0 && (
+                <>
+                  <span className="font-medium">Stars:</span>
+                  {topCast.map(
+                    (actor: { id: number; name: string }, index: number) => (
+                      <span key={actor.id}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(
+                              `/person/${createPersonSlug(
+                                actor.id,
+                                actor.name
+                              )}`
+                            );
+                          }}
+                          className="text-primary underline hover:text-primary/80 transition-colors"
+                        >
+                          {actor.name}
+                        </button>
+                        {index < topCast.length - 1 && ", "}
+                      </span>
+                    )
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
+      {!isEditMode && onRemove && (
+        <div className="absolute top-4 right-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive flex-shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onRemove) onRemove();
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1884,14 +2088,19 @@ interface CopyToListModalProps {
   onSuccess: () => void;
 }
 
-function CopyToListModal({ isOpen, onClose, selectedItems, onSuccess }: CopyToListModalProps) {
+function CopyToListModal({
+  isOpen,
+  onClose,
+  selectedItems,
+  onSuccess,
+}: CopyToListModalProps) {
   const { data: lists = [], isLoading } = useLists();
   const updateList = useUpdateList();
   const createList = useCreateList();
   const [selectedListId, setSelectedListId] = useState<string>("");
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [newListName, setNewListName] = useState("");
-  
+
   const handleCopy = async () => {
     try {
       if (isCreatingNew) {
@@ -1909,18 +2118,22 @@ function CopyToListModal({ isOpen, onClose, selectedItems, onSuccess }: CopyToLi
             position: index + 1,
           })),
         });
-        toast.success(`Created new list and copied ${selectedItems.length} item${selectedItems.length > 1 ? "s" : ""}`);
+        toast.success(
+          `Created new list and copied ${selectedItems.length} item${
+            selectedItems.length > 1 ? "s" : ""
+          }`
+        );
       } else if (selectedListId) {
         // Add items to existing list
-        const list = lists.find(l => l.id === selectedListId);
+        const list = lists.find((l) => l.id === selectedListId);
         if (!list) {
           toast.error("List not found");
           return;
         }
-        
+
         const existingItems = list.items || [];
         const newItems = [
-          ...existingItems.map(item => ({
+          ...existingItems.map((item) => ({
             tmdbId: item.tmdbId,
             mediaType: item.mediaType,
             title: item.title,
@@ -1941,12 +2154,16 @@ function CopyToListModal({ isOpen, onClose, selectedItems, onSuccess }: CopyToLi
             position: existingItems.length + index + 1,
           })),
         ];
-        
+
         await updateList.mutateAsync({
           listId: selectedListId,
           items: newItems,
         });
-        toast.success(`Copied ${selectedItems.length} item${selectedItems.length > 1 ? "s" : ""} to list`);
+        toast.success(
+          `Copied ${selectedItems.length} item${
+            selectedItems.length > 1 ? "s" : ""
+          } to list`
+        );
       } else {
         toast.error("Please select a list or create a new one");
         return;
@@ -1957,23 +2174,27 @@ function CopyToListModal({ isOpen, onClose, selectedItems, onSuccess }: CopyToLi
       console.error(error);
     }
   };
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Copy to List</DialogTitle>
           <DialogDescription>
-            Copy {selectedItems.length} item{selectedItems.length > 1 ? "s" : ""} to a list
+            Copy {selectedItems.length} item
+            {selectedItems.length > 1 ? "s" : ""} to a list
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Select List</Label>
-            <Select value={selectedListId} onValueChange={(value) => {
-              setSelectedListId(value);
-              setIsCreatingNew(value === "new");
-            }}>
+            <Select
+              value={selectedListId}
+              onValueChange={(value) => {
+                setSelectedListId(value);
+                setIsCreatingNew(value === "new");
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Choose a list or create new" />
               </SelectTrigger>
@@ -1999,20 +2220,24 @@ function CopyToListModal({ isOpen, onClose, selectedItems, onSuccess }: CopyToLi
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="cursor-pointer">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="cursor-pointer"
+          >
             Cancel
           </Button>
-          <Button 
-            onClick={handleCopy} 
+          <Button
+            onClick={handleCopy}
             disabled={
-              (isCreatingNew && !newListName.trim()) || 
+              (isCreatingNew && !newListName.trim()) ||
               (!isCreatingNew && !selectedListId) ||
               createList.isPending ||
               updateList.isPending
             }
             className="cursor-pointer"
           >
-            {(createList.isPending || updateList.isPending) ? (
+            {createList.isPending || updateList.isPending ? (
               <>
                 <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
                 Copying...
@@ -2045,7 +2270,13 @@ interface MoveToListModalProps {
   onSuccess: () => void;
 }
 
-function MoveToListModal({ isOpen, onClose, selectedItems, onRemove, onSuccess }: MoveToListModalProps) {
+function MoveToListModal({
+  isOpen,
+  onClose,
+  selectedItems,
+  onRemove,
+  onSuccess,
+}: MoveToListModalProps) {
   const { data: lists = [] } = useLists();
   const updateList = useUpdateList();
   const createList = useCreateList();
@@ -2053,7 +2284,7 @@ function MoveToListModal({ isOpen, onClose, selectedItems, onRemove, onSuccess }
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [newListName, setNewListName] = useState("");
   const [isRemoving, setIsRemoving] = useState(false);
-  
+
   const handleMove = async () => {
     setIsRemoving(true);
     try {
@@ -2072,26 +2303,30 @@ function MoveToListModal({ isOpen, onClose, selectedItems, onRemove, onSuccess }
             position: index + 1,
           })),
         });
-        
+
         // Remove from watchlist
         if (onRemove) {
           for (const item of selectedItems) {
             await onRemove(item.tmdbId, item.mediaType);
           }
         }
-        
-        toast.success(`Created new list and moved ${selectedItems.length} item${selectedItems.length > 1 ? "s" : ""}`);
+
+        toast.success(
+          `Created new list and moved ${selectedItems.length} item${
+            selectedItems.length > 1 ? "s" : ""
+          }`
+        );
       } else if (selectedListId) {
         // Add items to existing list
-        const list = lists.find(l => l.id === selectedListId);
+        const list = lists.find((l) => l.id === selectedListId);
         if (!list) {
           toast.error("List not found");
           return;
         }
-        
+
         const existingItems = list.items || [];
         const newItems = [
-          ...existingItems.map(item => ({
+          ...existingItems.map((item) => ({
             tmdbId: item.tmdbId,
             mediaType: item.mediaType,
             title: item.title,
@@ -2112,20 +2347,24 @@ function MoveToListModal({ isOpen, onClose, selectedItems, onRemove, onSuccess }
             position: existingItems.length + index + 1,
           })),
         ];
-        
+
         await updateList.mutateAsync({
           listId: selectedListId,
           items: newItems,
         });
-        
+
         // Remove from watchlist
         if (onRemove) {
           for (const item of selectedItems) {
             await onRemove(item.tmdbId, item.mediaType);
           }
         }
-        
-        toast.success(`Moved ${selectedItems.length} item${selectedItems.length > 1 ? "s" : ""} to list`);
+
+        toast.success(
+          `Moved ${selectedItems.length} item${
+            selectedItems.length > 1 ? "s" : ""
+          } to list`
+        );
       } else {
         toast.error("Please select a list or create a new one");
         return;
@@ -2138,23 +2377,28 @@ function MoveToListModal({ isOpen, onClose, selectedItems, onRemove, onSuccess }
       setIsRemoving(false);
     }
   };
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Move to List</DialogTitle>
           <DialogDescription>
-            Move {selectedItems.length} item{selectedItems.length > 1 ? "s" : ""} to a list (items will be removed from watchlist)
+            Move {selectedItems.length} item
+            {selectedItems.length > 1 ? "s" : ""} to a list (items will be
+            removed from watchlist)
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Select List</Label>
-            <Select value={selectedListId} onValueChange={(value) => {
-              setSelectedListId(value);
-              setIsCreatingNew(value === "new");
-            }}>
+            <Select
+              value={selectedListId}
+              onValueChange={(value) => {
+                setSelectedListId(value);
+                setIsCreatingNew(value === "new");
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Choose a list or create new" />
               </SelectTrigger>
@@ -2180,13 +2424,17 @@ function MoveToListModal({ isOpen, onClose, selectedItems, onRemove, onSuccess }
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="cursor-pointer">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="cursor-pointer"
+          >
             Cancel
           </Button>
-          <Button 
-            onClick={handleMove} 
+          <Button
+            onClick={handleMove}
             disabled={
-              (isCreatingNew && !newListName.trim()) || 
+              (isCreatingNew && !newListName.trim()) ||
               (!isCreatingNew && !selectedListId) ||
               createList.isPending ||
               updateList.isPending ||
@@ -2194,7 +2442,7 @@ function MoveToListModal({ isOpen, onClose, selectedItems, onRemove, onSuccess }
             }
             className="cursor-pointer"
           >
-            {(createList.isPending || updateList.isPending || isRemoving) ? (
+            {createList.isPending || updateList.isPending || isRemoving ? (
               <>
                 <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
                 Moving...
@@ -2208,4 +2456,3 @@ function MoveToListModal({ isOpen, onClose, selectedItems, onRemove, onSuccess }
     </Dialog>
   );
 }
-

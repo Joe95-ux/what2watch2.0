@@ -225,7 +225,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
               <TooltipTrigger asChild>
                 <CircleActionButton
                   size="md"
-                  aria-label="Mark as watched"
+                  aria-label={isWatched ? "Watched" : "Mark as watched"}
                   onClick={async () => {
                     if (!isSignedIn) {
                       toast.error("Sign in to mark films as watched.");
@@ -269,7 +269,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                 </CircleActionButton>
               </TooltipTrigger>
               <TooltipContent>
-                {isWatched ? "Mark as unwatched" : "Mark as watched"}
+                {isWatched ? "Watched" : "Mark as watched"}
               </TooltipContent>
             </Tooltip>
             <span className="h-6 w-px bg-white/20" />
