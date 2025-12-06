@@ -239,8 +239,7 @@ export default function ContentDetailModal({
   const details = type === "movie" ? movieDetails : tvDetails;
   const isLoading = type === "movie" ? isLoadingMovie : isLoadingTV;
   
-  // Fetch OMDB data for ratings
-  const imdbId = details?.imdb_id || null;
+  // Fetch OMDB data for ratings (using imdbId declared earlier)
   const { data: omdbData } = useOMDBData(imdbId);
 
   const title = "title" in item ? item.title : item.name;
