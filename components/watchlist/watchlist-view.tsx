@@ -49,6 +49,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -92,6 +94,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "../ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type SortField = "createdAt" | "title" | "releaseYear";
 type SortOrder = "asc" | "desc";
@@ -218,6 +225,20 @@ export default function WatchlistView({
   const addToWatchlist = useAddToWatchlist();
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   const [dragOverItemId, setDragOverItemId] = useState<string | null>(null);
+  const [isLgScreen, setIsLgScreen] = useState(false);
+  
+  // Check if screen is lg (1024px and up) for drag and drop
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsLgScreen(window.innerWidth >= 1024);
+    };
+    
+    if (typeof window !== "undefined") {
+      checkScreenSize();
+      window.addEventListener("resize", checkScreenSize);
+      return () => window.removeEventListener("resize", checkScreenSize);
+    }
+  }, []);
 
   // Search functionality for adding to watchlist
   const debouncedAddSearchQuery = useDebounce(addSearchQuery, 300);
@@ -545,7 +566,7 @@ export default function WatchlistView({
 
         {/* Info Section */}
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+          <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
             <div className="flex-1">
               {user && !isOwner ? (
                 <div className="flex items-center gap-3 mb-4">
@@ -616,8 +637,8 @@ export default function WatchlistView({
             </div>
 
             {/* Actions */}
-            <div className="overflow-x-auto">
-              <div className="flex items-center justify-end gap-2 ml-auto sm:ml-0">
+            <div className="overflow-x-auto max-w-full">
+              <div className="flex items-cen gap-2">
                 {enableCreateList && (
                   <Button
                     variant="outline"
@@ -716,7 +737,7 @@ export default function WatchlistView({
         {/* Bulk Actions Bar */}
         {isEditMode && enableRemove && (
           <div className="w-full mt-[1rem]">
-            <div className="mx-auto max-w-[76rem] px-4">
+            <div className="mx-auto max-w-[76rem] px-4 sm:px-0">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 py-4 border-b border-border bg-muted/30 rounded-lg px-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
                   <Button
@@ -756,7 +777,7 @@ export default function WatchlistView({
                         Add to Watchlist
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[400px] p-0" align="end">
+                    <PopoverContent className="w-[400px] p-0 max-w-[calc(100vw-1rem)] mx-[0.5rem] sm:mx-0" align="end">
                       <div className="p-4 border-b">
                         <Input
                           placeholder="Search movies or TV shows..."
@@ -767,7 +788,7 @@ export default function WatchlistView({
                         />
                       </div>
                       {debouncedAddSearchQuery.trim() && (
-                        <ScrollArea className="h-[400px] p-2">
+                        <div className="h-auto max-h-[400px] p-2 overflow-y-auto scrollbar-thin">
                           {isSearchLoading ? (
                             <div className="p-4 text-center text-sm text-muted-foreground">
                               Searching...
@@ -871,8 +892,10 @@ export default function WatchlistView({
                                         )}
                                       </div>
                                     </div>
-                                    {isInWatchlist && (
+                                    {isInWatchlist ? (
                                       <Check className="h-5 w-5 text-primary flex-shrink-0" />
+                                    ) : (
+                                      <Plus className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                                     )}
                                   </button>
                                 );
@@ -883,7 +906,7 @@ export default function WatchlistView({
                               No results found
                             </div>
                           )}
-                        </ScrollArea>
+                        </div>
                       )}
                       {!debouncedAddSearchQuery.trim() && (
                         <div className="p-4 text-center text-sm text-muted-foreground">
@@ -901,9 +924,9 @@ export default function WatchlistView({
         {/* Content */}
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* View Mode Toggle and Filters / Edit Mode Actions */}
-          <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="mb-6 flex flex-col md:flex-row items-start justify-between gap-4">
             {isEditMode && enableEdit ? (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto max-w-full">
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
@@ -969,56 +992,186 @@ export default function WatchlistView({
               </div>
             )}
 
-            {/* Filters */}
+            {/* Filters - Condensed Search Bar with Icons */}
             <div className="flex flex-wrap items-center gap-3">
-              <div className="relative w-72 lg:w-80 2xl:w-96">
+              <div className="relative w-full sm:w-80 2xl:w-96">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search watchlist..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 pr-20"
                 />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0">
+                  {searchQuery && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => setSearchQuery("")}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                  
+                  {/* Sort Dropdown */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={cn(
+                                "h-7 w-7 cursor-pointer",
+                                (sortField !== "createdAt" || sortOrder !== "desc") && "bg-primary/10 text-primary"
+                              )}
+                            >
+                              <ArrowUpDown className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSortField("createdAt");
+                          setSortOrder("desc");
+                        }}
+                        className={cn(
+                          "cursor-pointer",
+                          sortField === "createdAt" && sortOrder === "desc" && "bg-accent"
+                        )}
+                      >
+                        Recently Added
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSortField("createdAt");
+                          setSortOrder("asc");
+                        }}
+                        className={cn(
+                          "cursor-pointer",
+                          sortField === "createdAt" && sortOrder === "asc" && "bg-accent"
+                        )}
+                      >
+                        Oldest Added
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSortField("title");
+                          setSortOrder("asc");
+                        }}
+                        className={cn(
+                          "cursor-pointer",
+                          sortField === "title" && sortOrder === "asc" && "bg-accent"
+                        )}
+                      >
+                        Title (A-Z)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSortField("title");
+                          setSortOrder("desc");
+                        }}
+                        className={cn(
+                          "cursor-pointer",
+                          sortField === "title" && sortOrder === "desc" && "bg-accent"
+                        )}
+                      >
+                        Title (Z-A)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSortField("releaseYear");
+                          setSortOrder("desc");
+                        }}
+                        className={cn(
+                          "cursor-pointer",
+                          sortField === "releaseYear" && sortOrder === "desc" && "bg-accent"
+                        )}
+                      >
+                        Release Year (Newest)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSortField("releaseYear");
+                          setSortOrder("asc");
+                        }}
+                        className={cn(
+                          "cursor-pointer",
+                          sortField === "releaseYear" && sortOrder === "asc" && "bg-accent"
+                        )}
+                      >
+                        Release Year (Oldest)
+                      </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Sort by</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  {/* Filter Dropdown */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={cn(
+                                "h-7 w-7 cursor-pointer",
+                                filterType !== "all" && "bg-primary/10 text-primary"
+                              )}
+                            >
+                              <Filter className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuLabel>Filter by type</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => setFilterType("all")}
+                        className={cn(
+                          "cursor-pointer",
+                          filterType === "all" && "bg-accent"
+                        )}
+                      >
+                        All Types
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setFilterType("movie")}
+                        className={cn(
+                          "cursor-pointer",
+                          filterType === "movie" && "bg-accent"
+                        )}
+                      >
+                        Movies
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setFilterType("tv")}
+                        className={cn(
+                          "cursor-pointer",
+                          filterType === "tv" && "bg-accent"
+                        )}
+                      >
+                        TV Shows
+                      </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Filter by type</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
               </div>
-
-              <Select
-                value={filterType}
-                onValueChange={(v) => setFilterType(v as FilterType)}
-              >
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="movie">Movies</SelectItem>
-                  <SelectItem value="tv">TV Shows</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={`${sortField}-${sortOrder}`}
-                onValueChange={(v) => {
-                  const [field, order] = v.split("-");
-                  setSortField(field as SortField);
-                  setSortOrder(order as SortOrder);
-                }}
-              >
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="createdAt-desc">Recently Added</SelectItem>
-                  <SelectItem value="createdAt-asc">Oldest Added</SelectItem>
-                  <SelectItem value="title-asc">Title (A-Z)</SelectItem>
-                  <SelectItem value="title-desc">Title (Z-A)</SelectItem>
-                  <SelectItem value="releaseYear-desc">
-                    Release Year (Newest)
-                  </SelectItem>
-                  <SelectItem value="releaseYear-asc">
-                    Release Year (Oldest)
-                  </SelectItem>
-                </SelectContent>
-              </Select>
 
               {activeFilterCount > 0 && (
                 <Button
@@ -1339,7 +1492,7 @@ export default function WatchlistView({
               </div>
             </div>
           ) : (
-            // Detailed View (IMDb-style)
+            // Detailed View
             <div className="space-y-4">
               {filteredAndSorted.map(({ item, type, watchlistItem }, index) => (
                 <DetailedWatchlistItem
@@ -1384,7 +1537,8 @@ export default function WatchlistView({
                   }}
                   onDragOver={(e) => {
                     e.preventDefault();
-                    if (draggedItemId && draggedItemId !== watchlistItem.id) {
+                    e.stopPropagation();
+                    if (draggedItemId && draggedItemId !== watchlistItem.id && isLgScreen) {
                       setDragOverItemId(watchlistItem.id);
                     }
                   }}
@@ -1393,11 +1547,14 @@ export default function WatchlistView({
                       setDragOverItemId(null);
                     }
                   }}
-                  onDrop={async () => {
+                  onDrop={async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     if (
                       !draggedItemId ||
                       draggedItemId === watchlistItem.id ||
-                      !isEditMode
+                      !isEditMode ||
+                      !isLgScreen
                     )
                       return;
 
@@ -1435,6 +1592,7 @@ export default function WatchlistView({
                   }}
                   isDragging={draggedItemId === watchlistItem.id}
                   isDragOver={dragOverItemId === watchlistItem.id}
+                  isLgScreen={isLgScreen}
                 />
               ))}
             </div>
@@ -1597,9 +1755,10 @@ interface DetailedWatchlistItemProps {
   onDragEnd: () => void;
   onDragOver: (e: React.DragEvent) => void;
   onDragLeave: () => void;
-  onDrop: () => void;
+  onDrop: (e: React.DragEvent) => void;
   isDragging: boolean;
   isDragOver: boolean;
+  isLgScreen: boolean;
 }
 
 function DetailedWatchlistItem({
@@ -1621,6 +1780,7 @@ function DetailedWatchlistItem({
   onDrop,
   isDragging,
   isDragOver,
+  isLgScreen,
 }: DetailedWatchlistItemProps) {
   const router = useRouter();
   const { isSignedIn } = useUser();
@@ -1767,23 +1927,40 @@ function DetailedWatchlistItem({
         isDragging && "opacity-50 scale-95 z-50",
         isDragOver && "border-primary border-2 bg-primary/5 translate-y-2"
       )}
-      draggable={isEditMode}
+      draggable={isEditMode && isLgScreen}
       onDragStart={(e) => {
-        if (isEditMode) {
+        if (isEditMode && isLgScreen) {
           onDragStart();
           e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", watchlistItem.id);
+        } else {
+          e.preventDefault();
         }
       }}
       onDragEnd={onDragEnd}
-      onDragOver={onDragOver}
+      onDragOver={(e) => {
+        if (isEditMode && isLgScreen) {
+          e.preventDefault();
+          e.stopPropagation();
+          onDragOver(e);
+        }
+      }}
       onDragLeave={onDragLeave}
       onDrop={(e) => {
-        e.preventDefault();
-        onDrop();
+        if (isEditMode && isLgScreen) {
+          e.preventDefault();
+          e.stopPropagation();
+          onDrop(e);
+        }
       }}
-      onClick={onItemClick}
+      onClick={(e) => {
+        // Don't trigger click if we're dragging
+        if (!isDragging) {
+          onItemClick();
+        }
+      }}
     >
-      {isEditMode && (
+      {isEditMode && isLgScreen && (
         <div className="flex-shrink-0 flex items-center gap-2">
           {/* Grab Handle - Visual indicator only */}
           <div
@@ -1820,6 +1997,26 @@ function DetailedWatchlistItem({
       <div className="flex flex-col sm:flex-row gap-4 flex-1 min-w-0">
         {/* First Div: Poster + First 3 Lines (Mobile) or Poster only (Desktop) */}
         <div className="flex flex-row gap-4 flex-1 min-w-0">
+          {/* Checkbox for smaller screens (mobile) */}
+          {isEditMode && !isLgScreen && (
+            <div className="flex-shrink-0 flex items-start pt-1">
+              <Button
+                variant={isSelected ? "default" : "outline"}
+                size="icon"
+                className={cn("h-6 w-6 cursor-pointer", isSelected && "bg-primary")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelect();
+                }}
+              >
+                {isSelected ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <div className="h-3 w-3 border-2 border-current rounded" />
+                )}
+              </Button>
+            </div>
+          )}
           {/* Poster */}
           {watchlistItem.posterPath ? (
             <div className="relative w-20 h-28 sm:w-24 sm:h-36 rounded overflow-hidden flex-shrink-0 bg-muted">
@@ -1883,7 +2080,17 @@ function DetailedWatchlistItem({
                     formattedRuntime ||
                     numberOfEpisodes ||
                     rated) && <span>•</span>}
-                  <span>Metascore: {metascore}</span>
+                  <div className="flex items-center gap-1.5">
+                    <div className={cn(
+                      "w-5 h-5 rounded flex items-center justify-center text-xs font-bold",
+                      metascore >= 60 ? "bg-green-500 text-white" :
+                      metascore >= 40 ? "bg-yellow-500 text-white" :
+                      "bg-red-500 text-white"
+                    )}>
+                      {metascore}
+                    </div>
+                    <span className="text-xs text-muted-foreground">Metascore</span>
+                  </div>
                 </>
               )}
             </div>

@@ -124,9 +124,14 @@ export default function ContentDetailModal({
   const addRecentlyViewed = useAddRecentlyViewed();
   const toggleFavorite = useToggleFavorite();
 
+  // Get IMDB ID from details
+  const imdbId = type === "movie" 
+    ? (movieDetails?.external_ids?.imdb_id || movieDetails?.imdb_id || null)
+    : (tvDetails?.external_ids?.imdb_id || tvDetails?.imdb_id || null);
+
   // Re-initialize JustWatch widget when item changes
   useEffect(() => {
-    if (isOpen && isSheetMounted && typeof window !== "undefined") {
+    if (isOpen && isSheetMounted && typeof window !== "undefined" && imdbId) {
       // Wait for widget script to load and then trigger widget initialization
       const initWidget = () => {
         try {
@@ -157,7 +162,7 @@ export default function ContentDetailModal({
       const timeoutId = setTimeout(initWidget, 500);
       return () => clearTimeout(timeoutId);
     }
-  }, [isOpen, isSheetMounted, item.id, type]);
+  }, [isOpen, isSheetMounted, imdbId, type]);
 
   // Consistent click handler to prevent propagation
   const handleButtonClick = useCallback((e: React.MouseEvent, callback: () => void) => {

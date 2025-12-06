@@ -71,23 +71,6 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
   const [commentFilter, setCommentFilter] = useState("newest");
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
   
-  // Initialize JustWatch widget when component mounts or title changes
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const initWidget = () => {
-        const jwWidget = (window as Window & { JW_Widget?: { init: () => void } }).JW_Widget;
-        if (jwWidget) {
-          jwWidget.init();
-        } else {
-          // If widget script hasn't loaded yet, wait a bit and try again
-          setTimeout(initWidget, 100);
-        }
-      };
-      // Delay initialization to ensure DOM is ready and widget container exists
-      const timeoutId = setTimeout(initWidget, 300);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [log.tmdbId, log.mediaType, log.title]);
   
   const updateLog = useUpdateViewingLog();
   const deleteLog = useDeleteViewingLog();
@@ -108,6 +91,28 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
   const title = log.title;
   const posterPath = log.posterPath;
   const backdropPath = log.backdropPath || log.posterPath;
+  
+  // Get IMDB ID from details (with type assertion for external_ids)
+  const detailsWithExternalIds = details as (typeof details & { external_ids?: { imdb_id?: string | null }; imdb_id?: string | null }) | null;
+  const imdbId = detailsWithExternalIds?.external_ids?.imdb_id || detailsWithExternalIds?.imdb_id || null;
+  
+  // Initialize JustWatch widget when component mounts or IMDB ID changes
+  useEffect(() => {
+    if (typeof window !== "undefined" && imdbId) {
+      const initWidget = () => {
+        const jwWidget = (window as Window & { JW_Widget?: { init: () => void } }).JW_Widget;
+        if (jwWidget) {
+          jwWidget.init();
+        } else {
+          // If widget script hasn't loaded yet, wait a bit and try again
+          setTimeout(initWidget, 100);
+        }
+      };
+      // Delay initialization to ensure DOM is ready and widget container exists
+      const timeoutId = setTimeout(initWidget, 300);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [imdbId, log.mediaType]);
   
   // Find trailer
   const trailer: TMDBVideo | null =
@@ -472,30 +477,50 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
           {/* Sidebar */}
           <div className="space-y-6">
             {/* JustWatch Widget */}
-            <div className="sm:bg-card sm:border sm:rounded-lg p-0 sm:p-6">
-              <h3 className="text-lg font-semibold mb-4">Where to Watch</h3>
-              <div
-                data-jw-widget
-                data-api-key="kdXlICVx4d6qwyZYSThFxvVKAhQtwtqY"
-                data-title={title}
-                data-year={
-                  log.mediaType === "movie"
-                    ? log.releaseDate
-                      ? new Date(log.releaseDate).getFullYear()
-                      : details && "release_date" in details && details.release_date
-                      ? new Date(details.release_date).getFullYear()
-                      : undefined
-                    : log.firstAirDate
-                    ? new Date(log.firstAirDate).getFullYear()
-                    : details && "first_air_date" in details && details.first_air_date
-                    ? new Date(details.first_air_date).getFullYear()
-                    : undefined
-                }
-                data-theme="dark"
-                data-offer-label="price"
-                data-scale="1"
-              />
-            </div>
+            {imdbId && (
+              <div className="sm:bg-card sm:border sm:rounded-lg p-0 sm:p-6">
+                <h3 className="text-lg font-semibold mb-4">Where to Watch</h3>
+                <div
+                  data-jw-widget
+                  data-api-key="kdXlICVx4d6qwyZYSThFxvVKAhQtwtqY"
+                  data-object-type={log.mediaType === "movie" ? "movie" : "show"}
+                  data-id={imdbId}
+                  data-id-type="imdb"
+                  data-offer-label="price"
+                  data-no-offers-message={`Oopsy daisy, no offers for ${title} at this time!`}
+                  data-title-not-found-message="Oopsy daisy, no offers at this time!"
+                  data-theme="dark"
+                />
+                <div className="mt-2">
+                  <a
+                    style={{
+                      fontSize: "11px",
+                      fontFamily: "sans-serif",
+                      color: "white",
+                      textDecoration: "none",
+                    }}
+                    target="_blank"
+                    href={`https://www.justwatch.com/${log.mediaType === "movie" ? "Film" : "Serie"}/${encodeURIComponent(title)}`}
+                    rel="noopener noreferrer"
+                  >
+                    Powered by{" "}
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: "66px",
+                        height: "10px",
+                        marginLeft: "3px",
+                        background: "url(https://widget.justwatch.com/assets/JW_logo_color_10px.svg)",
+                        overflow: "hidden",
+                        textIndent: "-3000px",
+                      }}
+                    >
+                      JustWatch
+                    </span>
+                  </a>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
