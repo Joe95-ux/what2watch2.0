@@ -88,6 +88,8 @@ import { createPersonSlug } from "@/lib/person-utils";
 import { useSearch } from "@/hooks/use-search";
 import { useDebounce } from "@/hooks/use-debounce";
 import { ShareDropdown } from "@/components/ui/share-dropdown";
+import { useWatchlistDragDrop } from "@/hooks/use-watchlist-drag-drop";
+import { Droppable, Draggable } from "@hello-pangea/dnd";
 import {
   Popover,
   PopoverContent,
@@ -221,10 +223,7 @@ export default function WatchlistView({
   const [isAddToWatchlistOpen, setIsAddToWatchlistOpen] = useState(false);
   const [addSearchQuery, setAddSearchQuery] = useState("");
   const { isSignedIn } = useUser();
-  const reorderWatchlist = useReorderWatchlist();
   const addToWatchlist = useAddToWatchlist();
-  const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
-  const [dragOverItemId, setDragOverItemId] = useState<string | null>(null);
   const [isLgScreen, setIsLgScreen] = useState(false);
   
   // Check if screen is lg (1024px and up) for drag and drop
@@ -375,6 +374,13 @@ export default function WatchlistView({
 
     return filtered;
   }, [watchlistAsTMDB, searchQuery, filterType, sortField, sortOrder]);
+
+  // Drag and drop hook (after filteredAndSorted is defined)
+  const { DragDropContext, handleDragEnd, isDragEnabled } = useWatchlistDragDrop({
+    entries: filteredAndSorted,
+    isEditMode: isEditMode && enableEdit,
+    isLgScreen,
+  });
 
   const handleRemove = async () => {
     if (!itemToRemove || !onRemove) return;
@@ -737,7 +743,7 @@ export default function WatchlistView({
         {/* Bulk Actions Bar */}
         {isEditMode && enableRemove && (
           <div className="w-full mt-[1rem]">
-            <div className="mx-auto max-w-[76rem] px-4 sm:px-0">
+            <div className="mx-auto max-w-[76rem] px-4 sm:px-6 lg:px-8 xl:px-0">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 py-4 border-b border-border bg-muted/30 rounded-lg px-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
                   <Button
@@ -1493,109 +1499,73 @@ export default function WatchlistView({
             </div>
           ) : (
             // Detailed View
-            <div className="space-y-4">
-              {filteredAndSorted.map(({ item, type, watchlistItem }, index) => (
-                <DetailedWatchlistItem
-                  key={watchlistItem.id}
-                  item={item}
-                  type={type}
-                  watchlistItem={watchlistItem}
-                  isEditMode={isEditMode && enableEdit}
-                  isSelected={selectedItems.has(watchlistItem.id)}
-                  order={
-                    isEditMode
-                      ? watchlistItem.order > 0
-                        ? watchlistItem.order
-                        : index + 1
-                      : undefined
-                  }
-                  index={index}
-                  totalItems={filteredAndSorted.length}
-                  onSelect={() => toggleItemSelection(watchlistItem.id)}
-                  onRemove={
-                    enableRemove
-                      ? () => {
-                          setItemToRemove({
-                            tmdbId: watchlistItem.tmdbId,
-                            mediaType: watchlistItem.mediaType,
-                            title: watchlistItem.title,
-                          });
-                        }
-                      : undefined
-                  }
-                  onItemClick={() => {
-                    if (isEditMode) {
-                      toggleItemSelection(watchlistItem.id);
-                    } else {
-                      setSelectedItem({ item, type });
-                    }
-                  }}
-                  onDragStart={() => setDraggedItemId(watchlistItem.id)}
-                  onDragEnd={() => {
-                    setDraggedItemId(null);
-                    setDragOverItemId(null);
-                  }}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (draggedItemId && draggedItemId !== watchlistItem.id && isLgScreen) {
-                      setDragOverItemId(watchlistItem.id);
-                    }
-                  }}
-                  onDragLeave={() => {
-                    if (dragOverItemId === watchlistItem.id) {
-                      setDragOverItemId(null);
-                    }
-                  }}
-                  onDrop={async (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (
-                      !draggedItemId ||
-                      draggedItemId === watchlistItem.id ||
-                      !isEditMode ||
-                      !isLgScreen
-                    )
-                      return;
-
-                    const draggedIndex = filteredAndSorted.findIndex(
-                      ({ watchlistItem: item }) => item.id === draggedItemId
-                    );
-                    const dropIndex = index;
-
-                    if (draggedIndex === -1 || draggedIndex === dropIndex)
-                      return;
-
-                    // Create new array with reordered items
-                    const reordered = [...filteredAndSorted];
-                    const [draggedItem] = reordered.splice(draggedIndex, 1);
-                    reordered.splice(dropIndex, 0, draggedItem);
-
-                    // Assign sequential order numbers (1-based)
-                    const itemsToUpdate = reordered.map(
-                      ({ watchlistItem: item }, idx) => ({
-                        id: item.id,
-                        order: idx + 1,
-                      })
-                    );
-
-                    try {
-                      await reorderWatchlist.mutateAsync(itemsToUpdate);
-                      toast.success("Watchlist reordered");
-                    } catch (error) {
-                      toast.error("Failed to reorder watchlist");
-                      console.error(error);
-                    }
-
-                    setDraggedItemId(null);
-                    setDragOverItemId(null);
-                  }}
-                  isDragging={draggedItemId === watchlistItem.id}
-                  isDragOver={dragOverItemId === watchlistItem.id}
-                  isLgScreen={isLgScreen}
-                />
-              ))}
-            </div>
+            <DragDropContext onDragEnd={handleDragEnd}>
+              <Droppable droppableId="watchlist-items">
+                {(provided) => (
+                  <div
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                    className="space-y-4"
+                  >
+                    {filteredAndSorted.map(({ item, type, watchlistItem }, index) => (
+                      <Draggable
+                        key={watchlistItem.id}
+                        draggableId={watchlistItem.id}
+                        index={index}
+                        isDragDisabled={!isDragEnabled}
+                      >
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            className={snapshot.isDragging ? "opacity-50" : ""}
+                          >
+                            <DetailedWatchlistItem
+                              item={item}
+                              type={type}
+                              watchlistItem={watchlistItem}
+                              isEditMode={isEditMode && enableEdit}
+                              isSelected={selectedItems.has(watchlistItem.id)}
+                              order={
+                                isEditMode
+                                  ? watchlistItem.order > 0
+                                    ? watchlistItem.order
+                                    : index + 1
+                                  : undefined
+                              }
+                              index={index}
+                              totalItems={filteredAndSorted.length}
+                              onSelect={() => toggleItemSelection(watchlistItem.id)}
+                              onRemove={
+                                enableRemove
+                                  ? () => {
+                                      setItemToRemove({
+                                        tmdbId: watchlistItem.tmdbId,
+                                        mediaType: watchlistItem.mediaType,
+                                        title: watchlistItem.title,
+                                      });
+                                    }
+                                  : undefined
+                              }
+                              onItemClick={() => {
+                                if (isEditMode) {
+                                  toggleItemSelection(watchlistItem.id);
+                                } else {
+                                  setSelectedItem({ item, type });
+                                }
+                              }}
+                              dragHandleProps={provided.dragHandleProps}
+                              isLgScreen={isLgScreen}
+                            />
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </DragDropContext>
           )}
         </div>
       </div>
@@ -1751,13 +1721,7 @@ interface DetailedWatchlistItemProps {
   onSelect: () => void;
   onRemove?: () => void;
   onItemClick: () => void;
-  onDragStart: () => void;
-  onDragEnd: () => void;
-  onDragOver: (e: React.DragEvent) => void;
-  onDragLeave: () => void;
-  onDrop: (e: React.DragEvent) => void;
-  isDragging: boolean;
-  isDragOver: boolean;
+  dragHandleProps?: any;
   isLgScreen: boolean;
 }
 
@@ -1773,13 +1737,7 @@ function DetailedWatchlistItem({
   onSelect,
   onRemove,
   onItemClick,
-  onDragStart,
-  onDragEnd,
-  onDragOver,
-  onDragLeave,
-  onDrop,
-  isDragging,
-  isDragOver,
+  dragHandleProps,
   isLgScreen,
 }: DetailedWatchlistItemProps) {
   const router = useRouter();
@@ -1923,48 +1881,16 @@ function DetailedWatchlistItem({
       className={cn(
         "relative flex gap-4 p-4 rounded-lg border border-border bg-card transition-all group",
         isEditMode && isSelected && "bg-primary/10 border-primary",
-        !isEditMode && "cursor-pointer hover:border-primary/50",
-        isDragging && "opacity-50 scale-95 z-50",
-        isDragOver && "border-primary border-2 bg-primary/5 translate-y-2"
+        !isEditMode && "cursor-pointer hover:border-primary/50"
       )}
-      draggable={isEditMode && isLgScreen}
-      onDragStart={(e) => {
-        if (isEditMode && isLgScreen) {
-          onDragStart();
-          e.dataTransfer.effectAllowed = "move";
-          e.dataTransfer.setData("text/plain", watchlistItem.id);
-        } else {
-          e.preventDefault();
-        }
-      }}
-      onDragEnd={onDragEnd}
-      onDragOver={(e) => {
-        if (isEditMode && isLgScreen) {
-          e.preventDefault();
-          e.stopPropagation();
-          onDragOver(e);
-        }
-      }}
-      onDragLeave={onDragLeave}
-      onDrop={(e) => {
-        if (isEditMode && isLgScreen) {
-          e.preventDefault();
-          e.stopPropagation();
-          onDrop(e);
-        }
-      }}
-      onClick={(e) => {
-        // Don't trigger click if we're dragging
-        if (!isDragging) {
-          onItemClick();
-        }
-      }}
+      onClick={onItemClick}
     >
-      {isEditMode && isLgScreen && (
+      {isEditMode && isLgScreen && dragHandleProps && (
         <div className="flex-shrink-0 flex items-center gap-2">
-          {/* Grab Handle - Visual indicator only */}
+          {/* Grab Handle */}
           <div
-            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors pointer-events-none"
+            {...dragHandleProps}
+            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
           >
             <GripVertical className="h-5 w-5" />
           </div>
@@ -1986,10 +1912,6 @@ function DetailedWatchlistItem({
             )}
           </Button>
         </div>
-      )}
-      {/* Drag Over Indicator */}
-      {isDragOver && !isDragging && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-l" />
       )}
       {/* Layout: Poster and Content */}
       {/* Mobile: Two divs - First div: Poster + First 3 Lines, Second div: Synopsis + Cast */}
@@ -2143,14 +2065,14 @@ function DetailedWatchlistItem({
                   {directorOrCreator && (
                     <>
                       <span className="font-medium">Director:</span>
-                      {director && (
+                      {directorOrCreator.id ? (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             router.push(
                               `/person/${createPersonSlug(
-                                director.id,
-                                director.name
+                                directorOrCreator.id,
+                                directorOrCreator.name
                               )}`
                             );
                           }}
@@ -2158,8 +2080,9 @@ function DetailedWatchlistItem({
                         >
                           {directorOrCreator.name}
                         </button>
+                      ) : (
+                        <span>{directorOrCreator.name}</span>
                       )}
-                      {!director && <span>{directorOrCreator.name}</span>}
                       {topCast.length > 0 && <span>•</span>}
                     </>
                   )}

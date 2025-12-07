@@ -39,6 +39,7 @@ import { useToggleFavorite } from "@/hooks/use-favorites";
 import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import LogToDiaryDropdown from "./log-to-diary-dropdown";
+import { JustWatchWidget } from "@/components/ui/justwatch-widget";
 
 interface ContentDetailModalProps {
   item: TMDBMovie | TMDBSeries;
@@ -139,40 +140,6 @@ export default function ContentDetailModal({
     ? (movieDetailsWithExternalIds?.external_ids?.imdb_id || (movieDetailsWithExternalIds as any)?.imdb_id || null)
     : (tvDetailsWithExternalIds?.external_ids?.imdb_id || (tvDetailsWithExternalIds as any)?.imdb_id || null);
 
-  // Re-initialize JustWatch widget when item changes
-  useEffect(() => {
-    if (isOpen && isSheetMounted && typeof window !== "undefined" && imdbId) {
-      // Wait for widget script to load and then trigger widget initialization
-      const initWidget = () => {
-        try {
-          const jwWidget = (window as Window & { JW_Widget?: { init: () => void } }).JW_Widget;
-          if (jwWidget) {
-            // Check if widget container exists
-            const widgetContainer = document.querySelector('[data-jw-widget]');
-            if (widgetContainer) {
-              jwWidget.init();
-            }
-          } else {
-            // If widget script hasn't loaded yet, wait a bit and try again (max 10 attempts)
-            let attempts = 0;
-            const maxAttempts = 10;
-            const retry = () => {
-              attempts++;
-              if (attempts < maxAttempts) {
-                setTimeout(initWidget, 100);
-              }
-            };
-            setTimeout(retry, 100);
-          }
-        } catch (error) {
-          console.error("Error initializing JustWatch widget:", error);
-        }
-      };
-      // Delay initialization to ensure DOM is ready
-      const timeoutId = setTimeout(initWidget, 500);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [isOpen, isSheetMounted, imdbId, type]);
 
   // Consistent click handler to prevent propagation
   const handleButtonClick = useCallback((e: React.MouseEvent, callback: () => void) => {
@@ -301,12 +268,6 @@ export default function ContentDetailModal({
 
   return (
     <>
-      {/* JustWatch Widget Script */}
-      <Script
-        src="https://widget.justwatch.com/justwatch_widget.js"
-        strategy="afterInteractive"
-        id="justwatch-widget-script"
-      />
       <Sheet open={isOpen} onOpenChange={handleOpenChange}>
       <SheetContent 
         side="right"
@@ -737,26 +698,15 @@ export default function ContentDetailModal({
                   )}
 
                   {/* JustWatch Widget */}
-                  {title && (
-                    <div className="mt-6">
-                      <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Where to Watch</h3>
-                      <div
-                        data-jw-widget
-                        data-api-key="kdXlICVx4d6qwyZYSThFxvVKAhQtwtqY"
-                        data-title={title}
-                        {...(type === "movie"
-                          ? details && "release_date" in details && details.release_date
-                            ? { "data-year": new Date(details.release_date).getFullYear() }
-                            : {}
-                          : details && "first_air_date" in details && details.first_air_date
-                          ? { "data-year": new Date(details.first_air_date).getFullYear() }
-                          : {})}
-                        data-theme="dark"
-                        data-offer-label="price"
-                        data-scale="1"
-                      />
-                    </div>
-                  )}
+                  <div className="mt-6">
+                    <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Where to Watch</h3>
+                    <JustWatchWidget
+                      imdbId={imdbId}
+                      title={title}
+                      mediaType={type}
+                    />
+                  </div>
+                 
                 </div>
               </div>
 
