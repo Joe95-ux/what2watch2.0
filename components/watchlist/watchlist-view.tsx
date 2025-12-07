@@ -1561,9 +1561,11 @@ export default function WatchlistView({
                             <div
                               ref={provided.innerRef}
                               {...provided.draggableProps}
-                              className={
-                                snapshot.isDragging ? "opacity-50" : ""
-                              }
+                              {...provided.dragHandleProps}
+                              className={cn(
+                                snapshot.isDragging ? "opacity-50" : "",
+                                isDragEnabled && "cursor-grab active:cursor-grabbing"
+                              )}
                             >
                               <DetailedWatchlistItem
                                 item={item}
@@ -1601,7 +1603,6 @@ export default function WatchlistView({
                                     setSelectedItem({ item, type });
                                   }
                                 }}
-                                dragHandleProps={provided.dragHandleProps}
                                 isLgScreen={isLgScreen}
                               />
                             </div>
@@ -1769,7 +1770,6 @@ interface DetailedWatchlistItemProps {
   onSelect: () => void;
   onRemove?: () => void;
   onItemClick: () => void;
-  dragHandleProps?: any;
   isLgScreen: boolean;
 }
 
@@ -1785,7 +1785,6 @@ function DetailedWatchlistItem({
   onSelect,
   onRemove,
   onItemClick,
-  dragHandleProps,
   isLgScreen,
 }: DetailedWatchlistItemProps) {
   const router = useRouter();
@@ -1930,15 +1929,19 @@ function DetailedWatchlistItem({
         isEditMode && isSelected && "bg-primary/10 border-primary",
         !isEditMode && "cursor-pointer hover:border-primary/50"
       )}
-      onClick={onItemClick}
+      onClick={(e) => {
+        // Don't trigger item click if clicking on interactive elements
+        const target = e.target as HTMLElement;
+        if (target.closest('button, a, input, select, textarea')) {
+          return;
+        }
+        onItemClick();
+      }}
     >
-      {isEditMode && isLgScreen && dragHandleProps && (
+      {isEditMode && isLgScreen && (
         <div className="flex-shrink-0 flex items-center gap-2">
-          {/* Grab Handle */}
-          <div
-            {...dragHandleProps}
-            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
-          >
+          {/* Grab Handle - Visual indicator only, whole card is draggable */}
+          <div className="text-muted-foreground">
             <GripVertical className="h-5 w-5" />
           </div>
 

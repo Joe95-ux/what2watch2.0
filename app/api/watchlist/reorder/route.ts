@@ -37,6 +37,10 @@ export async function PATCH(request: NextRequest): Promise<NextResponse<{ succes
       );
     }
 
+    console.log("Reorder API - received items:", items.length);
+    console.log("Reorder API - user ID:", user.id);
+    console.log("Reorder API - sample items:", items.slice(0, 3));
+
     // Update all items and verify they were updated
     const updateResults = await Promise.all(
       items.map(async (item: { id: string; order: number }) => {
@@ -49,9 +53,18 @@ export async function PATCH(request: NextRequest): Promise<NextResponse<{ succes
             order: item.order,
           },
         });
-        return { id: item.id, updated: result.count > 0 };
+        if (result.count === 0) {
+          console.warn(`No item updated for ID: ${item.id}, order: ${item.order}`);
+        }
+        return { id: item.id, order: item.order, updated: result.count > 0 };
       })
     );
+
+    console.log("Reorder API - update results:", {
+      total: updateResults.length,
+      successful: updateResults.filter((r) => r.updated).length,
+      failed: updateResults.filter((r) => !r.updated).length,
+    });
 
     // Check if any items failed to update
     const failedUpdates = updateResults.filter((r) => !r.updated);
@@ -65,6 +78,17 @@ export async function PATCH(request: NextRequest): Promise<NextResponse<{ succes
         { status: 400 }
       );
     }
+
+    // Verify the updates by fetching a few items
+    const sampleIds = items.slice(0, 3).map((item) => item.id);
+    const verifyItems = await db.watchlistItem.findMany({
+      where: {
+        id: { in: sampleIds },
+        userId: user.id,
+      },
+      select: { id: true, order: true },
+    });
+    console.log("Reorder API - verification sample:", verifyItems);
 
     return NextResponse.json({ success: true });
   } catch (error) {

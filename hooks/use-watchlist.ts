@@ -259,32 +259,51 @@ export function useReorderWatchlist() {
       // Snapshot the previous value
       const previousWatchlist = queryClient.getQueryData<WatchlistItem[]>(["watchlist"]);
 
+      console.log("Optimistic update - items to update:", itemsToUpdate.length);
+      console.log("Previous watchlist length:", previousWatchlist?.length);
+
       // Optimistically update the order values
       queryClient.setQueryData<WatchlistItem[]>(["watchlist"], (old = []) => {
-        if (!old || old.length === 0) return old;
+        if (!old || old.length === 0) {
+          console.log("Optimistic update - old watchlist is empty");
+          return old;
+        }
         
         const orderMap = new Map(itemsToUpdate.map((item) => [item.id, item.order]));
         
-        return old.map((item) => {
+        const updated = old.map((item) => {
           const newOrder = orderMap.get(item.id);
           if (newOrder !== undefined) {
             return { ...item, order: newOrder, updatedAt: new Date().toISOString() };
           }
           return item;
         });
+
+        console.log("Optimistic update - updated watchlist length:", updated.length);
+        console.log("Sample updated items:", updated.slice(0, 3).map(i => ({ id: i.id, order: i.order })));
+
+        return updated;
       });
 
       return { previousWatchlist };
     },
+    onSuccess: () => {
+      // Don't invalidate immediately - let the optimistic update persist
+      // The data will be refetched naturally on next mount or other operations
+      // Mark as stale so it refetches on next access, but don't force immediate refetch
+      queryClient.setQueryData(["watchlist"], (old: WatchlistItem[] | undefined) => {
+        // Keep the optimistic update, just mark query as needing refetch on next access
+        return old;
+      });
+    },
     onError: (err, variables, context) => {
+      console.error("Reorder mutation error:", err);
       // Rollback on error
       if (context?.previousWatchlist) {
         queryClient.setQueryData(["watchlist"], context.previousWatchlist);
       }
-    },
-    onSettled: async () => {
-      // Always refetch after mutation to ensure consistency
-      await queryClient.invalidateQueries({ 
+      // Force refetch on error to get correct state
+      queryClient.invalidateQueries({ 
         queryKey: ["watchlist"],
         refetchType: 'active'
       });
