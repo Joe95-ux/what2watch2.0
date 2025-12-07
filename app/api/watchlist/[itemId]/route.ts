@@ -5,9 +5,10 @@ import { db } from "@/lib/db";
 // PATCH - Update watchlist item (note or order)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { itemId: string } }
+  { params }: { params: Promise<{ itemId: string }> }
 ): Promise<NextResponse<{ success: boolean; watchlistItem?: unknown } | { error: string }>> {
   try {
+    const { itemId } = await params;
     const { userId: clerkUserId } = await auth();
 
     if (!clerkUserId) {
@@ -62,7 +63,7 @@ export async function PATCH(
     // Update the watchlist item
     const watchlistItem = await db.watchlistItem.updateMany({
       where: {
-        id: params.itemId,
+        id: itemId,
         userId: user.id, // Ensure user owns the item
       },
       data: updateData,
@@ -77,7 +78,7 @@ export async function PATCH(
 
     // Fetch the updated item
     const updatedItem = await db.watchlistItem.findUnique({
-      where: { id: params.itemId },
+      where: { id: itemId },
     });
 
     return NextResponse.json({ success: true, watchlistItem: updatedItem });
