@@ -52,9 +52,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             genres = details.genres?.map((g: { name: string }) => g.name) || [];
             runtime = details.runtime || null;
             const directors = movieDetails.credits?.crew?.filter(
-              (person) => person.job === "Director"
+              (person: { job: string; name: string }) => person.job === "Director"
             ) || [];
-            directorsOrCreators = directors.map((d) => d.name);
+            directorsOrCreators = directors.map((d: { job: string; name: string }) => d.name);
           } else {
             details = await getTVDetails(item.tmdbId);
             const tvDetails = details as typeof details & {
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
               ? Math.round(episodeRuntimes.reduce((a: number, b: number) => a + b, 0) / episodeRuntimes.length)
               : null;
             const creators = tvDetails.created_by || [];
-            directorsOrCreators = creators.map((c) => c.name);
+            directorsOrCreators = creators.map((c: { name: string }) => c.name);
           }
 
           // Fetch IMDb rating if we have IMDb ID
