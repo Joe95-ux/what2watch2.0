@@ -742,9 +742,8 @@ export default function WatchlistView({
 
         {/* Bulk Actions Bar */}
         {isEditMode && enableRemove && (
-          <div className="w-full mt-[1rem]">
-            <div className="mx-auto max-w-[76rem] px-4 sm:px-6 lg:px-8 xl:px-0">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 py-4 border-b border-border bg-muted/30 rounded-lg px-4">
+          <div className="container max-w-7xl mx-auto mt-[1rem] px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 py-4 border-b border-border bg-muted/30 rounded-lg px-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
                   <Button
                     variant="outline"
@@ -923,7 +922,6 @@ export default function WatchlistView({
                   </Popover>
                 </div>
               </div>
-            </div>
           </div>
         )}
 

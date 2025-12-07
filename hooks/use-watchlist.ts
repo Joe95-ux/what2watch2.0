@@ -252,8 +252,42 @@ export function useReorderWatchlist() {
 
   return useMutation({
     mutationFn: reorderWatchlist,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+    onMutate: async (itemsToUpdate) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["watchlist"] });
+
+      // Snapshot the previous value
+      const previousWatchlist = queryClient.getQueryData<WatchlistItem[]>(["watchlist"]);
+
+      // Optimistically update the order values
+      queryClient.setQueryData<WatchlistItem[]>(["watchlist"], (old = []) => {
+        if (!old || old.length === 0) return old;
+        
+        const orderMap = new Map(itemsToUpdate.map((item) => [item.id, item.order]));
+        
+        return old.map((item) => {
+          const newOrder = orderMap.get(item.id);
+          if (newOrder !== undefined) {
+            return { ...item, order: newOrder, updatedAt: new Date().toISOString() };
+          }
+          return item;
+        });
+      });
+
+      return { previousWatchlist };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousWatchlist) {
+        queryClient.setQueryData(["watchlist"], context.previousWatchlist);
+      }
+    },
+    onSettled: async () => {
+      // Always refetch after mutation to ensure consistency
+      await queryClient.invalidateQueries({ 
+        queryKey: ["watchlist"],
+        refetchType: 'active'
+      });
     },
   });
 }

@@ -20,27 +20,44 @@ export function useWatchlistDragDrop({
   const reorderWatchlist = useReorderWatchlist();
 
   const handleDragEnd = useCallback(
-    async (result: DropResult) => {
-      if (!result.destination) return;
-      if (!isEditMode || !isLgScreen) return;
+    (result: DropResult) => {
+      // Early returns for invalid drag operations
+      if (!result.destination) {
+        return;
+      }
+      
+      if (!isEditMode || !isLgScreen) {
+        return;
+      }
 
       const { source, destination } = result;
-      if (source.index === destination.index) return;
+      
+      if (source.index === destination.index) {
+        return;
+      }
 
+      // Calculate new order values
       const itemsToUpdate = reorderWatchlistEntries(
         entries,
         source.index,
         destination.index
       );
 
-      try {
-        await reorderWatchlist.mutateAsync(itemsToUpdate);
-        toast.success("Watchlist reordered");
-        onReorder?.();
-      } catch (error) {
-        toast.error("Failed to reorder watchlist");
-        console.error(error);
+      if (itemsToUpdate.length === 0) {
+        return;
       }
+
+      // Trigger mutation with proper callbacks
+      reorderWatchlist.mutate(itemsToUpdate, {
+        onSuccess: () => {
+          toast.success("Watchlist reordered");
+          onReorder?.();
+        },
+        onError: (error) => {
+          toast.error("Failed to reorder watchlist");
+          console.error("Reorder error:", error);
+        },
+      });
     },
     [entries, isEditMode, isLgScreen, reorderWatchlist, onReorder]
   );
