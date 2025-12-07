@@ -42,22 +42,27 @@ export async function PATCH(request: NextRequest): Promise<NextResponse<{ succes
     console.log("Reorder API - sample items:", items.slice(0, 3));
 
     // Use a transaction to ensure all updates happen atomically
-    // MongoDB transactions require all operations to be prepared first
-    const updateOperations = items.map((item: { id: string; order: number }) =>
-      db.watchlistItem.updateMany({
-        where: {
-          id: item.id,
-          userId: user.id, // Ensure user owns the item
-        },
-        data: {
-          order: item.order, // This is the actual order value (1, 2, 3, etc.), not array index
-        },
-      })
+    // For MongoDB, we use the interactive transaction callback form
+    const updateResults = await db.$transaction(
+      async (tx) => {
+        return Promise.all(
+          items.map((item: { id: string; order: number }) =>
+            tx.watchlistItem.updateMany({
+              where: {
+                id: item.id,
+                userId: user.id, // Ensure user owns the item
+              },
+              data: {
+                order: item.order, // This is the actual order value (1, 2, 3, etc.), not array index
+              },
+            })
+          )
+        );
+      },
+      {
+        timeout: 10000, // 10 second timeout
+      }
     );
-
-    const updateResults = await db.$transaction(updateOperations, {
-      timeout: 10000, // 10 second timeout
-    });
 
     // Check if all updates were successful
     const failedUpdates: Array<{ id: string; order: number }> = [];
