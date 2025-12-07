@@ -11,6 +11,7 @@ export interface WatchlistItem {
   releaseDate: string | null;
   firstAirDate: string | null;
   order: number;
+  note: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -97,6 +98,7 @@ export function useAddToWatchlist() {
           releaseDate: newItem.releaseDate || null,
           firstAirDate: newItem.firstAirDate || null,
           order: 0,
+          note: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -247,6 +249,66 @@ const reorderWatchlist = async (items: Array<{ id: string; order: number }>): Pr
   }
 };
 
+// Update watchlist item note or order
+const updateWatchlistItem = async (
+  itemId: string,
+  updates: { note?: string | null; order?: number }
+): Promise<WatchlistItem> => {
+  const res = await fetch(`/api/watchlist/${itemId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to update watchlist item");
+  }
+  const data = await res.json();
+  return data.watchlistItem;
+};
+
+export function useUpdateWatchlistItem() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ itemId, updates }: { itemId: string; updates: { note?: string | null; order?: number } }) =>
+      updateWatchlistItem(itemId, updates),
+    onMutate: async ({ itemId, updates }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["watchlist"] });
+
+      // Snapshot the previous value
+      const previousWatchlist = queryClient.getQueryData<WatchlistItem[]>(["watchlist"]);
+
+      // Optimistically update
+      queryClient.setQueryData<WatchlistItem[]>(["watchlist"], (old = []) => {
+        return old.map((item) => {
+          if (item.id === itemId) {
+            return {
+              ...item,
+              ...updates,
+              updatedAt: new Date().toISOString(),
+            };
+          }
+          return item;
+        });
+      });
+
+      return { previousWatchlist };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousWatchlist) {
+        queryClient.setQueryData(["watchlist"], context.previousWatchlist);
+      }
+    },
+    onSettled: async () => {
+      // Invalidate to get fresh data
+      await queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+    },
+  });
+}
+
 export function useReorderWatchlist() {
   const queryClient = useQueryClient();
 
@@ -287,13 +349,12 @@ export function useReorderWatchlist() {
 
       return { previousWatchlist };
     },
-    onSuccess: () => {
-      // Don't invalidate immediately - let the optimistic update persist
-      // The data will be refetched naturally on next mount or other operations
-      // Mark as stale so it refetches on next access, but don't force immediate refetch
-      queryClient.setQueryData(["watchlist"], (old: WatchlistItem[] | undefined) => {
-        // Keep the optimistic update, just mark query as needing refetch on next access
-        return old;
+    onSuccess: async () => {
+      console.log("Reorder mutation successful on server. Invalidating cache.");
+      // Invalidate to get fresh data from server after successful update
+      await queryClient.invalidateQueries({ 
+        queryKey: ["watchlist"],
+        refetchType: 'active'
       });
     },
     onError: (err, variables, context) => {

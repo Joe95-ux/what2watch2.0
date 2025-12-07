@@ -1,17 +1,9 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useClerk } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,29 +18,34 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import PlaylistCard from "@/components/browse/playlist-card";
+import ListCard from "@/components/browse/list-card";
 import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { Playlist } from "@/hooks/use-playlists";
 import { Users, UserCheck, List, Star, Heart, Edit, Image as ImageIcon, KeyRound, User as UserIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserFollowers, useUserFollowing, type User } from "@/hooks/use-follow";
 import { useFavorites } from "@/hooks/use-favorites";
 import { usePlaylists } from "@/hooks/use-playlists";
-import ProfileLayout from "@/components/social/profile-layout";
+import { useLists } from "@/hooks/use-lists";
+import { useWatchlist } from "@/hooks/use-watchlist";
+import ProfileStickyNav from "@/components/dashboard/profile-sticky-nav";
 import BannerGradientSelector, { BANNER_GRADIENTS } from "@/components/social/banner-gradient-selector";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FollowButton } from "@/components/social/follow-button";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 export default function DashboardProfileContent() {
   const { data: currentUser, isLoading: isLoadingCurrentUser } = useCurrentUser();
-  const isMobile = useIsMobile();
   const { openUserProfile } = useClerk();
-  const [activeTab, setActiveTab] = useState<"playlists" | "reviews" | "my-list" | "followers" | "following">("playlists");
+  const [activeTab, setActiveTab] = useState<"playlists" | "lists" | "watchlist" | "reviews" | "my-list" | "followers" | "following">("playlists");
   const [isEditBannerOpen, setIsEditBannerOpen] = useState(false);
   const [selectedBannerGradient, setSelectedBannerGradient] = useState<string>("gradient-1");
+  const [isScrolled, setIsScrolled] = useState(false);
+  const heroRef = useRef<HTMLDivElement>(null);
 
   // Fetch user data (current user's own profile)
   const userId = currentUser?.id || "";
@@ -56,10 +53,26 @@ export default function DashboardProfileContent() {
   const { data: followersData } = useUserFollowers(userId);
   const { data: followingData } = useUserFollowing(userId);
   const { data: playlists = [], isLoading: isLoadingPlaylists } = usePlaylists();
+  const { data: lists = [], isLoading: isLoadingLists } = useLists();
+  const { data: watchlist = [], isLoading: isLoadingWatchlist } = useWatchlist();
   const { data: favorites = [], isLoading: isLoadingFavorites } = useFavorites();
 
   const followers = followersData?.followers || [];
   const following = followingData?.following || [];
+
+  // Scroll detection for sticky nav
+  useEffect(() => {
+    const handleScroll = () => {
+      if (heroRef.current) {
+        const rect = heroRef.current.getBoundingClientRect();
+        setIsScrolled(rect.bottom < 100);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    handleScroll(); // Initial check
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -70,17 +83,95 @@ export default function DashboardProfileContent() {
   const totalPages = useMemo(() => {
     if (activeTab === "playlists") {
       return Math.ceil(playlists.length / itemsPerPage);
+    } else if (activeTab === "lists") {
+      return Math.ceil(lists.length / itemsPerPage);
+    } else if (activeTab === "watchlist") {
+      return Math.ceil(watchlist.length / itemsPerPage);
     } else if (activeTab === "my-list") {
       return Math.ceil(favorites.length / itemsPerPage);
+    } else if (activeTab === "followers") {
+      return Math.ceil(followers.length / itemsPerPage);
+    } else if (activeTab === "following") {
+      return Math.ceil(following.length / itemsPerPage);
     }
     return 1;
-  }, [playlists.length, favorites.length, activeTab, itemsPerPage]);
+  }, [playlists.length, lists.length, watchlist.length, favorites.length, followers.length, following.length, activeTab, itemsPerPage]);
 
   const paginatedPlaylists = useMemo(() => {
     if (activeTab !== "playlists") return [];
     const startIndex = (currentPage - 1) * itemsPerPage;
     return playlists.slice(startIndex, startIndex + itemsPerPage);
   }, [playlists, currentPage, itemsPerPage, activeTab]);
+
+  const paginatedLists = useMemo(() => {
+    if (activeTab !== "lists") return [];
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return lists.slice(startIndex, startIndex + itemsPerPage);
+  }, [lists, currentPage, itemsPerPage, activeTab]);
+
+  const paginatedWatchlist = useMemo(() => {
+    if (activeTab !== "watchlist") return [];
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return watchlist.slice(startIndex, startIndex + itemsPerPage);
+  }, [watchlist, currentPage, itemsPerPage, activeTab]);
+
+  const paginatedFollowers = useMemo(() => {
+    if (activeTab !== "followers") return [];
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return followers.slice(startIndex, startIndex + itemsPerPage);
+  }, [followers, currentPage, itemsPerPage, activeTab]);
+
+  const paginatedFollowing = useMemo(() => {
+    if (activeTab !== "following") return [];
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return following.slice(startIndex, startIndex + itemsPerPage);
+  }, [following, currentPage, itemsPerPage, activeTab]);
+
+  // Convert watchlist to TMDB format
+  const watchlistAsTMDB = useMemo(() => {
+    return watchlist.map((item) => {
+      if (item.mediaType === "movie") {
+        const movie: TMDBMovie = {
+          id: item.tmdbId,
+          title: item.title,
+          overview: "",
+          poster_path: item.posterPath,
+          backdrop_path: item.backdropPath,
+          release_date: item.releaseDate || "",
+          vote_average: 0,
+          vote_count: 0,
+          genre_ids: [],
+          popularity: 0,
+          adult: false,
+          original_language: "",
+          original_title: item.title,
+        };
+        return { item: movie, type: "movie" as const };
+      } else {
+        const tv: TMDBSeries = {
+          id: item.tmdbId,
+          name: item.title,
+          overview: "",
+          poster_path: item.posterPath,
+          backdrop_path: item.backdropPath,
+          first_air_date: item.firstAirDate || "",
+          vote_average: 0,
+          vote_count: 0,
+          genre_ids: [],
+          popularity: 0,
+          original_language: "",
+          original_name: item.title,
+        };
+        return { item: tv, type: "tv" as const };
+      }
+    });
+  }, [watchlist]);
+
+  const paginatedWatchlistAsTMDB = useMemo(() => {
+    if (activeTab !== "watchlist") return [];
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return watchlistAsTMDB.slice(startIndex, startIndex + itemsPerPage);
+  }, [watchlistAsTMDB, currentPage, itemsPerPage, activeTab]);
 
   // Convert favorites to TMDB format for My List tab
   const favoritesAsTMDB = useMemo(() => {
@@ -131,7 +222,7 @@ export default function DashboardProfileContent() {
   // Reset to page 1 when tab or data changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab, playlists.length, favorites.length]);
+  }, [activeTab, playlists.length, lists.length, watchlist.length, favorites.length, followers.length, following.length]);
 
   // Get banner gradient
   const bannerGradient = useMemo(() => {
@@ -192,104 +283,34 @@ export default function DashboardProfileContent() {
     </DropdownMenu>
   );
 
-  // Tabs component
-  const tabs = isMobile ? (
-    <div className="mb-6">
-      <Select value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-        <SelectTrigger className="w-full">
-          <SelectValue>
-            {activeTab === "playlists" && (
-              <span className="flex items-center gap-2">
-                <List className="h-4 w-4" />
-                Playlists ({playlists.length})
-              </span>
-            )}
-            {activeTab === "reviews" && (
-              <span className="flex items-center gap-2">
-                <Star className="h-4 w-4" />
-                Reviews
-              </span>
-            )}
-            {activeTab === "my-list" && (
-              <span className="flex items-center gap-2">
-                <Heart className="h-4 w-4" />
-                My List ({favorites.length})
-              </span>
-            )}
-            {activeTab === "followers" && (
-              <span className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Followers ({followers.length})
-              </span>
-            )}
-            {activeTab === "following" && (
-              <span className="flex items-center gap-2">
-                <UserCheck className="h-4 w-4" />
-                Following ({following.length})
-              </span>
-            )}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="playlists">
-            <span className="flex items-center gap-2">
-              <List className="h-4 w-4" />
-              Playlists ({playlists.length})
-            </span>
-          </SelectItem>
-          <SelectItem value="reviews">
-            <span className="flex items-center gap-2">
-              <Star className="h-4 w-4" />
-              Reviews
-            </span>
-          </SelectItem>
-          <SelectItem value="my-list">
-            <span className="flex items-center gap-2">
-              <Heart className="h-4 w-4" />
-              My List ({favorites.length})
-            </span>
-          </SelectItem>
-          <SelectItem value="followers">
-            <span className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Followers ({followers.length})
-            </span>
-          </SelectItem>
-          <SelectItem value="following">
-            <span className="flex items-center gap-2">
-              <UserCheck className="h-4 w-4" />
-              Following ({following.length})
-            </span>
-          </SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-  ) : (
-    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-      <TabsList className="justify-start overflow-x-auto">
-        <TabsTrigger value="playlists" className="flex items-center gap-2">
-          <List className="h-4 w-4" />
-          Playlists ({playlists.length})
-        </TabsTrigger>
-        <TabsTrigger value="reviews" className="flex items-center gap-2">
-          <Star className="h-4 w-4" />
-          Reviews
-        </TabsTrigger>
-        <TabsTrigger value="my-list" className="flex items-center gap-2">
-          <Heart className="h-4 w-4" />
-          My List ({favorites.length})
-        </TabsTrigger>
-        <TabsTrigger value="followers" className="flex items-center gap-2">
-          <Users className="h-4 w-4" />
-          Followers ({followers.length})
-        </TabsTrigger>
-        <TabsTrigger value="following" className="flex items-center gap-2">
-          <UserCheck className="h-4 w-4" />
-          Following ({following.length})
-        </TabsTrigger>
-      </TabsList>
-    </Tabs>
-  );
+  // Generate page numbers with ellipsis for pagination
+  const pageNumbers = useMemo(() => {
+    const pages: (number | "ellipsis")[] = [];
+    
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      if (currentPage > 3) {
+        pages.push("ellipsis");
+      }
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) {
+        if (i !== 1 && i !== totalPages) {
+          pages.push(i);
+        }
+      }
+      if (currentPage < totalPages - 2) {
+        pages.push("ellipsis");
+      }
+      pages.push(totalPages);
+    }
+    
+    return pages;
+  }, [currentPage, totalPages]);
 
   // Tab content
   const tabContent = (
@@ -327,20 +348,198 @@ export default function DashboardProfileContent() {
                     size="sm"
                     onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    className="cursor-pointer"
+                    className="flex-shrink-0"
                   >
                     <ChevronLeft className="h-4 w-4 mr-1" />
                     Previous
                   </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Page {currentPage} of {totalPages}
-                  </span>
+                  <div className="flex items-center gap-1 overflow-x-auto">
+                    {pageNumbers.map((page, index) => {
+                      if (page === "ellipsis") {
+                        return (
+                          <span key={`ellipsis-${index}`} className="text-muted-foreground px-2">
+                            ...
+                          </span>
+                        );
+                      }
+                      return (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className="min-w-[40px] flex-shrink-0"
+                        >
+                          {page}
+                        </Button>
+                      );
+                    })}
+                  </div>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
-                    className="cursor-pointer"
+                    className="flex-shrink-0"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
+
+      {activeTab === "lists" && (
+        <>
+          {isLoadingLists ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5 md:gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="aspect-[3/4] w-full rounded-lg" />
+              ))}
+            </div>
+          ) : lists.length === 0 ? (
+            <div className="text-center py-12">
+              <List className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No lists yet</h3>
+              <p className="text-muted-foreground">You haven&apos;t created any lists.</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5 md:gap-6">
+                {paginatedLists.map((list) => (
+                  <ListCard
+                    key={list.id}
+                    list={list}
+                    variant="grid"
+                  />
+                ))}
+              </div>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-6 w-full overflow-auto px-2 py-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="flex-shrink-0"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1 overflow-x-auto">
+                    {pageNumbers.map((page, index) => {
+                      if (page === "ellipsis") {
+                        return (
+                          <span key={`ellipsis-${index}`} className="text-muted-foreground px-2">
+                            ...
+                          </span>
+                        );
+                      }
+                      return (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className="min-w-[40px] flex-shrink-0"
+                        >
+                          {page}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="flex-shrink-0"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
+
+      {activeTab === "watchlist" && (
+        <>
+          {isLoadingWatchlist ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5 md:gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="aspect-[2/3] w-full rounded-lg" />
+              ))}
+            </div>
+          ) : paginatedWatchlistAsTMDB.length === 0 ? (
+            <div className="text-center py-12">
+              <Heart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Your watchlist is empty</h3>
+              <p className="text-muted-foreground">Start adding movies and TV shows to your watchlist.</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5 md:gap-6">
+                {paginatedWatchlistAsTMDB.map(({ item, type }) => (
+                  <div key={item.id} className="relative">
+                    <MovieCard
+                      item={item}
+                      type={type}
+                      onCardClick={(clickedItem, clickedType) =>
+                        setSelectedItem({
+                          item: clickedItem,
+                          type: clickedType,
+                        })
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-6 w-full overflow-auto px-2 py-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="flex-shrink-0"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1 overflow-x-auto">
+                    {pageNumbers.map((page, index) => {
+                      if (page === "ellipsis") {
+                        return (
+                          <span key={`ellipsis-${index}`} className="text-muted-foreground px-2">
+                            ...
+                          </span>
+                        );
+                      }
+                      return (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className="min-w-[40px] flex-shrink-0"
+                        >
+                          {page}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="flex-shrink-0"
                   >
                     Next
                     <ChevronRight className="h-4 w-4 ml-1" />
@@ -399,20 +598,39 @@ export default function DashboardProfileContent() {
                     size="sm"
                     onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    className="cursor-pointer"
+                    className="flex-shrink-0"
                   >
                     <ChevronLeft className="h-4 w-4 mr-1" />
                     Previous
                   </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Page {currentPage} of {totalPages}
-                  </span>
+                  <div className="flex items-center gap-1 overflow-x-auto">
+                    {pageNumbers.map((page, index) => {
+                      if (page === "ellipsis") {
+                        return (
+                          <span key={`ellipsis-${index}`} className="text-muted-foreground px-2">
+                            ...
+                          </span>
+                        );
+                      }
+                      return (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className="min-w-[40px] flex-shrink-0"
+                        >
+                          {page}
+                        </Button>
+                      );
+                    })}
+                  </div>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
-                    className="cursor-pointer"
+                    className="flex-shrink-0"
                   >
                     Next
                     <ChevronRight className="h-4 w-4 ml-1" />
@@ -433,8 +651,9 @@ export default function DashboardProfileContent() {
               <p className="text-muted-foreground">You don&apos;t have any followers.</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {followers.map((follower: User) => (
+            <>
+              <div className="space-y-4">
+                {paginatedFollowers.map((follower: User) => (
                 <div key={follower.id} className="flex items-center gap-4 p-4 rounded-lg border bg-card">
                   <Avatar className="h-12 w-12">
                     <AvatarImage src={follower.avatarUrl || undefined} alt={follower.displayName || ""} />
@@ -451,7 +670,54 @@ export default function DashboardProfileContent() {
                   <FollowButton userId={follower.id} size="sm" />
                 </div>
               ))}
-            </div>
+              </div>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-6 w-full overflow-auto px-2 py-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="flex-shrink-0"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1 overflow-x-auto">
+                    {pageNumbers.map((page, index) => {
+                      if (page === "ellipsis") {
+                        return (
+                          <span key={`ellipsis-${index}`} className="text-muted-foreground px-2">
+                            ...
+                          </span>
+                        );
+                      }
+                      return (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className="min-w-[40px] flex-shrink-0"
+                        >
+                          {page}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="flex-shrink-0"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -465,8 +731,9 @@ export default function DashboardProfileContent() {
               <p className="text-muted-foreground">You aren&apos;t following anyone yet.</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {following.map((user: User) => (
+            <>
+              <div className="space-y-4">
+                {paginatedFollowing.map((user: User) => (
                 <div key={user.id} className="flex items-center gap-4 p-4 rounded-lg border bg-card">
                   <Avatar className="h-12 w-12">
                     <AvatarImage src={user.avatarUrl || undefined} alt={user.displayName || ""} />
@@ -483,7 +750,54 @@ export default function DashboardProfileContent() {
                   <FollowButton userId={user.id} size="sm" />
                 </div>
               ))}
-            </div>
+              </div>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-6 w-full overflow-auto px-2 py-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="flex-shrink-0"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1 overflow-x-auto">
+                    {pageNumbers.map((page, index) => {
+                      if (page === "ellipsis") {
+                        return (
+                          <span key={`ellipsis-${index}`} className="text-muted-foreground px-2">
+                            ...
+                          </span>
+                        );
+                      }
+                      return (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className="min-w-[40px] flex-shrink-0"
+                        >
+                          {page}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="flex-shrink-0"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -492,20 +806,82 @@ export default function DashboardProfileContent() {
 
   return (
     <>
-      <ProfileLayout
-        bannerGradient={bannerGradient}
-        displayName={displayName}
-        username={currentUser.username || undefined}
-        avatarUrl={currentUser.avatarUrl || undefined}
-        initials={initials}
-        followersCount={followers.length}
-        followingCount={following.length}
-        playlistsCount={playlists.length}
-        actionButton={editButton}
-        tabs={tabs}
-        tabContent={tabContent}
-        showBackButton={false}
-      />
+      <div className="min-h-screen bg-background">
+        {/* Banner/Cover Section */}
+        <div ref={heroRef} className="relative h-[200px] sm:h-[250px] overflow-hidden">
+          <div 
+            className="w-full h-full" 
+            style={{ background: bannerGradient }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/40 to-transparent" />
+        </div>
+
+        {/* Profile Info Section */}
+        <div className="container max-w-[70rem] mx-auto px-4 sm:px-6">
+          <div className="relative -mt-16 sm:-mt-20 mb-4">
+            <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-background">
+              <AvatarImage src={currentUser.avatarUrl || undefined} alt={displayName} />
+              <AvatarFallback className="text-3xl sm:text-4xl">{initials}</AvatarFallback>
+            </Avatar>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold mb-1">{displayName}</h1>
+              {currentUser.username && (
+                <p className="text-base sm:text-lg text-muted-foreground mb-3">@{currentUser.username}</p>
+              )}
+              {currentUser.bio && (
+                <p className="text-sm sm:text-base text-foreground mb-3 whitespace-pre-wrap break-words">
+                  {currentUser.bio}
+                </p>
+              )}
+              <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                <span>
+                  <span className="font-semibold text-foreground">{followers.length}</span>{" "}
+                  {followers.length === 1 ? "follower" : "followers"}
+                </span>
+                <span>
+                  <span className="font-semibold text-foreground">{following.length}</span> following
+                </span>
+                <span>
+                  <span className="font-semibold text-foreground">{playlists.length}</span>{" "}
+                  {playlists.length === 1 ? "playlist" : "playlists"}
+                </span>
+                {lists.length > 0 && (
+                  <span>
+                    <span className="font-semibold text-foreground">{lists.length}</span>{" "}
+                    {lists.length === 1 ? "list" : "lists"}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex-shrink-0">
+              {editButton}
+            </div>
+          </div>
+
+          {/* Sticky Nav */}
+          <ProfileStickyNav
+            activeTab={activeTab}
+            onTabChange={(tab) => setActiveTab(tab as typeof activeTab)}
+            isScrolled={isScrolled}
+            counts={{
+              playlists: playlists.length,
+              lists: lists.length,
+              watchlist: watchlist.length,
+              favorites: favorites.length,
+              followers: followers.length,
+              following: following.length,
+            }}
+          />
+
+          {/* Tab Content */}
+          <div className="py-6">
+            {tabContent}
+          </div>
+        </div>
+      </div>
 
       {/* Edit Banner Dialog */}
       <Dialog open={isEditBannerOpen} onOpenChange={setIsEditBannerOpen}>

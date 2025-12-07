@@ -34,6 +34,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ activiti
     // Get query parameters
     const { searchParams } = new URL(request.url);
     const typeParam = searchParams.get("type"); // Filter by activity type
+    const userIdParam = searchParams.get("userId"); // Filter by specific user ID
     const limit = parseInt(searchParams.get("limit") || "50", 10);
     const sortBy = searchParams.get("sortBy") || "createdAt"; // Sort field: "createdAt" (default)
     const sortOrder = searchParams.get("sortOrder") || "desc"; // Sort order: "asc" or "desc"
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ activiti
 
     // Build where clause
     const where: {
-      userId: { in: string[] };
+      userId: string | { in: string[] };
       type?: "LOGGED_FILM" | "RATED_FILM" | "REVIEWED_FILM" | "LIKED_FILM" | "CREATED_LIST" | "CREATED_PLAYLIST" | "FOLLOWED_USER";
       createdAt?: {
         gte?: Date;
@@ -55,7 +56,11 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ activiti
         listName?: { contains: string; mode?: "insensitive" };
       }>;
     } = {
-      userId: { in: userIds },
+      // If userIdParam is provided, filter by that specific user (must be in the allowed list)
+      // Otherwise, show activities from all followed users + current user
+      userId: userIdParam && userIds.includes(userIdParam)
+        ? userIdParam
+        : { in: userIds },
     };
 
     if (typeParam && [

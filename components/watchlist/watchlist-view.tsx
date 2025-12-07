@@ -83,7 +83,7 @@ import {
 import { useUser } from "@clerk/nextjs";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { useLists, useUpdateList, useCreateList } from "@/hooks/use-lists";
-import { useReorderWatchlist, useAddToWatchlist } from "@/hooks/use-watchlist";
+import { useReorderWatchlist, useAddToWatchlist, useUpdateWatchlistItem } from "@/hooks/use-watchlist";
 import { createPersonSlug } from "@/lib/person-utils";
 import { useSearch } from "@/hooks/use-search";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -101,6 +101,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ChangeOrderModal } from "./change-order-modal";
+import { Textarea } from "@/components/ui/textarea";
 
 type SortField = "createdAt" | "title" | "releaseYear";
 type SortOrder = "asc" | "desc";
@@ -547,7 +549,9 @@ export default function WatchlistView({
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="relative -mt-[65px] h-[30vh] min-h-[200px] max-h-[300px] sm:h-[40vh] sm:min-h-[250px] md:h-[50vh] md:min-h-[300px] overflow-hidden bg-muted" />
+        <div className="relative -mt-[65px] h-[30vh] min-h-[200px] max-h-[300px] sm:h-[40vh] sm:min-h-[250px] md:h-[50vh] md:min-h-[300px] overflow-hidden">
+          <div className="w-full h-full bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30" />
+        </div>
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Skeleton className="h-10 w-48 mb-8" />
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -589,7 +593,7 @@ export default function WatchlistView({
                 sizes="100vw"
                 unoptimized
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent" />
             </>
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30" />
@@ -777,16 +781,17 @@ export default function WatchlistView({
                   onClick={toggleSelectAll}
                   className="cursor-pointer w-full sm:w-auto"
                 >
+                  <div className="h-4 w-4 mr-2 flex items-center justify-center">
+                    {selectedItems.size === filteredAndSorted.length ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <div className="h-4 w-4 border-2 border-current rounded" />
+                    )}
+                  </div>
                   {selectedItems.size === filteredAndSorted.length ? (
-                    <>
-                      <X className="h-4 w-4 mr-2" />
-                      Deselect All
-                    </>
+                    "Deselect All"
                   ) : (
-                    <>
-                      <Check className="h-4 w-4 mr-2" />
-                      Select All
-                    </>
+                    "Select All"
                   )}
                 </Button>
                 <span className="text-sm text-muted-foreground whitespace-nowrap">
@@ -1794,6 +1799,17 @@ function DetailedWatchlistItem({
   const { data: watchedData } = useIsWatched(item.id, type);
   const isWatched = watchedData?.isWatched || false;
   const watchedLogId = watchedData?.logId || null;
+  
+  // Note editing state
+  const [isEditingNote, setIsEditingNote] = useState(false);
+  const [noteValue, setNoteValue] = useState(watchlistItem.note || "");
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const updateWatchlistItem = useUpdateWatchlistItem();
+  
+  // Update note value when watchlistItem changes
+  useEffect(() => {
+    setNoteValue(watchlistItem.note || "");
+  }, [watchlistItem.note]);
 
   // Fetch details for synopsis, director, and cast
   const { data: movieDetails } = useMovieDetails(
@@ -1868,8 +1884,6 @@ function DetailedWatchlistItem({
 
   // Get synopsis
   const synopsis = details?.overview || item.overview || "";
-  const truncatedSynopsis =
-    synopsis.length > 150 ? synopsis.slice(0, 150) + "..." : synopsis;
 
   // Get director (for movies) or creator (for TV)
   const director = detailsWithCredits?.credits?.crew?.find(
@@ -1921,6 +1935,33 @@ function DetailedWatchlistItem({
       toast.error("Failed to update watched status");
     }
   };
+
+  const handleNoteSave = async () => {
+    try {
+      await updateWatchlistItem.mutateAsync({
+        itemId: watchlistItem.id,
+        updates: { note: noteValue || null },
+      });
+      setIsEditingNote(false);
+      toast.success("Note saved");
+    } catch {
+      toast.error("Failed to save note");
+    }
+  };
+
+  const handleNoteCancel = () => {
+    setNoteValue(watchlistItem.note || "");
+    setIsEditingNote(false);
+  };
+
+  const handleOrderChange = async (newOrder: number) => {
+    await updateWatchlistItem.mutateAsync({
+      itemId: watchlistItem.id,
+      updates: { order: newOrder },
+    });
+  };
+
+  const formattedAddedDate = format(new Date(watchlistItem.createdAt), "MMM d, yyyy");
 
   return (
     <div
@@ -2016,13 +2057,32 @@ function DetailedWatchlistItem({
           {/* First 3 Lines */}
           <div className="flex-1 min-w-0 flex flex-col">
             {/* Line 1: Order. Title */}
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="text-sm text-muted-foreground">
                 {isEditMode ? index + 1 : order || index + 1}.
               </span>
               <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
                 {watchlistItem.title}
               </h3>
+              {isEditMode && (
+                <>
+                  <Badge variant="secondary" className="text-xs">
+                    Added {formattedAddedDate}
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsOrderModalOpen(true);
+                    }}
+                  >
+                    <ArrowUpDown className="h-3 w-3 mr-1" />
+                    Change Order
+                  </Button>
+                </>
+              )}
             </div>
 
             {/* Line 2: Release year, runtime/episodes, rated, metascore */}
@@ -2112,26 +2172,212 @@ function DetailedWatchlistItem({
               )}
             </div>
 
-            {/* Desktop: Synopsis and Cast (below first 3 lines) */}
+            {/* Desktop: Note (edit mode) or Synopsis and Cast (view mode) */}
             <div className="hidden sm:block">
+              {isEditMode ? (
+                <div className="space-y-2">
+                  {isEditingNote ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={noteValue}
+                        onChange={(e) => setNoteValue(e.target.value)}
+                        placeholder="Add a note..."
+                        className="min-h-[80px] resize-none"
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") {
+                            handleNoteCancel();
+                          } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                            handleNoteSave();
+                          }
+                        }}
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleNoteSave();
+                          }}
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleNoteCancel();
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsEditingNote(true);
+                      }}
+                      className={cn(
+                        "border-l-4 border-primary/50 pl-4 py-2 text-sm text-muted-foreground cursor-text hover:border-primary/80 transition-colors",
+                        !watchlistItem.note && "text-muted-foreground/50 italic"
+                      )}
+                    >
+                      {watchlistItem.note || "Click to add a note..."}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {synopsis && (
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                      {synopsis}
+                    </p>
+                  )}
+                  {(directorOrCreator || topCast.length > 0) && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+                      {directorOrCreator && (
+                        <>
+                          <span className="font-medium">{type === "movie" ? "Director:" : "Creator:"}</span>
+                          {directorOrCreator.id ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(
+                                  `/person/${createPersonSlug(
+                                    directorOrCreator.id,
+                                    directorOrCreator.name
+                                  )}`
+                                );
+                              }}
+                              className="text-primary underline hover:text-primary/80 transition-colors"
+                            >
+                              {directorOrCreator.name}
+                            </button>
+                          ) : (
+                            <span>{directorOrCreator.name}</span>
+                          )}
+                          {topCast.length > 0 && <span>•</span>}
+                        </>
+                      )}
+                      {topCast.length > 0 && (
+                        <>
+                          <span className="font-medium">Stars:</span>
+                          {topCast.map(
+                            (
+                              actor: { id: number; name: string },
+                              index: number
+                            ) => (
+                              <span key={actor.id}>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(
+                                      `/person/${createPersonSlug(
+                                        actor.id,
+                                        actor.name
+                                      )}`
+                                    );
+                                  }}
+                                  className="text-primary underline hover:text-primary/80 transition-colors"
+                                >
+                                  {actor.name}
+                                </button>
+                                {index < topCast.length - 1 && ", "}
+                              </span>
+                            )
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Second Div: Note (edit mode) or Synopsis and Cast (mobile only, view mode) */}
+        <div className="flex flex-col sm:hidden gap-2">
+          {isEditMode ? (
+            <div className="space-y-2">
+              {isEditingNote ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={noteValue}
+                    onChange={(e) => setNoteValue(e.target.value)}
+                    placeholder="Add a note..."
+                    className="min-h-[80px] resize-none"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        handleNoteCancel();
+                      } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                        handleNoteSave();
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNoteSave();
+                      }}
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNoteCancel();
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsEditingNote(true);
+                  }}
+                  className={cn(
+                    "border-l-4 border-primary/50 pl-4 py-2 text-sm text-muted-foreground cursor-text hover:border-primary/80 transition-colors",
+                    !watchlistItem.note && "text-muted-foreground/50 italic"
+                  )}
+                >
+                  {watchlistItem.note || "Click to add a note..."}
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
               {synopsis && (
-                <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                  {truncatedSynopsis}
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {synopsis}
                 </p>
               )}
               {(directorOrCreator || topCast.length > 0) && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
                   {directorOrCreator && (
                     <>
-                      <span className="font-medium">Director:</span>
-                      {directorOrCreator.id ? (
+                      <span className="font-medium">{type === "movie" ? "Director:" : "Creator:"}</span>
+                      {director && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             router.push(
                               `/person/${createPersonSlug(
-                                directorOrCreator.id,
-                                directorOrCreator.name
+                                director.id,
+                                director.name
                               )}`
                             );
                           }}
@@ -2139,9 +2385,8 @@ function DetailedWatchlistItem({
                         >
                           {directorOrCreator.name}
                         </button>
-                      ) : (
-                        <span>{directorOrCreator.name}</span>
                       )}
+                      {!director && <span>{directorOrCreator.name}</span>}
                       {topCast.length > 0 && <span>•</span>}
                     </>
                   )}
@@ -2149,10 +2394,7 @@ function DetailedWatchlistItem({
                     <>
                       <span className="font-medium">Stars:</span>
                       {topCast.map(
-                        (
-                          actor: { id: number; name: string },
-                          index: number
-                        ) => (
+                        (actor: { id: number; name: string }, index: number) => (
                           <span key={actor.id}>
                             <button
                               onClick={(e) => {
@@ -2176,69 +2418,7 @@ function DetailedWatchlistItem({
                   )}
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-
-        {/* Second Div: Synopsis and Cast (mobile only) */}
-        <div className="flex flex-col sm:hidden gap-2">
-          {synopsis && (
-            <p className="text-sm text-muted-foreground line-clamp-2">
-              {truncatedSynopsis}
-            </p>
-          )}
-          {(directorOrCreator || topCast.length > 0) && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
-              {directorOrCreator && (
-                <>
-                  <span className="font-medium">Director:</span>
-                  {director && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(
-                          `/person/${createPersonSlug(
-                            director.id,
-                            director.name
-                          )}`
-                        );
-                      }}
-                      className="text-primary underline hover:text-primary/80 transition-colors"
-                    >
-                      {directorOrCreator.name}
-                    </button>
-                  )}
-                  {!director && <span>{directorOrCreator.name}</span>}
-                  {topCast.length > 0 && <span>•</span>}
-                </>
-              )}
-              {topCast.length > 0 && (
-                <>
-                  <span className="font-medium">Stars:</span>
-                  {topCast.map(
-                    (actor: { id: number; name: string }, index: number) => (
-                      <span key={actor.id}>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(
-                              `/person/${createPersonSlug(
-                                actor.id,
-                                actor.name
-                              )}`
-                            );
-                          }}
-                          className="text-primary underline hover:text-primary/80 transition-colors"
-                        >
-                          {actor.name}
-                        </button>
-                        {index < topCast.length - 1 && ", "}
-                      </span>
-                    )
-                  )}
-                </>
-              )}
-            </div>
+            </>
           )}
         </div>
       </div>
@@ -2257,6 +2437,14 @@ function DetailedWatchlistItem({
           </Button>
         </div>
       )}
+      <ChangeOrderModal
+        open={isOrderModalOpen}
+        onOpenChange={setIsOrderModalOpen}
+        currentOrder={watchlistItem.order || 0}
+        maxOrder={totalItems}
+        title={watchlistItem.title}
+        onConfirm={handleOrderChange}
+      />
     </div>
   );
 }

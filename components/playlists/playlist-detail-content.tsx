@@ -249,7 +249,7 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
               alt={playlist.name}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent" />
           </>
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30" />

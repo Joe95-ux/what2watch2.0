@@ -59,7 +59,8 @@ const fetchActivityFeed = async (
   startDate?: string,
   endDate?: string,
   search?: string,
-  groupBy?: "day" | "week" | "month"
+  groupBy?: "day" | "week" | "month",
+  userId?: string
 ): Promise<{ activities: Activity[]; grouped?: Record<string, Activity[]>; total: number }> => {
   const params = new URLSearchParams();
   if (type) params.append("type", type);
@@ -70,6 +71,7 @@ const fetchActivityFeed = async (
   if (endDate) params.append("endDate", endDate);
   if (search) params.append("search", search);
   if (groupBy) params.append("groupBy", groupBy);
+  if (userId) params.append("userId", userId);
 
   const res = await fetch(`/api/activity?${params.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch activity feed");
@@ -79,6 +81,14 @@ const fetchActivityFeed = async (
     grouped: data.grouped || undefined,
     total: data.total || 0,
   };
+};
+
+// Fetch list of users in activity feed (for filter dropdown)
+const fetchActivityUsers = async (): Promise<Array<{ id: string; username: string | null; displayName: string | null; avatarUrl: string | null }>> => {
+  const res = await fetch("/api/activity/users");
+  if (!res.ok) throw new Error("Failed to fetch activity users");
+  const data = await res.json();
+  return data.users || [];
 };
 
 // Fetch user's public activity feed
@@ -132,12 +142,22 @@ export function useActivityFeed(
   startDate?: string,
   endDate?: string,
   search?: string,
-  groupBy?: "day" | "week" | "month"
+  groupBy?: "day" | "week" | "month",
+  userId?: string
 ) {
   return useQuery<{ activities: Activity[]; grouped?: Record<string, Activity[]>; total: number }>({
-    queryKey: ["activity-feed", type, limit, sortBy, sortOrder, startDate, endDate, search, groupBy],
-    queryFn: () => fetchActivityFeed(type, limit, sortBy, sortOrder, startDate, endDate, search, groupBy),
+    queryKey: ["activity-feed", type, limit, sortBy, sortOrder, startDate, endDate, search, groupBy, userId],
+    queryFn: () => fetchActivityFeed(type, limit, sortBy, sortOrder, startDate, endDate, search, groupBy, userId),
     staleTime: 1000 * 60, // 1 minute
+  });
+}
+
+// Hook to fetch users in activity feed (for filter)
+export function useActivityUsers() {
+  return useQuery<Array<{ id: string; username: string | null; displayName: string | null; avatarUrl: string | null }>>({
+    queryKey: ["activity-users"],
+    queryFn: fetchActivityUsers,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
 

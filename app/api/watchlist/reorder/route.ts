@@ -41,33 +41,39 @@ export async function PATCH(request: NextRequest): Promise<NextResponse<{ succes
     console.log("Reorder API - user ID:", user.id);
     console.log("Reorder API - sample items:", items.slice(0, 3));
 
-    // Update all items and verify they were updated
-    const updateResults = await Promise.all(
-      items.map(async (item: { id: string; order: number }) => {
-        const result = await db.watchlistItem.updateMany({
-          where: {
-            id: item.id,
-            userId: user.id, // Ensure user owns the item
-          },
-          data: {
-            order: item.order,
-          },
-        });
-        if (result.count === 0) {
-          console.warn(`No item updated for ID: ${item.id}, order: ${item.order}`);
-        }
-        return { id: item.id, order: item.order, updated: result.count > 0 };
+    // Use a transaction to ensure all updates happen atomically
+    // MongoDB transactions require all operations to be prepared first
+    const updateOperations = items.map((item: { id: string; order: number }) =>
+      db.watchlistItem.updateMany({
+        where: {
+          id: item.id,
+          userId: user.id, // Ensure user owns the item
+        },
+        data: {
+          order: item.order, // This is the actual order value (1, 2, 3, etc.), not array index
+        },
       })
     );
 
-    console.log("Reorder API - update results:", {
-      total: updateResults.length,
-      successful: updateResults.filter((r) => r.updated).length,
-      failed: updateResults.filter((r) => !r.updated).length,
+    const updateResults = await db.$transaction(updateOperations, {
+      timeout: 10000, // 10 second timeout
     });
 
-    // Check if any items failed to update
-    const failedUpdates = updateResults.filter((r) => !r.updated);
+    // Check if all updates were successful
+    const failedUpdates: Array<{ id: string; order: number }> = [];
+    items.forEach((item: { id: string; order: number }, index: number) => {
+      if (updateResults[index].count === 0) {
+        console.warn(`No item updated for ID: ${item.id}, order: ${item.order}`);
+        failedUpdates.push(item);
+      }
+    });
+
+    console.log("Reorder API - update results:", {
+      total: updateResults.length,
+      successful: updateResults.length - failedUpdates.length,
+      failed: failedUpdates.length,
+    });
+
     if (failedUpdates.length > 0) {
       console.error("Some items failed to update:", failedUpdates);
       return NextResponse.json(
@@ -89,6 +95,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse<{ succes
       select: { id: true, order: true },
     });
     console.log("Reorder API - verification sample:", verifyItems);
+    console.log("Reorder API - expected orders:", items.slice(0, 3).map((item) => ({ id: item.id, order: item.order })));
 
     return NextResponse.json({ success: true });
   } catch (error) {
