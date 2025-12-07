@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { getMovieDetails, getTVDetails } from "@/lib/tmdb";
+import { getOMDBFullData } from "@/lib/omdb";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -76,19 +77,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           // Fetch IMDb rating if we have IMDb ID
           if (imdbId) {
             try {
-              // Use OMDB API directly with IMDb ID
-              const omdbRes = await fetch(
-                `${request.nextUrl.origin}/api/omdb?imdbId=${imdbId}`
-              );
-              if (omdbRes.ok) {
-                const omdbData = await omdbRes.json();
-                // OMDB returns imdbRating as a string like "8.5" or "N/A"
-                if (omdbData.imdbRating && omdbData.imdbRating !== "N/A") {
-                  const parsed = parseFloat(omdbData.imdbRating);
-                  if (!isNaN(parsed) && parsed > 0) {
-                    imdbRating = parsed;
-                  }
-                }
+              // Use OMDB library function directly (same as client-side)
+              const omdbData = await getOMDBFullData(imdbId);
+              // getOMDBFullData returns imdbRating as a number (or null)
+              if (omdbData?.imdbRating && omdbData.imdbRating > 0) {
+                imdbRating = omdbData.imdbRating;
               }
             } catch (error) {
               // Ignore rating fetch errors

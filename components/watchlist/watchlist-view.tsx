@@ -104,7 +104,7 @@ import {
 import { ChangeOrderModal } from "./change-order-modal";
 import { Textarea } from "@/components/ui/textarea";
 
-type SortField = "createdAt" | "title" | "releaseYear";
+type SortField = "listOrder" | "createdAt" | "title" | "releaseYear";
 type SortOrder = "asc" | "desc";
 type ViewMode = "grid" | "table" | "detailed";
 type FilterType = "all" | "movie" | "tv";
@@ -206,8 +206,8 @@ export default function WatchlistView({
   // In edit mode, force detailed view
   const effectiveViewMode = isEditMode ? "detailed" : viewMode;
   const [filterType, setFilterType] = useState<FilterType>("all");
-  const [sortField, setSortField] = useState<SortField>("createdAt");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+  const [sortField, setSortField] = useState<SortField>("listOrder");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [searchQuery, setSearchQuery] = useState("");
   const [itemToRemove, setItemToRemove] = useState<{
     tmdbId: number;
@@ -333,72 +333,84 @@ export default function WatchlistView({
       filtered = filtered.filter((entry) => entry.type === filterType);
     }
 
-    // Sort: ALWAYS prioritize order field (Trello-like behavior)
-    // Items with order > 0 are sorted by order value (1, 2, 3...)
-    // Items without order (order === 0 or null) are sorted by sortField/sortOrder
-    filtered.sort((a, b) => {
-      const aOrder = a.watchlistItem.order || 0;
-      const bOrder = b.watchlistItem.order || 0;
+    // Sort based on sortField
+    if (sortField === "listOrder") {
+      // List Order: Sort by order field (Trello-like behavior)
+      // Items with order > 0 are sorted by order value (1, 2, 3...)
+      // Items without order come after, sorted by createdAt
+      filtered.sort((a, b) => {
+        const aOrder = a.watchlistItem.order || 0;
+        const bOrder = b.watchlistItem.order || 0;
 
-      // If both have order, sort by order value (this is the primary sort)
-      if (aOrder > 0 && bOrder > 0) {
-        return aOrder - bOrder;
-      }
+        // If both have order, sort by order value
+        if (aOrder > 0 && bOrder > 0) {
+          return aOrder - bOrder;
+        }
 
-      // Items with order always come before items without order
-      if (aOrder > 0 && bOrder === 0) return -1;
-      if (aOrder === 0 && bOrder > 0) return 1;
+        // Items with order come before items without order
+        if (aOrder > 0 && bOrder === 0) return -1;
+        if (aOrder === 0 && bOrder > 0) return 1;
 
-      // If neither has order, apply sortField/sortOrder as secondary sort
-      let aValue: string | number | null;
-      let bValue: string | number | null;
+        // If neither has order, sort by createdAt as fallback
+        return (
+          new Date(b.watchlistItem.createdAt).getTime() -
+          new Date(a.watchlistItem.createdAt).getTime()
+        );
+      });
+    } else {
+      // Other sorts: Sort by the selected field, ignore order
+      filtered.sort((a, b) => {
+        let aValue: string | number | null;
+        let bValue: string | number | null;
 
-      switch (sortField) {
-        case "createdAt":
-          aValue = new Date(a.watchlistItem.createdAt).getTime();
-          bValue = new Date(b.watchlistItem.createdAt).getTime();
-          break;
-        case "title":
-          aValue = (
-            "title" in a.item ? a.item.title : a.item.name || ""
-          ).toLowerCase();
-          bValue = (
-            "title" in b.item ? b.item.title : b.item.name || ""
-          ).toLowerCase();
-          break;
-        case "releaseYear":
-          aValue = a.watchlistItem.releaseDate
-            ? new Date(a.watchlistItem.releaseDate).getFullYear()
-            : a.watchlistItem.firstAirDate
-            ? new Date(a.watchlistItem.firstAirDate).getFullYear()
-            : 0;
-          bValue = b.watchlistItem.releaseDate
-            ? new Date(b.watchlistItem.releaseDate).getFullYear()
-            : b.watchlistItem.firstAirDate
-            ? new Date(b.watchlistItem.firstAirDate).getFullYear()
-            : 0;
-          break;
-        default:
-          return 0;
-      }
+        switch (sortField) {
+          case "createdAt":
+            aValue = new Date(a.watchlistItem.createdAt).getTime();
+            bValue = new Date(b.watchlistItem.createdAt).getTime();
+            break;
+          case "title":
+            aValue = (
+              "title" in a.item ? a.item.title : a.item.name || ""
+            ).toLowerCase();
+            bValue = (
+              "title" in b.item ? b.item.title : b.item.name || ""
+            ).toLowerCase();
+            break;
+          case "releaseYear":
+            aValue = a.watchlistItem.releaseDate
+              ? new Date(a.watchlistItem.releaseDate).getFullYear()
+              : a.watchlistItem.firstAirDate
+              ? new Date(a.watchlistItem.firstAirDate).getFullYear()
+              : 0;
+            bValue = b.watchlistItem.releaseDate
+              ? new Date(b.watchlistItem.releaseDate).getFullYear()
+              : b.watchlistItem.firstAirDate
+              ? new Date(b.watchlistItem.firstAirDate).getFullYear()
+              : 0;
+            break;
+          default:
+            return 0;
+        }
 
-      if (aValue === null && bValue === null) return 0;
-      if (aValue === null) return sortOrder === "asc" ? 1 : -1;
-      if (bValue === null) return sortOrder === "asc" ? -1 : 1;
-      if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
-      if (aValue > bValue) return sortOrder === "asc" ? 1 : -1;
-      return 0;
-    });
+        if (aValue === null && bValue === null) return 0;
+        if (aValue === null) return sortOrder === "asc" ? 1 : -1;
+        if (bValue === null) return sortOrder === "asc" ? -1 : 1;
+        if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
+        if (aValue > bValue) return sortOrder === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
 
     return filtered;
   }, [watchlistAsTMDB, searchQuery, filterType, sortField, sortOrder]);
 
   // Drag and drop hook (after filteredAndSorted is defined)
+  // Only enable drag-and-drop when sortField is "listOrder" and in edit mode
   const { DragDropContext, handleDragEnd, isDragEnabled } =
     useWatchlistDragDrop({
       filteredEntries: filteredAndSorted,
       allEntries: fullSortedByOrder,
-      isEditMode: isEditMode && enableEdit,
+      isEditMode: isEditMode && enableEdit && sortField === "listOrder",
       isLgScreen,
     });
 
@@ -1090,8 +1102,7 @@ export default function WatchlistView({
                               size="icon"
                               className={cn(
                                 "h-7 w-7 cursor-pointer",
-                                (sortField !== "createdAt" ||
-                                  sortOrder !== "desc") &&
+                                sortField !== "listOrder" &&
                                   "bg-primary/10 text-primary"
                               )}
                             >
@@ -1101,6 +1112,19 @@ export default function WatchlistView({
                           <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuLabel>Sort by</DropdownMenuLabel>
                             <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSortField("listOrder");
+                                setSortOrder("asc");
+                              }}
+                              className={cn(
+                                "cursor-pointer",
+                                sortField === "listOrder" &&
+                                  "bg-accent"
+                              )}
+                            >
+                              List Order
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => {
                                 setSortField("createdAt");
@@ -1608,6 +1632,7 @@ export default function WatchlistView({
                                 isEditMode={isEditMode && enableEdit}
                                 isSelected={selectedItems.has(watchlistItem.id)}
                                 order={
+                                  sortField === "listOrder" &&
                                   watchlistItem.order && watchlistItem.order > 0
                                     ? watchlistItem.order
                                     : undefined
@@ -1637,6 +1662,7 @@ export default function WatchlistView({
                                 }}
                                 isLgScreen={isLgScreen}
                                 isPublic={isPublicProp}
+                                sortField={sortField}
                               />
                             </div>
                           )}
@@ -1805,6 +1831,7 @@ interface DetailedWatchlistItemProps {
   onItemClick: () => void;
   isLgScreen: boolean;
   isPublic?: boolean;
+  sortField: SortField;
 }
 
 function DetailedWatchlistItem({
@@ -1821,6 +1848,7 @@ function DetailedWatchlistItem({
   onItemClick,
   isLgScreen,
   isPublic,
+  sortField,
 }: DetailedWatchlistItemProps) {
   const router = useRouter();
   const { isSignedIn } = useUser();
@@ -2088,9 +2116,11 @@ function DetailedWatchlistItem({
           <div className="flex-1 min-w-0 flex flex-col">
             {/* Line 1: Order. Title */}
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className="text-sm text-muted-foreground">
-                {(order && order > 0) ? order : index + 1}.
-              </span>
+              {order !== undefined && (
+                <span className="text-sm text-muted-foreground">
+                  {(order && order > 0) ? order : index + 1}.
+                </span>
+              )}
               <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
                 {watchlistItem.title}
               </h3>
@@ -2099,18 +2129,20 @@ function DetailedWatchlistItem({
                   <Badge variant="secondary" className="text-xs">
                     Added {formattedAddedDate}
                   </Badge>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-6 text-xs"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsOrderModalOpen(true);
-                    }}
-                  >
-                    <ArrowUpDown className="h-3 w-3 mr-1" />
-                    Change Order
-                  </Button>
+                  {sortField === "listOrder" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsOrderModalOpen(true);
+                      }}
+                    >
+                      <ArrowUpDown className="h-3 w-3 mr-1" />
+                      Change Order
+                    </Button>
+                  )}
                 </>
               )}
             </div>
@@ -2263,7 +2295,8 @@ function DetailedWatchlistItem({
                         setIsEditingNote(true);
                       }}
                       className={cn(
-                        "border-l-4 border-primary/50 pl-4 py-2 text-sm text-muted-foreground cursor-text hover:border-primary/80 transition-colors",
+                        "border-l-4 border-primary/50 pl-4 py-2 text-sm text-muted-foreground cursor-text hover:border-primary/80 transition-colors rounded-r",
+                        "bg-muted/50 hover:bg-muted/70",
                         !watchlistItem.note && "text-muted-foreground/50 italic"
                       )}
                     >
