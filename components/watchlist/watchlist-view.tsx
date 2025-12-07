@@ -225,13 +225,13 @@ export default function WatchlistView({
   const { isSignedIn } = useUser();
   const addToWatchlist = useAddToWatchlist();
   const [isLgScreen, setIsLgScreen] = useState(false);
-  
+
   // Check if screen is lg (1024px and up) for drag and drop
   useEffect(() => {
     const checkScreenSize = () => {
       setIsLgScreen(window.innerWidth >= 1024);
     };
-    
+
     if (typeof window !== "undefined") {
       checkScreenSize();
       window.addEventListener("resize", checkScreenSize);
@@ -246,7 +246,6 @@ export default function WatchlistView({
     type: "all",
     page: 1,
   });
-
 
   // Convert watchlist items to TMDB format for display
   const watchlistAsTMDB = useMemo(() => {
@@ -287,6 +286,31 @@ export default function WatchlistView({
       }
     });
   }, [watchlist]);
+
+  // Full watchlist sorted by order (for drag and drop reordering)
+  const fullSortedByOrder = useMemo(() => {
+    const sorted = [...watchlistAsTMDB];
+    sorted.sort((a, b) => {
+      const aOrder = a.watchlistItem.order || 0;
+      const bOrder = b.watchlistItem.order || 0;
+
+      // Items with order come first
+      if (aOrder > 0 && bOrder === 0) return -1;
+      if (aOrder === 0 && bOrder > 0) return 1;
+
+      // If both have order, sort by order
+      if (aOrder > 0 && bOrder > 0) {
+        return aOrder - bOrder;
+      }
+
+      // If neither has order, sort by createdAt
+      return (
+        new Date(b.watchlistItem.createdAt).getTime() -
+        new Date(a.watchlistItem.createdAt).getTime()
+      );
+    });
+    return sorted;
+  }, [watchlistAsTMDB]);
 
   // Filter and sort
   const filteredAndSorted = useMemo(() => {
@@ -373,14 +397,16 @@ export default function WatchlistView({
     });
 
     return filtered;
-  }, [watchlistAsTMDB, searchQuery, filterType, sortField, sortOrder]);
+  }, [watchlistAsTMDB, searchQuery, filterType, sortField, sortOrder, isEditMode]);
 
   // Drag and drop hook (after filteredAndSorted is defined)
-  const { DragDropContext, handleDragEnd, isDragEnabled } = useWatchlistDragDrop({
-    entries: filteredAndSorted,
-    isEditMode: isEditMode && enableEdit,
-    isLgScreen,
-  });
+  const { DragDropContext, handleDragEnd, isDragEnabled } =
+    useWatchlistDragDrop({
+      filteredEntries: filteredAndSorted,
+      allEntries: fullSortedByOrder,
+      isEditMode: isEditMode && enableEdit,
+      isLgScreen,
+    });
 
   const handleRemove = async () => {
     if (!itemToRemove || !onRemove) return;
@@ -744,184 +770,185 @@ export default function WatchlistView({
         {isEditMode && enableRemove && (
           <div className="container max-w-7xl mx-auto mt-[1rem] px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 py-4 border-b border-border bg-muted/30 rounded-lg px-4">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={toggleSelectAll}
-                    className="cursor-pointer w-full sm:w-auto"
-                  >
-                    {selectedItems.size === filteredAndSorted.length ? (
-                      <>
-                        <X className="h-4 w-4 mr-2" />
-                        Deselect All
-                      </>
-                    ) : (
-                      <>
-                        <Check className="h-4 w-4 mr-2" />
-                        Select All
-                      </>
-                    )}
-                  </Button>
-                  <span className="text-sm text-muted-foreground whitespace-nowrap">
-                    {selectedItems.size} of {filteredAndSorted.length} selected
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <Popover
-                    open={isAddToWatchlistOpen}
-                    onOpenChange={setIsAddToWatchlistOpen}
-                  >
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="cursor-pointer w-full sm:w-auto hover:bg-primary/10"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add to Watchlist
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[400px] p-0 max-w-[calc(100vw-1rem)] mx-[0.5rem] sm:mx-0" align="end">
-                      <div className="p-4 border-b">
-                        <Input
-                          placeholder="Search movies or TV shows..."
-                          value={addSearchQuery}
-                          onChange={(e) => setAddSearchQuery(e.target.value)}
-                          className="w-full"
-                          autoFocus
-                        />
-                      </div>
-                      {debouncedAddSearchQuery.trim() && (
-                        <div className="h-auto max-h-[400px] p-2 overflow-y-auto scrollbar-thin">
-                          {isSearchLoading ? (
-                            <div className="p-4 text-center text-sm text-muted-foreground">
-                              Searching...
-                            </div>
-                          ) : searchResults?.results &&
-                            searchResults.results.length > 0 ? (
-                            <div className="p-2">
-                              {searchResults.results.map((item) => {
-                                const isMovie = "title" in item;
-                                const title = isMovie ? item.title : item.name;
-                                const mediaType = isMovie ? "movie" : "tv";
-                                const isInWatchlist = watchlist.some(
-                                  (w) =>
-                                    w.tmdbId === item.id &&
-                                    w.mediaType === mediaType
-                                );
-
-                                return (
-                                  <button
-                                    key={`${item.id}-${mediaType}`}
-                                    onClick={async () => {
-                                      if (isInWatchlist) {
-                                        toast.error(
-                                          `${title} is already in your watchlist`
-                                        );
-                                        return;
-                                      }
-
-                                      try {
-                                        await addToWatchlist.mutateAsync({
-                                          tmdbId: item.id,
-                                          mediaType,
-                                          title,
-                                          posterPath: item.poster_path || null,
-                                          backdropPath:
-                                            item.backdrop_path || null,
-                                          releaseDate: isMovie
-                                            ? item.release_date || undefined
-                                            : undefined,
-                                          firstAirDate: !isMovie
-                                            ? item.first_air_date || undefined
-                                            : undefined,
-                                        });
-                                        toast.success(
-                                          `Added ${title} to watchlist`
-                                        );
-                                        setAddSearchQuery("");
-                                        setIsAddToWatchlistOpen(false);
-                                      } catch (error) {
-                                        toast.error(
-                                          "Failed to add to watchlist"
-                                        );
-                                        console.error(error);
-                                      }
-                                    }}
-                                    disabled={
-                                      isInWatchlist || addToWatchlist.isPending
-                                    }
-                                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    {item.poster_path ? (
-                                      <div className="relative w-12 h-16 rounded overflow-hidden flex-shrink-0 bg-muted">
-                                        <Image
-                                          src={getPosterUrl(item.poster_path)}
-                                          alt={title}
-                                          fill
-                                          className="object-cover"
-                                          sizes="48px"
-                                        />
-                                      </div>
-                                    ) : (
-                                      <div className="w-12 h-16 rounded bg-muted flex-shrink-0 flex items-center justify-center">
-                                        {isMovie ? (
-                                          <Film className="h-6 w-6 text-muted-foreground" />
-                                        ) : (
-                                          <Tv className="h-6 w-6 text-muted-foreground" />
-                                        )}
-                                      </div>
-                                    )}
-                                    <div className="flex-1 min-w-0">
-                                      <div className="font-medium truncate">
-                                        {title}
-                                      </div>
-                                      <div className="text-sm text-muted-foreground flex items-center gap-2">
-                                        <span className="capitalize">
-                                          {mediaType}
-                                        </span>
-                                        {(isMovie
-                                          ? item.release_date
-                                          : item.first_air_date) && (
-                                          <>
-                                            <span>•</span>
-                                            <span>
-                                              {new Date(
-                                                isMovie
-                                                  ? item.release_date!
-                                                  : item.first_air_date!
-                                              ).getFullYear()}
-                                            </span>
-                                          </>
-                                        )}
-                                      </div>
-                                    </div>
-                                    {isInWatchlist ? (
-                                      <Check className="h-5 w-5 text-primary flex-shrink-0" />
-                                    ) : (
-                                      <Plus className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                                    )}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <div className="p-4 text-center text-sm text-muted-foreground">
-                              No results found
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      {!debouncedAddSearchQuery.trim() && (
-                        <div className="p-4 text-center text-sm text-muted-foreground">
-                          Start typing to search for movies or TV shows
-                        </div>
-                      )}
-                    </PopoverContent>
-                  </Popover>
-                </div>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleSelectAll}
+                  className="cursor-pointer w-full sm:w-auto"
+                >
+                  {selectedItems.size === filteredAndSorted.length ? (
+                    <>
+                      <X className="h-4 w-4 mr-2" />
+                      Deselect All
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Select All
+                    </>
+                  )}
+                </Button>
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  {selectedItems.size} of {filteredAndSorted.length} selected
+                </span>
               </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Popover
+                  open={isAddToWatchlistOpen}
+                  onOpenChange={setIsAddToWatchlistOpen}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="cursor-pointer w-full sm:w-auto hover:bg-primary/10"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add to Watchlist
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-[400px] p-0 max-w-[calc(100vw-1rem)] mx-[0.5rem] sm:mx-0"
+                    align="end"
+                  >
+                    <div className="p-4 border-b">
+                      <Input
+                        placeholder="Search movies or TV shows..."
+                        value={addSearchQuery}
+                        onChange={(e) => setAddSearchQuery(e.target.value)}
+                        className="w-full"
+                        autoFocus
+                      />
+                    </div>
+                    {debouncedAddSearchQuery.trim() && (
+                      <div className="h-auto max-h-[400px] p-2 overflow-y-auto scrollbar-thin">
+                        {isSearchLoading ? (
+                          <div className="p-4 text-center text-sm text-muted-foreground">
+                            Searching...
+                          </div>
+                        ) : searchResults?.results &&
+                          searchResults.results.length > 0 ? (
+                          <div className="p-2">
+                            {searchResults.results.map((item) => {
+                              const isMovie = "title" in item;
+                              const title = isMovie ? item.title : item.name;
+                              const mediaType = isMovie ? "movie" : "tv";
+                              const isInWatchlist = watchlist.some(
+                                (w) =>
+                                  w.tmdbId === item.id &&
+                                  w.mediaType === mediaType
+                              );
+
+                              return (
+                                <button
+                                  key={`${item.id}-${mediaType}`}
+                                  onClick={async () => {
+                                    if (isInWatchlist) {
+                                      toast.error(
+                                        `${title} is already in your watchlist`
+                                      );
+                                      return;
+                                    }
+
+                                    try {
+                                      await addToWatchlist.mutateAsync({
+                                        tmdbId: item.id,
+                                        mediaType,
+                                        title,
+                                        posterPath: item.poster_path || null,
+                                        backdropPath:
+                                          item.backdrop_path || null,
+                                        releaseDate: isMovie
+                                          ? item.release_date || undefined
+                                          : undefined,
+                                        firstAirDate: !isMovie
+                                          ? item.first_air_date || undefined
+                                          : undefined,
+                                      });
+                                      toast.success(
+                                        `Added ${title} to watchlist`
+                                      );
+                                      setAddSearchQuery("");
+                                      setIsAddToWatchlistOpen(false);
+                                    } catch (error) {
+                                      toast.error("Failed to add to watchlist");
+                                      console.error(error);
+                                    }
+                                  }}
+                                  disabled={
+                                    isInWatchlist || addToWatchlist.isPending
+                                  }
+                                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {item.poster_path ? (
+                                    <div className="relative w-12 h-16 rounded overflow-hidden flex-shrink-0 bg-muted">
+                                      <Image
+                                        src={getPosterUrl(item.poster_path)}
+                                        alt={title}
+                                        fill
+                                        className="object-cover"
+                                        sizes="48px"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className="w-12 h-16 rounded bg-muted flex-shrink-0 flex items-center justify-center">
+                                      {isMovie ? (
+                                        <Film className="h-6 w-6 text-muted-foreground" />
+                                      ) : (
+                                        <Tv className="h-6 w-6 text-muted-foreground" />
+                                      )}
+                                    </div>
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium truncate">
+                                      {title}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground flex items-center gap-2">
+                                      <span className="capitalize">
+                                        {mediaType}
+                                      </span>
+                                      {(isMovie
+                                        ? item.release_date
+                                        : item.first_air_date) && (
+                                        <>
+                                          <span>•</span>
+                                          <span>
+                                            {new Date(
+                                              isMovie
+                                                ? item.release_date!
+                                                : item.first_air_date!
+                                            ).getFullYear()}
+                                          </span>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {isInWatchlist ? (
+                                    <Check className="h-5 w-5 text-primary flex-shrink-0" />
+                                  ) : (
+                                    <Plus className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="p-4 text-center text-sm text-muted-foreground">
+                            No results found
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {!debouncedAddSearchQuery.trim() && (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        Start typing to search for movies or TV shows
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
           </div>
         )}
 
@@ -1017,7 +1044,7 @@ export default function WatchlistView({
                       <X className="h-3 w-3" />
                     </Button>
                   )}
-                  
+
                   {/* Sort Dropdown */}
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -1029,87 +1056,101 @@ export default function WatchlistView({
                               size="icon"
                               className={cn(
                                 "h-7 w-7 cursor-pointer",
-                                (sortField !== "createdAt" || sortOrder !== "desc") && "bg-primary/10 text-primary"
+                                (sortField !== "createdAt" ||
+                                  sortOrder !== "desc") &&
+                                  "bg-primary/10 text-primary"
                               )}
                             >
                               <ArrowUpDown className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuLabel>Sort by</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSortField("createdAt");
-                          setSortOrder("desc");
-                        }}
-                        className={cn(
-                          "cursor-pointer",
-                          sortField === "createdAt" && sortOrder === "desc" && "bg-accent"
-                        )}
-                      >
-                        Recently Added
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSortField("createdAt");
-                          setSortOrder("asc");
-                        }}
-                        className={cn(
-                          "cursor-pointer",
-                          sortField === "createdAt" && sortOrder === "asc" && "bg-accent"
-                        )}
-                      >
-                        Oldest Added
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSortField("title");
-                          setSortOrder("asc");
-                        }}
-                        className={cn(
-                          "cursor-pointer",
-                          sortField === "title" && sortOrder === "asc" && "bg-accent"
-                        )}
-                      >
-                        Title (A-Z)
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSortField("title");
-                          setSortOrder("desc");
-                        }}
-                        className={cn(
-                          "cursor-pointer",
-                          sortField === "title" && sortOrder === "desc" && "bg-accent"
-                        )}
-                      >
-                        Title (Z-A)
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSortField("releaseYear");
-                          setSortOrder("desc");
-                        }}
-                        className={cn(
-                          "cursor-pointer",
-                          sortField === "releaseYear" && sortOrder === "desc" && "bg-accent"
-                        )}
-                      >
-                        Release Year (Newest)
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSortField("releaseYear");
-                          setSortOrder("asc");
-                        }}
-                        className={cn(
-                          "cursor-pointer",
-                          sortField === "releaseYear" && sortOrder === "asc" && "bg-accent"
-                        )}
-                      >
-                        Release Year (Oldest)
-                      </DropdownMenuItem>
+                            <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSortField("createdAt");
+                                setSortOrder("desc");
+                              }}
+                              className={cn(
+                                "cursor-pointer",
+                                sortField === "createdAt" &&
+                                  sortOrder === "desc" &&
+                                  "bg-accent"
+                              )}
+                            >
+                              Recently Added
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSortField("createdAt");
+                                setSortOrder("asc");
+                              }}
+                              className={cn(
+                                "cursor-pointer",
+                                sortField === "createdAt" &&
+                                  sortOrder === "asc" &&
+                                  "bg-accent"
+                              )}
+                            >
+                              Oldest Added
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSortField("title");
+                                setSortOrder("asc");
+                              }}
+                              className={cn(
+                                "cursor-pointer",
+                                sortField === "title" &&
+                                  sortOrder === "asc" &&
+                                  "bg-accent"
+                              )}
+                            >
+                              Title (A-Z)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSortField("title");
+                                setSortOrder("desc");
+                              }}
+                              className={cn(
+                                "cursor-pointer",
+                                sortField === "title" &&
+                                  sortOrder === "desc" &&
+                                  "bg-accent"
+                              )}
+                            >
+                              Title (Z-A)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSortField("releaseYear");
+                                setSortOrder("desc");
+                              }}
+                              className={cn(
+                                "cursor-pointer",
+                                sortField === "releaseYear" &&
+                                  sortOrder === "desc" &&
+                                  "bg-accent"
+                              )}
+                            >
+                              Release Year (Newest)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSortField("releaseYear");
+                                setSortOrder("asc");
+                              }}
+                              className={cn(
+                                "cursor-pointer",
+                                sortField === "releaseYear" &&
+                                  sortOrder === "asc" &&
+                                  "bg-accent"
+                              )}
+                            >
+                              Release Year (Oldest)
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -1130,42 +1171,45 @@ export default function WatchlistView({
                               size="icon"
                               className={cn(
                                 "h-7 w-7 cursor-pointer",
-                                filterType !== "all" && "bg-primary/10 text-primary"
+                                filterType !== "all" &&
+                                  "bg-primary/10 text-primary"
                               )}
                             >
                               <Filter className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuLabel>Filter by type</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => setFilterType("all")}
-                        className={cn(
-                          "cursor-pointer",
-                          filterType === "all" && "bg-accent"
-                        )}
-                      >
-                        All Types
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setFilterType("movie")}
-                        className={cn(
-                          "cursor-pointer",
-                          filterType === "movie" && "bg-accent"
-                        )}
-                      >
-                        Movies
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setFilterType("tv")}
-                        className={cn(
-                          "cursor-pointer",
-                          filterType === "tv" && "bg-accent"
-                        )}
-                      >
-                        TV Shows
-                      </DropdownMenuItem>
+                            <DropdownMenuLabel>
+                              Filter by type
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => setFilterType("all")}
+                              className={cn(
+                                "cursor-pointer",
+                                filterType === "all" && "bg-accent"
+                              )}
+                            >
+                              All Types
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setFilterType("movie")}
+                              className={cn(
+                                "cursor-pointer",
+                                filterType === "movie" && "bg-accent"
+                              )}
+                            >
+                              Movies
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setFilterType("tv")}
+                              className={cn(
+                                "cursor-pointer",
+                                filterType === "tv" && "bg-accent"
+                              )}
+                            >
+                              TV Shows
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -1505,60 +1549,66 @@ export default function WatchlistView({
                     ref={provided.innerRef}
                     className="space-y-4"
                   >
-                    {filteredAndSorted.map(({ item, type, watchlistItem }, index) => (
-                      <Draggable
-                        key={watchlistItem.id}
-                        draggableId={watchlistItem.id}
-                        index={index}
-                        isDragDisabled={!isDragEnabled}
-                      >
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            className={snapshot.isDragging ? "opacity-50" : ""}
-                          >
-                            <DetailedWatchlistItem
-                              item={item}
-                              type={type}
-                              watchlistItem={watchlistItem}
-                              isEditMode={isEditMode && enableEdit}
-                              isSelected={selectedItems.has(watchlistItem.id)}
-                              order={
-                                isEditMode
-                                  ? watchlistItem.order > 0
-                                    ? watchlistItem.order
-                                    : index + 1
-                                  : undefined
+                    {filteredAndSorted.map(
+                      ({ item, type, watchlistItem }, index) => (
+                        <Draggable
+                          key={watchlistItem.id}
+                          draggableId={watchlistItem.id}
+                          index={index}
+                          isDragDisabled={!isDragEnabled}
+                        >
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className={
+                                snapshot.isDragging ? "opacity-50" : ""
                               }
-                              index={index}
-                              totalItems={filteredAndSorted.length}
-                              onSelect={() => toggleItemSelection(watchlistItem.id)}
-                              onRemove={
-                                enableRemove
-                                  ? () => {
-                                      setItemToRemove({
-                                        tmdbId: watchlistItem.tmdbId,
-                                        mediaType: watchlistItem.mediaType,
-                                        title: watchlistItem.title,
-                                      });
-                                    }
-                                  : undefined
-                              }
-                              onItemClick={() => {
-                                if (isEditMode) {
-                                  toggleItemSelection(watchlistItem.id);
-                                } else {
-                                  setSelectedItem({ item, type });
+                            >
+                              <DetailedWatchlistItem
+                                item={item}
+                                type={type}
+                                watchlistItem={watchlistItem}
+                                isEditMode={isEditMode && enableEdit}
+                                isSelected={selectedItems.has(watchlistItem.id)}
+                                order={
+                                  isEditMode
+                                    ? watchlistItem.order > 0
+                                      ? watchlistItem.order
+                                      : index + 1
+                                    : undefined
                                 }
-                              }}
-                              dragHandleProps={provided.dragHandleProps}
-                              isLgScreen={isLgScreen}
-                            />
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
+                                index={index}
+                                totalItems={filteredAndSorted.length}
+                                onSelect={() =>
+                                  toggleItemSelection(watchlistItem.id)
+                                }
+                                onRemove={
+                                  enableRemove
+                                    ? () => {
+                                        setItemToRemove({
+                                          tmdbId: watchlistItem.tmdbId,
+                                          mediaType: watchlistItem.mediaType,
+                                          title: watchlistItem.title,
+                                        });
+                                      }
+                                    : undefined
+                                }
+                                onItemClick={() => {
+                                  if (isEditMode) {
+                                    toggleItemSelection(watchlistItem.id);
+                                  } else {
+                                    setSelectedItem({ item, type });
+                                  }
+                                }}
+                                dragHandleProps={provided.dragHandleProps}
+                                isLgScreen={isLgScreen}
+                              />
+                            </div>
+                          )}
+                        </Draggable>
+                      )
+                    )}
                     {provided.placeholder}
                   </div>
                 )}
@@ -1873,7 +1923,6 @@ function DetailedWatchlistItem({
     }
   };
 
-
   return (
     <div
       className={cn(
@@ -1923,7 +1972,10 @@ function DetailedWatchlistItem({
               <Button
                 variant={isSelected ? "default" : "outline"}
                 size="icon"
-                className={cn("h-6 w-6 cursor-pointer", isSelected && "bg-primary")}
+                className={cn(
+                  "h-6 w-6 cursor-pointer",
+                  isSelected && "bg-primary"
+                )}
                 onClick={(e) => {
                   e.stopPropagation();
                   onSelect();
@@ -1963,7 +2015,7 @@ function DetailedWatchlistItem({
             {/* Line 1: Order. Title */}
             <div className="flex items-center gap-2 mb-2">
               <span className="text-sm text-muted-foreground">
-                {isEditMode ? index + 1 : (order || index + 1)}.
+                {isEditMode ? index + 1 : order || index + 1}.
               </span>
               <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
                 {watchlistItem.title}
@@ -2001,15 +2053,21 @@ function DetailedWatchlistItem({
                     numberOfEpisodes ||
                     rated) && <span>•</span>}
                   <div className="flex items-center gap-1.5">
-                    <div className={cn(
-                      "w-5 h-5 rounded flex items-center justify-center text-xs font-bold",
-                      metascore >= 60 ? "bg-green-500 text-white" :
-                      metascore >= 40 ? "bg-yellow-500 text-white" :
-                      "bg-red-500 text-white"
-                    )}>
+                    <div
+                      className={cn(
+                        "w-5 h-5 rounded flex items-center justify-center text-xs font-bold",
+                        metascore >= 60
+                          ? "bg-green-500 text-white"
+                          : metascore >= 40
+                          ? "bg-yellow-500 text-white"
+                          : "bg-red-500 text-white"
+                      )}
+                    >
                       {metascore}
                     </div>
-                    <span className="text-xs text-muted-foreground">Metascore</span>
+                    <span className="text-xs text-muted-foreground">
+                      Metascore
+                    </span>
                   </div>
                 </>
               )}

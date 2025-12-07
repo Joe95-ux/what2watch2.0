@@ -30,10 +30,17 @@ export async function PATCH(request: NextRequest): Promise<NextResponse<{ succes
       );
     }
 
-    // Update all items in a transaction
-    await Promise.all(
-      items.map((item: { id: string; order: number }) =>
-        db.watchlistItem.updateMany({
+    if (items.length === 0) {
+      return NextResponse.json(
+        { error: "Items array cannot be empty" },
+        { status: 400 }
+      );
+    }
+
+    // Update all items and verify they were updated
+    const updateResults = await Promise.all(
+      items.map(async (item: { id: string; order: number }) => {
+        const result = await db.watchlistItem.updateMany({
           where: {
             id: item.id,
             userId: user.id, // Ensure user owns the item
@@ -41,9 +48,23 @@ export async function PATCH(request: NextRequest): Promise<NextResponse<{ succes
           data: {
             order: item.order,
           },
-        })
-      )
+        });
+        return { id: item.id, updated: result.count > 0 };
+      })
     );
+
+    // Check if any items failed to update
+    const failedUpdates = updateResults.filter((r) => !r.updated);
+    if (failedUpdates.length > 0) {
+      console.error("Some items failed to update:", failedUpdates);
+      return NextResponse.json(
+        { 
+          error: `Failed to update ${failedUpdates.length} item(s)`,
+          failedIds: failedUpdates.map((r) => r.id)
+        },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
