@@ -454,42 +454,79 @@ export default function WatchlistView({
     }
   };
 
-  const handleExportCSV = () => {
-    const headers = ["Title", "Type", "Release Year", "Added Date"];
-    const rows = filteredAndSorted.map(({ watchlistItem, type }) => {
-      const releaseYear = watchlistItem.releaseDate
-        ? new Date(watchlistItem.releaseDate).getFullYear()
-        : watchlistItem.firstAirDate
-        ? new Date(watchlistItem.firstAirDate).getFullYear()
-        : "";
-      const addedDate = format(new Date(watchlistItem.createdAt), "yyyy-MM-dd");
-      return [
-        watchlistItem.title,
-        type === "movie" ? "Movie" : "TV Show",
-        releaseYear.toString(),
-        addedDate,
+  const handleExportCSV = async () => {
+    try {
+      toast.loading("Preparing export...", { id: "export" });
+      
+      const response = await fetch("/api/watchlist/export");
+      if (!response.ok) {
+        throw new Error("Failed to export watchlist");
+      }
+
+      const { items } = await response.json();
+
+      const headers = [
+        "Order",
+        "Title",
+        "Type",
+        "URL",
+        "IMDB ID",
+        "Release Date",
+        "Year",
+        "Genre",
+        "Description",
+        "Directors/Creators",
+        "Runtime",
+        "IMDB Rating",
+        "Note",
+        "Date Created",
+        "Date Modified",
       ];
-    });
 
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
-    ].join("\n");
+      const rows = items.map((item: any) => [
+        item.order,
+        item.title,
+        item.type,
+        item.url,
+        item.imdbId,
+        item.releaseDate,
+        item.year,
+        item.genre,
+        item.description,
+        item.directorsCreators,
+        item.runtime,
+        item.imdbRating,
+        item.note,
+        item.dateCreated,
+        item.dateModified,
+      ]);
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `watchlist-${format(new Date(), "yyyy-MM-dd")}.csv`
-    );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const csvContent = [
+        headers.join(","),
+        ...rows.map((row: any[]) => 
+          row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+        ),
+      ].join("\n");
 
-    toast.success("Watchlist exported to CSV");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `watchlist-${format(new Date(), "yyyy-MM-dd")}.csv`
+      );
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Watchlist exported to CSV", { id: "export" });
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Failed to export watchlist", { id: "export" });
+    }
   };
 
   const handleTogglePublic = async (checked: boolean) => {
@@ -2200,8 +2237,17 @@ function DetailedWatchlistItem({
                             e.stopPropagation();
                             handleNoteSave();
                           }}
+                          disabled={updateWatchlistItem.isPending}
+                          className="cursor-pointer"
                         >
-                          Save
+                          {updateWatchlistItem.isPending ? (
+                            <>
+                              <div className="h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            "Save"
+                          )}
                         </Button>
                         <Button
                           size="sm"
@@ -2210,6 +2256,8 @@ function DetailedWatchlistItem({
                             e.stopPropagation();
                             handleNoteCancel();
                           }}
+                          disabled={updateWatchlistItem.isPending}
+                          className="cursor-pointer"
                         >
                           Cancel
                         </Button>
@@ -2294,6 +2342,11 @@ function DetailedWatchlistItem({
                       )}
                     </div>
                   )}
+                  {watchlistItem.note && (
+                    <div className="mt-2 border-l-4 border-primary/50 pl-4 py-2 text-sm text-muted-foreground bg-muted/30 rounded-r">
+                      {watchlistItem.note}
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -2328,8 +2381,17 @@ function DetailedWatchlistItem({
                         e.stopPropagation();
                         handleNoteSave();
                       }}
+                      disabled={updateWatchlistItem.isPending}
+                      className="cursor-pointer"
                     >
-                      Save
+                      {updateWatchlistItem.isPending ? (
+                        <>
+                          <div className="h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        "Save"
+                      )}
                     </Button>
                     <Button
                       size="sm"
@@ -2338,6 +2400,8 @@ function DetailedWatchlistItem({
                         e.stopPropagation();
                         handleNoteCancel();
                       }}
+                      disabled={updateWatchlistItem.isPending}
+                      className="cursor-pointer"
                     >
                       Cancel
                     </Button>
@@ -2416,6 +2480,11 @@ function DetailedWatchlistItem({
                       )}
                     </>
                   )}
+                </div>
+              )}
+              {watchlistItem.note && (
+                <div className="mt-2 border-l-4 border-primary/50 pl-4 py-2 text-sm text-muted-foreground bg-muted/30 rounded-r">
+                  {watchlistItem.note}
                 </div>
               )}
             </>
