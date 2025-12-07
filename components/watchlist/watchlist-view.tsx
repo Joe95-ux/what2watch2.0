@@ -318,29 +318,6 @@ export default function WatchlistView({
   const filteredAndSorted = useMemo(() => {
     let filtered = [...watchlistAsTMDB];
 
-    // In edit mode, sort by order first (items with order > 0), then by createdAt
-    if (isEditMode) {
-      filtered.sort((a, b) => {
-        const aOrder = a.watchlistItem.order || 0;
-        const bOrder = b.watchlistItem.order || 0;
-
-        // Items with order come first
-        if (aOrder > 0 && bOrder === 0) return -1;
-        if (aOrder === 0 && bOrder > 0) return 1;
-
-        // If both have order, sort by order
-        if (aOrder > 0 && bOrder > 0) {
-          return aOrder - bOrder;
-        }
-
-        // If neither has order, sort by createdAt
-        return (
-          new Date(b.watchlistItem.createdAt).getTime() -
-          new Date(a.watchlistItem.createdAt).getTime()
-        );
-      });
-    }
-
     // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
@@ -356,8 +333,23 @@ export default function WatchlistView({
       filtered = filtered.filter((entry) => entry.type === filterType);
     }
 
-    // Sort
+    // Sort: ALWAYS prioritize order field (Trello-like behavior)
+    // Items with order > 0 are sorted by order value (1, 2, 3...)
+    // Items without order (order === 0 or null) are sorted by sortField/sortOrder
     filtered.sort((a, b) => {
+      const aOrder = a.watchlistItem.order || 0;
+      const bOrder = b.watchlistItem.order || 0;
+
+      // If both have order, sort by order value (this is the primary sort)
+      if (aOrder > 0 && bOrder > 0) {
+        return aOrder - bOrder;
+      }
+
+      // Items with order always come before items without order
+      if (aOrder > 0 && bOrder === 0) return -1;
+      if (aOrder === 0 && bOrder > 0) return 1;
+
+      // If neither has order, apply sortField/sortOrder as secondary sort
       let aValue: string | number | null;
       let bValue: string | number | null;
 
@@ -399,7 +391,7 @@ export default function WatchlistView({
     });
 
     return filtered;
-  }, [watchlistAsTMDB, searchQuery, filterType, sortField, sortOrder, isEditMode]);
+  }, [watchlistAsTMDB, searchQuery, filterType, sortField, sortOrder]);
 
   // Drag and drop hook (after filteredAndSorted is defined)
   const { DragDropContext, handleDragEnd, isDragEnabled } =
@@ -1616,10 +1608,8 @@ export default function WatchlistView({
                                 isEditMode={isEditMode && enableEdit}
                                 isSelected={selectedItems.has(watchlistItem.id)}
                                 order={
-                                  isEditMode
-                                    ? watchlistItem.order > 0
-                                      ? watchlistItem.order
-                                      : index + 1
+                                  watchlistItem.order && watchlistItem.order > 0
+                                    ? watchlistItem.order
                                     : undefined
                                 }
                                 index={index}
@@ -1646,6 +1636,7 @@ export default function WatchlistView({
                                   }
                                 }}
                                 isLgScreen={isLgScreen}
+                                isPublic={isPublicProp}
                               />
                             </div>
                           )}
@@ -1813,6 +1804,7 @@ interface DetailedWatchlistItemProps {
   onRemove?: () => void;
   onItemClick: () => void;
   isLgScreen: boolean;
+  isPublic?: boolean;
 }
 
 function DetailedWatchlistItem({
@@ -1828,6 +1820,7 @@ function DetailedWatchlistItem({
   onRemove,
   onItemClick,
   isLgScreen,
+  isPublic,
 }: DetailedWatchlistItemProps) {
   const router = useRouter();
   const { isSignedIn } = useUser();
@@ -2096,7 +2089,7 @@ function DetailedWatchlistItem({
             {/* Line 1: Order. Title */}
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="text-sm text-muted-foreground">
-                {isEditMode ? index + 1 : order || index + 1}.
+                {(order && order > 0) ? order : index + 1}.
               </span>
               <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
                 {watchlistItem.title}
@@ -2343,7 +2336,14 @@ function DetailedWatchlistItem({
                     </div>
                   )}
                   {watchlistItem.note && (
-                    <div className="mt-2 border-l-4 border-primary/50 pl-4 py-2 text-sm bg-primary/10 text-primary dark:text-primary rounded-r">
+                    <div
+                      className={cn(
+                        "mt-2 border-l-4 pl-4 py-2 text-sm rounded-r",
+                        isPublic
+                          ? "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
+                          : "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
+                      )}
+                    >
                       {watchlistItem.note}
                     </div>
                   )}
@@ -2483,7 +2483,14 @@ function DetailedWatchlistItem({
                 </div>
               )}
               {watchlistItem.note && (
-                <div className="mt-2 border-l-4 border-primary/50 pl-4 py-2 text-sm bg-primary/10 text-primary dark:text-primary rounded-r">
+                <div
+                  className={cn(
+                    "mt-2 border-l-4 pl-4 py-2 text-sm rounded-r",
+                    isPublic
+                      ? "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
+                      : "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
+                  )}
+                >
                   {watchlistItem.note}
                 </div>
               )}

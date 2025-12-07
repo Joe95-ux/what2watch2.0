@@ -612,17 +612,22 @@ export default function ActivityContent() {
             </div>
 
             {/* Group By - Dropdown */}
-            <Select value={groupBy} onValueChange={(value) => setGroupBy(value as typeof groupBy)}>
-              <SelectTrigger className="w-[140px] h-9">
-                <SelectValue placeholder="Group by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                <SelectItem value="day">Day</SelectItem>
-                <SelectItem value="week">Week</SelectItem>
-                <SelectItem value="month">Month</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="group-by" className="text-sm text-muted-foreground whitespace-nowrap">
+                Group by:
+              </Label>
+              <Select value={groupBy} onValueChange={(value) => setGroupBy(value as typeof groupBy)}>
+                <SelectTrigger id="group-by" className="w-[140px] h-9">
+                  <SelectValue placeholder="Select..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="day">Day</SelectItem>
+                  <SelectItem value="week">Week</SelectItem>
+                  <SelectItem value="month">Month</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             {/* Clear All Filters Button */}
             {(selectedType !== "all" || selectedUserId !== "all" || dateRange !== "all" || groupBy !== "none" || searchQuery) && (

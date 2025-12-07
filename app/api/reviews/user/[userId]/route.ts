@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
+import { auth } from "@clerk/nextjs/server";
 
 export async function GET(
   request: NextRequest,
@@ -17,6 +18,17 @@ export async function GET(
       userId,
     };
 
+    // Get current user if authenticated
+    const { userId: clerkUserId } = await auth();
+    let currentUserId: string | null = null;
+    if (clerkUserId) {
+      const user = await db.user.findUnique({
+        where: { clerkId: clerkUserId },
+        select: { id: true },
+      });
+      currentUserId = user?.id || null;
+    }
+
     const [reviews, total] = await Promise.all([
       db.review.findMany({
         where,
@@ -27,6 +39,13 @@ export async function GET(
               username: true,
               displayName: true,
               avatarUrl: true,
+            },
+          },
+          reactions: {
+            select: {
+              id: true,
+              userId: true,
+              reactionType: true,
             },
           },
           _count: {
@@ -44,8 +63,55 @@ export async function GET(
       db.review.count({ where }),
     ]);
 
+    // Calculate reaction counts and user reactions
+    type ReviewWithRelations = Prisma.ReviewGetPayload<{
+      include: {
+        user: {
+          select: {
+            id: true;
+            username: true;
+            displayName: true;
+            avatarUrl: true;
+          };
+        };
+        reactions: {
+          select: {
+            id: true;
+            userId: true;
+            reactionType: true;
+          };
+        };
+        _count: {
+          select: {
+            reactions: true;
+          };
+        };
+      };
+    }>;
+
+    const reviewsWithReactions = reviews.map((review: ReviewWithRelations) => {
+      const reactionCounts: Record<string, number> = {};
+      const userReactions: string[] = [];
+      
+      review.reactions.forEach((reaction) => {
+        reactionCounts[reaction.reactionType] =
+          (reactionCounts[reaction.reactionType] || 0) + 1;
+        
+        if (currentUserId && reaction.userId === currentUserId) {
+          userReactions.push(reaction.reactionType);
+        }
+      });
+
+      return {
+        ...review,
+        reactionCounts,
+        totalReactions: review._count.reactions,
+        userReactions,
+      };
+    });
+
     return NextResponse.json({
-      reviews,
+      reviews: reviewsWithReactions,
       pagination: {
         page,
         limit,
