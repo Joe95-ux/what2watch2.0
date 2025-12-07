@@ -378,37 +378,6 @@ export default function ActivityContent() {
         {/* Search and Filters */}
         <div className="mb-6">
           <div className="flex flex-wrap items-center gap-3">
-            {/* User Filter - Separate from search bar */}
-            <Select 
-              value={selectedUserId} 
-              onValueChange={(value) => setSelectedUserId(value)}
-            >
-              <SelectTrigger className="w-[180px] h-9">
-                <SelectValue placeholder="All Users" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">
-                  <span className="flex items-center gap-2">
-                    <UserPlus className="h-4 w-4" />
-                    All Users
-                  </span>
-                </SelectItem>
-                {availableUsers.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    <span className="flex items-center gap-2">
-                      <Avatar className="h-4 w-4">
-                        <AvatarImage src={user.avatarUrl || undefined} />
-                        <AvatarFallback className="text-[10px]">
-                          {(user.displayName || user.username || "U")[0]?.toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      {user.displayName || user.username || "Unknown"}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
             {/* Search Bar with integrated controls */}
             <div className="relative w-full sm:w-80 2xl:w-96">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -610,6 +579,37 @@ export default function ActivityContent() {
                 </Tooltip>
               </div>
             </div>
+
+            {/* User Filter - After search bar */}
+            <Select 
+              value={selectedUserId} 
+              onValueChange={(value) => setSelectedUserId(value)}
+            >
+              <SelectTrigger className="w-[180px] h-9">
+                <SelectValue placeholder="All Users" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  <span className="flex items-center gap-2">
+                    <UserPlus className="h-4 w-4" />
+                    All Users
+                  </span>
+                </SelectItem>
+                {availableUsers.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    <span className="flex items-center gap-2">
+                      <Avatar className="h-4 w-4">
+                        <AvatarImage src={user.avatarUrl || undefined} />
+                        <AvatarFallback className="text-[10px]">
+                          {(user.displayName || user.username || "U")[0]?.toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {user.displayName || user.username || "Unknown"}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             {/* Group By - Dropdown */}
             <div className="flex items-center gap-2">

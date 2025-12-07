@@ -111,26 +111,8 @@ export function useLogViewing() {
 
   return useMutation({
     mutationFn: async (params: CreateViewingLogParams) => {
+      // Activity is created in the API route, no need to create it here
       const log = await createViewingLog(params);
-      
-      // Create activity for logging film
-      try {
-        await fetch("/api/activity", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "LOGGED_FILM",
-            tmdbId: params.tmdbId,
-            mediaType: params.mediaType,
-            title: params.title,
-            posterPath: params.posterPath,
-          }),
-        });
-      } catch (error) {
-        // Silently fail - activity creation is not critical
-        console.error("Failed to create activity:", error);
-      }
-      
       return log;
     },
     onSuccess: () => {
@@ -256,6 +238,7 @@ export function useQuickWatch() {
       firstAirDate?: string | null;
     }) => {
       // Quick log with today's date, no rating/notes
+      // Activity is created in the API route, no need to create it here
       const log = await createViewingLog({
         ...params,
         watchedAt: new Date().toISOString(), // Default to today
@@ -263,23 +246,6 @@ export function useQuickWatch() {
         notes: null,
         tags: [],
       });
-      
-      // Create activity for logging film
-      try {
-        await fetch("/api/activity", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "LOGGED_FILM",
-            tmdbId: params.tmdbId,
-            mediaType: params.mediaType,
-            title: params.title,
-            posterPath: params.posterPath,
-          }),
-        });
-      } catch (error) {
-        console.error("Failed to create activity:", error);
-      }
       
       return log;
     },

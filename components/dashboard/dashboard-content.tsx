@@ -257,7 +257,7 @@ export default function DashboardContent() {
           ) : null
         )}
 
-        {/* My Watchlist Section */}
+        {/* My List Section */}
         {isLoadingFavorites ? (
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
@@ -272,7 +272,7 @@ export default function DashboardContent() {
           </div>
         ) : favoriteItems.length > 0 ? (
           <DashboardRow
-            title="My Watchlist"
+            title="My List"
             items={favoriteItems}
             type={favoriteItems.length > 0 ? ("title" in favoriteItems[0] ? "movie" : "tv") : "movie"}
             href="/dashboard/my-list"
@@ -280,13 +280,13 @@ export default function DashboardContent() {
         ) : (
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-medium">My Watchlist</h2>
+              <h2 className="text-2xl font-medium">My List</h2>
               <Link href="/browse" className="text-sm text-muted-foreground hover:text-foreground">
                 Browse →
               </Link>
             </div>
             <div className="text-center py-12 border border-dashed rounded-lg">
-              <p className="text-muted-foreground mb-4">Your watchlist is empty</p>
+              <p className="text-muted-foreground mb-4">Your list is empty</p>
               <Link href="/browse">
                 <span className="text-sm text-primary hover:underline">Start adding content</span>
               </Link>

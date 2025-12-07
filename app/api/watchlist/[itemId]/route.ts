@@ -56,24 +56,130 @@ export async function PATCH(
     if (note !== undefined) {
       updateData.note = note;
     }
+
+    // If order is being updated, we need to shift all other items to maintain unique sequential orders
     if (order !== undefined) {
-      updateData.order = order;
-    }
+      // Get the current item to find its old order
+      const currentItem = await db.watchlistItem.findUnique({
+        where: {
+          id: itemId,
+          userId: user.id,
+        },
+        select: { order: true },
+      });
 
-    // Update the watchlist item
-    const watchlistItem = await db.watchlistItem.updateMany({
-      where: {
-        id: itemId,
-        userId: user.id, // Ensure user owns the item
-      },
-      data: updateData,
-    });
+      if (!currentItem) {
+        return NextResponse.json(
+          { error: "Watchlist item not found or unauthorized" },
+          { status: 404 }
+        );
+      }
 
-    if (watchlistItem.count === 0) {
-      return NextResponse.json(
-        { error: "Watchlist item not found or unauthorized" },
-        { status: 404 }
+      const oldOrder = currentItem.order || 0;
+      const newOrder = order;
+
+      // If order hasn't changed, just update note if provided
+      if (oldOrder === newOrder) {
+        if (note !== undefined) {
+          const watchlistItem = await db.watchlistItem.updateMany({
+            where: {
+              id: itemId,
+              userId: user.id,
+            },
+            data: { note },
+          });
+
+          if (watchlistItem.count === 0) {
+            return NextResponse.json(
+              { error: "Watchlist item not found or unauthorized" },
+              { status: 404 }
+            );
+          }
+        }
+
+        const updatedItem = await db.watchlistItem.findUnique({
+          where: { id: itemId },
+        });
+
+        return NextResponse.json({ success: true, watchlistItem: updatedItem });
+      }
+
+      // Get all watchlist items sorted by order
+      const allItems = await db.watchlistItem.findMany({
+        where: {
+          userId: user.id,
+          order: { gt: 0 }, // Only items with order > 0
+        },
+        select: { id: true, order: true },
+        orderBy: { order: "asc" },
+      });
+
+      // Calculate new orders for all items
+      const itemsToUpdate: Array<{ id: string; order: number }> = [];
+
+      if (newOrder > oldOrder) {
+        // Moving down: shift items between oldOrder and newOrder up by 1
+        for (const item of allItems) {
+          if (item.id === itemId) {
+            itemsToUpdate.push({ id: item.id, order: newOrder });
+          } else if (item.order > oldOrder && item.order <= newOrder) {
+            itemsToUpdate.push({ id: item.id, order: item.order - 1 });
+          } else {
+            itemsToUpdate.push({ id: item.id, order: item.order });
+          }
+        }
+      } else {
+        // Moving up: shift items between newOrder and oldOrder down by 1
+        for (const item of allItems) {
+          if (item.id === itemId) {
+            itemsToUpdate.push({ id: item.id, order: newOrder });
+          } else if (item.order >= newOrder && item.order < oldOrder) {
+            itemsToUpdate.push({ id: item.id, order: item.order + 1 });
+          } else {
+            itemsToUpdate.push({ id: item.id, order: item.order });
+          }
+        }
+      }
+
+      // Update all affected items
+      await Promise.all(
+        itemsToUpdate.map((item) =>
+          db.watchlistItem.updateMany({
+            where: {
+              id: item.id,
+              userId: user.id,
+            },
+            data: { order: item.order },
+          })
+        )
       );
+
+      // If note is also being updated, update it
+      if (note !== undefined) {
+        await db.watchlistItem.updateMany({
+          where: {
+            id: itemId,
+            userId: user.id,
+          },
+          data: { note },
+        });
+      }
+    } else if (note !== undefined) {
+      // Only updating note
+      const watchlistItem = await db.watchlistItem.updateMany({
+        where: {
+          id: itemId,
+          userId: user.id,
+        },
+        data: { note },
+      });
+
+      if (watchlistItem.count === 0) {
+        return NextResponse.json(
+          { error: "Watchlist item not found or unauthorized" },
+          { status: 404 }
+        );
+      }
     }
 
     // Fetch the updated item

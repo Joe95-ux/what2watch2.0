@@ -2414,7 +2414,8 @@ function DetailedWatchlistItem({
                     setIsEditingNote(true);
                   }}
                   className={cn(
-                    "border-l-4 border-primary/50 pl-4 py-2 text-sm text-muted-foreground cursor-text hover:border-primary/80 transition-colors",
+                    "border-l-4 border-primary/50 pl-4 py-2 text-sm text-muted-foreground cursor-text hover:border-primary/80 transition-colors rounded-r",
+                    "bg-muted/50 hover:bg-muted/70",
                     !watchlistItem.note && "text-muted-foreground/50 italic"
                   )}
                 >

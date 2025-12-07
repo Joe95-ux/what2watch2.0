@@ -26,7 +26,7 @@ export function JustWatchWidget({
   const initAttemptsRef = useRef(0);
   const maxAttempts = 10;
 
-  // Initialize widget when imdbId changes
+  // Initialize widget when imdbId or theme changes
   useEffect(() => {
     if (typeof window !== "undefined" && imdbId && widgetContainerRef.current) {
       const initWidget = () => {
@@ -36,6 +36,18 @@ export function JustWatchWidget({
             // Check if widget container exists
             const widgetContainer = widgetContainerRef.current?.querySelector('[data-jw-widget]');
             if (widgetContainer) {
+              // Clear any existing widget content to force re-render with new theme
+              const existingContent = widgetContainer.querySelector('.jw-widget-container, .jw-widget');
+              if (existingContent) {
+                existingContent.remove();
+              }
+              
+              // Update theme attributes before initializing
+              const theme = resolvedTheme === "dark" ? "dark" : "light";
+              const color = resolvedTheme === "dark" ? "#ffffff" : "#000000";
+              widgetContainer.setAttribute("data-theme", theme);
+              widgetContainer.setAttribute("data-color", color);
+              
               jwWidget.init();
               if (onInit) {
                 onInit();
@@ -60,7 +72,7 @@ export function JustWatchWidget({
         initAttemptsRef.current = 0;
       };
     }
-  }, [imdbId, mediaType, onInit]);
+  }, [imdbId, mediaType, resolvedTheme, onInit]);
 
   if (!imdbId) {
     return null;

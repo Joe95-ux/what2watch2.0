@@ -282,6 +282,79 @@ export function useUpdateWatchlistItem() {
 
       // Optimistically update
       queryClient.setQueryData<WatchlistItem[]>(["watchlist"], (old = []) => {
+        if (!old || old.length === 0) return old;
+
+        // If order is being updated, we need to shift other items
+        if (updates.order !== undefined) {
+          const currentItem = old.find((item) => item.id === itemId);
+          if (!currentItem) return old;
+
+          const oldOrder = currentItem.order || 0;
+          const newOrder = updates.order;
+
+          // If order hasn't changed, just update the item
+          if (oldOrder === newOrder) {
+            return old.map((item) => {
+              if (item.id === itemId) {
+                return {
+                  ...item,
+                  ...updates,
+                  updatedAt: new Date().toISOString(),
+                };
+              }
+              return item;
+            });
+          }
+
+          // Calculate new orders for all items (shift logic)
+          const itemsToUpdate = new Map<string, number>();
+
+          if (newOrder > oldOrder) {
+            // Moving down: shift items between oldOrder and newOrder up by 1
+            for (const item of old) {
+              if (item.id === itemId) {
+                itemsToUpdate.set(item.id, newOrder);
+              } else if (item.order && item.order > oldOrder && item.order <= newOrder) {
+                itemsToUpdate.set(item.id, item.order - 1);
+              } else if (item.order) {
+                itemsToUpdate.set(item.id, item.order);
+              }
+            }
+          } else {
+            // Moving up: shift items between newOrder and oldOrder down by 1
+            for (const item of old) {
+              if (item.id === itemId) {
+                itemsToUpdate.set(item.id, newOrder);
+              } else if (item.order && item.order >= newOrder && item.order < oldOrder) {
+                itemsToUpdate.set(item.id, item.order + 1);
+              } else if (item.order) {
+                itemsToUpdate.set(item.id, item.order);
+              }
+            }
+          }
+
+          // Apply updates
+          return old.map((item) => {
+            const newOrderValue = itemsToUpdate.get(item.id);
+            if (item.id === itemId) {
+              return {
+                ...item,
+                ...updates,
+                order: newOrderValue !== undefined ? newOrderValue : (updates.order ?? item.order ?? 0),
+                updatedAt: new Date().toISOString(),
+              };
+            } else if (newOrderValue !== undefined && newOrderValue !== (item.order ?? 0)) {
+              return {
+                ...item,
+                order: newOrderValue,
+                updatedAt: new Date().toISOString(),
+              };
+            }
+            return item;
+          });
+        }
+
+        // Just update note or other fields
         return old.map((item) => {
           if (item.id === itemId) {
             return {
@@ -296,15 +369,29 @@ export function useUpdateWatchlistItem() {
 
       return { previousWatchlist };
     },
+    onSuccess: async (data, variables) => {
+      // If order was updated, we need to refetch to get all shifted items
+      // Otherwise, just update the cache with the returned item
+      if (variables.updates.order !== undefined) {
+        // Order changes affect multiple items, so we need to refetch
+        await queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+      } else {
+        // Just update the single item in cache
+        queryClient.setQueryData<WatchlistItem[]>(["watchlist"], (old = []) => {
+          return old.map((item) => {
+            if (item.id === variables.itemId) {
+              return data;
+            }
+            return item;
+          });
+        });
+      }
+    },
     onError: (err, variables, context) => {
       // Rollback on error
       if (context?.previousWatchlist) {
         queryClient.setQueryData(["watchlist"], context.previousWatchlist);
       }
-    },
-    onSettled: async () => {
-      // Invalidate to get fresh data
-      await queryClient.invalidateQueries({ queryKey: ["watchlist"] });
     },
   });
 }
@@ -351,29 +438,18 @@ export function useReorderWatchlist() {
     },
     onSuccess: async (_, itemsToUpdate) => {
       console.log("Reorder mutation successful on server. Updating cache with new orders.");
-      // Update the cache directly with the new order values instead of invalidating
-      // This ensures the UI reflects the changes immediately without a refetch race condition
-      queryClient.setQueryData<WatchlistItem[]>(["watchlist"], (old = []) => {
-        if (!old || old.length === 0) return old;
-        
-        const orderMap = new Map(itemsToUpdate.map((item) => [item.id, item.order]));
-        
-        return old.map((item) => {
-          const newOrder = orderMap.get(item.id);
-          if (newOrder !== undefined) {
-            return { ...item, order: newOrder, updatedAt: new Date().toISOString() };
-          }
-          return item;
-        });
-      });
+      // Update the cache directly with the new order values
+      // The optimistic update already applied these changes, so this just confirms them
+      // No need to update again to avoid flicker
       
-      // Optionally refetch in the background after a short delay to ensure consistency
+      // Only invalidate in the background after a delay to ensure consistency
+      // This prevents flicker by not forcing an immediate refetch
       setTimeout(() => {
         queryClient.invalidateQueries({ 
           queryKey: ["watchlist"],
           refetchType: 'none' // Only refetch if data is stale, don't force immediate refetch
         });
-      }, 1000);
+      }, 2000);
     },
     onError: (err, variables, context) => {
       console.error("Reorder mutation error:", err);

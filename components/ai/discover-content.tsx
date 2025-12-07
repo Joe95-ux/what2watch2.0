@@ -53,6 +53,8 @@ export default function DiscoverContent() {
   const hasAutoLoadedRef = useRef(false);
   const lastSavedDataRef = useRef<string>(""); // Track last saved data to prevent duplicate saves
   const typingIntervalRef = useRef<NodeJS.Timeout | null>(null); // Track typing interval for cleanup
+  const typingAnimationRef = useRef<number | null>(null); // Track requestAnimationFrame for cleanup
+  const typingStateRef = useRef<{ currentIndex: number; fullMessage: string; lastTime: number } | null>(null);
   
   // Keep ref in sync with state
   useEffect(() => {
@@ -254,6 +256,11 @@ export default function DiscoverContent() {
       clearInterval(typingIntervalRef.current);
       typingIntervalRef.current = null;
     }
+    if (typingAnimationRef.current) {
+      cancelAnimationFrame(typingAnimationRef.current);
+      typingAnimationRef.current = null;
+    }
+    typingStateRef.current = null;
     setIsStreaming(false);
     setStreamingMessage("");
   }, [mode]);
@@ -263,6 +270,9 @@ export default function DiscoverContent() {
     return () => {
       if (typingIntervalRef.current) {
         clearInterval(typingIntervalRef.current);
+      }
+      if (typingAnimationRef.current) {
+        cancelAnimationFrame(typingAnimationRef.current);
       }
     };
   }, []);
@@ -355,22 +365,47 @@ export default function DiscoverContent() {
         setIsStreaming(true);
         setStreamingMessage("");
         
-        // Clear any existing interval
+        // Clear any existing interval or animation
         if (typingIntervalRef.current) {
           clearInterval(typingIntervalRef.current);
+          typingIntervalRef.current = null;
+        }
+        if (typingAnimationRef.current) {
+          cancelAnimationFrame(typingAnimationRef.current);
+          typingAnimationRef.current = null;
         }
         
-        // Simulate typing animation
-        let currentIndex = 0;
-        typingIntervalRef.current = setInterval(() => {
-          if (currentIndex < fullMessage.length) {
-            setStreamingMessage(fullMessage.substring(0, currentIndex + 1));
-            currentIndex++;
+        // Initialize typing state
+        typingStateRef.current = {
+          currentIndex: 0,
+          fullMessage,
+          lastTime: performance.now(),
+        };
+        
+        // Use requestAnimationFrame for smoother, faster animation
+        const animate = (currentTime: number) => {
+          if (!typingStateRef.current) {
+            return;
+          }
+          
+          const { currentIndex, fullMessage: msg, lastTime } = typingStateRef.current;
+          const elapsed = currentTime - lastTime;
+          
+          // Add characters based on elapsed time (target ~60 chars per second = ~16ms per char)
+          // But batch multiple characters per frame for speed
+          const charsPerFrame = Math.max(1, Math.floor(elapsed / 8)); // ~8ms per char = ~125 chars/sec
+          
+          if (currentIndex < msg.length) {
+            const newIndex = Math.min(currentIndex + charsPerFrame, msg.length);
+            typingStateRef.current.currentIndex = newIndex;
+            typingStateRef.current.lastTime = currentTime;
+            setStreamingMessage(msg.substring(0, newIndex));
+            
+            typingAnimationRef.current = requestAnimationFrame(animate);
           } else {
-            if (typingIntervalRef.current) {
-              clearInterval(typingIntervalRef.current);
-              typingIntervalRef.current = null;
-            }
+            // Animation complete
+            typingAnimationRef.current = null;
+            typingStateRef.current = null;
             setIsStreaming(false);
             // Add complete message to messages array
             const assistantMessage: ChatMessage = {
@@ -383,15 +418,22 @@ export default function DiscoverContent() {
             setMessages((prev) => [...prev, assistantMessage]);
             setStreamingMessage("");
           }
-        }, 5); // Adjust speed: lower = faster typing (5ms = very fast)
+        };
+        
+        typingAnimationRef.current = requestAnimationFrame(animate);
       }
     } catch (error) {
       console.error("Chat error:", error);
-      // Clear typing interval on error
+      // Clear typing interval or animation on error
       if (typingIntervalRef.current) {
         clearInterval(typingIntervalRef.current);
         typingIntervalRef.current = null;
       }
+      if (typingAnimationRef.current) {
+        cancelAnimationFrame(typingAnimationRef.current);
+        typingAnimationRef.current = null;
+      }
+      typingStateRef.current = null;
       setIsStreaming(false);
       setStreamingMessage("");
       
