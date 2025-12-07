@@ -378,6 +378,37 @@ export default function ActivityContent() {
         {/* Search and Filters */}
         <div className="mb-6">
           <div className="flex flex-wrap items-center gap-3">
+            {/* User Filter - Separate from search bar */}
+            <Select 
+              value={selectedUserId} 
+              onValueChange={(value) => setSelectedUserId(value)}
+            >
+              <SelectTrigger className="w-[180px] h-9">
+                <SelectValue placeholder="All Users" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  <span className="flex items-center gap-2">
+                    <UserPlus className="h-4 w-4" />
+                    All Users
+                  </span>
+                </SelectItem>
+                {availableUsers.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    <span className="flex items-center gap-2">
+                      <Avatar className="h-4 w-4">
+                        <AvatarImage src={user.avatarUrl || undefined} />
+                        <AvatarFallback className="text-[10px]">
+                          {(user.displayName || user.username || "U")[0]?.toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {user.displayName || user.username || "Unknown"}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             {/* Search Bar with integrated controls */}
             <div className="relative w-full sm:w-80 2xl:w-96">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -467,9 +498,7 @@ export default function ActivityContent() {
                             size="icon"
                             className={cn(
                               "h-7 w-7 cursor-pointer",
-                              (selectedType !== "all" ||
-                                selectedUserId !== "all" ||
-                                dateRange !== "all") &&
+                              (selectedType !== "all" || dateRange !== "all") &&
                                 "bg-primary/10 text-primary"
                             )}
                           >
@@ -491,41 +520,6 @@ export default function ActivityContent() {
                               <span className="flex items-center gap-2">
                                 {type.icon}
                                 {type.label}
-                              </span>
-                            </DropdownMenuItem>
-                          ))}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuLabel>User</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => setSelectedUserId("all")}
-                            className={cn(
-                              "cursor-pointer",
-                              selectedUserId === "all" && "bg-accent"
-                            )}
-                          >
-                            <span className="flex items-center gap-2">
-                              <UserPlus className="h-4 w-4" />
-                              All Users
-                            </span>
-                          </DropdownMenuItem>
-                          {availableUsers.map((user) => (
-                            <DropdownMenuItem
-                              key={user.id}
-                              onClick={() => setSelectedUserId(user.id)}
-                              className={cn(
-                                "cursor-pointer",
-                                selectedUserId === user.id && "bg-accent"
-                              )}
-                            >
-                              <span className="flex items-center gap-2">
-                                <Avatar className="h-4 w-4">
-                                  <AvatarImage src={user.avatarUrl || undefined} />
-                                  <AvatarFallback className="text-[10px]">
-                                    {(user.displayName || user.username || "U")[0]?.toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                                {user.displayName || user.username || "Unknown"}
                               </span>
                             </DropdownMenuItem>
                           ))}
@@ -592,18 +586,17 @@ export default function ActivityContent() {
                               Custom Range
                             </span>
                           </DropdownMenuItem>
-                          {(selectedType !== "all" || selectedUserId !== "all" || dateRange !== "all") && (
+                          {(selectedType !== "all" || dateRange !== "all") && (
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 onClick={() => {
                                   setSelectedType("all");
-                                  setSelectedUserId("all");
                                   setDateRange("all");
                                 }}
                                 className="cursor-pointer text-muted-foreground"
                               >
-                                Clear All Filters
+                                Clear Type & Date Filters
                               </DropdownMenuItem>
                             </>
                           )}
@@ -618,41 +611,37 @@ export default function ActivityContent() {
               </div>
             </div>
 
-            {/* Group By - Button Group (stays separate as view option) */}
-            <div className="flex items-center gap-1 border rounded-md p-1">
+            {/* Group By - Dropdown */}
+            <Select value={groupBy} onValueChange={(value) => setGroupBy(value as typeof groupBy)}>
+              <SelectTrigger className="w-[140px] h-9">
+                <SelectValue placeholder="Group by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="day">Day</SelectItem>
+                <SelectItem value="week">Week</SelectItem>
+                <SelectItem value="month">Month</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Clear All Filters Button */}
+            {(selectedType !== "all" || selectedUserId !== "all" || dateRange !== "all" || groupBy !== "none" || searchQuery) && (
               <Button
-                variant={groupBy === "none" ? "secondary" : "ghost"}
+                variant="outline"
                 size="sm"
-                onClick={() => setGroupBy("none")}
-                className="h-8 text-xs"
+                onClick={() => {
+                  setSelectedType("all");
+                  setSelectedUserId("all");
+                  setDateRange("all");
+                  setGroupBy("none");
+                  setSearchQuery("");
+                }}
+                className="h-9"
               >
-                None
+                <X className="h-4 w-4 mr-2" />
+                Clear All
               </Button>
-              <Button
-                variant={groupBy === "day" ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setGroupBy("day")}
-                className="h-8 text-xs"
-              >
-                Day
-              </Button>
-              <Button
-                variant={groupBy === "week" ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setGroupBy("week")}
-                className="h-8 text-xs"
-              >
-                Week
-              </Button>
-              <Button
-                variant={groupBy === "month" ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setGroupBy("month")}
-                className="h-8 text-xs"
-              >
-                Month
-              </Button>
-            </div>
+            )}
           </div>
 
           {/* Custom Date Range Inputs */}
@@ -708,7 +697,7 @@ export default function ActivityContent() {
               <p className="text-muted-foreground">
                 {debouncedSearch
                   ? "No activities found matching your search."
-                  : selectedType !== "all" || selectedUserId !== "all" || dateRange !== "all"
+                  : selectedType !== "all" || selectedUserId !== "all" || dateRange !== "all" || groupBy !== "none"
                   ? "No activities found matching your filters. Try adjusting your filters."
                   : "No activity yet. Start following users to see their activity!"}
               </p>

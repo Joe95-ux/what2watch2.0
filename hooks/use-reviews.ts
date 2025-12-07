@@ -267,3 +267,34 @@ export function useTMDBReviews(
   });
 }
 
+export function useUserReviews(
+  userId: string | null,
+  options?: {
+    page?: number;
+    limit?: number;
+  }
+) {
+  return useQuery({
+    queryKey: ["user-reviews", userId, options],
+    queryFn: async () => {
+      if (!userId) return null;
+
+      const params = new URLSearchParams({
+        ...(options?.page && { page: options.page.toString() }),
+        ...(options?.limit && { limit: options.limit.toString() }),
+      });
+
+      const response = await fetch(`/api/reviews/user/${userId}?${params.toString()}`);
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: "Failed to fetch user reviews" }));
+        throw new Error(error.error || "Failed to fetch user reviews");
+      }
+      const data = await response.json();
+      return data as ReviewsResponse;
+    },
+    enabled: !!userId,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+}
+

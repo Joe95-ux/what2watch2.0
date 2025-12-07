@@ -29,6 +29,8 @@ import { useFavorites } from "@/hooks/use-favorites";
 import { usePlaylists } from "@/hooks/use-playlists";
 import { useLists } from "@/hooks/use-lists";
 import { useWatchlist } from "@/hooks/use-watchlist";
+import { useUserReviews } from "@/hooks/use-reviews";
+import ReviewCard from "@/components/reviews/review-card";
 import ProfileStickyNav from "@/components/dashboard/profile-sticky-nav";
 import BannerGradientSelector, { BANNER_GRADIENTS } from "@/components/social/banner-gradient-selector";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
@@ -79,6 +81,15 @@ export default function DashboardProfileContent() {
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
   const itemsPerPage = 24;
 
+  // Fetch reviews (after pagination state is defined)
+  const { data: reviewsData, isLoading: isLoadingReviews } = useUserReviews(userId, {
+    page: activeTab === "reviews" ? currentPage : 1,
+    limit: itemsPerPage,
+  });
+
+  const reviews = reviewsData?.reviews || [];
+  const reviewsTotal = reviewsData?.pagination?.total || 0;
+
   // Pagination calculations
   const totalPages = useMemo(() => {
     if (activeTab === "playlists") {
@@ -93,9 +104,11 @@ export default function DashboardProfileContent() {
       return Math.ceil(followers.length / itemsPerPage);
     } else if (activeTab === "following") {
       return Math.ceil(following.length / itemsPerPage);
+    } else if (activeTab === "reviews") {
+      return reviewsData?.pagination?.totalPages || 1;
     }
     return 1;
-  }, [playlists.length, lists.length, watchlist.length, favorites.length, followers.length, following.length, activeTab, itemsPerPage]);
+  }, [playlists.length, lists.length, watchlist.length, favorites.length, followers.length, following.length, reviewsData?.pagination?.totalPages, activeTab, itemsPerPage]);
 
   const paginatedPlaylists = useMemo(() => {
     if (activeTab !== "playlists") return [];
@@ -222,7 +235,7 @@ export default function DashboardProfileContent() {
   // Reset to page 1 when tab or data changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab, playlists.length, lists.length, watchlist.length, favorites.length, followers.length, following.length]);
+  }, [activeTab, playlists.length, lists.length, watchlist.length, favorites.length, followers.length, following.length, reviews.length]);
 
   // Get banner gradient
   const bannerGradient = useMemo(() => {
@@ -552,11 +565,91 @@ export default function DashboardProfileContent() {
       )}
 
       {activeTab === "reviews" && (
-        <div className="text-center py-12">
-          <Star className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Reviews coming soon</h3>
-          <p className="text-muted-foreground">This feature is under development.</p>
-        </div>
+        <>
+          {isLoadingReviews ? (
+            <div className="space-y-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-48 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : reviews.length === 0 ? (
+            <div className="text-center py-12">
+              <Star className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No reviews yet</h3>
+              <p className="text-muted-foreground">Start reviewing movies and TV shows to see them here.</p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-4">
+                {reviews.map((review) => (
+                  <ReviewCard key={review.id} review={review} showFullContent />
+                ))}
+              </div>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-8">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="flex-shrink-0"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                      let pageNum: number;
+                      if (totalPages <= 7) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 4) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 3) {
+                        pageNum = totalPages - 6 + i;
+                      } else {
+                        pageNum = currentPage - 3 + i;
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className="min-w-[40px]"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                    {totalPages > 7 && currentPage < totalPages - 3 && (
+                      <>
+                        <span className="px-2 text-muted-foreground">...</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(totalPages)}
+                          className="min-w-[40px]"
+                        >
+                          {totalPages}
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="flex-shrink-0"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </>
       )}
 
       {activeTab === "my-list" && (
@@ -873,6 +966,7 @@ export default function DashboardProfileContent() {
               favorites: favorites.length,
               followers: followers.length,
               following: following.length,
+              reviews: reviewsTotal,
             }}
           />
 

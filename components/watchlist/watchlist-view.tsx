@@ -2343,7 +2343,7 @@ function DetailedWatchlistItem({
                     </div>
                   )}
                   {watchlistItem.note && (
-                    <div className="mt-2 border-l-4 border-primary/50 pl-4 py-2 text-sm text-muted-foreground bg-muted/30 rounded-r">
+                    <div className="mt-2 border-l-4 border-primary/50 pl-4 py-2 text-sm bg-primary/10 text-primary dark:text-primary rounded-r">
                       {watchlistItem.note}
                     </div>
                   )}
@@ -2483,7 +2483,7 @@ function DetailedWatchlistItem({
                 </div>
               )}
               {watchlistItem.note && (
-                <div className="mt-2 border-l-4 border-primary/50 pl-4 py-2 text-sm text-muted-foreground bg-muted/30 rounded-r">
+                <div className="mt-2 border-l-4 border-primary/50 pl-4 py-2 text-sm bg-primary/10 text-primary dark:text-primary rounded-r">
                   {watchlistItem.note}
                 </div>
               )}

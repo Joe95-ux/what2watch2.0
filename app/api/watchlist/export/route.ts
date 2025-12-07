@@ -76,15 +76,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           // Fetch IMDb rating if we have IMDb ID
           if (imdbId) {
             try {
-              const ratingRes = await fetch(
-                `${request.nextUrl.origin}/api/imdb-rating-by-tmdb?tmdbId=${item.tmdbId}&mediaType=${item.mediaType}`
+              // Use OMDB API directly with IMDb ID
+              const omdbRes = await fetch(
+                `${request.nextUrl.origin}/api/omdb?imdbId=${imdbId}`
               );
-              if (ratingRes.ok) {
-                const ratingData = await ratingRes.json();
-                imdbRating = ratingData.rating || null;
+              if (omdbRes.ok) {
+                const omdbData = await omdbRes.json();
+                // OMDB returns imdbRating as a string like "8.5" or "N/A"
+                if (omdbData.imdbRating && omdbData.imdbRating !== "N/A") {
+                  const parsed = parseFloat(omdbData.imdbRating);
+                  if (!isNaN(parsed) && parsed > 0) {
+                    imdbRating = parsed;
+                  }
+                }
               }
             } catch (error) {
               // Ignore rating fetch errors
+              console.error("Error fetching OMDB rating:", error);
             }
           }
 

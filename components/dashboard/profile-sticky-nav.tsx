@@ -15,6 +15,7 @@ interface ProfileStickyNavProps {
     favorites?: number;
     followers?: number;
     following?: number;
+    reviews?: number;
   };
 }
 
@@ -77,7 +78,7 @@ export default function ProfileStickyNav({
           : "bg-transparent"
       )}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-8 overflow-x-auto scrollbar-hide scroll-smooth">
           {tabs.map((tab) => {
             const Icon = tab.icon;

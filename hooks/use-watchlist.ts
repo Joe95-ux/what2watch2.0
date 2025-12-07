@@ -349,13 +349,31 @@ export function useReorderWatchlist() {
 
       return { previousWatchlist };
     },
-    onSuccess: async () => {
-      console.log("Reorder mutation successful on server. Invalidating cache.");
-      // Invalidate to get fresh data from server after successful update
-      await queryClient.invalidateQueries({ 
-        queryKey: ["watchlist"],
-        refetchType: 'active'
+    onSuccess: async (_, itemsToUpdate) => {
+      console.log("Reorder mutation successful on server. Updating cache with new orders.");
+      // Update the cache directly with the new order values instead of invalidating
+      // This ensures the UI reflects the changes immediately without a refetch race condition
+      queryClient.setQueryData<WatchlistItem[]>(["watchlist"], (old = []) => {
+        if (!old || old.length === 0) return old;
+        
+        const orderMap = new Map(itemsToUpdate.map((item) => [item.id, item.order]));
+        
+        return old.map((item) => {
+          const newOrder = orderMap.get(item.id);
+          if (newOrder !== undefined) {
+            return { ...item, order: newOrder, updatedAt: new Date().toISOString() };
+          }
+          return item;
+        });
       });
+      
+      // Optionally refetch in the background after a short delay to ensure consistency
+      setTimeout(() => {
+        queryClient.invalidateQueries({ 
+          queryKey: ["watchlist"],
+          refetchType: 'none' // Only refetch if data is stale, don't force immediate refetch
+        });
+      }, 1000);
     },
     onError: (err, variables, context) => {
       console.error("Reorder mutation error:", err);
