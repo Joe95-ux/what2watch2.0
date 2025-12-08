@@ -161,7 +161,7 @@ export default function ImportWatchlistModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="mx-2 w-full max-w-[calc(100vw-1rem)] sm:max-w-3xl lg:max-w-[50rem] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Import Watchlist from CSV</DialogTitle>
           <DialogDescription>
@@ -170,7 +170,8 @@ export default function ImportWatchlistModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="flex-1 overflow-y-auto scrollbar-thin px-1">
+          <div className="space-y-6 py-4">
           {/* File Upload */}
           <div className="space-y-2">
             <Label>CSV File</Label>
@@ -436,6 +437,7 @@ export default function ImportWatchlistModal({
               )}
             </div>
           )}
+          </div>
         </div>
 
         <DialogFooter>
