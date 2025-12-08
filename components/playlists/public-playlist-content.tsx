@@ -34,6 +34,9 @@ import { useDeletePlaylist } from "@/hooks/use-playlists";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { FollowButton } from "@/components/social/follow-button";
+import { useLikePlaylist, useUnlikePlaylist, useIsLiked } from "@/hooks/use-playlist-likes";
+import { Heart } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type PlaylistWithUser = Playlist & {
   user?: {
@@ -61,6 +64,28 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  // Like functionality
+  const { data: likeStatus } = useIsLiked(playlist?.id || null);
+  const likePlaylist = useLikePlaylist();
+  const unlikePlaylist = useUnlikePlaylist();
+  const isLiked = likeStatus?.isLiked || false;
+
+  const handleToggleLike = async () => {
+    if (!playlist || !currentUserId) return;
+    try {
+      if (isLiked) {
+        await unlikePlaylist.mutateAsync(playlist.id);
+        toast.success("Removed from liked playlists");
+      } else {
+        await likePlaylist.mutateAsync(playlist.id);
+        toast.success("Added to liked playlists");
+      }
+    } catch (error) {
+      toast.error("Failed to update like status");
+      console.error(error);
+    }
+  };
 
   useEffect(() => {
     const fetchPlaylist = async () => {
@@ -413,6 +438,19 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
             ) : (
               playlistWithUser.user && (
                 <>
+                  <Button
+                    variant={isLiked ? "default" : "outline"}
+                    size="sm"
+                    onClick={handleToggleLike}
+                    disabled={likePlaylist.isPending || unlikePlaylist.isPending || !currentUserId}
+                    className="cursor-pointer"
+                  >
+                    <Heart className={cn("h-4 w-4 mr-2", isLiked && "fill-current")} />
+                    {isLiked ? "Liked" : "Like"}
+                    {playlist.likesCount && playlist.likesCount > 0 && (
+                      <span className="ml-2">({playlist.likesCount})</span>
+                    )}
+                  </Button>
                   <FollowButton userId={playlistWithUser.user.id} />
                   <Button
                     variant="outline"

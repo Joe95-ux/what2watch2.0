@@ -886,7 +886,11 @@ export default function ListView({
                         autoFocus
                       />
                     </div>
-                    {debouncedAddSearchQuery.trim() && (
+                    {!debouncedAddSearchQuery.trim() ? (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        Start typing to search for movies or TV shows
+                      </div>
+                    ) : (
                       <div className="h-auto max-h-[400px] p-2 overflow-y-auto scrollbar-thin">
                         {isSearchLoading ? (
                           <div className="p-4 text-center text-sm text-muted-foreground">
@@ -992,6 +996,9 @@ export default function ListView({
                                       {mediaType}
                                     </p>
                                   </div>
+                                  {!isInList && (
+                                    <Plus className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                  )}
                                 </button>
                               );
                             })}

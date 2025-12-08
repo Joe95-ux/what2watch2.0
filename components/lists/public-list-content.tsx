@@ -19,14 +19,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useListComments, useCreateListComment, useDeleteListComment, useUpdateListComment, type ListComment, useAddListCommentReaction, useRemoveListCommentReaction } from "@/hooks/use-list-comments";
-import { Ban, UserX, Filter } from "lucide-react";
+import { Ban, UserX, Filter, Heart, Users } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { format, formatDistanceToNow } from "date-fns";
 import CreateListModal from "./create-list-modal";
 import ImportListModal from "./import-list-modal";
-import { MessageSquare, Send, Edit2 as Edit, Trash2, Reply, Smile, ChevronDown, ChevronUp, Heart } from "lucide-react";
+import { MessageSquare, Send, Edit2 as Edit, Trash2, Reply, Smile, ChevronDown, ChevronUp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
@@ -35,6 +35,8 @@ import ListView from "./list-view";
 import type { ListVisibility } from "@/hooks/use-lists";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
+import { useLikeList, useUnlikeList, useIsListLiked } from "@/hooks/use-list-likes";
+import { FollowButton } from "@/components/social/follow-button";
 
 interface PublicListContentProps {
   listId: string;
@@ -97,6 +99,31 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
 
   // Comments functionality
   const { data: comments = [], isLoading: commentsLoading } = useListComments(list?.id || "", commentFilter);
+
+  // Like functionality
+  const { data: likeStatus } = useIsListLiked(list?.id || null);
+  const likeList = useLikeList();
+  const unlikeList = useUnlikeList();
+  const isLiked = likeStatus?.isLiked || false;
+
+  const handleToggleLike = async () => {
+    if (!list || !currentUser) {
+      toast.error("Please sign in to like lists");
+      return;
+    }
+    try {
+      if (isLiked) {
+        await unlikeList.mutateAsync(list.id);
+        toast.success("Removed from liked lists");
+      } else {
+        await likeList.mutateAsync(list.id);
+        toast.success("Added to liked lists");
+      }
+      refreshList();
+    } catch (error) {
+      toast.error("Failed to update like status");
+    }
+  };
 
   // Block/unblock user
   const handleBlockUser = async (userId: string) => {
@@ -205,6 +232,48 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
         onBack={() => router.push("/lists")}
       />
 
+      {/* Like and Follow Actions for Non-Owners */}
+      {!isOwner && list && list.visibility !== "PRIVATE" && (
+        <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t">
+          <div className="flex items-center gap-4">
+            <Button
+              variant={isLiked ? "default" : "outline"}
+              size="sm"
+              onClick={handleToggleLike}
+              disabled={likeList.isPending || unlikeList.isPending || !currentUser}
+              className="cursor-pointer"
+            >
+              <Heart className={cn("h-4 w-4 mr-2", isLiked && "fill-current")} />
+              {isLiked ? "Liked" : "Like"}
+              {list._count?.likedBy && list._count.likedBy > 0 && (
+                <span className="ml-2">({list._count.likedBy})</span>
+              )}
+            </Button>
+            {list.user && (
+              <FollowButton userId={list.user.id} />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Comments Section */}
+      {list && list.visibility !== "PRIVATE" && (
+        <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t">
+          <ListCommentsSection
+            listId={listId}
+            comments={comments}
+            isLoading={commentsLoading}
+            filter={commentFilter}
+            onFilterChange={setCommentFilter}
+            currentUser={currentUser}
+            isListOwner={isOwner}
+            onBlockUser={handleBlockUser}
+            onUnblockUser={handleUnblockUser}
+            blockedUsers={list.blockedUsers || []}
+          />
+        </div>
+      )}
+
       {/* Edit Modal */}
       {isOwner && list && (
         <>
@@ -258,7 +327,7 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
   );
 }
 
-interface ListCommentsSectionProps {
+export interface ListCommentsSectionProps {
   listId: string;
   comments: ListComment[];
   isLoading: boolean;
@@ -271,7 +340,7 @@ interface ListCommentsSectionProps {
   blockedUsers: string[];
 }
 
-function ListCommentsSection({
+export function ListCommentsSection({
   listId,
   comments,
   isLoading,

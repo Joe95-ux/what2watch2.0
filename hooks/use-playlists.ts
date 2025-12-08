@@ -57,6 +57,7 @@ export interface PlaylistItem {
   releaseDate: string | null;
   firstAirDate: string | null;
   order: number;
+  note: string | null;
   createdAt: string;
 }
 
@@ -267,6 +268,137 @@ export function useRemoveItemFromPlaylist() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["playlists"] });
       queryClient.invalidateQueries({ queryKey: ["playlist", variables.playlistId] });
+    },
+  });
+}
+
+// Reorder playlist items
+const reorderPlaylistItems = async (playlistId: string, items: Array<{ id: string; order: number }>): Promise<void> => {
+  const res = await fetch(`/api/playlists/${playlistId}/reorder`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to reorder playlist items");
+  }
+};
+
+// Hook to reorder playlist items
+export function useReorderPlaylist(playlistId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (items: Array<{ id: string; order: number }>) => reorderPlaylistItems(playlistId, items),
+    onMutate: async (items) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["playlist", playlistId] });
+
+      // Snapshot the previous value
+      const previousPlaylist = queryClient.getQueryData<Playlist>(["playlist", playlistId]);
+
+      // Optimistically update the playlist
+      if (previousPlaylist) {
+        const updatedItems = [...(previousPlaylist.items || [])];
+        items.forEach(({ id, order }) => {
+          const item = updatedItems.find((i) => i.id === id);
+          if (item) {
+            item.order = order;
+          }
+        });
+        updatedItems.sort((a, b) => a.order - b.order);
+
+        queryClient.setQueryData<Playlist>(["playlist", playlistId], {
+          ...previousPlaylist,
+          items: updatedItems,
+        });
+      }
+
+      return { previousPlaylist };
+    },
+    onError: (err, items, context) => {
+      // Rollback on error
+      if (context?.previousPlaylist) {
+        queryClient.setQueryData(["playlist", playlistId], context.previousPlaylist);
+      }
+    },
+    onSuccess: () => {
+      // Invalidate to refetch fresh data
+      queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
+    },
+  });
+}
+
+// Update playlist item (note or order)
+const updatePlaylistItem = async (
+  playlistId: string,
+  itemId: string,
+  updates: { note?: string | null; order?: number }
+): Promise<PlaylistItem> => {
+  const res = await fetch(`/api/playlists/${playlistId}/items/${itemId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to update playlist item");
+  }
+  const data = await res.json();
+  return data.playlistItem;
+};
+
+// Hook to update playlist item
+export function useUpdatePlaylistItemMutation(playlistId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ itemId, updates }: { itemId: string; updates: { note?: string | null; order?: number } }) =>
+      updatePlaylistItem(playlistId, itemId, updates),
+    onMutate: async ({ itemId, updates }) => {
+      await queryClient.cancelQueries({ queryKey: ["playlist", playlistId] });
+
+      const previousPlaylist = queryClient.getQueryData<Playlist>(["playlist", playlistId]);
+
+      if (previousPlaylist && updates.order !== undefined) {
+        // Optimistically reorder all items
+        const allItems = [...(previousPlaylist.items || [])];
+        const currentItem = allItems.find((i) => i.id === itemId);
+        if (currentItem) {
+          const currentIndex = allItems.findIndex((i) => i.id === itemId);
+          const newIndex = updates.order - 1;
+          const [movedItem] = allItems.splice(currentIndex, 1);
+          allItems.splice(newIndex, 0, movedItem);
+          allItems.forEach((item, idx) => {
+            item.order = idx + 1;
+          });
+        }
+
+        queryClient.setQueryData<Playlist>(["playlist", playlistId], {
+          ...previousPlaylist,
+          items: allItems,
+        });
+      } else if (previousPlaylist && updates.note !== undefined) {
+        // Optimistically update note
+        const updatedItems = (previousPlaylist.items || []).map((item) =>
+          item.id === itemId ? { ...item, note: updates.note ?? null } : item
+        );
+        queryClient.setQueryData<Playlist>(["playlist", playlistId], {
+          ...previousPlaylist,
+          items: updatedItems,
+        });
+      }
+
+      return { previousPlaylist };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousPlaylist) {
+        queryClient.setQueryData(["playlist", playlistId], context.previousPlaylist);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
     },
   });
 }

@@ -19,6 +19,14 @@ import { useDeleteList } from "@/hooks/use-lists";
 import CreateListModal from "./create-list-modal";
 import ListView from "./list-view";
 import type { ListVisibility } from "@/hooks/use-lists";
+import { useListComments } from "@/hooks/use-list-comments";
+import { Button } from "@/components/ui/button";
+import { Heart, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useLikeList, useUnlikeList, useIsListLiked } from "@/hooks/use-list-likes";
+import { FollowButton } from "@/components/social/follow-button";
+import { useQueryClient } from "@tanstack/react-query";
+import { ListCommentsSection } from "./public-list-content";
 
 interface ListDetailContentProps {
   listId: string;
@@ -31,10 +39,83 @@ export default function ListDetailContent({ listId }: ListDetailContentProps) {
   const removeItemFromList = useRemoveItemFromList();
   const updateList = useUpdateList();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [commentFilter, setCommentFilter] = useState("newest");
 
   const isOwner = currentUser?.id === list?.userId;
+
+  // Comments functionality
+  const { data: comments = [] } = useListComments(list?.id || "", commentFilter);
+
+  // Like functionality
+  const { data: likeStatus } = useIsListLiked(list?.id || null);
+  const likeList = useLikeList();
+  const unlikeList = useUnlikeList();
+  const isLiked = likeStatus?.isLiked || false;
+
+  const refreshList = () => {
+    queryClient.invalidateQueries({ queryKey: ["list", listId] });
+  };
+
+  const handleToggleLike = async () => {
+    if (!list || !currentUser) {
+      toast.error("Please sign in to like lists");
+      return;
+    }
+    try {
+      if (isLiked) {
+        await unlikeList.mutateAsync(list.id);
+        toast.success("Removed from liked lists");
+      } else {
+        await likeList.mutateAsync(list.id);
+        toast.success("Added to liked lists");
+      }
+      refreshList();
+    } catch (error) {
+      toast.error("Failed to update like status");
+    }
+  };
+
+  // Block/unblock user handlers (for comments section)
+  const handleBlockUser = async (userId: string) => {
+    if (!list) return;
+    try {
+      const res = await fetch(`/api/lists/${list.id}/block`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userIdToBlock: userId }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to block user");
+      }
+      toast.success("User blocked from commenting");
+      refreshList();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to block user";
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleUnblockUser = async (userId: string) => {
+    if (!list) return;
+    try {
+      const res = await fetch(`/api/lists/${list.id}/block?userId=${userId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to unblock user");
+      }
+      toast.success("User unblocked");
+      refreshList();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to unblock user";
+      toast.error(errorMessage);
+    }
+  };
 
   const handleTogglePublic = async (visibility: ListVisibility) => {
     if (!list) return;
@@ -92,6 +173,44 @@ export default function ListDetailContent({ listId }: ListDetailContentProps) {
         errorDescription="This list doesn't exist or is private."
         onBack={() => router.push("/dashboard/lists")}
       />
+
+      {/* Like and Follow Counts for Owners */}
+      {isOwner && list && list.visibility !== "PRIVATE" && (
+        <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Heart className="h-4 w-4" />
+              <span>
+                {list._count?.likedBy || 0} {list._count?.likedBy === 1 ? "like" : "likes"}
+              </span>
+            </div>
+            {list.user && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Users className="h-4 w-4" />
+                <span>Follow to see follower count</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Comments Section for Owners */}
+      {isOwner && list && list.visibility !== "PRIVATE" && (
+        <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t">
+          <ListCommentsSection
+            listId={listId}
+            comments={comments}
+            isLoading={false}
+            filter={commentFilter}
+            onFilterChange={setCommentFilter}
+            currentUser={currentUser}
+            isListOwner={isOwner}
+            onBlockUser={handleBlockUser}
+            onUnblockUser={handleUnblockUser}
+            blockedUsers={list.blockedUsers || []}
+          />
+        </div>
+      )}
 
       {isOwner && (
         <>

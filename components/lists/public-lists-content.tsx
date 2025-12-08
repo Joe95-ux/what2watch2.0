@@ -10,7 +10,6 @@ import { ClipboardList, Plus, Grid3x3, Table2 } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { MembersSidebar } from "./members-sidebar";
 import CreateListModal from "./create-list-modal";
 import { format } from "date-fns";
 
@@ -57,9 +56,7 @@ export default function PublicListsContent() {
 
   return (
     <div className="container max-w-[1400px] mx-auto px-4 py-8">
-      <div className="flex gap-6">
-        {/* Main Content */}
-        <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0">
           <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 mb-6">
             <div>
               <h1 className="text-3xl font-bold tracking-tight mb-2">Discover Lists</h1>
@@ -96,9 +93,17 @@ export default function PublicListsContent() {
           </div>
 
           {isLoading ? (
-            <div className={viewMode === "grid" ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" : "space-y-4"}>
+            <div className={viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-4"}>
               {Array.from({ length: 12 }).map((_, i) => (
-                <Skeleton key={i} className={viewMode === "grid" ? "aspect-[3/4] w-full rounded-lg" : "h-24"} />
+                <div key={i} className={viewMode === "grid" ? "space-y-2" : ""}>
+                  <Skeleton className={viewMode === "grid" ? "w-full max-h-[225px] h-[225px] rounded-lg" : "h-24"} />
+                  {viewMode === "grid" && (
+                    <>
+                      <Skeleton className="h-5 w-3/4 rounded" />
+                      <Skeleton className="h-4 w-1/2 rounded" />
+                    </>
+                  )}
+                </div>
               ))}
             </div>
           ) : lists.length === 0 ? (
@@ -124,7 +129,7 @@ export default function PublicListsContent() {
               )}
             </div>
           ) : viewMode === "grid" ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {lists.map((list: List) => (
                 <ListCard
                   key={list.id}
@@ -174,10 +179,6 @@ export default function PublicListsContent() {
               </table>
             </div>
           )}
-        </div>
-
-        {/* Members Sidebar */}
-        <MembersSidebar />
       </div>
 
       {isSignedIn && (
