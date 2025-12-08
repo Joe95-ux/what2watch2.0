@@ -27,6 +27,7 @@ interface DetailedYouTubePlaylistItemProps {
   isLgScreen: boolean;
   sortField: SortField;
   isPublic?: boolean;
+  enableOrdering?: boolean; // If false, hide grip icons and order controls
 }
 
 /**
@@ -62,6 +63,7 @@ export function DetailedYouTubePlaylistItem({
   isLgScreen,
   sortField,
   isPublic,
+  enableOrdering = true, // Default to true for backward compatibility
 }: DetailedYouTubePlaylistItemProps) {
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   // Note: YouTube playlist items don't have notes in the current schema
@@ -102,7 +104,7 @@ export function DetailedYouTubePlaylistItem({
       >
         {isEditMode && isLgScreen && (
           <div className="flex-shrink-0 flex items-center gap-2">
-            {sortField === "listOrder" && (
+            {enableOrdering && sortField === "listOrder" && (
               <div className="text-muted-foreground">
                 <GripVertical className="h-5 w-5" />
               </div>
@@ -184,7 +186,7 @@ export function DetailedYouTubePlaylistItem({
 
             <div className="flex-1 min-w-0 flex flex-col">
               <div className="flex items-center gap-2 mb-2 flex-wrap">
-                {order !== undefined && (
+                {enableOrdering && order !== undefined && (
                   <span className="text-sm text-muted-foreground">
                     {(order && order > 0) ? order : index + 1}.
                   </span>
@@ -197,7 +199,7 @@ export function DetailedYouTubePlaylistItem({
                     <Badge variant="secondary" className="text-xs">
                       Added {formattedAddedDate}
                     </Badge>
-                    {sortField === "listOrder" && (
+                    {enableOrdering && sortField === "listOrder" && (
                       <Button
                         variant="outline"
                         size="sm"

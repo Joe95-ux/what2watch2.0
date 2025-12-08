@@ -1,5 +1,29 @@
 import { useQuery } from "@tanstack/react-query";
 
+export interface AiChatEvent {
+  id: string;
+  sessionId: string;
+  userMessage: string;
+  intent: "RECOMMENDATION" | "INFORMATION";
+  model: string | null;
+  promptTokens: number | null;
+  completionTokens: number | null;
+  totalTokens: number | null;
+  responseTime: number | null;
+  resultsCount: number;
+  createdAt: string;
+}
+
+export interface AiAnalyticsEventsResponse {
+  events: AiChatEvent[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+  };
+}
+
 export interface AiAnalyticsSummary {
   totals: {
     totalQueries: number;
@@ -54,6 +78,44 @@ export function useAiAnalytics(params?: { range?: number; startDate?: string; en
       const response = await fetch(`/api/ai/analytics?${searchParams.toString()}`);
       if (!response.ok) {
         throw new Error("Failed to fetch AI analytics");
+      }
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
+  });
+}
+
+export function useAiAnalyticsEvents(params?: {
+  page?: number;
+  pageSize?: number;
+  range?: number;
+  startDate?: string;
+  endDate?: string;
+}) {
+  return useQuery<AiAnalyticsEventsResponse>({
+    queryKey: ["ai-analytics-events", params],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams();
+      if (params?.page) {
+        searchParams.set("page", params.page.toString());
+      }
+      if (params?.pageSize) {
+        searchParams.set("pageSize", params.pageSize.toString());
+      }
+      if (params?.range) {
+        searchParams.set("range", params.range.toString());
+      }
+      if (params?.startDate) {
+        searchParams.set("startDate", params.startDate);
+      }
+      if (params?.endDate) {
+        searchParams.set("endDate", params.endDate);
+      }
+
+      const response = await fetch(`/api/ai/analytics/events?${searchParams.toString()}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch AI analytics events");
       }
       return response.json();
     },

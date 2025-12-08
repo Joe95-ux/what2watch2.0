@@ -1,20 +1,38 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useAiAnalytics } from "@/hooks/use-ai-analytics";
+import { useState, useMemo, useEffect } from "react";
+import { useAiAnalytics, useAiAnalyticsEvents } from "@/hooks/use-ai-analytics";
 import { useAllGenres } from "@/hooks/use-genres";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { Activity, MessageSquare, Sparkles, TrendingUp, Clock, MousePointerClick, Plus, Users, Zap } from "lucide-react";
+import { Activity, MessageSquare, Sparkles, TrendingUp, Clock, MousePointerClick, Plus, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { format } from "date-fns";
 
 export default function AiUsageContent() {
   const [range, setRange] = useState<string | undefined>(undefined);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 25;
+  
   const { data, isLoading, isError, error } = useAiAnalytics({
     range: range ? parseInt(range, 10) : undefined,
   });
+  
+  const { data: eventsData, isLoading: isLoadingEvents } = useAiAnalyticsEvents({
+    page: currentPage,
+    pageSize,
+    range: range ? parseInt(range, 10) : undefined,
+  });
+  
   const { data: allGenres = [] } = useAllGenres();
+
+  // Reset to page 1 when range changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [range]);
 
   // Create genre ID to name map
   const genreMap = useMemo(() => {
@@ -118,49 +136,6 @@ export default function AiUsageContent() {
           icon={Clock}
           isLoading={isLoading}
         />
-      </div>
-
-      {/* Token Usage Cards */}
-      <div className="mb-4 sm:mb-6">
-        <h2 className="text-lg font-semibold mb-3 sm:mb-4">Token Usage</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          <MetricCard
-            title="Total Tokens"
-            value={data?.totals.totalTokens ? formatTokenNumber(data.totals.totalTokens) : "0"}
-            icon={Zap}
-            isLoading={isLoading}
-          />
-          <MetricCard
-            title="Avg Tokens/Query"
-            value={data?.totals.averageTokens ? formatTokenNumber(data.totals.averageTokens) : "0"}
-            icon={Zap}
-            isLoading={isLoading}
-          />
-          <MetricCard
-            title="Prompt Tokens"
-            value={data?.totals.totalPromptTokens ? formatTokenNumber(data.totals.totalPromptTokens) : "0"}
-            icon={Zap}
-            isLoading={isLoading}
-          />
-          <MetricCard
-            title="Completion Tokens"
-            value={data?.totals.totalCompletionTokens ? formatTokenNumber(data.totals.totalCompletionTokens) : "0"}
-            icon={Zap}
-            isLoading={isLoading}
-          />
-          <MetricCard
-            title="Avg Prompt Tokens"
-            value={data?.totals.averagePromptTokens ? formatTokenNumber(data.totals.averagePromptTokens) : "0"}
-            icon={Zap}
-            isLoading={isLoading}
-          />
-          <MetricCard
-            title="Avg Completion Tokens"
-            value={data?.totals.averageCompletionTokens ? formatTokenNumber(data.totals.averageCompletionTokens) : "0"}
-            icon={Zap}
-            isLoading={isLoading}
-          />
-        </div>
       </div>
 
       {/* Charts */}
@@ -273,13 +248,4 @@ function MetricCard({
   );
 }
 
-// Helper function to format token numbers (e.g., 1,234,567 -> "1.2M")
-function formatTokenNumber(num: number): string {
-  if (num >= 1_000_000) {
-    return `${(num / 1_000_000).toFixed(1)}M`;
-  } else if (num >= 1_000) {
-    return `${(num / 1_000).toFixed(1)}K`;
-  }
-  return num.toLocaleString();
-}
 

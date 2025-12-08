@@ -273,11 +273,15 @@ export function useRemoveItemFromPlaylist() {
 }
 
 // Reorder playlist items
-const reorderPlaylistItems = async (playlistId: string, items: Array<{ id: string; order: number }>): Promise<void> => {
+const reorderPlaylistItems = async (
+  playlistId: string, 
+  items: Array<{ id: string; order: number }>,
+  itemType: "tmdb" | "youtube" = "tmdb"
+): Promise<void> => {
   const res = await fetch(`/api/playlists/${playlistId}/reorder`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ items }),
+    body: JSON.stringify({ items, itemType }),
   });
   if (!res.ok) {
     const error = await res.json();
@@ -286,11 +290,11 @@ const reorderPlaylistItems = async (playlistId: string, items: Array<{ id: strin
 };
 
 // Hook to reorder playlist items
-export function useReorderPlaylist(playlistId: string) {
+export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtube" = "tmdb") {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (items: Array<{ id: string; order: number }>) => reorderPlaylistItems(playlistId, items),
+    mutationFn: (items: Array<{ id: string; order: number }>) => reorderPlaylistItems(playlistId, items, itemType),
     onMutate: async (items) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["playlist", playlistId] });
@@ -298,21 +302,38 @@ export function useReorderPlaylist(playlistId: string) {
       // Snapshot the previous value
       const previousPlaylist = queryClient.getQueryData<Playlist>(["playlist", playlistId]);
 
-      // Optimistically update the playlist
+      // Optimistically update the playlist immediately to prevent snap-back
       if (previousPlaylist) {
-        const updatedItems = [...(previousPlaylist.items || [])];
-        items.forEach(({ id, order }) => {
-          const item = updatedItems.find((i) => i.id === id);
-          if (item) {
-            item.order = order;
-          }
-        });
-        updatedItems.sort((a, b) => a.order - b.order);
+        if (itemType === "tmdb") {
+          const updatedItems = [...(previousPlaylist.items || [])];
+          items.forEach(({ id, order }) => {
+            const item = updatedItems.find((i) => i.id === id);
+            if (item) {
+              item.order = order;
+            }
+          });
+          updatedItems.sort((a, b) => a.order - b.order);
 
-        queryClient.setQueryData<Playlist>(["playlist", playlistId], {
-          ...previousPlaylist,
-          items: updatedItems,
-        });
+          queryClient.setQueryData<Playlist>(["playlist", playlistId], {
+            ...previousPlaylist,
+            items: updatedItems,
+          });
+        } else {
+          // YouTube items
+          const updatedYouTubeItems = [...(previousPlaylist.youtubeItems || [])];
+          items.forEach(({ id, order }) => {
+            const item = updatedYouTubeItems.find((i) => i.id === id);
+            if (item) {
+              item.order = order;
+            }
+          });
+          updatedYouTubeItems.sort((a, b) => a.order - b.order);
+
+          queryClient.setQueryData<Playlist>(["playlist", playlistId], {
+            ...previousPlaylist,
+            youtubeItems: updatedYouTubeItems,
+          });
+        }
       }
 
       return { previousPlaylist };

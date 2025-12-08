@@ -639,23 +639,36 @@ function CuratedListsSection({ lists, playlists }: { lists: List[]; playlists: P
 
   return (
     <div className="mb-12 px-4 sm:px-6 lg:px-8">
-      <h2 className="text-2xl font-medium text-foreground mb-6">Explore Curated Lists</h2>
+      <div className="mb-6">
+        <Link 
+          href="/browse/personalized"
+          className="group/title inline-flex items-center gap-2 transition-all duration-300"
+        >
+          <h2 className="text-2xl font-medium text-foreground group-hover/title:text-primary transition-colors">
+            Explore Curated Lists
+          </h2>
+          <CaretRight 
+            className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover/title:opacity-100 group-hover/title:translate-x-0 transition-all duration-300" 
+          />
+        </Link>
+      </div>
       <div className="relative group/carousel">
         <Carousel
           opts={{
             align: "start",
-            slidesToScroll: 4,
+            slidesToScroll: 1,
             breakpoints: {
-              "(max-width: 640px)": { slidesToScroll: 1 },
-              "(max-width: 1024px)": { slidesToScroll: 2 },
-              "(max-width: 1280px)": { slidesToScroll: 3 },
+              "(max-width: 600px)": { slidesToScroll: 1, dragFree: true }, // 1 item per view, dragFree for mobile
+              "(min-width: 601px)": { slidesToScroll: 2 }, // 2 items per view
+              "(min-width: 1025px)": { slidesToScroll: 3 }, // 3 items per view
+              "(min-width: 1281px)": { slidesToScroll: 4 }, // 4 items per view
             },
           }}
           className="w-full"
         >
           <CarouselContent className="-ml-2 md:-ml-4 gap-3">
             {allItems.map((item) => (
-              <CarouselItem key={`${item.type}-${item.data.id}`} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px]">
+              <CarouselItem key={`${item.type}-${item.data.id}`} className="pl-2 md:pl-4 basis-1/1 sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
                 {item.type === "list" ? (
                   <ListCard list={item.data} variant="carousel" />
                 ) : (
@@ -665,10 +678,10 @@ function CuratedListsSection({ lists, playlists }: { lists: List[]; playlists: P
             ))}
           </CarouselContent>
           <CarouselPrevious 
-            className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+            className="left-0 h-[225px] w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
           />
           <CarouselNext 
-            className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+            className="right-0 h-[225px] w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
           />
         </Carousel>
       </div>

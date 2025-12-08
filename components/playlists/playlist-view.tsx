@@ -177,6 +177,11 @@ export default function PlaylistView({
   // In edit mode, force detailed view
   const effectiveViewMode = isEditMode ? "detailed" : viewMode;
   
+  // Determine if playlist is mixed (has both TMDB items and YouTube videos)
+  const hasTMDBItems = playlist?.items && playlist.items.length > 0;
+  const hasYouTubeItems = playlist?.youtubeItems && playlist.youtubeItems.length > 0;
+  const isMixedPlaylist = hasTMDBItems && hasYouTubeItems;
+  
   // Separate state for TMDB items and YouTube videos
   const [tmdbFilterType, setTmdbFilterType] = useState<FilterType>("all");
   const [tmdbSortField, setTmdbSortField] = useState<SortField>("listOrder");
@@ -395,21 +400,32 @@ export default function PlaylistView({
       );
     }
 
-    // Sort by order (YouTube videos always sorted by order)
-    filtered.sort((a, b) => {
-      const aOrder = a.order || 0;
-      const bOrder = b.order || 0;
-      if (aOrder > 0 && bOrder > 0) return aOrder - bOrder;
-      if (aOrder > 0 && bOrder === 0) return -1;
-      if (aOrder === 0 && bOrder > 0) return 1;
-      return (
-        new Date(b.createdAt).getTime() -
-        new Date(a.createdAt).getTime()
-      );
-    });
+    // Sort by order only if NOT a mixed playlist (YouTube-only playlists can have ordering)
+    // In mixed playlists, YouTube videos are sorted by creation date (newest first)
+    if (isMixedPlaylist) {
+      filtered.sort((a, b) => {
+        return (
+          new Date(b.createdAt).getTime() -
+          new Date(a.createdAt).getTime()
+        );
+      });
+    } else {
+      // YouTube-only playlist: sort by order
+      filtered.sort((a, b) => {
+        const aOrder = a.order || 0;
+        const bOrder = b.order || 0;
+        if (aOrder > 0 && bOrder > 0) return aOrder - bOrder;
+        if (aOrder > 0 && bOrder === 0) return -1;
+        if (aOrder === 0 && bOrder > 0) return 1;
+        return (
+          new Date(b.createdAt).getTime() -
+          new Date(a.createdAt).getTime()
+        );
+      });
+    }
 
     return filtered;
-  }, [playlist?.youtubeItems, youtubeSearchQuery]);
+  }, [playlist?.youtubeItems, youtubeSearchQuery, isMixedPlaylist]);
 
   // Pagination for TMDB items
   const tmdbTotalPages = Math.ceil(filteredAndSortedTMDB.length / ITEMS_PER_PAGE);
@@ -490,6 +506,26 @@ export default function PlaylistView({
     return pages;
   }, [youtubeCurrentPage, youtubeTotalPages]);
 
+  // Full list sorted by order for YouTube items (for drag and drop reordering) - YouTube-only playlists
+  const fullSortedYouTubeByOrder = useMemo(() => {
+    if (!playlist?.youtubeItems || isMixedPlaylist) return [];
+    const sorted = [...playlist.youtubeItems];
+    sorted.sort((a, b) => {
+      const aOrder = a.order || 0;
+      const bOrder = b.order || 0;
+      if (aOrder > 0 && bOrder === 0) return -1;
+      if (aOrder === 0 && bOrder > 0) return 1;
+      if (aOrder > 0 && bOrder > 0) {
+        return aOrder - bOrder;
+      }
+      return (
+        new Date(b.createdAt).getTime() -
+        new Date(a.createdAt).getTime()
+      );
+    });
+    return sorted;
+  }, [playlist?.youtubeItems, isMixedPlaylist]);
+
   // Drag and drop hook for TMDB items
   const { DragDropContext: TMDBDragDropContext, handleDragEnd: handleTMDBDragEnd, isDragEnabled: isTMDBDragEnabled } = usePlaylistDragDrop({
     playlistId: playlist?.id || "",
@@ -506,6 +542,26 @@ export default function PlaylistView({
     isEditMode: isEditMode && enableEdit && tmdbSortField === "listOrder",
     isLgScreen,
     sortField: tmdbSortField,
+    itemType: "tmdb",
+  });
+
+  // Drag and drop hook for YouTube items (only in YouTube-only playlists)
+  const { DragDropContext: YouTubeDragDropContext, handleDragEnd: handleYouTubeDragEnd, isDragEnabled: isYouTubeDragEnabled } = usePlaylistDragDrop({
+    playlistId: playlist?.id || "",
+    filteredEntries: filteredYouTube.map((youtubeItem) => ({
+      item: youtubeItem,
+      type: "youtube" as const,
+      playlistItem: { id: youtubeItem.id, order: youtubeItem.order, videoId: youtubeItem.videoId },
+    })) as PlaylistEntry[],
+    allEntries: fullSortedYouTubeByOrder.map((youtubeItem) => ({
+      item: youtubeItem,
+      type: "youtube" as const,
+      playlistItem: { id: youtubeItem.id, order: youtubeItem.order, videoId: youtubeItem.videoId },
+    })) as PlaylistEntry[],
+    isEditMode: isEditMode && enableEdit && !isMixedPlaylist,
+    isLgScreen,
+    sortField: "listOrder",
+    itemType: "youtube",
   });
 
   const handleRemove = async () => {
@@ -1260,6 +1316,11 @@ export default function PlaylistView({
                                 Order
                               </th>
                             )}
+                            {!isMixedPlaylist && (
+                              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                Order
+                              </th>
+                            )}
                             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                               Title
                             </th>
@@ -1534,9 +1595,7 @@ export default function PlaylistView({
                         Delete ({selectedYouTubeItems.size})
                       </Button>
                     </div>
-                  ) : (
-                    <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
-                  )}
+                  ) : null}
                   <div className="relative w-full sm:w-80">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -1704,11 +1763,13 @@ export default function PlaylistView({
                                   </Button>
                                 </td>
                               )}
-                              <td className="px-4 py-4">
-                                <span className="text-sm text-muted-foreground">
-                                  {youtubeItem.order > 0 ? youtubeItem.order : "—"}
-                                </span>
-                              </td>
+                              {!isMixedPlaylist && (
+                                <td className="px-4 py-4">
+                                  <span className="text-sm text-muted-foreground">
+                                    {youtubeItem.order > 0 ? youtubeItem.order : "—"}
+                                  </span>
+                                </td>
+                              )}
                               <td className="px-4 py-4">
                                 <div className="flex items-center gap-3">
                                   {youtubeItem.thumbnail ? (
@@ -1788,46 +1849,121 @@ export default function PlaylistView({
               ) : (
                 // Detailed View for YouTube
                 <>
-                  <div className="space-y-4">
-                    {paginatedYouTube.map((youtubeItem, index) => {
-                      const actualIndex =
-                        (youtubeCurrentPage - 1) * ITEMS_PER_PAGE + index;
-                      return (
-                        <DetailedYouTubePlaylistItem
-                          key={youtubeItem.id}
-                          youtubeItem={youtubeItem}
-                          playlistId={playlist.id}
-                          isEditMode={isEditMode && enableEdit}
-                          isSelected={selectedYouTubeItems.has(youtubeItem.id)}
-                          order={youtubeItem.order > 0 ? youtubeItem.order : undefined}
-                          index={actualIndex}
-                          totalItems={filteredYouTube.length}
-                          onSelect={() => toggleItemSelection(youtubeItem.id, true)}
-                          onRemove={
-                            enableRemove
-                              ? () => {
-                                  setItemToRemove({
-                                    itemId: youtubeItem.id,
-                                    title: youtubeItem.title,
-                                    isYouTube: true,
-                                  });
-                                }
-                              : undefined
-                          }
-                          onItemClick={() => {
-                            if (isEditMode) {
-                              toggleItemSelection(youtubeItem.id, true);
-                            } else {
-                              window.open(`https://www.youtube.com/watch?v=${youtubeItem.videoId}`, "_blank");
+                  {isYouTubeDragEnabled ? (
+                    <YouTubeDragDropContext onDragEnd={handleYouTubeDragEnd}>
+                      <Droppable droppableId="youtube-items">
+                        {(provided) => (
+                          <div
+                            {...provided.droppableProps}
+                            ref={provided.innerRef}
+                            className="space-y-4"
+                          >
+                            {paginatedYouTube.map((youtubeItem, index) => {
+                              const actualIndex =
+                                (youtubeCurrentPage - 1) * ITEMS_PER_PAGE + index;
+                              return (
+                                <Draggable
+                                  key={youtubeItem.id}
+                                  draggableId={youtubeItem.id}
+                                  index={actualIndex}
+                                  isDragDisabled={!isYouTubeDragEnabled}
+                                >
+                                  {(provided, snapshot) => (
+                                    <div
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                      {...provided.dragHandleProps}
+                                      className={cn(
+                                        snapshot.isDragging ? "opacity-50" : "",
+                                        isYouTubeDragEnabled &&
+                                          "cursor-grab active:cursor-grabbing"
+                                      )}
+                                    >
+                                      <DetailedYouTubePlaylistItem
+                                        youtubeItem={youtubeItem}
+                                        playlistId={playlist.id}
+                                        isEditMode={isEditMode && enableEdit}
+                                        isSelected={selectedYouTubeItems.has(youtubeItem.id)}
+                                        order={youtubeItem.order > 0 ? youtubeItem.order : undefined}
+                                        index={actualIndex}
+                                        totalItems={filteredYouTube.length}
+                                        onSelect={() => toggleItemSelection(youtubeItem.id, true)}
+                                        onRemove={
+                                          enableRemove
+                                            ? () => {
+                                                setItemToRemove({
+                                                  itemId: youtubeItem.id,
+                                                  title: youtubeItem.title,
+                                                  isYouTube: true,
+                                                });
+                                              }
+                                            : undefined
+                                        }
+                                        onItemClick={() => {
+                                          if (isEditMode) {
+                                            toggleItemSelection(youtubeItem.id, true);
+                                          } else {
+                                            window.open(`https://www.youtube.com/watch?v=${youtubeItem.videoId}`, "_blank");
+                                          }
+                                        }}
+                                        isLgScreen={isLgScreen}
+                                        sortField="listOrder"
+                                        isPublic={playlist.visibility === "PUBLIC" || playlist.isPublic}
+                                        enableOrdering={!isMixedPlaylist}
+                                      />
+                                    </div>
+                                  )}
+                                </Draggable>
+                              );
+                            })}
+                            {provided.placeholder}
+                          </div>
+                        )}
+                      </Droppable>
+                    </YouTubeDragDropContext>
+                  ) : (
+                    <div className="space-y-4">
+                      {paginatedYouTube.map((youtubeItem, index) => {
+                        const actualIndex =
+                          (youtubeCurrentPage - 1) * ITEMS_PER_PAGE + index;
+                        return (
+                          <DetailedYouTubePlaylistItem
+                            key={youtubeItem.id}
+                            youtubeItem={youtubeItem}
+                            playlistId={playlist.id}
+                            isEditMode={isEditMode && enableEdit}
+                            isSelected={selectedYouTubeItems.has(youtubeItem.id)}
+                            order={isMixedPlaylist ? undefined : (youtubeItem.order > 0 ? youtubeItem.order : undefined)}
+                            index={actualIndex}
+                            totalItems={filteredYouTube.length}
+                            onSelect={() => toggleItemSelection(youtubeItem.id, true)}
+                            onRemove={
+                              enableRemove
+                                ? () => {
+                                    setItemToRemove({
+                                      itemId: youtubeItem.id,
+                                      title: youtubeItem.title,
+                                      isYouTube: true,
+                                    });
+                                  }
+                                : undefined
                             }
-                          }}
-                          isLgScreen={isLgScreen}
-                          sortField="listOrder"
-                          isPublic={playlist.visibility === "PUBLIC" || playlist.isPublic}
-                        />
-                      );
-                    })}
-                  </div>
+                            onItemClick={() => {
+                              if (isEditMode) {
+                                toggleItemSelection(youtubeItem.id, true);
+                              } else {
+                                window.open(`https://www.youtube.com/watch?v=${youtubeItem.videoId}`, "_blank");
+                              }
+                            }}
+                            isLgScreen={isLgScreen}
+                            sortField={isMixedPlaylist ? "createdAt" : "listOrder"}
+                            isPublic={playlist.visibility === "PUBLIC" || playlist.isPublic}
+                            enableOrdering={!isMixedPlaylist}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
                   {youtubeTotalPages > 1 && (
                     <CollectionPagination
                       currentPage={youtubeCurrentPage}

@@ -12,6 +12,7 @@ interface UsePlaylistDragDropOptions {
   isLgScreen: boolean;
   sortField: string;
   onReorder?: () => void;
+  itemType?: "tmdb" | "youtube";
 }
 
 export function usePlaylistDragDrop({
@@ -22,8 +23,9 @@ export function usePlaylistDragDrop({
   isLgScreen,
   sortField,
   onReorder,
+  itemType = "tmdb",
 }: UsePlaylistDragDropOptions) {
-  const reorderPlaylist = useReorderPlaylist(playlistId);
+  const reorderPlaylist = useReorderPlaylist(playlistId, itemType);
 
   const handleDragEnd = useCallback(
     (result: DropResult) => {
@@ -54,7 +56,7 @@ export function usePlaylistDragDrop({
         return;
       }
 
-      // Trigger mutation
+      // Trigger mutation - optimistic update is already handled in the hook
       reorderPlaylist.mutate(itemsToUpdate, {
         onSuccess: () => {
           toast.success("Playlist reordered");

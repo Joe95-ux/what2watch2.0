@@ -40,7 +40,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { items } = body; // Array of { id: string, order: number }
+    const { items, itemType } = body; // items: Array of { id: string, order: number }, itemType: "tmdb" | "youtube"
 
     if (!Array.isArray(items)) {
       return NextResponse.json(
@@ -56,19 +56,34 @@ export async function PATCH(
       );
     }
 
+    // Determine if we're updating TMDB items or YouTube items
+    const isYouTube = itemType === "youtube";
+
     // Execute all updates in parallel
     const updateResults = await Promise.all(
-      items.map((item: { id: string; order: number }) =>
-        db.playlistItem.updateMany({
-          where: {
-            id: item.id,
-            playlistId: playlistId,
-          },
-          data: {
-            order: item.order,
-          },
-        })
-      )
+      items.map((item: { id: string; order: number }) => {
+        if (isYouTube) {
+          return db.youTubePlaylistItem.updateMany({
+            where: {
+              id: item.id,
+              playlistId: playlistId,
+            },
+            data: {
+              order: item.order,
+            },
+          });
+        } else {
+          return db.playlistItem.updateMany({
+            where: {
+              id: item.id,
+              playlistId: playlistId,
+            },
+            data: {
+              order: item.order,
+            },
+          });
+        }
+      })
     );
 
     // Check if all updates were successful

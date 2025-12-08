@@ -223,10 +223,27 @@ export default function DashboardContent() {
         {isLoadingRecentlyViewed ? (
           <div className="mb-12">
             <Skeleton className="h-7 w-48 mb-6 !bg-gray-200 dark:!bg-accent" />
-            <div className="flex gap-4 overflow-x-hidden">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="aspect-[2/3] w-[200px] flex-shrink-0 rounded-lg !bg-gray-200 dark:!bg-accent" />
-              ))}
+            <div className="relative group/carousel overflow-hidden">
+              <Carousel
+                opts={{
+                  align: "start",
+                  slidesToScroll: 5,
+                  breakpoints: {
+                    "(max-width: 640px)": { slidesToScroll: 2 },
+                    "(max-width: 1024px)": { slidesToScroll: 3 },
+                    "(max-width: 1280px)": { slidesToScroll: 4 },
+                  },
+                }}
+                className="w-full"
+              >
+                <CarouselContent className="-ml-2 md:-ml-4 gap-3">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <CarouselItem key={i} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px]">
+                      <Skeleton className="aspect-[2/3] w-full rounded-lg !bg-gray-200 dark:!bg-accent" />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
             </div>
           </div>
         ) : recentlyViewedItems.length > 0 ? (
@@ -242,10 +259,27 @@ export default function DashboardContent() {
           isLoadingPersonalized ? (
             <div className="mb-12">
               <Skeleton className="h-7 w-48 mb-6 !bg-gray-200 dark:!bg-accent" />
-              <div className="flex gap-4 overflow-x-hidden">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Skeleton key={i} className="aspect-[2/3] w-[200px] flex-shrink-0 rounded-lg !bg-gray-200 dark:!bg-accent" />
-                ))}
+              <div className="relative group/carousel overflow-hidden">
+                <Carousel
+                  opts={{
+                    align: "start",
+                    slidesToScroll: 5,
+                    breakpoints: {
+                      "(max-width: 640px)": { slidesToScroll: 2 },
+                      "(max-width: 1024px)": { slidesToScroll: 3 },
+                      "(max-width: 1280px)": { slidesToScroll: 4 },
+                    },
+                  }}
+                  className="w-full"
+                >
+                  <CarouselContent className="-ml-2 md:-ml-4 gap-3">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <CarouselItem key={i} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px]">
+                        <Skeleton className="aspect-[2/3] w-full rounded-lg !bg-gray-200 dark:!bg-accent" />
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                </Carousel>
               </div>
             </div>
           ) : personalizedContent.length > 0 ? (
@@ -264,10 +298,27 @@ export default function DashboardContent() {
               <Skeleton className="h-7 w-48 !bg-gray-200 dark:!bg-accent" />
               <Skeleton className="h-4 w-24 !bg-gray-200 dark:!bg-accent" />
             </div>
-            <div className="flex gap-4 overflow-x-hidden">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="aspect-[2/3] w-[200px] flex-shrink-0 rounded-lg !bg-gray-200 dark:!bg-accent" />
-              ))}
+            <div className="relative group/carousel overflow-hidden">
+              <Carousel
+                opts={{
+                  align: "start",
+                  slidesToScroll: 5,
+                  breakpoints: {
+                    "(max-width: 640px)": { slidesToScroll: 2 },
+                    "(max-width: 1024px)": { slidesToScroll: 3 },
+                    "(max-width: 1280px)": { slidesToScroll: 4 },
+                  },
+                }}
+                className="w-full"
+              >
+                <CarouselContent className="-ml-2 md:-ml-4 gap-3">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <CarouselItem key={i} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px]">
+                      <Skeleton className="aspect-[2/3] w-full rounded-lg !bg-gray-200 dark:!bg-accent" />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
             </div>
           </div>
         ) : favoriteItems.length > 0 ? (
@@ -301,10 +352,27 @@ export default function DashboardContent() {
               <Skeleton className="h-7 w-48 !bg-gray-200 dark:!bg-accent" />
               <Skeleton className="h-4 w-24 !bg-gray-200 dark:!bg-accent" />
             </div>
-            <div className="flex gap-4 overflow-x-hidden">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="aspect-[3/4] w-[200px] flex-shrink-0 rounded-lg !bg-gray-200 dark:!bg-accent" />
-              ))}
+            <div className="relative group/carousel overflow-hidden">
+              <Carousel
+                opts={{
+                  align: "start",
+                  slidesToScroll: 5,
+                  breakpoints: {
+                    "(max-width: 640px)": { slidesToScroll: 2 },
+                    "(max-width: 1024px)": { slidesToScroll: 3 },
+                    "(max-width: 1280px)": { slidesToScroll: 4 },
+                  },
+                }}
+                className="w-full"
+              >
+                <CarouselContent className="-ml-2 md:-ml-4 gap-3">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <CarouselItem key={i} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px]">
+                      <Skeleton className="aspect-[3/4] w-full rounded-lg !bg-gray-200 dark:!bg-accent" />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
             </div>
           </div>
         ) : playlists.length > 0 ? (

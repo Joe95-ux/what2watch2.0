@@ -7,7 +7,7 @@ import { getPosterUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
 import { useIsLiked, useLikePlaylist, useUnlikePlaylist } from "@/hooks/use-playlist-likes";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { Heart, Youtube } from "lucide-react";
+import { Heart, Youtube, List as ListIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -68,22 +68,24 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
     // Sort by order and get first 3 items with covers
     allItems.sort((a, b) => a.order - b.order);
     
+    // Continue through all items until we find 3 with valid posters
     for (const item of allItems) {
       if (posters.length >= 3) break;
       
-      // Prefer regular item poster if available
-      if (item.posterPath) {
+      // Prefer regular item poster if available (check for non-null, non-empty string)
+      if (item.posterPath && item.posterPath.trim() !== "") {
         posters.push({
           url: getPosterUrl(item.posterPath, "w500"),
           isYouTube: false,
         });
-      } else if (item.thumbnail) {
-        // Fall back to YouTube thumbnail
+      } else if (item.thumbnail && item.thumbnail.trim() !== "") {
+        // Fall back to YouTube thumbnail (check for non-null, non-empty string)
         posters.push({
           url: item.thumbnail,
           isYouTube: true,
         });
       }
+      // If neither posterPath nor thumbnail is available, skip this item and continue
     }
     
     return posters;
@@ -177,7 +179,7 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
 
         {/* Playlist Icon and Text - Bottom Left */}
         <div className="absolute bottom-2 left-2 flex items-center gap-1.5 z-10">
-          <Youtube className="h-6 w-6 text-white" />
+          <ListIcon className="h-6 w-6 text-white" />
           <span className="text-sm font-medium text-white">Playlist</span>
         </div>
 
