@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Share2, Edit2, Trash2, MoreVertical } from "lucide-react";
+import { ArrowLeft, Share2, Edit2, Trash2, MoreVertical, Upload, Download } from "lucide-react";
 import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { getPosterUrl } from "@/lib/tmdb";
 import type { Playlist } from "@/hooks/use-playlists";
 import SharePlaylistDialog from "./share-playlist-dialog";
 import CreatePlaylistModal from "./create-playlist-modal";
+import ImportPlaylistModal from "./import-playlist-modal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useDeletePlaylist } from "@/hooks/use-playlists";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import { FollowButton } from "@/components/social/follow-button";
 
 type PlaylistWithUser = Playlist & {
@@ -58,6 +60,7 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchPlaylist = async () => {
@@ -130,6 +133,79 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
 
     return () => controller.abort();
   }, [playlist, hasLoggedVisit, playlistId]);
+
+  const handleExportCSV = async () => {
+    try {
+      toast.loading("Preparing export...", { id: "export" });
+      
+      const response = await fetch(`/api/playlists/${playlistId}/export`);
+      if (!response.ok) {
+        throw new Error("Failed to export playlist");
+      }
+
+      const { items } = await response.json();
+
+      const headers = [
+        "Order",
+        "Title",
+        "Type",
+        "URL",
+        "IMDB ID",
+        "Release Date",
+        "Year",
+        "Genre",
+        "Description",
+        "Directors/Creators",
+        "Runtime",
+        "IMDB Rating",
+        "Note",
+        "Date Created",
+      ];
+
+      const rows = items.map((item: any) => [
+        item.order,
+        item.title,
+        item.type,
+        item.url,
+        item.imdbId,
+        item.releaseDate,
+        item.year,
+        item.genre,
+        item.description,
+        item.directorsCreators,
+        item.runtime,
+        item.imdbRating,
+        item.note,
+        item.dateCreated,
+      ]);
+
+      const csvContent = [
+        headers.join(","),
+        ...rows.map((row: any[]) => 
+          row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+        ),
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `playlist-${format(new Date(), "yyyy-MM-dd")}.csv`
+      );
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Playlist exported to CSV", { id: "export" });
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Failed to export playlist", { id: "export" });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -310,6 +386,21 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
+                      onClick={() => setIsImportModalOpen(true)}
+                      className="cursor-pointer"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Import CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={handleExportCSV}
+                      className="cursor-pointer"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Export CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
                       onClick={() => setIsDeleteDialogOpen(true)}
                       className="text-destructive"
                     >
@@ -387,6 +478,14 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
             isOpen={isEditModalOpen}
             onClose={() => setIsEditModalOpen(false)}
             playlist={playlist}
+          />
+          <ImportPlaylistModal
+            isOpen={isImportModalOpen}
+            onClose={() => setIsImportModalOpen(false)}
+            playlistId={playlistId}
+            onSuccess={() => {
+              window.location.reload();
+            }}
           />
           <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
             <AlertDialogContent>

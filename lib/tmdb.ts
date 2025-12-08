@@ -257,6 +257,23 @@ export async function searchTV(query: string, page: number = 1): Promise<TMDBRes
 }
 
 /**
+ * Find content by external ID (IMDb ID, TVDB ID, etc.)
+ * Returns both movie and TV results
+ */
+export interface TMDBFindResult {
+  movie_results: TMDBMovie[];
+  tv_results: TMDBSeries[];
+  person_results: unknown[];
+}
+
+export async function findByExternalId(
+  externalId: string,
+  externalSource: 'imdb_id' | 'tvdb_id' | 'freebase_mid' | 'freebase_id' | 'tvrage_id' | 'facebook_id' | 'twitter_id' | 'instagram_id' = 'imdb_id'
+): Promise<TMDBFindResult> {
+  return fetchTMDB<TMDBFindResult>(`/find/${externalId}`, { external_source: externalSource });
+}
+
+/**
  * Search for people (actors, directors, etc.)
  */
 export interface TMDBSearchPerson {

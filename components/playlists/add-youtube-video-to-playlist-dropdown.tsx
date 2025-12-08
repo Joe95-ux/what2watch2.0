@@ -101,7 +101,7 @@ export default function AddYouTubeVideoToPlaylistDropdown({
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
-          className="w-56 z-[110] p-0 flex flex-col max-h-[400px]"
+          className="w-72 z-[110] p-0 flex flex-col max-h-[400px]"
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();
@@ -119,7 +119,7 @@ export default function AddYouTubeVideoToPlaylistDropdown({
           </div>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto scrollbar-thin min-h-0">
+          <div className="flex-1 overflow-y-auto scrollbar-thin min-h-0 px-2">
             {isLoading ? (
               <DropdownMenuItem disabled>Loading playlists...</DropdownMenuItem>
             ) : playlists.length === 0 ? (
@@ -157,7 +157,7 @@ export default function AddYouTubeVideoToPlaylistDropdown({
           </div>
 
           {/* Fixed Footer */}
-          <div className="border-t border-border">
+          <div className="px-1">
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={(e) => {

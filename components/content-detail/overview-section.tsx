@@ -27,6 +27,7 @@ interface DetailsType {
   number_of_episodes?: number;
   genres?: Array<{ id: number; name: string }>;
   imdb_id?: string;
+  created_by?: Array<{ id: number; name: string; profile_path?: string | null }>;
   credits?: {
     crew?: Array<{
       id: number;
@@ -73,7 +74,13 @@ export default function OverviewSection({
   // Fetch OMDB data if IMDb ID is available
   const { data: omdbData } = useOMDBData(details?.imdb_id || null);
 
-  const director = details?.credits?.crew?.find((person) => person.job === "Director");
+  // Get director (for movies) or creators (for TV)
+  const director = type === "movie" 
+    ? details?.credits?.crew?.find((person) => person.job === "Director")
+    : null;
+  const creators = type === "tv" 
+    ? details?.created_by
+    : null;
   const writers = details?.credits?.crew
     ?.filter((person) => person.job === "Writer" || person.job === "Screenplay" || person.job === "Story")
     .slice(0, 3);
@@ -134,12 +141,23 @@ export default function OverviewSection({
           </div>
 
           <div className="rounded-2xl border border-border bg-card/50 divide-y divide-border">
-            <OverviewInfoRow 
-              label="Director" 
-              value={director?.name || "N/A"} 
-              personId={director?.id}
-              personName={director?.name}
-            />
+            {type === "movie" ? (
+              <OverviewInfoRow 
+                label="Director" 
+                value={director?.name || "N/A"} 
+                personId={director?.id}
+                personName={director?.name}
+              />
+            ) : (
+              <OverviewInfoRow 
+                label="Creators" 
+                value={creators && creators.length > 0 
+                  ? creators.map((c) => c.name).join(", ")
+                  : "N/A"
+                }
+                writers={creators?.map((c) => ({ id: c.id, name: c.name }))}
+              />
+            )}
             <OverviewInfoRow 
               label="Writers" 
               value={writers ? writers.map((w) => w.name).join(", ") : "N/A"}

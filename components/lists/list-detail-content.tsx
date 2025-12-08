@@ -3,11 +3,12 @@
 import { useList } from "@/hooks/use-lists";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Upload, MoreVertical, Download } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
 import { format } from "date-fns";
+import { toast } from "sonner";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -24,8 +25,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
 import { useDeleteList } from "@/hooks/use-lists";
-import { toast } from "sonner";
 import CreateListModal from "./create-list-modal";
+import ImportListModal from "./import-list-modal";
 
 interface ListDetailContentProps {
   listId: string;
@@ -38,6 +39,7 @@ export default function ListDetailContent({ listId }: ListDetailContentProps) {
   const router = useRouter();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const isOwner = currentUser?.id === list?.userId;
 
@@ -48,6 +50,77 @@ export default function ListDetailContent({ listId }: ListDetailContentProps) {
       router.push("/dashboard/lists");
     } catch {
       toast.error("Failed to delete list");
+    }
+  };
+
+  const handleExportCSV = async () => {
+    try {
+      toast.loading("Preparing export...", { id: "export" });
+      
+      const response = await fetch(`/api/lists/${listId}/export`);
+      if (!response.ok) {
+        throw new Error("Failed to export list");
+      }
+
+      const { items } = await response.json();
+
+      const headers = [
+        "Position",
+        "Title",
+        "Type",
+        "URL",
+        "IMDB ID",
+        "Release Date",
+        "Year",
+        "Genre",
+        "Description",
+        "Directors/Creators",
+        "Runtime",
+        "IMDB Rating",
+        "Date Created",
+      ];
+
+      const rows = items.map((item: any) => [
+        item.position,
+        item.title,
+        item.type,
+        item.url,
+        item.imdbId,
+        item.releaseDate,
+        item.year,
+        item.genre,
+        item.description,
+        item.directorsCreators,
+        item.runtime,
+        item.imdbRating,
+        item.dateCreated,
+      ]);
+
+      const csvContent = [
+        headers.join(","),
+        ...rows.map((row: any[]) => 
+          row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+        ),
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `list-${format(new Date(), "yyyy-MM-dd")}.csv`
+      );
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("List exported to CSV", { id: "export" });
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Failed to export list", { id: "export" });
     }
   };
 
@@ -191,6 +264,20 @@ export default function ListDetailContent({ listId }: ListDetailContentProps) {
                 </Button>
                 <Button
                   variant="outline"
+                  onClick={() => setIsImportModalOpen(true)}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import CSV
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleExportCSV}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export CSV
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={() => setDeleteDialogOpen(true)}
                   className="text-destructive hover:text-destructive"
                 >
@@ -280,6 +367,14 @@ export default function ListDetailContent({ listId }: ListDetailContentProps) {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          <ImportListModal
+            isOpen={isImportModalOpen}
+            onClose={() => setIsImportModalOpen(false)}
+            listId={listId}
+            onSuccess={() => {
+              window.location.reload();
+            }}
+          />
         </>
       )}
     </div>

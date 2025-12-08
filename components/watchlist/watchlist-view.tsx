@@ -24,6 +24,7 @@ import {
   Edit2,
   MoreVertical,
   Download,
+  Upload,
   Plus,
   Eye,
   Lock,
@@ -32,6 +33,8 @@ import {
   Move,
   Star,
   GripVertical,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import Image from "next/image";
 import { getPosterUrl } from "@/lib/tmdb";
@@ -103,6 +106,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ChangeOrderModal } from "./change-order-modal";
 import { Textarea } from "@/components/ui/textarea";
+import ImportWatchlistModal from "./import-watchlist-modal";
 
 type SortField = "listOrder" | "createdAt" | "title" | "releaseYear";
 type SortOrder = "asc" | "desc";
@@ -227,6 +231,9 @@ export default function WatchlistView({
   const { isSignedIn } = useUser();
   const addToWatchlist = useAddToWatchlist();
   const [isLgScreen, setIsLgScreen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 24;
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Check if screen is lg (1024px and up) for drag and drop
   useEffect(() => {
@@ -403,6 +410,48 @@ export default function WatchlistView({
 
     return filtered;
   }, [watchlistAsTMDB, searchQuery, filterType, sortField, sortOrder]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredAndSorted.length / ITEMS_PER_PAGE);
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredAndSorted.slice(startIndex, endIndex);
+  }, [filteredAndSorted, currentPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterType, sortField, sortOrder]);
+
+  // Page numbers with ellipsis
+  const pageNumbers = useMemo(() => {
+    const pages: (number | "ellipsis")[] = [];
+    
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      if (currentPage > 3) {
+        pages.push("ellipsis");
+      }
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) {
+        if (i !== 1 && i !== totalPages) {
+          pages.push(i);
+        }
+      }
+      if (currentPage < totalPages - 2) {
+        pages.push("ellipsis");
+      }
+      pages.push(totalPages);
+    }
+    
+    return pages;
+  }, [currentPage, totalPages]);
 
   // Drag and drop hook (after filteredAndSorted is defined)
   // Only enable drag-and-drop when sortField is "listOrder" and in edit mode
@@ -795,13 +844,22 @@ export default function WatchlistView({
                         </DropdownMenuItem>
                       )}
                       {enableExport && (
-                        <DropdownMenuItem
-                          onClick={handleExportCSV}
-                          className="cursor-pointer"
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          Export CSV
-                        </DropdownMenuItem>
+                        <>
+                          <DropdownMenuItem
+                            onClick={handleExportCSV}
+                            className="cursor-pointer"
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Export CSV
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setIsImportModalOpen(true)}
+                            className="cursor-pointer"
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Import CSV
+                          </DropdownMenuItem>
+                        </>
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -1319,8 +1377,9 @@ export default function WatchlistView({
               {emptyAction}
             </div>
           ) : effectiveViewMode === "grid" ? (
+            <>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-              {filteredAndSorted.map(({ item, type, watchlistItem }) => (
+              {paginatedData.map(({ item, type, watchlistItem }) => (
                 <div key={watchlistItem.id} className="relative">
                   {isEditMode && enableEdit && (
                     <div className="absolute top-2 left-2 z-10">
@@ -1369,7 +1428,55 @@ export default function WatchlistView({
                 </div>
               ))}
             </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-8 w-full overflow-auto px-2 py-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="flex-shrink-0"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1 overflow-x-auto">
+                  {pageNumbers.map((page, index) => {
+                    if (page === "ellipsis") {
+                      return (
+                        <span key={`ellipsis-${index}`} className="text-muted-foreground px-2">
+                          ...
+                        </span>
+                      );
+                    }
+                    return (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        className="min-w-[40px] flex-shrink-0"
+                      >
+                        {page}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="flex-shrink-0"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
+            </>
           ) : effectiveViewMode === "table" ? (
+            <>
             <div className="border border-border rounded-lg overflow-hidden bg-card">
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -1474,7 +1581,7 @@ export default function WatchlistView({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {filteredAndSorted.map(({ type, watchlistItem }) => {
+                    {paginatedData.map(({ type, watchlistItem }) => {
                       const releaseYear = watchlistItem.releaseDate
                         ? new Date(watchlistItem.releaseDate).getFullYear()
                         : watchlistItem.firstAirDate
@@ -1597,8 +1704,56 @@ export default function WatchlistView({
                 </table>
               </div>
             </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-8 w-full overflow-auto px-2 py-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="flex-shrink-0"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1 overflow-x-auto">
+                  {pageNumbers.map((page, index) => {
+                    if (page === "ellipsis") {
+                      return (
+                        <span key={`ellipsis-${index}`} className="text-muted-foreground px-2">
+                          ...
+                        </span>
+                      );
+                    }
+                    return (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        className="min-w-[40px] flex-shrink-0"
+                      >
+                        {page}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="flex-shrink-0"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
+            </>
           ) : (
             // Detailed View
+            <>
             <DragDropContext onDragEnd={handleDragEnd}>
               <Droppable droppableId="watchlist-items">
                 {(provided) => (
@@ -1607,12 +1762,15 @@ export default function WatchlistView({
                     ref={provided.innerRef}
                     className="space-y-4"
                   >
-                    {filteredAndSorted.map(
-                      ({ item, type, watchlistItem }, index) => (
+                    {paginatedData.map(
+                      ({ item, type, watchlistItem }, paginatedIndex) => {
+                        // Calculate the actual index in the full filteredAndSorted array for drag-and-drop
+                        const actualIndex = (currentPage - 1) * ITEMS_PER_PAGE + paginatedIndex;
+                        return (
                         <Draggable
                           key={watchlistItem.id}
                           draggableId={watchlistItem.id}
-                          index={index}
+                          index={actualIndex}
                           isDragDisabled={!isDragEnabled}
                         >
                           {(provided, snapshot) => (
@@ -1637,7 +1795,7 @@ export default function WatchlistView({
                                     ? watchlistItem.order
                                     : undefined
                                 }
-                                index={index}
+                                index={actualIndex}
                                 totalItems={filteredAndSorted.length}
                                 onSelect={() =>
                                   toggleItemSelection(watchlistItem.id)
@@ -1667,14 +1825,63 @@ export default function WatchlistView({
                             </div>
                           )}
                         </Draggable>
-                      )
+                        );
+                      }
                     )}
                     {provided.placeholder}
                   </div>
                 )}
               </Droppable>
             </DragDropContext>
-          )}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-8 w-full overflow-auto px-2 py-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="flex-shrink-0"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1 overflow-x-auto">
+                  {pageNumbers.map((page, index) => {
+                    if (page === "ellipsis") {
+                      return (
+                        <span key={`ellipsis-${index}`} className="text-muted-foreground px-2">
+                          ...
+                        </span>
+                      );
+                    }
+                    return (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        className="min-w-[40px] flex-shrink-0"
+                      >
+                        {page}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="flex-shrink-0"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
+            </>
+          )
+        }
         </div>
       </div>
 
@@ -1727,6 +1934,14 @@ export default function WatchlistView({
           type={selectedItem.type}
           isOpen={!!selectedItem}
           onClose={() => setSelectedItem(null)}
+        />
+      )}
+
+      {/* Import Watchlist Modal */}
+      {enableExport && (
+        <ImportWatchlistModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
         />
       )}
 
@@ -2039,10 +2254,12 @@ function DetailedWatchlistItem({
     >
       {isEditMode && isLgScreen && (
         <div className="flex-shrink-0 flex items-center gap-2">
-          {/* Grab Handle - Visual indicator only, whole card is draggable */}
-          <div className="text-muted-foreground">
-            <GripVertical className="h-5 w-5" />
-          </div>
+          {/* Grab Handle - Visual indicator only, whole card is draggable - Only show when sortField is listOrder */}
+          {sortField === "listOrder" && (
+            <div className="text-muted-foreground">
+              <GripVertical className="h-5 w-5" />
+            </div>
+          )}
 
           {/* Checkbox */}
           <Button

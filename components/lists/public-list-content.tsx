@@ -7,7 +7,7 @@ import NextImage from "next/image";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Share2, Edit2, MoreVertical } from "lucide-react";
+import { ArrowLeft, Share2, Edit2, MoreVertical, Upload, Download } from "lucide-react";
 import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { useList, useDeleteList } from "@/hooks/use-lists";
@@ -42,6 +42,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import CreateListModal from "./create-list-modal";
 import ShareListDialog from "./share-list-dialog";
+import ImportListModal from "./import-list-modal";
 import { Heart, MessageSquare, Send, Edit2 as Edit, Trash2, Reply, Smile, Filter, ChevronDown, ChevronUp } from "lucide-react";
 import { getPosterUrl } from "@/lib/tmdb";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -65,6 +66,7 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [commentFilter, setCommentFilter] = useState("newest");
   const [hasLoggedVisit, setHasLoggedVisit] = useState(false);
   
@@ -606,11 +608,24 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
 
       {/* Edit Modal */}
       {isOwner && list && (
-        <CreateListModal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          list={list}
-        />
+        <>
+          <CreateListModal
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            list={list}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ["list", listId] });
+            }}
+          />
+          <ImportListModal
+            isOpen={isImportModalOpen}
+            onClose={() => setIsImportModalOpen(false)}
+            listId={listId}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ["list", listId] });
+            }}
+          />
+        </>
       )}
 
       {/* Share Dialog */}
