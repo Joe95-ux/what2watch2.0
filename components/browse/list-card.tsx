@@ -5,8 +5,11 @@ import Image from "next/image";
 import { List } from "@/hooks/use-lists";
 import { getPosterUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
-import { Heart, MessageCircle, List as ListIcon } from "lucide-react";
+import { Heart, List as ListIcon } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useIsListLiked, useLikeList, useUnlikeList } from "@/hooks/use-list-likes";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface ListCardProps {
   list: List;
@@ -17,7 +20,13 @@ interface ListCardProps {
 export default function ListCard({ list, className, variant = "carousel" }: ListCardProps) {
   const router = useRouter();
   const { data: currentUser } = useCurrentUser();
+  const { data: likeStatus } = useIsListLiked(list.id);
+  const likeMutation = useLikeList();
+  const unlikeMutation = useUnlikeList();
+  
+  const isLiked = likeStatus?.isLiked ?? false;
   const isOwner = currentUser?.id === list.userId;
+  const canLike = !isOwner && list.user;
 
   const getListPosters = () => {
     if (list.items && list.items.length > 0) {
@@ -32,9 +41,6 @@ export default function ListCard({ list, className, variant = "carousel" }: List
 
   const posters = getListPosters();
   const itemCount = list._count?.items || list.items?.length || 0;
-  const displayName = list.user?.displayName || list.user?.username || "Unknown";
-  const likeCount = list._count?.likedBy || 0;
-  const commentCount = list._count?.comments || 0;
 
   return (
     <div
@@ -116,24 +122,50 @@ export default function ListCard({ list, className, variant = "carousel" }: List
           <ListIcon className="h-6 w-6 text-white" />
           <span className="text-sm font-medium text-white">List</span>
         </div>
-      </div>
 
-      {/* Title and Meta Info Below Card - Always visible like dashboard lists */}
-      <div className="mt-2">
-        <h3 className="text-[16px] font-semibold line-clamp-1 mb-1">{list.name}</h3>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span>{displayName}</span>
-          <span>•</span>
-          <span className="flex items-center gap-1">
-            <Heart className="h-3 w-3" />
-            {likeCount}
-          </span>
-          <span>•</span>
-          <span className="flex items-center gap-1">
-            <MessageCircle className="h-3 w-3" />
-            {commentCount}
+        {/* Item Count Badge */}
+        <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm rounded-full px-2 py-1 z-10">
+          <span className="text-xs font-medium text-white">
+            {itemCount}
           </span>
         </div>
+
+        {/* Like Button */}
+        {canLike && (
+          <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm border-0 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isLiked) {
+                  unlikeMutation.mutate(list.id, {
+                    onSuccess: () => toast.success("Removed from your library"),
+                    onError: () => toast.error("Failed to remove list"),
+                  });
+                } else {
+                  likeMutation.mutate(list.id, {
+                    onSuccess: () => toast.success("Added to your library"),
+                    onError: () => toast.error("Failed to add list"),
+                  });
+                }
+              }}
+            >
+              <Heart
+                className={cn(
+                  "h-4 w-4",
+                  isLiked ? "fill-red-500 text-red-500" : "text-white"
+                )}
+              />
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Title below card - Only title, no metadata */}
+      <div className="mt-2">
+        <h3 className="text-[16px] font-semibold line-clamp-1">{list.name}</h3>
       </div>
     </div>
   );

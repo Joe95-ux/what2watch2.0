@@ -36,7 +36,9 @@ const RECOMMENDATION_PROMPTS = [
 ];
 
 export default function DiscoverContent() {
-  const [sessionId, setSessionId] = useState(() => `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  // Separate sessionIds for each mode
+  const [recommendationSessionId, setRecommendationSessionId] = useState(() => `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  const [informationSessionId, setInformationSessionId] = useState(() => `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const [mode, setMode] = useState<"recommendation" | "information">("recommendation");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -47,19 +49,17 @@ export default function DiscoverContent() {
   const [lastUserPrompt, setLastUserPrompt] = useState<string>(""); // Store last user prompt for recommendation mode
   const [streamingMessage, setStreamingMessage] = useState<string>(""); // For typing animation
   const [isStreaming, setIsStreaming] = useState(false); // Track if currently streaming
+  const [isLoadingSession, setIsLoadingSession] = useState(false); // Track if we're loading a session
   const itemsPerPage = 12;
   const infoScrollAreaRef = useRef<HTMLDivElement>(null);
-  const sessionIdRef = useRef(sessionId);
-  const hasAutoLoadedRef = useRef(false);
+  const hasAutoLoadedRef = useRef<{ recommendation: boolean; information: boolean }>({ recommendation: false, information: false });
   const lastSavedDataRef = useRef<string>(""); // Track last saved data to prevent duplicate saves
   const typingIntervalRef = useRef<NodeJS.Timeout | null>(null); // Track typing interval for cleanup
   const typingAnimationRef = useRef<number | null>(null); // Track requestAnimationFrame for cleanup
   const typingStateRef = useRef<{ currentIndex: number; fullMessage: string; lastTime: number } | null>(null);
   
-  // Keep ref in sync with state
-  useEffect(() => {
-    sessionIdRef.current = sessionId;
-  }, [sessionId]);
+  // Get current sessionId based on mode
+  const sessionId = mode === "recommendation" ? recommendationSessionId : informationSessionId;
   const { user } = useUser();
   const queryClient = useQueryClient();
   const saveSessionMutation = useSaveChatSession();
@@ -68,14 +68,24 @@ export default function DiscoverContent() {
 
   // Load session when selected
   const loadSession = useCallback(async (targetSessionId: string) => {
+    setIsLoadingSession(true);
     try {
       const response = await fetch(`/api/ai/chat/sessions/${targetSessionId}`);
       if (!response.ok) return;
       const data = await response.json();
       const session = data.session;
 
-      setSessionId(session.sessionId);
-      setMode(session.mode as "recommendation" | "information");
+      const sessionMode = session.mode as "recommendation" | "information";
+      
+      // Set the appropriate sessionId for the mode
+      if (sessionMode === "recommendation") {
+        setRecommendationSessionId(session.sessionId);
+      } else {
+        setInformationSessionId(session.sessionId);
+      }
+      
+      // Switch mode AFTER setting sessionId
+      setMode(sessionMode);
       
       // Parse messages
       if (Array.isArray(session.messages)) {
@@ -95,6 +105,8 @@ export default function DiscoverContent() {
           timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date(),
         }));
         setMessages(parsedMessages);
+      } else {
+        setMessages([]);
       }
 
       // Load results for recommendation mode
@@ -104,7 +116,11 @@ export default function DiscoverContent() {
         if (Array.isArray(results)) {
           setCurrentResults(results);
           setCurrentResultsSessionId(session.sessionId); // Store sessionId for loaded results
+        } else {
+          setCurrentResults([]);
         }
+      } else {
+        setCurrentResults([]);
       }
 
       // Load last user prompt for recommendation mode
@@ -112,27 +128,39 @@ export default function DiscoverContent() {
         const firstMessage = session.messages[0] as { role?: string; content?: string };
         if (firstMessage && firstMessage.role === "user" && firstMessage.content) {
           setLastUserPrompt(firstMessage.content);
+        } else {
+          setLastUserPrompt("");
         }
+      } else {
+        setLastUserPrompt("");
       }
     } catch (error) {
       console.error("Error loading session:", error);
+    } finally {
+      setIsLoadingSession(false);
     }
   }, []);
 
-  // Load most recent session on mount (only once)
+  // Load most recent session on mount or mode change (only once per mode)
   useEffect(() => {
-    if (sessionsData?.sessions && sessionsData.sessions.length > 0 && !hasAutoLoadedRef.current) {
+    if (sessionsData?.sessions && sessionsData.sessions.length > 0 && !hasAutoLoadedRef.current[mode] && !isLoadingSession) {
       // Find the most recent session for the current mode
       const recentSession = sessionsData.sessions
         .filter((s) => s.mode === mode)
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
       
       if (recentSession) {
-        hasAutoLoadedRef.current = true;
-        loadSession(recentSession.sessionId);
+        hasAutoLoadedRef.current[mode] = true;
+        // Use setTimeout to ensure mode change completes before loading
+        setTimeout(() => {
+          loadSession(recentSession.sessionId);
+        }, 0);
+      } else {
+        // No session found for this mode, mark as loaded to prevent retries
+        hasAutoLoadedRef.current[mode] = true;
       }
     }
-  }, [sessionsData, mode, loadSession]); // Only run when sessions data or mode changes
+  }, [sessionsData, mode, loadSession, isLoadingSession]); // Only run when sessions data or mode changes
 
   // Save session after messages change (debounced and only when data actually changes)
   useEffect(() => {
@@ -144,9 +172,11 @@ export default function DiscoverContent() {
       title?: string;
     } | null = null;
 
+    const currentSessionId = mode === "recommendation" ? recommendationSessionId : informationSessionId;
+    
     if (mode === "information" && messages.length > 0) {
       saveData = {
-        sessionId,
+        sessionId: currentSessionId,
         mode,
         messages: messages.map((msg) => ({
           role: msg.role,
@@ -160,7 +190,7 @@ export default function DiscoverContent() {
       };
     } else if (mode === "recommendation" && currentResults.length > 0 && lastUserPrompt) {
       saveData = {
-        sessionId,
+        sessionId: currentSessionId,
         mode,
         messages: [{
           role: "user" as const,
@@ -191,7 +221,7 @@ export default function DiscoverContent() {
       return () => clearTimeout(timeoutId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages, currentResults, mode, sessionId, lastUserPrompt]); // saveSessionMutation is stable from React Query
+  }, [messages, currentResults, mode, recommendationSessionId, informationSessionId, lastUserPrompt]); // saveSessionMutation is stable from React Query
 
   // Save session before mode changes (cleanup runs with old values when mode changes)
   const prevModeRef = useRef(mode);
@@ -201,9 +231,11 @@ export default function DiscoverContent() {
     
     // If mode changed, save the previous mode's data
     if (prevMode !== mode && prevMode) {
+      const prevSessionId = prevMode === "recommendation" ? recommendationSessionId : informationSessionId;
+      
       if (prevMode === "information" && messages.length > 0) {
         const saveData = {
-          sessionId,
+          sessionId: prevSessionId,
           mode: prevMode,
           messages: messages.map((msg) => ({
             role: msg.role,
@@ -222,7 +254,7 @@ export default function DiscoverContent() {
         }
       } else if (prevMode === "recommendation" && currentResults.length > 0 && lastUserPrompt) {
         const saveData = {
-          sessionId,
+          sessionId: prevSessionId,
           mode: prevMode,
           messages: [{
             role: "user" as const,
@@ -241,12 +273,15 @@ export default function DiscoverContent() {
         }
       }
     }
-  }, [mode, sessionId, messages, currentResults, lastUserPrompt, saveSessionMutation]);
+  }, [mode, recommendationSessionId, informationSessionId, messages, currentResults, lastUserPrompt, saveSessionMutation]);
 
-  // Reset when mode changes (but keep sessionId)
+  // Reset when mode changes (but only if not loading a session)
   useEffect(() => {
+    if (isLoadingSession) return; // Don't reset if we're loading a session
+    
     if (mode === "information") {
       setCurrentResults([]);
+      setLastUserPrompt("");
     } else {
       setMessages([]);
       setCurrentResults([]);
@@ -263,7 +298,7 @@ export default function DiscoverContent() {
     typingStateRef.current = null;
     setIsStreaming(false);
     setStreamingMessage("");
-  }, [mode]);
+  }, [mode, isLoadingSession]);
   
   // Cleanup typing interval on unmount
   useEffect(() => {
@@ -310,8 +345,7 @@ export default function DiscoverContent() {
     let currentSessionId = sessionId;
     if (mode === "recommendation") {
       currentSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      setSessionId(currentSessionId);
-      sessionIdRef.current = currentSessionId;
+      setRecommendationSessionId(currentSessionId);
     }
 
     try {
@@ -462,12 +496,17 @@ export default function DiscoverContent() {
 
   const handleNewChat = () => {
     const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    setSessionId(newSessionId);
+    if (mode === "recommendation") {
+      setRecommendationSessionId(newSessionId);
+    } else {
+      setInformationSessionId(newSessionId);
+    }
     setMessages([]);
     setCurrentResults([]);
     setCurrentResultsSessionId("");
     setInput("");
     setLastUserPrompt("");
+    hasAutoLoadedRef.current[mode] = false; // Allow auto-loading again for new chats
   };
 
   const handleDeleteSession = async (targetSessionId: string, e: React.MouseEvent) => {
@@ -551,9 +590,11 @@ export default function DiscoverContent() {
       <Tabs value={mode} onValueChange={(v) => {
         // Save current state before switching tabs
         const newMode = v as "recommendation" | "information";
+        const currentSessionId = mode === "recommendation" ? recommendationSessionId : informationSessionId;
+        
         if (mode === "information" && messages.length > 0) {
           const saveData = {
-            sessionId,
+            sessionId: currentSessionId,
             mode: "information" as "recommendation" | "information",
             messages: messages.map((msg) => ({
               role: msg.role,
@@ -572,7 +613,7 @@ export default function DiscoverContent() {
           }
         } else if (mode === "recommendation" && currentResults.length > 0 && lastUserPrompt) {
           const saveData = {
-            sessionId,
+            sessionId: currentSessionId,
             mode: "recommendation" as "recommendation" | "information",
             messages: [{
               role: "user" as const,
@@ -590,6 +631,8 @@ export default function DiscoverContent() {
             saveSessionMutation.mutate(saveData);
           }
         }
+        
+        // Switch mode - this will trigger auto-load if there's a recent session
         setMode(newMode);
       }} className="flex-1 flex flex-col min-h-0">
         <div className="flex-1 flex flex-col items-center justify-center min-h-0">

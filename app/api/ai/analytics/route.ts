@@ -92,6 +92,7 @@ export async function GET(request: NextRequest) {
       totalPlaylistAdds,
       averageResponseTime,
       uniqueSessions,
+      tokenUsage,
     ] = await Promise.all([
       db.aiChatEvent.count({ where: whereClause }),
       db.aiChatEvent.count({
@@ -120,6 +121,19 @@ export async function GET(request: NextRequest) {
         where: whereClause,
         select: { sessionId: true },
         distinct: ["sessionId"],
+      }),
+      db.aiChatEvent.aggregate({
+        where: whereClause,
+        _sum: {
+          promptTokens: true,
+          completionTokens: true,
+          totalTokens: true,
+        },
+        _avg: {
+          promptTokens: true,
+          completionTokens: true,
+          totalTokens: true,
+        },
       }),
     ]);
 
@@ -219,6 +233,19 @@ export async function GET(request: NextRequest) {
           ? Math.round(averageResponseTime._avg.responseTime)
           : 0,
         uniqueSessions: uniqueSessions.length,
+        // Token usage stats
+        totalTokens: tokenUsage._sum.totalTokens || 0,
+        totalPromptTokens: tokenUsage._sum.promptTokens || 0,
+        totalCompletionTokens: tokenUsage._sum.completionTokens || 0,
+        averageTokens: tokenUsage._avg.totalTokens
+          ? Math.round(tokenUsage._avg.totalTokens)
+          : 0,
+        averagePromptTokens: tokenUsage._avg.promptTokens
+          ? Math.round(tokenUsage._avg.promptTokens)
+          : 0,
+        averageCompletionTokens: tokenUsage._avg.completionTokens
+          ? Math.round(tokenUsage._avg.completionTokens)
+          : 0,
       },
       trend,
       topGenres,

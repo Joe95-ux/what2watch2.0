@@ -644,11 +644,11 @@ function CuratedListsSection({ lists, playlists }: { lists: List[]; playlists: P
         <Carousel
           opts={{
             align: "start",
-            slidesToScroll: 5,
+            slidesToScroll: 4,
             breakpoints: {
-              "(max-width: 640px)": { slidesToScroll: 2 },
-              "(max-width: 1024px)": { slidesToScroll: 3 },
-              "(max-width: 1280px)": { slidesToScroll: 4 },
+              "(max-width: 640px)": { slidesToScroll: 1 },
+              "(max-width: 1024px)": { slidesToScroll: 2 },
+              "(max-width: 1280px)": { slidesToScroll: 3 },
             },
           }}
           className="w-full"

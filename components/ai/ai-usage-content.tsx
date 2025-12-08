@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { Activity, MessageSquare, Sparkles, TrendingUp, Clock, MousePointerClick, Plus, Users } from "lucide-react";
+import { Activity, MessageSquare, Sparkles, TrendingUp, Clock, MousePointerClick, Plus, Users, Zap } from "lucide-react";
 
 export default function AiUsageContent() {
   const [range, setRange] = useState<string | undefined>(undefined);
@@ -120,6 +120,49 @@ export default function AiUsageContent() {
         />
       </div>
 
+      {/* Token Usage Cards */}
+      <div className="mb-4 sm:mb-6">
+        <h2 className="text-lg font-semibold mb-3 sm:mb-4">Token Usage</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          <MetricCard
+            title="Total Tokens"
+            value={data?.totals.totalTokens ? formatTokenNumber(data.totals.totalTokens) : "0"}
+            icon={Zap}
+            isLoading={isLoading}
+          />
+          <MetricCard
+            title="Avg Tokens/Query"
+            value={data?.totals.averageTokens ? formatTokenNumber(data.totals.averageTokens) : "0"}
+            icon={Zap}
+            isLoading={isLoading}
+          />
+          <MetricCard
+            title="Prompt Tokens"
+            value={data?.totals.totalPromptTokens ? formatTokenNumber(data.totals.totalPromptTokens) : "0"}
+            icon={Zap}
+            isLoading={isLoading}
+          />
+          <MetricCard
+            title="Completion Tokens"
+            value={data?.totals.totalCompletionTokens ? formatTokenNumber(data.totals.totalCompletionTokens) : "0"}
+            icon={Zap}
+            isLoading={isLoading}
+          />
+          <MetricCard
+            title="Avg Prompt Tokens"
+            value={data?.totals.averagePromptTokens ? formatTokenNumber(data.totals.averagePromptTokens) : "0"}
+            icon={Zap}
+            isLoading={isLoading}
+          />
+          <MetricCard
+            title="Avg Completion Tokens"
+            value={data?.totals.averageCompletionTokens ? formatTokenNumber(data.totals.averageCompletionTokens) : "0"}
+            icon={Zap}
+            isLoading={isLoading}
+          />
+        </div>
+      </div>
+
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
         <Card>
@@ -228,5 +271,15 @@ function MetricCard({
       </CardContent>
     </Card>
   );
+}
+
+// Helper function to format token numbers (e.g., 1,234,567 -> "1.2M")
+function formatTokenNumber(num: number): string {
+  if (num >= 1_000_000) {
+    return `${(num / 1_000_000).toFixed(1)}M`;
+  } else if (num >= 1_000) {
+    return `${(num / 1_000).toFixed(1)}K`;
+  }
+  return num.toLocaleString();
 }
 

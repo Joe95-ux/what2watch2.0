@@ -10,6 +10,13 @@ export interface AiAnalyticsSummary {
     totalPlaylistAdds: number;
     averageResponseTime: number;
     uniqueSessions: number;
+    // Token usage stats
+    totalTokens: number;
+    totalPromptTokens: number;
+    totalCompletionTokens: number;
+    averageTokens: number;
+    averagePromptTokens: number;
+    averageCompletionTokens: number;
   };
   trend: Array<{
     date: string;

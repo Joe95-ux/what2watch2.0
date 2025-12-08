@@ -39,10 +39,8 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
     }
   };
 
-  const getPlaylistCover = () => {
-    if (playlist.coverImage) {
-      return playlist.coverImage;
-    }
+  const getPlaylistPosters = () => {
+    const posters: Array<{ url: string; isYouTube: boolean }> = [];
     
     // Combine both regular items and YouTube items, sorted by order
     const allItems: Array<{ order: number; posterPath?: string | null; thumbnail?: string | null }> = [];
@@ -67,29 +65,33 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
       });
     }
     
-    // Sort by order and find the first item with a cover
+    // Sort by order and get first 3 items with covers
     allItems.sort((a, b) => a.order - b.order);
     
     for (const item of allItems) {
+      if (posters.length >= 3) break;
+      
       // Prefer regular item poster if available
       if (item.posterPath) {
-        return getPosterUrl(item.posterPath, "w500");
-      }
-      // Fall back to YouTube thumbnail if no poster
-      if (item.thumbnail) {
-        return item.thumbnail;
+        posters.push({
+          url: getPosterUrl(item.posterPath, "w500"),
+          isYouTube: false,
+        });
+      } else if (item.thumbnail) {
+        // Fall back to YouTube thumbnail
+        posters.push({
+          url: item.thumbnail,
+          isYouTube: true,
+        });
       }
     }
     
-    return null;
+    return posters;
   };
 
-  const coverImage = getPlaylistCover();
+  const posters = getPlaylistPosters();
   const itemCount = (playlist._count?.items || playlist.items?.length || 0) + (playlist._count?.youtubeItems || playlist.youtubeItems?.length || 0);
   const displayName = playlist.user?.displayName || playlist.user?.username || "Unknown";
-  
-  // Check if coverImage is a YouTube thumbnail URL
-  const isYouTubeThumbnail = coverImage?.includes("i.ytimg.com") || coverImage?.includes("img.youtube.com");
 
   return (
     <div
@@ -101,20 +103,65 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
       )}
       onClick={handleCardClick}
     >
-      <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-muted border border-border hover:border-primary/50 transition-colors">
-        {/* Cover Image */}
-        {coverImage ? (
-          <Image
-            src={coverImage}
-            alt={playlist.name}
-            fill
-            className="object-cover transition-transform duration-500 group-hover:scale-110"
-            sizes="(max-width: 640px) 180px, 200px"
-            unoptimized={isYouTubeThumbnail}
-          />
+      <div className="relative w-full h-[225px] rounded-lg overflow-hidden bg-muted border border-border hover:border-primary/50 transition-colors">
+        {/* Grid of 3 Posters */}
+        {posters.length > 0 ? (
+          <div className="relative w-full h-[225px] grid grid-cols-3 gap-1">
+            {posters.map((poster, index) => {
+              // Border radius: first (left), middle (none), third (right)
+              const borderRadiusClass = 
+                index === 0 ? "rounded-tl-lg rounded-bl-lg" :
+                index === 2 ? "rounded-tr-lg rounded-br-lg" :
+                "";
+              
+              return (
+                <div
+                  key={index}
+                  className={`relative w-full h-full overflow-hidden bg-muted ${borderRadiusClass}`}
+                >
+                  <Image
+                    src={poster.url}
+                    alt={`${playlist.name} - Item ${index + 1}`}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-110"
+                    sizes="(max-width: 640px) 120px, (max-width: 1024px) 150px, 200px"
+                    quality={90}
+                    unoptimized={poster.isYouTube}
+                  />
+                </div>
+              );
+            })}
+            {/* Fill remaining slots if less than 3 posters */}
+            {posters.length < 3 && Array.from({ length: 3 - posters.length }).map((_, index) => {
+              const actualIndex = posters.length + index;
+              const borderRadiusClass = 
+                actualIndex === 0 ? "rounded-tl-lg rounded-bl-lg" :
+                actualIndex === 2 ? "rounded-tr-lg rounded-br-lg" :
+                "";
+              
+              return (
+                <div
+                  key={`empty-${index}`}
+                  className={`relative w-full h-full overflow-hidden bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center ${borderRadiusClass}`}
+                >
+                  <span className="text-muted-foreground text-xs">No Cover</span>
+                </div>
+              );
+            })}
+          </div>
+        ) : playlist.coverImage ? (
+          <div className="relative w-full h-[225px]">
+            <Image
+              src={playlist.coverImage}
+              alt={playlist.name}
+              fill
+              className="object-cover transition-transform duration-500 group-hover:scale-110 rounded-lg"
+              sizes="(max-width: 640px) 180px, 200px"
+              quality={90}
+            />
+          </div>
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30 flex items-center justify-center">
-            {/* Show YouTube icon if playlist has YouTube items, otherwise show first letter of playlist name */}
+          <div className="w-full h-[225px] flex items-center justify-center bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30 rounded-lg">
             {playlist.youtubeItems && playlist.youtubeItems.length > 0 ? (
               <Youtube className="h-12 w-12 text-white/60" />
             ) : (
@@ -125,32 +172,17 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
           </div>
         )}
 
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        {/* Dark Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent rounded-lg" />
 
-        {/* Playlist Info Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
-          <h3 className="font-semibold text-white text-sm mb-1 line-clamp-1 drop-shadow-lg">
-            {playlist.name}
-          </h3>
-          <p className="text-xs text-white/90 drop-shadow">
-            {itemCount} {itemCount === 1 ? "item" : "items"}
-          </p>
-          {playlist.user && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/users/${playlist.user?.id}`);
-              }}
-              className="text-xs text-white/80 mt-1 drop-shadow hover:text-white transition-colors cursor-pointer"
-            >
-              by {displayName}
-            </button>
-          )}
+        {/* Playlist Icon and Text - Bottom Left */}
+        <div className="absolute bottom-2 left-2 flex items-center gap-1.5 z-10">
+          <Youtube className="h-6 w-6 text-white" />
+          <span className="text-sm font-medium text-white">Playlist</span>
         </div>
 
         {/* Item Count Badge */}
-        <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm rounded-full px-2 py-1">
+        <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm rounded-full px-2 py-1 z-10">
           <span className="text-xs font-medium text-white">
             {itemCount}
           </span>
@@ -158,7 +190,7 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
 
         {/* Like Button */}
         {canLike && (
-          <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
             <Button
               size="icon"
               variant="ghost"
@@ -189,26 +221,9 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
         )}
       </div>
 
-      {/* Title below card (visible on mobile, hidden on desktop where overlay shows) */}
-      <div className="mt-2 md:hidden">
-        <h3 className="font-semibold text-sm line-clamp-1">{playlist.name}</h3>
-        <p className="text-xs text-muted-foreground">
-          {itemCount} {itemCount === 1 ? "item" : "items"}
-          {playlist.user && (
-            <>
-              {" • "}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  router.push(`/users/${playlist.user?.id}`);
-                }}
-                className="hover:text-foreground transition-colors cursor-pointer"
-              >
-                by {displayName}
-              </button>
-            </>
-          )}
-        </p>
+      {/* Title below card - Only title, no metadata */}
+      <div className="mt-2">
+        <h3 className="text-[16px] font-semibold line-clamp-1">{playlist.name}</h3>
       </div>
     </div>
   );

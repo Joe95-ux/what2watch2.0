@@ -2,24 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Share2, Edit2, Trash2, MoreVertical, Upload, Download } from "lucide-react";
-import MovieCard from "@/components/browse/movie-card";
-import ContentDetailModal from "@/components/browse/content-detail-modal";
-import { getPosterUrl } from "@/lib/tmdb";
 import type { Playlist } from "@/hooks/use-playlists";
 import SharePlaylistDialog from "./share-playlist-dialog";
 import CreatePlaylistModal from "./create-playlist-modal";
 import ImportPlaylistModal from "./import-playlist-modal";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import PlaylistView from "./playlist-view";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,9 +18,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useDeletePlaylist } from "@/hooks/use-playlists";
+import { useDeletePlaylist, useUpdatePlaylist } from "@/hooks/use-playlists";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { useQueryClient } from "@tanstack/react-query";
 import { FollowButton } from "@/components/social/follow-button";
 import { useLikePlaylist, useUnlikePlaylist, useIsLiked } from "@/hooks/use-playlist-likes";
 import { Heart } from "lucide-react";
@@ -53,8 +41,9 @@ interface PublicPlaylistContentProps {
 
 export default function PublicPlaylistContent({ playlistId }: PublicPlaylistContentProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const deletePlaylist = useDeletePlaylist();
-  const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
+  const updatePlaylist = useUpdatePlaylist();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -159,112 +148,45 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
     return () => controller.abort();
   }, [playlist, hasLoggedVisit, playlistId]);
 
-  const handleExportCSV = async () => {
+  const handleTogglePublic = async (visibility: "PUBLIC" | "FOLLOWERS_ONLY" | "PRIVATE") => {
     try {
-      toast.loading("Preparing export...", { id: "export" });
-      
-      const response = await fetch(`/api/playlists/${playlistId}/export`);
-      if (!response.ok) {
-        throw new Error("Failed to export playlist");
+      await updatePlaylist.mutateAsync({
+        playlistId,
+        updates: {
+          isPublic: visibility === "PUBLIC",
+        },
+      });
+      // Refetch playlist
+      const res = await fetch(`/api/playlists/${playlistId}?public=true`);
+      if (res.ok) {
+        const data = await res.json();
+        setPlaylist(data.playlist);
       }
-
-      const { items } = await response.json();
-
-      const headers = [
-        "Order",
-        "Title",
-        "Type",
-        "URL",
-        "IMDB ID",
-        "Release Date",
-        "Year",
-        "Genre",
-        "Description",
-        "Directors/Creators",
-        "Runtime",
-        "IMDB Rating",
-        "Note",
-        "Date Created",
-      ];
-
-      const rows = items.map((item: any) => [
-        item.order,
-        item.title,
-        item.type,
-        item.url,
-        item.imdbId,
-        item.releaseDate,
-        item.year,
-        item.genre,
-        item.description,
-        item.directorsCreators,
-        item.runtime,
-        item.imdbRating,
-        item.note,
-        item.dateCreated,
-      ]);
-
-      const csvContent = [
-        headers.join(","),
-        ...rows.map((row: any[]) => 
-          row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
-        ),
-      ].join("\n");
-
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute(
-        "download",
-        `playlist-${format(new Date(), "yyyy-MM-dd")}.csv`
-      );
-      link.style.visibility = "hidden";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast.success("Playlist exported to CSV", { id: "export" });
     } catch (error) {
-      console.error("Export error:", error);
-      toast.error("Failed to export playlist", { id: "export" });
+      toast.error("Failed to update playlist visibility");
+      console.error(error);
+      throw error;
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Skeleton className="h-10 w-64 mb-6" />
-          <Skeleton className="h-48 w-full mb-8" />
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <Skeleton key={i} className="aspect-[2/3] rounded-lg" />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !playlist) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <h2 className="text-2xl font-semibold mb-2">
-            {error === "Playlist is private" ? "Private Playlist" : "Playlist not found"}
-          </h2>
-          <p className="text-muted-foreground mb-4">
-            {error === "Playlist is private"
-              ? "This playlist is private and cannot be viewed."
-              : error || "This playlist doesn't exist."}
-          </p>
-          <Button onClick={() => router.push("/browse")}>Back to Browse</Button>
-        </div>
-      </div>
-    );
-  }
+  const handleRemoveItem = async (itemId: string) => {
+    try {
+      const response = await fetch(`/api/playlists/${playlistId}/items/${itemId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to remove");
+      toast.success("Removed from playlist");
+      // Refetch playlist
+      const res = await fetch(`/api/playlists/${playlistId}?public=true`);
+      if (res.ok) {
+        const data = await res.json();
+        setPlaylist(data.playlist);
+      }
+    } catch (error) {
+      toast.error("Failed to remove item");
+      console.error(error);
+    }
+  };
 
   const handleDeletePlaylist = async () => {
     try {
@@ -277,226 +199,79 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
     }
   };
 
-  // Convert playlist items to TMDB format
-  const itemsAsTMDB = (playlist.items || []).map((playlistItem) => {
-    if (playlistItem.mediaType === "movie") {
-      const movie: TMDBMovie = {
-        id: playlistItem.tmdbId,
-        title: playlistItem.title,
-        overview: "",
-        poster_path: playlistItem.posterPath,
-        backdrop_path: playlistItem.backdropPath,
-        release_date: playlistItem.releaseDate || "",
-        vote_average: 0,
-        vote_count: 0,
-        genre_ids: [],
-        popularity: 0,
-        adult: false,
-        original_language: "",
-        original_title: playlistItem.title,
-      };
-      return { item: movie, type: "movie" as const };
-    } else {
-      const tv: TMDBSeries = {
-        id: playlistItem.tmdbId,
-        name: playlistItem.title,
-        overview: "",
-        poster_path: playlistItem.posterPath,
-        backdrop_path: playlistItem.backdropPath,
-        first_air_date: playlistItem.firstAirDate || "",
-        vote_average: 0,
-        vote_count: 0,
-        genre_ids: [],
-        popularity: 0,
-        original_language: "",
-        original_name: playlistItem.title,
-      };
-      return { item: tv, type: "tv" as const };
-    }
-  });
+  const shareUrl = typeof window !== "undefined" 
+    ? `${window.location.origin}/playlists/${playlistId}?public=true`
+    : "";
 
-  const coverImage = playlist.coverImage
-    ? playlist.coverImage
-    : itemsAsTMDB.length > 0 && itemsAsTMDB[0].item.poster_path
-    ? getPosterUrl(itemsAsTMDB[0].item.poster_path, "original")
-    : null;
-  const totalItems = itemsAsTMDB.length;
+  // Show loading/error states through PlaylistView
+  if (isLoading || error || !playlist) {
+    return (
+      <PlaylistView
+        playlist={null}
+        isLoading={isLoading}
+        isOwner={false}
+        enableRemove={false}
+        enableEdit={false}
+        enableExport={false}
+        enablePublicToggle={false}
+        shareUrl={shareUrl}
+        errorTitle={error === "Playlist is private" ? "Private Playlist" : "Playlist not found"}
+        errorDescription={
+          error === "Playlist is private"
+            ? "This playlist is private and cannot be viewed."
+            : error || "This playlist doesn't exist."
+        }
+        errorAction={
+          <Button onClick={() => router.push("/browse")} className="cursor-pointer">
+            Back to Browse
+          </Button>
+        }
+        onBack={() => router.push("/playlists")}
+      />
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Banner Section */}
-      <div className="relative -mt-[65px] h-[30vh] min-h-[200px] max-h-[300px] sm:h-[40vh] sm:min-h-[250px] md:h-[50vh] md:min-h-[300px] overflow-hidden">
-        {coverImage ? (
-          <>
-            <img
-              src={coverImage}
-              alt={playlist.name}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent" />
-          </>
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30" />
-        )}
-      </div>
+    <>
+      <PlaylistView
+        playlist={playlist}
+        isLoading={isLoading}
+        isOwner={isOwner}
+        enableRemove={isOwner}
+        enableEdit={isOwner}
+        enableExport={isOwner}
+        enablePublicToggle={isOwner}
+        onTogglePublic={handleTogglePublic}
+        onRemove={handleRemoveItem}
+        shareUrl={shareUrl}
+        onShare={() => setIsShareDialogOpen(true)}
+        emptyTitle="This playlist is empty"
+        emptyDescription="No items have been added yet."
+        errorTitle="Playlist not found"
+        errorDescription="This playlist doesn't exist or is private."
+        onBack={() => router.push("/playlists")}
+      />
 
-      {/* Info Section */}
-      <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
-        <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-          <div className="flex-1">
+      {/* Like Button for non-owners - needs to be added to PlaylistView or shown separately */}
+      {!isOwner && playlistWithUser.user && (
+        <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+          <div className="flex items-center justify-center gap-4">
             <Button
-              variant="ghost"
+              variant={isLiked ? "default" : "outline"}
               size="sm"
-              onClick={() => router.push("/playlists")}
-              className="mb-4"
+              onClick={handleToggleLike}
+              disabled={likePlaylist.isPending || unlikePlaylist.isPending || !currentUserId}
+              className="cursor-pointer"
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              <Heart className={cn("h-4 w-4 mr-2", isLiked && "fill-current")} />
+              {isLiked ? "Liked" : "Like"}
+              {playlist.likesCount && playlist.likesCount > 0 && (
+                <span className="ml-2">({playlist.likesCount})</span>
+              )}
             </Button>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">{playlist.name}</h1>
-            {playlist.description && (
-              <p className="text-base sm:text-lg text-muted-foreground mb-4 max-w-2xl">
-                {playlist.description}
-              </p>
-            )}
-            <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-              <span>
-                {totalItems} {totalItems === 1 ? "item" : "items"}
-              </span>
-              {playlist.isPublic && (
-                <>
-                  <span>•</span>
-                  <span className="text-primary">Public</span>
-                </>
-              )}
-              {playlistWithUser.user && (
-                <>
-                  <span>•</span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push(`/users/${playlistWithUser.user?.id}`);
-                    }}
-                    className="hover:text-primary transition-colors cursor-pointer"
-                  >
-                    By {playlistWithUser.user.displayName || playlistWithUser.user.username || "Unknown"}
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-2 ml-auto sm:ml-0">
-            {isOwner ? (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsShareDialogOpen(true)}
-                  className="gap-2 cursor-pointer"
-                >
-                  <Share2 className="h-4 w-4" />
-                  Share
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon" className="cursor-pointer">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>
-                      <Edit2 className="h-4 w-4 mr-2" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => setIsImportModalOpen(true)}
-                      className="cursor-pointer"
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Import CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={handleExportCSV}
-                      className="cursor-pointer"
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Export CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => setIsDeleteDialogOpen(true)}
-                      className="text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </>
-            ) : (
-              playlistWithUser.user && (
-                <>
-                  <Button
-                    variant={isLiked ? "default" : "outline"}
-                    size="sm"
-                    onClick={handleToggleLike}
-                    disabled={likePlaylist.isPending || unlikePlaylist.isPending || !currentUserId}
-                    className="cursor-pointer"
-                  >
-                    <Heart className={cn("h-4 w-4 mr-2", isLiked && "fill-current")} />
-                    {isLiked ? "Liked" : "Like"}
-                    {playlist.likesCount && playlist.likesCount > 0 && (
-                      <span className="ml-2">({playlist.likesCount})</span>
-                    )}
-                  </Button>
-                  <FollowButton userId={playlistWithUser.user.id} />
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsShareDialogOpen(true)}
-                    className="gap-2 cursor-pointer"
-                  >
-                    <Share2 className="h-4 w-4" />
-                    Share
-                  </Button>
-                </>
-              )
-            )}
+            <FollowButton userId={playlistWithUser.user.id} />
           </div>
         </div>
-      </div>
-
-      {/* Content */}
-      <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {itemsAsTMDB.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-muted-foreground">This playlist is empty.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {itemsAsTMDB.map(({ item, type }) => (
-              <MovieCard
-                key={`${item.id}-${type}`}
-                item={item}
-                type={type}
-                onCardClick={(clickedItem, clickedType) =>
-                  setSelectedItem({ item: clickedItem, type: clickedType })
-                }
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Detail Modal */}
-      {selectedItem && (
-        <ContentDetailModal
-          item={selectedItem.item}
-          type={selectedItem.type}
-          isOpen={!!selectedItem}
-          onClose={() => setSelectedItem(null)}
-        />
       )}
 
       {/* Share Dialog - Available for all users */}
@@ -514,7 +289,17 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
         <>
           <CreatePlaylistModal
             isOpen={isEditModalOpen}
-            onClose={() => setIsEditModalOpen(false)}
+            onClose={() => {
+              // Refetch playlist after edit
+              fetch(`/api/playlists/${playlistId}?public=true`)
+                .then((res) => res.json())
+                .then((data) => {
+                  if (data.playlist) {
+                    setPlaylist(data.playlist);
+                  }
+                });
+              setIsEditModalOpen(false);
+            }}
             playlist={playlist}
           />
           <ImportPlaylistModal
@@ -546,7 +331,7 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
           </AlertDialog>
         </>
       )}
-    </div>
+    </>
   );
 }
 

@@ -183,14 +183,22 @@ export async function POST(request: NextRequest) {
 
       try {
         const completion = await openai.chat.completions.create({
-          model: "gpt-4o", // Use GPT-4o for information queries
+          model: "gpt-4o", // Use GPT-4o for information queries (has better knowledge and reasoning)
           messages: messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
           temperature: 0.7,
-          max_tokens: 1000,
+          max_tokens: 1500, // Increased for more detailed responses
+          // Note: GPT-4o API doesn't have built-in web browsing, but has knowledge up to Oct 2023
+          // For real-time info, we'd need to add a web search function/tool (adds cost)
         });
 
         const aiResponseText = completion.choices[0]?.message?.content || "";
         const responseTime = Date.now() - startTime;
+        
+        // Extract token usage from OpenAI response
+        const usage = completion.usage;
+        const promptTokens = usage?.prompt_tokens ?? null;
+        const completionTokens = usage?.completion_tokens ?? null;
+        const totalTokens = usage?.total_tokens ?? null;
 
         // Log the event
         try {
@@ -202,6 +210,10 @@ export async function POST(request: NextRequest) {
               intent: AiChatIntent.INFORMATION,
               aiResponse: aiResponseText,
               responseTime,
+              model: "gpt-4o",
+              promptTokens,
+              completionTokens,
+              totalTokens,
               resultsCount: 0,
               resultIds: [],
               resultTypes: [],
@@ -237,6 +249,9 @@ export async function POST(request: NextRequest) {
     // Call OpenAI to extract parameters
     let extractedParams: ExtractedParams;
     let aiResponseText = "";
+    let recommendationPromptTokens: number | null = null;
+    let recommendationCompletionTokens: number | null = null;
+    let recommendationTotalTokens: number | null = null;
 
     try {
       const completion = await openai.chat.completions.create({
@@ -249,6 +264,12 @@ export async function POST(request: NextRequest) {
 
       aiResponseText = completion.choices[0]?.message?.content || "";
       const parsed = JSON.parse(aiResponseText);
+      
+      // Extract token usage for recommendation mode
+      const recommendationUsage = completion.usage;
+      recommendationPromptTokens = recommendationUsage?.prompt_tokens ?? null;
+      recommendationCompletionTokens = recommendationUsage?.completion_tokens ?? null;
+      recommendationTotalTokens = recommendationUsage?.total_tokens ?? null;
       
       // Validate and clean extracted parameters
       extractedParams = {
@@ -692,6 +713,10 @@ export async function POST(request: NextRequest) {
           intent: extractedParams.intent === "INFORMATION" ? AiChatIntent.INFORMATION : AiChatIntent.RECOMMENDATION,
           aiResponse: aiResponseText || "No response",
           responseTime,
+          model: "gpt-4o-mini", // Recommendation mode uses gpt-4o-mini
+          promptTokens: recommendationPromptTokens,
+          completionTokens: recommendationCompletionTokens,
+          totalTokens: recommendationTotalTokens,
           resultsCount: results.length,
           resultIds,
           resultTypes,

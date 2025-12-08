@@ -32,7 +32,7 @@ export function usePlaylistDragDrop({
         return;
       }
       
-      if (!isEditMode || !isLgScreen || sortField !== "playlistOrder") {
+      if (!isEditMode || !isLgScreen || sortField !== "listOrder") {
         return;
       }
 
@@ -72,7 +72,7 @@ export function usePlaylistDragDrop({
   return {
     DragDropContext,
     handleDragEnd,
-    isDragEnabled: isEditMode && isLgScreen && sortField === "playlistOrder",
+    isDragEnabled: isEditMode && isLgScreen && sortField === "listOrder",
   };
 }
 
