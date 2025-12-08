@@ -1,6 +1,6 @@
 "use client";
 
-import { useList, useRemoveItemFromList } from "@/hooks/use-lists";
+import { useList, useRemoveItemFromList, useUpdateList } from "@/hooks/use-lists";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -18,6 +18,7 @@ import {
 import { useDeleteList } from "@/hooks/use-lists";
 import CreateListModal from "./create-list-modal";
 import ListView from "./list-view";
+import type { ListVisibility } from "@/hooks/use-lists";
 
 interface ListDetailContentProps {
   listId: string;
@@ -28,11 +29,24 @@ export default function ListDetailContent({ listId }: ListDetailContentProps) {
   const { data: currentUser } = useCurrentUser();
   const deleteList = useDeleteList();
   const removeItemFromList = useRemoveItemFromList();
+  const updateList = useUpdateList();
   const router = useRouter();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const isOwner = currentUser?.id === list?.userId;
+
+  const handleTogglePublic = async (visibility: ListVisibility) => {
+    if (!list) return;
+    try {
+      await updateList.mutateAsync({
+        listId: list.id,
+        visibility,
+      });
+    } catch {
+      throw new Error("Failed to update list visibility");
+    }
+  };
 
   const handleDelete = async () => {
     try {
@@ -68,6 +82,8 @@ export default function ListDetailContent({ listId }: ListDetailContentProps) {
         enableRemove={isOwner}
         enableEdit={isOwner}
         enableExport={isOwner}
+        enablePublicToggle={isOwner}
+        onTogglePublic={handleTogglePublic}
         onRemove={handleRemove}
         shareUrl={shareUrl}
         emptyTitle="This list is empty"

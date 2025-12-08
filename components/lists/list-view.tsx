@@ -24,6 +24,8 @@ import {
   Copy,
   Move,
   Plus,
+  Eye,
+  Lock,
 } from "lucide-react";
 import Image from "next/image";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
@@ -70,6 +72,7 @@ import CreateListModal from "./create-list-modal";
 import { reorderListEntries, type ListEntry } from "@/lib/list-utils";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -84,6 +87,23 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  useMovieDetails,
+  useTVDetails,
+  useIMDBRating,
+  useOMDBData,
+} from "@/hooks/use-content-details";
+import {
+  useIsWatched,
+  useQuickWatch,
+  useUnwatch,
+} from "@/hooks/use-viewing-logs";
+import { useUser } from "@clerk/nextjs";
+import { IMDBBadge } from "@/components/ui/imdb-badge";
+import { createPersonSlug } from "@/lib/person-utils";
+import { Textarea } from "@/components/ui/textarea";
+import { Star } from "lucide-react";
+import { useUpdateListItemMutation } from "@/hooks/use-lists";
 
 interface ListViewProps {
   list: List | null;
@@ -92,6 +112,8 @@ interface ListViewProps {
   enableRemove?: boolean;
   enableEdit?: boolean;
   enableExport?: boolean;
+  enablePublicToggle?: boolean;
+  onTogglePublic?: (visibility: "PUBLIC" | "FOLLOWERS_ONLY" | "PRIVATE") => Promise<void>;
   onRemove?: (itemId: string) => Promise<void>;
   shareUrl: string;
   onShare?: () => void;
@@ -111,6 +133,8 @@ export default function ListView({
   enableRemove = false,
   enableEdit = false,
   enableExport = false,
+  enablePublicToggle = false,
+  onTogglePublic,
   onRemove,
   shareUrl,
   onShare,
@@ -617,43 +641,45 @@ export default function ListView({
 
           <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
             <div className="flex-1">
-              <div className="flex items-center gap-3 mb-4">
-                <Link href={`/${list.user.username || list.user.id}`}>
-                  <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 ring-primary transition-all">
-                    <AvatarImage
-                      src={list.user.avatarUrl || undefined}
-                      alt={list.user.displayName || list.user.username || "User"}
-                    />
-                    <AvatarFallback>
-                      {(list.user.displayName ||
-                        list.user.username ||
-                        "U")[0].toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                </Link>
-                <div>
-                  <Link
-                    href={`/${list.user.username || list.user.id}`}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                  >
-                    {list.user.displayName || list.user.username || "Unknown"}
+              {!isOwner && list.user && (
+                <div className="flex items-center gap-3 mb-4">
+                  <Link href={`/${list.user.username || list.user.id}`}>
+                    <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 ring-primary transition-all">
+                      <AvatarImage
+                        src={list.user.avatarUrl || undefined}
+                        alt={list.user.displayName || list.user.username || "User"}
+                      />
+                      <AvatarFallback>
+                        {(list.user.displayName ||
+                          list.user.username ||
+                          "U")[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
                   </Link>
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">
-                      {list.name}
-                    </h1>
-                    {isEditMode && enableEdit && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 cursor-pointer"
-                        onClick={() => setIsEditListModalOpen(true)}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                    )}
+                  <div>
+                    <Link
+                      href={`/${list.user.username || list.user.id}`}
+                      className="text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                    >
+                      {list.user.displayName || list.user.username || "Unknown"}
+                    </Link>
                   </div>
                 </div>
+              )}
+              <div className="flex items-center gap-2 mb-2">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">
+                  {list.name}
+                </h1>
+                {isEditMode && enableEdit && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 cursor-pointer"
+                    onClick={() => setIsEditListModalOpen(true)}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
               {list.description && (
                 <p className="text-base sm:text-lg text-muted-foreground mb-4 max-w-2xl">
@@ -661,6 +687,17 @@ export default function ListView({
                 </p>
               )}
               <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                {!isOwner && list.user && (
+                  <>
+                    <Link
+                      href={`/${list.user.username || list.user.id}`}
+                      className="hover:text-primary transition-colors cursor-pointer"
+                    >
+                      {list.user.displayName || list.user.username || "Unknown"}
+                    </Link>
+                    <span>•</span>
+                  </>
+                )}
                 <span>
                   {filteredAndSorted.length} of {list.items.length}{" "}
                   {list.items.length === 1 ? "item" : "items"}
@@ -694,61 +731,104 @@ export default function ListView({
             </div>
 
             {/* Actions */}
-            {isOwner && (
-              <div className="overflow-x-auto max-w-full">
-                <div className="flex items-center gap-2">
-                  <ShareDropdown
-                    shareUrl={shareUrl}
-                    title={list.name}
-                    description={`Check out ${list.name} on What2Watch`}
-                    onShare={onShare}
-                    className="gap-2 cursor-pointer"
-                  />
-                  {(enableEdit || enableExport) && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
+            <div className="overflow-x-auto max-w-full">
+              <div className="flex items-center gap-2">
+                <ShareDropdown
+                  shareUrl={shareUrl}
+                  title={list.name}
+                  description={`Check out ${list.name} on What2Watch`}
+                  onShare={onShare}
+                  className="gap-2 cursor-pointer"
+                />
+                {enablePublicToggle && onTogglePublic && isOwner && (
+                  <div
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 rounded-md border",
+                      list.visibility === "PUBLIC"
+                        ? "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
+                        : list.visibility === "FOLLOWERS_ONLY"
+                        ? "bg-purple-500/20 border-purple-500/30 text-purple-700 dark:text-purple-400"
+                        : "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
+                    )}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Switch
+                      id="public-toggle"
+                      checked={list.visibility === "PUBLIC"}
+                      onCheckedChange={async (checked) => {
+                        try {
+                          await onTogglePublic(checked ? "PUBLIC" : "PRIVATE");
+                          toast.success(
+                            checked ? "List is now public" : "List is now private"
+                          );
+                        } catch {
+                          toast.error("Failed to update list visibility");
+                        }
+                      }}
+                    />
+                    <Label
+                      htmlFor="public-toggle"
+                      className="text-sm cursor-pointer flex items-center gap-1.5"
+                    >
+                      {list.visibility === "PUBLIC" ? (
+                        <Eye className="h-4 w-4" />
+                      ) : (
+                        <Lock className="h-4 w-4" />
+                      )}
+                      <span>
+                        {list.visibility === "PUBLIC"
+                          ? "Public"
+                          : list.visibility === "FOLLOWERS_ONLY"
+                          ? "Followers"
+                          : "Private"}
+                      </span>
+                    </Label>
+                  </div>
+                )}
+                {isOwner && (enableEdit || enableExport) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="cursor-pointer"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {enableEdit && (
+                        <DropdownMenuItem
+                          onClick={() => setIsEditMode(!isEditMode)}
                           className="cursor-pointer"
                         >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {enableEdit && (
+                          <Edit2 className="h-4 w-4 mr-2" />
+                          {isEditMode ? "Exit Edit Mode" : "Edit"}
+                        </DropdownMenuItem>
+                      )}
+                      {enableExport && (
+                        <>
                           <DropdownMenuItem
-                            onClick={() => setIsEditMode(!isEditMode)}
+                            onClick={handleExportCSV}
                             className="cursor-pointer"
                           >
-                            <Edit2 className="h-4 w-4 mr-2" />
-                            {isEditMode ? "Exit Edit Mode" : "Edit"}
+                            <Download className="h-4 w-4 mr-2" />
+                            Export CSV
                           </DropdownMenuItem>
-                        )}
-                        {enableExport && (
-                          <>
-                            <DropdownMenuItem
-                              onClick={handleExportCSV}
-                              className="cursor-pointer"
-                            >
-                              <Download className="h-4 w-4 mr-2" />
-                              Export CSV
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setIsImportModalOpen(true)}
-                              className="cursor-pointer"
-                            >
-                              <Upload className="h-4 w-4 mr-2" />
-                              Import CSV
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
+                          <DropdownMenuItem
+                            onClick={() => setIsImportModalOpen(true)}
+                            className="cursor-pointer"
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Import CSV
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
 
@@ -925,36 +1005,6 @@ export default function ListView({
                     )}
                   </PopoverContent>
                 </Popover>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsCopyModalOpen(true)}
-                  disabled={selectedItems.size === 0}
-                  className="cursor-pointer w-full sm:w-auto"
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy ({selectedItems.size})
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsMoveModalOpen(true)}
-                  disabled={selectedItems.size === 0}
-                  className="cursor-pointer w-full sm:w-auto"
-                >
-                  <Move className="h-4 w-4 mr-2" />
-                  Move ({selectedItems.size})
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleBulkRemove}
-                  disabled={selectedItems.size === 0}
-                  className="cursor-pointer w-full sm:w-auto"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete ({selectedItems.size})
-                </Button>
               </div>
             </div>
           </div>
@@ -1419,6 +1469,7 @@ export default function ListView({
                                     }}
                                     isLgScreen={isLgScreen}
                                     sortField={sortField}
+                                    isPublic={list.visibility === "PUBLIC"}
                                   />
                                 </div>
                               )}
@@ -1985,7 +2036,7 @@ function MoveToListModal({
   );
 }
 
-// Detailed List Item Component (simplified version - can be expanded later)
+// Detailed List Item Component (matches DetailedWatchlistItem)
 interface DetailedListItemProps {
   item: TMDBMovie | TMDBSeries;
   type: "movie" | "tv";
@@ -2001,6 +2052,7 @@ interface DetailedListItemProps {
   onItemClick: () => void;
   isLgScreen: boolean;
   sortField: SortField;
+  isPublic?: boolean;
 }
 
 function DetailedListItem({
@@ -2018,54 +2070,185 @@ function DetailedListItem({
   onItemClick,
   isLgScreen,
   sortField,
+  isPublic,
 }: DetailedListItemProps) {
   const router = useRouter();
+  const { isSignedIn } = useUser();
+  const quickWatch = useQuickWatch();
+  const unwatch = useUnwatch();
+  const { data: watchedData } = useIsWatched(item.id, type);
+  const isWatched = watchedData?.isWatched || false;
+  const watchedLogId = watchedData?.logId || null;
+  
+  // Note editing state
+  const [isEditingNote, setIsEditingNote] = useState(false);
+  const [noteValue, setNoteValue] = useState(listItem.note || "");
   const [isPositionModalOpen, setIsPositionModalOpen] = useState(false);
-  const updateList = useUpdateList();
-  const { data: currentList } = useList(listId);
+  const updateListItem = useUpdateListItemMutation();
+  
+  // Update note value when listItem changes
+  useEffect(() => {
+    setNoteValue(listItem.note || "");
+  }, [listItem.note]);
 
-  const formattedAddedDate = format(new Date(listItem.createdAt), "MMM d, yyyy");
+  // Fetch details for synopsis, director, and cast
+  const { data: movieDetails } = useMovieDetails(
+    type === "movie" ? item.id : null
+  );
+  const { data: tvDetails } = useTVDetails(type === "tv" ? item.id : null);
+  const details = type === "movie" ? movieDetails : tvDetails;
 
-  const handlePositionChange = async (newPosition: number) => {
-    if (!currentList) return;
-    
+  // Type assertion for credits
+  const detailsWithCredits = details as
+    | (typeof details & {
+        credits?: {
+          cast?: Array<{
+            id: number;
+            name: string;
+            character: string;
+            profile_path: string | null;
+          }>;
+          crew?: Array<{
+            id: number;
+            name: string;
+            job: string;
+            department: string;
+            profile_path: string | null;
+          }>;
+        };
+        external_ids?: { imdb_id?: string | null };
+        runtime?: number;
+        episode_run_time?: number[];
+        release_date?: string;
+        first_air_date?: string;
+      })
+    | null;
+
+  // Fetch IMDb rating and OMDB data
+  const imdbId =
+    detailsWithCredits?.external_ids?.imdb_id || details?.imdb_id || null;
+  const tmdbRating = item.vote_average > 0 ? item.vote_average : null;
+  const { data: ratingData } = useIMDBRating(imdbId, tmdbRating);
+  const { data: omdbData } = useOMDBData(imdbId);
+  const displayRating = ratingData?.rating || tmdbRating;
+  const ratingSource = ratingData?.source || (tmdbRating ? "tmdb" : null);
+
+  // Get rated and metascore from OMDB
+  const rated = omdbData?.rated || null;
+  const metascore = omdbData?.metascore || null;
+
+  // Get number of episodes for TV shows
+  const numberOfEpisodes =
+    type === "tv"
+      ? (details as { number_of_episodes?: number })?.number_of_episodes || null
+      : null;
+
+  // Get release date
+  const releaseDate =
+    type === "movie"
+      ? detailsWithCredits?.release_date || listItem.releaseDate
+      : detailsWithCredits?.first_air_date || listItem.firstAirDate;
+  const releaseYear = releaseDate ? new Date(releaseDate).getFullYear() : null;
+  const formattedReleaseDate = releaseDate
+    ? format(new Date(releaseDate), "MMM d, yyyy")
+    : null;
+
+  // Get runtime
+  const runtime =
+    type === "movie"
+      ? detailsWithCredits?.runtime
+      : detailsWithCredits?.episode_run_time?.[0];
+  const formattedRuntime = runtime
+    ? `${Math.floor(runtime / 60)}h ${runtime % 60}m`
+    : null;
+
+  // Get synopsis
+  const synopsis = details?.overview || item.overview || "";
+
+  // Get director (for movies) or creator (for TV)
+  const director = detailsWithCredits?.credits?.crew?.find(
+    (person) => person.job === "Director"
+  );
+  const creator =
+    type === "tv"
+      ? (
+          details as {
+            created_by?: Array<{
+              id: number;
+              name: string;
+              profile_path: string | null;
+            }>;
+          }
+        )?.created_by?.[0]
+      : null;
+  const directorOrCreator = type === "movie" ? director : creator;
+
+  // Get top 3 cast members with IDs
+  const topCast = detailsWithCredits?.credits?.cast?.slice(0, 3) || [];
+
+  const handleWatchToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isSignedIn) {
+      toast.error("Sign in to mark films as watched.");
+      return;
+    }
     try {
-      // Get all items and reorder them
-      const allItems = [...currentList.items];
-      const currentIndex = allItems.findIndex((i) => i.id === listItem.id);
-      
-      if (currentIndex === -1) return;
-      
-      // Remove item from current position
-      const [movedItem] = allItems.splice(currentIndex, 1);
-      
-      // Insert at new position (adjust for 0-based index)
-      const newIndex = newPosition - 1;
-      allItems.splice(newIndex, 0, movedItem);
-      
-      // Reassign positions sequentially
-      const reorderedItems = allItems.map((item, idx) => ({
-        tmdbId: item.tmdbId,
-        mediaType: item.mediaType,
-        title: item.title,
-        posterPath: item.posterPath,
-        backdropPath: item.backdropPath,
-        releaseDate: item.releaseDate,
-        firstAirDate: item.firstAirDate,
-        position: idx + 1,
-      }));
-
-      await updateList.mutateAsync({
-        listId,
-        items: reorderedItems,
-      });
-      
-      toast.success("Position updated");
-    } catch (error) {
-      toast.error("Failed to update position");
-      console.error(error);
+      if (isWatched && watchedLogId) {
+        await unwatch.mutateAsync(watchedLogId);
+        toast.success("Removed from watched");
+      } else {
+        const title = "title" in item ? item.title : item.name;
+        await quickWatch.mutateAsync({
+          tmdbId: item.id,
+          mediaType: type,
+          title,
+          posterPath: item.poster_path || null,
+          backdropPath: item.backdrop_path || null,
+          releaseDate:
+            "release_date" in item ? item.release_date || null : null,
+          firstAirDate:
+            "first_air_date" in item ? item.first_air_date || null : null,
+        });
+        toast.success("Marked as watched");
+      }
+    } catch {
+      toast.error("Failed to update watched status");
     }
   };
+
+  const handleNoteSave = async () => {
+    try {
+      await updateListItem.mutateAsync({
+        listId,
+        itemId: listItem.id,
+        updates: { note: noteValue || null },
+      });
+      setIsEditingNote(false);
+      toast.success("Note saved");
+    } catch {
+      toast.error("Failed to save note");
+    }
+  };
+
+  const handleNoteCancel = () => {
+    setNoteValue(listItem.note || "");
+    setIsEditingNote(false);
+  };
+
+  const handlePositionChange = async (newPosition: number) => {
+    try {
+      await updateListItem.mutateAsync({
+        listId,
+        itemId: listItem.id,
+        updates: { position: newPosition },
+      });
+      toast.success("Position updated");
+    } catch {
+      toast.error("Failed to update position");
+    }
+  };
+
+  const formattedAddedDate = format(new Date(listItem.createdAt), "MMM d, yyyy");
 
   return (
     <div
@@ -2106,125 +2289,477 @@ function DetailedListItem({
           </Button>
         </div>
       )}
-
-      {/* Poster */}
-      {listItem.posterPath ? (
-        <div className="relative w-20 h-28 sm:w-24 sm:h-36 rounded overflow-hidden flex-shrink-0 bg-muted">
-          <Image
-            src={getPosterUrl(listItem.posterPath)}
-            alt={listItem.title}
-            fill
-            className="object-cover"
-            sizes="96px"
-          />
-        </div>
-      ) : (
-        <div className="w-20 h-28 sm:w-24 sm:h-36 rounded bg-muted flex-shrink-0 flex items-center justify-center">
-          {type === "movie" ? (
-            <Film className="h-8 w-8 text-muted-foreground" />
+      <div className="flex flex-col sm:flex-row gap-4 flex-1 min-w-0">
+        <div className="flex flex-row gap-4 flex-1 min-w-0">
+          {isEditMode && !isLgScreen && (
+            <div className="flex-shrink-0 flex items-start pt-1">
+              <Button
+                variant={isSelected ? "default" : "outline"}
+                size="icon"
+                className={cn(
+                  "h-6 w-6 cursor-pointer",
+                  isSelected && "bg-primary"
+                )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelect();
+                }}
+              >
+                {isSelected ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <div className="h-3 w-3 border-2 border-current rounded" />
+                )}
+              </Button>
+            </div>
+          )}
+          {listItem.posterPath ? (
+            <div className="relative w-20 h-28 sm:w-24 sm:h-36 rounded overflow-hidden flex-shrink-0 bg-muted">
+              <Image
+                src={getPosterUrl(listItem.posterPath)}
+                alt={listItem.title}
+                fill
+                className="object-cover"
+                sizes="96px"
+              />
+            </div>
           ) : (
-            <Tv className="h-8 w-8 text-muted-foreground" />
-          )}
-        </div>
-      )}
-
-      {/* Content */}
-      <div className="flex-1 min-w-0 flex flex-col gap-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          {position !== undefined && (
-            <span className="text-sm text-muted-foreground">
-              {position}.
-            </span>
-          )}
-          <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
-            {listItem.title}
-          </h3>
-          {isEditMode && (
-            <>
-              <Badge variant="secondary" className="text-xs">
-                Added {formattedAddedDate}
-              </Badge>
-              {sortField === "listOrder" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-6 text-xs"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsPositionModalOpen(true);
-                  }}
-                >
-                  <ArrowUpDown className="h-3 w-3 mr-1" />
-                  Change Position
-                </Button>
-              )}
-            </>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
-          <span className="capitalize">{type}</span>
-          {listItem.releaseDate && (
-            <>
-              <span>•</span>
-              <span>
-                {new Date(listItem.releaseDate).getFullYear()}
-              </span>
-            </>
-          )}
-        </div>
-
-        {isEditMode && !isLgScreen && (
-          <div className="flex items-center gap-2">
-            <Button
-              variant={isSelected ? "default" : "outline"}
-              size="icon"
-              className={cn("h-6 w-6 cursor-pointer", isSelected && "bg-primary")}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect();
-              }}
-            >
-              {isSelected ? (
-                <Check className="h-3 w-3" />
+            <div className="w-20 h-28 sm:w-24 sm:h-36 rounded bg-muted flex-shrink-0 flex items-center justify-center">
+              {type === "movie" ? (
+                <Film className="h-8 w-8 text-muted-foreground" />
               ) : (
-                <div className="h-3 w-3 border-2 border-current rounded" />
+                <Tv className="h-8 w-8 text-muted-foreground" />
               )}
-            </Button>
-            {onRemove && (
+            </div>
+          )}
+
+          <div className="flex-1 min-w-0 flex flex-col">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              {position !== undefined && (
+                <span className="text-sm text-muted-foreground">
+                  {(position && position > 0) ? position : index + 1}.
+                </span>
+              )}
+              <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
+                {listItem.title}
+              </h3>
+              {isEditMode && (
+                <>
+                  <Badge variant="secondary" className="text-xs">
+                    Added {formattedAddedDate}
+                  </Badge>
+                  {sortField === "listOrder" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsPositionModalOpen(true);
+                      }}
+                    >
+                      <ArrowUpDown className="h-3 w-3 mr-1" />
+                      Change Position
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
+              {releaseYear && <span>{releaseYear}</span>}
+              {type === "movie"
+                ? formattedRuntime && (
+                    <>
+                      {releaseYear && <span>•</span>}
+                      <span>{formattedRuntime}</span>
+                    </>
+                  )
+                : numberOfEpisodes && (
+                    <>
+                      {releaseYear && <span>•</span>}
+                      <span>{numberOfEpisodes} episodes</span>
+                    </>
+                  )}
+              {rated && (
+                <>
+                  {(releaseYear || formattedRuntime || numberOfEpisodes) && (
+                    <span>•</span>
+                  )}
+                  <span>{rated}</span>
+                </>
+              )}
+              {metascore && (
+                <>
+                  {(releaseYear ||
+                    formattedRuntime ||
+                    numberOfEpisodes ||
+                    rated) && <span>•</span>}
+                  <div className="flex items-center gap-1.5">
+                    <div
+                      className={cn(
+                        "w-5 h-5 rounded flex items-center justify-center text-xs font-bold",
+                        metascore >= 60
+                          ? "bg-green-500 text-white"
+                          : metascore >= 40
+                          ? "bg-yellow-500 text-white"
+                          : "bg-red-500 text-white"
+                      )}
+                    >
+                      {metascore}
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      Metascore
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
+              {displayRating && displayRating > 0 && (
+                <div className="flex items-center gap-1.5">
+                  {ratingSource === "imdb" ? (
+                    <IMDBBadge size={16} />
+                  ) : (
+                    <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                  )}
+                  <span className="font-semibold">
+                    {displayRating.toFixed(1)}
+                  </span>
+                </div>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 text-destructive hover:text-destructive"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemove();
-                }}
+                className="h-6 w-6 cursor-pointer"
+                onClick={handleWatchToggle}
               >
-                <Trash2 className="h-4 w-4" />
+                <Eye
+                  className={cn(
+                    "h-4 w-4",
+                    isWatched ? "text-green-500" : "text-muted-foreground"
+                  )}
+                />
               </Button>
-            )}
-          </div>
-        )}
+              {isWatched ? (
+                <span className="text-sm text-muted-foreground">Watched</span>
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  Mark as watched
+                </span>
+              )}
+            </div>
 
-        {!isEditMode && onRemove && (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-destructive hover:text-destructive"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove();
-              }}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Remove
-            </Button>
+            <div className="hidden sm:block">
+              {isEditMode ? (
+                <div className="space-y-2">
+                  {isEditingNote ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={noteValue}
+                        onChange={(e) => setNoteValue(e.target.value)}
+                        placeholder="Add a note..."
+                        className="min-h-[80px] resize-none"
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") {
+                            handleNoteCancel();
+                          } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                            handleNoteSave();
+                          }
+                        }}
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleNoteSave();
+                          }}
+                          disabled={updateListItem.isPending}
+                          className="cursor-pointer"
+                        >
+                          {updateListItem.isPending ? (
+                            <>
+                              <div className="h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            "Save"
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleNoteCancel();
+                          }}
+                          disabled={updateListItem.isPending}
+                          className="cursor-pointer"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsEditingNote(true);
+                      }}
+                      className={cn(
+                        "border-l-4 border-primary/50 pl-4 py-2 text-sm text-muted-foreground cursor-text hover:border-primary/80 transition-colors rounded-r",
+                        "bg-muted/50 hover:bg-muted/70",
+                        !listItem.note && "text-muted-foreground/50 italic"
+                      )}
+                    >
+                      {listItem.note || "Click to add a note..."}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {synopsis && (
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                      {synopsis}
+                    </p>
+                  )}
+                  {(directorOrCreator || topCast.length > 0) && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+                      {directorOrCreator && (
+                        <>
+                          <span className="font-medium">{type === "movie" ? "Director:" : "Creator:"}</span>
+                          {directorOrCreator.id ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(
+                                  `/person/${createPersonSlug(
+                                    directorOrCreator.id,
+                                    directorOrCreator.name
+                                  )}`
+                                );
+                              }}
+                              className="text-primary underline hover:text-primary/80 transition-colors"
+                            >
+                              {directorOrCreator.name}
+                            </button>
+                          ) : (
+                            <span>{directorOrCreator.name}</span>
+                          )}
+                          {topCast.length > 0 && <span>•</span>}
+                        </>
+                      )}
+                      {topCast.length > 0 && (
+                        <>
+                          <span className="font-medium">Stars:</span>
+                          {topCast.map(
+                            (actor: { id: number; name: string }, index: number) => (
+                              <span key={actor.id}>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(
+                                      `/person/${createPersonSlug(
+                                        actor.id,
+                                        actor.name
+                                      )}`
+                                    );
+                                  }}
+                                  className="text-primary underline hover:text-primary/80 transition-colors"
+                                >
+                                  {actor.name}
+                                </button>
+                                {index < topCast.length - 1 && ", "}
+                              </span>
+                            )
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                  {listItem.note && (
+                    <div
+                      className={cn(
+                        "mt-2 border-l-4 pl-4 py-2 text-sm rounded-r",
+                        isPublic
+                          ? "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
+                          : "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
+                      )}
+                    >
+                      {listItem.note}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
-        )}
+        </div>
+
+        <div className="flex flex-col sm:hidden gap-2">
+          {isEditMode ? (
+            <div className="space-y-2">
+              {isEditingNote ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={noteValue}
+                    onChange={(e) => setNoteValue(e.target.value)}
+                    placeholder="Add a note..."
+                    className="min-h-[80px] resize-none"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        handleNoteCancel();
+                      } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                        handleNoteSave();
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNoteSave();
+                      }}
+                      disabled={updateListItem.isPending}
+                      className="cursor-pointer"
+                    >
+                      {updateListItem.isPending ? (
+                        <>
+                          <div className="h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        "Save"
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNoteCancel();
+                      }}
+                      disabled={updateListItem.isPending}
+                      className="cursor-pointer"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsEditingNote(true);
+                  }}
+                  className={cn(
+                    "border-l-4 border-primary/50 pl-4 py-2 text-sm text-muted-foreground cursor-text hover:border-primary/80 transition-colors rounded-r",
+                    "bg-muted/50 hover:bg-muted/70",
+                    !listItem.note && "text-muted-foreground/50 italic"
+                  )}
+                >
+                  {listItem.note || "Click to add a note..."}
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              {synopsis && (
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {synopsis}
+                </p>
+              )}
+              {(directorOrCreator || topCast.length > 0) && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+                  {directorOrCreator && (
+                    <>
+                      <span className="font-medium">{type === "movie" ? "Director:" : "Creator:"}</span>
+                      {directorOrCreator.id ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(
+                              `/person/${createPersonSlug(
+                                directorOrCreator.id,
+                                directorOrCreator.name
+                              )}`
+                            );
+                          }}
+                          className="text-primary underline hover:text-primary/80 transition-colors"
+                        >
+                          {directorOrCreator.name}
+                        </button>
+                      ) : (
+                        <span>{directorOrCreator.name}</span>
+                      )}
+                      {topCast.length > 0 && <span>•</span>}
+                    </>
+                  )}
+                  {topCast.length > 0 && (
+                    <>
+                      <span className="font-medium">Stars:</span>
+                      {topCast.map(
+                        (actor: { id: number; name: string }, index: number) => (
+                          <span key={actor.id}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(
+                                  `/person/${createPersonSlug(
+                                    actor.id,
+                                    actor.name
+                                  )}`
+                                );
+                              }}
+                              className="text-primary underline hover:text-primary/80 transition-colors"
+                            >
+                              {actor.name}
+                            </button>
+                            {index < topCast.length - 1 && ", "}
+                          </span>
+                        )
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+              {listItem.note && (
+                <div
+                  className={cn(
+                    "mt-2 border-l-4 pl-4 py-2 text-sm rounded-r",
+                    isPublic
+                      ? "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
+                      : "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
+                  )}
+                >
+                  {listItem.note}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
-
+      {!isEditMode && onRemove && (
+        <div className="absolute top-4 right-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive flex-shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onRemove) onRemove();
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
       {isPositionModalOpen && position !== undefined && (
         <ChangePositionModal
           open={isPositionModalOpen}

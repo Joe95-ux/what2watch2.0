@@ -723,6 +723,9 @@ model ListItem {
   // Ranking/position in the list (1-based)
   position      Int      @default(0)
   
+  // User note
+  note          String?
+  
   createdAt     DateTime @default(now())
   
   @@map("list_items")

@@ -3,21 +3,11 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import NextImage from "next/image";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Share2, Edit2, MoreVertical, Upload, Download } from "lucide-react";
-import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
-import { useList, useDeleteList } from "@/hooks/use-lists";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { useList, useDeleteList, useUpdateList } from "@/hooks/use-lists";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,29 +18,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useIsListLiked, useLikeList, useUnlikeList } from "@/hooks/use-list-likes";
-import { useListComments, useCreateListComment, useDeleteListComment, useUpdateListComment, type ListComment } from "@/hooks/use-list-comments";
-import { Ban, UserX } from "lucide-react";
+import { useListComments, useCreateListComment, useDeleteListComment, useUpdateListComment, type ListComment, useAddListCommentReaction, useRemoveListCommentReaction } from "@/hooks/use-list-comments";
+import { Ban, UserX, Filter } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { toast } from "sonner";
-import { FollowButton } from "@/components/social/follow-button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { format, formatDistanceToNow } from "date-fns";
-import Link from "next/link";
 import CreateListModal from "./create-list-modal";
-import ShareListDialog from "./share-list-dialog";
 import ImportListModal from "./import-list-modal";
-import { Heart, MessageSquare, Send, Edit2 as Edit, Trash2, Reply, Smile, Filter, ChevronDown, ChevronUp } from "lucide-react";
-import { getPosterUrl } from "@/lib/tmdb";
+import { MessageSquare, Send, Edit2 as Edit, Trash2, Reply, Smile, ChevronDown, ChevronUp, Heart } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import { cn } from "@/lib/utils";
-import { useAddListCommentReaction, useRemoveListCommentReaction } from "@/hooks/use-list-comments";
+import ListView from "./list-view";
+import type { ListVisibility } from "@/hooks/use-lists";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import Link from "next/link";
 
 interface PublicListContentProps {
   listId: string;
@@ -60,21 +44,15 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
   const router = useRouter();
   const { data: currentUser } = useCurrentUser();
   const deleteList = useDeleteList();
+  const updateList = useUpdateList();
   const queryClient = useQueryClient();
   const { data: list, isLoading, error } = useList(listId);
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [commentFilter, setCommentFilter] = useState("newest");
   const [hasLoggedVisit, setHasLoggedVisit] = useState(false);
-  
-  // Filter and sort state
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterType, setFilterType] = useState<"all" | "movie" | "tv">("all");
-  const [sortBy, setSortBy] = useState<"position" | "title" | "year">("position");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   const refreshList = () => {
     queryClient.invalidateQueries({ queryKey: ["list", listId] });
@@ -116,13 +94,6 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
 
     return () => controller.abort();
   }, [list, hasLoggedVisit, isOwner]);
-
-  // Like functionality
-  const { data: likeStatus } = useIsListLiked(list?.id || null);
-  const likeMutation = useLikeList();
-  const unlikeMutation = useUnlikeList();
-  const isLiked = likeStatus?.isLiked ?? false;
-  const canLike = !isOwner && list && (list.visibility === "PUBLIC" || list.visibility === "FOLLOWERS_ONLY");
 
   // Comments functionality
   const { data: comments = [], isLoading: commentsLoading } = useListComments(list?.id || "", commentFilter);
@@ -169,6 +140,18 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
   // Note: Owners can access the public view to moderate comments
   // If they want the dashboard view, they can navigate there manually
 
+  const handleTogglePublic = async (visibility: ListVisibility) => {
+    if (!list) return;
+    try {
+      await updateList.mutateAsync({
+        listId: list.id,
+        visibility,
+      });
+    } catch {
+      throw new Error("Failed to update list visibility");
+    }
+  };
+
   const handleDelete = async () => {
     if (!list) return;
     try {
@@ -180,145 +163,12 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
     }
   };
 
-  const handleShare = () => {
-    setIsShareDialogOpen(true);
-  };
-
-  const handleLike = () => {
-    if (!list) return;
-    if (isLiked) {
-      unlikeMutation.mutate(list.id, {
-        onSuccess: () => toast.success("Removed from your library"),
-        onError: () => toast.error("Failed to remove list"),
-      });
-    } else {
-      likeMutation.mutate(list.id, {
-        onSuccess: () => toast.success("Added to your library"),
-        onError: () => toast.error("Failed to add list"),
-      });
-    }
-  };
-
-  // Convert list items to TMDB format for MovieCard with original position
-  const itemsWithPosition = useMemo(() => {
-    if (!list) return [];
-    return (list.items || []).map((item, index) => {
-      const baseItem = {
-        originalIndex: index,
-        position: item.position,
-      };
-      
-      if (item.mediaType === "movie") {
-        return {
-          ...baseItem,
-          id: item.tmdbId,
-          title: item.title,
-          overview: "",
-          poster_path: item.posterPath,
-          backdrop_path: item.backdropPath,
-          release_date: item.releaseDate || "",
-          vote_average: 0,
-          vote_count: 0,
-          genre_ids: [],
-          popularity: 0,
-          adult: false,
-          original_language: "en",
-          original_title: item.title,
-          mediaType: "movie" as const,
-        } as TMDBMovie & { originalIndex: number; position: number; mediaType: "movie" };
-      } else {
-        return {
-          ...baseItem,
-          id: item.tmdbId,
-          name: item.title,
-          overview: "",
-          poster_path: item.posterPath,
-          backdrop_path: item.backdropPath,
-          first_air_date: item.firstAirDate || "",
-          vote_average: 0,
-          vote_count: 0,
-          genre_ids: [],
-          popularity: 0,
-          original_language: "en",
-          original_name: item.title,
-          mediaType: "tv" as const,
-        } as TMDBSeries & { originalIndex: number; position: number; mediaType: "tv" };
-      }
-    });
-  }, [list]);
-
-  // Filter and sort items
-  const filteredAndSortedItems = useMemo(() => {
-    let filtered = [...itemsWithPosition];
-
-    // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter((item) => {
-        const title = "title" in item ? item.title : item.name;
-        return title?.toLowerCase().includes(query);
-      });
-    }
-
-    // Type filter
-    if (filterType !== "all") {
-      filtered = filtered.filter((item) => item.mediaType === filterType);
-    }
-
-    // Sort
-    filtered.sort((a, b) => {
-      let aValue: string | number;
-      let bValue: string | number;
-
-      switch (sortBy) {
-        case "position":
-          aValue = a.position;
-          bValue = b.position;
-          break;
-        case "title":
-          aValue = ("title" in a ? a.title : a.name || "").toLowerCase();
-          bValue = ("title" in b ? b.title : b.name || "").toLowerCase();
-          break;
-        case "year":
-          const aDate = "release_date" in a ? a.release_date : a.first_air_date;
-          const bDate = "release_date" in b ? b.release_date : b.first_air_date;
-          aValue = aDate ? new Date(aDate).getFullYear() : 0;
-          bValue = bDate ? new Date(bDate).getFullYear() : 0;
-          break;
-        default:
-          return 0;
-      }
-
-      if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
-      if (aValue > bValue) return sortOrder === "asc" ? 1 : -1;
-      return 0;
-    });
-
-    return filtered;
-  }, [itemsWithPosition, searchQuery, filterType, sortBy, sortOrder]);
-
-  const activeFilterCount = useMemo(() => {
-    let count = 0;
-    if (searchQuery.trim()) count++;
-    if (filterType !== "all") count++;
-    if (sortBy !== "position" || sortOrder !== "asc") count++;
-    return count;
-  }, [searchQuery, filterType, sortBy, sortOrder]);
+  const shareUrl = typeof window !== "undefined" && list
+    ? `${window.location.origin}/lists/${list.id}`
+    : "";
 
   if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="space-y-6">
-          <Skeleton className="h-12 w-64" />
-          <Skeleton className="h-32 w-full" />
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <Skeleton key={i} className="aspect-[2/3] w-full" />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+    return null; // ListView handles loading
   }
 
   const errorMessage: string | null =
@@ -336,275 +186,24 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
     );
   }
 
-  const user = list.user;
-  const displayName = user?.displayName || user?.username || "Unknown";
-  const totalItems = list.items?.length || 0;
-  const isPublicList = list.visibility === "PUBLIC";
-  const isFollowersOnly = list.visibility === "FOLLOWERS_ONLY";
-
-  // Get cover image from first movie or list cover image
-  const coverImage = list.coverImage
-    ? list.coverImage
-    : list.items && list.items.length > 0 && list.items[0].posterPath
-    ? getPosterUrl(list.items[0].posterPath, "original")
-    : null;
-
   return (
     <>
-      <div className="min-h-screen bg-background">
-        {/* Banner Section */}
-        <div className="relative -mt-[65px] h-[30vh] min-h-[200px] max-h-[300px] sm:h-[40vh] sm:min-h-[250px] md:h-[50vh] md:min-h-[300px] overflow-hidden">
-          {coverImage ? (
-            <>
-              <NextImage
-                src={coverImage}
-                alt={list.name}
-                fill
-                className="object-cover"
-                unoptimized
-                priority
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent" />
-            </>
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30" />
-          )}
-        </div>
-
-        {/* Info Section - Below banner */}
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-            <div className="flex-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push("/lists")}
-                className="mb-4"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">{list.name}</h1>
-              {list.description && (
-                <p className="text-base sm:text-lg text-muted-foreground mb-4 max-w-2xl">
-                  {list.description}
-                </p>
-              )}
-              {list.tags && list.tags.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 mb-3">
-                  {list.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="rounded-full text-xs">
-                      #{tag}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                <span>
-                  {totalItems} {totalItems === 1 ? "item" : "items"}
-                </span>
-                {(isPublicList || isFollowersOnly) && (
-                  <>
-                    <span>•</span>
-                    <span className="text-primary">
-                      {isPublicList ? "Public" : "Followers Only"}
-                    </span>
-                  </>
-                )}
-                <span>•</span>
-                <span>Updated {format(new Date(list.updatedAt), "MMM d, yyyy")}</span>
-                <span>•</span>
-                <Link href={`/users/${user?.id}`} className="hover:text-primary transition-colors cursor-pointer">
-                  By {displayName}
-                </Link>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex items-center justify-end gap-2 ml-auto sm:ml-0">
-              {/* Like Button - Only for PUBLIC or FOLLOWERS_ONLY lists */}
-              {canLike && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleLike}
-                  className="cursor-pointer"
-                >
-                  <Heart
-                    className={`h-5 w-5 ${isLiked ? "fill-red-500 text-red-500" : ""}`}
-                  />
-                </Button>
-              )}
-              {isOwner ? (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={handleShare}
-                    className="gap-2 cursor-pointer"
-                  >
-                    <Share2 className="h-4 w-4" />
-                    Share
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="icon" className="cursor-pointer">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setIsEditModalOpen(true)} className="cursor-pointer">
-                        <Edit2 className="h-4 w-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => setIsDeleteDialogOpen(true)}
-                        className="text-destructive cursor-pointer"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </>
-              ) : (
-                user?.id && (
-                  <>
-                    <FollowButton userId={user.id} />
-                    <Button variant="outline" onClick={handleShare} className="gap-2 cursor-pointer">
-                      <Share2 className="h-4 w-4" />
-                      Share
-                    </Button>
-                  </>
-                )
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* List Items */}
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {itemsWithPosition.length > 0 ? (
-            <>
-              {/* Filters and Sort */}
-              <div className="mb-6 flex flex-wrap items-center gap-3">
-                {/* Search */}
-                <div className="relative w-72">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search list..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
-
-                {/* Media Type Filter */}
-                <Select value={filterType} onValueChange={(v) => setFilterType(v as "all" | "movie" | "tv")}>
-                  <SelectTrigger className="w-[120px] text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all" className="text-sm">All Types</SelectItem>
-                    <SelectItem value="movie" className="text-sm">Movies</SelectItem>
-                    <SelectItem value="tv" className="text-sm">TV Shows</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {/* Sort */}
-                <Select
-                  value={`${sortBy}-${sortOrder}`}
-                  onValueChange={(v) => {
-                    const [field, order] = v.split("-");
-                    setSortBy(field as "position" | "title" | "year");
-                    setSortOrder(order as "asc" | "desc");
-                  }}
-                >
-                  <SelectTrigger className="w-[180px] text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="position-asc" className="text-sm">Position (1-N)</SelectItem>
-                    <SelectItem value="position-desc" className="text-sm">Position (N-1)</SelectItem>
-                    <SelectItem value="title-asc" className="text-sm">Title (A-Z)</SelectItem>
-                    <SelectItem value="title-desc" className="text-sm">Title (Z-A)</SelectItem>
-                    <SelectItem value="year-desc" className="text-sm">Release Year (Newest)</SelectItem>
-                    <SelectItem value="year-asc" className="text-sm">Release Year (Oldest)</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {/* Clear Filters */}
-                {activeFilterCount > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSearchQuery("");
-                      setFilterType("all");
-                      setSortBy("position");
-                      setSortOrder("asc");
-                    }}
-                  >
-                    Clear Filters
-                  </Button>
-                )}
-              </div>
-
-              {/* Items Grid */}
-              {filteredAndSortedItems.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                  {filteredAndSortedItems.map((item) => {
-                    const isMovie = "title" in item;
-                    return (
-                      <div key={`${item.id}-${item.originalIndex}`} className="relative">
-                        {/* Position Badge */}
-                        <div className="absolute top-2 right-2 sm:left-2 z-10">
-                          <Badge className="bg-black/80 text-white font-bold">
-                            #{item.position}
-                          </Badge>
-                        </div>
-                        <MovieCard
-                          item={item}
-                          type={isMovie ? "movie" : "tv"}
-                          variant="default"
-                          onCardClick={() => setSelectedItem({ item, type: isMovie ? "movie" : "tv" })}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">No items match your filters.</p>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">This list is empty.</p>
-            </div>
-          )}
-
-          {/* Comments Section */}
-          {(list.visibility === "PUBLIC" || list.visibility === "FOLLOWERS_ONLY") && (
-            <>
-              <Separator className="my-12" />
-              <ListCommentsSection
-                listId={list.id}
-                comments={comments}
-                isLoading={commentsLoading}
-                filter={commentFilter}
-                onFilterChange={setCommentFilter}
-                currentUser={currentUser}
-                isListOwner={isOwner}
-                onBlockUser={handleBlockUser}
-                onUnblockUser={handleUnblockUser}
-                blockedUsers={list.blockedUsers || []}
-              />
-            </>
-          )}
-        </div>
-      </div>
+      <ListView
+        list={list || null}
+        isLoading={isLoading}
+        isOwner={isOwner}
+        enableRemove={false}
+        enableEdit={isOwner}
+        enableExport={isOwner}
+        enablePublicToggle={isOwner}
+        onTogglePublic={handleTogglePublic}
+        shareUrl={shareUrl}
+        emptyTitle="This list is empty"
+        emptyDescription="No items have been added yet."
+        errorTitle="List not found"
+        errorDescription="This list doesn't exist or is private."
+        onBack={() => router.push("/lists")}
+      />
 
       {/* Edit Modal */}
       {isOwner && list && (
@@ -626,16 +225,6 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
             }}
           />
         </>
-      )}
-
-      {/* Share Dialog */}
-      {list && (
-        <ShareListDialog
-          list={list}
-          isOpen={isShareDialogOpen}
-          onClose={() => setIsShareDialogOpen(false)}
-          isOwnList={isOwner}
-        />
       )}
 
       {/* Delete Dialog */}

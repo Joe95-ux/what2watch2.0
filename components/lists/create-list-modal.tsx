@@ -130,6 +130,7 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess, edit
       releaseDate: isMovie ? film.release_date || null : null,
       firstAirDate: !isMovie ? film.first_air_date || null : null,
       position: items.length + 1,
+      note: null,
       createdAt: new Date().toISOString(),
       tmdbData: film,
     };
