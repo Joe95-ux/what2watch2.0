@@ -4,12 +4,11 @@ import { useState } from "react";
 import { useLists, useDeleteList, type List } from "@/hooks/use-lists";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Plus, List as ListIcon, Grid3x3, Table2, Trash2, Edit, Heart, MessageCircle } from "lucide-react";
+import { Plus, List as ListIcon, Grid3x3, Table2, Trash2, Edit } from "lucide-react";
 import CreateListModal from "./create-list-modal";
+import ListCard from "@/components/browse/list-card";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-import { getPosterUrl } from "@/lib/tmdb";
 import { format } from "date-fns";
 import Link from "next/link";
 import {
@@ -22,7 +21,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MembersSidebar } from "./members-sidebar";
 
 export default function ListsContent() {
   const router = useRouter();
@@ -90,7 +88,7 @@ export default function ListsContent() {
         </div>
 
         {isLoading ? (
-          <div className={viewMode === "grid" ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" : "space-y-4"}>
+          <div className={viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-4"}>
             {Array.from({ length: 12 }).map((_, i) => (
               <Skeleton key={i} className={viewMode === "grid" ? "aspect-[3/4] w-full rounded-lg" : "h-24"} />
             ))}
@@ -108,101 +106,44 @@ export default function ListsContent() {
             </Button>
           </div>
         ) : viewMode === "grid" ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {lists.map((list) => {
-              const coverImage = list.items.length > 0 && list.items[0].posterPath 
-                ? getPosterUrl(list.items[0].posterPath) 
-                : null;
-              const displayName = list.user?.displayName || list.user?.username || "Unknown";
-              const likeCount = list._count?.likedBy || 0;
-              const commentCount = list._count?.comments || 0;
-              
               return (
                 <div
                   key={list.id}
-                  className="group relative cursor-pointer"
-                  onClick={() => router.push(`/dashboard/lists/${list.id}`)}
+                  className="group relative"
                 >
-                  <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-muted border border-border hover:border-primary/50 transition-colors">
-                    {/* Cover Image */}
-                    {coverImage ? (
-                      <Image
-                        src={coverImage}
-                        alt={list.name}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 640px) 180px, 200px"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
-                        <ListIcon className="h-12 w-12 text-muted-foreground" />
-                      </div>
-                    )}
-
-                    {/* Action Buttons - Top Right */}
-                    <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm border-0 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingList(list);
-                          setIsCreateModalOpen(true);
-                        }}
-                      >
-                        <Edit className="h-3 w-3 text-white" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm border-0 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setListToDelete(list);
-                          setDeleteDialogOpen(true);
-                        }}
-                      >
-                        <Trash2 className="h-3 w-3 text-white" />
-                      </Button>
-                    </div>
-
-                    {/* Tags - Bottom Left */}
-                    {list.tags.length > 0 && (
-                      <div className="absolute bottom-2 left-2 flex flex-wrap gap-1 max-w-[70%] opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                        {list.tags.slice(0, 2).map((tag) => (
-                          <span
-                            key={tag}
-                            className="text-xs px-2 py-0.5 bg-black/60 backdrop-blur-sm text-white rounded"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                        {list.tags.length > 2 && (
-                          <span className="text-xs px-2 py-0.5 bg-black/60 backdrop-blur-sm text-white rounded">
-                            +{list.tags.length - 2}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Title and Meta Info Below Card */}
-                  <div className="mt-2">
-                    <h3 className="text-[16px] font-semibold line-clamp-1 mb-1">{list.name}</h3>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <span>{displayName}</span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <Heart className="h-3 w-3" />
-                        {likeCount}
-                      </span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <MessageCircle className="h-3 w-3" />
-                        {commentCount}
-                      </span>
-                    </div>
+                  <ListCard
+                    list={list}
+                    variant="grid"
+                    className="cursor-pointer"
+                  />
+                  {/* Action Buttons - Overlay on hover */}
+                  <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm border-0 cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingList(list);
+                        setIsCreateModalOpen(true);
+                      }}
+                    >
+                      <Edit className="h-3 w-3 text-white" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm border-0 cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setListToDelete(list);
+                        setDeleteDialogOpen(true);
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3 text-white" />
+                    </Button>
                   </div>
                 </div>
               );
@@ -278,9 +219,6 @@ export default function ListsContent() {
           </div>
         )}
           </div>
-
-          {/* Members Sidebar */}
-          <MembersSidebar />
         </div>
       </div>
 

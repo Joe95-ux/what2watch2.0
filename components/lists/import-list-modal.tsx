@@ -113,18 +113,25 @@ export default function ImportListModal({
 
       setImportResults(data);
       
+      // Show toasts based on results
       if (data.imported > 0) {
         toast.success(`Successfully imported ${data.imported} item(s)`);
-        if (onSuccess) onSuccess();
       }
       
-      if (data.errors.length > 0) {
+      // Only show error toast if there are errors AND no items were imported
+      // If some items were imported, errors are shown in the results section
+      if (data.errors.length > 0 && data.imported === 0) {
         toast.error(`${data.errors.length} item(s) failed to import`);
+      } else if (data.errors.length > 0 && data.imported > 0) {
+        toast.warning(`${data.errors.length} item(s) had errors during import`);
       }
 
       if (data.skipped > 0) {
         toast.info(`${data.skipped} item(s) were skipped`);
       }
+      
+      // Don't call onSuccess immediately - let user review results first
+      // onSuccess will be called when modal is closed
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to import list"
@@ -136,6 +143,12 @@ export default function ImportListModal({
 
   const handleClose = () => {
     if (!isImporting) {
+      // If import was successful and results are shown, call onSuccess before closing
+      // This allows user to review results before the page reloads
+      if (importResults && importResults.imported > 0 && onSuccess) {
+        onSuccess();
+      }
+      
       setFile(null);
       setPreview(null);
       setValidation(null);

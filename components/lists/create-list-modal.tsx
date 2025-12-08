@@ -29,13 +29,14 @@ interface CreateListModalProps {
   onClose: () => void;
   list?: List;
   onSuccess?: (list: List) => void;
+  editOnly?: boolean; // If true, only show step 1 (name, description, tags) and skip step 2
 }
 
 interface ListItemWithData extends ListItem {
   tmdbData?: TMDBMovie | TMDBSeries;
 }
 
-export default function CreateListModal({ isOpen, onClose, list, onSuccess }: CreateListModalProps) {
+export default function CreateListModal({ isOpen, onClose, list, onSuccess, editOnly = false }: CreateListModalProps) {
   const createList = useCreateList();
   const updateList = useUpdateList();
   const [step, setStep] = useState<1 | 2>(1);
@@ -70,7 +71,8 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess }: Cr
         ...item,
         tmdbData: undefined,
       })));
-      setStep(list.items.length > 0 ? 2 : 1); // If editing with items, go to step 2
+      // If editOnly, always stay on step 1; otherwise go to step 2 if items exist
+      setStep(editOnly ? 1 : (list.items.length > 0 ? 2 : 1));
     } else {
       setName("");
       setDescription("");
@@ -81,7 +83,7 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess }: Cr
     }
     setSearchQuery("");
     setIsSearchOpen(false);
-  }, [list, isOpen]);
+  }, [list, isOpen, editOnly]);
 
   // Close search dropdown when clicking outside
   useEffect(() => {
@@ -185,6 +187,21 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess }: Cr
     try {
       const tagsArray = tags.trim() ? tags.split(",").map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
       
+      // If editOnly mode, only update name, description, visibility, and tags (no items)
+      if (editOnly && list) {
+        await updateList.mutateAsync({
+          listId: list.id,
+          name: name.trim(),
+          description: description.trim() || undefined,
+          visibility,
+          tags: tagsArray,
+        });
+        toast.success("List updated");
+        onSuccess?.(list);
+        onClose();
+        return;
+      }
+      
       const listItems = items.map((item, index) => ({
         tmdbId: item.tmdbId,
         mediaType: item.mediaType,
@@ -236,47 +253,51 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess }: Cr
           <DialogTitle className="text-[1.5rem] font-bold mb-4">
             {isEditing ? "Edit List" : "Create List"}
           </DialogTitle>
-          <div className="flex items-center gap-8 mb-4">
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              className={cn(
-                "text-sm font-medium transition-colors cursor-pointer",
-                step === 1 ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Basic Info
-            </button>
-            <button
-              type="button"
-              onClick={() => name.trim() && setStep(2)}
-              className={cn(
-                "text-sm font-medium transition-colors cursor-pointer",
-                step === 2 ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-                !name.trim() && "opacity-50 cursor-not-allowed"
-              )}
-            >
-              Add Films
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className={cn(
-              "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors",
-              step >= 1 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-            )}>
-              1
-            </div>
-            <div className={cn(
-              "h-0.5 w-12 transition-colors",
-              step >= 2 ? "bg-primary" : "bg-muted"
-            )} />
-            <div className={cn(
-              "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors",
-              step >= 2 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-            )}>
-              2
-            </div>
-          </div>
+          {!editOnly && (
+            <>
+              <div className="flex items-center gap-8 mb-4">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className={cn(
+                    "text-sm font-medium transition-colors cursor-pointer",
+                    step === 1 ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Basic Info
+                </button>
+                <button
+                  type="button"
+                  onClick={() => name.trim() && setStep(2)}
+                  className={cn(
+                    "text-sm font-medium transition-colors cursor-pointer",
+                    step === 2 ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                    !name.trim() && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  Add Films
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors",
+                  step >= 1 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                )}>
+                  1
+                </div>
+                <div className={cn(
+                  "h-0.5 w-12 transition-colors",
+                  step >= 2 ? "bg-primary" : "bg-muted"
+                )} />
+                <div className={cn(
+                  "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors",
+                  step >= 2 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                )}>
+                  2
+                </div>
+              </div>
+            </>
+          )}
         </div>
         
         <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
@@ -519,7 +540,16 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess }: Cr
           </div>
 
           <DialogFooter className="flex-shrink-0 border-t px-6 py-4 gap-2">
-            {step === 1 ? (
+            {editOnly ? (
+              <>
+                <Button type="button" variant="outline" onClick={onClose} disabled={isLoading} className="cursor-pointer">
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isLoading} className="cursor-pointer">
+                  {isLoading ? "Updating..." : "Save Changes"}
+                </Button>
+              </>
+            ) : step === 1 ? (
               <>
                 <Button type="button" variant="outline" onClick={onClose} disabled={isLoading} className="cursor-pointer">
                   Cancel

@@ -201,3 +201,100 @@ export function useDeleteList() {
   });
 }
 
+// Reorder list items
+const reorderListItems = async (listId: string, items: Array<{ id: string; position: number }>): Promise<void> => {
+  const res = await fetch(`/api/lists/${listId}/reorder`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to reorder list items");
+  }
+};
+
+// Remove item from list
+const removeItemFromList = async (listId: string, itemId: string): Promise<void> => {
+  const res = await fetch(`/api/lists/${listId}/items?itemId=${itemId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to remove item from list");
+  }
+};
+
+// Hook to remove item from list
+export function useRemoveItemFromList() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ listId, itemId }: { listId: string; itemId: string }) =>
+      removeItemFromList(listId, itemId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["lists"] });
+      queryClient.invalidateQueries({ queryKey: ["list", variables.listId] });
+    },
+  });
+}
+
+// Hook to reorder list items
+export function useReorderList(listId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (items: Array<{ id: string; position: number }>) => reorderListItems(listId, items),
+    onMutate: async (newItems) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["list", listId] });
+
+      // Snapshot previous value
+      const previousList = queryClient.getQueryData<List>(["list", listId]);
+
+      // Optimistically update
+      if (previousList) {
+        const updatedItems = previousList.items.map((item) => {
+          const update = newItems.find((n) => n.id === item.id);
+          return update ? { ...item, position: update.position } : item;
+        });
+        updatedItems.sort((a, b) => a.position - b.position);
+        queryClient.setQueryData<List>(["list", listId], {
+          ...previousList,
+          items: updatedItems,
+        });
+      }
+
+      return { previousList };
+    },
+    onError: (err, newItems, context) => {
+      // Rollback on error
+      if (context?.previousList) {
+        queryClient.setQueryData(["list", listId], context.previousList);
+      }
+    },
+    onSuccess: (data, newItems) => {
+      // Update cache with new positions
+      const currentList = queryClient.getQueryData<List>(["list", listId]);
+      if (currentList) {
+        const updatedItems = currentList.items.map((item) => {
+          const update = newItems.find((n) => n.id === item.id);
+          return update ? { ...item, position: update.position } : item;
+        });
+        updatedItems.sort((a, b) => a.position - b.position);
+        queryClient.setQueryData<List>(["list", listId], {
+          ...currentList,
+          items: updatedItems,
+        });
+      }
+      // Invalidate after a delay to ensure consistency
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["list", listId] });
+      }, 1000);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["list", listId] });
+    },
+  });
+}
+
