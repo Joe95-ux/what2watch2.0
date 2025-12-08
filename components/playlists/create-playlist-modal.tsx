@@ -123,6 +123,7 @@ export default function CreatePlaylistModal({ isOpen, onClose, playlist }: Creat
       releaseDate: isMovie ? film.release_date || null : null,
       firstAirDate: !isMovie ? film.first_air_date || null : null,
       order: items.length,
+      note: null,
       createdAt: new Date().toISOString(),
       tmdbData: film,
     };
