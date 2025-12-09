@@ -102,15 +102,21 @@ export async function PATCH(
       // Insert at new position
       allItems.splice(newIndex, 0, movedItem);
 
-      // Reassign sequential orders to all items
-      await Promise.all(
-        allItems.map((item, idx) =>
-          db.playlistItem.update({
-            where: { id: item.id },
-            data: { order: idx + 1 },
-          })
-        )
-      );
+      // Only update items that actually changed position
+      const updates = allItems
+        .map((item, idx) => ({ item, newOrder: idx + 1 }))
+        .filter(({ item, newOrder }) => item.order !== newOrder);
+
+      if (updates.length > 0) {
+        await Promise.all(
+          updates.map(({ item, newOrder }) =>
+            db.playlistItem.update({
+              where: { id: item.id },
+              data: { order: newOrder },
+            })
+          )
+        );
+      }
     } else if (note !== undefined) {
       // Only updating note
       await db.playlistItem.update({

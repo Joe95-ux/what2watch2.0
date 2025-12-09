@@ -1413,10 +1413,7 @@ export default function ListView({
                     <div
                       {...provided.droppableProps}
                       ref={provided.innerRef}
-                      className={cn(
-                        "space-y-4",
-                        isDragEnabled && "max-h-[calc(100vh-400px)] overflow-y-auto pr-2"
-                      )}
+                      className="space-y-4"
                     >
                       {(isDragEnabled ? filteredAndSorted : paginatedData).map(
                         ({ item, type, listItem }, index) => {
@@ -2249,16 +2246,12 @@ function DetailedListItem({
   };
 
   const handlePositionChange = async (newPosition: number) => {
-    try {
-      await updateListItem.mutateAsync({
-        listId,
-        itemId: listItem.id,
-        updates: { position: newPosition },
-      });
-      toast.success("Position updated");
-    } catch {
-      toast.error("Failed to update position");
-    }
+    await updateListItem.mutateAsync({
+      listId,
+      itemId: listItem.id,
+      updates: { position: newPosition },
+    });
+    // Toast is shown by the modal, no need to show here
   };
 
   const formattedAddedDate = format(new Date(listItem.createdAt), "MMM d, yyyy");

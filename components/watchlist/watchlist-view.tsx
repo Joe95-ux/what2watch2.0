@@ -1760,10 +1760,7 @@ export default function WatchlistView({
                   <div
                     {...provided.droppableProps}
                     ref={provided.innerRef}
-                    className={cn(
-                      "space-y-4",
-                      isDragEnabled && "max-h-[calc(100vh-400px)] overflow-y-auto pr-2"
-                    )}
+                    className="space-y-4"
                   >
                     {(isDragEnabled ? filteredAndSorted : paginatedData).map(
                       ({ item, type, watchlistItem }, index) => {

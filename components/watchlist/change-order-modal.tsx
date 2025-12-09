@@ -107,10 +107,11 @@ export function ChangeOrderModal({
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
+              className="cursor-pointer"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting} className="cursor-pointer">
               {isSubmitting ? "Updating..." : "Update Order"}
             </Button>
           </DialogFooter>

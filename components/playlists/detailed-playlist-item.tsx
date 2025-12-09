@@ -229,15 +229,11 @@ function DetailedPlaylistItem({
   };
 
   const handleOrderChange = async (newOrder: number) => {
-    try {
-      await updatePlaylistItem.mutateAsync({
-        itemId: playlistItem.id,
-        updates: { order: newOrder },
-      });
-      toast.success("Order updated");
-    } catch {
-      toast.error("Failed to update order");
-    }
+    await updatePlaylistItem.mutateAsync({
+      itemId: playlistItem.id,
+      updates: { order: newOrder },
+    });
+    // Toast is shown by the modal, no need to show here
   };
 
   const formattedAddedDate = format(new Date(playlistItem.createdAt), "MMM d, yyyy");

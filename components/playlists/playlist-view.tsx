@@ -585,6 +585,7 @@ export default function PlaylistView({
   }, [fullSortedYouTubeByOrder]);
 
   // Drag and drop hook for TMDB items
+  const isTMDBDragEnabledComputed = isEditMode && enableEdit && tmdbSortField === "listOrder" && isLgScreen;
   const { DragDropContext: TMDBDragDropContext, handleDragEnd: handleTMDBDragEnd, handleDragStart: handleTMDBDragStart, isDragEnabled: isTMDBDragEnabled } = usePlaylistDragDrop({
     playlistId: playlist?.id || "",
     filteredEntries: tmdbFilteredEntries,
@@ -593,13 +594,14 @@ export default function PlaylistView({
     isLgScreen,
     sortField: tmdbSortField,
     itemType: "tmdb",
-    currentPage: tmdbCurrentPage,
+    currentPage: isTMDBDragEnabledComputed ? 1 : tmdbCurrentPage, // When drag enabled, pagination disabled so use page 1
     itemsPerPage: ITEMS_PER_PAGE,
     onDragStart: () => setIsDraggingTMDB(true),
     onDragEnd: () => setIsDraggingTMDB(false),
   });
 
   // Drag and drop hook for YouTube items (only in YouTube-only playlists)
+  const isYouTubeDragEnabledComputed = isEditMode && enableEdit && !isMixedPlaylist && isLgScreen;
   const { DragDropContext: YouTubeDragDropContext, handleDragEnd: handleYouTubeDragEnd, handleDragStart: handleYouTubeDragStart, isDragEnabled: isYouTubeDragEnabled } = usePlaylistDragDrop({
     playlistId: playlist?.id || "",
     filteredEntries: youtubeFilteredEntries,
@@ -608,7 +610,7 @@ export default function PlaylistView({
     isLgScreen,
     sortField: "listOrder",
     itemType: "youtube",
-    currentPage: youtubeCurrentPage,
+    currentPage: isYouTubeDragEnabledComputed ? 1 : youtubeCurrentPage, // When drag enabled, pagination disabled so use page 1
     itemsPerPage: ITEMS_PER_PAGE,
     onDragStart: () => setIsDraggingYouTube(true),
     onDragEnd: () => setIsDraggingYouTube(false),
@@ -1577,10 +1579,7 @@ export default function PlaylistView({
                         <div
                           {...provided.droppableProps}
                           ref={provided.innerRef}
-                          className={cn(
-                            "space-y-4",
-                            isTMDBDragEnabled && "max-h-[calc(100vh-400px)] overflow-y-auto pr-2"
-                          )}
+                          className="space-y-4"
                         >
                           {(isTMDBDragEnabled ? filteredAndSortedTMDB : frozenPaginatedTMDB).map(
                             ({ item, type, playlistItem }: { item: TMDBMovie | TMDBSeries; type: "movie" | "tv"; playlistItem: PlaylistItem }, index: number) => {
@@ -1950,10 +1949,7 @@ export default function PlaylistView({
                           <div
                             {...provided.droppableProps}
                             ref={provided.innerRef}
-                            className={cn(
-                              "space-y-4",
-                              isYouTubeDragEnabled && "max-h-[calc(100vh-400px)] overflow-y-auto pr-2"
-                            )}
+                            className="space-y-4"
                           >
                             {(isYouTubeDragEnabled ? filteredYouTube : frozenPaginatedYouTube).map((youtubeItem: YouTubePlaylistItem, index: number) => {
                               // When drag is enabled, use actual index; otherwise use paginated index

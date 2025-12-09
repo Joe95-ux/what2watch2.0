@@ -349,13 +349,35 @@ export function useUpdateListItemMutation() {
       const previousList = queryClient.getQueryData<List>(["list", listId]);
 
       if (previousList) {
-        const updatedItems = previousList.items.map((item) =>
-          item.id === itemId ? { ...item, ...updates } : item
-        );
-        queryClient.setQueryData<List>(["list", listId], {
-          ...previousList,
-          items: updatedItems,
-        });
+        if (updates.position !== undefined) {
+          // Optimistically reorder all items
+          const allItems = [...(previousList.items || [])];
+          const currentItem = allItems.find((i) => i.id === itemId);
+          if (currentItem) {
+            const currentIndex = allItems.findIndex((i) => i.id === itemId);
+            const newIndex = updates.position - 1;
+            const [movedItem] = allItems.splice(currentIndex, 1);
+            allItems.splice(newIndex, 0, movedItem);
+            // Create new array with updated positions (immutable update)
+            const reorderedItems = allItems.map((item, idx) => ({
+              ...item,
+              position: idx + 1,
+            }));
+            queryClient.setQueryData<List>(["list", listId], {
+              ...previousList,
+              items: reorderedItems,
+            });
+          }
+        } else {
+          // Only updating note
+          const updatedItems = previousList.items.map((item) =>
+            item.id === itemId ? { ...item, ...updates } : item
+          );
+          queryClient.setQueryData<List>(["list", listId], {
+            ...previousList,
+            items: updatedItems,
+          });
+        }
       }
 
       return { previousList };

@@ -391,9 +391,13 @@ export function useUpdatePlaylistItemMutation(playlistId: string) {
           const newIndex = updates.order - 1;
           const [movedItem] = allItems.splice(currentIndex, 1);
           allItems.splice(newIndex, 0, movedItem);
-          allItems.forEach((item, idx) => {
-            item.order = idx + 1;
-          });
+          // Create new array with updated orders (immutable update)
+          const reorderedItems = allItems.map((item, idx) => ({
+            ...item,
+            order: idx + 1,
+          }));
+          allItems.length = 0;
+          allItems.push(...reorderedItems);
         }
 
         queryClient.setQueryData<Playlist>(["playlist", playlistId], {
