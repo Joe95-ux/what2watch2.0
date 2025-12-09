@@ -56,12 +56,10 @@ export function usePlaylistDragDrop({
         timestamp: new Date().toISOString(),
       });
 
-      // Always call onDragEndCallback to reset drag state
-      onDragEndCallback?.();
-
       // Early returns for invalid drag operations
       if (!result.destination) {
         console.log("[usePlaylistDragDrop] No destination, aborting");
+        onDragEndCallback?.();
         return;
       }
       
@@ -71,6 +69,7 @@ export function usePlaylistDragDrop({
           isLgScreen,
           sortField,
         });
+        onDragEndCallback?.();
         return;
       }
 
@@ -78,6 +77,7 @@ export function usePlaylistDragDrop({
       
       if (source.index === destination.index) {
         console.log("[usePlaylistDragDrop] Same position, aborting");
+        onDragEndCallback?.();
         return;
       }
 
@@ -114,12 +114,12 @@ export function usePlaylistDragDrop({
 
       if (itemsToUpdate.length === 0) {
         console.log("[usePlaylistDragDrop] No items to update, aborting");
+        onDragEndCallback?.();
         return;
       }
 
       // Trello-style: Update local state FIRST (synchronously) for immediate UI update
-      // Pass the source and destination indices from the filtered array
-      // The reorder function will handle mapping to the full array
+      // This MUST happen before onDragEndCallback to ensure the component re-renders with updated local state
       if (onLocalReorder) {
         console.log("[usePlaylistDragDrop] Calling onLocalReorder:", {
           globalSourceIndex,
@@ -129,6 +129,12 @@ export function usePlaylistDragDrop({
       } else {
         console.warn("[usePlaylistDragDrop] onLocalReorder not provided!");
       }
+
+      // Reset drag state AFTER local state update
+      // Use setTimeout to ensure local state update is applied first in React's render cycle
+      setTimeout(() => {
+        onDragEndCallback?.();
+      }, 0);
 
       // Then trigger mutation (background API call)
       console.log("[usePlaylistDragDrop] Triggering mutation...");

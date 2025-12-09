@@ -394,10 +394,11 @@ export default function PlaylistView({
   // Use local state when drag is enabled (Trello-style: local state is always the source when drag-enabled)
   // This ensures card stays in new position immediately after drag, before DB update completes
   // useEffect will sync local state when DB updates
-  const displayTMDBItems = isTMDBDragEnabledForDisplay && localTMDBItems.length > 0
+  // When drag is enabled, ALWAYS use local state (even if empty) to prevent switching back to playlist prop
+  const displayTMDBItems = isTMDBDragEnabledForDisplay
     ? localTMDBItems 
     : (playlist?.items || []);
-  const displayYouTubeItems = isYouTubeDragEnabledForDisplay && localYouTubeItems.length > 0
+  const displayYouTubeItems = isYouTubeDragEnabledForDisplay
     ? localYouTubeItems
     : (playlist?.youtubeItems || []);
 
