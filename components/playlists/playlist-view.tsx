@@ -73,8 +73,7 @@ import {
   useReorderPlaylist, 
   useUpdatePlaylist, 
   usePlaylists, 
-  useCreatePlaylist,
-  usePlaylist
+  useCreatePlaylist
 } from "@/hooks/use-playlists";
 import { ChangeOrderModal } from "./change-order-modal";
 import ImportPlaylistModal from "./import-playlist-modal";
@@ -148,24 +147,8 @@ export default function PlaylistView({
 }: PlaylistViewProps) {
   const router = useRouter();
   
-  // Subscribe to cache updates if playlistId is provided
-  // This ensures immediate updates from optimistic mutations
-  // When optimistic update happens, usePlaylist will re-render with new cache data
-  const { data: cachedPlaylist } = usePlaylist(playlistId || "");
-  
-  // Only use cached data if playlistId is provided and we have cached data
-  // Otherwise fall back to prop (for cases where playlistId is not available)
-  const shouldUseCache = !!playlistId && !!cachedPlaylist;
-
-  // Use cached playlist if available (for immediate optimistic updates), otherwise use prop
-  const playlist = useMemo(() => {
-    if (shouldUseCache && cachedPlaylist) {
-      // Remove _currentUserId if present
-      const { _currentUserId, ...rest } = cachedPlaylist as Playlist & { _currentUserId?: string };
-      return rest as Playlist;
-    }
-    return playlistProp;
-  }, [shouldUseCache, cachedPlaylist, playlistProp]);
+  // Use playlist prop directly (no complex caching)
+  const playlist = playlistProp;
 
   // Persist viewMode and isEditMode in localStorage
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -262,21 +245,19 @@ export default function PlaylistView({
     }
   }, []);
 
-  // Local state for immediate UI updates during drag-and-drop (Trello-style)
+  // Local state only for drag-and-drop operations (Trello-style)
+  // Normal flow: playlist data → filters/sort → render (unchanged)
+  // During drag: use local state → update immediately → API call → useEffect syncs back
   const [localTMDBItems, setLocalTMDBItems] = useState<PlaylistItem[]>(playlist?.items || []);
   const [localYouTubeItems, setLocalYouTubeItems] = useState<YouTubePlaylistItem[]>(playlist?.youtubeItems || []);
 
-  // Sync local state with playlist data
+  // Sync local state with playlist data (source of truth) - same data that feeds UI
   useEffect(() => {
-    if (playlist?.items) {
-      setLocalTMDBItems(playlist.items);
-    }
-    if (playlist?.youtubeItems) {
-      setLocalYouTubeItems(playlist.youtubeItems);
-    }
+    setLocalTMDBItems(playlist?.items || []);
+    setLocalYouTubeItems(playlist?.youtubeItems || []);
   }, [playlist?.items, playlist?.youtubeItems]);
 
-  // Reorder function for local state (Trello-style)
+  // Reorder function for local state - updates immediately on drag
   const reorderLocalTMDBItems = (itemsToUpdate: Array<{ id: string; order: number }>) => {
     setLocalTMDBItems((prevItems) => {
       const updated = prevItems.map((item) => {
@@ -299,12 +280,14 @@ export default function PlaylistView({
     });
   };
 
-  // Trello-style pattern: Local state is always the source for rendering
-  // Database (playlist data) is the source of truth, synced via useEffect
-  // Flow: Database → useEffect syncs → Local state → Renders
-  // On drag: Local state updates immediately → API call → Database updates → useEffect syncs again
-  const displayTMDBItems = localTMDBItems;
-  const displayYouTubeItems = localYouTubeItems;
+  // Use local state only when actively dragging, otherwise use playlist data (normal flow)
+  // This ensures filters/sort work normally, and local state only takes over during drag
+  const displayTMDBItems = isDraggingTMDB && localTMDBItems.length > 0
+    ? localTMDBItems 
+    : (playlist?.items || []);
+  const displayYouTubeItems = isDraggingYouTube && localYouTubeItems.length > 0
+    ? localYouTubeItems
+    : (playlist?.youtubeItems || []);
 
   // Convert playlist items to TMDB format for display
   const playlistAsTMDB = useMemo(() => {
