@@ -526,19 +526,45 @@ export default function PlaylistView({
     return sorted;
   }, [playlist?.youtubeItems, isMixedPlaylist]);
 
+  // Memoize TMDB entries for drag-and-drop to prevent flicker
+  const tmdbFilteredEntries = useMemo(() => {
+    return filteredAndSortedTMDB.map(({ item, type, playlistItem }) => ({
+      item,
+      type,
+      playlistItem,
+    })) as PlaylistEntry[];
+  }, [filteredAndSortedTMDB]);
+
+  const tmdbAllEntries = useMemo(() => {
+    return fullSortedByOrder.map(({ item, type, playlistItem }) => ({
+      item,
+      type,
+      playlistItem,
+    })) as PlaylistEntry[];
+  }, [fullSortedByOrder]);
+
+  // Memoize YouTube entries for drag-and-drop to prevent flicker
+  const youtubeFilteredEntries = useMemo(() => {
+    return filteredYouTube.map((youtubeItem) => ({
+      item: youtubeItem,
+      type: "youtube" as const,
+      playlistItem: { id: youtubeItem.id, order: youtubeItem.order, videoId: youtubeItem.videoId },
+    })) as PlaylistEntry[];
+  }, [filteredYouTube]);
+
+  const youtubeAllEntries = useMemo(() => {
+    return fullSortedYouTubeByOrder.map((youtubeItem) => ({
+      item: youtubeItem,
+      type: "youtube" as const,
+      playlistItem: { id: youtubeItem.id, order: youtubeItem.order, videoId: youtubeItem.videoId },
+    })) as PlaylistEntry[];
+  }, [fullSortedYouTubeByOrder]);
+
   // Drag and drop hook for TMDB items
   const { DragDropContext: TMDBDragDropContext, handleDragEnd: handleTMDBDragEnd, isDragEnabled: isTMDBDragEnabled } = usePlaylistDragDrop({
     playlistId: playlist?.id || "",
-    filteredEntries: filteredAndSortedTMDB.map(({ item, type, playlistItem }) => ({
-      item,
-      type,
-      playlistItem,
-    })) as PlaylistEntry[],
-    allEntries: fullSortedByOrder.map(({ item, type, playlistItem }) => ({
-      item,
-      type,
-      playlistItem,
-    })) as PlaylistEntry[],
+    filteredEntries: tmdbFilteredEntries,
+    allEntries: tmdbAllEntries,
     isEditMode: isEditMode && enableEdit && tmdbSortField === "listOrder",
     isLgScreen,
     sortField: tmdbSortField,
@@ -548,16 +574,8 @@ export default function PlaylistView({
   // Drag and drop hook for YouTube items (only in YouTube-only playlists)
   const { DragDropContext: YouTubeDragDropContext, handleDragEnd: handleYouTubeDragEnd, isDragEnabled: isYouTubeDragEnabled } = usePlaylistDragDrop({
     playlistId: playlist?.id || "",
-    filteredEntries: filteredYouTube.map((youtubeItem) => ({
-      item: youtubeItem,
-      type: "youtube" as const,
-      playlistItem: { id: youtubeItem.id, order: youtubeItem.order, videoId: youtubeItem.videoId },
-    })) as PlaylistEntry[],
-    allEntries: fullSortedYouTubeByOrder.map((youtubeItem) => ({
-      item: youtubeItem,
-      type: "youtube" as const,
-      playlistItem: { id: youtubeItem.id, order: youtubeItem.order, videoId: youtubeItem.videoId },
-    })) as PlaylistEntry[],
+    filteredEntries: youtubeFilteredEntries,
+    allEntries: youtubeAllEntries,
     isEditMode: isEditMode && enableEdit && !isMixedPlaylist,
     isLgScreen,
     sortField: "listOrder",
