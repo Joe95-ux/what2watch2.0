@@ -321,28 +321,36 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
         return { previousPlaylist: null };
       }
 
-      const previousItemsCount = itemType === "tmdb" 
-        ? (previous.items?.length || 0)
-        : (previous.youtubeItems?.length || 0);
+      // Check if we have items in the cache
+      const tmdbItemsCount = previous.items?.length ?? 0;
+      const youtubeItemsCount = previous.youtubeItems?.length ?? 0;
+      const previousItemsCount = itemType === "tmdb" ? tmdbItemsCount : youtubeItemsCount;
 
       console.log("[useReorderPlaylist] Previous playlist data:", {
-        itemsCount: previous.items?.length || 0,
-        youtubeItemsCount: previous.youtubeItems?.length || 0,
+        itemsCount: tmdbItemsCount,
+        youtubeItemsCount: youtubeItemsCount,
         previousItemsCount,
+        itemType,
         hasItems: !!previous.items,
         hasYouTubeItems: !!previous.youtubeItems,
         itemsIsArray: Array.isArray(previous.items),
         itemsLength: previous.items?.length,
+        itemsIsUndefined: previous.items === undefined,
+        itemsIsNull: previous.items === null,
       });
 
       // If the cache has no items, skip optimistic update to avoid overwriting local state
       // The local state update already happened, and we don't want to overwrite it with empty data
-      if (previousItemsCount === 0) {
+      if (previousItemsCount === 0 || (!previous.items && !previous.youtubeItems)) {
         console.warn("[useReorderPlaylist] Cache has no items - skipping optimistic update to preserve local state", {
           itemType,
           previousItemsCount,
+          tmdbItemsCount,
+          youtubeItemsCount,
           itemsLength: previous.items?.length,
           youtubeItemsLength: previous.youtubeItems?.length,
+          hasItems: !!previous.items,
+          hasYouTubeItems: !!previous.youtubeItems,
         });
         return { previousPlaylist: previous };
       }
