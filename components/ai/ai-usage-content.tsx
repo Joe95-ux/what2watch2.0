@@ -15,6 +15,7 @@ import { format, subDays } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,9 +34,11 @@ import {
 } from "@/components/ui/pagination";
 
 export default function AiUsageContent() {
-  const [dateRange, setDateRange] = useState<"all" | "7d" | "30d" | "90d" | "custom">("all");
+  const [quickRange, setQuickRange] = useState<"1d" | "7d" | "30d">("30d");
   const [customStartDate, setCustomStartDate] = useState<Date | undefined>(undefined);
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>(undefined);
+  const [tempStartDate, setTempStartDate] = useState<Date | undefined>(undefined);
+  const [tempEndDate, setTempEndDate] = useState<Date | undefined>(undefined);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 25;
@@ -47,18 +50,18 @@ export default function AiUsageContent() {
     let startDate: string | undefined;
     let endDate: string | undefined;
 
-    if (dateRange === "7d") {
-      range = 7;
-    } else if (dateRange === "30d") {
-      range = 30;
-    } else if (dateRange === "90d") {
-      range = 90;
-    } else if (dateRange === "custom") {
-      if (customStartDate) {
-        startDate = format(customStartDate, "yyyy-MM-dd");
-      }
-      if (customEndDate) {
-        endDate = format(customEndDate, "yyyy-MM-dd");
+    if (customStartDate && customEndDate) {
+      // Custom date range is active
+      startDate = format(customStartDate, "yyyy-MM-dd");
+      endDate = format(customEndDate, "yyyy-MM-dd");
+    } else {
+      // Use quick range
+      if (quickRange === "1d") {
+        range = 1;
+      } else if (quickRange === "7d") {
+        range = 7;
+      } else if (quickRange === "30d") {
+        range = 30;
       }
     }
 
@@ -66,6 +69,48 @@ export default function AiUsageContent() {
   };
 
   const { range, startDate, endDate } = getDateParams();
+
+  // Get display text for date range
+  const getDateRangeDisplay = () => {
+    if (customStartDate && customEndDate) {
+      return `${format(customStartDate, "MMM d")} - ${format(customEndDate, "MMM d, yyyy")}`;
+    }
+    const now = new Date();
+    if (quickRange === "1d") {
+      return format(now, "MMM d, yyyy");
+    } else if (quickRange === "7d") {
+      const start = subDays(now, 6);
+      return `${format(start, "MMM d")} - ${format(now, "MMM d, yyyy")}`;
+    } else if (quickRange === "30d") {
+      const start = subDays(now, 29);
+      return `${format(start, "MMM d")} - ${format(now, "MMM d, yyyy")}`;
+    }
+    return "";
+  };
+
+  // Handle calendar apply
+  const handleApplyDateRange = () => {
+    if (tempStartDate && tempEndDate) {
+      setCustomStartDate(tempStartDate);
+      setCustomEndDate(tempEndDate);
+      setIsCalendarOpen(false);
+    }
+  };
+
+  // Handle calendar cancel
+  const handleCancelDateRange = () => {
+    setTempStartDate(customStartDate);
+    setTempEndDate(customEndDate);
+    setIsCalendarOpen(false);
+  };
+
+  // Reset custom range when quick range changes
+  useEffect(() => {
+    if (quickRange) {
+      setCustomStartDate(undefined);
+      setCustomEndDate(undefined);
+    }
+  }, [quickRange]);
   
   const { data, isLoading, isError, error } = useAiAnalytics({
     range,
@@ -85,7 +130,15 @@ export default function AiUsageContent() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [dateRange, customStartDate, customEndDate]);
+  }, [quickRange, customStartDate, customEndDate]);
+
+  // Initialize temp dates when calendar opens
+  useEffect(() => {
+    if (isCalendarOpen) {
+      setTempStartDate(customStartDate);
+      setTempEndDate(customEndDate);
+    }
+  }, [isCalendarOpen, customStartDate, customEndDate]);
 
   // Create genre ID to name map
   const genreMap = useMemo(() => {
@@ -145,38 +198,63 @@ export default function AiUsageContent() {
     return pages;
   }, [currentPage, eventsData?.pagination.totalPages]);
 
-  // CSV export function
-  const handleExportCSV = () => {
-    if (!eventsData?.events || eventsData.events.length === 0) {
-      return;
+  // CSV export function - fetches all events for the current filter
+  const handleExportCSV = async () => {
+    try {
+      // Fetch all events (no pagination) for CSV export
+      const searchParams = new URLSearchParams();
+      searchParams.set("page", "1");
+      searchParams.set("pageSize", "10000"); // Large number to get all events
+      if (range) {
+        searchParams.set("range", range.toString());
+      }
+      if (startDate) {
+        searchParams.set("startDate", startDate);
+      }
+      if (endDate) {
+        searchParams.set("endDate", endDate);
+      }
+
+      const response = await fetch(`/api/ai/analytics/events?${searchParams.toString()}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch events for export");
+      }
+      const data = await response.json();
+
+      if (!data.events || data.events.length === 0) {
+        return;
+      }
+
+      const headers = ["Date", "Type", "Model", "Prompt Tokens", "Completion Tokens", "Total Tokens", "Response Time (ms)", "User Message"];
+      const rows: string[][] = data.events.map((event: any) => [
+        format(new Date(event.createdAt), "MMM d, yyyy h:mm a"),
+        event.intent === "RECOMMENDATION" ? "Recommendation" : "Information",
+        event.model || "N/A",
+        event.promptTokens?.toString() || "N/A",
+        event.completionTokens?.toString() || "N/A",
+        event.totalTokens?.toString() || "N/A",
+        event.responseTime?.toString() || "N/A",
+        event.userMessage,
+      ]);
+
+      const csvContent = [
+        headers.join(","),
+        ...rows.map((row: string[]) => row.map((cell: string) => `"${String(cell).replace(/"/g, '""')}"`).join(",")),
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `ai-usage-${format(new Date(), "yyyy-MM-dd")}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Failed to export CSV:", error);
+      toast.error("Failed to export CSV");
     }
-
-    const headers = ["Date", "Type", "Model", "Prompt Tokens", "Completion Tokens", "Total Tokens", "Response Time (ms)", "User Message"];
-    const rows = eventsData.events.map((event) => [
-      format(new Date(event.createdAt), "MMM d, yyyy h:mm a"),
-      event.intent === "RECOMMENDATION" ? "Recommendation" : "Information",
-      event.model || "N/A",
-      event.promptTokens?.toString() || "N/A",
-      event.completionTokens?.toString() || "N/A",
-      event.totalTokens?.toString() || "N/A",
-      event.responseTime?.toString() || "N/A",
-      event.userMessage,
-    ]);
-
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")),
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `ai-usage-${format(new Date(), "yyyy-MM-dd")}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   if (isError) {
@@ -199,81 +277,67 @@ export default function AiUsageContent() {
           <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold">AI Usage</h1>
         </div>
         <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-full sm:w-[200px] justify-start text-left font-normal">
+          {/* Date Range Picker */}
+          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-full sm:w-[220px] justify-start text-left font-normal cursor-pointer">
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange === "all" && "All time"}
-                {dateRange === "7d" && "Last 7 days"}
-                {dateRange === "30d" && "Last 30 days"}
-                {dateRange === "90d" && "Last 90 days"}
-                {dateRange === "custom" && 
-                  (customStartDate && customEndDate
-                    ? `${format(customStartDate, "MMM d")} - ${format(customEndDate, "MMM d, yyyy")}`
-                    : "Custom range")}
+                {getDateRangeDisplay() || "Select date range"}
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-auto">
-              <DropdownMenuItem onClick={() => setDateRange("all")} className="cursor-pointer">
-                All time
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDateRange("7d")} className="cursor-pointer">
-                Last 7 days
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDateRange("30d")} className="cursor-pointer">
-                Last 30 days
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDateRange("90d")} className="cursor-pointer">
-                Last 90 days
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => {
-                  setDateRange("custom");
-                  setIsCalendarOpen(true);
-                }}
-                className="cursor-pointer"
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                Custom range
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {dateRange === "custom" && (
-            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full sm:w-[200px] justify-start text-left font-normal">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {customStartDate && customEndDate
-                    ? `${format(customStartDate, "MMM d")} - ${format(customEndDate, "MMM d, yyyy")}`
-                    : "Pick a date range"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <div className="p-3">
                 <Calendar
                   initialFocus
                   mode="range"
-                  defaultMonth={customStartDate || new Date()}
+                  defaultMonth={tempStartDate || new Date()}
                   selected={{
-                    from: customStartDate,
-                    to: customEndDate,
+                    from: tempStartDate,
+                    to: tempEndDate,
                   }}
                   onSelect={(range) => {
                     if (range?.from) {
-                      setCustomStartDate(range.from);
+                      setTempStartDate(range.from);
                     }
                     if (range?.to) {
-                      setCustomEndDate(range.to);
-                    }
-                    if (range?.from && range?.to) {
-                      setIsCalendarOpen(false);
+                      setTempEndDate(range.to);
                     }
                   }}
-                  numberOfMonths={2}
+                  numberOfMonths={1}
                 />
-              </PopoverContent>
-            </Popover>
-          )}
+              </div>
+              <div className="flex items-center justify-end gap-2 p-3 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancelDateRange}
+                  className="cursor-pointer"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleApplyDateRange}
+                  disabled={!tempStartDate || !tempEndDate}
+                  className="cursor-pointer"
+                >
+                  Apply
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* Quick Range Dropdown */}
+          <Select value={quickRange} onValueChange={(value) => setQuickRange(value as "1d" | "7d" | "30d")}>
+            <SelectTrigger className="w-full sm:w-[100px] cursor-pointer">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1d" className="cursor-pointer">1d</SelectItem>
+              <SelectItem value="7d" className="cursor-pointer">7d</SelectItem>
+              <SelectItem value="30d" className="cursor-pointer">30d</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -398,7 +462,7 @@ export default function AiUsageContent() {
               <CardDescription>Detailed breakdown of AI interactions and token consumption.</CardDescription>
             </div>
             {eventsData?.events && eventsData.events.length > 0 && (
-              <Button variant="outline" size="sm" onClick={handleExportCSV}>
+              <Button variant="outline" size="sm" onClick={handleExportCSV} className="cursor-pointer">
                 <Download className="mr-2 h-4 w-4" />
                 Export CSV
               </Button>
@@ -453,7 +517,7 @@ export default function AiUsageContent() {
                 </Table>
               </div>
               {eventsData.pagination.totalPages > 1 && (
-                <div className="flex items-center justify-center py-4">
+                <div className="flex items-center justify-end py-4">
                   <Pagination>
                     <PaginationContent>
                       <PaginationItem>
