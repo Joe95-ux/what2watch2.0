@@ -389,7 +389,10 @@ export function useUpdateListItemMutation() {
       }
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["list", variables.listId] });
+      // Delay invalidation to prevent snap-back conflicts with optimistic updates
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["list", variables.listId] });
+      }, 500);
     },
   });
 }

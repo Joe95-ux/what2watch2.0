@@ -344,8 +344,10 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
     },
 
     onSuccess: () => {
-      // Gentle refetch AFTER success, not during settle
-      queryClient.refetchQueries({ queryKey: ["playlist", playlistId] });
+      // Delay refetch to prevent snap-back conflicts with optimistic updates
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ["playlist", playlistId] });
+      }, 500);
     }
   });
 }
@@ -423,7 +425,79 @@ export function useUpdatePlaylistItemMutation(playlistId: string) {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
+      // Delay invalidation to prevent snap-back conflicts with optimistic updates
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
+      }, 500);
+    },
+  });
+}
+
+// Update YouTube playlist item (order)
+const updateYouTubePlaylistItem = async (
+  playlistId: string,
+  itemId: string,
+  updates: { order: number }
+): Promise<YouTubePlaylistItem> => {
+  const res = await fetch(`/api/playlists/${playlistId}/youtube-items/${itemId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to update YouTube playlist item");
+  }
+  const data = await res.json();
+  return data.youtubePlaylistItem;
+};
+
+// Hook to update YouTube playlist item
+export function useUpdateYouTubePlaylistItemMutation(playlistId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ itemId, updates }: { itemId: string; updates: { order: number } }) =>
+      updateYouTubePlaylistItem(playlistId, itemId, updates),
+    onMutate: async ({ itemId, updates }) => {
+      await queryClient.cancelQueries({ queryKey: ["playlist", playlistId] });
+
+      const previousPlaylist = queryClient.getQueryData<Playlist>(["playlist", playlistId]);
+
+      if (previousPlaylist && updates.order !== undefined) {
+        // Optimistically reorder all YouTube items
+        const allItems = [...(previousPlaylist.youtubeItems || [])];
+        const currentItem = allItems.find((i) => i.id === itemId);
+        if (currentItem) {
+          const currentIndex = allItems.findIndex((i) => i.id === itemId);
+          const newIndex = updates.order - 1;
+          const [movedItem] = allItems.splice(currentIndex, 1);
+          allItems.splice(newIndex, 0, movedItem);
+          // Create new array with updated orders (immutable update)
+          const reorderedItems = allItems.map((item, idx) => ({
+            ...item,
+            order: idx + 1,
+          }));
+
+          queryClient.setQueryData<Playlist>(["playlist", playlistId], {
+            ...previousPlaylist,
+            youtubeItems: reorderedItems,
+          });
+        }
+      }
+
+      return { previousPlaylist };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousPlaylist) {
+        queryClient.setQueryData(["playlist", playlistId], context.previousPlaylist);
+      }
+    },
+    onSuccess: () => {
+      // Delay invalidation to prevent snap-back conflicts with optimistic updates
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
+      }, 500);
     },
   });
 }

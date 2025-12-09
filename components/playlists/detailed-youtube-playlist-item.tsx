@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { ChangeOrderModal } from "./change-order-modal";
 import type { SortField } from "@/components/shared/collection-filters";
+import { useUpdateYouTubePlaylistItemMutation } from "@/hooks/use-playlists";
 
 interface DetailedYouTubePlaylistItemProps {
   youtubeItem: YouTubePlaylistItem;
@@ -66,6 +67,7 @@ export function DetailedYouTubePlaylistItem({
   enableOrdering = true, // Default to true for backward compatibility
 }: DetailedYouTubePlaylistItemProps) {
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const updateYouTubePlaylistItem = useUpdateYouTubePlaylistItemMutation(playlistId);
   // Note: YouTube playlist items don't have notes in the current schema
   // If needed in the future, we can add note support
 
@@ -76,10 +78,11 @@ export function DetailedYouTubePlaylistItem({
   const duration = parseDuration(youtubeItem.duration);
 
   const handleOrderChange = async (newOrder: number) => {
-    // Note: YouTube items use a different API endpoint for updates
-    // For now, we'll show a toast. This needs to be implemented in the API
-    toast.info("Order change for YouTube videos coming soon");
-    // TODO: Implement API endpoint for updating YouTube playlist item order
+    await updateYouTubePlaylistItem.mutateAsync({
+      itemId: youtubeItem.id,
+      updates: { order: newOrder },
+    });
+    // Toast is shown by the modal, no need to show here
   };
 
   const handleVideoClick = () => {

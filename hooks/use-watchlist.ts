@@ -374,7 +374,10 @@ export function useUpdateWatchlistItem() {
       // Otherwise, just update the cache with the returned item
       if (variables.updates.order !== undefined) {
         // Order changes affect multiple items, so we need to refetch
-        await queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+        // Delay invalidation to prevent snap-back conflicts with optimistic updates
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+        }, 500);
       } else {
         // Just update the single item in cache
         queryClient.setQueryData<WatchlistItem[]>(["watchlist"], (old = []) => {
