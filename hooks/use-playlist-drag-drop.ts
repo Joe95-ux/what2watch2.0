@@ -17,7 +17,7 @@ interface UsePlaylistDragDropOptions {
   itemsPerPage?: number;
   onDragStart?: () => void;
   onDragEnd?: () => void;
-  onLocalReorder?: (reorderedItems: Array<{ id: string; order: number }>) => void;
+  onLocalReorder?: (sourceIndex: number, destinationIndex: number) => void;
 }
 
 export function usePlaylistDragDrop({
@@ -70,7 +70,7 @@ export function usePlaylistDragDrop({
         ? (currentPage - 1) * itemsPerPage + destination.index
         : destination.index;
 
-      // Calculate new order values for ALL items using global indices
+      // Calculate new order values for ALL items using global indices (for API call)
       const itemsToUpdate = reorderPlaylistEntries(
         filteredEntries,
         allEntries,
@@ -82,9 +82,15 @@ export function usePlaylistDragDrop({
         return;
       }
 
-      // Trello-style: Update local state FIRST for immediate UI update
+      // Trello-style: Update local state FIRST (synchronously) for immediate UI update
+      // Pass the source and destination indices from the filtered array
+      // The reorder function will handle mapping to the full array
       if (onLocalReorder) {
-        onLocalReorder(itemsToUpdate);
+        onLocalReorder(globalSourceIndex, globalDestinationIndex);
+      }
+
+      if (itemsToUpdate.length === 0) {
+        return;
       }
 
       // Then trigger mutation (background API call)

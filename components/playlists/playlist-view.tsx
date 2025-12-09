@@ -257,26 +257,57 @@ export default function PlaylistView({
     setLocalYouTubeItems(playlist?.youtubeItems || []);
   }, [playlist?.items, playlist?.youtubeItems]);
 
-  // Reorder function for local state - updates immediately on drag
-  const reorderLocalTMDBItems = (itemsToUpdate: Array<{ id: string; order: number }>) => {
+  // Simple reorder function (Trello-style) - reorders array directly, then updates order values
+  // sourceIndex and destinationIndex are from the filtered/sorted array
+  // We need to map them to the full localTMDBItems array
+  const reorderLocalTMDBItems = (sourceIndex: number, destinationIndex: number) => {
     setLocalTMDBItems((prevItems) => {
-      const updated = prevItems.map((item) => {
-        const update = itemsToUpdate.find((u) => u.id === item.id);
-        return update ? { ...item, order: update.order } : item;
+      // When drag is enabled, filteredAndSortedTMDB shows all items sorted by order
+      // So we need to work with prevItems sorted by order to match the indices
+      const sorted = [...prevItems].sort((a, b) => {
+        const aOrder = a.order || 0;
+        const bOrder = b.order || 0;
+        if (aOrder > 0 && bOrder === 0) return -1;
+        if (aOrder === 0 && bOrder > 0) return 1;
+        if (aOrder > 0 && bOrder > 0) return aOrder - bOrder;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
-      // Sort by order to maintain correct sequence
-      return updated.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+      // Reorder the sorted array (Trello pattern)
+      const reordered = [...sorted];
+      const [movedItem] = reordered.splice(sourceIndex, 1);
+      reordered.splice(destinationIndex, 0, movedItem);
+      
+      // Update order values to match new positions
+      return reordered.map((item, index) => ({
+        ...item,
+        order: index + 1,
+      }));
     });
   };
 
-  const reorderLocalYouTubeItems = (itemsToUpdate: Array<{ id: string; order: number }>) => {
+  const reorderLocalYouTubeItems = (sourceIndex: number, destinationIndex: number) => {
     setLocalYouTubeItems((prevItems) => {
-      const updated = prevItems.map((item) => {
-        const update = itemsToUpdate.find((u) => u.id === item.id);
-        return update ? { ...item, order: update.order } : item;
+      // Sort by order to match the filtered array
+      const sorted = [...prevItems].sort((a, b) => {
+        const aOrder = a.order || 0;
+        const bOrder = b.order || 0;
+        if (aOrder > 0 && bOrder === 0) return -1;
+        if (aOrder === 0 && bOrder > 0) return 1;
+        if (aOrder > 0 && bOrder > 0) return aOrder - bOrder;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
-      // Sort by order to maintain correct sequence
-      return updated.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+      // Reorder the sorted array (Trello pattern)
+      const reordered = [...sorted];
+      const [movedItem] = reordered.splice(sourceIndex, 1);
+      reordered.splice(destinationIndex, 0, movedItem);
+      
+      // Update order values to match new positions
+      return reordered.map((item, index) => ({
+        ...item,
+        order: index + 1,
+      }));
     });
   };
 
