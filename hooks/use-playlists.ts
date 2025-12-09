@@ -304,76 +304,59 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
       // Snapshot the previous value
       const previousPlaylist = queryClient.getQueryData<Playlist>(["playlist", playlistId]);
 
-      // Optimistically update the cache
-      if (previousPlaylist) {
-        queryClient.setQueryData<Playlist>(["playlist", playlistId], (old) => {
-          if (!old) return old;
-          
-          if (itemType === "tmdb") {
-            const updatedItems = [...(old.items || [])];
-            // Update each item with new order
-            items.forEach(({ id, order }) => {
-              const index = updatedItems.findIndex(item => item.id === id);
-              if (index !== -1) {
-                updatedItems[index] = { ...updatedItems[index], order };
-              }
-            });
-            // Sort by order
-            updatedItems.sort((a, b) => a.order - b.order);
-            return { ...old, items: updatedItems };
-          } else {
-            const updatedYouTubeItems = [...(old.youtubeItems || [])];
-            items.forEach(({ id, order }) => {
-              const index = updatedYouTubeItems.findIndex(item => item.id === id);
-              if (index !== -1) {
-                updatedYouTubeItems[index] = { ...updatedYouTubeItems[index], order };
-              }
-            });
-            updatedYouTubeItems.sort((a, b) => a.order - b.order);
-            return { ...old, youtubeItems: updatedYouTubeItems };
+      // Get current cache data
+      const currentData = queryClient.getQueryData<Playlist>(["playlist", playlistId]);
+      
+      if (!currentData) {
+        return { previousPlaylist };
+      }
+
+      // Deep clone to ensure immutability
+      const updatedPlaylist = JSON.parse(JSON.stringify(currentData));
+      
+      if (itemType === "tmdb" && updatedPlaylist.items) {
+        // Create a map for quick lookup
+        const orderMap = new Map(items.map(item => [item.id, item.order]));
+        
+        // Update each item's order
+        updatedPlaylist.items.forEach((item: PlaylistItem) => {
+          if (orderMap.has(item.id)) {
+            item.order = orderMap.get(item.id)!;
           }
         });
+        
+        // Sort by new order
+        updatedPlaylist.items.sort((a: PlaylistItem, b: PlaylistItem) => a.order - b.order);
+      } 
+      else if (itemType === "youtube" && updatedPlaylist.youtubeItems) {
+        const orderMap = new Map(items.map(item => [item.id, item.order]));
+        
+        updatedPlaylist.youtubeItems.forEach((item: YouTubePlaylistItem) => {
+          if (orderMap.has(item.id)) {
+            item.order = orderMap.get(item.id)!;
+          }
+        });
+        
+        updatedPlaylist.youtubeItems.sort((a: YouTubePlaylistItem, b: YouTubePlaylistItem) => a.order - b.order);
       }
+
+      // Optimistically update to the new order
+      queryClient.setQueryData<Playlist>(["playlist", playlistId], updatedPlaylist);
 
       return { previousPlaylist };
     },
     
     onError: (err, items, context) => {
+      console.error("Reorder error:", err);
       // Rollback on error
       if (context?.previousPlaylist) {
         queryClient.setQueryData(["playlist", playlistId], context.previousPlaylist);
       }
     },
     
-    onSuccess: (data, variables) => {
-      // Update cache with new order values to ensure consistency
-      // Don't invalidate immediately - optimistic update already applied
-      // The cache is already correct, so no need to refetch
-      queryClient.setQueryData<Playlist>(["playlist", playlistId], (old) => {
-        if (!old) return old;
-        
-        if (itemType === "tmdb") {
-          const updatedItems = [...(old.items || [])];
-          variables.forEach(({ id, order }) => {
-            const index = updatedItems.findIndex(item => item.id === id);
-            if (index !== -1) {
-              updatedItems[index] = { ...updatedItems[index], order };
-            }
-          });
-          updatedItems.sort((a, b) => (a.order || 0) - (b.order || 0));
-          return { ...old, items: updatedItems };
-        } else {
-          const updatedYouTubeItems = [...(old.youtubeItems || [])];
-          variables.forEach(({ id, order }) => {
-            const index = updatedYouTubeItems.findIndex(item => item.id === id);
-            if (index !== -1) {
-              updatedYouTubeItems[index] = { ...updatedYouTubeItems[index], order };
-            }
-          });
-          updatedYouTubeItems.sort((a, b) => (a.order || 0) - (b.order || 0));
-          return { ...old, youtubeItems: updatedYouTubeItems };
-        }
-      });
+    onSettled: () => {
+      // Invalidate to sync with server
+      queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
     },
   });
 }
