@@ -344,11 +344,43 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
         queryClient.setQueryData(["playlist", playlistId], context.previousPlaylist);
       }
     },
-    onSuccess: () => {
-      // Don't invalidate immediately - optimistic update already applied
-      // This prevents snap-back during refetch
-      // The optimistic update persists and data will be fresh on next natural refetch
-      // (when query staleTime expires or user navigates)
+    onSuccess: (data, variables) => {
+      // Update the query cache with the new order values to ensure consistency
+      // This ensures the optimistic update persists even if there's a refetch
+      const currentPlaylist = queryClient.getQueryData<Playlist>(["playlist", playlistId]);
+      if (currentPlaylist) {
+        if (itemType === "tmdb") {
+          const updatedItems = [...(currentPlaylist.items || [])];
+          // Update order values from the mutation variables
+          variables.forEach(({ id, order }) => {
+            const item = updatedItems.find((i) => i.id === id);
+            if (item) {
+              item.order = order;
+            }
+          });
+          updatedItems.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+          queryClient.setQueryData<Playlist>(["playlist", playlistId], {
+            ...currentPlaylist,
+            items: updatedItems,
+          });
+        } else {
+          const updatedYouTubeItems = [...(currentPlaylist.youtubeItems || [])];
+          variables.forEach(({ id, order }) => {
+            const item = updatedYouTubeItems.find((i) => i.id === id);
+            if (item) {
+              item.order = order;
+            }
+          });
+          updatedYouTubeItems.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+          queryClient.setQueryData<Playlist>(["playlist", playlistId], {
+            ...currentPlaylist,
+            youtubeItems: updatedYouTubeItems,
+          });
+        }
+      }
+      // Don't invalidate - we've already updated the cache
     },
   });
 }
