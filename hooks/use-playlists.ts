@@ -345,9 +345,35 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
       }
     },
     
-    onSettled: () => {
-      // Always refetch after error or success to ensure sync
-      queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
+    onSuccess: (data, variables) => {
+      // Update cache with new order values to ensure consistency
+      // Don't invalidate immediately - optimistic update already applied
+      // The cache is already correct, so no need to refetch
+      queryClient.setQueryData<Playlist>(["playlist", playlistId], (old) => {
+        if (!old) return old;
+        
+        if (itemType === "tmdb") {
+          const updatedItems = [...(old.items || [])];
+          variables.forEach(({ id, order }) => {
+            const index = updatedItems.findIndex(item => item.id === id);
+            if (index !== -1) {
+              updatedItems[index] = { ...updatedItems[index], order };
+            }
+          });
+          updatedItems.sort((a, b) => (a.order || 0) - (b.order || 0));
+          return { ...old, items: updatedItems };
+        } else {
+          const updatedYouTubeItems = [...(old.youtubeItems || [])];
+          variables.forEach(({ id, order }) => {
+            const index = updatedYouTubeItems.findIndex(item => item.id === id);
+            if (index !== -1) {
+              updatedYouTubeItems[index] = { ...updatedYouTubeItems[index], order };
+            }
+          });
+          updatedYouTubeItems.sort((a, b) => (a.order || 0) - (b.order || 0));
+          return { ...old, youtubeItems: updatedYouTubeItems };
+        }
+      });
     },
   });
 }
