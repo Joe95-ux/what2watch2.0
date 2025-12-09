@@ -329,12 +329,21 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
         itemsCount: previous.items?.length || 0,
         youtubeItemsCount: previous.youtubeItems?.length || 0,
         previousItemsCount,
+        hasItems: !!previous.items,
+        hasYouTubeItems: !!previous.youtubeItems,
+        itemsIsArray: Array.isArray(previous.items),
+        itemsLength: previous.items?.length,
       });
 
       // If the cache has no items, skip optimistic update to avoid overwriting local state
       // The local state update already happened, and we don't want to overwrite it with empty data
       if (previousItemsCount === 0) {
-        console.warn("[useReorderPlaylist] Cache has no items - skipping optimistic update to preserve local state");
+        console.warn("[useReorderPlaylist] Cache has no items - skipping optimistic update to preserve local state", {
+          itemType,
+          previousItemsCount,
+          itemsLength: previous.items?.length,
+          youtubeItemsLength: previous.youtubeItems?.length,
+        });
         return { previousPlaylist: previous };
       }
 
@@ -349,6 +358,8 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
 
       const orderMap = new Map(items.map(i => [i.id, i.order]));
 
+      let hasValidUpdate = false;
+
       if (itemType === "tmdb" && updated.items && updated.items.length > 0) {
         updated.items = updated.items
           .map(item => ({
@@ -357,9 +368,15 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
           }))
           .sort((a, b) => a.order - b.order);
         
+        hasValidUpdate = true;
         console.log("[useReorderPlaylist] Updated TMDB items:", {
           count: updated.items.length,
           firstFew: updated.items.slice(0, 3).map(i => ({ id: i.id, order: i.order })),
+        });
+      } else if (itemType === "tmdb") {
+        console.warn("[useReorderPlaylist] Skipping TMDB update - no items or empty array", {
+          hasItems: !!updated.items,
+          itemsLength: updated.items?.length,
         });
       }
 
@@ -371,14 +388,25 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
           }))
           .sort((a, b) => a.order - b.order);
         
+        hasValidUpdate = true;
         console.log("[useReorderPlaylist] Updated YouTube items:", {
           count: updated.youtubeItems.length,
           firstFew: updated.youtubeItems.slice(0, 3).map(i => ({ id: i.id, order: i.order })),
         });
+      } else if (itemType === "youtube") {
+        console.warn("[useReorderPlaylist] Skipping YouTube update - no items or empty array", {
+          hasYouTubeItems: !!updated.youtubeItems,
+          youtubeItemsLength: updated.youtubeItems?.length,
+        });
       }
 
-      queryClient.setQueryData(["playlist", playlistId], updated);
-      console.log("[useReorderPlaylist] Query data updated optimistically");
+      // Only update query data if we actually have items to update
+      if (hasValidUpdate) {
+        queryClient.setQueryData(["playlist", playlistId], updated);
+        console.log("[useReorderPlaylist] Query data updated optimistically");
+      } else {
+        console.warn("[useReorderPlaylist] Not updating query data - no valid items to update");
+      }
 
       return { previousPlaylist: previous };
     },
