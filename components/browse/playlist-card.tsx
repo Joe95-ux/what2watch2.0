@@ -99,7 +99,7 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
     <div
       className={cn(
         "group relative cursor-pointer",
-        variant === "carousel" && "flex-shrink-0 w-[180px] sm:w-[200px]",
+        variant === "carousel" && "flex-shrink-0 w-full",
         variant === "grid" && "w-full",
         className
       )}

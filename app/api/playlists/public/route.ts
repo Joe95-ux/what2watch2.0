@@ -39,14 +39,26 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ playlist
           },
         },
         items: {
-          take: 1, // Only get first item for cover image
+          take: 3, // Get up to 3 items for poster grid
           orderBy: { order: "asc" },
           select: {
+            order: true,
             posterPath: true,
           },
         },
+        youtubeItems: {
+          take: 3, // Get up to 3 YouTube items for poster grid
+          orderBy: { order: "asc" },
+          select: {
+            order: true,
+            thumbnail: true,
+          },
+        },
         _count: {
-          select: { items: true },
+          select: { 
+            items: true,
+            youtubeItems: true,
+          },
         },
       },
       orderBy: { updatedAt: "desc" },

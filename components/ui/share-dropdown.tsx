@@ -37,7 +37,7 @@ export function ShareDropdown({
     try {
       await navigator.clipboard.writeText(shareUrl);
       toast.success("Link copied to clipboard!");
-      if (onShare) onShare();
+      // Don't call onShare for copy link - it's just copying, not opening share dialog
     } catch {
       toast.error("Failed to copy link");
     }

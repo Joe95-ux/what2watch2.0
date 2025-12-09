@@ -330,7 +330,7 @@ export function DetailedPlaylistItem({
               <div className="flex items-center gap-2 mb-2 flex-wrap">
                 {order !== undefined && (
                   <span className="text-sm text-muted-foreground">
-                    {(order && order > 0) ? order : index + 1}.
+                    {order}.
                   </span>
                 )}
                 <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">

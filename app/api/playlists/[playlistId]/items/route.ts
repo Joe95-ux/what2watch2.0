@@ -84,9 +84,11 @@ export async function POST(
     }
 
     // Get the highest order value and add 1
-    const maxOrder = playlist.items.length > 0
-      ? Math.max(...playlist.items.map((item) => item.order))
-      : -1;
+    // Filter out items with order 0 or null to get the actual max order
+    const itemsWithOrder = playlist.items.filter((item) => item.order && item.order > 0);
+    const maxOrder = itemsWithOrder.length > 0
+      ? Math.max(...itemsWithOrder.map((item) => item.order!))
+      : 0;
 
     const item = await db.playlistItem.create({
       data: {

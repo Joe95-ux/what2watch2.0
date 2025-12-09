@@ -874,10 +874,18 @@ export default function PlaylistView({
                   {(playlist.items?.length || 0) + (playlist.youtubeItems?.length || 0)}{" "}
                   {((playlist.items?.length || 0) + (playlist.youtubeItems?.length || 0)) === 1 ? "item" : "items"}
                 </span>
-                <span>•</span>
-                <span className="capitalize">
-                  {playlist.visibility?.toLowerCase().replace("_", " ") || (playlist.isPublic ? "public" : "private")}
-                </span>
+                {isOwner && (
+                  <>
+                    <span>•</span>
+                    <span className="capitalize">
+                      {playlist.visibility === "PUBLIC" || (playlist.visibility === undefined && playlist.isPublic)
+                        ? "public"
+                        : playlist.visibility === "FOLLOWERS_ONLY"
+                        ? "followers only"
+                        : "private"}
+                    </span>
+                  </>
+                )}
                 {activeFilterCount > 0 && (
                   <>
                     <span>•</span>
@@ -997,26 +1005,57 @@ export default function PlaylistView({
           <div className="container max-w-7xl mx-auto mt-[1rem] px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 py-4 border-b border-border bg-muted/30 rounded-lg px-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => toggleSelectAll(false)}
-                  className="cursor-pointer w-full sm:w-auto"
-                >
-                  <div className="h-4 w-4 mr-2 flex items-center justify-center">
-                    {selectedItems.size === filteredAndSortedTMDB.length ? (
-                      <Check className="h-4 w-4" />
-                    ) : (
-                      <div className="h-4 w-4 border-2 border-current rounded" />
-                    )}
-                  </div>
-                  {selectedItems.size === filteredAndSortedTMDB.length
-                    ? "Deselect All"
-                    : "Select All"}
-                </Button>
-                <span className="text-sm text-muted-foreground whitespace-nowrap">
-                  {selectedItems.size} of {filteredAndSortedTMDB.length} selected
-                </span>
+                {/* Show TMDB select all if there are TMDB items */}
+                {hasTMDBItems && filteredAndSortedTMDB.length > 0 && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleSelectAll(false)}
+                      className="cursor-pointer w-full sm:w-auto"
+                    >
+                      <div className="h-4 w-4 mr-2 flex items-center justify-center">
+                        {selectedItems.size === filteredAndSortedTMDB.length ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <div className="h-4 w-4 border-2 border-current rounded" />
+                        )}
+                      </div>
+                      {selectedItems.size === filteredAndSortedTMDB.length
+                        ? "Deselect All"
+                        : "Select All"}
+                    </Button>
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">
+                      {selectedItems.size} of {filteredAndSortedTMDB.length} selected
+                    </span>
+                  </>
+                )}
+                {/* Show YouTube select all if there are YouTube items (and no TMDB items, or show both) */}
+                {hasYouTubeItems && filteredYouTube.length > 0 && (
+                  <>
+                    {hasTMDBItems && <span className="text-sm text-muted-foreground">•</span>}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleSelectAll(true)}
+                      className="cursor-pointer w-full sm:w-auto"
+                    >
+                      <div className="h-4 w-4 mr-2 flex items-center justify-center">
+                        {selectedYouTubeItems.size === filteredYouTube.length ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <div className="h-4 w-4 border-2 border-current rounded" />
+                        )}
+                      </div>
+                      {selectedYouTubeItems.size === filteredYouTube.length
+                        ? "Deselect All YouTube"
+                        : "Select All YouTube"}
+                    </Button>
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">
+                      {selectedYouTubeItems.size} of {filteredYouTube.length} selected
+                    </span>
+                  </>
+                )}
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Popover
@@ -1194,17 +1233,17 @@ export default function PlaylistView({
                         className="cursor-pointer"
                       >
                         <Move className="h-4 w-4 mr-2" />
-                        Move ({selectedItems.size})
+                        Move ({selectedItems.size + selectedYouTubeItems.size})
                       </Button>
                       <Button
                         variant="destructive"
                         size="sm"
                         onClick={handleBulkRemove}
-                        disabled={selectedItems.size === 0}
+                        disabled={selectedItems.size === 0 && selectedYouTubeItems.size === 0}
                         className="cursor-pointer"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
-                        Delete ({selectedItems.size})
+                        Delete ({selectedItems.size + selectedYouTubeItems.size})
                       </Button>
                     </div>
                   ) : (
@@ -1520,10 +1559,8 @@ export default function PlaylistView({
                                         isEditMode={isEditMode && enableEdit}
                                         isSelected={selectedItems.has(playlistItem.id)}
                                         order={
-                                          tmdbSortField === "listOrder" &&
-                                          playlistItem.order &&
-                                          playlistItem.order > 0
-                                            ? playlistItem.order
+                                          tmdbSortField === "listOrder"
+                                            ? (playlistItem.order && playlistItem.order > 0 ? playlistItem.order : actualIndex + 1)
                                             : undefined
                                         }
                                         index={actualIndex}
@@ -1884,7 +1921,7 @@ export default function PlaylistView({
                                         playlistId={playlist.id}
                                         isEditMode={isEditMode && enableEdit}
                                         isSelected={selectedYouTubeItems.has(youtubeItem.id)}
-                                        order={youtubeItem.order > 0 ? youtubeItem.order : undefined}
+                                        order={youtubeItem.order && youtubeItem.order > 0 ? youtubeItem.order : actualIndex + 1}
                                         index={actualIndex}
                                         totalItems={filteredYouTube.length}
                                         onSelect={() => toggleItemSelection(youtubeItem.id, true)}
@@ -1933,7 +1970,7 @@ export default function PlaylistView({
                             playlistId={playlist.id}
                             isEditMode={isEditMode && enableEdit}
                             isSelected={selectedYouTubeItems.has(youtubeItem.id)}
-                            order={isMixedPlaylist ? undefined : (youtubeItem.order > 0 ? youtubeItem.order : undefined)}
+                            order={isMixedPlaylist ? undefined : (youtubeItem.order && youtubeItem.order > 0 ? youtubeItem.order : actualIndex + 1)}
                             index={actualIndex}
                             totalItems={filteredYouTube.length}
                             onSelect={() => toggleItemSelection(youtubeItem.id, true)}

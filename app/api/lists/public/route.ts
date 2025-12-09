@@ -39,9 +39,10 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
           },
         },
         items: {
-          take: 5, // Get first 5 items for deck of cards effect
+          take: 10, // Get more items to ensure we can find 3 with posters
           orderBy: { position: "asc" },
           select: {
+            position: true,
             posterPath: true,
           },
         },

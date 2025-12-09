@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { Activity, MessageSquare, Sparkles, TrendingUp, Clock, MousePointerClick, Plus, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
@@ -23,7 +24,6 @@ export default function AiUsageContent() {
   
   const { data: eventsData, isLoading: isLoadingEvents } = useAiAnalyticsEvents({
     page: currentPage,
-    pageSize,
     range: range ? parseInt(range, 10) : undefined,
   });
   
@@ -194,6 +194,176 @@ export default function AiUsageContent() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Token Usage Table */}
+      <Card className="mb-4 sm:mb-6">
+        <CardHeader>
+          <CardTitle>AI Chat Events & Token Usage</CardTitle>
+          <CardDescription>Detailed breakdown of AI interactions and token consumption.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoadingEvents ? (
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full" />
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : eventsData?.events && eventsData.events.length > 0 ? (
+            <>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Model</TableHead>
+                      <TableHead className="text-right">Prompt Tokens</TableHead>
+                      <TableHead className="text-right">Completion Tokens</TableHead>
+                      <TableHead className="text-right">Total Tokens</TableHead>
+                      <TableHead className="text-right">Response Time</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {eventsData.events.map((event) => (
+                      <TableRow key={event.id}>
+                        <TableCell className="whitespace-nowrap">
+                          {format(new Date(event.createdAt), "MMM d, yyyy HH:mm")}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={event.intent === "RECOMMENDATION" ? "default" : "secondary"}
+                            className={event.intent === "INFORMATION" ? "bg-blue-500/20 text-blue-600 hover:bg-blue-500/30" : ""}
+                          >
+                            {event.intent === "RECOMMENDATION" ? "Recommendation" : "Information"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{event.model || "N/A"}</TableCell>
+                        <TableCell className="text-right">{event.promptTokens?.toLocaleString() || "N/A"}</TableCell>
+                        <TableCell className="text-right">{event.completionTokens?.toLocaleString() || "N/A"}</TableCell>
+                        <TableCell className="text-right">{event.totalTokens?.toLocaleString() || "N/A"}</TableCell>
+                        <TableCell className="text-right">{event.responseTime ? `${event.responseTime}ms` : "N/A"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              {eventsData.pagination.totalPages > 1 && (
+                <div className="flex items-center justify-end space-x-2 py-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" /> Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {eventsData.pagination.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(eventsData.pagination.totalPages, prev + 1))}
+                    disabled={currentPage === eventsData.pagination.totalPages}
+                  >
+                    Next <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              No AI chat events found for the selected period.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Top Keywords */}
+      {data?.topKeywords && data.topKeywords.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Keywords</CardTitle>
+            <CardDescription>Most common search keywords</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {data.topKeywords.map((keyword, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-primary/10 text-primary"
+                >
+                  {keyword.keyword} ({keyword.count})
+                </span>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function MetricCard({
+  title,
+  value,
+  icon: Icon,
+  isLoading,
+}: {
+  title: string;
+  value: string | number;
+  icon: React.ComponentType<{ className?: string }>;
+  isLoading: boolean;
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <Skeleton className="h-8 w-24" />
+        ) : (
+          <div className="text-2xl font-bold">{value}</div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" /> Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {eventsData.pagination.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(eventsData.pagination.totalPages, prev + 1))}
+                    disabled={currentPage === eventsData.pagination.totalPages}
+                  >
+                    Next <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              No AI chat events found for the selected period.
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Top Keywords */}
       {data?.topKeywords && data.topKeywords.length > 0 && (

@@ -30,11 +30,15 @@ export default function ListCard({ list, className, variant = "carousel" }: List
 
   const getListPosters = () => {
     if (list.items && list.items.length > 0) {
-      // Get first 3 items with posters
-      return list.items
-        .filter(item => item.posterPath)
-        .slice(0, 3)
-        .map(item => getPosterUrl(item.posterPath!, "w500")); // Use w500 for better quality (poster size)
+      // Continue through all items until we find 3 with valid posters
+      const posters: string[] = [];
+      for (const item of list.items) {
+        if (posters.length >= 3) break;
+        if (item.posterPath && item.posterPath.trim() !== "") {
+          posters.push(getPosterUrl(item.posterPath, "w500"));
+        }
+      }
+      return posters;
     }
     return [];
   };
@@ -46,7 +50,7 @@ export default function ListCard({ list, className, variant = "carousel" }: List
     <div
       className={cn(
         "group relative cursor-pointer",
-        variant === "carousel" && "flex-shrink-0 w-[180px] sm:w-[200px]",
+        variant === "carousel" && "flex-shrink-0 w-full",
         variant === "grid" && "w-full",
         className
       )}

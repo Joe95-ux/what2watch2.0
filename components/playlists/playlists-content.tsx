@@ -210,7 +210,40 @@ export default function PlaylistsContent() {
         viewType === "grid" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <Skeleton key={i} className="aspect-[3/4] rounded-lg" />
+              <div key={i} className="group relative">
+                <div className="relative w-full h-[225px] rounded-lg overflow-hidden bg-muted border border-border">
+                  {/* Grid of 3 Poster Skeletons */}
+                  <div className="relative w-full h-[225px] grid grid-cols-3 gap-1">
+                    {Array.from({ length: 3 }).map((_, posterIndex) => {
+                      const borderRadiusClass = 
+                        posterIndex === 0 ? "rounded-tl-lg rounded-bl-lg" :
+                        posterIndex === 2 ? "rounded-tr-lg rounded-br-lg" :
+                        "";
+                      return (
+                        <Skeleton
+                          key={posterIndex}
+                          className={`w-full h-full ${borderRadiusClass}`}
+                        />
+                      );
+                    })}
+                  </div>
+                  {/* Dark Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent rounded-lg" />
+                  {/* Icon and Text Skeleton - Bottom Left */}
+                  <div className="absolute bottom-2 left-2 flex items-center gap-1.5 z-10">
+                    <Skeleton className="h-6 w-6 rounded" />
+                    <Skeleton className="h-4 w-12" />
+                  </div>
+                  {/* Item Count Badge Skeleton - Top Right */}
+                  <div className="absolute top-2 right-2 z-10">
+                    <Skeleton className="h-6 w-8 rounded-full" />
+                  </div>
+                </div>
+                {/* Title Skeleton */}
+                <div className="mt-2">
+                  <Skeleton className="h-5 w-3/4" />
+                </div>
+              </div>
             ))}
           </div>
         ) : (

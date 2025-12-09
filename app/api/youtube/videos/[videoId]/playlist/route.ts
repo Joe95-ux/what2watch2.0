@@ -118,13 +118,17 @@ export async function POST(
     }
 
     // Get max order in playlist
+    // Filter out items with order 0 or null to get the actual max order
     const maxOrderItem = await db.youTubePlaylistItem.findFirst({
-      where: { playlistId },
+      where: { 
+        playlistId,
+        order: { gt: 0 }, // Only get items with order > 0
+      },
       orderBy: { order: "desc" },
       select: { order: true },
     });
 
-    const nextOrder = maxOrderItem ? maxOrderItem.order + 1 : 0;
+    const nextOrder = maxOrderItem && maxOrderItem.order > 0 ? maxOrderItem.order + 1 : 1;
 
     // Add video to playlist
     const playlistItem = await db.youTubePlaylistItem.create({

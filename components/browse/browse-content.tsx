@@ -666,7 +666,7 @@ function CuratedListsSection({ lists, playlists }: { lists: List[]; playlists: P
           }}
           className="w-full"
         >
-          <CarouselContent className="-ml-2 md:-ml-4 gap-3">
+          <CarouselContent className="-ml-2 md:-ml-4 gap-0">
             {allItems.map((item) => (
               <CarouselItem key={`${item.type}-${item.data.id}`} className="pl-2 md:pl-4 basis-1/1 sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
                 {item.type === "list" ? (

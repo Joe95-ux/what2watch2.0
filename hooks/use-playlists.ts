@@ -345,8 +345,10 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
       }
     },
     onSuccess: () => {
-      // Invalidate to refetch fresh data
-      queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
+      // Don't invalidate immediately - optimistic update already applied
+      // This prevents snap-back during refetch
+      // The optimistic update persists and data will be fresh on next natural refetch
+      // (when query staleTime expires or user navigates)
     },
   });
 }
