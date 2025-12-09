@@ -49,7 +49,7 @@ export default function DiaryContent() {
   const [hasMounted, setHasMounted] = useState(false);
   
   // Pagination state
-  const [gridLogsToShow, setGridLogsToShow] = useState(10);
+  const [rowsToShow, setRowsToShow] = useState(10); // Number of date rows to show
   const [tableCurrentPage, setTableCurrentPage] = useState(1);
   const tablePageSize = 25;
   
@@ -218,29 +218,21 @@ export default function DiaryContent() {
 
   // Paginated data for grid view
   const paginatedGridData = useMemo(() => {
-    let logCount = 0;
+    // Show up to rowsToShow number of date rows (not cards)
     const visibleDates: Array<{ dateKey: string; logsToShow: number }> = [];
     
-    for (const dateKey of sortedDates) {
+    for (let i = 0; i < Math.min(rowsToShow, sortedDates.length); i++) {
+      const dateKey = sortedDates[i];
       const dateLogs = groupedLogs[dateKey];
-      if (logCount + dateLogs.length <= gridLogsToShow) {
-        visibleDates.push({ dateKey, logsToShow: dateLogs.length });
-        logCount += dateLogs.length;
-      } else {
-        // Partial date group
-        const remaining = gridLogsToShow - logCount;
-        if (remaining > 0) {
-          visibleDates.push({ dateKey, logsToShow: remaining });
-        }
-        break;
-      }
+      // Show all logs for each visible date row
+      visibleDates.push({ dateKey, logsToShow: dateLogs.length });
     }
     
-    const totalLogs = filteredAndSortedLogs.length;
-    const hasMore = gridLogsToShow < totalLogs;
+    const totalRows = sortedDates.length;
+    const hasMore = rowsToShow < totalRows;
     
     return { visibleDates, hasMore };
-  }, [sortedDates, groupedLogs, gridLogsToShow, filteredAndSortedLogs.length]);
+  }, [sortedDates, groupedLogs, rowsToShow]);
 
   // Paginated data for table view
   const paginatedTableData = useMemo(() => {
@@ -673,7 +665,7 @@ export default function DiaryContent() {
                               </div>
                               <div className="p-2">
                                 <div className="flex items-start justify-between gap-1 mb-1">
-                                  <h3 className="font-semibold text-xs line-clamp-2 flex-1">{log.title}</h3>
+                                  <h3 className="font-semibold text-xs line-clamp-1 flex-1">{log.title}</h3>
                                   <span className="text-xs text-muted-foreground flex-shrink-0">
                                     {log.mediaType === "movie" ? (
                                       <Film className="h-3 w-3" />
@@ -706,7 +698,7 @@ export default function DiaryContent() {
             <div className="flex justify-center mt-8">
               <Button
                 variant="outline"
-                onClick={() => setGridLogsToShow(prev => prev + 10)}
+                onClick={() => setRowsToShow(prev => prev + 10)}
                 className="cursor-pointer"
               >
                 Load More

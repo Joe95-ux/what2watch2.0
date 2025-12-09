@@ -262,11 +262,22 @@ export default function PlaylistView({
   }, []);
 
   // Sync local state with playlist data (source of truth) - same data that feeds UI
+  // BUT: Don't sync if playlist data is empty and we're in drag mode (to preserve local state during drag)
   useEffect(() => {
     const prevTMDBCount = localTMDBItems.length;
     const prevYouTubeCount = localYouTubeItems.length;
     const newTMDBCount = playlist?.items?.length || 0;
     const newYouTubeCount = playlist?.youtubeItems?.length || 0;
+    
+    // Calculate drag mode flags inside useEffect to avoid dependency issues
+    // These will be recalculated later in the component, but we need them here for the guard
+    const isTMDBDragEnabled = isEditMode && enableEdit && tmdbSortField === "listOrder" && isLgScreen;
+    const isYouTubeDragEnabled = isEditMode && enableEdit && !isMixedPlaylist && isLgScreen;
+    const isDragMode = isTMDBDragEnabled || isYouTubeDragEnabled;
+    
+    // If we're in drag mode and the playlist data is empty (likely from optimistic update overwrite),
+    // don't sync to preserve the local state that was just updated
+    const shouldSkipSync = isDragMode && newTMDBCount === 0 && newYouTubeCount === 0 && (prevTMDBCount > 0 || prevYouTubeCount > 0);
     
     console.log("[PlaylistView] Syncing local state with DB:", {
       prevTMDBCount,
@@ -274,12 +285,19 @@ export default function PlaylistView({
       prevYouTubeCount,
       newYouTubeCount,
       changed: prevTMDBCount !== newTMDBCount || prevYouTubeCount !== newYouTubeCount,
+      isDragMode,
+      shouldSkipSync,
       timestamp: new Date().toISOString(),
     });
     
+    if (shouldSkipSync) {
+      console.log("[PlaylistView] Skipping sync to preserve local state during drag");
+      return;
+    }
+    
     setLocalTMDBItems(playlist?.items || []);
     setLocalYouTubeItems(playlist?.youtubeItems || []);
-  }, [playlist?.items, playlist?.youtubeItems]);
+  }, [playlist?.items, playlist?.youtubeItems, isEditMode, enableEdit, tmdbSortField, isLgScreen, isMixedPlaylist, localTMDBItems.length, localYouTubeItems.length]);
 
   // Simple reorder function (Trello-style) - reorders array directly, then updates order values
   // sourceIndex and destinationIndex are from the filtered/sorted array

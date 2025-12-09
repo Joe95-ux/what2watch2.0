@@ -317,14 +317,26 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
 
       const previous = queryClient.getQueryData<Playlist>(["playlist", playlistId]);
       if (!previous) {
-        console.warn("[useReorderPlaylist] No previous playlist data found");
+        console.warn("[useReorderPlaylist] No previous playlist data found - skipping optimistic update");
         return { previousPlaylist: null };
       }
+
+      const previousItemsCount = itemType === "tmdb" 
+        ? (previous.items?.length || 0)
+        : (previous.youtubeItems?.length || 0);
 
       console.log("[useReorderPlaylist] Previous playlist data:", {
         itemsCount: previous.items?.length || 0,
         youtubeItemsCount: previous.youtubeItems?.length || 0,
+        previousItemsCount,
       });
+
+      // If the cache has no items, skip optimistic update to avoid overwriting local state
+      // The local state update already happened, and we don't want to overwrite it with empty data
+      if (previousItemsCount === 0) {
+        console.warn("[useReorderPlaylist] Cache has no items - skipping optimistic update to preserve local state");
+        return { previousPlaylist: previous };
+      }
 
       // Safer deep clone
       const updated: Playlist = {
@@ -337,7 +349,7 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
 
       const orderMap = new Map(items.map(i => [i.id, i.order]));
 
-      if (itemType === "tmdb" && updated.items) {
+      if (itemType === "tmdb" && updated.items && updated.items.length > 0) {
         updated.items = updated.items
           .map(item => ({
             ...item,
@@ -351,7 +363,7 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
         });
       }
 
-      if (itemType === "youtube" && updated.youtubeItems) {
+      if (itemType === "youtube" && updated.youtubeItems && updated.youtubeItems.length > 0) {
         updated.youtubeItems = updated.youtubeItems
           .map(item => ({
             ...item,
