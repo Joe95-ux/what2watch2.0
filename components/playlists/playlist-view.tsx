@@ -280,12 +280,17 @@ export default function PlaylistView({
     });
   };
 
-  // Use local state only when actively dragging, otherwise use playlist data (normal flow)
-  // This ensures filters/sort work normally, and local state only takes over during drag
-  const displayTMDBItems = isDraggingTMDB && localTMDBItems.length > 0
+  // Determine if drag is enabled (for using local state)
+  const isTMDBDragEnabledForDisplay = isEditMode && enableEdit && tmdbSortField === "listOrder" && isLgScreen;
+  const isYouTubeDragEnabledForDisplay = isEditMode && enableEdit && !isMixedPlaylist && isLgScreen;
+
+  // Use local state when drag is enabled (Trello-style: local state is always the source when drag-enabled)
+  // This ensures card stays in new position immediately after drag, before DB update completes
+  // useEffect will sync local state when DB updates
+  const displayTMDBItems = isTMDBDragEnabledForDisplay && localTMDBItems.length > 0
     ? localTMDBItems 
     : (playlist?.items || []);
-  const displayYouTubeItems = isDraggingYouTube && localYouTubeItems.length > 0
+  const displayYouTubeItems = isYouTubeDragEnabledForDisplay && localYouTubeItems.length > 0
     ? localYouTubeItems
     : (playlist?.youtubeItems || []);
 
