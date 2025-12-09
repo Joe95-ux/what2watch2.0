@@ -251,8 +251,32 @@ export default function PlaylistView({
   const [localTMDBItems, setLocalTMDBItems] = useState<PlaylistItem[]>(playlist?.items || []);
   const [localYouTubeItems, setLocalYouTubeItems] = useState<YouTubePlaylistItem[]>(playlist?.youtubeItems || []);
 
+  // Debug: Log initial state
+  useEffect(() => {
+    console.log("[PlaylistView] Initial local state:", {
+      localTMDBCount: localTMDBItems.length,
+      playlistTMDBCount: playlist?.items?.length || 0,
+      localYouTubeCount: localYouTubeItems.length,
+      playlistYouTubeCount: playlist?.youtubeItems?.length || 0,
+    });
+  }, []);
+
   // Sync local state with playlist data (source of truth) - same data that feeds UI
   useEffect(() => {
+    const prevTMDBCount = localTMDBItems.length;
+    const prevYouTubeCount = localYouTubeItems.length;
+    const newTMDBCount = playlist?.items?.length || 0;
+    const newYouTubeCount = playlist?.youtubeItems?.length || 0;
+    
+    console.log("[PlaylistView] Syncing local state with DB:", {
+      prevTMDBCount,
+      newTMDBCount,
+      prevYouTubeCount,
+      newYouTubeCount,
+      changed: prevTMDBCount !== newTMDBCount || prevYouTubeCount !== newYouTubeCount,
+      timestamp: new Date().toISOString(),
+    });
+    
     setLocalTMDBItems(playlist?.items || []);
     setLocalYouTubeItems(playlist?.youtubeItems || []);
   }, [playlist?.items, playlist?.youtubeItems]);
@@ -261,7 +285,15 @@ export default function PlaylistView({
   // sourceIndex and destinationIndex are from the filtered/sorted array
   // We need to map them to the full localTMDBItems array
   const reorderLocalTMDBItems = (sourceIndex: number, destinationIndex: number) => {
+    console.log("[PlaylistView] reorderLocalTMDBItems called:", {
+      sourceIndex,
+      destinationIndex,
+      timestamp: new Date().toISOString(),
+    });
+    
     setLocalTMDBItems((prevItems) => {
+      console.log("[PlaylistView] reorderLocalTMDBItems - prevItems count:", prevItems.length);
+      
       // When drag is enabled, filteredAndSortedTMDB shows all items sorted by order
       // So we need to work with prevItems sorted by order to match the indices
       const sorted = [...prevItems].sort((a, b) => {
@@ -279,15 +311,32 @@ export default function PlaylistView({
       reordered.splice(destinationIndex, 0, movedItem);
       
       // Update order values to match new positions
-      return reordered.map((item, index) => ({
+      const updated = reordered.map((item, index) => ({
         ...item,
         order: index + 1,
       }));
+      
+      console.log("[PlaylistView] reorderLocalTMDBItems - updated count:", updated.length, {
+        firstItemOrder: updated[0]?.order,
+        lastItemOrder: updated[updated.length - 1]?.order,
+        movedItemId: movedItem?.id,
+        movedItemNewOrder: updated[destinationIndex]?.order,
+      });
+      
+      return updated;
     });
   };
 
   const reorderLocalYouTubeItems = (sourceIndex: number, destinationIndex: number) => {
+    console.log("[PlaylistView] reorderLocalYouTubeItems called:", {
+      sourceIndex,
+      destinationIndex,
+      timestamp: new Date().toISOString(),
+    });
+    
     setLocalYouTubeItems((prevItems) => {
+      console.log("[PlaylistView] reorderLocalYouTubeItems - prevItems count:", prevItems.length);
+      
       // Sort by order to match the filtered array
       const sorted = [...prevItems].sort((a, b) => {
         const aOrder = a.order || 0;
@@ -304,10 +353,19 @@ export default function PlaylistView({
       reordered.splice(destinationIndex, 0, movedItem);
       
       // Update order values to match new positions
-      return reordered.map((item, index) => ({
+      const updated = reordered.map((item, index) => ({
         ...item,
         order: index + 1,
       }));
+      
+      console.log("[PlaylistView] reorderLocalYouTubeItems - updated count:", updated.length, {
+        firstItemOrder: updated[0]?.order,
+        lastItemOrder: updated[updated.length - 1]?.order,
+        movedItemId: movedItem?.id,
+        movedItemNewOrder: updated[destinationIndex]?.order,
+      });
+      
+      return updated;
     });
   };
 
@@ -324,6 +382,22 @@ export default function PlaylistView({
   const displayYouTubeItems = isYouTubeDragEnabledForDisplay && localYouTubeItems.length > 0
     ? localYouTubeItems
     : (playlist?.youtubeItems || []);
+
+  // Debug: Log which data source is being used
+  useEffect(() => {
+    console.log("[PlaylistView] Display items source:", {
+      isTMDBDragEnabledForDisplay,
+      usingLocalTMDB: isTMDBDragEnabledForDisplay && localTMDBItems.length > 0,
+      localTMDBCount: localTMDBItems.length,
+      playlistTMDBCount: playlist?.items?.length || 0,
+      displayTMDBCount: displayTMDBItems.length,
+      isYouTubeDragEnabledForDisplay,
+      usingLocalYouTube: isYouTubeDragEnabledForDisplay && localYouTubeItems.length > 0,
+      localYouTubeCount: localYouTubeItems.length,
+      playlistYouTubeCount: playlist?.youtubeItems?.length || 0,
+      displayYouTubeCount: displayYouTubeItems.length,
+    });
+  }, [isTMDBDragEnabledForDisplay, isYouTubeDragEnabledForDisplay, localTMDBItems.length, localYouTubeItems.length, displayTMDBItems.length, displayYouTubeItems.length, playlist?.items?.length, playlist?.youtubeItems?.length]);
 
   // Convert playlist items to TMDB format for display
   const playlistAsTMDB = useMemo(() => {

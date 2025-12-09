@@ -294,14 +294,37 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (items: Array<{ id: string; order: number }>) =>
-      reorderPlaylistItems(playlistId, items, itemType),
+    mutationFn: (items: Array<{ id: string; order: number }>) => {
+      console.log("[useReorderPlaylist] Mutation function called:", {
+        playlistId,
+        itemType,
+        itemsCount: items.length,
+        firstFew: items.slice(0, 3).map(i => ({ id: i.id, order: i.order })),
+        timestamp: new Date().toISOString(),
+      });
+      return reorderPlaylistItems(playlistId, items, itemType);
+    },
 
     onMutate: async (items) => {
+      console.log("[useReorderPlaylist] onMutate called:", {
+        playlistId,
+        itemType,
+        itemsCount: items.length,
+        timestamp: new Date().toISOString(),
+      });
+
       await queryClient.cancelQueries({ queryKey: ["playlist", playlistId] });
 
       const previous = queryClient.getQueryData<Playlist>(["playlist", playlistId]);
-      if (!previous) return { previousPlaylist: null };
+      if (!previous) {
+        console.warn("[useReorderPlaylist] No previous playlist data found");
+        return { previousPlaylist: null };
+      }
+
+      console.log("[useReorderPlaylist] Previous playlist data:", {
+        itemsCount: previous.items?.length || 0,
+        youtubeItemsCount: previous.youtubeItems?.length || 0,
+      });
 
       // Safer deep clone
       const updated: Playlist = {
@@ -321,6 +344,11 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
             order: orderMap.get(item.id) ?? item.order
           }))
           .sort((a, b) => a.order - b.order);
+        
+        console.log("[useReorderPlaylist] Updated TMDB items:", {
+          count: updated.items.length,
+          firstFew: updated.items.slice(0, 3).map(i => ({ id: i.id, order: i.order })),
+        });
       }
 
       if (itemType === "youtube" && updated.youtubeItems) {
@@ -330,22 +358,32 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
             order: orderMap.get(item.id) ?? item.order
           }))
           .sort((a, b) => a.order - b.order);
+        
+        console.log("[useReorderPlaylist] Updated YouTube items:", {
+          count: updated.youtubeItems.length,
+          firstFew: updated.youtubeItems.slice(0, 3).map(i => ({ id: i.id, order: i.order })),
+        });
       }
 
       queryClient.setQueryData(["playlist", playlistId], updated);
+      console.log("[useReorderPlaylist] Query data updated optimistically");
 
       return { previousPlaylist: previous };
     },
 
     onError: (_err, _items, ctx) => {
+      console.error("[useReorderPlaylist] Mutation error:", _err);
       if (ctx?.previousPlaylist) {
+        console.log("[useReorderPlaylist] Reverting to previous playlist data");
         queryClient.setQueryData(["playlist", playlistId], ctx.previousPlaylist);
       }
     },
 
     onSuccess: () => {
+      console.log("[useReorderPlaylist] Mutation successful, scheduling refetch in 500ms");
       // Delay refetch to prevent snap-back conflicts with optimistic updates
       setTimeout(() => {
+        console.log("[useReorderPlaylist] Refetching playlist data from DB");
         queryClient.refetchQueries({ queryKey: ["playlist", playlistId] });
       }, 500);
     }
