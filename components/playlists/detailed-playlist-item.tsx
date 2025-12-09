@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { PlaylistItem } from "@/hooks/use-playlists";
@@ -49,7 +49,7 @@ interface DetailedPlaylistItemProps {
   isPublic?: boolean;
 }
 
-export function DetailedPlaylistItem({
+function DetailedPlaylistItem({
   item,
   type,
   playlistItem,
@@ -767,4 +767,6 @@ export function DetailedPlaylistItem({
     </>
   );
 }
+
+export default memo(DetailedPlaylistItem);
 

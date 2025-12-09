@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, Fragment } from "react";
+import { useState, useMemo, useEffect, Fragment, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import MovieCard from "@/components/browse/movie-card";
@@ -96,7 +96,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import YouTubeVideoCard from "@/components/youtube/youtube-video-card";
-import { DetailedPlaylistItem } from "./detailed-playlist-item";
+import DetailedPlaylistItem from "./detailed-playlist-item";
 import { DetailedYouTubePlaylistItem } from "./detailed-youtube-playlist-item";
 import { CopyToPlaylistModal } from "./copy-to-playlist-modal";
 import { MoveToPlaylistModal } from "./move-to-playlist-modal";
@@ -191,6 +191,12 @@ export default function PlaylistView({
 
   const [youtubeSearchQuery, setYoutubeSearchQuery] = useState("");
   const [youtubeCurrentPage, setYoutubeCurrentPage] = useState(1);
+
+  // Drag state to freeze lists during drag
+  const [isDraggingTMDB, setIsDraggingTMDB] = useState(false);
+  const [isDraggingYouTube, setIsDraggingYouTube] = useState(false);
+  const frozenPaginatedTMDBRef = useRef<typeof paginatedTMDB>([]);
+  const frozenPaginatedYouTubeRef = useRef<typeof paginatedYouTube>([]);
 
   const [itemToRemove, setItemToRemove] = useState<{
     itemId: string;
@@ -435,6 +441,15 @@ export default function PlaylistView({
     return filteredAndSortedTMDB.slice(startIndex, endIndex);
   }, [filteredAndSortedTMDB, tmdbCurrentPage]);
 
+  // Freeze paginated list during drag to prevent flicker - TMDB
+  useEffect(() => {
+    if (!isDraggingTMDB) {
+      frozenPaginatedTMDBRef.current = paginatedTMDB;
+    }
+  }, [paginatedTMDB, isDraggingTMDB]);
+  
+  const frozenPaginatedTMDB = isDraggingTMDB ? frozenPaginatedTMDBRef.current : paginatedTMDB;
+
   // Pagination for YouTube videos
   const youtubeTotalPages = Math.ceil(filteredYouTube.length / ITEMS_PER_PAGE);
   const paginatedYouTube = useMemo(() => {
@@ -442,6 +457,15 @@ export default function PlaylistView({
     const endIndex = startIndex + ITEMS_PER_PAGE;
     return filteredYouTube.slice(startIndex, endIndex);
   }, [filteredYouTube, youtubeCurrentPage]);
+
+  // Freeze paginated list during drag to prevent flicker - YouTube
+  useEffect(() => {
+    if (!isDraggingYouTube) {
+      frozenPaginatedYouTubeRef.current = paginatedYouTube;
+    }
+  }, [paginatedYouTube, isDraggingYouTube]);
+  
+  const frozenPaginatedYouTube = isDraggingYouTube ? frozenPaginatedYouTubeRef.current : paginatedYouTube;
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -561,7 +585,7 @@ export default function PlaylistView({
   }, [fullSortedYouTubeByOrder]);
 
   // Drag and drop hook for TMDB items
-  const { DragDropContext: TMDBDragDropContext, handleDragEnd: handleTMDBDragEnd, isDragEnabled: isTMDBDragEnabled } = usePlaylistDragDrop({
+  const { DragDropContext: TMDBDragDropContext, handleDragEnd: handleTMDBDragEnd, handleDragStart: handleTMDBDragStart, isDragEnabled: isTMDBDragEnabled } = usePlaylistDragDrop({
     playlistId: playlist?.id || "",
     filteredEntries: tmdbFilteredEntries,
     allEntries: tmdbAllEntries,
@@ -569,10 +593,14 @@ export default function PlaylistView({
     isLgScreen,
     sortField: tmdbSortField,
     itemType: "tmdb",
+    currentPage: tmdbCurrentPage,
+    itemsPerPage: ITEMS_PER_PAGE,
+    onDragStart: () => setIsDraggingTMDB(true),
+    onDragEnd: () => setIsDraggingTMDB(false),
   });
 
   // Drag and drop hook for YouTube items (only in YouTube-only playlists)
-  const { DragDropContext: YouTubeDragDropContext, handleDragEnd: handleYouTubeDragEnd, isDragEnabled: isYouTubeDragEnabled } = usePlaylistDragDrop({
+  const { DragDropContext: YouTubeDragDropContext, handleDragEnd: handleYouTubeDragEnd, handleDragStart: handleYouTubeDragStart, isDragEnabled: isYouTubeDragEnabled } = usePlaylistDragDrop({
     playlistId: playlist?.id || "",
     filteredEntries: youtubeFilteredEntries,
     allEntries: youtubeAllEntries,
@@ -580,6 +608,10 @@ export default function PlaylistView({
     isLgScreen,
     sortField: "listOrder",
     itemType: "youtube",
+    currentPage: youtubeCurrentPage,
+    itemsPerPage: ITEMS_PER_PAGE,
+    onDragStart: () => setIsDraggingYouTube(true),
+    onDragEnd: () => setIsDraggingYouTube(false),
   });
 
   const handleRemove = async () => {
@@ -1539,7 +1571,7 @@ export default function PlaylistView({
               ) : (
                 // Detailed View
                 <>
-                  <TMDBDragDropContext onDragEnd={handleTMDBDragEnd}>
+                  <TMDBDragDropContext onDragStart={handleTMDBDragStart} onDragEnd={handleTMDBDragEnd}>
                     <Droppable droppableId="tmdb-items">
                       {(provided) => (
                         <div
@@ -1547,15 +1579,21 @@ export default function PlaylistView({
                           ref={provided.innerRef}
                           className="space-y-4"
                         >
-                          {paginatedTMDB.map(
-                            ({ item, type, playlistItem }, paginatedIndex) => {
+                          {frozenPaginatedTMDB.map(
+                            ({ item, type, playlistItem }: { item: TMDBMovie | TMDBSeries; type: "movie" | "tv"; playlistItem: PlaylistItem }, paginatedIndex: number) => {
                               const actualIndex =
                                 (tmdbCurrentPage - 1) * ITEMS_PER_PAGE + paginatedIndex;
+                              // Lock order value during drag to prevent flicker
+                              const lockedOrder = isDraggingTMDB 
+                                ? (playlistItem.order && playlistItem.order > 0 ? playlistItem.order : actualIndex + 1)
+                                : (tmdbSortField === "listOrder"
+                                    ? (playlistItem.order && playlistItem.order > 0 ? playlistItem.order : actualIndex + 1)
+                                    : undefined);
                               return (
                                 <Draggable
                                   key={playlistItem.id}
                                   draggableId={playlistItem.id}
-                                  index={actualIndex}
+                                  index={paginatedIndex}
                                   isDragDisabled={!isTMDBDragEnabled}
                                 >
                                   {(provided, snapshot) => (
@@ -1576,11 +1614,7 @@ export default function PlaylistView({
                                         playlistId={playlist.id}
                                         isEditMode={isEditMode && enableEdit}
                                         isSelected={selectedItems.has(playlistItem.id)}
-                                        order={
-                                          tmdbSortField === "listOrder"
-                                            ? (playlistItem.order && playlistItem.order > 0 ? playlistItem.order : actualIndex + 1)
-                                            : undefined
-                                        }
+                                        order={lockedOrder}
                                         index={actualIndex}
                                         totalItems={filteredAndSortedTMDB.length}
                                         onSelect={() =>
@@ -1905,7 +1939,7 @@ export default function PlaylistView({
                 // Detailed View for YouTube
                 <>
                   {isYouTubeDragEnabled ? (
-                    <YouTubeDragDropContext onDragEnd={handleYouTubeDragEnd}>
+                    <YouTubeDragDropContext onDragStart={handleYouTubeDragStart} onDragEnd={handleYouTubeDragEnd}>
                       <Droppable droppableId="youtube-items">
                         {(provided) => (
                           <div
@@ -1913,14 +1947,18 @@ export default function PlaylistView({
                             ref={provided.innerRef}
                             className="space-y-4"
                           >
-                            {paginatedYouTube.map((youtubeItem, index) => {
+                            {frozenPaginatedYouTube.map((youtubeItem: YouTubePlaylistItem, paginatedIndex: number) => {
                               const actualIndex =
-                                (youtubeCurrentPage - 1) * ITEMS_PER_PAGE + index;
+                                (youtubeCurrentPage - 1) * ITEMS_PER_PAGE + paginatedIndex;
+                              // Lock order value during drag to prevent flicker
+                              const lockedOrder = isDraggingYouTube
+                                ? (youtubeItem.order && youtubeItem.order > 0 ? youtubeItem.order : actualIndex + 1)
+                                : (youtubeItem.order && youtubeItem.order > 0 ? youtubeItem.order : actualIndex + 1);
                               return (
                                 <Draggable
                                   key={youtubeItem.id}
                                   draggableId={youtubeItem.id}
-                                  index={actualIndex}
+                                  index={paginatedIndex}
                                   isDragDisabled={!isYouTubeDragEnabled}
                                 >
                                   {(provided, snapshot) => (
@@ -1939,7 +1977,7 @@ export default function PlaylistView({
                                         playlistId={playlist.id}
                                         isEditMode={isEditMode && enableEdit}
                                         isSelected={selectedYouTubeItems.has(youtubeItem.id)}
-                                        order={youtubeItem.order && youtubeItem.order > 0 ? youtubeItem.order : actualIndex + 1}
+                                        order={lockedOrder}
                                         index={actualIndex}
                                         totalItems={filteredYouTube.length}
                                         onSelect={() => toggleItemSelection(youtubeItem.id, true)}

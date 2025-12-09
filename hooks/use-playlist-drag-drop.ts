@@ -13,6 +13,10 @@ interface UsePlaylistDragDropOptions {
   sortField: string;
   onReorder?: () => void;
   itemType?: "tmdb" | "youtube";
+  currentPage?: number;
+  itemsPerPage?: number;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
 }
 
 export function usePlaylistDragDrop({
@@ -24,11 +28,22 @@ export function usePlaylistDragDrop({
   sortField,
   onReorder,
   itemType = "tmdb",
+  currentPage = 1,
+  itemsPerPage = 25,
+  onDragStart,
+  onDragEnd: onDragEndCallback,
 }: UsePlaylistDragDropOptions) {
   const reorderPlaylist = useReorderPlaylist(playlistId, itemType);
 
+  const handleDragStart = useCallback(() => {
+    onDragStart?.();
+  }, [onDragStart]);
+
   const handleDragEnd = useCallback(
     (result: DropResult) => {
+      // Always call onDragEndCallback to reset drag state
+      onDragEndCallback?.();
+
       // Early returns for invalid drag operations
       if (!result.destination) {
         return;
@@ -44,12 +59,16 @@ export function usePlaylistDragDrop({
         return;
       }
 
-      // Calculate new order values for ALL items
+      // Convert page-local indices to global indices in filteredEntries
+      const globalSourceIndex = (currentPage - 1) * itemsPerPage + source.index;
+      const globalDestinationIndex = (currentPage - 1) * itemsPerPage + destination.index;
+
+      // Calculate new order values for ALL items using global indices
       const itemsToUpdate = reorderPlaylistEntries(
         filteredEntries,
         allEntries,
-        source.index,
-        destination.index
+        globalSourceIndex,
+        globalDestinationIndex
       );
 
       if (itemsToUpdate.length === 0) {
@@ -68,12 +87,13 @@ export function usePlaylistDragDrop({
         },
       });
     },
-    [playlistId, filteredEntries, allEntries, isEditMode, isLgScreen, sortField, reorderPlaylist, onReorder]
+    [playlistId, filteredEntries, allEntries, isEditMode, isLgScreen, sortField, reorderPlaylist, onReorder, currentPage, itemsPerPage, onDragEndCallback]
   );
 
   return {
     DragDropContext,
     handleDragEnd,
+    handleDragStart,
     isDragEnabled: isEditMode && isLgScreen && sortField === "listOrder",
   };
 }
