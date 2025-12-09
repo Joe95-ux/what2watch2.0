@@ -294,72 +294,62 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (items: Array<{ id: string; order: number }>) => 
+    mutationFn: (items: Array<{ id: string; order: number }>) =>
       reorderPlaylistItems(playlistId, items, itemType),
-    
+
     onMutate: async (items) => {
-      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["playlist", playlistId] });
 
-      // Snapshot the previous value
-      const previousPlaylist = queryClient.getQueryData<Playlist>(["playlist", playlistId]);
+      const previous = queryClient.getQueryData<Playlist>(["playlist", playlistId]);
+      if (!previous) return { previousPlaylist: null };
 
-      // Get current cache data
-      const currentData = queryClient.getQueryData<Playlist>(["playlist", playlistId]);
-      
-      if (!currentData) {
-        return { previousPlaylist };
+      // Safer deep clone
+      const updated: Playlist = {
+        ...previous,
+        items: previous.items ? previous.items.map((i) => ({ ...i })) : [],
+        youtubeItems: previous.youtubeItems
+          ? previous.youtubeItems.map((y) => ({ ...y }))
+          : [],
+      };
+
+      const orderMap = new Map(items.map(i => [i.id, i.order]));
+
+      if (itemType === "tmdb" && updated.items) {
+        updated.items = updated.items
+          .map(item => ({
+            ...item,
+            order: orderMap.get(item.id) ?? item.order
+          }))
+          .sort((a, b) => a.order - b.order);
       }
 
-      // Deep clone to ensure immutability
-      const updatedPlaylist = JSON.parse(JSON.stringify(currentData));
-      
-      if (itemType === "tmdb" && updatedPlaylist.items) {
-        // Create a map for quick lookup
-        const orderMap = new Map(items.map(item => [item.id, item.order]));
-        
-        // Update each item's order
-        updatedPlaylist.items.forEach((item: PlaylistItem) => {
-          if (orderMap.has(item.id)) {
-            item.order = orderMap.get(item.id)!;
-          }
-        });
-        
-        // Sort by new order
-        updatedPlaylist.items.sort((a: PlaylistItem, b: PlaylistItem) => a.order - b.order);
-      } 
-      else if (itemType === "youtube" && updatedPlaylist.youtubeItems) {
-        const orderMap = new Map(items.map(item => [item.id, item.order]));
-        
-        updatedPlaylist.youtubeItems.forEach((item: YouTubePlaylistItem) => {
-          if (orderMap.has(item.id)) {
-            item.order = orderMap.get(item.id)!;
-          }
-        });
-        
-        updatedPlaylist.youtubeItems.sort((a: YouTubePlaylistItem, b: YouTubePlaylistItem) => a.order - b.order);
+      if (itemType === "youtube" && updated.youtubeItems) {
+        updated.youtubeItems = updated.youtubeItems
+          .map(item => ({
+            ...item,
+            order: orderMap.get(item.id) ?? item.order
+          }))
+          .sort((a, b) => a.order - b.order);
       }
 
-      // Optimistically update to the new order
-      queryClient.setQueryData<Playlist>(["playlist", playlistId], updatedPlaylist);
+      queryClient.setQueryData(["playlist", playlistId], updated);
 
-      return { previousPlaylist };
+      return { previousPlaylist: previous };
     },
-    
-    onError: (err, items, context) => {
-      console.error("Reorder error:", err);
-      // Rollback on error
-      if (context?.previousPlaylist) {
-        queryClient.setQueryData(["playlist", playlistId], context.previousPlaylist);
+
+    onError: (_err, _items, ctx) => {
+      if (ctx?.previousPlaylist) {
+        queryClient.setQueryData(["playlist", playlistId], ctx.previousPlaylist);
       }
     },
-    
-    onSettled: () => {
-      // Invalidate to sync with server
-      queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
-    },
+
+    onSuccess: () => {
+      // Gentle refetch AFTER success, not during settle
+      queryClient.refetchQueries({ queryKey: ["playlist", playlistId] });
+    }
   });
 }
+
 
 // Update playlist item (note or order)
 const updatePlaylistItem = async (
