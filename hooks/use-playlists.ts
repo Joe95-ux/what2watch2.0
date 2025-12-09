@@ -294,7 +294,9 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (items: Array<{ id: string; order: number }>) => reorderPlaylistItems(playlistId, items, itemType),
+    mutationFn: (items: Array<{ id: string; order: number }>) => 
+      reorderPlaylistItems(playlistId, items, itemType),
+    
     onMutate: async (items) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["playlist", playlistId] });
@@ -302,74 +304,50 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
       // Snapshot the previous value
       const previousPlaylist = queryClient.getQueryData<Playlist>(["playlist", playlistId]);
 
-      // Optimistically update the playlist immediately to prevent snap-back
+      // Optimistically update the cache
       if (previousPlaylist) {
-        if (itemType === "tmdb") {
-          // Create new objects (immutable update) - like lists do
-          const updatedItems = (previousPlaylist.items || []).map((item) => {
-            const update = items.find((n) => n.id === item.id);
-            return update ? { ...item, order: update.order } : item;
-          });
-          updatedItems.sort((a, b) => a.order - b.order);
-
-          queryClient.setQueryData<Playlist>(["playlist", playlistId], {
-            ...previousPlaylist,
-            items: updatedItems,
-          });
-        } else {
-          // YouTube items - create new objects (immutable update)
-          const updatedYouTubeItems = (previousPlaylist.youtubeItems || []).map((item) => {
-            const update = items.find((n) => n.id === item.id);
-            return update ? { ...item, order: update.order } : item;
-          });
-          updatedYouTubeItems.sort((a, b) => a.order - b.order);
-
-          queryClient.setQueryData<Playlist>(["playlist", playlistId], {
-            ...previousPlaylist,
-            youtubeItems: updatedYouTubeItems,
-          });
-        }
+        queryClient.setQueryData<Playlist>(["playlist", playlistId], (old) => {
+          if (!old) return old;
+          
+          if (itemType === "tmdb") {
+            const updatedItems = [...(old.items || [])];
+            // Update each item with new order
+            items.forEach(({ id, order }) => {
+              const index = updatedItems.findIndex(item => item.id === id);
+              if (index !== -1) {
+                updatedItems[index] = { ...updatedItems[index], order };
+              }
+            });
+            // Sort by order
+            updatedItems.sort((a, b) => a.order - b.order);
+            return { ...old, items: updatedItems };
+          } else {
+            const updatedYouTubeItems = [...(old.youtubeItems || [])];
+            items.forEach(({ id, order }) => {
+              const index = updatedYouTubeItems.findIndex(item => item.id === id);
+              if (index !== -1) {
+                updatedYouTubeItems[index] = { ...updatedYouTubeItems[index], order };
+              }
+            });
+            updatedYouTubeItems.sort((a, b) => a.order - b.order);
+            return { ...old, youtubeItems: updatedYouTubeItems };
+          }
+        });
       }
 
       return { previousPlaylist };
     },
+    
     onError: (err, items, context) => {
       // Rollback on error
       if (context?.previousPlaylist) {
         queryClient.setQueryData(["playlist", playlistId], context.previousPlaylist);
       }
     },
-    onSuccess: (data, variables) => {
-      // Update cache with new order values (immutable update) - like lists do
-      const currentPlaylist = queryClient.getQueryData<Playlist>(["playlist", playlistId]);
-      if (currentPlaylist) {
-        if (itemType === "tmdb") {
-          // Create new objects (immutable update)
-          const updatedItems = (currentPlaylist.items || []).map((item) => {
-            const update = variables.find((n) => n.id === item.id);
-            return update ? { ...item, order: update.order } : item;
-          });
-          updatedItems.sort((a, b) => (a.order || 0) - (b.order || 0));
-
-          queryClient.setQueryData<Playlist>(["playlist", playlistId], {
-            ...currentPlaylist,
-            items: updatedItems,
-          });
-        } else {
-          // YouTube items - create new objects (immutable update)
-          const updatedYouTubeItems = (currentPlaylist.youtubeItems || []).map((item) => {
-            const update = variables.find((n) => n.id === item.id);
-            return update ? { ...item, order: update.order } : item;
-          });
-          updatedYouTubeItems.sort((a, b) => (a.order || 0) - (b.order || 0));
-
-          queryClient.setQueryData<Playlist>(["playlist", playlistId], {
-            ...currentPlaylist,
-            youtubeItems: updatedYouTubeItems,
-          });
-        }
-      }
-      // Don't invalidate - we've already updated the cache
+    
+    onSettled: () => {
+      // Always refetch after error or success to ensure sync
+      queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
     },
   });
 }
