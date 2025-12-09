@@ -1577,12 +1577,17 @@ export default function PlaylistView({
                         <div
                           {...provided.droppableProps}
                           ref={provided.innerRef}
-                          className="space-y-4"
+                          className={cn(
+                            "space-y-4",
+                            isTMDBDragEnabled && "max-h-[calc(100vh-400px)] overflow-y-auto pr-2"
+                          )}
                         >
-                          {frozenPaginatedTMDB.map(
-                            ({ item, type, playlistItem }: { item: TMDBMovie | TMDBSeries; type: "movie" | "tv"; playlistItem: PlaylistItem }, paginatedIndex: number) => {
-                              const actualIndex =
-                                (tmdbCurrentPage - 1) * ITEMS_PER_PAGE + paginatedIndex;
+                          {(isTMDBDragEnabled ? filteredAndSortedTMDB : frozenPaginatedTMDB).map(
+                            ({ item, type, playlistItem }: { item: TMDBMovie | TMDBSeries; type: "movie" | "tv"; playlistItem: PlaylistItem }, index: number) => {
+                              // When drag is enabled, use actual index; otherwise use paginated index
+                              const actualIndex = isTMDBDragEnabled 
+                                ? index 
+                                : (tmdbCurrentPage - 1) * ITEMS_PER_PAGE + index;
                               // Lock order value during drag to prevent flicker
                               const lockedOrder = isDraggingTMDB 
                                 ? (playlistItem.order && playlistItem.order > 0 ? playlistItem.order : actualIndex + 1)
@@ -1593,7 +1598,7 @@ export default function PlaylistView({
                                 <Draggable
                                   key={playlistItem.id}
                                   draggableId={playlistItem.id}
-                                  index={paginatedIndex}
+                                  index={index}
                                   isDragDisabled={!isTMDBDragEnabled}
                                 >
                                   {(provided, snapshot) => (
@@ -1652,7 +1657,7 @@ export default function PlaylistView({
                       )}
                     </Droppable>
                   </TMDBDragDropContext>
-                  {tmdbTotalPages > 1 && (
+                  {tmdbTotalPages > 1 && !isTMDBDragEnabled && (
                     <CollectionPagination
                       currentPage={tmdbCurrentPage}
                       totalPages={tmdbTotalPages}
@@ -1945,11 +1950,16 @@ export default function PlaylistView({
                           <div
                             {...provided.droppableProps}
                             ref={provided.innerRef}
-                            className="space-y-4"
+                            className={cn(
+                              "space-y-4",
+                              isYouTubeDragEnabled && "max-h-[calc(100vh-400px)] overflow-y-auto pr-2"
+                            )}
                           >
-                            {frozenPaginatedYouTube.map((youtubeItem: YouTubePlaylistItem, paginatedIndex: number) => {
-                              const actualIndex =
-                                (youtubeCurrentPage - 1) * ITEMS_PER_PAGE + paginatedIndex;
+                            {(isYouTubeDragEnabled ? filteredYouTube : frozenPaginatedYouTube).map((youtubeItem: YouTubePlaylistItem, index: number) => {
+                              // When drag is enabled, use actual index; otherwise use paginated index
+                              const actualIndex = isYouTubeDragEnabled
+                                ? index
+                                : (youtubeCurrentPage - 1) * ITEMS_PER_PAGE + index;
                               // Lock order value during drag to prevent flicker
                               const lockedOrder = isDraggingYouTube
                                 ? (youtubeItem.order && youtubeItem.order > 0 ? youtubeItem.order : actualIndex + 1)
@@ -1958,7 +1968,7 @@ export default function PlaylistView({
                                 <Draggable
                                   key={youtubeItem.id}
                                   draggableId={youtubeItem.id}
-                                  index={paginatedIndex}
+                                  index={index}
                                   isDragDisabled={!isYouTubeDragEnabled}
                                 >
                                   {(provided, snapshot) => (
@@ -2057,7 +2067,7 @@ export default function PlaylistView({
                       })}
                     </div>
                   )}
-                  {youtubeTotalPages > 1 && (
+                  {youtubeTotalPages > 1 && !isYouTubeDragEnabled && (
                     <CollectionPagination
                       currentPage={youtubeCurrentPage}
                       totalPages={youtubeTotalPages}

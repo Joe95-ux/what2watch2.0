@@ -1413,18 +1413,22 @@ export default function ListView({
                     <div
                       {...provided.droppableProps}
                       ref={provided.innerRef}
-                      className="space-y-4"
+                      className={cn(
+                        "space-y-4",
+                        isDragEnabled && "max-h-[calc(100vh-400px)] overflow-y-auto pr-2"
+                      )}
                     >
-                      {paginatedData.map(
-                        ({ item, type, listItem }, paginatedIndex) => {
-                          // Calculate the actual index in the full filteredAndSorted array for drag-and-drop
-                          const actualIndex =
-                            (currentPage - 1) * ITEMS_PER_PAGE + paginatedIndex;
+                      {(isDragEnabled ? filteredAndSorted : paginatedData).map(
+                        ({ item, type, listItem }, index) => {
+                          // When drag is enabled, use actual index; otherwise use paginated index
+                          const actualIndex = isDragEnabled
+                            ? index
+                            : (currentPage - 1) * ITEMS_PER_PAGE + index;
                           return (
                             <Draggable
                               key={listItem.id}
                               draggableId={listItem.id}
-                              index={actualIndex}
+                              index={index}
                               isDragDisabled={!isDragEnabled}
                             >
                               {(provided, snapshot) => (
@@ -1489,12 +1493,14 @@ export default function ListView({
                   )}
                 </Droppable>
               </DragDropContext>
-              <CollectionPagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-                pageNumbers={pageNumbers}
-              />
+              {totalPages > 1 && !isDragEnabled && (
+                <CollectionPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  pageNumbers={pageNumbers}
+                />
+              )}
             </>
           )}
         </div>

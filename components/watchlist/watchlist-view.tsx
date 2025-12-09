@@ -1760,17 +1760,22 @@ export default function WatchlistView({
                   <div
                     {...provided.droppableProps}
                     ref={provided.innerRef}
-                    className="space-y-4"
+                    className={cn(
+                      "space-y-4",
+                      isDragEnabled && "max-h-[calc(100vh-400px)] overflow-y-auto pr-2"
+                    )}
                   >
-                    {paginatedData.map(
-                      ({ item, type, watchlistItem }, paginatedIndex) => {
-                        // Calculate the actual index in the full filteredAndSorted array for drag-and-drop
-                        const actualIndex = (currentPage - 1) * ITEMS_PER_PAGE + paginatedIndex;
+                    {(isDragEnabled ? filteredAndSorted : paginatedData).map(
+                      ({ item, type, watchlistItem }, index) => {
+                        // When drag is enabled, use actual index; otherwise use paginated index
+                        const actualIndex = isDragEnabled
+                          ? index
+                          : (currentPage - 1) * ITEMS_PER_PAGE + index;
                         return (
                         <Draggable
                           key={watchlistItem.id}
                           draggableId={watchlistItem.id}
-                          index={actualIndex}
+                          index={index}
                           isDragDisabled={!isDragEnabled}
                         >
                           {(provided, snapshot) => (
@@ -1833,7 +1838,7 @@ export default function WatchlistView({
                 )}
               </Droppable>
             </DragDropContext>
-            {totalPages > 1 && (
+            {totalPages > 1 && !isDragEnabled && (
               <div className="flex items-center justify-center gap-2 mt-8 w-full overflow-auto px-2 py-1">
                 <Button
                   variant="outline"

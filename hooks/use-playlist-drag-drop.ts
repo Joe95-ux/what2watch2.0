@@ -59,9 +59,14 @@ export function usePlaylistDragDrop({
         return;
       }
 
-      // Convert page-local indices to global indices in filteredEntries
-      const globalSourceIndex = (currentPage - 1) * itemsPerPage + source.index;
-      const globalDestinationIndex = (currentPage - 1) * itemsPerPage + destination.index;
+      // When pagination is disabled (drag enabled), indices are already global
+      // Otherwise, convert page-local indices to global indices in filteredEntries
+      const globalSourceIndex = currentPage > 1 && itemsPerPage > 0
+        ? (currentPage - 1) * itemsPerPage + source.index
+        : source.index;
+      const globalDestinationIndex = currentPage > 1 && itemsPerPage > 0
+        ? (currentPage - 1) * itemsPerPage + destination.index
+        : destination.index;
 
       // Calculate new order values for ALL items using global indices
       const itemsToUpdate = reorderPlaylistEntries(
