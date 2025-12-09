@@ -194,7 +194,7 @@ export function DetailedYouTubePlaylistItem({
                     {order}.
                   </span>
                 )}
-                <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
+                <h3 className="text-lg font-semibold group-hover:text-primary transition-colors truncate sm:truncate-none">
                   {youtubeItem.title}
                 </h3>
                 {isEditMode && (

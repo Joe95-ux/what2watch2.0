@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, Fragment, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
@@ -72,7 +73,8 @@ import {
   useReorderPlaylist, 
   useUpdatePlaylist, 
   usePlaylists, 
-  useCreatePlaylist 
+  useCreatePlaylist,
+  usePlaylist
 } from "@/hooks/use-playlists";
 import { ChangeOrderModal } from "./change-order-modal";
 import ImportPlaylistModal from "./import-playlist-modal";
@@ -103,6 +105,7 @@ import { MoveToPlaylistModal } from "./move-to-playlist-modal";
 
 interface PlaylistViewProps {
   playlist: Playlist | null;
+  playlistId?: string; // Optional: if provided, component will read from cache for immediate optimistic updates
   isLoading: boolean;
   isOwner: boolean;
   enableRemove?: boolean;
@@ -123,7 +126,8 @@ interface PlaylistViewProps {
 }
 
 export default function PlaylistView({
-  playlist,
+  playlist: playlistProp,
+  playlistId,
   isLoading,
   isOwner,
   enableRemove = false,
@@ -143,6 +147,25 @@ export default function PlaylistView({
   onBack,
 }: PlaylistViewProps) {
   const router = useRouter();
+  
+  // Subscribe to cache updates if playlistId is provided
+  // This ensures immediate updates from optimistic mutations
+  // When optimistic update happens, usePlaylist will re-render with new cache data
+  const { data: cachedPlaylist } = usePlaylist(playlistId || "");
+  
+  // Only use cached data if playlistId is provided and we have cached data
+  // Otherwise fall back to prop (for cases where playlistId is not available)
+  const shouldUseCache = !!playlistId && !!cachedPlaylist;
+
+  // Use cached playlist if available (for immediate optimistic updates), otherwise use prop
+  const playlist = useMemo(() => {
+    if (shouldUseCache && cachedPlaylist) {
+      // Remove _currentUserId if present
+      const { _currentUserId, ...rest } = cachedPlaylist as Playlist & { _currentUserId?: string };
+      return rest as Playlist;
+    }
+    return playlistProp;
+  }, [shouldUseCache, cachedPlaylist, playlistProp]);
 
   // Persist viewMode and isEditMode in localStorage
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -643,35 +666,40 @@ export default function PlaylistView({
     }
   };
 
-  const handleBulkRemove = async () => {
-    if ((selectedItems.size === 0 && selectedYouTubeItems.size === 0) || !playlist) return;
-    try {
-      // Remove TMDB items
-      for (const itemId of selectedItems) {
-        if (onRemove) {
-          await onRemove(itemId);
-        } else {
-          await removeItemFromPlaylist.mutateAsync({
-            playlistId: playlist.id,
-            itemId,
-          });
-        }
-      }
-
-      // Remove YouTube items (placeholder)
-      if (selectedYouTubeItems.size > 0) {
+  const handleBulkRemove = async (isYouTube = false) => {
+    if (isYouTube) {
+      // Handle YouTube bulk removal
+      if (selectedYouTubeItems.size === 0 || !playlist) return;
+      try {
+        // Remove YouTube items (placeholder)
         toast.info("YouTube bulk removal coming soon");
+        setSelectedYouTubeItems(new Set());
+      } catch (error) {
+        toast.error("Failed to remove YouTube items");
       }
+    } else {
+      // Handle TMDB bulk removal
+      if (selectedItems.size === 0 || !playlist) return;
+      try {
+        // Remove TMDB items
+        for (const itemId of selectedItems) {
+          if (onRemove) {
+            await onRemove(itemId);
+          } else {
+            await removeItemFromPlaylist.mutateAsync({
+              playlistId: playlist.id,
+              itemId,
+            });
+          }
+        }
 
-      const totalRemoved = selectedItems.size + selectedYouTubeItems.size;
-      toast.success(
-        `Removed ${totalRemoved} item${totalRemoved > 1 ? "s" : ""} from playlist`
-      );
-      setSelectedItems(new Set());
-      setSelectedYouTubeItems(new Set());
-      setIsEditMode(false);
-    } catch (error) {
-      toast.error("Failed to remove items");
+        toast.success(
+          `Removed ${selectedItems.size} item${selectedItems.size > 1 ? "s" : ""} from playlist`
+        );
+        setSelectedItems(new Set());
+      } catch (error) {
+        toast.error("Failed to remove items");
+      }
     }
   };
 
@@ -1052,62 +1080,31 @@ export default function PlaylistView({
           </div>
         </div>
 
-        {/* Bulk Actions Bar */}
-        {isEditMode && enableRemove && (
+        {/* Bulk Actions Bar - TMDB Items Only */}
+        {isEditMode && enableRemove && hasTMDBItems && filteredAndSortedTMDB.length > 0 && (
           <div className="container max-w-7xl mx-auto mt-[1rem] px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 py-4 border-b border-border bg-muted/30 rounded-lg px-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
-                {/* Show TMDB select all if there are TMDB items */}
-                {hasTMDBItems && filteredAndSortedTMDB.length > 0 && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toggleSelectAll(false)}
-                      className="cursor-pointer w-full sm:w-auto"
-                    >
-                      <div className="h-4 w-4 mr-2 flex items-center justify-center">
-                        {selectedItems.size === filteredAndSortedTMDB.length ? (
-                          <Check className="h-4 w-4" />
-                        ) : (
-                          <div className="h-4 w-4 border-2 border-current rounded" />
-                        )}
-                      </div>
-                      {selectedItems.size === filteredAndSortedTMDB.length
-                        ? "Deselect All"
-                        : "Select All"}
-                    </Button>
-                    <span className="text-sm text-muted-foreground whitespace-nowrap">
-                      {selectedItems.size} of {filteredAndSortedTMDB.length} selected
-                    </span>
-                  </>
-                )}
-                {/* Show YouTube select all if there are YouTube items (and no TMDB items, or show both) */}
-                {hasYouTubeItems && filteredYouTube.length > 0 && (
-                  <>
-                    {hasTMDBItems && <span className="text-sm text-muted-foreground">•</span>}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toggleSelectAll(true)}
-                      className="cursor-pointer w-full sm:w-auto"
-                    >
-                      <div className="h-4 w-4 mr-2 flex items-center justify-center">
-                        {selectedYouTubeItems.size === filteredYouTube.length ? (
-                          <Check className="h-4 w-4" />
-                        ) : (
-                          <div className="h-4 w-4 border-2 border-current rounded" />
-                        )}
-                      </div>
-                      {selectedYouTubeItems.size === filteredYouTube.length
-                        ? "Deselect All YouTube"
-                        : "Select All YouTube"}
-                    </Button>
-                    <span className="text-sm text-muted-foreground whitespace-nowrap">
-                      {selectedYouTubeItems.size} of {filteredYouTube.length} selected
-                    </span>
-                  </>
-                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => toggleSelectAll(false)}
+                  className="cursor-pointer w-full sm:w-auto"
+                >
+                  <div className="h-4 w-4 mr-2 flex items-center justify-center">
+                    {selectedItems.size === filteredAndSortedTMDB.length ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <div className="h-4 w-4 border-2 border-current rounded" />
+                    )}
+                  </div>
+                  {selectedItems.size === filteredAndSortedTMDB.length
+                    ? "Deselect All"
+                    : "Select All"}
+                </Button>
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  {selectedItems.size} of {filteredAndSortedTMDB.length} selected
+                </span>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Popover
@@ -1262,17 +1259,18 @@ export default function PlaylistView({
           {/* Movies & TV Shows Section */}
           {playlist.items && playlist.items.length > 0 && (
             <div className="mb-12">
-              <div className="flex items-center justify-between mb-6">
+              {/* Mobile: Title on top, actions/search below */}
+              <div className="flex flex-col gap-4 mb-6">
                 <h2 className="text-xl font-semibold">Movies & TV Shows</h2>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4">
                   {isEditMode && enableEdit ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0 order-2 overflow-x-auto">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setIsCopyModalOpen(true)}
                         disabled={selectedItems.size === 0}
-                        className="cursor-pointer"
+                        className="cursor-pointer flex-shrink-0"
                       >
                         <Copy className="h-4 w-4 mr-2" />
                         Copy ({selectedItems.size})
@@ -1282,39 +1280,43 @@ export default function PlaylistView({
                         size="sm"
                         onClick={() => setIsMoveModalOpen(true)}
                         disabled={selectedItems.size === 0}
-                        className="cursor-pointer"
+                        className="cursor-pointer flex-shrink-0"
                       >
                         <Move className="h-4 w-4 mr-2" />
-                        Move ({selectedItems.size + selectedYouTubeItems.size})
+                        Move ({selectedItems.size})
                       </Button>
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={handleBulkRemove}
-                        disabled={selectedItems.size === 0 && selectedYouTubeItems.size === 0}
-                        className="cursor-pointer"
+                        onClick={() => handleBulkRemove(false)}
+                        disabled={selectedItems.size === 0}
+                        className="cursor-pointer flex-shrink-0"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
-                        Delete ({selectedItems.size + selectedYouTubeItems.size})
+                        Delete ({selectedItems.size})
                       </Button>
                     </div>
                   ) : (
-                    <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+                    <div className="order-2">
+                      <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+                    </div>
                   )}
-                  <CollectionFilters
-                    searchQuery={tmdbSearchQuery}
-                    onSearchChange={setTmdbSearchQuery}
-                    sortField={tmdbSortField}
-                    sortOrder={tmdbSortOrder}
-                    onSortChange={(field, order) => {
-                      setTmdbSortField(field);
-                      setTmdbSortOrder(order);
-                    }}
-                    filterType={tmdbFilterType}
-                    onFilterChange={setTmdbFilterType}
-                    searchPlaceholder="Search movies & TV shows..."
-                    showListOrder={true}
-                  />
+                  <div className="flex-shrink-0 order-1">
+                    <CollectionFilters
+                      searchQuery={tmdbSearchQuery}
+                      onSearchChange={setTmdbSearchQuery}
+                      sortField={tmdbSortField}
+                      sortOrder={tmdbSortOrder}
+                      onSortChange={(field, order) => {
+                        setTmdbSortField(field);
+                        setTmdbSortOrder(order);
+                      }}
+                      filterType={tmdbFilterType}
+                      onFilterChange={setTmdbFilterType}
+                      searchPlaceholder="Search movies & TV shows..."
+                      showListOrder={true}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1672,23 +1674,56 @@ export default function PlaylistView({
           {/* YouTube Videos Section */}
           {playlist.youtubeItems && playlist.youtubeItems.length > 0 && (
             <div>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold">YouTube Videos</h2>
-                <div className="flex items-center gap-4">
-                  {isEditMode && enableEdit ? (
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={handleBulkRemove}
-                        disabled={selectedYouTubeItems.size === 0}
-                        className="cursor-pointer"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete ({selectedYouTubeItems.size})
-                      </Button>
-                    </div>
-                  ) : null}
+              <h2 className="text-xl font-semibold mb-4">YouTube Videos</h2>
+              {/* Bulk Actions and Search Wrapper */}
+              {isEditMode && enableEdit ? (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                  {/* Bulk Actions Div */}
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleSelectAll(true)}
+                      className="cursor-pointer"
+                    >
+                      <div className="h-4 w-4 mr-2 flex items-center justify-center">
+                        {selectedYouTubeItems.size === filteredYouTube.length ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <div className="h-4 w-4 border-2 border-current rounded" />
+                        )}
+                      </div>
+                      {selectedYouTubeItems.size === filteredYouTube.length
+                        ? "Deselect All"
+                        : "Select All"}
+                    </Button>
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">
+                      {selectedYouTubeItems.size} of {filteredYouTube.length} selected
+                    </span>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleBulkRemove(true)}
+                      disabled={selectedYouTubeItems.size === 0}
+                      className="cursor-pointer"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete ({selectedYouTubeItems.size})
+                    </Button>
+                  </div>
+                  {/* Search Bar */}
+                  <div className="relative w-full sm:w-80 flex-shrink-0">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search YouTube videos..."
+                      value={youtubeSearchQuery}
+                      onChange={(e) => setYoutubeSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-6">
                   <div className="relative w-full sm:w-80">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -1699,7 +1734,7 @@ export default function PlaylistView({
                     />
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* YouTube Content Views */}
               {effectiveViewMode === "grid" ? (

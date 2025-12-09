@@ -119,6 +119,7 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
     <>
       <PlaylistView
         playlist={cleanPlaylist}
+        playlistId={playlistId}
         isLoading={isLoading}
         isOwner={isOwnPlaylist}
         enableRemove={isOwnPlaylist}

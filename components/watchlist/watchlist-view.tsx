@@ -2340,7 +2340,7 @@ function DetailedWatchlistItem({
                   {(order && order > 0) ? order : index + 1}.
                 </span>
               )}
-              <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
+              <h3 className="text-lg font-semibold group-hover:text-primary transition-colors truncate sm:truncate-none">
                 {watchlistItem.title}
               </h3>
               {isEditMode && (

@@ -2346,7 +2346,7 @@ function DetailedListItem({
                   {(position && position > 0) ? position : index + 1}.
                 </span>
               )}
-              <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
+              <h3 className="text-lg font-semibold group-hover:text-primary transition-colors truncate sm:truncate-none">
                 {listItem.title}
               </h3>
               {isEditMode && (

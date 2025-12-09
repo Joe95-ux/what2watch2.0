@@ -208,6 +208,7 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
     return (
       <PlaylistView
         playlist={null}
+        playlistId={playlistId}
         isLoading={isLoading}
         isOwner={false}
         enableRemove={false}
@@ -235,6 +236,7 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
     <>
       <PlaylistView
         playlist={playlist}
+        playlistId={playlistId}
         isLoading={isLoading}
         isOwner={isOwner}
         enableRemove={isOwner}
