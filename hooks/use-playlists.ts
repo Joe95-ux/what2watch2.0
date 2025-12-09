@@ -305,12 +305,10 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
       // Optimistically update the playlist immediately to prevent snap-back
       if (previousPlaylist) {
         if (itemType === "tmdb") {
-          const updatedItems = [...(previousPlaylist.items || [])];
-          items.forEach(({ id, order }) => {
-            const item = updatedItems.find((i) => i.id === id);
-            if (item) {
-              item.order = order;
-            }
+          // Create new objects (immutable update) - like lists do
+          const updatedItems = (previousPlaylist.items || []).map((item) => {
+            const update = items.find((n) => n.id === item.id);
+            return update ? { ...item, order: update.order } : item;
           });
           updatedItems.sort((a, b) => a.order - b.order);
 
@@ -319,13 +317,10 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
             items: updatedItems,
           });
         } else {
-          // YouTube items
-          const updatedYouTubeItems = [...(previousPlaylist.youtubeItems || [])];
-          items.forEach(({ id, order }) => {
-            const item = updatedYouTubeItems.find((i) => i.id === id);
-            if (item) {
-              item.order = order;
-            }
+          // YouTube items - create new objects (immutable update)
+          const updatedYouTubeItems = (previousPlaylist.youtubeItems || []).map((item) => {
+            const update = items.find((n) => n.id === item.id);
+            return update ? { ...item, order: update.order } : item;
           });
           updatedYouTubeItems.sort((a, b) => a.order - b.order);
 
@@ -345,18 +340,14 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
       }
     },
     onSuccess: (data, variables) => {
-      // Update the query cache with the new order values to ensure consistency
-      // This ensures the optimistic update persists even if there's a refetch
+      // Update cache with new order values (immutable update) - like lists do
       const currentPlaylist = queryClient.getQueryData<Playlist>(["playlist", playlistId]);
       if (currentPlaylist) {
         if (itemType === "tmdb") {
-          const updatedItems = [...(currentPlaylist.items || [])];
-          // Update order values from the mutation variables
-          variables.forEach(({ id, order }) => {
-            const item = updatedItems.find((i) => i.id === id);
-            if (item) {
-              item.order = order;
-            }
+          // Create new objects (immutable update)
+          const updatedItems = (currentPlaylist.items || []).map((item) => {
+            const update = variables.find((n) => n.id === item.id);
+            return update ? { ...item, order: update.order } : item;
           });
           updatedItems.sort((a, b) => (a.order || 0) - (b.order || 0));
 
@@ -365,12 +356,10 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
             items: updatedItems,
           });
         } else {
-          const updatedYouTubeItems = [...(currentPlaylist.youtubeItems || [])];
-          variables.forEach(({ id, order }) => {
-            const item = updatedYouTubeItems.find((i) => i.id === id);
-            if (item) {
-              item.order = order;
-            }
+          // YouTube items - create new objects (immutable update)
+          const updatedYouTubeItems = (currentPlaylist.youtubeItems || []).map((item) => {
+            const update = variables.find((n) => n.id === item.id);
+            return update ? { ...item, order: update.order } : item;
           });
           updatedYouTubeItems.sort((a, b) => (a.order || 0) - (b.order || 0));
 

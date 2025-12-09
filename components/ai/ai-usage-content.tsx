@@ -10,29 +10,82 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { Activity, MessageSquare, Sparkles, TrendingUp, Clock, MousePointerClick, Plus, Users, ChevronLeft, ChevronRight } from "lucide-react";
-import { format } from "date-fns";
+import { Activity, MessageSquare, Sparkles, TrendingUp, Clock, MousePointerClick, Plus, Users, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Download, MoreHorizontal } from "lucide-react";
+import { format, subDays } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 export default function AiUsageContent() {
-  const [range, setRange] = useState<string | undefined>(undefined);
+  const [dateRange, setDateRange] = useState<"all" | "7d" | "30d" | "90d" | "custom">("all");
+  const [customStartDate, setCustomStartDate] = useState<Date | undefined>(undefined);
+  const [customEndDate, setCustomEndDate] = useState<Date | undefined>(undefined);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 25;
+
+  // Calculate date range parameters
+  const getDateParams = () => {
+    const now = new Date();
+    let range: number | undefined;
+    let startDate: string | undefined;
+    let endDate: string | undefined;
+
+    if (dateRange === "7d") {
+      range = 7;
+    } else if (dateRange === "30d") {
+      range = 30;
+    } else if (dateRange === "90d") {
+      range = 90;
+    } else if (dateRange === "custom") {
+      if (customStartDate) {
+        startDate = format(customStartDate, "yyyy-MM-dd");
+      }
+      if (customEndDate) {
+        endDate = format(customEndDate, "yyyy-MM-dd");
+      }
+    }
+
+    return { range, startDate, endDate };
+  };
+
+  const { range, startDate, endDate } = getDateParams();
   
   const { data, isLoading, isError, error } = useAiAnalytics({
-    range: range ? parseInt(range, 10) : undefined,
+    range,
+    startDate,
+    endDate,
   });
   
   const { data: eventsData, isLoading: isLoadingEvents } = useAiAnalyticsEvents({
     page: currentPage,
-    range: range ? parseInt(range, 10) : undefined,
+    range,
+    startDate,
+    endDate,
   });
   
   const { data: allGenres = [] } = useAllGenres();
 
-  // Reset to page 1 when range changes
+  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [range]);
+  }, [dateRange, customStartDate, customEndDate]);
 
   // Create genre ID to name map
   const genreMap = useMemo(() => {
@@ -50,6 +103,81 @@ export default function AiUsageContent() {
       count: item.count,
     }));
   }, [data?.trend]);
+
+  // Generate page numbers with ellipsis for pagination
+  const pageNumbers = useMemo(() => {
+    const totalPages = eventsData?.pagination.totalPages || 1;
+    const pages: (number | "ellipsis")[] = [];
+    
+    if (totalPages <= 7) {
+      // Show all pages if 7 or fewer
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Always show first page
+      pages.push(1);
+      
+      // Add ellipsis if current page is far from start
+      if (currentPage > 3) {
+        pages.push("ellipsis");
+      }
+      
+      // Add pages around current page
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      
+      for (let i = start; i <= end; i++) {
+        if (i !== 1 && i !== totalPages) {
+          pages.push(i);
+        }
+      }
+      
+      // Add ellipsis if current page is far from end
+      if (currentPage < totalPages - 2) {
+        pages.push("ellipsis");
+      }
+      
+      // Always show last page
+      pages.push(totalPages);
+    }
+    
+    return pages;
+  }, [currentPage, eventsData?.pagination.totalPages]);
+
+  // CSV export function
+  const handleExportCSV = () => {
+    if (!eventsData?.events || eventsData.events.length === 0) {
+      return;
+    }
+
+    const headers = ["Date", "Type", "Model", "Prompt Tokens", "Completion Tokens", "Total Tokens", "Response Time (ms)", "User Message"];
+    const rows = eventsData.events.map((event) => [
+      format(new Date(event.createdAt), "MMM d, yyyy h:mm a"),
+      event.intent === "RECOMMENDATION" ? "Recommendation" : "Information",
+      event.model || "N/A",
+      event.promptTokens?.toString() || "N/A",
+      event.completionTokens?.toString() || "N/A",
+      event.totalTokens?.toString() || "N/A",
+      event.responseTime?.toString() || "N/A",
+      event.userMessage,
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `ai-usage-${format(new Date(), "yyyy-MM-dd")}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   if (isError) {
     return (
@@ -70,17 +198,83 @@ export default function AiUsageContent() {
           <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
           <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold">AI Usage</h1>
         </div>
-        <Select value={range ?? "all"} onValueChange={(value) => setRange(value === "all" ? undefined : value)}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Select range" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All time</SelectItem>
-            <SelectItem value="7">Last 7 days</SelectItem>
-            <SelectItem value="30">Last 30 days</SelectItem>
-            <SelectItem value="90">Last 90 days</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-full sm:w-[200px] justify-start text-left font-normal">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange === "all" && "All time"}
+                {dateRange === "7d" && "Last 7 days"}
+                {dateRange === "30d" && "Last 30 days"}
+                {dateRange === "90d" && "Last 90 days"}
+                {dateRange === "custom" && 
+                  (customStartDate && customEndDate
+                    ? `${format(customStartDate, "MMM d")} - ${format(customEndDate, "MMM d, yyyy")}`
+                    : "Custom range")}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-auto">
+              <DropdownMenuItem onClick={() => setDateRange("all")} className="cursor-pointer">
+                All time
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDateRange("7d")} className="cursor-pointer">
+                Last 7 days
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDateRange("30d")} className="cursor-pointer">
+                Last 30 days
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDateRange("90d")} className="cursor-pointer">
+                Last 90 days
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => {
+                  setDateRange("custom");
+                  setIsCalendarOpen(true);
+                }}
+                className="cursor-pointer"
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                Custom range
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {dateRange === "custom" && (
+            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full sm:w-[200px] justify-start text-left font-normal">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {customStartDate && customEndDate
+                    ? `${format(customStartDate, "MMM d")} - ${format(customEndDate, "MMM d, yyyy")}`
+                    : "Pick a date range"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={customStartDate || new Date()}
+                  selected={{
+                    from: customStartDate,
+                    to: customEndDate,
+                  }}
+                  onSelect={(range) => {
+                    if (range?.from) {
+                      setCustomStartDate(range.from);
+                    }
+                    if (range?.to) {
+                      setCustomEndDate(range.to);
+                    }
+                    if (range?.from && range?.to) {
+                      setIsCalendarOpen(false);
+                    }
+                  }}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -198,8 +392,18 @@ export default function AiUsageContent() {
       {/* Token Usage Table */}
       <Card className="mb-4 sm:mb-6">
         <CardHeader>
-          <CardTitle>AI Chat Events & Token Usage</CardTitle>
-          <CardDescription>Detailed breakdown of AI interactions and token consumption.</CardDescription>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <CardTitle>AI Chat Events & Token Usage</CardTitle>
+              <CardDescription>Detailed breakdown of AI interactions and token consumption.</CardDescription>
+            </div>
+            {eventsData?.events && eventsData.events.length > 0 && (
+              <Button variant="outline" size="sm" onClick={handleExportCSV}>
+                <Download className="mr-2 h-4 w-4" />
+                Export CSV
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {isLoadingEvents ? (
@@ -228,7 +432,7 @@ export default function AiUsageContent() {
                     {eventsData.events.map((event) => (
                       <TableRow key={event.id}>
                         <TableCell className="whitespace-nowrap">
-                          {format(new Date(event.createdAt), "MMM d, yyyy HH:mm")}
+                          {format(new Date(event.createdAt), "MMM d, yyyy h:mm a")}
                         </TableCell>
                         <TableCell>
                           <Badge
@@ -249,26 +453,59 @@ export default function AiUsageContent() {
                 </Table>
               </div>
               {eventsData.pagination.totalPages > 1 && (
-                <div className="flex items-center justify-end space-x-2 py-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" /> Previous
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Page {currentPage} of {eventsData.pagination.totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.min(eventsData.pagination.totalPages, prev + 1))}
-                    disabled={currentPage === eventsData.pagination.totalPages}
-                  >
-                    Next <ChevronRight className="h-4 w-4" />
-                  </Button>
+                <div className="flex items-center justify-center py-4">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                          disabled={currentPage === 1}
+                          className="h-9 w-9"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          <span className="sr-only">Previous page</span>
+                        </Button>
+                      </PaginationItem>
+                      {pageNumbers.map((page, index) => {
+                        if (page === "ellipsis") {
+                          return (
+                            <PaginationItem key={`ellipsis-${index}`}>
+                              <PaginationEllipsis />
+                            </PaginationItem>
+                          );
+                        }
+                        return (
+                          <PaginationItem key={page}>
+                            <Button
+                              variant={currentPage === page ? "outline" : "ghost"}
+                              size="icon"
+                              onClick={() => setCurrentPage(page)}
+                              className={cn(
+                                "h-9 w-9",
+                                currentPage === page && "bg-primary text-primary-foreground"
+                              )}
+                            >
+                              {page}
+                            </Button>
+                          </PaginationItem>
+                        );
+                      })}
+                      <PaginationItem>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setCurrentPage((prev) => Math.min(eventsData.pagination.totalPages, prev + 1))}
+                          disabled={currentPage === eventsData.pagination.totalPages}
+                          className="h-9 w-9"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                          <span className="sr-only">Next page</span>
+                        </Button>
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
                 </div>
               )}
             </>
