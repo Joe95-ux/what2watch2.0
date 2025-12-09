@@ -269,13 +269,13 @@ export default function DiaryContent() {
     setLikedFilter("all");
     setWatchedYearFilter("all");
     // Reset pagination when filters change
-    setGridLogsToShow(10);
+    setRowsToShow(10);
     setTableCurrentPage(1);
   };
 
   // Reset pagination when filters or sort change
   useEffect(() => {
-    setGridLogsToShow(10);
+    setRowsToShow(10);
     setTableCurrentPage(1);
   }, [searchQuery, mediaTypeFilter, yearFilter, ratingFilter, tagFilter, likedFilter, watchedYearFilter, sortField, sortOrder]);
 
