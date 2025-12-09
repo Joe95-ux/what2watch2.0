@@ -17,6 +17,7 @@ interface UsePlaylistDragDropOptions {
   itemsPerPage?: number;
   onDragStart?: () => void;
   onDragEnd?: () => void;
+  onLocalReorder?: (reorderedItems: Array<{ id: string; order: number }>) => void;
 }
 
 export function usePlaylistDragDrop({
@@ -32,6 +33,7 @@ export function usePlaylistDragDrop({
   itemsPerPage = 25,
   onDragStart,
   onDragEnd: onDragEndCallback,
+  onLocalReorder,
 }: UsePlaylistDragDropOptions) {
   const reorderPlaylist = useReorderPlaylist(playlistId, itemType);
 
@@ -80,7 +82,12 @@ export function usePlaylistDragDrop({
         return;
       }
 
-      // Trigger mutation - optimistic update is already handled in the hook
+      // Trello-style: Update local state FIRST for immediate UI update
+      if (onLocalReorder) {
+        onLocalReorder(itemsToUpdate);
+      }
+
+      // Then trigger mutation (background API call)
       reorderPlaylist.mutate(itemsToUpdate, {
         onSuccess: () => {
           toast.success("Playlist reordered");
@@ -92,7 +99,7 @@ export function usePlaylistDragDrop({
         },
       });
     },
-    [playlistId, filteredEntries, allEntries, isEditMode, isLgScreen, sortField, reorderPlaylist, onReorder, currentPage, itemsPerPage, onDragEndCallback]
+    [playlistId, filteredEntries, allEntries, isEditMode, isLgScreen, sortField, reorderPlaylist, onReorder, currentPage, itemsPerPage, onDragEndCallback, onLocalReorder]
   );
 
   return {

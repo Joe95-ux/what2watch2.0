@@ -262,10 +262,55 @@ export default function PlaylistView({
     }
   }, []);
 
+  // Local state for immediate UI updates during drag-and-drop (Trello-style)
+  const [localTMDBItems, setLocalTMDBItems] = useState<PlaylistItem[]>([]);
+  const [localYouTubeItems, setLocalYouTubeItems] = useState<YouTubePlaylistItem[]>([]);
+
+  // Sync local state with playlist data
+  useEffect(() => {
+    if (playlist?.items) {
+      setLocalTMDBItems(playlist.items);
+    }
+    if (playlist?.youtubeItems) {
+      setLocalYouTubeItems(playlist.youtubeItems);
+    }
+  }, [playlist?.items, playlist?.youtubeItems]);
+
+  // Reorder function for local state (Trello-style)
+  const reorderLocalTMDBItems = (itemsToUpdate: Array<{ id: string; order: number }>) => {
+    setLocalTMDBItems((prevItems) => {
+      const updated = prevItems.map((item) => {
+        const update = itemsToUpdate.find((u) => u.id === item.id);
+        return update ? { ...item, order: update.order } : item;
+      });
+      // Sort by order to maintain correct sequence
+      return updated.sort((a, b) => (a.order || 0) - (b.order || 0));
+    });
+  };
+
+  const reorderLocalYouTubeItems = (itemsToUpdate: Array<{ id: string; order: number }>) => {
+    setLocalYouTubeItems((prevItems) => {
+      const updated = prevItems.map((item) => {
+        const update = itemsToUpdate.find((u) => u.id === item.id);
+        return update ? { ...item, order: update.order } : item;
+      });
+      // Sort by order to maintain correct sequence
+      return updated.sort((a, b) => (a.order || 0) - (b.order || 0));
+    });
+  };
+
+  // Use local state for rendering when in drag mode, otherwise use playlist data
+  const displayTMDBItems = isEditMode && enableEdit && tmdbSortField === "listOrder" && isLgScreen
+    ? localTMDBItems
+    : (playlist?.items || []);
+  const displayYouTubeItems = isEditMode && enableEdit && !isMixedPlaylist && isLgScreen
+    ? localYouTubeItems
+    : (playlist?.youtubeItems || []);
+
   // Convert playlist items to TMDB format for display
   const playlistAsTMDB = useMemo(() => {
-    if (!playlist?.items) return [];
-    return playlist.items.map((item: PlaylistItem) => {
+    if (!displayTMDBItems || displayTMDBItems.length === 0) return [];
+    return displayTMDBItems.map((item: PlaylistItem) => {
       if (item.mediaType === "movie") {
         const movie: TMDBMovie = {
           id: item.tmdbId,
@@ -418,8 +463,8 @@ export default function PlaylistView({
 
   // Filter YouTube videos
   const filteredYouTube = useMemo(() => {
-    if (!playlist?.youtubeItems) return [];
-    let filtered = [...playlist.youtubeItems];
+    if (!displayYouTubeItems || displayYouTubeItems.length === 0) return [];
+    let filtered = [...displayYouTubeItems];
 
     // Search filter
     if (youtubeSearchQuery.trim()) {
@@ -555,8 +600,8 @@ export default function PlaylistView({
 
   // Full list sorted by order for YouTube items (for drag and drop reordering) - YouTube-only playlists
   const fullSortedYouTubeByOrder = useMemo(() => {
-    if (!playlist?.youtubeItems || isMixedPlaylist) return [];
-    const sorted = [...playlist.youtubeItems];
+    if (!displayYouTubeItems || displayYouTubeItems.length === 0 || isMixedPlaylist) return [];
+    const sorted = [...displayYouTubeItems];
     sorted.sort((a, b) => {
       const aOrder = a.order || 0;
       const bOrder = b.order || 0;
@@ -621,6 +666,7 @@ export default function PlaylistView({
     itemsPerPage: ITEMS_PER_PAGE,
     onDragStart: () => setIsDraggingTMDB(true),
     onDragEnd: () => setIsDraggingTMDB(false),
+    onLocalReorder: reorderLocalTMDBItems,
   });
 
   // Drag and drop hook for YouTube items (only in YouTube-only playlists)
@@ -637,6 +683,7 @@ export default function PlaylistView({
     itemsPerPage: ITEMS_PER_PAGE,
     onDragStart: () => setIsDraggingYouTube(true),
     onDragEnd: () => setIsDraggingYouTube(false),
+    onLocalReorder: reorderLocalYouTubeItems,
   });
 
   const handleRemove = async () => {
@@ -1262,9 +1309,9 @@ export default function PlaylistView({
               {/* Mobile: Title on top, actions/search below */}
               <div className="flex flex-col gap-4 mb-6">
                 <h2 className="text-xl font-semibold">Movies & TV Shows</h2>
-                <div className="flex flex-wrap items-center gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   {isEditMode && enableEdit ? (
-                    <div className="flex items-center gap-2 flex-shrink-0 order-2 overflow-x-auto">
+                    <div className="flex items-center gap-2 flex-shrink-0 overflow-x-auto">
                       <Button
                         variant="outline"
                         size="sm"
@@ -1297,11 +1344,11 @@ export default function PlaylistView({
                       </Button>
                     </div>
                   ) : (
-                    <div className="order-2">
+                    <div>
                       <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
                     </div>
                   )}
-                  <div className="flex-shrink-0 order-1">
+                  <div className="flex-shrink-0">
                     <CollectionFilters
                       searchQuery={tmdbSearchQuery}
                       onSearchChange={setTmdbSearchQuery}
@@ -1679,7 +1726,7 @@ export default function PlaylistView({
               {isEditMode && enableEdit ? (
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                   {/* Bulk Actions Div */}
-                  <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="flex items-center gap-3 flex-shrink-0 overflow-x-auto">
                     <Button
                       variant="outline"
                       size="sm"
