@@ -331,7 +331,7 @@ export default function DashboardProfileContent() {
       {activeTab === "playlists" && (
         <>
           {isLoadingPlaylists ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5 md:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="aspect-[3/4] w-full rounded-lg" />
               ))}
@@ -344,7 +344,7 @@ export default function DashboardProfileContent() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5 md:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
                 {paginatedPlaylists.map((playlist: Playlist) => (
                   <PlaylistCard
                     key={playlist.id}
@@ -408,7 +408,7 @@ export default function DashboardProfileContent() {
       {activeTab === "lists" && (
         <>
           {isLoadingLists ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5 md:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="aspect-[3/4] w-full rounded-lg" />
               ))}
@@ -421,7 +421,7 @@ export default function DashboardProfileContent() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5 md:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
                 {paginatedLists.map((list) => (
                   <ListCard
                     key={list.id}

@@ -345,7 +345,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
       {activeTab === "lists" && (
         <>
           {isLoadingLists ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="aspect-[3/4] w-full rounded-lg" />
               ))}
@@ -358,7 +358,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
                 {paginatedLists.map((list: ListType) => (
                   <ListCard
                     key={list.id}
@@ -400,7 +400,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
       {activeTab === "playlists" && (
         <>
           {isLoadingPlaylists ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="aspect-[3/4] w-full rounded-lg" />
               ))}
@@ -413,7 +413,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
                 {paginatedPlaylists.map((playlist: Playlist) => (
                   <PlaylistCard
                     key={playlist.id}
