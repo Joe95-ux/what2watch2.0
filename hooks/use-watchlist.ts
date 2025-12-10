@@ -411,13 +411,9 @@ export function useReorderWatchlist() {
       // Snapshot the previous value
       const previousWatchlist = queryClient.getQueryData<WatchlistItem[]>(["watchlist"]);
 
-      console.log("Optimistic update - items to update:", itemsToUpdate.length);
-      console.log("Previous watchlist length:", previousWatchlist?.length);
-
       // Optimistically update the order values
       queryClient.setQueryData<WatchlistItem[]>(["watchlist"], (old = []) => {
         if (!old || old.length === 0) {
-          console.log("Optimistic update - old watchlist is empty");
           return old;
         }
         
@@ -431,40 +427,20 @@ export function useReorderWatchlist() {
           return item;
         });
 
-        console.log("Optimistic update - updated watchlist length:", updated.length);
-        console.log("Sample updated items:", updated.slice(0, 3).map(i => ({ id: i.id, order: i.order })));
-
         return updated;
       });
 
       return { previousWatchlist };
     },
     onSuccess: async (_, itemsToUpdate) => {
-      console.log("Reorder mutation successful on server. Updating cache with new orders.");
-      // Update the cache directly with the new order values
-      // The optimistic update already applied these changes, so this just confirms them
-      // No need to update again to avoid flicker
-      
-      // Only invalidate in the background after a delay to ensure consistency
-      // This prevents flicker by not forcing an immediate refetch
-      setTimeout(() => {
-        queryClient.invalidateQueries({ 
-          queryKey: ["watchlist"],
-          refetchType: 'none' // Only refetch if data is stale, don't force immediate refetch
-        });
-      }, 2000);
+      // Refetch immediately - optimistic update handles the UI, this ensures server state is synced
+      queryClient.refetchQueries({ queryKey: ["watchlist"] });
     },
     onError: (err, variables, context) => {
-      console.error("Reorder mutation error:", err);
       // Rollback on error
       if (context?.previousWatchlist) {
         queryClient.setQueryData(["watchlist"], context.previousWatchlist);
       }
-      // Force refetch on error to get correct state
-      queryClient.invalidateQueries({ 
-        queryKey: ["watchlist"],
-        refetchType: 'active'
-      });
     },
   });
 }

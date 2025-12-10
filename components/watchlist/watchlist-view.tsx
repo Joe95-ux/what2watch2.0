@@ -455,7 +455,7 @@ export default function WatchlistView({
 
   // Drag and drop hook (after filteredAndSorted is defined)
   // Only enable drag-and-drop when sortField is "listOrder" and in edit mode
-  const { DragDropContext, handleDragEnd, isDragEnabled } =
+  const { DragDropContext, handleDragEnd, isDragEnabled, displayedEntries } =
     useWatchlistDragDrop({
       filteredEntries: filteredAndSorted,
       allEntries: fullSortedByOrder,
@@ -1762,8 +1762,9 @@ export default function WatchlistView({
                     ref={provided.innerRef}
                     className="space-y-4"
                   >
-                    {(isDragEnabled ? filteredAndSorted : paginatedData).map(
-                      ({ item, type, watchlistItem }, index) => {
+                    {(isDragEnabled ? displayedEntries : paginatedData).map(
+                      (entry, index) => {
+                        const { item, type, watchlistItem } = entry;
                         // When drag is enabled, use actual index; otherwise use paginated index
                         const actualIndex = isDragEnabled
                           ? index

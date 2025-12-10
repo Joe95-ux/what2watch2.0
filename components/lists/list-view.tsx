@@ -422,7 +422,7 @@ export default function ListView({
 
   // Drag and drop hook (after filteredAndSorted is defined)
   // Only enable drag-and-drop when sortField is "listOrder" and in edit mode
-  const { DragDropContext, handleDragEnd, isDragEnabled } = useListDragDrop({
+  const { DragDropContext, handleDragEnd, isDragEnabled, displayedEntries } = useListDragDrop({
     listId: list?.id || "",
     filteredEntries: filteredAndSorted,
     allEntries: fullSortedByPosition,
@@ -1415,8 +1415,9 @@ export default function ListView({
                       ref={provided.innerRef}
                       className="space-y-4"
                     >
-                      {(isDragEnabled ? filteredAndSorted : paginatedData).map(
-                        ({ item, type, listItem }, index) => {
+                      {(isDragEnabled ? displayedEntries : paginatedData).map(
+                        (entry, index) => {
+                          const { item, type, listItem } = entry;
                           // When drag is enabled, use actual index; otherwise use paginated index
                           const actualIndex = isDragEnabled
                             ? index

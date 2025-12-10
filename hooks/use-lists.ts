@@ -275,27 +275,9 @@ export function useReorderList(listId: string) {
         queryClient.setQueryData(["list", listId], context.previousList);
       }
     },
-    onSuccess: (data, newItems) => {
-      // Update cache with new positions
-      const currentList = queryClient.getQueryData<List>(["list", listId]);
-      if (currentList) {
-        const updatedItems = currentList.items.map((item) => {
-          const update = newItems.find((n) => n.id === item.id);
-          return update ? { ...item, position: update.position } : item;
-        });
-        updatedItems.sort((a, b) => a.position - b.position);
-        queryClient.setQueryData<List>(["list", listId], {
-          ...currentList,
-          items: updatedItems,
-        });
-      }
-      // Invalidate after a delay to ensure consistency
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["list", listId] });
-      }, 1000);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["list", listId] });
+    onSuccess: () => {
+      // Refetch immediately - optimistic update handles the UI, this ensures server state is synced
+      queryClient.refetchQueries({ queryKey: ["list", listId] });
     },
   });
 }

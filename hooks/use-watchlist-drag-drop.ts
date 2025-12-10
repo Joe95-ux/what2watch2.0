@@ -1,6 +1,5 @@
-import { useCallback } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
-import { toast } from "sonner";
 import { useReorderWatchlist } from "./use-watchlist";
 import { reorderWatchlistEntries, type WatchlistEntry } from "@/lib/watchlist-utils";
 
@@ -13,76 +12,76 @@ interface UseWatchlistDragDropOptions {
 }
 
 export function useWatchlistDragDrop({
-  filteredEntries,
+  filteredEntries: initialFilteredEntries,
   allEntries,
   isEditMode,
   isLgScreen,
   onReorder,
 }: UseWatchlistDragDropOptions) {
+  // Local state for UI - makes drag "stick" immediately
+  const [displayedEntries, setDisplayedEntries] = useState<WatchlistEntry[]>(initialFilteredEntries);
+  
   const reorderWatchlist = useReorderWatchlist();
+
+  // Sync with parent when initialFilteredEntries changes
+  useEffect(() => {
+    setDisplayedEntries(initialFilteredEntries);
+  }, [initialFilteredEntries]);
 
   const handleDragEnd = useCallback(
     (result: DropResult) => {
-      // Early returns for invalid drag operations
-      if (!result.destination) {
-        console.log("Drag cancelled: no destination");
-        return;
-      }
-      
-      if (!isEditMode || !isLgScreen) {
-        console.log("Drag cancelled: not in edit mode or not lg screen", { isEditMode, isLgScreen });
-        return;
-      }
+      // Early returns
+      if (!result.destination) return;
+      if (!isEditMode || !isLgScreen) return;
+      if (result.source.index === result.destination.index) return;
 
       const { source, destination } = result;
+
+      // 1. IMMEDIATELY reorder the UI items - this prevents snap-back
+      const reorderedDisplay = [...displayedEntries];
+      const [draggedItem] = reorderedDisplay.splice(source.index, 1);
+      reorderedDisplay.splice(destination.index, 0, draggedItem);
       
-      if (source.index === destination.index) {
-        console.log("Drag cancelled: same index");
-        return;
-      }
+      // Update local state - UI re-renders instantly
+      setDisplayedEntries(reorderedDisplay);
 
-      console.log("Drag operation:", {
-        sourceIndex: source.index,
-        destinationIndex: destination.index,
-        filteredCount: filteredEntries.length,
-        allCount: allEntries.length,
-      });
-
-      // Calculate new order values for ALL items
+      // 2. Calculate order updates for ALL items (for API)
       const itemsToUpdate = reorderWatchlistEntries(
-        filteredEntries,
+        initialFilteredEntries, // Use original filtered entries for calculation
         allEntries,
         source.index,
         destination.index
       );
 
-      console.log("Items to update:", itemsToUpdate.length, itemsToUpdate.slice(0, 5));
+      if (itemsToUpdate.length === 0) return;
 
-      if (itemsToUpdate.length === 0) {
-        console.log("No items to update");
-        return;
-      }
-
-      // Trigger mutation with proper callbacks
+      // 3. Send to API (optimistic update happens in the mutation)
       reorderWatchlist.mutate(itemsToUpdate, {
         onSuccess: () => {
-          console.log("Reorder successful");
-          toast.success("Watchlist reordered");
           onReorder?.();
         },
-        onError: (error) => {
-          console.error("Reorder error:", error);
-          toast.error("Failed to reorder watchlist");
+        onError: () => {
+          // Revert UI on error
+          setDisplayedEntries(initialFilteredEntries);
         },
       });
     },
-    [filteredEntries, allEntries, isEditMode, isLgScreen, reorderWatchlist, onReorder]
+    [
+      displayedEntries,
+      initialFilteredEntries,
+      allEntries,
+      isEditMode,
+      isLgScreen,
+      reorderWatchlist,
+      onReorder
+    ]
   );
 
   return {
     DragDropContext,
     handleDragEnd,
     isDragEnabled: isEditMode && isLgScreen,
+    displayedEntries,
   };
 }
 
