@@ -87,6 +87,7 @@ import { useUser } from "@clerk/nextjs";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { useLists, useUpdateList, useCreateList } from "@/hooks/use-lists";
 import { useReorderWatchlist, useAddToWatchlist, useUpdateWatchlistItem } from "@/hooks/use-watchlist";
+import { reorderWatchlistEntries, type WatchlistEntry } from "@/lib/watchlist-utils";
 import { createPersonSlug } from "@/lib/person-utils";
 import { useSearch } from "@/hooks/use-search";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -1763,8 +1764,23 @@ export default function WatchlistView({
                     className="space-y-4"
                   >
                     {(isDragEnabled ? displayedEntries : paginatedData).map(
-                      (entry, index) => {
-                        const { item, type, watchlistItem } = entry;
+                      (entry: WatchlistEntry | { item: TMDBMovie | TMDBSeries; type: "movie" | "tv"; watchlistItem: WatchlistItem }, index) => {
+                        // When drag is enabled, entry is WatchlistEntry; otherwise it's the paginated format
+                        let item: TMDBMovie | TMDBSeries;
+                        let type: "movie" | "tv";
+                        let watchlistItem: WatchlistItem;
+                        
+                        if (isDragEnabled) {
+                          const watchlistEntry = entry as WatchlistEntry;
+                          item = watchlistEntry.item as TMDBMovie | TMDBSeries;
+                          type = watchlistEntry.type;
+                          watchlistItem = watchlistEntry.watchlistItem;
+                        } else {
+                          const paginatedEntry = entry as { item: TMDBMovie | TMDBSeries; type: "movie" | "tv"; watchlistItem: WatchlistItem };
+                          item = paginatedEntry.item;
+                          type = paginatedEntry.type;
+                          watchlistItem = paginatedEntry.watchlistItem;
+                        }
                         // When drag is enabled, use actual index; otherwise use paginated index
                         const actualIndex = isDragEnabled
                           ? index
