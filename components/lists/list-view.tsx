@@ -1416,8 +1416,23 @@ export default function ListView({
                       className="space-y-4"
                     >
                       {(isDragEnabled ? displayedEntries : paginatedData).map(
-                        (entry, index) => {
-                          const { item, type, listItem } = entry;
+                        (entry: ListEntry | { item: TMDBMovie | TMDBSeries; type: "movie" | "tv"; listItem: ListItem }, index) => {
+                          // When drag is enabled, entry is ListEntry; otherwise it's the paginated format
+                          let item: TMDBMovie | TMDBSeries;
+                          let type: "movie" | "tv";
+                          let listItem: ListItem;
+                          
+                          if (isDragEnabled) {
+                            const listEntry = entry as ListEntry;
+                            item = listEntry.item as TMDBMovie | TMDBSeries;
+                            type = listEntry.type;
+                            listItem = listEntry.listItem;
+                          } else {
+                            const paginatedEntry = entry as { item: TMDBMovie | TMDBSeries; type: "movie" | "tv"; listItem: ListItem };
+                            item = paginatedEntry.item;
+                            type = paginatedEntry.type;
+                            listItem = paginatedEntry.listItem;
+                          }
                           // When drag is enabled, use actual index; otherwise use paginated index
                           const actualIndex = isDragEnabled
                             ? index
