@@ -198,11 +198,6 @@ export default function PlaylistView({
   const [youtubeSearchQuery, setYoutubeSearchQuery] = useState("");
   const [youtubeCurrentPage, setYoutubeCurrentPage] = useState(1);
 
-  // Drag state to freeze lists during drag
-  const [isDraggingTMDB, setIsDraggingTMDB] = useState(false);
-  const [isDraggingYouTube, setIsDraggingYouTube] = useState(false);
-  const frozenPaginatedTMDBRef = useRef<typeof paginatedTMDB>([]);
-  const frozenPaginatedYouTubeRef = useRef<typeof paginatedYouTube>([]);
 
   const [itemToRemove, setItemToRemove] = useState<{
     itemId: string;
@@ -245,178 +240,9 @@ export default function PlaylistView({
     }
   }, []);
 
-  // Local state only for drag-and-drop operations (Trello-style)
-  // Normal flow: playlist data → filters/sort → render (unchanged)
-  // During drag: use local state → update immediately → API call → useEffect syncs back
-  const [localTMDBItems, setLocalTMDBItems] = useState<PlaylistItem[]>(playlist?.items || []);
-  const [localYouTubeItems, setLocalYouTubeItems] = useState<YouTubePlaylistItem[]>(playlist?.youtubeItems || []);
-
-  // Debug: Log initial state
-  useEffect(() => {
-    console.log("[PlaylistView] Initial local state:", {
-      localTMDBCount: localTMDBItems.length,
-      playlistTMDBCount: playlist?.items?.length || 0,
-      localYouTubeCount: localYouTubeItems.length,
-      playlistYouTubeCount: playlist?.youtubeItems?.length || 0,
-    });
-  }, []);
-
-  // Sync local state with playlist data (source of truth) - same data that feeds UI
-  // BUT: Don't sync if playlist data is empty and we're in drag mode (to preserve local state during drag)
-  useEffect(() => {
-    const prevTMDBCount = localTMDBItems.length;
-    const prevYouTubeCount = localYouTubeItems.length;
-    const newTMDBCount = playlist?.items?.length || 0;
-    const newYouTubeCount = playlist?.youtubeItems?.length || 0;
-    
-    // Calculate drag mode flags inside useEffect to avoid dependency issues
-    // These will be recalculated later in the component, but we need them here for the guard
-    const isTMDBDragEnabled = isEditMode && enableEdit && tmdbSortField === "listOrder" && isLgScreen;
-    const isYouTubeDragEnabled = isEditMode && enableEdit && !isMixedPlaylist && isLgScreen;
-    const isDragMode = isTMDBDragEnabled || isYouTubeDragEnabled;
-    
-    // If we're in drag mode and the playlist data is empty (likely from optimistic update overwrite),
-    // don't sync to preserve the local state that was just updated
-    const shouldSkipSync = isDragMode && newTMDBCount === 0 && newYouTubeCount === 0 && (prevTMDBCount > 0 || prevYouTubeCount > 0);
-    
-    console.log("[PlaylistView] Syncing local state with DB:", {
-      prevTMDBCount,
-      newTMDBCount,
-      prevYouTubeCount,
-      newYouTubeCount,
-      changed: prevTMDBCount !== newTMDBCount || prevYouTubeCount !== newYouTubeCount,
-      isDragMode,
-      shouldSkipSync,
-      timestamp: new Date().toISOString(),
-    });
-    
-    if (shouldSkipSync) {
-      console.log("[PlaylistView] Skipping sync to preserve local state during drag");
-      return;
-    }
-    
-    setLocalTMDBItems(playlist?.items || []);
-    setLocalYouTubeItems(playlist?.youtubeItems || []);
-  }, [playlist?.items, playlist?.youtubeItems, isEditMode, enableEdit, tmdbSortField, isLgScreen, isMixedPlaylist, localTMDBItems.length, localYouTubeItems.length]);
-
-  // Simple reorder function (Trello-style) - reorders array directly, then updates order values
-  // sourceIndex and destinationIndex are from the filtered/sorted array
-  // We need to map them to the full localTMDBItems array
-  const reorderLocalTMDBItems = (sourceIndex: number, destinationIndex: number) => {
-    console.log("[PlaylistView] reorderLocalTMDBItems called:", {
-      sourceIndex,
-      destinationIndex,
-      timestamp: new Date().toISOString(),
-    });
-    
-    setLocalTMDBItems((prevItems) => {
-      console.log("[PlaylistView] reorderLocalTMDBItems - prevItems count:", prevItems.length);
-      
-      // When drag is enabled, filteredAndSortedTMDB shows all items sorted by order
-      // So we need to work with prevItems sorted by order to match the indices
-      const sorted = [...prevItems].sort((a, b) => {
-        const aOrder = a.order || 0;
-        const bOrder = b.order || 0;
-        if (aOrder > 0 && bOrder === 0) return -1;
-        if (aOrder === 0 && bOrder > 0) return 1;
-        if (aOrder > 0 && bOrder > 0) return aOrder - bOrder;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
-
-      // Reorder the sorted array (Trello pattern)
-      const reordered = [...sorted];
-      const [movedItem] = reordered.splice(sourceIndex, 1);
-      reordered.splice(destinationIndex, 0, movedItem);
-      
-      // Update order values to match new positions
-      const updated = reordered.map((item, index) => ({
-        ...item,
-        order: index + 1,
-      }));
-      
-      console.log("[PlaylistView] reorderLocalTMDBItems - updated count:", updated.length, {
-        firstItemOrder: updated[0]?.order,
-        lastItemOrder: updated[updated.length - 1]?.order,
-        movedItemId: movedItem?.id,
-        movedItemNewOrder: updated[destinationIndex]?.order,
-      });
-      
-      return updated;
-    });
-  };
-
-  const reorderLocalYouTubeItems = (sourceIndex: number, destinationIndex: number) => {
-    console.log("[PlaylistView] reorderLocalYouTubeItems called:", {
-      sourceIndex,
-      destinationIndex,
-      timestamp: new Date().toISOString(),
-    });
-    
-    setLocalYouTubeItems((prevItems) => {
-      console.log("[PlaylistView] reorderLocalYouTubeItems - prevItems count:", prevItems.length);
-      
-      // Sort by order to match the filtered array
-      const sorted = [...prevItems].sort((a, b) => {
-        const aOrder = a.order || 0;
-        const bOrder = b.order || 0;
-        if (aOrder > 0 && bOrder === 0) return -1;
-        if (aOrder === 0 && bOrder > 0) return 1;
-        if (aOrder > 0 && bOrder > 0) return aOrder - bOrder;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
-
-      // Reorder the sorted array (Trello pattern)
-      const reordered = [...sorted];
-      const [movedItem] = reordered.splice(sourceIndex, 1);
-      reordered.splice(destinationIndex, 0, movedItem);
-      
-      // Update order values to match new positions
-      const updated = reordered.map((item, index) => ({
-        ...item,
-        order: index + 1,
-      }));
-      
-      console.log("[PlaylistView] reorderLocalYouTubeItems - updated count:", updated.length, {
-        firstItemOrder: updated[0]?.order,
-        lastItemOrder: updated[updated.length - 1]?.order,
-        movedItemId: movedItem?.id,
-        movedItemNewOrder: updated[destinationIndex]?.order,
-      });
-      
-      return updated;
-    });
-  };
-
-  // Determine if drag is enabled (for using local state)
-  const isTMDBDragEnabledForDisplay = isEditMode && enableEdit && tmdbSortField === "listOrder" && isLgScreen;
-  const isYouTubeDragEnabledForDisplay = isEditMode && enableEdit && !isMixedPlaylist && isLgScreen;
-
-  // Use local state when drag is enabled (Trello-style: local state is always the source when drag-enabled)
-  // This ensures card stays in new position immediately after drag, before DB update completes
-  // useEffect will sync local state when DB updates
-  // When drag is enabled, ALWAYS use local state (even if empty) to prevent switching back to playlist prop
-  const displayTMDBItems = isTMDBDragEnabledForDisplay
-    ? localTMDBItems 
-    : (playlist?.items || []);
-  const displayYouTubeItems = isYouTubeDragEnabledForDisplay
-    ? localYouTubeItems
-    : (playlist?.youtubeItems || []);
-
-  // Debug: Log which data source is being used
-  useEffect(() => {
-    console.log("[PlaylistView] Display items source:", {
-      isTMDBDragEnabledForDisplay,
-      usingLocalTMDB: isTMDBDragEnabledForDisplay && localTMDBItems.length > 0,
-      localTMDBCount: localTMDBItems.length,
-      playlistTMDBCount: playlist?.items?.length || 0,
-      displayTMDBCount: displayTMDBItems.length,
-      isYouTubeDragEnabledForDisplay,
-      usingLocalYouTube: isYouTubeDragEnabledForDisplay && localYouTubeItems.length > 0,
-      localYouTubeCount: localYouTubeItems.length,
-      playlistYouTubeCount: playlist?.youtubeItems?.length || 0,
-      displayYouTubeCount: displayYouTubeItems.length,
-    });
-  }, [isTMDBDragEnabledForDisplay, isYouTubeDragEnabledForDisplay, localTMDBItems.length, localYouTubeItems.length, displayTMDBItems.length, displayYouTubeItems.length, playlist?.items?.length, playlist?.youtubeItems?.length]);
+  // Use playlist data directly - optimistic updates handle UI changes
+  const displayTMDBItems = playlist?.items || [];
+  const displayYouTubeItems = playlist?.youtubeItems || [];
 
   // Convert playlist items to TMDB format for display
   const playlistAsTMDB = useMemo(() => {
@@ -620,14 +446,6 @@ export default function PlaylistView({
     return filteredAndSortedTMDB.slice(startIndex, endIndex);
   }, [filteredAndSortedTMDB, tmdbCurrentPage]);
 
-  // Freeze paginated list during drag to prevent flicker - TMDB
-  useEffect(() => {
-    if (!isDraggingTMDB) {
-      frozenPaginatedTMDBRef.current = paginatedTMDB;
-    }
-  }, [paginatedTMDB, isDraggingTMDB]);
-  
-  const frozenPaginatedTMDB = isDraggingTMDB ? frozenPaginatedTMDBRef.current : paginatedTMDB;
 
   // Pagination for YouTube videos
   const youtubeTotalPages = Math.ceil(filteredYouTube.length / ITEMS_PER_PAGE);
@@ -637,14 +455,6 @@ export default function PlaylistView({
     return filteredYouTube.slice(startIndex, endIndex);
   }, [filteredYouTube, youtubeCurrentPage]);
 
-  // Freeze paginated list during drag to prevent flicker - YouTube
-  useEffect(() => {
-    if (!isDraggingYouTube) {
-      frozenPaginatedYouTubeRef.current = paginatedYouTube;
-    }
-  }, [paginatedYouTube, isDraggingYouTube]);
-  
-  const frozenPaginatedYouTube = isDraggingYouTube ? frozenPaginatedYouTubeRef.current : paginatedYouTube;
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -765,7 +575,7 @@ export default function PlaylistView({
 
   // Drag and drop hook for TMDB items
   const isTMDBDragEnabledComputed = isEditMode && enableEdit && tmdbSortField === "listOrder" && isLgScreen;
-  const { DragDropContext: TMDBDragDropContext, handleDragEnd: handleTMDBDragEnd, handleDragStart: handleTMDBDragStart, isDragEnabled: isTMDBDragEnabled } = usePlaylistDragDrop({
+  const { DragDropContext: TMDBDragDropContext, handleDragEnd: handleTMDBDragEnd, isDragEnabled: isTMDBDragEnabled } = usePlaylistDragDrop({
     playlistId: playlist?.id || "",
     filteredEntries: tmdbFilteredEntries,
     allEntries: tmdbAllEntries,
@@ -773,16 +583,13 @@ export default function PlaylistView({
     isLgScreen,
     sortField: tmdbSortField,
     itemType: "tmdb",
-    currentPage: isTMDBDragEnabledComputed ? 1 : tmdbCurrentPage, // When drag enabled, pagination disabled so use page 1
+    currentPage: isTMDBDragEnabledComputed ? 1 : tmdbCurrentPage,
     itemsPerPage: ITEMS_PER_PAGE,
-    onDragStart: () => setIsDraggingTMDB(true),
-    onDragEnd: () => setIsDraggingTMDB(false),
-    onLocalReorder: reorderLocalTMDBItems,
   });
 
   // Drag and drop hook for YouTube items (only in YouTube-only playlists)
   const isYouTubeDragEnabledComputed = isEditMode && enableEdit && !isMixedPlaylist && isLgScreen;
-  const { DragDropContext: YouTubeDragDropContext, handleDragEnd: handleYouTubeDragEnd, handleDragStart: handleYouTubeDragStart, isDragEnabled: isYouTubeDragEnabled } = usePlaylistDragDrop({
+  const { DragDropContext: YouTubeDragDropContext, handleDragEnd: handleYouTubeDragEnd, isDragEnabled: isYouTubeDragEnabled } = usePlaylistDragDrop({
     playlistId: playlist?.id || "",
     filteredEntries: youtubeFilteredEntries,
     allEntries: youtubeAllEntries,
@@ -790,11 +597,8 @@ export default function PlaylistView({
     isLgScreen,
     sortField: "listOrder",
     itemType: "youtube",
-    currentPage: isYouTubeDragEnabledComputed ? 1 : youtubeCurrentPage, // When drag enabled, pagination disabled so use page 1
+    currentPage: isYouTubeDragEnabledComputed ? 1 : youtubeCurrentPage,
     itemsPerPage: ITEMS_PER_PAGE,
-    onDragStart: () => setIsDraggingYouTube(true),
-    onDragEnd: () => setIsDraggingYouTube(false),
-    onLocalReorder: reorderLocalYouTubeItems,
   });
 
   const handleRemove = async () => {
@@ -1309,7 +1113,7 @@ export default function PlaylistView({
                               const title = isMovie ? item.title : item.name;
                               const mediaType = isMovie ? "movie" : "tv";
                               const isInPlaylist = playlist?.items?.some(
-                                (i) =>
+                                (i: PlaylistItem) =>
                                   i.tmdbId === item.id &&
                                   i.mediaType === mediaType
                               ) || false;
@@ -1733,7 +1537,7 @@ export default function PlaylistView({
               ) : (
                 // Detailed View
                 <>
-                  <TMDBDragDropContext onDragStart={handleTMDBDragStart} onDragEnd={handleTMDBDragEnd}>
+                  <TMDBDragDropContext onDragEnd={handleTMDBDragEnd}>
                     <Droppable droppableId="tmdb-items">
                       {(provided) => (
                         <div
@@ -1741,18 +1545,16 @@ export default function PlaylistView({
                           ref={provided.innerRef}
                           className="space-y-4"
                         >
-                          {(isTMDBDragEnabled ? filteredAndSortedTMDB : frozenPaginatedTMDB).map(
+                          {(isTMDBDragEnabled ? filteredAndSortedTMDB : paginatedTMDB).map(
                             ({ item, type, playlistItem }: { item: TMDBMovie | TMDBSeries; type: "movie" | "tv"; playlistItem: PlaylistItem }, index: number) => {
                               // When drag is enabled, use actual index; otherwise use paginated index
                               const actualIndex = isTMDBDragEnabled 
                                 ? index 
                                 : (tmdbCurrentPage - 1) * ITEMS_PER_PAGE + index;
                               // Lock order value during drag to prevent flicker
-                              const lockedOrder = isDraggingTMDB 
+                              const lockedOrder = tmdbSortField === "listOrder"
                                 ? (playlistItem.order && playlistItem.order > 0 ? playlistItem.order : actualIndex + 1)
-                                : (tmdbSortField === "listOrder"
-                                    ? (playlistItem.order && playlistItem.order > 0 ? playlistItem.order : actualIndex + 1)
-                                    : undefined);
+                                : undefined;
                               return (
                                 <Draggable
                                   key={playlistItem.id}
@@ -2136,7 +1938,7 @@ export default function PlaylistView({
                 // Detailed View for YouTube
                 <>
                   {isYouTubeDragEnabled ? (
-                    <YouTubeDragDropContext onDragStart={handleYouTubeDragStart} onDragEnd={handleYouTubeDragEnd}>
+                    <YouTubeDragDropContext onDragEnd={handleYouTubeDragEnd}>
                       <Droppable droppableId="youtube-items">
                         {(provided) => (
                           <div
@@ -2144,15 +1946,13 @@ export default function PlaylistView({
                             ref={provided.innerRef}
                             className="space-y-4"
                           >
-                            {(isYouTubeDragEnabled ? filteredYouTube : frozenPaginatedYouTube).map((youtubeItem: YouTubePlaylistItem, index: number) => {
+                            {(isYouTubeDragEnabled ? filteredYouTube : paginatedYouTube).map((youtubeItem: YouTubePlaylistItem, index: number) => {
                               // When drag is enabled, use actual index; otherwise use paginated index
                               const actualIndex = isYouTubeDragEnabled
                                 ? index
                                 : (youtubeCurrentPage - 1) * ITEMS_PER_PAGE + index;
                               // Lock order value during drag to prevent flicker
-                              const lockedOrder = isDraggingYouTube
-                                ? (youtubeItem.order && youtubeItem.order > 0 ? youtubeItem.order : actualIndex + 1)
-                                : (youtubeItem.order && youtubeItem.order > 0 ? youtubeItem.order : actualIndex + 1);
+                              const lockedOrder = youtubeItem.order && youtubeItem.order > 0 ? youtubeItem.order : actualIndex + 1;
                               return (
                                 <Draggable
                                   key={youtubeItem.id}

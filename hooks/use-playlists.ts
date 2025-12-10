@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export interface YouTubePlaylistItem {
   id: string;
@@ -294,68 +295,26 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (items: Array<{ id: string; order: number }>) => {
-      console.log("[useReorderPlaylist] Mutation function called:", {
-        playlistId,
-        itemType,
-        itemsCount: items.length,
-        firstFew: items.slice(0, 3).map(i => ({ id: i.id, order: i.order })),
-        timestamp: new Date().toISOString(),
-      });
-      return reorderPlaylistItems(playlistId, items, itemType);
-    },
+    mutationFn: (items: Array<{ id: string; order: number }>) =>
+      reorderPlaylistItems(playlistId, items, itemType),
 
     onMutate: async (items) => {
-      console.log("[useReorderPlaylist] onMutate called:", {
-        playlistId,
-        itemType,
-        itemsCount: items.length,
-        timestamp: new Date().toISOString(),
-      });
-
       await queryClient.cancelQueries({ queryKey: ["playlist", playlistId] });
 
       const previous = queryClient.getQueryData<Playlist>(["playlist", playlistId]);
-      if (!previous) {
-        console.warn("[useReorderPlaylist] No previous playlist data found - skipping optimistic update");
-        return { previousPlaylist: null };
-      }
+      if (!previous) return { previousPlaylist: null };
 
       // Check if we have items in the cache
       const tmdbItemsCount = previous.items?.length ?? 0;
       const youtubeItemsCount = previous.youtubeItems?.length ?? 0;
       const previousItemsCount = itemType === "tmdb" ? tmdbItemsCount : youtubeItemsCount;
 
-      console.log("[useReorderPlaylist] Previous playlist data:", {
-        itemsCount: tmdbItemsCount,
-        youtubeItemsCount: youtubeItemsCount,
-        previousItemsCount,
-        itemType,
-        hasItems: !!previous.items,
-        hasYouTubeItems: !!previous.youtubeItems,
-        itemsIsArray: Array.isArray(previous.items),
-        itemsLength: previous.items?.length,
-        itemsIsUndefined: previous.items === undefined,
-        itemsIsNull: previous.items === null,
-      });
-
-      // If the cache has no items, skip optimistic update to avoid overwriting local state
-      // The local state update already happened, and we don't want to overwrite it with empty data
+      // If the cache has no items, skip optimistic update
       if (previousItemsCount === 0 || (!previous.items && !previous.youtubeItems)) {
-        console.warn("[useReorderPlaylist] Cache has no items - skipping optimistic update to preserve local state", {
-          itemType,
-          previousItemsCount,
-          tmdbItemsCount,
-          youtubeItemsCount,
-          itemsLength: previous.items?.length,
-          youtubeItemsLength: previous.youtubeItems?.length,
-          hasItems: !!previous.items,
-          hasYouTubeItems: !!previous.youtubeItems,
-        });
         return { previousPlaylist: previous };
       }
 
-      // Safer deep clone
+      // Optimistically update cache
       const updated: Playlist = {
         ...previous,
         items: previous.items ? previous.items.map((i) => ({ ...i })) : [],
@@ -366,8 +325,6 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
 
       const orderMap = new Map(items.map(i => [i.id, i.order]));
 
-      let hasValidUpdate = false;
-
       if (itemType === "tmdb" && updated.items && updated.items.length > 0) {
         updated.items = updated.items
           .map(item => ({
@@ -375,17 +332,6 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
             order: orderMap.get(item.id) ?? item.order
           }))
           .sort((a, b) => a.order - b.order);
-        
-        hasValidUpdate = true;
-        console.log("[useReorderPlaylist] Updated TMDB items:", {
-          count: updated.items.length,
-          firstFew: updated.items.slice(0, 3).map(i => ({ id: i.id, order: i.order })),
-        });
-      } else if (itemType === "tmdb") {
-        console.warn("[useReorderPlaylist] Skipping TMDB update - no items or empty array", {
-          hasItems: !!updated.items,
-          itemsLength: updated.items?.length,
-        });
       }
 
       if (itemType === "youtube" && updated.youtubeItems && updated.youtubeItems.length > 0) {
@@ -395,43 +341,24 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
             order: orderMap.get(item.id) ?? item.order
           }))
           .sort((a, b) => a.order - b.order);
-        
-        hasValidUpdate = true;
-        console.log("[useReorderPlaylist] Updated YouTube items:", {
-          count: updated.youtubeItems.length,
-          firstFew: updated.youtubeItems.slice(0, 3).map(i => ({ id: i.id, order: i.order })),
-        });
-      } else if (itemType === "youtube") {
-        console.warn("[useReorderPlaylist] Skipping YouTube update - no items or empty array", {
-          hasYouTubeItems: !!updated.youtubeItems,
-          youtubeItemsLength: updated.youtubeItems?.length,
-        });
       }
 
-      // Only update query data if we actually have items to update
-      if (hasValidUpdate) {
-        queryClient.setQueryData(["playlist", playlistId], updated);
-        console.log("[useReorderPlaylist] Query data updated optimistically");
-      } else {
-        console.warn("[useReorderPlaylist] Not updating query data - no valid items to update");
-      }
+      queryClient.setQueryData(["playlist", playlistId], updated);
 
       return { previousPlaylist: previous };
     },
 
     onError: (_err, _items, ctx) => {
-      console.error("[useReorderPlaylist] Mutation error:", _err);
       if (ctx?.previousPlaylist) {
-        console.log("[useReorderPlaylist] Reverting to previous playlist data");
         queryClient.setQueryData(["playlist", playlistId], ctx.previousPlaylist);
       }
+      toast.error("Failed to reorder playlist");
     },
 
     onSuccess: () => {
-      console.log("[useReorderPlaylist] Mutation successful, scheduling refetch in 500ms");
+      toast.success("Playlist reordered");
       // Delay refetch to prevent snap-back conflicts with optimistic updates
       setTimeout(() => {
-        console.log("[useReorderPlaylist] Refetching playlist data from DB");
         queryClient.refetchQueries({ queryKey: ["playlist", playlistId] });
       }, 500);
     }
@@ -615,4 +542,3 @@ export function usePublicPlaylists(limit?: number) {
     refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 }
-
