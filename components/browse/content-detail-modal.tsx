@@ -419,25 +419,28 @@ export default function ContentDetailModal({
                       onOpenChange={(open) => setHeroPlaylistTooltipOpen(open)}
                     >
                       <TooltipTrigger asChild>
-                        <AddToPlaylistDropdown
-                          item={item}
-                          type={type}
-                          trigger={
-                            <Button
-                              size="lg"
-                              variant="outline"
-                              className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-12 w-12 md:h-14 md:w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
-                            >
-                              <Plus className="size-5 md:size-6 text-white dark:text-white" />
-                            </Button>
-                          }
-                          onOpenChange={(open) => {
-                            setIsHeroPlaylistDropdownOpen(open);
-                            if (open) {
-                              setHeroPlaylistTooltipOpen(false);
+                        <div className="inline-block pointer-events-none">
+                          <AddToPlaylistDropdown
+                            item={item}
+                            type={type}
+                            trigger={
+                              <Button
+                                size="lg"
+                                variant="outline"
+                                className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-12 w-12 md:h-14 md:w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close pointer-events-auto"
+                                type="button"
+                              >
+                                <Plus className="size-5 md:size-6 text-white dark:text-white" />
+                              </Button>
                             }
-                          }}
-                        />
+                            onOpenChange={(open) => {
+                              setIsHeroPlaylistDropdownOpen(open);
+                              if (open) {
+                                setHeroPlaylistTooltipOpen(false);
+                              }
+                            }}
+                          />
+                        </div>
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>Add to Playlist</p>

@@ -357,10 +357,8 @@ export function useReorderPlaylist(playlistId: string, itemType: "tmdb" | "youtu
 
     onSuccess: () => {
       toast.success("Playlist reordered");
-      // Delay refetch to prevent snap-back conflicts with optimistic updates
-      setTimeout(() => {
-        queryClient.refetchQueries({ queryKey: ["playlist", playlistId] });
-      }, 500);
+      // Refetch immediately - optimistic update handles the UI, this ensures server state is synced
+      queryClient.refetchQueries({ queryKey: ["playlist", playlistId] });
     }
   });
 }

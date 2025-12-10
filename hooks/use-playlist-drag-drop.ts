@@ -1,6 +1,5 @@
-import { useCallback } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
-import { toast } from "sonner";
 import { useReorderPlaylist } from "./use-playlists";
 import { reorderPlaylistEntries, type PlaylistEntry } from "@/lib/playlist-utils";
 
@@ -12,22 +11,26 @@ interface UsePlaylistDragDropOptions {
   isLgScreen: boolean;
   sortField: string;
   itemType?: "tmdb" | "youtube";
-  currentPage?: number;
-  itemsPerPage?: number;
 }
 
 export function usePlaylistDragDrop({
   playlistId,
-  filteredEntries,
+  filteredEntries: initialFilteredEntries,
   allEntries,
   isEditMode,
   isLgScreen,
   sortField,
   itemType = "tmdb",
-  currentPage = 1,
-  itemsPerPage = 25,
 }: UsePlaylistDragDropOptions) {
+  // Local state for UI - makes drag "stick" immediately
+  const [displayedEntries, setDisplayedEntries] = useState<PlaylistEntry[]>(initialFilteredEntries);
+  
   const reorderPlaylist = useReorderPlaylist(playlistId, itemType);
+
+  // Sync with parent when initialFilteredEntries changes
+  useEffect(() => {
+    setDisplayedEntries(initialFilteredEntries);
+  }, [initialFilteredEntries]);
 
   const handleDragEnd = useCallback(
     (result: DropResult) => {
@@ -38,33 +41,49 @@ export function usePlaylistDragDrop({
 
       const { source, destination } = result;
 
-      // Convert page-local indices to global indices if paginated
-      const globalSourceIndex = currentPage > 1 && itemsPerPage > 0
-        ? (currentPage - 1) * itemsPerPage + source.index
-        : source.index;
-      const globalDestinationIndex = currentPage > 1 && itemsPerPage > 0
-        ? (currentPage - 1) * itemsPerPage + destination.index
-        : destination.index;
+      // 1. IMMEDIATELY reorder the UI items - this prevents snap-back
+      const reorderedDisplay = [...displayedEntries];
+      const [draggedItem] = reorderedDisplay.splice(source.index, 1);
+      reorderedDisplay.splice(destination.index, 0, draggedItem);
+      
+      // Update local state - UI re-renders instantly
+      setDisplayedEntries(reorderedDisplay);
 
-      // Calculate new order values for all items
+      // 2. Calculate order updates for ALL items (for API)
       const itemsToUpdate = reorderPlaylistEntries(
-        filteredEntries,
+        initialFilteredEntries, // Use original filtered entries for calculation
         allEntries,
-        globalSourceIndex,
-        globalDestinationIndex
+        source.index,
+        destination.index
       );
 
       if (itemsToUpdate.length === 0) return;
 
-      // Trigger mutation (optimistic update happens in the mutation)
-      reorderPlaylist.mutate(itemsToUpdate);
+      // 3. Send to API (optimistic update happens in the mutation)
+      reorderPlaylist.mutate(itemsToUpdate, {
+        onError: (error) => {
+          // Revert UI on error
+          setDisplayedEntries(initialFilteredEntries);
+        },
+      });
     },
-    [playlistId, filteredEntries, allEntries, isEditMode, isLgScreen, sortField, reorderPlaylist, currentPage, itemsPerPage, itemType]
+    [
+      playlistId, 
+      displayedEntries, 
+      initialFilteredEntries, 
+      allEntries, 
+      isEditMode, 
+      isLgScreen, 
+      sortField, 
+      reorderPlaylist, 
+      itemType
+    ]
   );
 
   return {
     DragDropContext,
     handleDragEnd,
     isDragEnabled: isEditMode && isLgScreen && sortField === "listOrder",
+    displayedEntries,
   };
 }

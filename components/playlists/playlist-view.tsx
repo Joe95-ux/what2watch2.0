@@ -226,6 +226,7 @@ export default function PlaylistView({
 
   const removeItemFromPlaylist = useRemoveItemFromPlaylist();
   const updatePlaylist = useUpdatePlaylist();
+  const queryClient = useQueryClient();
 
   // Check if screen is lg (1024px and up) for drag and drop
   useEffect(() => {
@@ -574,8 +575,7 @@ export default function PlaylistView({
   }, [fullSortedYouTubeByOrder]);
 
   // Drag and drop hook for TMDB items
-  const isTMDBDragEnabledComputed = isEditMode && enableEdit && tmdbSortField === "listOrder" && isLgScreen;
-  const { DragDropContext: TMDBDragDropContext, handleDragEnd: handleTMDBDragEnd, isDragEnabled: isTMDBDragEnabled } = usePlaylistDragDrop({
+  const { DragDropContext: TMDBDragDropContext, handleDragEnd: handleTMDBDragEnd, isDragEnabled: isTMDBDragEnabled, displayedEntries: tmdbDisplayedEntries } = usePlaylistDragDrop({
     playlistId: playlist?.id || "",
     filteredEntries: tmdbFilteredEntries,
     allEntries: tmdbAllEntries,
@@ -583,13 +583,10 @@ export default function PlaylistView({
     isLgScreen,
     sortField: tmdbSortField,
     itemType: "tmdb",
-    currentPage: isTMDBDragEnabledComputed ? 1 : tmdbCurrentPage,
-    itemsPerPage: ITEMS_PER_PAGE,
   });
 
   // Drag and drop hook for YouTube items (only in YouTube-only playlists)
-  const isYouTubeDragEnabledComputed = isEditMode && enableEdit && !isMixedPlaylist && isLgScreen;
-  const { DragDropContext: YouTubeDragDropContext, handleDragEnd: handleYouTubeDragEnd, isDragEnabled: isYouTubeDragEnabled } = usePlaylistDragDrop({
+  const { DragDropContext: YouTubeDragDropContext, handleDragEnd: handleYouTubeDragEnd, isDragEnabled: isYouTubeDragEnabled, displayedEntries: youtubeDisplayedEntries } = usePlaylistDragDrop({
     playlistId: playlist?.id || "",
     filteredEntries: youtubeFilteredEntries,
     allEntries: youtubeAllEntries,
@@ -597,8 +594,6 @@ export default function PlaylistView({
     isLgScreen,
     sortField: "listOrder",
     itemType: "youtube",
-    currentPage: isYouTubeDragEnabledComputed ? 1 : youtubeCurrentPage,
-    itemsPerPage: ITEMS_PER_PAGE,
   });
 
   const handleRemove = async () => {
@@ -606,7 +601,31 @@ export default function PlaylistView({
     try {
       if (itemToRemove.isYouTube) {
         // Handle YouTube item removal
-        toast.info("YouTube item removal coming soon");
+        // Find the YouTube item to get videoId
+        const youtubeItem = displayYouTubeItems.find((item) => item.id === itemToRemove.itemId);
+        if (!youtubeItem) {
+          toast.error("YouTube item not found");
+          setItemToRemove(null);
+          return;
+        }
+
+        const res = await fetch(
+          `/api/youtube/videos/${youtubeItem.videoId}/playlist?playlistId=${playlist.id}&itemId=${itemToRemove.itemId}`,
+          {
+            method: "DELETE",
+          }
+        );
+
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || "Failed to remove YouTube item from playlist");
+        }
+
+        // Invalidate queries to refresh the playlist
+        queryClient.invalidateQueries({ queryKey: ["playlists"] });
+        queryClient.invalidateQueries({ queryKey: ["playlist", playlist.id] });
+
+        toast.success("Removed from playlist");
       } else {
         if (onRemove) {
           await onRemove(itemToRemove.itemId);
@@ -633,11 +652,39 @@ export default function PlaylistView({
       // Handle YouTube bulk removal
       if (selectedYouTubeItems.size === 0 || !playlist) return;
       try {
-        // Remove YouTube items (placeholder)
-        toast.info("YouTube bulk removal coming soon");
+        // Remove YouTube items
+        for (const itemId of selectedYouTubeItems) {
+          // Find the YouTube item to get videoId
+          const youtubeItem = displayYouTubeItems.find((item) => item.id === itemId);
+          if (!youtubeItem) continue;
+
+          const res = await fetch(
+            `/api/youtube/videos/${youtubeItem.videoId}/playlist?playlistId=${playlist.id}&itemId=${itemId}`,
+            {
+              method: "DELETE",
+            }
+          );
+
+          if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.error || "Failed to remove YouTube item from playlist");
+          }
+        }
+
+        // Invalidate queries to refresh the playlist
+        queryClient.invalidateQueries({ queryKey: ["playlists"] });
+        queryClient.invalidateQueries({ queryKey: ["playlist", playlist.id] });
+
+        toast.success(
+          `Removed ${selectedYouTubeItems.size} item${selectedYouTubeItems.size > 1 ? "s" : ""} from playlist`
+        );
         setSelectedYouTubeItems(new Set());
       } catch (error) {
-        toast.error("Failed to remove YouTube items");
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to remove YouTube items";
+        toast.error(errorMessage);
       }
     } else {
       // Handle TMDB bulk removal
@@ -1545,8 +1592,24 @@ export default function PlaylistView({
                           ref={provided.innerRef}
                           className="space-y-4"
                         >
-                          {(isTMDBDragEnabled ? filteredAndSortedTMDB : paginatedTMDB).map(
-                            ({ item, type, playlistItem }: { item: TMDBMovie | TMDBSeries; type: "movie" | "tv"; playlistItem: PlaylistItem }, index: number) => {
+                          {(isTMDBDragEnabled ? tmdbDisplayedEntries : paginatedTMDB).map(
+                            (entry: PlaylistEntry | { item: TMDBMovie | TMDBSeries; type: "movie" | "tv"; playlistItem: PlaylistItem }, index: number) => {
+                              // When drag is enabled, entry is PlaylistEntry; otherwise it's the paginated format
+                              let item: TMDBMovie | TMDBSeries;
+                              let type: "movie" | "tv";
+                              let playlistItem: PlaylistItem;
+                              
+                              if (isTMDBDragEnabled) {
+                                const playlistEntry = entry as PlaylistEntry;
+                                item = playlistEntry.item as TMDBMovie | TMDBSeries;
+                                type = playlistEntry.type as "movie" | "tv";
+                                playlistItem = playlistEntry.playlistItem as PlaylistItem;
+                              } else {
+                                const paginatedEntry = entry as { item: TMDBMovie | TMDBSeries; type: "movie" | "tv"; playlistItem: PlaylistItem };
+                                item = paginatedEntry.item;
+                                type = paginatedEntry.type;
+                                playlistItem = paginatedEntry.playlistItem;
+                              }
                               // When drag is enabled, use actual index; otherwise use paginated index
                               const actualIndex = isTMDBDragEnabled 
                                 ? index 
@@ -1582,7 +1645,7 @@ export default function PlaylistView({
                                         isSelected={selectedItems.has(playlistItem.id)}
                                         order={lockedOrder}
                                         index={actualIndex}
-                                        totalItems={filteredAndSortedTMDB.length}
+                                        totalItems={isTMDBDragEnabled ? tmdbDisplayedEntries.length : filteredAndSortedTMDB.length}
                                         onSelect={() =>
                                           toggleItemSelection(playlistItem.id)
                                         }
@@ -1946,7 +2009,11 @@ export default function PlaylistView({
                             ref={provided.innerRef}
                             className="space-y-4"
                           >
-                            {(isYouTubeDragEnabled ? filteredYouTube : paginatedYouTube).map((youtubeItem: YouTubePlaylistItem, index: number) => {
+                            {(isYouTubeDragEnabled ? youtubeDisplayedEntries : paginatedYouTube).map((entry: PlaylistEntry | YouTubePlaylistItem, index: number) => {
+                              // When drag is enabled, entry is PlaylistEntry; otherwise it's YouTubePlaylistItem
+                              const youtubeItem = isYouTubeDragEnabled 
+                                ? (entry as PlaylistEntry).item as YouTubePlaylistItem
+                                : entry as YouTubePlaylistItem;
                               // When drag is enabled, use actual index; otherwise use paginated index
                               const actualIndex = isYouTubeDragEnabled
                                 ? index
@@ -1978,7 +2045,7 @@ export default function PlaylistView({
                                         isSelected={selectedYouTubeItems.has(youtubeItem.id)}
                                         order={lockedOrder}
                                         index={actualIndex}
-                                        totalItems={filteredYouTube.length}
+                                        totalItems={isYouTubeDragEnabled ? youtubeDisplayedEntries.length : filteredYouTube.length}
                                         onSelect={() => toggleItemSelection(youtubeItem.id, true)}
                                         onRemove={
                                           enableRemove
