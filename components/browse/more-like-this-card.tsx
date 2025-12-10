@@ -431,13 +431,6 @@ export default function MoreLikeThisCard({
           <h3 className="text-sm font-semibold text-foreground line-clamp-1">
             {title}
           </h3>
-
-          {/* Synopsis (Truncated to 2 lines) */}
-          {item.overview && (
-            <p className="text-xs text-foreground line-clamp-2 leading-snug">
-              {item.overview}
-            </p>
-          )}
         </div>
       </div>
 

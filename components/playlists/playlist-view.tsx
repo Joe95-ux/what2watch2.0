@@ -70,6 +70,7 @@ import {
 } from "@/components/shared/collection-filters";
 import { 
   useRemoveItemFromPlaylist, 
+  useAddItemToPlaylist,
   useReorderPlaylist, 
   useUpdatePlaylist, 
   usePlaylists, 
@@ -225,6 +226,7 @@ export default function PlaylistView({
   });
 
   const removeItemFromPlaylist = useRemoveItemFromPlaylist();
+  const addItemToPlaylist = useAddItemToPlaylist();
   const updatePlaylist = useUpdatePlaylist();
   const queryClient = useQueryClient();
 
@@ -629,13 +631,14 @@ export default function PlaylistView({
       } else {
         if (onRemove) {
           await onRemove(itemToRemove.itemId);
+          // Don't show toast here - let the parent component handle it
         } else {
           await removeItemFromPlaylist.mutateAsync({
             playlistId: playlist.id,
             itemId: itemToRemove.itemId,
           });
+          toast.success("Removed from playlist");
         }
-        toast.success("Removed from playlist");
       }
       setItemToRemove(null);
     } catch (error) {
@@ -1179,28 +1182,23 @@ export default function PlaylistView({
                                     if (!playlist) return;
 
                                     try {
-                                      // Add item to playlist via API
-                                      const response = await fetch(`/api/playlists/${playlist.id}/items`, {
-                                        method: "POST",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({
+                                      // Add item to playlist using the hook (handles cache invalidation)
+                                      await addItemToPlaylist.mutateAsync({
+                                        playlistId: playlist.id,
+                                        item: {
                                           tmdbId: item.id,
                                           mediaType: mediaType as "movie" | "tv",
                                           title,
                                           posterPath: item.poster_path || null,
                                           backdropPath: item.backdrop_path || null,
                                           releaseDate: isMovie
-                                            ? item.release_date || null
-                                            : null,
+                                            ? (item.release_date ?? undefined)
+                                            : undefined,
                                           firstAirDate: !isMovie
-                                            ? item.first_air_date || null
-                                            : null,
-                                        }),
+                                            ? (item.first_air_date ?? undefined)
+                                            : undefined,
+                                        },
                                       });
-
-                                      if (!response.ok) {
-                                        throw new Error("Failed to add to playlist");
-                                      }
 
                                       toast.success(
                                         `Added ${title} to playlist`
@@ -1208,7 +1206,12 @@ export default function PlaylistView({
                                       setAddSearchQuery("");
                                       setIsAddToPlaylistOpen(false);
                                     } catch (error) {
-                                      toast.error("Failed to add to playlist");
+                                      const errorMessage = error instanceof Error ? error.message : "Failed to add to playlist";
+                                      if (errorMessage.includes("already in playlist")) {
+                                        toast.error("Item is already in this playlist");
+                                      } else {
+                                        toast.error("Failed to add to playlist");
+                                      }
                                       console.error(error);
                                     }
                                   }}

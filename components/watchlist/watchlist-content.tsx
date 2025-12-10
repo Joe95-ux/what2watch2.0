@@ -4,6 +4,7 @@ import { useWatchlist, useRemoveFromWatchlist, useWatchlistPublicStatus, useUpda
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import WatchlistView from "./watchlist-view";
 
 export default function WatchlistContent() {
@@ -19,7 +20,13 @@ export default function WatchlistContent() {
     : "";
 
   const handleRemove = async (tmdbId: number, mediaType: "movie" | "tv") => {
-    await removeFromWatchlist.mutateAsync({ tmdbId, mediaType });
+    try {
+      await removeFromWatchlist.mutateAsync({ tmdbId, mediaType });
+      toast.success("Removed from watchlist");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to remove from watchlist";
+      toast.error(errorMessage);
+    }
   };
 
   const handleTogglePublic = async (checked: boolean) => {

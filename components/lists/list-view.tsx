@@ -432,10 +432,18 @@ export default function ListView({
   });
 
   const handleRemove = async () => {
-    if (!itemToRemove || !onRemove || !list) return;
+    if (!itemToRemove || !list) return;
     try {
-      await onRemove(itemToRemove.itemId);
-      toast.success("Removed from list");
+      if (onRemove) {
+        await onRemove(itemToRemove.itemId);
+        // Don't show toast here - let the parent component handle it
+      } else {
+        await removeItemFromList.mutateAsync({
+          listId: list.id,
+          itemId: itemToRemove.itemId,
+        });
+        toast.success("Removed from list");
+      }
       setItemToRemove(null);
     } catch (error) {
       const errorMessage =

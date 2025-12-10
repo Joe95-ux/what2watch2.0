@@ -378,26 +378,33 @@ export default function HeroSection({ item, type, details, trailer, videosData }
             </div>
 
             <div className="absolute top-4 right-4">
-              <AddToPlaylistDropdown
-                item={item}
-                type={type}
-                trigger={
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <CircleActionButton
-                        size="lg"
-                        className="bg-black/70 text-white border-white/30 hover:bg-black/80 hover:border-white/60 shadow-lg"
-                        aria-label="Add to playlist"
-                      >
-                        <Plus className="h-5 w-5 text-white" />
-                      </CircleActionButton>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Add to playlist
-                    </TooltipContent>
-                  </Tooltip>
-                }
-              />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="inline-block pointer-events-none">
+                    <AddToPlaylistDropdown
+                      item={item}
+                      type={type}
+                      trigger={
+                        <CircleActionButton
+                          size="lg"
+                          className="bg-black/70 text-white border-white/30 hover:bg-black/80 hover:border-white/60 shadow-lg pointer-events-auto"
+                          aria-label="Add to playlist"
+                        >
+                          <Plus className="h-5 w-5 text-white" />
+                        </CircleActionButton>
+                      }
+                      onOpenChange={(open) => {
+                        if (open) {
+                          // Tooltip will close when dropdown opens
+                        }
+                      }}
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Add to playlist
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
 
@@ -444,26 +451,33 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                     {toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
                   </TooltipContent>
                 </Tooltip>
-                <AddToPlaylistDropdown
-                  item={item}
-                  type={type}
-                  trigger={
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <CircleActionButton
-                          size="md"
-                          className="bg-black/70 text-white border-white/30 hover:bg-black/80 hover:border-white/60 shadow-lg"
-                          aria-label="Add to playlist"
-                        >
-                          <Plus className="h-4 w-4 text-white" />
-                        </CircleActionButton>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        Add to playlist
-                      </TooltipContent>
-                    </Tooltip>
-                  }
-                />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="inline-block pointer-events-none">
+                      <AddToPlaylistDropdown
+                        item={item}
+                        type={type}
+                        trigger={
+                          <CircleActionButton
+                            size="md"
+                            className="bg-black/70 text-white border-white/30 hover:bg-black/80 hover:border-white/60 shadow-lg pointer-events-auto"
+                            aria-label="Add to playlist"
+                          >
+                            <Plus className="h-4 w-4 text-white" />
+                          </CircleActionButton>
+                        }
+                        onOpenChange={(open) => {
+                          if (open) {
+                            // Tooltip will close when dropdown opens
+                          }
+                        }}
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Add to playlist
+                  </TooltipContent>
+                </Tooltip>
               </div>
             )}
 

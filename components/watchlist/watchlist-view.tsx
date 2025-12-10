@@ -471,7 +471,7 @@ export default function WatchlistView({
         itemToRemove.tmdbId,
         itemToRemove.mediaType as "movie" | "tv"
       );
-      toast.success("Removed from watchlist");
+      // Don't show toast here - let the parent component handle it
       setItemToRemove(null);
     } catch (error) {
       const errorMessage =
