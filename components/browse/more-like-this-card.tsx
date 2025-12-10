@@ -199,7 +199,7 @@ export default function MoreLikeThisCard({
         onClick={handleCardClick}
       >
         {/* Section 1: Movie Poster - Reduced height */}
-        <div className="relative aspect-[5/5] bg-muted overflow-hidden border-b border-border/50">
+        <div className="relative aspect-[4/5] bg-muted overflow-hidden border-b border-border/50">
           {posterPath ? (
             <Image
               src={getPosterUrl(posterPath, "w500")}

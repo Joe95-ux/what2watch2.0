@@ -19,10 +19,12 @@ export default function WatchlistContent() {
     ? `${window.location.origin}/users/${currentUser.id}/watchlist` 
     : "";
 
-  const handleRemove = async (tmdbId: number, mediaType: "movie" | "tv") => {
+  const handleRemove = async (tmdbId: number, mediaType: "movie" | "tv", suppressToast = false) => {
     try {
       await removeFromWatchlist.mutateAsync({ tmdbId, mediaType });
-      toast.success("Removed from watchlist");
+      if (!suppressToast) {
+        toast.success("Removed from watchlist");
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to remove from watchlist";
       toast.error(errorMessage);

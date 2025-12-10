@@ -205,6 +205,8 @@ export default function PlaylistView({
     title: string;
     isYouTube?: boolean;
   } | null>(null);
+  const [isBulkRemoveDialogOpen, setIsBulkRemoveDialogOpen] = useState(false);
+  const [bulkRemoveType, setBulkRemoveType] = useState<"tmdb" | "youtube" | null>(null);
   const [selectedItem, setSelectedItem] = useState<{
     item: TMDBMovie | TMDBSeries;
     type: "movie" | "tv";
@@ -696,7 +698,8 @@ export default function PlaylistView({
         // Remove TMDB items
         for (const itemId of selectedItems) {
           if (onRemove) {
-            await onRemove(itemId);
+            // Pass suppressToast=true to prevent individual toasts
+            await (onRemove as (itemId: string, suppressToast?: boolean) => Promise<void>)(itemId, true);
           } else {
             await removeItemFromPlaylist.mutateAsync({
               playlistId: playlist.id,
@@ -713,6 +716,16 @@ export default function PlaylistView({
         toast.error("Failed to remove items");
       }
     }
+  };
+
+  const confirmBulkRemove = async () => {
+    setIsBulkRemoveDialogOpen(false);
+    if (bulkRemoveType === "youtube") {
+      await handleBulkRemove(true);
+    } else {
+      await handleBulkRemove(false);
+    }
+    setBulkRemoveType(null);
   };
 
   const handleExportCSV = async () => {
@@ -1300,7 +1313,10 @@ export default function PlaylistView({
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => handleBulkRemove(false)}
+                        onClick={() => {
+                          setBulkRemoveType("tmdb");
+                          setIsBulkRemoveDialogOpen(true);
+                        }}
                         disabled={selectedItems.size === 0}
                         className="cursor-pointer flex-shrink-0"
                       >
@@ -1729,7 +1745,10 @@ export default function PlaylistView({
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => handleBulkRemove(true)}
+                      onClick={() => {
+                        setBulkRemoveType("youtube");
+                        setIsBulkRemoveDialogOpen(true);
+                      }}
                       disabled={selectedYouTubeItems.size === 0}
                       className="cursor-pointer"
                     >
@@ -2176,6 +2195,47 @@ export default function PlaylistView({
               <Button
                 variant="destructive"
                 onClick={handleRemove}
+                className="cursor-pointer"
+              >
+                Remove
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Bulk Remove Confirmation Dialog */}
+      {enableRemove && (
+        <Dialog
+          open={isBulkRemoveDialogOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              setIsBulkRemoveDialogOpen(false);
+              setBulkRemoveType(null);
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Remove Items from Playlist</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to remove {bulkRemoveType === "youtube" ? selectedYouTubeItems.size : selectedItems.size} item{bulkRemoveType === "youtube" ? selectedYouTubeItems.size !== 1 : selectedItems.size !== 1 ? "s" : ""} from this playlist? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsBulkRemoveDialogOpen(false);
+                  setBulkRemoveType(null);
+                }}
+                className="cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmBulkRemove}
                 className="cursor-pointer"
               >
                 Remove

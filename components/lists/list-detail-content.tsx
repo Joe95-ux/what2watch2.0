@@ -139,10 +139,12 @@ export default function ListDetailContent({ listId }: ListDetailContentProps) {
     }
   };
 
-  const handleRemove = async (itemId: string) => {
+  const handleRemove = async (itemId: string, suppressToast = false) => {
     try {
       await removeItemFromList.mutateAsync({ listId, itemId });
-      toast.success("Removed from list");
+      if (!suppressToast) {
+        toast.success("Removed from list");
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to remove from list";

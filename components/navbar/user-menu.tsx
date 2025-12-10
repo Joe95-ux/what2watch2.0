@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreVertical, Settings, LogOut, Moon, Sun, Monitor, LayoutDashboard, Youtube } from "lucide-react";
+import { MoreVertical, Settings, LogOut, Moon, Sun, Monitor, LayoutDashboard, Youtube, Bookmark, List, BookOpen, Activity, User, ClipboardList } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
@@ -62,6 +62,99 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
             <span>Dashboard</span>
           </DropdownMenuItem>
         </Link>
+
+        <DropdownMenuSeparator />
+
+        <Link href="/dashboard/watchlist">
+          <DropdownMenuItem 
+            className="cursor-pointer"
+            onSelect={(e) => {
+              e.preventDefault();
+              setTimeout(() => setIsDropdownOpen(false), 100);
+            }}
+          >
+            <Bookmark className="mr-2 h-4 w-4" />
+            <span>Watchlist</span>
+          </DropdownMenuItem>
+        </Link>
+        <Link href="/dashboard/playlists">
+          <DropdownMenuItem 
+            className="cursor-pointer"
+            onSelect={(e) => {
+              e.preventDefault();
+              setTimeout(() => setIsDropdownOpen(false), 100);
+            }}
+          >
+            <List className="mr-2 h-4 w-4" />
+            <span>Playlists</span>
+          </DropdownMenuItem>
+        </Link>
+        <Link href="/dashboard/lists">
+          <DropdownMenuItem 
+            className="cursor-pointer"
+            onSelect={(e) => {
+              e.preventDefault();
+              setTimeout(() => setIsDropdownOpen(false), 100);
+            }}
+          >
+            <ClipboardList className="mr-2 h-4 w-4" />
+            <span>Lists</span>
+          </DropdownMenuItem>
+        </Link>
+        <Link href="/dashboard/diary">
+          <DropdownMenuItem 
+            className="cursor-pointer"
+            onSelect={(e) => {
+              e.preventDefault();
+              setTimeout(() => setIsDropdownOpen(false), 100);
+            }}
+          >
+            <BookOpen className="mr-2 h-4 w-4" />
+            <span>Diary</span>
+          </DropdownMenuItem>
+        </Link>
+        <Link href="/dashboard/activity">
+          <DropdownMenuItem 
+            className="cursor-pointer"
+            onSelect={(e) => {
+              e.preventDefault();
+              setTimeout(() => setIsDropdownOpen(false), 100);
+            }}
+          >
+            <Activity className="mr-2 h-4 w-4" />
+            <span>Activity</span>
+          </DropdownMenuItem>
+        </Link>
+        <Link href="/dashboard/profile">
+          <DropdownMenuItem 
+            className="cursor-pointer"
+            onSelect={(e) => {
+              e.preventDefault();
+              setTimeout(() => setIsDropdownOpen(false), 100);
+            }}
+          >
+            <User className="mr-2 h-4 w-4" />
+            <span>Profile</span>
+          </DropdownMenuItem>
+        </Link>
+
+        <DropdownMenuSeparator />
+
+        <Link href="/dashboard/youtube/management">
+          <DropdownMenuItem 
+            className="cursor-pointer"
+            onSelect={(e) => {
+              e.preventDefault();
+              setTimeout(() => setIsDropdownOpen(false), 100);
+            }}
+          >
+            <Youtube className="mr-2 h-4 w-4" />
+            <span>YouTube Management</span>
+          </DropdownMenuItem>
+        </Link>
+
+        <DropdownMenuSeparator />
+
         <Link href="/settings">
           <DropdownMenuItem 
             className="cursor-pointer"
@@ -75,8 +168,6 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
             <span>Settings</span>
           </DropdownMenuItem>
         </Link>
-
-        <DropdownMenuSeparator />
 
         {/* Theme Toggle */}
         <DropdownMenuSub>
@@ -138,21 +229,6 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
-
-        <DropdownMenuSeparator />
-
-        <Link href="/dashboard/youtube/management">
-          <DropdownMenuItem 
-            className="cursor-pointer"
-            onSelect={(e) => {
-              e.preventDefault();
-              setTimeout(() => setIsDropdownOpen(false), 100);
-            }}
-          >
-            <Youtube className="mr-2 h-4 w-4" />
-            <span>YouTube Management</span>
-          </DropdownMenuItem>
-        </Link>
 
         <DropdownMenuSeparator />
 

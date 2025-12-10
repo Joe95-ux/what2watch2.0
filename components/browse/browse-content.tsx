@@ -39,6 +39,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Button } from "../ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
 import { YouTubeProfileSkeleton } from "./youtube-profile-skeleton";
 import { getChannelProfilePath } from "@/lib/channel-path";
@@ -558,7 +559,33 @@ function YouTubeChannelsGrid() {
   const { data: channels = [], isLoading } = useYouTubeChannels();
 
   if (isLoading) {
-    return <YouTubeProfileSkeleton variant="grid" count={6} />;
+    return (
+      <div className="relative group/carousel">
+        <Carousel
+          opts={{
+            align: "start",
+            slidesToScroll: 4,
+            breakpoints: {
+              "(max-width: 640px)": { slidesToScroll: 1 },
+              "(max-width: 1024px)": { slidesToScroll: 3 },
+              "(max-width: 1280px)": { slidesToScroll: 4 },
+            },
+          }}
+          className="w-full"
+        >
+          <CarouselContent className="-ml-2 md:-ml-4 gap-4">
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <CarouselItem key={idx} className="pl-2 md:pl-4 basis-[140px] sm:basis-[160px]">
+                <div className="flex flex-col items-center gap-3">
+                  <Skeleton className="w-32 h-32 rounded-full" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+        </Carousel>
+      </div>
+    );
   }
 
   if (channels.length === 0) {

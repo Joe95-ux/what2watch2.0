@@ -76,13 +76,15 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
     }
   };
 
-  const handleRemoveItem = async (itemId: string) => {
+  const handleRemoveItem = async (itemId: string, suppressToast = false) => {
     try {
       await removeItem.mutateAsync({
         playlistId,
         itemId,
       });
-      toast.success("Removed from playlist");
+      if (!suppressToast) {
+        toast.success("Removed from playlist");
+      }
     } catch (error) {
       toast.error("Failed to remove item");
       console.error(error);

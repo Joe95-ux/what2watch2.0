@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useUser, SignInButton, useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
@@ -21,6 +22,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
   const { signOut } = useClerk();
   const router = useRouter();
   const { setTheme, theme } = useTheme();
+  const [isThemeOpen, setIsThemeOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -107,9 +109,19 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               <span>Settings</span>
             </Link>
 
-            {/* Theme Toggle - Styled like DropdownMenuSubTrigger */}
+            {/* Theme Toggle - Collapsible */}
             <div className="relative">
-              <div className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground hover:bg-accent hover:text-accent-foreground text-muted-foreground">
+              <button
+                onClick={() => setIsThemeOpen(!isThemeOpen)}
+                className={cn(
+                  "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
+                  "focus:bg-accent focus:text-accent-foreground",
+                  "hover:bg-accent hover:text-accent-foreground",
+                  isThemeOpen
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground"
+                )}
+              >
                 {theme === "light" ? (
                   <Sun className="mr-2 h-4 w-4" />
                 ) : theme === "dark" ? (
@@ -118,61 +130,68 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   <Monitor className="mr-2 h-4 w-4" />
                 )}
                 <span>Theme</span>
-                <ChevronRight className="ml-auto h-4 w-4" />
-              </div>
-              <div className="ml-4 mt-1 space-y-0.5">
-                <button
-                  onClick={() => {
-                    setTheme("light");
-                    onLinkClick();
-                  }}
+                <ChevronRight
                   className={cn(
-                    "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
-                    "focus:bg-accent focus:text-accent-foreground",
-                    "hover:bg-accent hover:text-accent-foreground",
-                    theme === "light"
-                      ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground"
+                    "ml-auto h-4 w-4 transition-transform duration-200",
+                    isThemeOpen && "rotate-90"
                   )}
-                >
-                  <Sun className="mr-2 h-4 w-4" />
-                  <span>Light</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setTheme("dark");
-                    onLinkClick();
-                  }}
-                  className={cn(
-                    "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
-                    "focus:bg-accent focus:text-accent-foreground",
-                    "hover:bg-accent hover:text-accent-foreground",
-                    theme === "dark"
-                      ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground"
-                  )}
-                >
-                  <Moon className="mr-2 h-4 w-4" />
-                  <span>Dark</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setTheme("system");
-                    onLinkClick();
-                  }}
-                  className={cn(
-                    "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
-                    "focus:bg-accent focus:text-accent-foreground",
-                    "hover:bg-accent hover:text-accent-foreground",
-                    theme === "system"
-                      ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground"
-                  )}
-                >
-                  <Monitor className="mr-2 h-4 w-4" />
-                  <span>System</span>
-                </button>
-              </div>
+                />
+              </button>
+              {isThemeOpen && (
+                <div className="ml-4 mt-1 space-y-0.5">
+                  <button
+                    onClick={() => {
+                      setTheme("light");
+                      onLinkClick();
+                    }}
+                    className={cn(
+                      "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
+                      "focus:bg-accent focus:text-accent-foreground",
+                      "hover:bg-accent hover:text-accent-foreground",
+                      theme === "light"
+                        ? "bg-accent text-accent-foreground"
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    <Sun className="mr-2 h-4 w-4" />
+                    <span>Light</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTheme("dark");
+                      onLinkClick();
+                    }}
+                    className={cn(
+                      "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
+                      "focus:bg-accent focus:text-accent-foreground",
+                      "hover:bg-accent hover:text-accent-foreground",
+                      theme === "dark"
+                        ? "bg-accent text-accent-foreground"
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    <Moon className="mr-2 h-4 w-4" />
+                    <span>Dark</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTheme("system");
+                      onLinkClick();
+                    }}
+                    className={cn(
+                      "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
+                      "focus:bg-accent focus:text-accent-foreground",
+                      "hover:bg-accent hover:text-accent-foreground",
+                      theme === "system"
+                        ? "bg-accent text-accent-foreground"
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    <Monitor className="mr-2 h-4 w-4" />
+                    <span>System</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             <Separator className="my-1" />

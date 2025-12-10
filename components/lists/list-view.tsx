@@ -188,6 +188,7 @@ export default function ListView({
     itemId: string;
     title: string;
   } | null>(null);
+  const [isBulkRemoveDialogOpen, setIsBulkRemoveDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<{
     item: TMDBMovie | TMDBSeries;
     type: "movie" | "tv";
@@ -463,7 +464,8 @@ export default function ListView({
 
       for (const { listItem } of itemsToRemove) {
         if (onRemove) {
-          await onRemove(listItem.id);
+          // Pass suppressToast=true to prevent individual toasts
+          await (onRemove as (itemId: string, suppressToast?: boolean) => Promise<void>)(listItem.id, true);
         } else {
           await removeItemFromList.mutateAsync({
             listId: list.id,
@@ -482,6 +484,11 @@ export default function ListView({
     } catch (error) {
       toast.error("Failed to remove items");
     }
+  };
+
+  const confirmBulkRemove = async () => {
+    setIsBulkRemoveDialogOpen(false);
+    await handleBulkRemove();
   };
 
   const handleExportCSV = async () => {
@@ -1055,7 +1062,7 @@ export default function ListView({
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={handleBulkRemove}
+                    onClick={() => setIsBulkRemoveDialogOpen(true)}
                     disabled={selectedItems.size === 0}
                     className="cursor-pointer"
                   >
@@ -1552,6 +1559,43 @@ export default function ListView({
               <Button
                 variant="destructive"
                 onClick={handleRemove}
+                className="cursor-pointer"
+              >
+                Remove
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Bulk Remove Confirmation Dialog */}
+      {enableRemove && (
+        <Dialog
+          open={isBulkRemoveDialogOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              setIsBulkRemoveDialogOpen(false);
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Remove Items from List</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to remove {selectedItems.size} item{selectedItems.size !== 1 ? "s" : ""} from this list? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsBulkRemoveDialogOpen(false)}
+                className="cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmBulkRemove}
                 className="cursor-pointer"
               >
                 Remove

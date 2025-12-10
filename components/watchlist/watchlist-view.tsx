@@ -219,6 +219,7 @@ export default function WatchlistView({
     mediaType: string;
     title: string;
   } | null>(null);
+  const [isBulkRemoveDialogOpen, setIsBulkRemoveDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<{
     item: TMDBMovie | TMDBSeries;
     type: "movie" | "tv";
@@ -490,9 +491,11 @@ export default function WatchlistView({
       );
 
       for (const { watchlistItem } of itemsToRemove) {
-        await onRemove(
+        // Pass suppressToast=true to prevent individual toasts
+        await (onRemove as (tmdbId: number, mediaType: "movie" | "tv", suppressToast?: boolean) => Promise<void>)(
           watchlistItem.tmdbId,
-          watchlistItem.mediaType as "movie" | "tv"
+          watchlistItem.mediaType as "movie" | "tv",
+          true
         );
       }
 
@@ -506,6 +509,11 @@ export default function WatchlistView({
     } catch (error) {
       toast.error("Failed to remove items");
     }
+  };
+
+  const confirmBulkRemove = async () => {
+    setIsBulkRemoveDialogOpen(false);
+    await handleBulkRemove();
   };
 
   const handleExportCSV = async () => {
@@ -1087,7 +1095,7 @@ export default function WatchlistView({
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={handleBulkRemove}
+                    onClick={() => setIsBulkRemoveDialogOpen(true)}
                     disabled={selectedItems.size === 0}
                     className="cursor-pointer"
                   >
