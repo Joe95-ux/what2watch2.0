@@ -1,40 +1,74 @@
 "use client";
 
-import { useTopRatedMovies, useTopRatedTV } from "@/hooks/use-movies";
+import { useSearch } from "@/hooks/use-search";
 import MoreLikeThisCard from "@/components/browse/more-like-this-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMemo } from "react";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 
 const MAX_ITEMS = 26;
+const CURRENT_YEAR = new Date().getFullYear();
+const MIN_YEAR = CURRENT_YEAR - 4; // Last 5 years (including current year)
 
 export function FanFavoritesTab() {
-  const { data: topRatedMoviesData, isLoading: isLoadingMovies } = useTopRatedMovies(1);
-  const { data: topRatedTVData, isLoading: isLoadingTV } = useTopRatedTV(1);
+  // Fetch new movies with high ratings (last 5 years, sorted by rating)
+  // Fetch multiple pages to get enough results, then sort by rating
+  const { data: moviesData, isLoading: isLoadingMovies } = useSearch({
+    type: "movie",
+    year: `${MIN_YEAR}-${CURRENT_YEAR}`,
+    minRating: 7.0,
+    sortBy: "vote_average.desc",
+    page: 1,
+  });
+
+  // Fetch new TV shows with high ratings (last 5 years, sorted by rating)
+  const { data: tvData, isLoading: isLoadingTV } = useSearch({
+    type: "tv",
+    year: `${MIN_YEAR}-${CURRENT_YEAR}`,
+    minRating: 7.0,
+    sortBy: "vote_average.desc",
+    page: 1,
+  });
 
   const isLoading = isLoadingMovies || isLoadingTV;
 
-  // Extract results from API response (top rated returns TMDBResponse with results property)
-  const topRatedMovies = (topRatedMoviesData as { results?: TMDBMovie[] })?.results || [];
-  const topRatedTV = (topRatedTVData as { results?: TMDBSeries[] })?.results || [];
+  // Extract results from API response
+  const movies = moviesData?.results || [];
+  const tvShows = tvData?.results || [];
 
-  // Combine top rated movies and TV (these are fan favorites based on ratings)
+  // Combine and sort by rating (highest first), limiting to MAX_ITEMS
   const fanFavorites = useMemo(() => {
-    const items: Array<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" }> = [];
+    const items: Array<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv"; rating: number }> = [];
     
-    // Interleave top rated movies and TV shows
-    const maxLength = Math.max(topRatedMovies.length, topRatedTV.length);
-    for (let i = 0; i < maxLength && items.length < MAX_ITEMS; i++) {
-      if (i < topRatedMovies.length && items.length < MAX_ITEMS) {
-        items.push({ item: topRatedMovies[i], type: "movie" });
-      }
-      if (i < topRatedTV.length && items.length < MAX_ITEMS) {
-        items.push({ item: topRatedTV[i], type: "tv" });
-      }
-    }
+    // Add movies with their ratings
+    movies.forEach((movie) => {
+      items.push({
+        item: movie,
+        type: "movie",
+        rating: movie.vote_average || 0,
+      });
+    });
     
-    return items.slice(0, MAX_ITEMS);
-  }, [topRatedMovies, topRatedTV]);
+    // Add TV shows with their ratings
+    tvShows.forEach((tv) => {
+      items.push({
+        item: tv,
+        type: "tv",
+        rating: tv.vote_average || 0,
+      });
+    });
+    
+    // Sort by rating (highest first), then by vote count for tie-breaking
+    items.sort((a, b) => {
+      if (b.rating !== a.rating) {
+        return b.rating - a.rating;
+      }
+      return (b.item.vote_count || 0) - (a.item.vote_count || 0);
+    });
+    
+    // Return top MAX_ITEMS, removing the rating property
+    return items.slice(0, MAX_ITEMS).map(({ item, type }) => ({ item, type }));
+  }, [movies, tvShows]);
 
   if (isLoading) {
     return (
