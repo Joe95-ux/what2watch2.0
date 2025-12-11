@@ -100,13 +100,17 @@ export function WatchGuideTab() {
   if (isLoading) {
     return (
       <div>
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-4 mb-6 flex-wrap">
           <Skeleton className="h-10 w-32" />
           <Skeleton className="h-10 w-40" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 12 }).map((_, i) => (
-            <Skeleton key={i} className="aspect-[3/4] rounded-lg" />
+            <div key={i} className="space-y-2">
+              <Skeleton className="w-full max-h-[225px] h-[225px] rounded-lg" />
+              <Skeleton className="h-5 w-3/4 rounded" />
+              <Skeleton className="h-4 w-1/2 rounded" />
+            </div>
           ))}
         </div>
       </div>

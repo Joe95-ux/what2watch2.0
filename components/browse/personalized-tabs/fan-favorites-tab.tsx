@@ -40,22 +40,50 @@ export function FanFavoritesTab() {
   const fanFavorites = useMemo(() => {
     const items: Array<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv"; rating: number }> = [];
     
-    // Add movies with their ratings
+    // Minimum vote count threshold to ensure ratings are credible
+    const MIN_VOTE_COUNT = 200;
+    // Maximum realistic rating (filter out obvious data errors)
+    const MAX_REALISTIC_RATING = 9.5;
+    
+    // Add movies with their ratings, filtering out unrealistic ratings
     movies.forEach((movie) => {
-      items.push({
-        item: movie,
-        type: "movie",
-        rating: movie.vote_average || 0,
-      });
+      const rating = movie.vote_average || 0;
+      const voteCount = movie.vote_count || 0;
+      
+      // Filter out items with:
+      // - Ratings above 9.5 (unrealistic, likely data errors)
+      // - Fewer than minimum vote count (not credible)
+      // - Invalid ratings (0 or negative)
+      if (
+        rating > 0 &&
+        rating <= MAX_REALISTIC_RATING &&
+        voteCount >= MIN_VOTE_COUNT
+      ) {
+        items.push({
+          item: movie,
+          type: "movie",
+          rating: rating,
+        });
+      }
     });
     
-    // Add TV shows with their ratings
+    // Add TV shows with their ratings, filtering out unrealistic ratings
     tvShows.forEach((tv) => {
-      items.push({
-        item: tv,
-        type: "tv",
-        rating: tv.vote_average || 0,
-      });
+      const rating = tv.vote_average || 0;
+      const voteCount = tv.vote_count || 0;
+      
+      // Same validation as movies
+      if (
+        rating > 0 &&
+        rating <= MAX_REALISTIC_RATING &&
+        voteCount >= MIN_VOTE_COUNT
+      ) {
+        items.push({
+          item: tv,
+          type: "tv",
+          rating: rating,
+        });
+      }
     });
     
     // Sort by rating (highest first), then by vote count for tie-breaking
