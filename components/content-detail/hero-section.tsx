@@ -2,8 +2,7 @@
 
 import { useState, useEffect, type ReactNode } from "react";
 import Image from "next/image";
-import { Play, Heart, Clapperboard, Images, Star, Eye } from "lucide-react";
-import { GrBookmark } from "react-icons/gr";
+import { Play, Heart, Clapperboard, Images, Star, Eye, Bookmark, Plus, Check } from "lucide-react";
 import {
   TMDBMovie,
   TMDBSeries,
@@ -297,18 +296,27 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                   }}
                   aria-label={toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
                   className={cn(
-                    "absolute top-0 left-0 z-10 p-3 bg-black/70 hover:bg-black/80 transition-colors cursor-pointer",
-                    toggleWatchlist.isInWatchlist(item.id, type) && "bg-primary/90 hover:bg-primary"
+                    "absolute top-0 left-0 z-10 size-9 flex items-center justify-center transition-all cursor-pointer",
+                    toggleWatchlist.isInWatchlist(item.id, type)
+                      ? "bg-[#E50914]"
+                      : "bg-black/60 hover:bg-black/70"
                   )}
                 >
-                  <GrBookmark
-                    className={cn(
-                      "h-6 w-6",
-                      toggleWatchlist.isInWatchlist(item.id, type)
-                        ? "text-white fill-white"
-                        : "text-white"
+                  <div className="relative size-9 flex items-center justify-center">
+                    <Bookmark
+                      className={cn(
+                        "absolute size-9",
+                        toggleWatchlist.isInWatchlist(item.id, type)
+                          ? "text-[#E50914] fill-[#E50914]"
+                          : "text-white fill-transparent"
+                      )}
+                    />
+                    {toggleWatchlist.isInWatchlist(item.id, type) ? (
+                      <Check className="relative size-4 text-white z-10" />
+                    ) : (
+                      <Plus className="relative size-4 text-white z-10" />
                     )}
-                  />
+                  </div>
                 </button>
               </TooltipTrigger>
               <TooltipContent>
@@ -318,7 +326,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
           </div>
 
           {/* Banner Column */}
-          <div className="relative rounded-lg bg-muted/20 overflow-hidden min-h-[260px] md:min-h-[400px] lg:min-h-[260px] border border-white/10">
+          <div className="relative rounded-lg rounded-tl-none lg:rounded-tl-lg bg-muted/20 overflow-hidden min-h-[260px] md:min-h-[400px] lg:min-h-[260px] border border-white/10">
             {backdropPath ? (
               <Image
                 src={getBackdropUrl(backdropPath, "w1280")}
@@ -332,6 +340,43 @@ export default function HeroSection({ item, type, details, trailer, videosData }
               <div className="absolute inset-0 bg-muted" />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
+
+            {/* Watchlist Icon - Top Left (Mobile only) */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={async () => {
+                    await toggleWatchlist.toggle(item, type);
+                  }}
+                  aria-label={toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
+                  className={cn(
+                    "absolute top-0 left-0 z-10 size-9 flex items-center justify-center transition-all cursor-pointer lg:hidden",
+                    toggleWatchlist.isInWatchlist(item.id, type)
+                      ? "bg-[#E50914]"
+                      : "bg-black/60 hover:bg-black/70"
+                  )}
+                >
+                  <div className="relative size-9 flex items-center justify-center">
+                    <Bookmark
+                      className={cn(
+                        "absolute size-9",
+                        toggleWatchlist.isInWatchlist(item.id, type)
+                          ? "text-[#E50914] fill-[#E50914]"
+                          : "text-white fill-transparent"
+                      )}
+                    />
+                    {toggleWatchlist.isInWatchlist(item.id, type) ? (
+                      <Check className="relative size-4 text-white z-10" />
+                    ) : (
+                      <Plus className="relative size-4 text-white z-10" />
+                    )}
+                  </div>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
+              </TooltipContent>
+            </Tooltip>
 
 
             <div className="absolute bottom-6 left-6 right-6">

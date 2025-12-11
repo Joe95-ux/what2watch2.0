@@ -241,14 +241,14 @@ export default function OverviewSection({
         <div className="lg:col-span-5 space-y-4">
           {/* Action Buttons - Before Where to Watch on desktop */}
           {showActionButtons && (
-            <div className="hidden lg:block mb-6">
-              <div className="pt-4 border-t overflow-x-auto">
+            <div className="hidden lg:block">
+              <div className="overflow-x-auto">
                 <div className="flex items-center gap-2 min-w-max">
                   <AddToPlaylistDropdown
                     item={item}
                     type={type}
                     trigger={
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" className="rounded-lg">
                         <Plus className="h-4 w-4 mr-2" />
                         Add to Playlist
                       </Button>
@@ -259,16 +259,17 @@ export default function OverviewSection({
                     size="sm"
                     onClick={handleMarkAsWatched}
                     className={cn(
+                      "rounded-lg",
                       isWatched && "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800"
                     )}
                   >
                     <Eye 
                       className={cn(
                         "h-4 w-4 mr-2",
-                        isWatched ? "text-green-500 fill-green-500" : "text-muted-foreground"
+                        isWatched ? "text-green-500" : "text-muted-foreground"
                       )} 
                     />
-                    {isWatched ? "Marked as Watched" : "Mark as Watched"}
+                    {isWatched ? "Watched" : "Mark as Watched"}
                   </Button>
                 </div>
               </div>
