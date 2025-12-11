@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
               select: { 
                 items: true,
                 youtubeItems: true,
+                likedBy: true,
               },
             },
           },

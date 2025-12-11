@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
 import { Star } from "lucide-react";
-import { getPosterUrl } from "@/lib/tmdb";
+import { getPosterUrl, TMDBSeries, TMDBVideo } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -13,6 +13,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import EpisodeDetailModal from "./episode-detail-modal";
 
 interface TVSeasonsSectionProps {
   seasons: Array<{
@@ -48,6 +49,32 @@ interface TVSeasonsSectionProps {
     season_number: number;
   } | null | undefined;
   isLoadingSeasonDetails?: boolean;
+  tvShow?: TMDBSeries;
+  tvShowDetails?: {
+    created_by?: Array<{ id: number; name: string; profile_path?: string | null }>;
+    credits?: {
+      cast?: Array<{
+        id: number;
+        name: string;
+        character: string;
+        profile_path: string | null;
+      }>;
+      crew?: Array<{
+        id: number;
+        name: string;
+        job: string;
+      }>;
+    };
+    genres?: Array<{ id: number; name: string }>;
+    first_air_date?: string;
+    episode_run_time?: number[];
+    vote_average?: number;
+    external_ids?: {
+      imdb_id?: string | null;
+    };
+    imdb_id?: string | null;
+  } | null;
+  trailer?: TMDBVideo | null;
 }
 
 export default function TVSeasonsSection({
@@ -56,7 +83,24 @@ export default function TVSeasonsSection({
   onSeasonSelect,
   seasonDetails,
   isLoadingSeasonDetails = false,
+  tvShow,
+  tvShowDetails,
+  trailer,
 }: TVSeasonsSectionProps) {
+  const [selectedEpisode, setSelectedEpisode] = useState<{
+    id: number;
+    name: string;
+    overview: string;
+    episode_number: number;
+    season_number: number;
+    air_date: string | null;
+    still_path: string | null;
+    runtime: number | null;
+    vote_average: number;
+    vote_count: number;
+  } | null>(null);
+  const [isEpisodeModalOpen, setIsEpisodeModalOpen] = useState(false);
+
   // Filter out season 0 (specials)
   const regularSeasons = seasons.filter((s) => s.season_number > 0);
 
@@ -73,9 +117,22 @@ export default function TVSeasonsSection({
     onSeasonSelect(seasonNumber);
   }, [onSeasonSelect]);
 
-  const handleEpisodeClick = useCallback((e: React.MouseEvent) => {
+  const handleEpisodeClick = useCallback((e: React.MouseEvent, episode: {
+    id: number;
+    name: string;
+    overview: string;
+    episode_number: number;
+    season_number: number;
+    air_date: string | null;
+    still_path: string | null;
+    runtime: number | null;
+    vote_average: number;
+    vote_count: number;
+  }) => {
     e.preventDefault();
     e.stopPropagation();
+    setSelectedEpisode(episode);
+    setIsEpisodeModalOpen(true);
   }, []);
 
   return (
@@ -158,7 +215,7 @@ export default function TVSeasonsSection({
                       <tr
                         key={episode.id}
                         className="hover:bg-muted/20 transition-colors cursor-pointer group"
-                        onClick={handleEpisodeClick}
+                        onClick={(e) => handleEpisodeClick(e, episode)}
                       >
                         <td className="px-4 py-4 text-sm font-medium text-muted-foreground">
                           {episode.episode_number}
@@ -226,6 +283,21 @@ export default function TVSeasonsSection({
             </div>
           )}
         </div>
+      )}
+
+      {/* Episode Detail Modal */}
+      {tvShow && selectedEpisode && (
+        <EpisodeDetailModal
+          isOpen={isEpisodeModalOpen}
+          onClose={() => {
+            setIsEpisodeModalOpen(false);
+            setSelectedEpisode(null);
+          }}
+          episode={selectedEpisode}
+          tvShow={tvShow}
+          tvShowDetails={tvShowDetails || null}
+          trailer={trailer || null}
+        />
       )}
     </section>
   );

@@ -27,6 +27,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import VideosCarousel from "./videos-carousel";
 import TrailerModal from "./trailer-modal";
 import MoreLikeThis from "./more-like-this";
+import EpisodeDetailModal from "@/components/content-detail/episode-detail-modal";
 import {
   Carousel,
   CarouselContent,
@@ -116,6 +117,19 @@ export default function ContentDetailModal({
   const [selectedVideo, setSelectedVideo] = useState<TMDBVideo | null>(null);
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay compatibility
+  const [selectedEpisode, setSelectedEpisode] = useState<{
+    id: number;
+    name: string;
+    overview: string;
+    episode_number: number;
+    season_number: number;
+    air_date: string | null;
+    still_path: string | null;
+    runtime: number | null;
+    vote_average: number;
+    vote_count: number;
+  } | null>(null);
+  const [isEpisodeModalOpen, setIsEpisodeModalOpen] = useState(false);
   const isClosingRef = useRef(false);
   const [isSheetMounted, setIsSheetMounted] = useState(false);
   const [heroPlaylistTooltipOpen, setHeroPlaylistTooltipOpen] = useState(false);
@@ -722,6 +736,13 @@ export default function ContentDetailModal({
                     onSeasonSelect={setSelectedSeason}
                     seasonDetails={seasonDetails}
                     isLoadingSeasonDetails={isLoadingSeasonDetails}
+                    tvShow={item as TMDBSeries}
+                    tvShowDetails={tvDetails || null}
+                    trailer={trailer}
+                    onEpisodeClick={(episode) => {
+                      setSelectedEpisode(episode);
+                      setIsEpisodeModalOpen(true);
+                    }}
                   />
                 </div>
               )}
@@ -760,6 +781,21 @@ export default function ContentDetailModal({
 
       </SheetContent>
     </Sheet>
+
+    {/* Episode Detail Modal */}
+    {type === "tv" && item && selectedEpisode && (
+      <EpisodeDetailModal
+        isOpen={isEpisodeModalOpen}
+        onClose={() => {
+          setIsEpisodeModalOpen(false);
+          setSelectedEpisode(null);
+        }}
+        episode={selectedEpisode}
+        tvShow={item as TMDBSeries}
+        tvShowDetails={tvDetails || null}
+        trailer={trailer}
+      />
+    )}
     </>
   );
 }
@@ -808,6 +844,7 @@ function TVSeasonsSection({
   onSeasonSelect,
   seasonDetails,
   isLoadingSeasonDetails = false,
+  onEpisodeClick,
 }: TVSeasonsSectionProps) {
   // Filter out season 0 (specials)
   const regularSeasons = seasons.filter((s) => s.season_number > 0);
@@ -820,11 +857,24 @@ function TVSeasonsSection({
   }, [onSeasonSelect]);
 
   // Handle episode row click with propagation prevention
-  const handleEpisodeClick = useCallback((e: React.MouseEvent) => {
+  const handleEpisodeClick = useCallback((e: React.MouseEvent, episode: {
+    id: number;
+    name: string;
+    overview: string;
+    episode_number: number;
+    season_number: number;
+    air_date: string | null;
+    still_path: string | null;
+    runtime: number | null;
+    vote_average: number;
+    vote_count: number;
+  }) => {
     e.preventDefault();
     e.stopPropagation();
-    // Add actual episode click logic here if needed
-  }, []);
+    if (onEpisodeClick) {
+      onEpisodeClick(episode);
+    }
+  }, [onEpisodeClick]);
 
   return (
     <div className="space-y-4">
@@ -904,7 +954,7 @@ function TVSeasonsSection({
                     <tr
                       key={episode.id}
                       className="hover:bg-muted/20 transition-colors cursor-pointer group no-close"
-                      onClick={handleEpisodeClick}
+                      onClick={(e) => handleEpisodeClick(e, episode)}
                     >
                       <td className="px-4 py-4 text-sm font-medium text-muted-foreground">
                         {episode.episode_number}

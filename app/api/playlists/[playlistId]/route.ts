@@ -51,6 +51,7 @@ export async function GET(
             select: { 
               items: true,
               youtubeItems: true,
+              likedBy: true,
             },
           },
         },
@@ -116,7 +117,10 @@ export async function GET(
           },
         },
         _count: {
-          select: { items: true },
+          select: { 
+            items: true,
+            likedBy: true,
+          },
         },
       },
     });

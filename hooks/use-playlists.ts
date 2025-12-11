@@ -37,6 +37,7 @@ export interface Playlist {
   _count?: {
     items: number;
     youtubeItems?: number;
+    likedBy?: number;
   };
   isReadOnly?: boolean;
   createdBy?: {

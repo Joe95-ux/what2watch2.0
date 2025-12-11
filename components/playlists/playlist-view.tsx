@@ -1036,9 +1036,12 @@ export default function PlaylistView({
                     >
                       <Heart className={cn("h-4 w-4 mr-2", isLiked && "fill-current")} />
                       {isLiked ? "Liked" : "Like"}
-                      {playlist.likesCount && playlist.likesCount > 0 && (
-                        <span className="ml-2">({playlist.likesCount})</span>
-                      )}
+                      {(() => {
+                        const likesCount = playlist.likesCount ?? playlist._count?.likedBy ?? 0;
+                        return likesCount > 0 && (
+                          <span className="ml-2">({likesCount})</span>
+                        );
+                      })()}
                     </Button>
                     {playlist.user && (
                       <div className="flex-shrink-0">

@@ -56,6 +56,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ playlist
           select: { 
             items: true,
             youtubeItems: true,
+            likedBy: true,
           },
         },
       },
@@ -147,6 +148,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
           select: { 
             items: true,
             youtubeItems: true,
+            likedBy: true,
           },
         },
       },

@@ -373,6 +373,9 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
                 onSeasonSelect={setSelectedSeason}
                 seasonDetails={seasonDetails}
                 isLoadingSeasonDetails={isLoadingSeasonDetails}
+                tvShow={item as TMDBSeries}
+                tvShowDetails={tvDetails || null}
+                trailer={trailer}
               />
             )}
             {/* More Like This */}
