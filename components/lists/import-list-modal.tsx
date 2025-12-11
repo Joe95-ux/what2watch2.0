@@ -176,7 +176,7 @@ export default function ImportListModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="mx-2 w-full max-w-[calc(100vw-1rem)] sm:max-w-3xl lg:max-w-[50rem] max-h-[90vh] flex flex-col">
+      <DialogContent className="mx-auto w-full max-w-[calc(100vw-1rem)] sm:max-w-3xl lg:max-w-[50rem] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Import List Items from CSV</DialogTitle>
           <DialogDescription>

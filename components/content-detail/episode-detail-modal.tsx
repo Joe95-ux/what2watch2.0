@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Play, Star, Tv } from "lucide-react";
+import { Star, Tv, Play } from "lucide-react";
+import { FaBookmark } from "react-icons/fa";
 import { TMDBSeries, TMDBVideo, getPosterUrl } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import {
@@ -135,7 +136,7 @@ export default function EpisodeDetailModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="mx-2 w-full max-w-[calc(100vw-1rem)] sm:max-w-3xl lg:max-w-[50rem] max-h-[90vh] flex flex-col p-0">
+        <DialogContent className="w-full max-w-[calc(100vw-1rem)] sm:max-w-3xl lg:max-w-[50rem] max-h-[90vh] flex flex-col p-0">
           <DialogHeader className="px-6 pt-6 pb-0">
             <DialogTitle className="sr-only">Episode Details</DialogTitle>
           </DialogHeader>
@@ -282,23 +283,30 @@ export default function EpisodeDetailModal({
           </div>
 
           {/* Footer: Watch Trailer and Add to Watchlist */}
-          <div className="border-t px-6 py-4 flex items-center justify-center gap-3">
+          <div className="border-t px-6 py-4 flex items-center justify-center gap-3 overflow-x-auto">
             {trailer && (
               <Button
+                variant="default"
                 onClick={handleOpenTrailer}
                 className="cursor-pointer rounded-[25px]"
               >
-                <Play className="h-4 w-4 mr-2" />
-                Watch Trailer
+                <Play className="h-4 w-4 mr-2 text-red-500" />
+                <span className="text-red-500">Watch Trailer</span>
               </Button>
             )}
             <Button
-              variant={isInWatchlistValue ? "default" : "outline"}
+              variant="secondary"
               onClick={handleAddToWatchlist}
               disabled={isWatchlistLoading}
               className="cursor-pointer rounded-[25px]"
             >
-              {isInWatchlistValue ? "Shows in watchlist" : "Add show to watchlist"}
+              <FaBookmark className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">
+                {isInWatchlistValue ? "Shows in watchlist" : "Add show to watchlist"}
+              </span>
+              <span className="sm:hidden">
+                {isInWatchlistValue ? "In watchlist" : "Add to watchlist"}
+              </span>
             </Button>
           </div>
         </DialogContent>
