@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Star, Tv, Play } from "lucide-react";
-import { FaBookmark } from "react-icons/fa";
+import { Star, Tv } from "lucide-react";
+import { FaBookmark, FaPlay } from "react-icons/fa";
 import { TMDBSeries, TMDBVideo, getPosterUrl } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import {
@@ -290,8 +290,8 @@ export default function EpisodeDetailModal({
                 onClick={handleOpenTrailer}
                 className="cursor-pointer rounded-[25px]"
               >
-                <Play className="h-4 w-4 mr-2 text-red-500" />
-                <span className="text-red-500">Watch Trailer</span>
+                <FaPlay className="h-4 w-4" />
+                <span>Watch Trailer</span>
               </Button>
             )}
             <Button
@@ -300,9 +300,12 @@ export default function EpisodeDetailModal({
               disabled={isWatchlistLoading}
               className="cursor-pointer rounded-[25px]"
             >
-              <FaBookmark className="h-4 w-4 mr-2" />
+              <FaBookmark 
+                className="h-4 w-4" 
+                style={isInWatchlistValue ? { fill: "#e0b416" } : {}}
+              />
               <span className="hidden sm:inline">
-                {isInWatchlistValue ? "Shows in watchlist" : "Add show to watchlist"}
+                {isInWatchlistValue ? "In watchlist" : "Add to watchlist"}
               </span>
               <span className="sm:hidden">
                 {isInWatchlistValue ? "In watchlist" : "Add to watchlist"}
