@@ -739,7 +739,18 @@ export default function ContentDetailModal({
                     tvShow={item as TMDBSeries}
                     tvShowDetails={tvDetails || null}
                     trailer={trailer}
-                    onEpisodeClick={(episode) => {
+                    onEpisodeClick={(episode: {
+                      id: number;
+                      name: string;
+                      overview: string;
+                      episode_number: number;
+                      season_number: number;
+                      air_date: string | null;
+                      still_path: string | null;
+                      runtime: number | null;
+                      vote_average: number;
+                      vote_count: number;
+                    }) => {
                       setSelectedEpisode(episode);
                       setIsEpisodeModalOpen(true);
                     }}
@@ -836,6 +847,44 @@ interface TVSeasonsSectionProps {
     season_number: number;
   } | null | undefined;
   isLoadingSeasonDetails?: boolean;
+  tvShow?: TMDBSeries;
+  tvShowDetails?: {
+    created_by?: Array<{ id: number; name: string; profile_path?: string | null }>;
+    credits?: {
+      cast?: Array<{
+        id: number;
+        name: string;
+        character: string;
+        profile_path: string | null;
+      }>;
+      crew?: Array<{
+        id: number;
+        name: string;
+        job: string;
+      }>;
+    };
+    genres?: Array<{ id: number; name: string }>;
+    first_air_date?: string;
+    episode_run_time?: number[];
+    vote_average?: number;
+    external_ids?: {
+      imdb_id?: string | null;
+    };
+    imdb_id?: string | null;
+  } | null;
+  trailer?: TMDBVideo | null;
+  onEpisodeClick?: (episode: {
+    id: number;
+    name: string;
+    overview: string;
+    episode_number: number;
+    season_number: number;
+    air_date: string | null;
+    still_path: string | null;
+    runtime: number | null;
+    vote_average: number;
+    vote_count: number;
+  }) => void;
 }
 
 function TVSeasonsSection({
