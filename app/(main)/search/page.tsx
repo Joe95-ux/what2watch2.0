@@ -32,6 +32,9 @@ function SearchResultsContent() {
   const minRating = searchParams.get("minRating") ? parseFloat(searchParams.get("minRating")!) : 0;
   const sortBy = searchParams.get("sortBy") || "popularity.desc";
   const page = parseInt(searchParams.get("page") || "1", 10);
+  const runtimeMin = searchParams.get("runtimeMin") ? parseInt(searchParams.get("runtimeMin")!, 10) : undefined;
+  const runtimeMax = searchParams.get("runtimeMax") ? parseInt(searchParams.get("runtimeMax")!, 10) : undefined;
+  const withOriginCountry = searchParams.get("withOriginCountry") || undefined;
 
   const [filters, setFilters] = useState<SearchFilters>({
     type,
@@ -75,6 +78,9 @@ function SearchResultsContent() {
     minRating: minRating > 0 ? minRating : undefined,
     sortBy,
     page,
+    runtimeMin,
+    runtimeMax,
+    withOriginCountry,
   });
 
   const results = data?.results || [];
@@ -103,6 +109,16 @@ function SearchResultsContent() {
     }
     if (sortBy && !newParams.hasOwnProperty("sortBy")) {
       params.set("sortBy", sortBy);
+    }
+    // Preserve runtime and country filters
+    if (runtimeMin !== undefined && !newParams.hasOwnProperty("runtimeMin")) {
+      params.set("runtimeMin", runtimeMin.toString());
+    }
+    if (runtimeMax !== undefined && !newParams.hasOwnProperty("runtimeMax")) {
+      params.set("runtimeMax", runtimeMax.toString());
+    }
+    if (withOriginCountry && !newParams.hasOwnProperty("withOriginCountry")) {
+      params.set("withOriginCountry", withOriginCountry);
     }
     
     // Apply new parameters (these override existing ones)
@@ -144,6 +160,20 @@ function SearchResultsContent() {
         } else if (key === "sortBy") {
           // Always include sortBy if provided
           params.set(key, value.toString());
+        } else if (key === "runtimeMin" || key === "runtimeMax") {
+          // Handle runtime parameters
+          if (value !== undefined && value !== null) {
+            params.set(key, value.toString());
+          } else {
+            params.delete(key);
+          }
+        } else if (key === "withOriginCountry") {
+          // Handle country parameter
+          if (value && value !== "") {
+            params.set(key, value.toString());
+          } else {
+            params.delete(key);
+          }
         } else if (value && value !== "all" && value !== "" && value !== 0) {
           params.set(key, value.toString());
         }
@@ -164,6 +194,10 @@ function SearchResultsContent() {
       minRating: filters.minRating > 0 ? filters.minRating : undefined,
       sortBy: filters.sortBy,
       page: 1, // Reset to page 1 when filters change
+      // Preserve runtime and country filters when applying other filters
+      runtimeMin: runtimeMin,
+      runtimeMax: runtimeMax,
+      withOriginCountry: withOriginCountry,
     });
     setFiltersOpen(false);
   };
@@ -187,7 +221,7 @@ function SearchResultsContent() {
     });
   };
 
-  const hasActiveFilters: boolean = filters.type !== "all" || filters.genre.length > 0 || !!filters.year || filters.minRating > 0;
+  const hasActiveFilters: boolean = filters.type !== "all" || filters.genre.length > 0 || !!filters.year || filters.minRating > 0 || runtimeMin !== undefined || runtimeMax !== undefined || !!withOriginCountry;
   const currentYear = new Date().getFullYear();
   const startYear = 1900;
 

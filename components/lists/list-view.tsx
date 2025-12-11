@@ -153,6 +153,11 @@ export default function ListView({
   errorDescription = "This list doesn't exist or is private.",
   errorAction,
   onBack,
+  isLiked = false,
+  onToggleLike,
+  isLikeLoading = false,
+  likeUserId = null,
+  showLikeFollow = false,
 }: ListViewProps) {
   const router = useRouter();
 
