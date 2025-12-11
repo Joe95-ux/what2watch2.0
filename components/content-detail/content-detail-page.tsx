@@ -317,7 +317,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
               item={item}
               type={type}
               trigger={
-                <Button variant="outline" size="sm" className="rounded-lg">
+                <Button variant="outline" size="sm" className="rounded-[25px]">
                   <Plus className="h-4 w-4 mr-2" />
                   Add to Playlist
                 </Button>
@@ -328,7 +328,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
               size="sm"
               onClick={handleMarkAsWatched}
               className={cn(
-                "rounded-lg",
+                "rounded-[25px]",
                 isWatched && "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800"
               )}
             >

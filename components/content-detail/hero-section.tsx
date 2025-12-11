@@ -3,7 +3,7 @@
 import { useState, useEffect, type ReactNode } from "react";
 import Image from "next/image";
 import { Play, Heart, Clapperboard, Images, Star, Eye, Plus, Check } from "lucide-react";
-import { LiaBookmarkSolid } from "react-icons/lia";
+import { ImBookmark } from "react-icons/im";
 import {
   TMDBMovie,
   TMDBSeries,
@@ -307,7 +307,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                   }}
                 >
                   <div className="relative size-9 flex items-center justify-center">
-                    <LiaBookmarkSolid
+                    <ImBookmark
                       className={cn(
                         "size-9",
                         toggleWatchlist.isInWatchlist(item.id, type)
@@ -364,7 +364,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                   }}
                 >
                   <div className="relative size-9 flex items-center justify-center">
-                    <LiaBookmarkSolid
+                    <ImBookmark
                       className={cn(
                         "size-9",
                         toggleWatchlist.isInWatchlist(item.id, type)
