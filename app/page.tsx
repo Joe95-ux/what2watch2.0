@@ -34,6 +34,7 @@ import {
   useTrendingTV,
 } from "@/hooks/use-movies";
 import { usePublicPlaylists } from "@/hooks/use-playlists";
+import { usePublicLists } from "@/components/lists/public-lists-content";
 import {
   Carousel,
   CarouselContent,
@@ -42,6 +43,9 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import PlaylistCard from "@/components/browse/playlist-card";
+import ListCard from "@/components/browse/list-card";
+import { List } from "@/hooks/use-lists";
+import { Playlist } from "@/hooks/use-playlists";
 import {
   getBackdropUrl,
   getPosterUrl,
@@ -71,8 +75,17 @@ type TrailerState = {
   error?: string;
 };
 
-function PublicPlaylistsCarousel() {
-  const { data: playlists = [], isLoading, isError, error } = usePublicPlaylists(20);
+function CuratedListsCarousel() {
+  const { data: lists = [], isLoading: isLoadingLists } = usePublicLists(10);
+  const { data: playlists = [], isLoading: isLoadingPlaylists, isError, error } = usePublicPlaylists(10);
+
+  const isLoading = isLoadingLists || isLoadingPlaylists;
+
+  // Combine lists and playlists
+  const allItems = [
+    ...lists.map((list) => ({ type: "list" as const, data: list })),
+    ...playlists.map((playlist) => ({ type: "playlist" as const, data: playlist })),
+  ].slice(0, 20);
 
   if (isLoading) {
     return (
@@ -80,9 +93,9 @@ function PublicPlaylistsCarousel() {
         <div className="relative">
           <div className="overflow-x-hidden">
             <div className="flex gap-3 px-4 sm:px-6 lg:px-8">
-              {Array.from({ length: 10 }).map((_, i) => (
+              {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="flex-shrink-0">
-                  <Skeleton className="w-[180px] sm:w-[200px] aspect-[3/4] rounded-lg !bg-gray-200 dark:!bg-accent" />
+                  <Skeleton className="w-full aspect-[3/4] rounded-lg !bg-gray-200 dark:!bg-accent" />
                   {/* Mobile title skeleton */}
                   <div className="mt-2 md:hidden">
                     <Skeleton className="h-4 w-32 mb-1 !bg-gray-200 dark:!bg-accent" />
@@ -99,41 +112,45 @@ function PublicPlaylistsCarousel() {
 
   // Show error state but don't hide the section
   if (isError) {
-    console.error("Error fetching public playlists:", error);
+    console.error("Error fetching curated lists:", error);
     // Return empty state instead of null to keep section visible
     return null;
   }
 
-  if (playlists.length === 0) {
+  if (allItems.length === 0) {
     return null;
   }
 
   return (
-    <div className="relative group">
+    <div className="relative group/carousel">
       <Carousel
         opts={{
           align: "start",
-          slidesToScroll: 5,
+          slidesToScroll: 1,
           breakpoints: {
-            "(max-width: 640px)": { slidesToScroll: 2 },
-            "(max-width: 1024px)": { slidesToScroll: 3 },
-            "(max-width: 1280px)": { slidesToScroll: 4 },
+            "(max-width: 600px)": { slidesToScroll: 1, dragFree: true }, // 1 item per view, dragFree for mobile
+            "(min-width: 601px)": { slidesToScroll: 2 }, // 2 items per view
+            "(min-width: 1025px)": { slidesToScroll: 3 }, // 3 items per view (max)
           },
         }}
         className="w-full"
       >
-        <CarouselContent className="-ml-2 md:-ml-4 gap-3">
-          {playlists.map((playlist) => (
-            <CarouselItem key={playlist.id} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px]">
-              <PlaylistCard playlist={playlist} variant="carousel" />
+        <CarouselContent className="-ml-2 md:-ml-4 gap-0">
+          {allItems.map((item) => (
+            <CarouselItem key={`${item.type}-${item.data.id}`} className="pl-2 md:pl-4 basis-1/1 sm:basis-1/2 lg:basis-1/3">
+              {item.type === "list" ? (
+                <ListCard list={item.data} variant="carousel" />
+              ) : (
+                <PlaylistCard playlist={item.data} variant="carousel" />
+              )}
             </CarouselItem>
           ))}
         </CarouselContent>
         <CarouselPrevious 
-          className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+          className="left-0 h-[225px] w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
         />
         <CarouselNext 
-          className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+          className="right-0 h-[225px] w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
         />
       </Carousel>
     </div>
@@ -751,7 +768,7 @@ export default function LandingPage() {
             </Link>
           </div>
           <div className="overflow-hidden sm:overflow-visible group">
-            <PublicPlaylistsCarousel />
+            <CuratedListsCarousel />
           </div>
         </div>
       </section>

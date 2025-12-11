@@ -26,6 +26,7 @@ import {
   Plus,
   Eye,
   Lock,
+  Heart,
 } from "lucide-react";
 import Image from "next/image";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
@@ -104,6 +105,7 @@ import { createPersonSlug } from "@/lib/person-utils";
 import { Textarea } from "@/components/ui/textarea";
 import { Star } from "lucide-react";
 import { useUpdateListItemMutation } from "@/hooks/use-lists";
+import { FollowButton } from "@/components/social/follow-button";
 
 interface ListViewProps {
   list: List | null;
@@ -124,6 +126,12 @@ interface ListViewProps {
   errorDescription?: string;
   errorAction?: React.ReactNode;
   onBack?: () => void;
+  // Like and Follow props for non-owners
+  isLiked?: boolean;
+  onToggleLike?: () => Promise<void>;
+  isLikeLoading?: boolean;
+  likeUserId?: string | null;
+  showLikeFollow?: boolean;
 }
 
 export default function ListView({
@@ -656,7 +664,7 @@ export default function ListView({
 
           <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
             <div className="flex-1">
-              {!isOwner && list.user && (
+              {list.user && (
                 <div className="flex items-center gap-3 mb-4">
                   <Link href={`/${list.user.username || list.user.id}`}>
                     <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 ring-primary transition-all">
@@ -672,12 +680,15 @@ export default function ListView({
                     </Avatar>
                   </Link>
                   <div>
-                    <Link
-                      href={`/${list.user.username || list.user.id}`}
-                      className="text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                    >
-                      {list.user.displayName || list.user.username || "Unknown"}
-                    </Link>
+                    <p className="text-sm text-muted-foreground">
+                      Created by{" "}
+                      <Link
+                        href={`/${list.user.username || list.user.id}`}
+                        className="hover:text-primary transition-colors cursor-pointer"
+                      >
+                        {list.user.username || list.user.displayName || "Unknown"}
+                      </Link>
+                    </p>
                   </div>
                 </div>
               )}
@@ -702,14 +713,17 @@ export default function ListView({
                 </p>
               )}
               <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                {!isOwner && list.user && (
+                {list.user && (
                   <>
-                    <Link
-                      href={`/${list.user.username || list.user.id}`}
-                      className="hover:text-primary transition-colors cursor-pointer"
-                    >
-                      {list.user.displayName || list.user.username || "Unknown"}
-                    </Link>
+                    <span>
+                      Created by{" "}
+                      <Link
+                        href={`/${list.user.username || list.user.id}`}
+                        className="hover:text-primary transition-colors cursor-pointer"
+                      >
+                        {list.user.username || list.user.displayName || "Unknown"}
+                      </Link>
+                    </span>
                     <span>•</span>
                   </>
                 )}
@@ -748,12 +762,34 @@ export default function ListView({
             {/* Actions */}
             <div className="overflow-x-auto max-w-full">
               <div className="flex items-center gap-2">
+                {showLikeFollow && !isOwner && list && list.visibility !== "PRIVATE" && (
+                  <>
+                    <Button
+                      variant={isLiked ? "default" : "outline"}
+                      size="sm"
+                      onClick={onToggleLike}
+                      disabled={isLikeLoading || !likeUserId}
+                      className="cursor-pointer flex-shrink-0"
+                    >
+                      <Heart className={cn("h-4 w-4 mr-2", isLiked && "fill-current")} />
+                      {isLiked ? "Liked" : "Like"}
+                      {list._count?.likedBy && list._count.likedBy > 0 && (
+                        <span className="ml-2">({list._count.likedBy})</span>
+                      )}
+                    </Button>
+                    {list.user && (
+                      <div className="flex-shrink-0">
+                        <FollowButton userId={list.user.id} size="sm" />
+                      </div>
+                    )}
+                  </>
+                )}
                 <ShareDropdown
                   shareUrl={shareUrl}
                   title={list.name}
                   description={`Check out ${list.name} on What2Watch`}
                   onShare={onShare}
-                  className="gap-2 cursor-pointer"
+                  className="gap-2 cursor-pointer flex-shrink-0"
                 />
                 {enablePublicToggle && onTogglePublic && isOwner && (
                   <div

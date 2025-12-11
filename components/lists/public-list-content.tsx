@@ -230,31 +230,12 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
         errorTitle="List not found"
         errorDescription="This list doesn't exist or is private."
         onBack={() => router.push("/lists")}
+        isLiked={isLiked}
+        onToggleLike={handleToggleLike}
+        isLikeLoading={likeList.isPending || unlikeList.isPending}
+        likeUserId={currentUser?.id || null}
+        showLikeFollow={!isOwner && list?.visibility !== "PRIVATE"}
       />
-
-      {/* Like and Follow Actions for Non-Owners */}
-      {!isOwner && list && list.visibility !== "PRIVATE" && (
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t">
-          <div className="flex items-center gap-4">
-            <Button
-              variant={isLiked ? "default" : "outline"}
-              size="sm"
-              onClick={handleToggleLike}
-              disabled={likeList.isPending || unlikeList.isPending || !currentUser}
-              className="cursor-pointer"
-            >
-              <Heart className={cn("h-4 w-4 mr-2", isLiked && "fill-current")} />
-              {isLiked ? "Liked" : "Like"}
-              {list._count?.likedBy && list._count.likedBy > 0 && (
-                <span className="ml-2">({list._count.likedBy})</span>
-              )}
-            </Button>
-            {list.user && (
-              <FollowButton userId={list.user.id} />
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Comments Section */}
       {list && list.visibility !== "PRIVATE" && (

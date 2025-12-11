@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreVertical, Settings, LogOut, Moon, Sun, Monitor, LayoutDashboard, Youtube, Bookmark, List, BookOpen, Activity, User, ClipboardList } from "lucide-react";
+import { MoreVertical, Settings, LogOut, Moon, Sun, Monitor, LayoutDashboard, Youtube, Bookmark, List, BookOpen, Activity, User, ClipboardList, Compass } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
@@ -60,6 +60,18 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
           >
             <LayoutDashboard className="mr-2 h-4 w-4" />
             <span>Dashboard</span>
+          </DropdownMenuItem>
+        </Link>
+        <Link href="/browse/personalized">
+          <DropdownMenuItem 
+            className="cursor-pointer"
+            onSelect={(e) => {
+              e.preventDefault();
+              setTimeout(() => setIsDropdownOpen(false), 100);
+            }}
+          >
+            <Compass className="mr-2 h-4 w-4" />
+            <span>Guide</span>
           </DropdownMenuItem>
         </Link>
 

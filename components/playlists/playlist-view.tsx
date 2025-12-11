@@ -29,6 +29,7 @@ import {
   Lock,
   Youtube,
   Search,
+  Heart,
 } from "lucide-react";
 import Image from "next/image";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
@@ -102,6 +103,7 @@ import DetailedPlaylistItem from "./detailed-playlist-item";
 import { DetailedYouTubePlaylistItem } from "./detailed-youtube-playlist-item";
 import { CopyToPlaylistModal } from "./copy-to-playlist-modal";
 import { MoveToPlaylistModal } from "./move-to-playlist-modal";
+import { FollowButton } from "@/components/social/follow-button";
 
 interface PlaylistViewProps {
   playlist: Playlist | null;
@@ -123,6 +125,12 @@ interface PlaylistViewProps {
   errorDescription?: string;
   errorAction?: React.ReactNode;
   onBack?: () => void;
+  // Like and Follow props for non-owners
+  isLiked?: boolean;
+  onToggleLike?: () => Promise<void>;
+  isLikeLoading?: boolean;
+  likeUserId?: string | null;
+  showLikeFollow?: boolean;
 }
 
 export default function PlaylistView({
@@ -145,6 +153,11 @@ export default function PlaylistView({
   errorDescription = "This playlist doesn't exist or is private.",
   errorAction,
   onBack,
+  isLiked = false,
+  onToggleLike,
+  isLikeLoading = false,
+  likeUserId = null,
+  showLikeFollow = false,
 }: PlaylistViewProps) {
   const router = useRouter();
   
@@ -917,7 +930,7 @@ export default function PlaylistView({
 
           <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
             <div className="flex-1">
-              {!isOwner && playlist.user && (
+              {playlist.user && (
                 <div className="flex items-center gap-3 mb-4">
                   <Link href={`/${playlist.user.username || playlist.user.id}`}>
                     <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 ring-primary transition-all">
@@ -933,12 +946,15 @@ export default function PlaylistView({
                     </Avatar>
                   </Link>
                   <div>
-                    <Link
-                      href={`/${playlist.user.username || playlist.user.id}`}
-                      className="text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                    >
-                      {playlist.user.displayName || playlist.user.username || "Unknown"}
-                    </Link>
+                    <p className="text-sm text-muted-foreground">
+                      Created by{" "}
+                      <Link
+                        href={`/${playlist.user.username || playlist.user.id}`}
+                        className="hover:text-primary transition-colors cursor-pointer"
+                      >
+                        {playlist.user.username || playlist.user.displayName || "Unknown"}
+                      </Link>
+                    </p>
                   </div>
                 </div>
               )}
@@ -963,14 +979,17 @@ export default function PlaylistView({
                 </p>
               )}
               <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                {!isOwner && playlist.user && (
+                {playlist.user && (
                   <>
-                    <Link
-                      href={`/${playlist.user.username || playlist.user.id}`}
-                      className="hover:text-primary transition-colors cursor-pointer"
-                    >
-                      {playlist.user.displayName || playlist.user.username || "Unknown"}
-                    </Link>
+                    <span>
+                      Created by{" "}
+                      <Link
+                        href={`/${playlist.user.username || playlist.user.id}`}
+                        className="hover:text-primary transition-colors cursor-pointer"
+                      >
+                        {playlist.user.username || playlist.user.displayName || "Unknown"}
+                      </Link>
+                    </span>
                     <span>•</span>
                   </>
                 )}
@@ -1006,12 +1025,34 @@ export default function PlaylistView({
             {/* Actions */}
             <div className="overflow-x-auto max-w-full">
               <div className="flex items-center gap-2">
+                {showLikeFollow && !isOwner && playlist && (playlist.visibility === "PUBLIC" || playlist.isPublic || playlist.visibility === "FOLLOWERS_ONLY") && (
+                  <>
+                    <Button
+                      variant={isLiked ? "default" : "outline"}
+                      size="sm"
+                      onClick={onToggleLike}
+                      disabled={isLikeLoading || !likeUserId}
+                      className="cursor-pointer flex-shrink-0"
+                    >
+                      <Heart className={cn("h-4 w-4 mr-2", isLiked && "fill-current")} />
+                      {isLiked ? "Liked" : "Like"}
+                      {playlist.likesCount && playlist.likesCount > 0 && (
+                        <span className="ml-2">({playlist.likesCount})</span>
+                      )}
+                    </Button>
+                    {playlist.user && (
+                      <div className="flex-shrink-0">
+                        <FollowButton userId={playlist.user.id} size="sm" />
+                      </div>
+                    )}
+                  </>
+                )}
                 <ShareDropdown
                   shareUrl={shareUrl}
                   title={playlist.name}
                   description={`Check out ${playlist.name} on What2Watch`}
                   onShare={onShare}
-                  className="gap-2 cursor-pointer"
+                  className="gap-2 cursor-pointer flex-shrink-0"
                 />
                 {enablePublicToggle && onTogglePublic && isOwner && (
                   <div

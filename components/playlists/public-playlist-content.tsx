@@ -252,29 +252,12 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
         errorTitle="Playlist not found"
         errorDescription="This playlist doesn't exist or is private."
         onBack={() => router.push("/playlists")}
+        isLiked={isLiked}
+        onToggleLike={handleToggleLike}
+        isLikeLoading={likePlaylist.isPending || unlikePlaylist.isPending}
+        likeUserId={currentUserId}
+        showLikeFollow={!isOwner && playlistWithUser.user && (playlist?.visibility === "PUBLIC" || playlist?.isPublic || playlist?.visibility === "FOLLOWERS_ONLY")}
       />
-
-      {/* Like Button for non-owners - needs to be added to PlaylistView or shown separately */}
-      {!isOwner && playlistWithUser.user && (
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-          <div className="flex items-center justify-center gap-4">
-            <Button
-              variant={isLiked ? "default" : "outline"}
-              size="sm"
-              onClick={handleToggleLike}
-              disabled={likePlaylist.isPending || unlikePlaylist.isPending || !currentUserId}
-              className="cursor-pointer"
-            >
-              <Heart className={cn("h-4 w-4 mr-2", isLiked && "fill-current")} />
-              {isLiked ? "Liked" : "Like"}
-              {playlist.likesCount && playlist.likesCount > 0 && (
-                <span className="ml-2">({playlist.likesCount})</span>
-              )}
-            </Button>
-            <FollowButton userId={playlistWithUser.user.id} />
-          </div>
-        </div>
-      )}
 
       {/* Share Dialog - Available for all users */}
       {playlist && (

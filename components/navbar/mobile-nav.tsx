@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard } from "lucide-react";
+import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass } from "lucide-react";
 import { Youtube } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -92,6 +92,21 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
             >
               <LayoutDashboard className="mr-2 h-4 w-4" />
               <span>Dashboard</span>
+            </Link>
+            <Link
+              href="/browse/personalized"
+              onClick={onLinkClick}
+              className={cn(
+                "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
+                "focus:bg-accent focus:text-accent-foreground",
+                "hover:bg-accent hover:text-accent-foreground",
+                pathname === "/browse/personalized"
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground"
+              )}
+            >
+              <Compass className="mr-2 h-4 w-4" />
+              <span>Guide</span>
             </Link>
             <Link
               href="/settings"
