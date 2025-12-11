@@ -2,7 +2,8 @@
 
 import { useState, useEffect, type ReactNode } from "react";
 import Image from "next/image";
-import { Play, Heart, Clapperboard, Images, Star, Eye, Bookmark, Plus, Check } from "lucide-react";
+import { Play, Heart, Clapperboard, Images, Star, Eye, Plus, Check } from "lucide-react";
+import { LiaBookmarkSolid } from "react-icons/lia";
 import {
   TMDBMovie,
   TMDBSeries,
@@ -290,34 +291,37 @@ export default function HeroSection({ item, type, details, trailer, videosData }
             {/* Watchlist Icon - Top Left */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <button
+                <div
                   onClick={async () => {
                     await toggleWatchlist.toggle(item, type);
                   }}
+                  role="button"
+                  tabIndex={0}
                   aria-label={toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
-                  className={cn(
-                    "absolute top-0 left-0 z-10 size-9 flex items-center justify-center transition-all cursor-pointer",
-                    toggleWatchlist.isInWatchlist(item.id, type)
-                      ? "bg-[#E50914]"
-                      : "bg-black/60 hover:bg-black/70"
-                  )}
+                  className="absolute top-0 left-0 z-10 flex items-center justify-center cursor-pointer"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleWatchlist.toggle(item, type);
+                    }
+                  }}
                 >
                   <div className="relative size-9 flex items-center justify-center">
-                    <Bookmark
+                    <LiaBookmarkSolid
                       className={cn(
-                        "absolute size-9",
+                        "size-9",
                         toggleWatchlist.isInWatchlist(item.id, type)
-                          ? "text-[#E50914] fill-[#E50914]"
-                          : "text-white fill-transparent"
+                          ? "text-blue-500 fill-blue-500"
+                          : "text-black/60 fill-black/60"
                       )}
                     />
                     {toggleWatchlist.isInWatchlist(item.id, type) ? (
-                      <Check className="relative size-4 text-white z-10" />
+                      <Check className="absolute size-5 text-white z-10" />
                     ) : (
-                      <Plus className="relative size-4 text-white z-10" />
+                      <Plus className="absolute size-5 text-white z-10" />
                     )}
                   </div>
-                </button>
+                </div>
               </TooltipTrigger>
               <TooltipContent>
                 {toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
@@ -344,34 +348,37 @@ export default function HeroSection({ item, type, details, trailer, videosData }
             {/* Watchlist Icon - Top Left (Mobile only) */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <button
+                <div
                   onClick={async () => {
                     await toggleWatchlist.toggle(item, type);
                   }}
+                  role="button"
+                  tabIndex={0}
                   aria-label={toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
-                  className={cn(
-                    "absolute top-0 left-0 z-10 size-9 flex items-center justify-center transition-all cursor-pointer lg:hidden",
-                    toggleWatchlist.isInWatchlist(item.id, type)
-                      ? "bg-[#E50914]"
-                      : "bg-black/60 hover:bg-black/70"
-                  )}
+                  className="absolute top-0 left-0 z-10 flex items-center justify-center cursor-pointer lg:hidden"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleWatchlist.toggle(item, type);
+                    }
+                  }}
                 >
                   <div className="relative size-9 flex items-center justify-center">
-                    <Bookmark
+                    <LiaBookmarkSolid
                       className={cn(
-                        "absolute size-9",
+                        "size-9",
                         toggleWatchlist.isInWatchlist(item.id, type)
-                          ? "text-[#E50914] fill-[#E50914]"
-                          : "text-white fill-transparent"
+                          ? "text-blue-500 fill-blue-500"
+                          : "text-black/60 fill-black/60"
                       )}
                     />
                     {toggleWatchlist.isInWatchlist(item.id, type) ? (
-                      <Check className="relative size-4 text-white z-10" />
+                      <Check className="absolute size-5 text-white z-10" />
                     ) : (
-                      <Plus className="relative size-4 text-white z-10" />
+                      <Plus className="absolute size-5 text-white z-10" />
                     )}
                   </div>
-                </button>
+                </div>
               </TooltipTrigger>
               <TooltipContent>
                 {toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
