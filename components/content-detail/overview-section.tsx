@@ -248,7 +248,7 @@ export default function OverviewSection({
                     item={item}
                     type={type}
                     trigger={
-                      <Button variant="outline" size="sm" className="rounded-[25px]">
+                      <Button variant="outline" size="sm" className="rounded-[25px] h-10">
                         <Plus className="h-4 w-4 mr-2" />
                         Add to Playlist
                       </Button>
@@ -259,7 +259,7 @@ export default function OverviewSection({
                     size="sm"
                     onClick={handleMarkAsWatched}
                     className={cn(
-                      "rounded-[25px]",
+                      "rounded-[25px] h-10",
                       isWatched && "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800"
                     )}
                   >

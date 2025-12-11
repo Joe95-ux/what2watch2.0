@@ -207,7 +207,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
   };
 
   return (
-    <section className="-mt-[65px] pt-16 sm:pt-20 pb-12 bg-background">
+    <section className="-mt-[65px] pt-16 sm:pt-20 pb-0 lg:pb-12 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-end gap-3 mt-[14px] md:mt-0">
@@ -298,7 +298,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                   role="button"
                   tabIndex={0}
                   aria-label={toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
-                  className="absolute top-0 left-0 z-10 flex items-center justify-center cursor-pointer"
+                  className="absolute -top-[10px] -left-[12px] z-10 flex items-center justify-center cursor-pointer"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
@@ -306,19 +306,19 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                     }
                   }}
                 >
-                  <div className="relative size-9 flex items-center justify-center">
+                  <div className="relative flex items-center justify-center">
                     <ImBookmark
                       className={cn(
-                        "size-9",
+                        "w-16 h-21",
                         toggleWatchlist.isInWatchlist(item.id, type)
-                          ? "text-blue-500 fill-blue-500"
-                          : "text-black/60 fill-black/60"
+                          ? "text-blue-700 fill-blue-700"
+                          : "text-black/80 fill-black/80"
                       )}
                     />
                     {toggleWatchlist.isInWatchlist(item.id, type) ? (
-                      <Check className="absolute size-5 text-white z-10" />
+                      <Check className="absolute top-5 size-7 text-white z-10" />
                     ) : (
-                      <Plus className="absolute size-5 text-white z-10" />
+                      <Plus className="absolute top-5 size-7 text-white z-10" />
                     )}
                   </div>
                 </div>
@@ -355,7 +355,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                   role="button"
                   tabIndex={0}
                   aria-label={toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
-                  className="absolute top-0 left-0 z-10 flex items-center justify-center cursor-pointer lg:hidden"
+                  className="absolute top-0 -left-[9px] z-10 flex items-center justify-center cursor-pointer lg:hidden"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
@@ -363,19 +363,19 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                     }
                   }}
                 >
-                  <div className="relative size-9 flex items-center justify-center">
+                  <div className="relative flex items-center justify-center">
                     <ImBookmark
                       className={cn(
-                        "size-9",
+                        "h-[44px] w-[44px]",
                         toggleWatchlist.isInWatchlist(item.id, type)
-                          ? "text-blue-500 fill-blue-500"
-                          : "text-black/60 fill-black/60"
+                          ? "text-blue-700 fill-blue-700"
+                          : "text-black/80 fill-black/80"
                       )}
                     />
                     {toggleWatchlist.isInWatchlist(item.id, type) ? (
-                      <Check className="absolute size-5 text-white z-10" />
+                      <Check className="absolute top-[5px] size-6 text-white z-10" />
                     ) : (
-                      <Plus className="absolute size-5 text-white z-10" />
+                      <Plus className="absolute top-[5px] size-6 text-white z-10" />
                     )}
                   </div>
                 </div>
