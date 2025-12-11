@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Play, Star, Tv } from "lucide-react";
 import { TMDBSeries, TMDBVideo, getPosterUrl } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,9 @@ import {
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import TrailerModal from "@/components/browse/trailer-modal";
 import { format } from "date-fns";
+import { createPersonSlug } from "@/lib/person-utils";
+import { useToggleWatchlist } from "@/hooks/use-watchlist";
+import { toast } from "sonner";
 
 interface Episode {
   id: number;
@@ -70,7 +74,9 @@ export default function EpisodeDetailModal({
   tvShowDetails,
   trailer,
 }: EpisodeDetailModalProps) {
+  const router = useRouter();
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
+  const { isInWatchlist, toggle, isLoading: isWatchlistLoading } = useToggleWatchlist();
 
   if (!episode) return null;
 
@@ -80,15 +86,24 @@ export default function EpisodeDetailModal({
   
   // Get creators
   const creators = tvShowDetails?.created_by || [];
-  const creatorsText = creators.length > 0 
-    ? creators.map((c) => c.name).join(", ")
-    : "N/A";
+  const isInWatchlistValue = isInWatchlist(tvShow.id, "tv");
 
   // Get top cast (first 4)
   const topCast = tvShowDetails?.credits?.cast?.slice(0, 4) || [];
-  const starsText = topCast.length > 0
-    ? topCast.map((c) => c.name).join(", ")
-    : "N/A";
+
+  const handleAddToWatchlist = async () => {
+    try {
+      await toggle(tvShow, "tv");
+      if (!isInWatchlistValue) {
+        toast.success(`Added ${tvShowTitle} to watchlist`);
+      } else {
+        toast.success(`Removed ${tvShowTitle} from watchlist`);
+      }
+    } catch (error) {
+      toast.error("Failed to update watchlist");
+      console.error(error);
+    }
+  };
 
   // Format release year
   const releaseYear = tvShowDetails?.first_air_date
@@ -216,36 +231,75 @@ export default function EpisodeDetailModal({
                 {/* Creator */}
                 <div>
                   <h5 className="text-sm font-semibold mb-2 text-muted-foreground">Creators</h5>
-                  <p className="text-sm">{creatorsText}</p>
+                  {creators.length > 0 ? (
+                    <div className="text-sm flex flex-wrap gap-1">
+                      {creators.map((creator, index) => (
+                        <span key={creator.id}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/person/${createPersonSlug(creator.id, creator.name)}`);
+                            }}
+                            className="text-primary hover:text-primary/80 underline transition-colors cursor-pointer"
+                          >
+                            {creator.name}
+                          </button>
+                          {index < creators.length - 1 && <span>,</span>}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm">N/A</p>
+                  )}
                 </div>
 
                 {/* Stars */}
                 <div>
                   <h5 className="text-sm font-semibold mb-2 text-muted-foreground">Stars</h5>
-                  <p className="text-sm">{starsText}</p>
+                  {topCast.length > 0 ? (
+                    <div className="text-sm flex flex-wrap gap-1">
+                      {topCast.map((star, index) => (
+                        <span key={star.id}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/person/${createPersonSlug(star.id, star.name)}`);
+                            }}
+                            className="text-primary hover:text-primary/80 underline transition-colors cursor-pointer"
+                          >
+                            {star.name}
+                          </button>
+                          {index < topCast.length - 1 && <span>,</span>}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm">N/A</p>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Footer: Close and Watch Trailer */}
-          <div className="border-t px-6 py-4 flex items-center justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              className="cursor-pointer"
-            >
-              Close
-            </Button>
+          {/* Footer: Watch Trailer and Add to Watchlist */}
+          <div className="border-t px-6 py-4 flex items-center justify-center gap-3">
             {trailer && (
               <Button
                 onClick={handleOpenTrailer}
-                className="cursor-pointer"
+                className="cursor-pointer rounded-[25px]"
               >
                 <Play className="h-4 w-4 mr-2" />
                 Watch Trailer
               </Button>
             )}
+            <Button
+              variant={isInWatchlistValue ? "default" : "outline"}
+              onClick={handleAddToWatchlist}
+              disabled={isWatchlistLoading}
+              className="cursor-pointer rounded-[25px]"
+            >
+              {isInWatchlistValue ? "Shows in watchlist" : "Add show to watchlist"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

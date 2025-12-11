@@ -318,7 +318,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                     {toggleWatchlist.isInWatchlist(item.id, type) ? (
                       <Check className="absolute top-5 size-7 text-black z-10" />
                     ) : (
-                      <Plus className="absolute top-5 size-7 text-black z-10" />
+                      <Plus className="absolute top-5 size-7 text-white z-10" />
                     )}
                   </div>
                 </div>
@@ -375,7 +375,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                     {toggleWatchlist.isInWatchlist(item.id, type) ? (
                       <Check className="absolute top-[5px] size-6 text-black z-10" />
                     ) : (
-                      <Plus className="absolute top-[5px] size-6 text-black z-10" />
+                      <Plus className="absolute top-[5px] size-6 text-white z-10" />
                     )}
                   </div>
                 </div>
