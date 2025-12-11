@@ -25,6 +25,13 @@ import MoreLikeThisSection from "./more-like-this-section";
 import RecentlyViewedSection from "./recently-viewed-section";
 import WatchBreakdownSection from "./watch-breakdown-section";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Plus, Eye } from "lucide-react";
+import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
+import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-logs";
+import { toast } from "sonner";
+import { useUser, useClerk } from "@clerk/nextjs";
+import { cn } from "@/lib/utils";
 
 interface ContentDetailPageProps {
   item: TMDBMovie | TMDBSeries;
@@ -125,6 +132,47 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item.id, type]); // Only depend on item.id and type - mutation function is stable
+
+  // Watch status hooks for action buttons
+  const quickWatch = useQuickWatch();
+  const unwatch = useUnwatch();
+  const { data: watchedData } = useIsWatched(item.id, type);
+  const isWatched = watchedData?.isWatched || false;
+  const watchedLogId = watchedData?.logId || null;
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
+
+  const handleMarkAsWatched = async () => {
+    if (!isSignedIn) {
+      toast.error("Sign in to mark films as watched.");
+      if (openSignIn) {
+        openSignIn({
+          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        });
+      }
+      return;
+    }
+    try {
+      if (isWatched && watchedLogId) {
+        await unwatch.mutateAsync(watchedLogId);
+        toast.success("Removed from watched");
+      } else {
+        const title = type === "movie" ? (item as TMDBMovie).title : (item as TMDBSeries).name;
+        await quickWatch.mutateAsync({
+          tmdbId: item.id,
+          mediaType: type,
+          title,
+          posterPath: item.poster_path || null,
+          backdropPath: item.backdrop_path || null,
+          releaseDate: "release_date" in item ? item.release_date || null : null,
+          firstAirDate: "first_air_date" in item ? item.first_air_date || null : null,
+        });
+        toast.success("Marked as watched");
+      }
+    } catch {
+      toast.error("Failed to update watched status");
+    }
+  };
 
   // Get cast and crew from details (with type assertion for credits)
   const detailsWithExtras = details as DetailsWithCredits | null;
@@ -261,6 +309,40 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
         />
       </div>
 
+      {/* Action Buttons - Mobile only (shown right after hero section) */}
+      <div className="lg:hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-6 border-b">
+        <div className="overflow-x-auto">
+          <div className="flex items-center gap-2 min-w-max">
+            <AddToPlaylistDropdown
+              item={item}
+              type={type}
+              trigger={
+                <Button variant="outline" size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add to Playlist
+                </Button>
+              }
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMarkAsWatched}
+              className={cn(
+                isWatched && "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800"
+              )}
+            >
+              <Eye 
+                className={cn(
+                  "h-4 w-4 mr-2",
+                  isWatched ? "text-green-500 fill-green-500" : "text-muted-foreground"
+                )} 
+              />
+              {isWatched ? "Marked as Watched" : "Mark as Watched"}
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Sticky Navigation */}
       <StickyNav
         activeTab={activeTab}
@@ -280,6 +362,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
               cast={cast}
               watchAvailability={watchAvailability}
               isWatchLoading={isLoadingWatchAvailability}
+              showActionButtons={true}
             />
             {/* TV Seasons - Show in overview for TV */}
             {type === "tv" && seasonsData && (

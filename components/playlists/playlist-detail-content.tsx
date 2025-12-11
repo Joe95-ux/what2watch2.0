@@ -11,6 +11,7 @@ import CreatePlaylistModal from "./create-playlist-modal";
 import SharePlaylistDialog from "./share-playlist-dialog";
 import ImportPlaylistModal from "./import-playlist-modal";
 import PlaylistView from "./playlist-view";
+import { useLikePlaylist, useUnlikePlaylist, useIsLiked } from "@/hooks/use-playlist-likes";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,18 +53,40 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
+  // Get current user ID from playlist
+  const currentUserId = useMemo(() => {
+    if (!playlist) return null;
+    const playlistWithUser = playlist as PlaylistWithCurrentUser;
+    return playlistWithUser._currentUserId || null;
+  }, [playlist]);
+
   // Check if playlist is owned by current user
   const isOwnPlaylist = useMemo(() => {
-    if (!playlist) return false;
-    // Use the currentUserId from the API response if available, otherwise fallback to comparison
-    const playlistWithUser = playlist as PlaylistWithCurrentUser;
-    const currentUserId = playlistWithUser._currentUserId;
-    if (currentUserId) {
-      return playlist.userId === currentUserId;
+    if (!playlist || !currentUserId) return false;
+    return playlist.userId === currentUserId;
+  }, [playlist, currentUserId]);
+
+  // Like functionality
+  const { data: likeStatus } = useIsLiked(playlist?.id || null);
+  const likePlaylist = useLikePlaylist();
+  const unlikePlaylist = useUnlikePlaylist();
+  const isLiked = likeStatus?.isLiked || false;
+
+  const handleToggleLike = async () => {
+    if (!playlist || !currentUserId) return;
+    try {
+      if (isLiked) {
+        await unlikePlaylist.mutateAsync(playlist.id);
+        toast.success("Removed from liked playlists");
+      } else {
+        await likePlaylist.mutateAsync(playlist.id);
+        toast.success("Added to liked playlists");
+      }
+    } catch (error) {
+      toast.error("Failed to update like status");
+      console.error(error);
     }
-    // Fallback: this shouldn't happen in normal flow
-    return false;
-  }, [playlist]);
+  };
 
   const handleDeletePlaylist = async () => {
     try {
@@ -117,6 +140,11 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
     return rest as Playlist;
   })() : null;
 
+  // Determine if we should show like/follow buttons
+  const playlistWithUser = cleanPlaylist as PlaylistWithUser;
+  const showLikeFollow = !isOwnPlaylist && playlistWithUser?.user && 
+    (cleanPlaylist?.visibility === "PUBLIC" || cleanPlaylist?.isPublic || cleanPlaylist?.visibility === "FOLLOWERS_ONLY");
+
   return (
     <>
       <PlaylistView
@@ -147,6 +175,11 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
           </Button>
         }
         onBack={() => router.push("/playlists")}
+        isLiked={isLiked}
+        onToggleLike={handleToggleLike}
+        isLikeLoading={likePlaylist.isPending || unlikePlaylist.isPending}
+        likeUserId={currentUserId}
+        showLikeFollow={showLikeFollow}
       />
 
       {/* Delete Playlist Dialog */}
