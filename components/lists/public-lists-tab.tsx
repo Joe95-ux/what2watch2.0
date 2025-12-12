@@ -82,7 +82,7 @@ export default function PublicListsTab() {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
     return currentItems.slice(startIndex, endIndex);
-  }, [currentItems, currentPage]);
+  }, [currentItems, currentPage]) as List[] | Playlist[];
 
   return (
     <div className="space-y-6">
@@ -238,7 +238,7 @@ export default function PublicListsTab() {
         viewMode === "grid" ? (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {paginatedItems.map((item: List) => (
+              {(paginatedItems as List[]).map((item) => (
                 <ListCard
                   key={item.id}
                   list={item}
@@ -266,7 +266,7 @@ export default function PublicListsTab() {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedItems.map((item: List) => (
+                  {(paginatedItems as List[]).map((item) => (
                     <tr key={item.id} className="border-t hover:bg-muted/50 cursor-pointer" onClick={() => router.push(`/lists/${item.id}`)}>
                       <td className="p-4">
                         <div className="font-medium">{item.name}</div>
@@ -306,7 +306,7 @@ export default function PublicListsTab() {
         // Playlists view
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {paginatedItems.map((item: Playlist) => (
+            {(paginatedItems as Playlist[]).map((item) => (
               <PlaylistCard
                 key={item.id}
                 playlist={item}
