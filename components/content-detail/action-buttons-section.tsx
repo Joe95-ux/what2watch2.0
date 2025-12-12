@@ -100,7 +100,7 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
           <button
             onClick={handleLike}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 transition-colors",
+              "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
               isLiked ? "bg-primary/10 text-primary" : "hover:bg-muted/80"
             )}
           >
@@ -111,7 +111,7 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
           <button
             onClick={handleDislike}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 transition-colors",
+              "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
               isDisliked ? "bg-destructive/10 text-destructive" : "hover:bg-muted/80"
             )}
           >
@@ -125,7 +125,7 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
           item={item}
           type={type}
           trigger={
-            <Button variant="outline" size="sm" className="rounded-[25px] bg-muted">
+            <Button variant="outline" size="sm" className="rounded-[25px] bg-muted cursor-pointer">
               <Plus className="h-4 w-4 mr-2" />
               List
             </Button>
@@ -138,7 +138,7 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
           size="sm"
           onClick={handleMarkAsWatched}
           className={cn(
-            "rounded-[25px] bg-muted",
+            "rounded-[25px] bg-muted cursor-pointer",
             isWatched && "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800"
           )}
         >

@@ -156,7 +156,7 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
               <button
                 onClick={() => setActiveTab("playlist")}
                 className={cn(
-                  "flex-1 px-3 py-1.5 text-xs font-medium rounded-l-md transition-colors",
+                  "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
                   activeTab === "playlist" 
                     ? "bg-muted text-foreground" 
                     : "text-muted-foreground hover:text-foreground"
@@ -164,11 +164,10 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
               >
                 Playlist
               </button>
-              <div className="h-4 w-px bg-border" />
               <button
                 onClick={() => setActiveTab("list")}
                 className={cn(
-                  "flex-1 px-3 py-1.5 text-xs font-medium rounded-r-md transition-colors",
+                  "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
                   activeTab === "list" 
                     ? "bg-muted text-foreground" 
                     : "text-muted-foreground hover:text-foreground"
@@ -180,7 +179,7 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
           </div>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto scrollbar-thin min-h-0 px-2">
+          <div className="flex-1 overflow-y-auto scrollbar-thin min-h-0 px-2 pt-1">
             {activeTab === "playlist" ? (
               <>
                 {isLoadingPlaylists ? (
@@ -257,7 +256,7 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
           </div>
 
           {/* Fixed Footer */}
-          <div className="px-1">
+          <div className="px-1 pt-1">
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               onClick={(e) => {

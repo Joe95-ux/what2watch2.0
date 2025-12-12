@@ -8,7 +8,7 @@ import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
 import { CircleActionButton } from "./circle-action-button";
 import { useToggleFavorite } from "@/hooks/use-favorites";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
-import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
+import AddToListDropdown from "@/components/content-detail/add-to-list-dropdown";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -391,7 +391,7 @@ export default function MoreLikeThisCard({
               <TooltipTrigger asChild>
                 {isSignedIn ? (
                   <div>
-                    <AddToPlaylistDropdown
+                    <AddToListDropdown
                       item={item}
                       type={type}
                       onAddSuccess={onAddToPlaylist}

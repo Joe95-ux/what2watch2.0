@@ -12,7 +12,7 @@ import { CircleActionButton } from "./circle-action-button";
 import TrailerModal from "./trailer-modal";
 import { useToggleFavorite } from "@/hooks/use-favorites";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
-import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
+import AddToListDropdown from "@/components/content-detail/add-to-list-dropdown";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
@@ -562,16 +562,16 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                           <TooltipTrigger asChild>
                           {isSignedIn ? (
                             <div>
-                              <AddToPlaylistDropdown
+                              <AddToListDropdown
                                 item={item}
                                 type={type}
                                 onAddSuccess={onAddToPlaylist}
-                              onOpenChange={(open) => {
-                                setIsPlaylistDropdownOpen(open);
-                                if (open) {
-                                  setPlaylistTooltipOpen(false);
-                                }
-                              }}
+                                onOpenChange={(open) => {
+                                  setIsPlaylistDropdownOpen(open);
+                                  if (open) {
+                                    setPlaylistTooltipOpen(false);
+                                  }
+                                }}
                                 trigger={
                                   <CircleActionButton
                                     size="sm"

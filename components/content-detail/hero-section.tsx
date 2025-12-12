@@ -207,7 +207,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
   };
 
   return (
-    <section className="-mt-[65px] pt-16 sm:pt-20 pb-0 lg:pb-12 bg-background">
+    <section className="-mt-[65px] pt-16 sm:pt-20 pb-0 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-end gap-3 mt-[14px] md:mt-0">
