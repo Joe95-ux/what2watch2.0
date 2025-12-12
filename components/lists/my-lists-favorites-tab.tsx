@@ -7,7 +7,7 @@ import MoreLikeThisCard from "@/components/browse/more-like-this-card";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Heart, Film, Tv } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Pagination } from "@/components/ui/pagination";
+import { SimplePagination as Pagination } from "@/components/ui/pagination";
 
 const ITEMS_PER_PAGE = 24;
 

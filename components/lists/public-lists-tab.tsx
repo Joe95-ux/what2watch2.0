@@ -13,7 +13,7 @@ import Link from "next/link";
 import CreateListModal from "./create-list-modal";
 import { format } from "date-fns";
 import { useMemo } from "react";
-import { Pagination } from "@/components/ui/pagination";
+import { SimplePagination as Pagination } from "@/components/ui/pagination";
 
 const ITEMS_PER_PAGE = 24;
 

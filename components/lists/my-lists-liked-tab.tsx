@@ -8,7 +8,7 @@ import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { ThumbsUp, Film, Tv } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import { Pagination } from "@/components/ui/pagination";
+import { SimplePagination as Pagination } from "@/components/ui/pagination";
 
 const ITEMS_PER_PAGE = 24;
 

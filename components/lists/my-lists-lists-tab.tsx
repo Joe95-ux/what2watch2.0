@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Pagination } from "@/components/ui/pagination";
+import { SimplePagination as Pagination } from "@/components/ui/pagination";
 
 const ITEMS_PER_PAGE = 24;
 
