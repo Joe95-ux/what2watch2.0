@@ -7,16 +7,11 @@ import { JustWatchAvailabilityResponse, JustWatchOffer } from "@/lib/justwatch";
 import { createPersonSlug } from "@/lib/person-utils";
 import { useOMDBData } from "@/hooks/use-content-details";
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Plus, Eye } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import AwardsSection from "./awards-section";
 import { RatingsRow } from "./ratings-row";
-import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
-import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-logs";
-import { toast } from "sonner";
-import { useUser, useClerk } from "@clerk/nextjs";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface DetailsType {
   release_date?: string;
@@ -56,7 +51,6 @@ interface OverviewSectionProps {
   cast?: CastMember[];
   watchAvailability?: JustWatchAvailabilityResponse | null;
   isWatchLoading?: boolean;
-  showActionButtons?: boolean;
 }
 
 const MAX_SYNOPSIS_LENGTH = 500;
@@ -68,7 +62,6 @@ export default function OverviewSection({
   cast,
   watchAvailability,
   isWatchLoading = false,
-  showActionButtons = true,
 }: OverviewSectionProps) {
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -80,47 +73,6 @@ export default function OverviewSection({
 
   // Fetch OMDB data if IMDb ID is available
   const { data: omdbData } = useOMDBData(details?.imdb_id || null);
-
-  // Watch status hooks
-  const quickWatch = useQuickWatch();
-  const unwatch = useUnwatch();
-  const { data: watchedData } = useIsWatched(item.id, type);
-  const isWatched = watchedData?.isWatched || false;
-  const watchedLogId = watchedData?.logId || null;
-  const { isSignedIn } = useUser();
-  const { openSignIn } = useClerk();
-
-  const handleMarkAsWatched = async () => {
-    if (!isSignedIn) {
-      toast.error("Sign in to mark films as watched.");
-      if (openSignIn) {
-        openSignIn({
-          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
-        });
-      }
-      return;
-    }
-    try {
-      if (isWatched && watchedLogId) {
-        await unwatch.mutateAsync(watchedLogId);
-        toast.success("Removed from watched");
-      } else {
-        const title = type === "movie" ? (item as TMDBMovie).title : (item as TMDBSeries).name;
-        await quickWatch.mutateAsync({
-          tmdbId: item.id,
-          mediaType: type,
-          title,
-          posterPath: item.poster_path || null,
-          backdropPath: item.backdrop_path || null,
-          releaseDate: "release_date" in item ? item.release_date || null : null,
-          firstAirDate: "first_air_date" in item ? item.first_air_date || null : null,
-        });
-        toast.success("Marked as watched");
-      }
-    } catch {
-      toast.error("Failed to update watched status");
-    }
-  };
 
   // Get director (for movies) or creators (for TV)
   const director = type === "movie" 
@@ -239,42 +191,6 @@ export default function OverviewSection({
         </div>
 
         <div className="lg:col-span-5 space-y-4">
-          {/* Action Buttons - Before Where to Watch on desktop */}
-          {showActionButtons && (
-            <div className="hidden lg:block">
-              <div className="overflow-x-auto">
-                <div className="flex items-center gap-2 min-w-max">
-                  <AddToPlaylistDropdown
-                    item={item}
-                    type={type}
-                    trigger={
-                      <Button variant="outline" size="sm" className="rounded-[25px] h-10">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add to Playlist
-                      </Button>
-                    }
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleMarkAsWatched}
-                    className={cn(
-                      "rounded-[25px] h-10",
-                      isWatched && "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800"
-                    )}
-                  >
-                    <Eye 
-                      className={cn(
-                        "h-4 w-4 mr-2",
-                        isWatched ? "text-green-500" : "text-muted-foreground"
-                      )} 
-                    />
-                    {isWatched ? "Watched" : "Mark as Watched"}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
           <WatchProvidersSection
             availability={watchAvailability}
             isLoading={isWatchLoading}
