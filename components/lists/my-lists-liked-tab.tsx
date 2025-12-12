@@ -80,7 +80,7 @@ export default function MyListsLikedTab() {
   return (
     <div className="space-y-6">
       {/* Filter Tabs */}
-      <div className="border-b border-border">
+      <div className="border-b border-border max-w-fit">
         <div className="flex items-center gap-6 overflow-x-auto scrollbar-hide">
           {[
             { id: "all" as FilterType, label: "All", icon: null },

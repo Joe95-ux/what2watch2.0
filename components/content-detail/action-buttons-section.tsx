@@ -116,7 +116,7 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
 
   return (
     <div className="max-w-[1216px] mx-auto px-4 sm:px-6 lg:px-8 py-4 border-b">
-      <div className="flex items-center justify-end gap-2 overflow-x-auto">
+      <div className="flex items-center sm:justify-end gap-2 overflow-x-auto">
         {/* Favorite Button */}
         <Button
           variant="outline"

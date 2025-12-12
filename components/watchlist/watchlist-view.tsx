@@ -686,9 +686,9 @@ export default function WatchlistView({
       <div className="min-h-screen bg-background">
         {/* Banner Section */}
         <div className={cn(
-          "relative h-[30vh] min-h-[200px] max-h-[300px] sm:h-[40vh] sm:min-h-[250px] md:h-[50vh] md:min-h-[300px] overflow-hidden",
+          "relative h-[30vh] min-h-[200px] max-h-[300px] sm:h-[40vh] sm:min-h-[250px] md:h-[50vh] md:min-h-[300px] overflow-hidden z-0",
           !isInListsPage && "-mt-[65px]",
-          isInListsPage && "rounded-lg"
+          isInListsPage && "rounded-lg mb-6"
         )}>
           {bannerImage ? (
             <>
