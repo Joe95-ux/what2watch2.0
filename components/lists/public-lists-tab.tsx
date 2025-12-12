@@ -13,6 +13,7 @@ import Link from "next/link";
 import CreateListModal from "./create-list-modal";
 import { format } from "date-fns";
 import { useMemo } from "react";
+import { Pagination } from "@/components/ui/pagination";
 
 const ITEMS_PER_PAGE = 24;
 
@@ -37,9 +38,8 @@ export default function PublicListsTab() {
       {/* Header */}
       <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Public Lists</h2>
-          <p className="text-muted-foreground mt-1">
-            Explore curated lists of films from the community
+          <p className="text-muted-foreground">
+            Explore curated lists of movies and TV shows from the community
           </p>
         </div>
         {isSignedIn && (
@@ -119,31 +119,11 @@ export default function PublicListsTab() {
             ))}
           </div>
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-6">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className="cursor-pointer"
-              >
-                Previous
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                className="cursor-pointer"
-              >
-                Next
-              </Button>
-            </div>
-          )}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </>
       ) : (
         <>
@@ -187,31 +167,11 @@ export default function PublicListsTab() {
             </table>
           </div>
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-6">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className="cursor-pointer"
-              >
-                Previous
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                className="cursor-pointer"
-              >
-                Next
-              </Button>
-            </div>
-          )}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </>
       )}
 

@@ -151,6 +151,9 @@ interface WatchlistViewProps {
   errorTitle?: string;
   errorDescription?: string;
   errorAction?: React.ReactNode;
+
+  // Layout options
+  isInListsPage?: boolean; // When true, adjusts banner to not overlap with sub-tabs
 }
 
 export default function WatchlistView({
@@ -174,6 +177,7 @@ export default function WatchlistView({
   errorTitle = "Watchlist not found",
   errorDescription = "This watchlist doesn't exist or is private.",
   errorAction,
+  isInListsPage = false,
 }: WatchlistViewProps) {
   const router = useRouter();
 
@@ -681,21 +685,34 @@ export default function WatchlistView({
     <>
       <div className="min-h-screen bg-background">
         {/* Banner Section */}
-        <div className="relative -mt-[65px] h-[30vh] min-h-[200px] max-h-[300px] sm:h-[40vh] sm:min-h-[250px] md:h-[50vh] md:min-h-[300px] overflow-hidden">
+        <div className={cn(
+          "relative h-[30vh] min-h-[200px] max-h-[300px] sm:h-[40vh] sm:min-h-[250px] md:h-[50vh] md:min-h-[300px] overflow-hidden",
+          !isInListsPage && "-mt-[65px]",
+          isInListsPage && "rounded-lg"
+        )}>
           {bannerImage ? (
             <>
               <Image
                 src={bannerImage}
                 alt="Watchlist"
                 fill
-                className="object-cover"
+                className={cn(
+                  "object-cover",
+                  isInListsPage && "rounded-lg"
+                )}
                 sizes="100vw"
                 unoptimized
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent" />
+              <div className={cn(
+                "absolute inset-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent",
+                isInListsPage && "rounded-lg"
+              )} />
             </>
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30" />
+            <div className={cn(
+              "w-full h-full bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30",
+              isInListsPage && "rounded-lg"
+            )} />
           )}
         </div>
 

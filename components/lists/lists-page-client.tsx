@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { List, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,7 +14,40 @@ const mainTabs = [
 ];
 
 export function ListsPageClient() {
-  const [activeTab, setActiveTab] = useState("my-lists");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get("tab");
+    return tab && mainTabs.some(t => t.id === tab) ? tab : "my-lists";
+  });
+
+  // Update URL when tab changes
+  useEffect(() => {
+    const currentTab = searchParams.get("tab");
+    const expectedTab = activeTab === "my-lists" ? null : activeTab;
+    
+    // Only update if URL doesn't match current state
+    if (currentTab !== expectedTab) {
+      const params = new URLSearchParams(searchParams.toString());
+      if (activeTab === "my-lists") {
+        params.delete("tab");
+      } else {
+        params.set("tab", activeTab);
+      }
+      const newUrl = params.toString() ? `/lists?${params.toString()}` : "/lists";
+      router.push(newUrl);
+    }
+  }, [activeTab, router, searchParams]);
+
+  // Sync with URL changes (browser back/forward)
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab && mainTabs.some(t => t.id === tab)) {
+      setActiveTab(tab);
+    } else if (!tab) {
+      setActiveTab("my-lists");
+    }
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-background">

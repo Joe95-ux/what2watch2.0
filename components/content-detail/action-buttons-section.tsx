@@ -112,6 +112,8 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
     }
   };
 
+  const isFavoriteLoading = toggleFavorite.isLoading;
+
   return (
     <div className="max-w-[1216px] mx-auto px-4 sm:px-6 lg:px-8 py-4 border-b">
       <div className="flex items-center justify-end gap-2 overflow-x-auto">
@@ -122,24 +124,29 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
           onClick={async () => {
             await toggleFavorite.toggle(item, type);
           }}
+          disabled={isFavoriteLoading}
           className={cn(
-            "rounded-[25px] bg-muted cursor-pointer",
-            toggleFavorite.isFavorite(item.id, type) && "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
+            "rounded-[25px] bg-muted cursor-pointer flex-shrink-0",
+            isFavoriteLoading && "opacity-50 cursor-not-allowed"
           )}
         >
-          <Heart
-            className={cn(
-              "h-4 w-4 mr-2",
-              toggleFavorite.isFavorite(item.id, type)
-                ? "text-red-500 fill-red-500"
-                : ""
-            )}
-          />
-          Favorite
+          {isFavoriteLoading ? (
+            <Loader2 className="h-4 w-4 sm:mr-2 animate-spin" />
+          ) : (
+            <Heart
+              className={cn(
+                "h-4 w-4 sm:mr-2",
+                toggleFavorite.isFavorite(item.id, type)
+                  ? "text-red-500 fill-red-500"
+                  : ""
+              )}
+            />
+          )}
+          <span className="hidden sm:inline">Favorite</span>
         </Button>
 
         {/* Like/Dislike Button */}
-        <div className="flex items-center rounded-[25px] bg-muted border border-border overflow-hidden">
+        <div className="flex items-center rounded-[25px] bg-muted border border-border overflow-hidden flex-shrink-0">
           <button
             onClick={handleLike}
             disabled={isLoadingReactions || likeContent.isPending}
@@ -172,7 +179,7 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
           item={item}
           type={type}
           trigger={
-            <Button variant="outline" size="sm" className="rounded-[25px] bg-muted cursor-pointer">
+            <Button variant="outline" size="sm" className="rounded-[25px] bg-muted cursor-pointer flex-shrink-0">
               <Plus className="h-4 w-4 mr-2" />
               List
             </Button>
@@ -186,23 +193,22 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
           onClick={handleMarkAsWatched}
           disabled={isWatchLoading}
           className={cn(
-            "rounded-[25px] bg-muted cursor-pointer",
+            "rounded-[25px] bg-muted cursor-pointer flex-shrink-0",
             isWatched && "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800",
             isWatchLoading && "opacity-50 cursor-not-allowed"
           )}
         >
-          {isWatched ? (
+          {isWatchLoading ? (
+            <Loader2 className="h-4 w-4 sm:mr-2 animate-spin" />
+          ) : isWatched ? (
             <>
-              <Check className="h-4 w-4 mr-2 text-green-500" />
-              Watched
+              <Check className="h-4 w-4 sm:mr-2 text-green-500" />
+              <span className="hidden sm:inline">Watched</span>
+              <span className="sm:hidden">Seen</span>
             </>
           ) : (
             <>
-              {isWatchLoading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Eye className="h-4 w-4 mr-2" />
-              )}
+              <Eye className="h-4 w-4 sm:mr-2" />
               Watch
             </>
           )}

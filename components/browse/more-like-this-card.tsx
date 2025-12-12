@@ -198,8 +198,8 @@ export default function MoreLikeThisCard({
         onMouseLeave={handleMouseLeave}
         onClick={handleCardClick}
       >
-        {/* Section 1: Movie Poster - Reduced height */}
-        <div className="relative aspect-[4/5] bg-muted overflow-hidden border-b border-border/50">
+        {/* Section 1: Movie Poster - Square aspect ratio */}
+        <div className="relative aspect-square bg-muted overflow-hidden border-b border-border/50">
           {posterPath ? (
             <Image
               src={getPosterUrl(posterPath, "w500")}

@@ -56,6 +56,7 @@ export default function WatchlistContent() {
           Browse Content
         </Button>
       }
+      isInListsPage={false}
     />
   );
 }
