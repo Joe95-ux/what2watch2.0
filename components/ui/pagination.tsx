@@ -175,6 +175,7 @@ PaginationEllipsis.displayName = "PaginationEllipsis";
 
 // Export all components
 // Export PaginationRoot as Pagination for shadcn-style usage
+// Note: SimplePagination is already exported above as a function
 export {
   PaginationRoot,
   PaginationRoot as Pagination,
@@ -184,5 +185,4 @@ export {
   PaginationNext,
   PaginationPrevious,
   PaginationEllipsis,
-  SimplePagination,
 };
