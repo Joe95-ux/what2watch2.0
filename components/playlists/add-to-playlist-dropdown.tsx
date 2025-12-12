@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Check } from "lucide-react";
 import { toast } from "sonner";
 import CreatePlaylistModal from "./create-playlist-modal";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AddToPlaylistDropdownProps {
   item: TMDBMovie | TMDBSeries;
@@ -29,6 +30,7 @@ export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChang
   const addItemToPlaylist = useAddItemToPlaylist();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleOpenChange = (open: boolean) => {
     setIsDropdownOpen(open);
@@ -87,6 +89,8 @@ export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChang
         </DropdownMenuTrigger>
         <DropdownMenuContent 
           align="end" 
+          alignOffset={isMobile ? -12 : 0}
+          sideOffset={4}
           className="w-72 z-[110] p-0 flex flex-col max-h-[400px]"
           onClick={(e) => {
             e.stopPropagation();

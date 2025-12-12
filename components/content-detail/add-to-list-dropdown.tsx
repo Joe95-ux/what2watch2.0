@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import CreatePlaylistModal from "@/components/playlists/create-playlist-modal";
 import CreateListModal from "@/components/lists/create-list-modal";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AddToListDropdownProps {
   item: TMDBMovie | TMDBSeries;
@@ -35,6 +36,7 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
   const [isCreateListModalOpen, setIsCreateListModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"playlist" | "list">("playlist");
+  const isMobile = useIsMobile();
 
   const handleOpenChange = (open: boolean) => {
     setIsDropdownOpen(open);
@@ -145,6 +147,8 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
         </DropdownMenuTrigger>
         <DropdownMenuContent 
           align="end" 
+          alignOffset={isMobile ? -12 : 0}
+          sideOffset={4}
           className="w-72 z-[110] p-0 flex flex-col max-h-[400px]"
           onClick={(e) => {
             e.stopPropagation();

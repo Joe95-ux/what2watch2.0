@@ -59,14 +59,15 @@ export default function MyListsListsTab() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">My Lists</h2>
-          <p className="text-muted-foreground mt-1">
-            Create and manage your ranked lists of favorite films
-          </p>
-        </div>
+      {/* Header - Only show if user has lists */}
+      {lists.length > 0 && (
+        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">My Lists</h2>
+            <p className="text-muted-foreground mt-1">
+              Create and manage your ranked lists of favorite films
+            </p>
+          </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 border rounded-lg p-1">
             <Button
@@ -93,8 +94,9 @@ export default function MyListsListsTab() {
             <Plus className="h-4 w-4 mr-2" />
             Create List
           </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Content */}
       {isLoading ? (
@@ -114,9 +116,9 @@ export default function MyListsListsTab() {
       ) : lists.length === 0 ? (
         <div className="text-center py-12 border border-dashed rounded-lg">
           <ListIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No lists yet</h3>
+          <h2 className="text-2xl font-bold tracking-tight mb-2">My Lists</h2>
           <p className="text-muted-foreground mb-4">
-            Create your first list to organize your favorite films
+            Create and manage your ranked lists of favorite films
           </p>
           <Button onClick={() => setIsCreateModalOpen(true)} className="cursor-pointer">
             <Plus className="h-4 w-4 mr-2" />
