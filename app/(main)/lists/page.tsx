@@ -1,6 +1,36 @@
+import { Suspense } from "react";
 import { ListsPageClient } from "@/components/lists/lists-page-client";
 
+function ListsPageFallback() {
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="sticky top-[65px] z-40 bg-background/95 backdrop-blur-md border-b border-border shadow-sm">
+        <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-8 overflow-x-auto scrollbar-hide">
+            <div className="h-12 w-24 bg-muted animate-pulse rounded" />
+            <div className="h-12 w-32 bg-muted animate-pulse rounded" />
+          </div>
+        </div>
+      </div>
+      <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="space-y-6">
+          <div className="h-8 w-48 bg-muted animate-pulse rounded" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-64 bg-muted animate-pulse rounded-lg" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ListsPage() {
-  return <ListsPageClient />;
+  return (
+    <Suspense fallback={<ListsPageFallback />}>
+      <ListsPageClient />
+    </Suspense>
+  );
 }
 
