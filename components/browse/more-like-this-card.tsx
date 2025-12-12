@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
-import { Play, Plus, Heart, Bookmark, MoreVertical, Eye } from "lucide-react";
+import { Play, Plus, Heart, Bookmark, MoreVertical, Eye, ThumbsUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
 import { CircleActionButton } from "./circle-action-button";
@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-logs";
+import { useContentReactions, useLikeContent } from "@/hooks/use-content-reactions";
 
 interface MoreLikeThisCardProps {
   item: TMDBMovie | TMDBSeries;
@@ -61,6 +62,12 @@ export default function MoreLikeThisCard({
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
   const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
+  
+  // Content reactions (likes)
+  const { data: reactionData } = useContentReactions(item.id, type);
+  const likeContent = useLikeContent();
+  const isLiked = reactionData?.isLiked || false;
+  const likeCount = reactionData?.likeCount || 0;
 
   const title = "title" in item ? item.title : item.name;
   const posterPath = item.poster_path || item.backdrop_path;
@@ -310,6 +317,38 @@ export default function MoreLikeThisCard({
                     )}
                   />
                   {toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!isSignedIn) {
+                      promptSignIn("Sign in to like content.");
+                      setIsActionsDropdownOpen(false);
+                      return;
+                    }
+                    try {
+                      await likeContent.mutateAsync({
+                        tmdbId: item.id,
+                        mediaType: type,
+                      });
+                    } catch (error) {
+                      toast.error("Failed to update like status");
+                    }
+                    setIsActionsDropdownOpen(false);
+                  }}
+                  className="cursor-pointer text-[0.8rem]"
+                >
+                  <ThumbsUp
+                    className={cn(
+                      "h-4 w-4 mr-2",
+                      isLiked
+                        ? "text-primary fill-primary"
+                        : "text-muted-foreground"
+                    )}
+                  />
+                  {isLiked ? "Unlike" : "Like"}
+                  {likeCount > 0 && <span className="ml-2 text-xs">({likeCount})</span>}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={async (e) => {

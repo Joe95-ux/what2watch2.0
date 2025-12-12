@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
-import { Play, Plus, Heart, Maximize2, Bookmark, Volume2, VolumeX, BookCheck, MoreVertical, Trash2, Eye } from "lucide-react";
+import { Play, Plus, Heart, Maximize2, Bookmark, Volume2, VolumeX, BookCheck, MoreVertical, Trash2, Eye, ThumbsUp } from "lucide-react";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries, getPosterUrl, TMDBVideo, getYouTubeEmbedUrl } from "@/lib/tmdb";
@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import MoreLikeThisCard from "./more-like-this-card";
 import { useQuery } from "@tanstack/react-query";
 import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-logs";
+import { useContentReactions, useLikeContent } from "@/hooks/use-content-reactions";
 
 interface MovieCardProps {
   item: TMDBMovie | TMDBSeries;
@@ -68,6 +69,12 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const [playlistTooltipOpen, setPlaylistTooltipOpen] = useState(false);
   const [isPlaylistDropdownOpen, setIsPlaylistDropdownOpen] = useState(false);
   const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
+  
+  // Content reactions (likes)
+  const { data: reactionData } = useContentReactions(item.id, type);
+  const likeContent = useLikeContent();
+  const isLiked = reactionData?.isLiked || false;
+  const likeCount = reactionData?.likeCount || 0;
   
   // Only enable video fetching when hovering (on desktop) and not in dashboard variant
   // This prevents unnecessary API calls when cards are just rendered but not interacted with
@@ -454,6 +461,38 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                               )}
                             />
                             {toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (!isSignedIn) {
+                                promptSignIn("Sign in to like content.");
+                                setIsActionsDropdownOpen(false);
+                                return;
+                              }
+                              try {
+                                await likeContent.mutateAsync({
+                                  tmdbId: item.id,
+                                  mediaType: type,
+                                });
+                              } catch (error) {
+                                toast.error("Failed to update like status");
+                              }
+                              setIsActionsDropdownOpen(false);
+                            }}
+                            className="cursor-pointer text-[0.8rem]"
+                          >
+                            <ThumbsUp
+                              className={cn(
+                                "h-4 w-4 mr-2",
+                                isLiked
+                                  ? "text-primary fill-primary"
+                                  : "text-muted-foreground"
+                              )}
+                            />
+                            {isLiked ? "Unlike" : "Like"}
+                            {likeCount > 0 && <span className="ml-2 text-xs">({likeCount})</span>}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={async (e) => {

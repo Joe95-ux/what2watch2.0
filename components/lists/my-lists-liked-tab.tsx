@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useLikedContent } from "@/hooks/use-liked-content";
 import { Skeleton } from "@/components/ui/skeleton";
 import MoreLikeThisCard from "@/components/browse/more-like-this-card";
@@ -27,9 +28,41 @@ async function fetchTMDBDetails(tmdbId: number, mediaType: "movie" | "tv") {
 }
 
 export default function MyListsLikedTab() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: likedContent = [], isLoading: isLoadingLiked } = useLikedContent();
   const [currentPage, setCurrentPage] = useState(1);
-  const [filterType, setFilterType] = useState<FilterType>("all");
+  const [filterType, setFilterType] = useState<FilterType>(() => {
+    const filter = searchParams.get("filter");
+    return (filter === "movie" || filter === "tv") ? filter : "all";
+  });
+
+  // Update URL when filter changes
+  useEffect(() => {
+    const currentFilter = searchParams.get("filter");
+    const expectedFilter = filterType === "all" ? null : filterType;
+    
+    if (currentFilter !== expectedFilter) {
+      const params = new URLSearchParams(searchParams.toString());
+      if (filterType === "all") {
+        params.delete("filter");
+      } else {
+        params.set("filter", filterType);
+      }
+      const newUrl = params.toString() ? `/lists?${params.toString()}` : "/lists";
+      router.push(newUrl);
+    }
+  }, [filterType, router, searchParams]);
+
+  // Sync with URL changes (browser back/forward)
+  useEffect(() => {
+    const filter = searchParams.get("filter");
+    if (filter === "movie" || filter === "tv") {
+      setFilterType(filter);
+    } else {
+      setFilterType("all");
+    }
+  }, [searchParams]);
 
   // Filter by type
   const filteredLikedContent = useMemo(() => {
