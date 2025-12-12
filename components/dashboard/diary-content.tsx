@@ -1089,7 +1089,7 @@ function EditLogDialog({ isOpen, onClose, log, onSubmit, isPending }: EditLogDia
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
-          {/* Like and Watchlist Buttons */}
+          {/* Favorite and Watchlist Buttons */}
           <div className="flex items-center gap-2">
             <Button
               type="button"
@@ -1110,7 +1110,7 @@ function EditLogDialog({ isOpen, onClose, log, onSubmit, isPending }: EditLogDia
                 )} 
               />
               <span className="text-sm">
-                {isLiked ? "Liked" : "Like"}
+                {isLiked ? "Favorited" : "Favorite"}
               </span>
             </Button>
             <Button

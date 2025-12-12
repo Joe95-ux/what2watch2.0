@@ -103,7 +103,7 @@ export default function LogToDiaryDropdown({ item, type, trigger }: LogToDiaryDr
         </div>
         <div className="p-4 pt-2 flex-1 overflow-y-auto scrollbar-thin min-h-0">
           <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
-          {/* Like and Watchlist Buttons */}
+          {/* Favorite and Watchlist Buttons */}
           <div className="flex items-center gap-2">
             <Button
               type="button"
@@ -128,7 +128,7 @@ export default function LogToDiaryDropdown({ item, type, trigger }: LogToDiaryDr
                 )} 
               />
               <span className="text-sm">
-                {isLiked ? "Liked" : "Like"}
+                {isLiked ? "Favorited" : "Favorite"}
               </span>
             </Button>
             <Button

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type ReactNode } from "react";
 import Image from "next/image";
-import { Play, Heart, Clapperboard, Images, Star, Eye, Plus, Check } from "lucide-react";
+import { Play, Clapperboard, Images, Star, Eye, Plus, Check } from "lucide-react";
 import { ImBookmark } from "react-icons/im";
 import {
   TMDBMovie,
@@ -50,7 +50,6 @@ export default function HeroSection({ item, type, details, trailer, videosData }
   const [initialVideoId, setInitialVideoId] = useState<string | null>(null);
   const [isPhotosModalOpen, setIsPhotosModalOpen] = useState(false);
   const [trailerDuration, setTrailerDuration] = useState<number | null>(null);
-  const toggleFavorite = useToggleFavorite();
   const toggleWatchlist = useToggleWatchlist();
 
   const title = type === "movie" ? (item as TMDBMovie).title : (item as TMDBSeries).name;
@@ -211,30 +210,6 @@ export default function HeroSection({ item, type, details, trailer, videosData }
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-end gap-3 mt-[14px] md:mt-0">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <CircleActionButton
-                  size="md"
-                  aria-label="Toggle favorite"
-                  onClick={async () => {
-                    await toggleFavorite.toggle(item, type);
-                  }}
-                >
-                  <Heart
-                    className={cn(
-                      "h-5 w-5",
-                      toggleFavorite.isFavorite(item.id, type)
-                        ? "text-red-500 fill-red-500"
-                        : "text-white"
-                    )}
-                  />
-                </CircleActionButton>
-              </TooltipTrigger>
-              <TooltipContent>
-                {toggleFavorite.isFavorite(item.id, type) ? "Remove from favorites" : "Add to favorites"}
-              </TooltipContent>
-            </Tooltip>
-            <span className="h-6 w-px bg-white/20" />
             <LogToDiaryDropdown
               item={item}
               type={type}
@@ -244,7 +219,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                   className="inline-flex items-center gap-2 rounded-full bg-primary/85 text-primary-foreground hover:bg-primary px-4 py-2 cursor-pointer"
                 >
                   <Clapperboard className="h-4 w-4" />
-                  Log
+                  {type === "movie" ? "Log movie" : "Log TV show"}
                 </Button>
               }
             />

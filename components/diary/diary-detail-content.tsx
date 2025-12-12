@@ -623,7 +623,7 @@ function EditLogDialog({ isOpen, onClose, log, onUpdate, isPending }: EditLogDia
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 p-4 max-h-[80vh] scrollbar-thin overflow-y-auto">
-          {/* Like Button */}
+          {/* Favorite Button */}
           <div className="flex items-center gap-2">
             <Button
               type="button"
@@ -644,7 +644,7 @@ function EditLogDialog({ isOpen, onClose, log, onUpdate, isPending }: EditLogDia
                 )} 
               />
               <span className="text-sm">
-                {isLiked ? "Liked" : "Like"}
+                {isLiked ? "Favorited" : "Favorite"}
               </span>
             </Button>
           </div>
@@ -858,7 +858,7 @@ function LogAgainDialog({ isOpen, onClose, log, onSuccess, isPending }: LogAgain
             </Label>
           </div>
 
-          {/* Like Button */}
+          {/* Favorite Button */}
           <div className="flex items-center gap-2">
             <Button
               type="button"
@@ -879,7 +879,7 @@ function LogAgainDialog({ isOpen, onClose, log, onSuccess, isPending }: LogAgain
                 )} 
               />
               <span className="text-sm">
-                {isLiked ? "Liked" : "Like"}
+                {isLiked ? "Favorited" : "Favorite"}
               </span>
             </Button>
           </div>

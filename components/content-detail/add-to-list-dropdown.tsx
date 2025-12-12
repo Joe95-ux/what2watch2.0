@@ -256,7 +256,7 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
           </div>
 
           {/* Fixed Footer */}
-          <div className="px-1 pt-1">
+          <div className="px-1 py-1">
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               onClick={(e) => {

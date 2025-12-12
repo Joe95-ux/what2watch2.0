@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { ThumbsUp, ThumbsDown, Plus, Eye, Check } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Plus, Eye, Check, Heart, Loader2 } from "lucide-react";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import AddToListDropdown from "./add-to-list-dropdown";
 import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-logs";
+import { useToggleFavorite } from "@/hooks/use-favorites";
+import { useContentReactions, useLikeContent, useDislikeContent } from "@/hooks/use-content-reactions";
 import { toast } from "sonner";
 import { useUser, useClerk } from "@clerk/nextjs";
 
@@ -16,10 +17,18 @@ interface ActionButtonsSectionProps {
 }
 
 export default function ActionButtonsSection({ item, type }: ActionButtonsSectionProps) {
-  const [likeCount, setLikeCount] = useState(0);
-  const [dislikeCount, setDislikeCount] = useState(0);
-  const [isLiked, setIsLiked] = useState(false);
-  const [isDisliked, setIsDisliked] = useState(false);
+  // Favorite hook
+  const toggleFavorite = useToggleFavorite();
+
+  // Content reactions (likes/dislikes)
+  const { data: reactionData, isLoading: isLoadingReactions } = useContentReactions(item.id, type);
+  const likeContent = useLikeContent();
+  const dislikeContent = useDislikeContent();
+  
+  const isLiked = reactionData?.isLiked || false;
+  const isDisliked = reactionData?.isDisliked || false;
+  const likeCount = reactionData?.likeCount || 0;
+  const dislikeCount = reactionData?.dislikeCount || 0;
 
   // Watch status hooks
   const quickWatch = useQuickWatch();
@@ -27,6 +36,7 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
   const { data: watchedData } = useIsWatched(item.id, type);
   const isWatched = watchedData?.isWatched || false;
   const watchedLogId = watchedData?.logId || null;
+  const isWatchLoading = quickWatch.isPending || unwatch.isPending;
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
 
@@ -62,46 +72,81 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
     }
   };
 
-  const handleLike = () => {
-    // TODO: Implement like functionality
-    if (isLiked) {
-      setIsLiked(false);
-      setLikeCount((prev) => Math.max(0, prev - 1));
-    } else {
-      setIsLiked(true);
-      setLikeCount((prev) => prev + 1);
-      if (isDisliked) {
-        setIsDisliked(false);
-        setDislikeCount((prev) => Math.max(0, prev - 1));
+  const handleLike = async () => {
+    if (!isSignedIn) {
+      toast.error("Sign in to like content.");
+      if (openSignIn) {
+        openSignIn({
+          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        });
       }
+      return;
+    }
+    try {
+      await likeContent.mutateAsync({
+        tmdbId: item.id,
+        mediaType: type,
+      });
+    } catch (error) {
+      toast.error("Failed to update like status");
     }
   };
 
-  const handleDislike = () => {
-    // TODO: Implement dislike functionality
-    if (isDisliked) {
-      setIsDisliked(false);
-      setDislikeCount((prev) => Math.max(0, prev - 1));
-    } else {
-      setIsDisliked(true);
-      setDislikeCount((prev) => prev + 1);
-      if (isLiked) {
-        setIsLiked(false);
-        setLikeCount((prev) => Math.max(0, prev - 1));
+  const handleDislike = async () => {
+    if (!isSignedIn) {
+      toast.error("Sign in to dislike content.");
+      if (openSignIn) {
+        openSignIn({
+          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        });
       }
+      return;
+    }
+    try {
+      await dislikeContent.mutateAsync({
+        tmdbId: item.id,
+        mediaType: type,
+      });
+    } catch (error) {
+      toast.error("Failed to update dislike status");
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 border-b">
+    <div className="max-w-[1216px] mx-auto px-4 sm:px-6 lg:px-8 py-4 border-b">
       <div className="flex items-center justify-end gap-2 overflow-x-auto">
+        {/* Favorite Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={async () => {
+            await toggleFavorite.toggle(item, type);
+          }}
+          className={cn(
+            "rounded-[25px] bg-muted cursor-pointer",
+            toggleFavorite.isFavorite(item.id, type) && "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
+          )}
+        >
+          <Heart
+            className={cn(
+              "h-4 w-4 mr-2",
+              toggleFavorite.isFavorite(item.id, type)
+                ? "text-red-500 fill-red-500"
+                : ""
+            )}
+          />
+          Favorite
+        </Button>
+
         {/* Like/Dislike Button */}
         <div className="flex items-center rounded-[25px] bg-muted border border-border overflow-hidden">
           <button
             onClick={handleLike}
+            disabled={isLoadingReactions || likeContent.isPending}
             className={cn(
               "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
-              isLiked ? "bg-primary/10 text-primary" : "hover:bg-muted/80"
+              isLiked ? "bg-primary/10 text-primary" : "hover:bg-muted/80",
+              (isLoadingReactions || likeContent.isPending) && "opacity-50 cursor-not-allowed"
             )}
           >
             <ThumbsUp className={cn("h-4 w-4", isLiked && "fill-current")} />
@@ -110,9 +155,11 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
           <div className="h-6 w-px bg-border" />
           <button
             onClick={handleDislike}
+            disabled={isLoadingReactions || dislikeContent.isPending}
             className={cn(
               "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
-              isDisliked ? "bg-destructive/10 text-destructive" : "hover:bg-muted/80"
+              isDisliked ? "bg-destructive/10 text-destructive" : "hover:bg-muted/80",
+              (isLoadingReactions || dislikeContent.isPending) && "opacity-50 cursor-not-allowed"
             )}
           >
             <ThumbsDown className={cn("h-4 w-4", isDisliked && "fill-current")} />
@@ -137,9 +184,11 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
           variant="outline"
           size="sm"
           onClick={handleMarkAsWatched}
+          disabled={isWatchLoading}
           className={cn(
             "rounded-[25px] bg-muted cursor-pointer",
-            isWatched && "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800"
+            isWatched && "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800",
+            isWatchLoading && "opacity-50 cursor-not-allowed"
           )}
         >
           {isWatched ? (
@@ -149,7 +198,11 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
             </>
           ) : (
             <>
-              <Eye className="h-4 w-4 mr-2" />
+              {isWatchLoading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Eye className="h-4 w-4 mr-2" />
+              )}
               Watch
             </>
           )}

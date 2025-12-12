@@ -49,6 +49,7 @@ model User {
   // Relations
   preferences   UserPreferences?
   favorites     Favorite[]
+  contentReactions ContentReaction[]
   playlists     Playlist[]
   reviews       Review[]
   reviewReactions ReviewReaction[]
@@ -141,6 +142,30 @@ model Favorite {
   @@unique([userId, tmdbId, mediaType])
   @@map("favorites")
   @@index([userId])
+}
+
+// Content Reactions - likes and dislikes for movies and TV shows
+model ContentReaction {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // TMDB data
+  tmdbId        Int      // Movie or TV show ID from TMDB
+  mediaType     String   // "movie" or "tv"
+  
+  // Reaction type: "like" or "dislike"
+  reactionType  String   // "like" or "dislike"
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, tmdbId, mediaType])
+  @@map("content_reactions")
+  @@index([userId])
+  @@index([tmdbId, mediaType])
+  @@index([tmdbId, mediaType, reactionType])
+  @@index([createdAt])
 }
 
 // Watchlist - movies and TV shows user wants to watch

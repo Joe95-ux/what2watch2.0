@@ -1,6 +1,6 @@
-import PublicListsContent from "@/components/lists/public-lists-content";
+import { ListsPageClient } from "@/components/lists/lists-page-client";
 
 export default function ListsPage() {
-  return <PublicListsContent />;
+  return <ListsPageClient />;
 }
 
