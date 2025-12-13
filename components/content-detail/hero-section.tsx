@@ -271,7 +271,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                   role="button"
                   tabIndex={0}
                   aria-label={toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
-                  className="absolute -top-[10px] -left-[12px] z-10 flex items-center justify-center cursor-pointer"
+                  className="absolute -top-[14px] -left-[12px] z-10 flex items-center justify-center cursor-pointer"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
@@ -285,13 +285,13 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                         "w-16 h-21",
                         toggleWatchlist.isInWatchlist(item.id, type)
                           ? "text-[#E0B416] fill-[#E0B416]"
-                          : "text-black/80 fill-black/80"
+                          : "text-gray-900 fill-gray-900"
                       )}
                     />
                     {toggleWatchlist.isInWatchlist(item.id, type) ? (
-                      <Check className="absolute top-5 size-7 text-black z-10" />
+                      <Check className="absolute top-6 size-6 text-black z-10" />
                     ) : (
-                      <Plus className="absolute top-5 size-7 text-white z-10" />
+                      <Plus className="absolute top-6 size-6 text-white z-10" />
                     )}
                   </div>
                 </div>
@@ -328,7 +328,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                   role="button"
                   tabIndex={0}
                   aria-label={toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
-                  className="absolute top-0 -left-[9px] z-10 flex items-center justify-center cursor-pointer lg:hidden"
+                  className="absolute -top-[2px] -left-[9px] z-10 flex items-center justify-center cursor-pointer lg:hidden"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
@@ -342,7 +342,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                         "h-[44px] w-[44px]",
                         toggleWatchlist.isInWatchlist(item.id, type)
                             ? "text-[#E0B416] fill-[#E0B416]"
-                          : "text-black/80 fill-black/80"
+                          : "text-gray-900 fill-gray-900"
                       )}
                     />
                     {toggleWatchlist.isInWatchlist(item.id, type) ? (
