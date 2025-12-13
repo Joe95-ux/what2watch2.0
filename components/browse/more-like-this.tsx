@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import MoreLikeThisCard from "./more-like-this-card";
+import { MoreLikeThisCardSkeleton } from "@/components/skeletons/more-like-this-card-skeleton";
 
 interface MoreLikeThisProps {
   items: (TMDBMovie | TMDBSeries)[];
@@ -60,7 +61,7 @@ export default function MoreLikeThis({
         <Skeleton className="h-7 w-48" />
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
           {[...Array(8)].map((_, i) => (
-            <Skeleton key={i} className="aspect-[2/3] rounded-lg" />
+            <MoreLikeThisCardSkeleton key={i} />
           ))}
         </div>
       </div>

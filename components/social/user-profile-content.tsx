@@ -19,6 +19,7 @@ import {
 import PlaylistCard from "@/components/browse/playlist-card";
 import ListCard from "@/components/browse/list-card";
 import MovieCard from "@/components/browse/movie-card";
+import { MovieCardSkeleton } from "@/components/skeletons/movie-card-skeleton";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { Playlist } from "@/hooks/use-playlists";
 import { List as ListType } from "@/hooks/use-lists";
@@ -466,7 +467,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
           {isLoadingFavorites ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="aspect-[2/3] w-full rounded-lg" />
+                <MovieCardSkeleton key={i} />
               ))}
             </div>
           ) : paginatedFavorites.length === 0 ? (

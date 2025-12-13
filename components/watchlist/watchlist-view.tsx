@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
+import { MovieCardSkeleton } from "@/components/skeletons/movie-card-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
@@ -659,7 +660,7 @@ export default function WatchlistView({
           <Skeleton className="h-10 w-48 mb-8" />
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {Array.from({ length: 12 }).map((_, i) => (
-              <Skeleton key={i} className="aspect-[2/3] w-full rounded-lg" />
+              <MovieCardSkeleton key={i} />
             ))}
           </div>
         </div>

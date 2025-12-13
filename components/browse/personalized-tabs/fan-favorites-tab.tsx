@@ -2,7 +2,7 @@
 
 import { useSearch } from "@/hooks/use-search";
 import MoreLikeThisCard from "@/components/browse/more-like-this-card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { MoreLikeThisCardSkeleton } from "@/components/skeletons/more-like-this-card-skeleton";
 import { useMemo } from "react";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 
@@ -102,7 +102,7 @@ export function FanFavoritesTab() {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {Array.from({ length: 26 }).map((_, i) => (
-          <Skeleton key={i} className="aspect-[4/5] rounded-lg" />
+          <MoreLikeThisCardSkeleton key={i} />
         ))}
       </div>
     );

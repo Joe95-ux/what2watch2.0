@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { usePopularMovies, usePopularTV } from "@/hooks/use-movies";
 import MoreLikeThisCard from "@/components/browse/more-like-this-card";
+import { MoreLikeThisCardSkeleton } from "@/components/skeletons/more-like-this-card-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 
@@ -36,7 +37,7 @@ export function MostPopularTab() {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {Array.from({ length: 26 }).map((_, i) => (
-          <Skeleton key={i} className="aspect-[4/5] rounded-lg" />
+          <MoreLikeThisCardSkeleton key={i} />
         ))}
       </div>
     );

@@ -11,6 +11,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import MoreLikeThisCard from "@/components/browse/more-like-this-card";
+import { MoreLikeThisCardSkeleton } from "@/components/skeletons/more-like-this-card-skeleton";
 import { useMemo, useEffect, useState } from "react";
 import type { CarouselApi } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
@@ -74,7 +75,7 @@ export default function RecentlyViewedSection({ currentItemId, currentType }: Re
         <h2 className="text-2xl font-bold mb-6">Recently Viewed</h2>
         <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4">
           {Array.from({ length: 10 }).map((_, i) => (
-            <Skeleton key={i} className="flex-shrink-0 w-48 aspect-[2/3] rounded-lg" />
+            <MoreLikeThisCardSkeleton key={i} className="flex-shrink-0 w-48" />
           ))}
         </div>
       </section>

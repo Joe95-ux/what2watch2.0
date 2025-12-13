@@ -6,13 +6,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useSearch } from "@/hooks/use-search";
 import { TMDBMovie, TMDBSeries, TMDBResponse } from "@/lib/tmdb";
 import MoreLikeThisCard from "@/components/browse/more-like-this-card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { MoreLikeThisCardSkeleton } from "@/components/skeletons/more-like-this-card-skeleton";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { FiltersSheet, type SearchFilters } from "@/components/filters/filters-sheet";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function PopularContentInner() {
   const searchParams = useSearchParams();
@@ -335,7 +336,7 @@ function PopularContentInner() {
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {[...Array(20)].map((_, i) => (
-              <Skeleton key={i} className="aspect-[2/3] rounded-lg" />
+              <MoreLikeThisCardSkeleton key={i} />
             ))}
           </div>
         ) : results.length === 0 ? (
@@ -449,7 +450,7 @@ export default function PopularContent() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {[...Array(20)].map((_, i) => (
-              <Skeleton key={i} className="aspect-[2/3] rounded-lg" />
+              <MoreLikeThisCardSkeleton key={i} />
             ))}
           </div>
         </div>

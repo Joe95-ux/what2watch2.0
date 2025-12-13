@@ -3,8 +3,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useFavorites } from "@/hooks/use-favorites";
-import { Skeleton } from "@/components/ui/skeleton";
 import MoreLikeThisCard from "@/components/browse/more-like-this-card";
+import { MoreLikeThisCardSkeleton } from "@/components/skeletons/more-like-this-card-skeleton";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Heart, Film, Tv } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -138,7 +138,7 @@ export default function MyListsFavoritesTab() {
       {isLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {Array.from({ length: 24 }).map((_, i) => (
-            <Skeleton key={i} className="w-full aspect-square rounded-lg" />
+            <MoreLikeThisCardSkeleton key={i} />
           ))}
         </div>
       ) : filteredItems.length === 0 ? (

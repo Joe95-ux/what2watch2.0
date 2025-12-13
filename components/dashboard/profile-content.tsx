@@ -21,6 +21,7 @@ import PlaylistCard from "@/components/browse/playlist-card";
 import ListCard from "@/components/browse/list-card";
 import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
+import { MovieCardSkeleton } from "@/components/skeletons/movie-card-skeleton";
 import { Playlist } from "@/hooks/use-playlists";
 import { Users, UserCheck, List, Star, Heart, Edit, Image as ImageIcon, KeyRound, User as UserIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -486,7 +487,7 @@ export default function DashboardProfileContent() {
           {isLoadingWatchlist ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5 md:gap-6">
               {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="aspect-[2/3] w-full rounded-lg" />
+                <MovieCardSkeleton key={i} />
               ))}
             </div>
           ) : paginatedWatchlistAsTMDB.length === 0 ? (
@@ -657,7 +658,7 @@ export default function DashboardProfileContent() {
           {isLoadingFavorites ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5 md:gap-6">
               {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="aspect-[2/3] w-full rounded-lg" />
+                <MovieCardSkeleton key={i} />
               ))}
             </div>
           ) : paginatedFavorites.length === 0 ? (

@@ -3,7 +3,7 @@
 import { useState, useEffect, type ReactNode } from "react";
 import Image from "next/image";
 import { Play, Clapperboard, Images, Star, Eye, Plus, Check } from "lucide-react";
-import { ImBookmark } from "react-icons/im";
+import { IoBookmarkSharp } from "react-icons/io5";
 import {
   TMDBMovie,
   TMDBSeries,
@@ -12,13 +12,11 @@ import {
   getBackdropUrl,
 } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
-import { useToggleFavorite } from "@/hooks/use-favorites";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import { useIMDBRating } from "@/hooks/use-content-details";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { cn } from "@/lib/utils";
 import TrailerModal from "@/components/browse/trailer-modal";
-import { CircleActionButton } from "@/components/browse/circle-action-button";
 import LogToDiaryDropdown from "@/components/browse/log-to-diary-dropdown";
 import MediaModal from "./media-modal";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -282,7 +280,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                   }}
                 >
                   <div className="relative flex items-center justify-center">
-                    <ImBookmark
+                    <IoBookmarkSharp
                       className={cn(
                         "w-16 h-21",
                         toggleWatchlist.isInWatchlist(item.id, type)
@@ -339,7 +337,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                   }}
                 >
                   <div className="relative flex items-center justify-center">
-                    <ImBookmark
+                    <IoBookmarkSharp
                       className={cn(
                         "h-[44px] w-[44px]",
                         toggleWatchlist.isInWatchlist(item.id, type)

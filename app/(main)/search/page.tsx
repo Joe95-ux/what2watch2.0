@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { useSearch } from "@/hooks/use-search";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import MoreLikeThisCard from "@/components/browse/more-like-this-card";
+import { MoreLikeThisCardSkeleton } from "@/components/skeletons/more-like-this-card-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
@@ -293,7 +294,7 @@ function SearchResultsContent() {
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {[...Array(20)].map((_, i) => (
-              <Skeleton key={i} className="aspect-[2/3] rounded-lg" />
+              <MoreLikeThisCardSkeleton key={i} />
             ))}
           </div>
         ) : error ? (
@@ -384,7 +385,7 @@ export default function SearchPage() {
           <Skeleton className="h-10 w-64 mb-8" />
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {[...Array(20)].map((_, i) => (
-              <Skeleton key={i} className="aspect-[2/3] rounded-lg" />
+              <MoreLikeThisCardSkeleton key={i} />
             ))}
           </div>
         </div>

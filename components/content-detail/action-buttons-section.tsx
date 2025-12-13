@@ -135,7 +135,7 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
           ) : (
             <Heart
               className={cn(
-                "h-4 w-4 sm:mr-2",
+                "h-4 w-4",
                 toggleFavorite.isFavorite(item.id, type)
                   ? "text-red-500 fill-red-500"
                   : ""
@@ -180,8 +180,8 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
           type={type}
           trigger={
             <Button variant="outline" size="sm" className="rounded-[25px] bg-muted cursor-pointer flex-shrink-0">
-              <Plus className="h-4 w-4 mr-2" />
-              List
+              <Plus className="h-4 w-4" />
+              Add To
             </Button>
           }
         />
@@ -199,10 +199,10 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
           )}
         >
           {isWatchLoading ? (
-            <Loader2 className="h-4 w-4 sm:mr-2 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : isWatched ? (
             <>
-              <Check className="h-4 w-4 sm:mr-2 text-green-500" />
+              <Check className="h-4 w-4 text-green-500" />
               <span className="hidden sm:inline">Watched</span>
               <span className="sm:hidden">Seen</span>
             </>

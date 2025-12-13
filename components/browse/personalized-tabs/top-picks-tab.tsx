@@ -5,6 +5,7 @@ import { usePersonalizedContent } from "@/hooks/use-movies";
 import { useUser } from "@clerk/nextjs";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 import MoreLikeThisCard from "@/components/browse/more-like-this-card";
+import { MoreLikeThisCardSkeleton } from "@/components/skeletons/more-like-this-card-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -76,7 +77,7 @@ export function TopPicksTab() {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {Array.from({ length: 24 }).map((_, i) => (
-          <Skeleton key={i} className="aspect-[4/5] rounded-lg" />
+          <MoreLikeThisCardSkeleton key={i} />
         ))}
       </div>
     );
