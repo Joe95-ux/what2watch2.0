@@ -105,7 +105,7 @@ export default function AddYouTubeVideoToPlaylistDropdown({
           align="end"
           alignOffset={isMobile ? -12 : 0}
           sideOffset={4}
-          className="w-72 z-[110] p-0 flex flex-col max-h-[400px]"
+          className="ml-2w-80 z-[110] p-0 flex flex-col max-h-[400px]"
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();

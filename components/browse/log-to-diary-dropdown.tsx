@@ -92,7 +92,7 @@ export default function LogToDiaryDropdown({ item, type, trigger }: LogToDiaryDr
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="z-[110] w-[25rem] max-w-[calc(100vw-2rem)] h-auto overflow-hidden p-0 flex flex-col max-h-[90vh]"
+        className="z-[110] w-[25rem] max-w-[calc(100vw-2rem)] h-auto overflow-hidden p-0 flex flex-col max-h-[80vh]"
         onClick={(e) => {
           e.stopPropagation();
         }}
@@ -242,7 +242,6 @@ export default function LogToDiaryDropdown({ item, type, trigger }: LogToDiaryDr
               }}
               onClick={(e) => e.stopPropagation()}
               rows={5}
-              className="resize-none"
             />
           </div>
           <div className="space-y-2">

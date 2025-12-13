@@ -57,57 +57,58 @@ export default function LogFilmDialog({ isOpen, onClose, item, type }: LogFilmDi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
+      <DialogContent className="z-[110] w-[40rem] max-w-[calc(100vw-1rem)] h-auto overflow-hidden p-0 flex flex-col max-h-[80vh]">
+        <DialogHeader className="sticky top-0 z-10 bg-background border-b px-6 pt-6 pb-4">
           <DialogTitle>Log Film</DialogTitle>
           <DialogDescription>
             Record when you watched this {type === "movie" ? "movie" : "TV show"} and add notes.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="watched-date">Date Watched</Label>
-            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !watchedDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {watchedDate ? format(watchedDate, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={watchedDate}
-                  onSelect={(date) => {
-                    if (date) {
-                      setWatchedDate(date);
-                      setIsCalendarOpen(false);
-                    }
-                  }}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes (Optional)</Label>
-            <Textarea
-              id="notes"
-              placeholder="Add your thoughts, rating, or any notes about this viewing..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={4}
-              className="resize-none"
-            />
+        <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-4 min-h-0">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="watched-date">Date Watched</Label>
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !watchedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {watchedDate ? format(watchedDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={watchedDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        setWatchedDate(date);
+                        setIsCalendarOpen(false);
+                      }
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Textarea
+                id="notes"
+                placeholder="Add your thoughts, rating, or any notes about this viewing..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={5}
+              />
+            </div>
           </div>
         </div>
-        <div className="flex justify-end gap-2">
+        <div className="sticky bottom-0 z-10 bg-background border-t px-6 py-4 flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>

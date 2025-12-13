@@ -69,10 +69,10 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="absolute top-4 right-4 z-50 h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-black/60 hover:bg-black/80 active:bg-black/90 flex items-center justify-center transition-all duration-200 ease-in-out cursor-pointer focus:outline-none disabled:pointer-events-none"
+            className="absolute top-4 right-4 z-50 h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-black/60 hover:bg-black/80 active:bg-black/90 flex items-center justify-center transition-all duration-300 ease-in-out cursor-pointer focus:outline-none disabled:pointer-events-none hover:scale-110 hover:rotate-90 hover:shadow-lg hover:shadow-black/50 active:scale-95"
             aria-label="Close"
           >
-            <X className="h-5 w-5 sm:h-7 sm:w-7 text-white transition-opacity duration-200" />
+            <X className="h-5 w-5 sm:h-7 sm:w-7 text-white transition-all duration-300 hover:rotate-180" />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}
