@@ -153,9 +153,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-end gap-3 mt-[14px] md:mt-0">
-                <Skeleton className="h-10 w-10 rounded-full" />
-                <Skeleton className="h-6 w-px" />
-                <Skeleton className="h-9 w-20 rounded-full" />
+                <Skeleton className="h-9 w-32 rounded-full" />
               </div>
               <div className="flex flex-col sm:flex-row justify-start sm:justify-between sm:items-center gap-3">
                 <Skeleton className="h-8 w-64" />

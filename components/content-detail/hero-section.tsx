@@ -213,8 +213,9 @@ export default function HeroSection({ item, type, details, trailer, videosData }
               type={type}
               trigger={
                 <Button
+                  variant="default"
                   size="sm"
-                  className="inline-flex items-center gap-2 rounded-full bg-primary/85 text-primary-foreground hover:bg-primary px-4 py-2 cursor-pointer"
+                  className="h-9 inline-flex items-center gap-2 rounded-[25px] ring-2 ring-ring bg-transparent hover:bg-muted px-4 py-2 cursor-pointer"
                 >
                   <Clapperboard className="h-4 w-4" />
                   {type === "movie" ? "Log movie" : "Log TV show"}
@@ -328,7 +329,7 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                   role="button"
                   tabIndex={0}
                   aria-label={toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
-                  className="absolute -top-[2px] -left-[9px] z-10 flex items-center justify-center cursor-pointer lg:hidden"
+                  className="absolute -top-[3px] -left-[9px] z-10 flex items-center justify-center cursor-pointer lg:hidden"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();

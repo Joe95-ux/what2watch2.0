@@ -348,7 +348,7 @@ export default function MoreLikeThisCard({
                     )}
                   />
                   {isLiked ? "Unlike" : "Like"}
-                  {likeCount > 0 && <span className="ml-2 text-xs">({likeCount})</span>}
+                  {likeCount > 0 && <span className="ml-2 text-sm">({likeCount})</span>}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={async (e) => {
@@ -378,14 +378,14 @@ export default function MoreLikeThisCard({
 
           {/* Runtime - Top Right */}
           {runtimeText && (
-            <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-xs text-white font-medium z-[5]">
+            <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-sm text-white font-medium z-[5]">
               {runtimeText}
             </div>
           )}
 
           {/* Type Badge - Bottom Left (when filter is "all") */}
           {showTypeBadge && (
-            <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-xs text-white font-medium z-[5]">
+            <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-sm text-white font-medium z-[5]">
               {type === "movie" ? "Movie" : "TV"}
             </div>
           )}
@@ -416,7 +416,7 @@ export default function MoreLikeThisCard({
         <div className="bg-muted/60 dark:bg-card border-t border-border/50 p-3 space-y-2">
           {/* Top Row: Release Date + Rating + Add Button */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               {year && <span>{year}</span>}
               {year && <span>•</span>}
               <div className="flex items-center gap-1">

@@ -492,7 +492,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                               )}
                             />
                             {isLiked ? "Unlike" : "Like"}
-                            {likeCount > 0 && <span className="ml-2 text-xs">({likeCount})</span>}
+                            {likeCount > 0 && <span className="ml-2 text-sm">({likeCount})</span>}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={async (e) => {
@@ -578,7 +578,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                           size="sm"
                           className={cn(
                             "rounded-full bg-black/60 hover:bg-black/70 text-white font-medium cursor-pointer backdrop-blur-md border border-white/30",
-                            isMobile ? "h-6 px-2 text-[10px]" : "h-7 px-3 text-xs"
+                            isMobile ? "h-6 px-2 text-[10px]" : "h-7 px-3 text-sm"
                           )}
                           style={{ transform: "translateZ(0)", willChange: "transform" }}
                           onClick={(e) => {
@@ -683,18 +683,18 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                     >
                       <div className="flex items-center gap-1">
                         <IMDBBadge size={isMobile ? 16 : 20} />
-                        <span className={cn("font-semibold text-white", isMobile ? "text-[10px]" : "text-xs")}>
+                        <span className={cn("font-semibold text-white", isMobile ? "text-[10px]" : "text-sm")}>
                           {ratingData?.rating ? ratingData.rating.toFixed(1) : "N/A"}
                         </span>
                       </div>
                       {year && (
                         <>
-                          <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-xs")}>•</span>
-                          <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-xs")}>{year}</span>
+                          <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-sm")}>•</span>
+                          <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-sm")}>{year}</span>
                         </>
                       )}
-                      <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-xs")}>•</span>
-                      <span className={cn("text-white/80 uppercase", isMobile ? "text-[10px]" : "text-xs")}>
+                      <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-sm")}>•</span>
+                      <span className={cn("text-white/80 uppercase", isMobile ? "text-[10px]" : "text-sm")}>
                         {type === "movie" ? "Movie" : "TV"}
                       </span>
                     </div>

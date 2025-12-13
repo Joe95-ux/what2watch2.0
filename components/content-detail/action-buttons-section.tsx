@@ -115,7 +115,7 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
   const isFavoriteLoading = toggleFavorite.isLoading;
 
   return (
-    <div className="max-w-[1216px] mx-auto px-4 sm:px-6 lg:px-8 py-4 border-b">
+    <div className="max-w-[1216px] mx-auto px-4 sm:px-0 py-4 border-b">
       <div className="flex items-center sm:justify-end gap-2 overflow-x-auto">
         {/* Favorite Button */}
         <Button
@@ -126,7 +126,7 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
           }}
           disabled={isFavoriteLoading}
           className={cn(
-            "rounded-[25px] bg-muted cursor-pointer flex-shrink-0",
+            "h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0",
             isFavoriteLoading && "opacity-50 cursor-not-allowed"
           )}
         >
@@ -152,7 +152,7 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
             disabled={isLoadingReactions || likeContent.isPending}
             className={cn(
               "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
-              isLiked ? "bg-primary/10 text-primary" : "hover:bg-muted/80",
+              isLiked ? "text-primary" : "hover:bg-muted/80",
               (isLoadingReactions || likeContent.isPending) && "opacity-50 cursor-not-allowed"
             )}
           >
@@ -165,7 +165,7 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
             disabled={isLoadingReactions || dislikeContent.isPending}
             className={cn(
               "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
-              isDisliked ? "bg-destructive/10 text-destructive" : "hover:bg-muted/80",
+              isDisliked ? "text-primary" : "hover:bg-muted/80",
               (isLoadingReactions || dislikeContent.isPending) && "opacity-50 cursor-not-allowed"
             )}
           >
@@ -179,7 +179,7 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
           item={item}
           type={type}
           trigger={
-            <Button variant="outline" size="sm" className="rounded-[25px] bg-muted cursor-pointer flex-shrink-0">
+            <Button variant="outline" size="sm" className="h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0">
               <Plus className="h-4 w-4" />
               Add To
             </Button>
@@ -193,7 +193,7 @@ export default function ActionButtonsSection({ item, type }: ActionButtonsSectio
           onClick={handleMarkAsWatched}
           disabled={isWatchLoading}
           className={cn(
-            "rounded-[25px] bg-muted cursor-pointer flex-shrink-0",
+            "h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0",
             isWatched && "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800",
             isWatchLoading && "opacity-50 cursor-not-allowed"
           )}

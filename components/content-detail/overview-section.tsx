@@ -105,7 +105,7 @@ export default function OverviewSection({
                       }).toString()}`
                     )
                   }
-                  className="px-3 py-1 text-sm rounded-full bg-muted text-foreground flex-shrink-0 transition hover:bg-primary/10 cursor-pointer"
+                  className="px-3 py-2 text-sm rounded-full bg-muted text-foreground flex-shrink-0 transition hover:bg-primary/10 cursor-pointer"
                 >
                   {genre.name}
                 </button>

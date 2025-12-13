@@ -193,19 +193,19 @@ export default function TVSeasonsSection({
                 <table className="w-full">
                   <thead className="bg-muted/30 border-b border-border">
                     <tr>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                         #
                       </th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider min-w-[300px]">
                         Title
                       </th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                         Air Date
                       </th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                         Runtime
                       </th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      <th className="text-left px-4 py-3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                         Rating
                       </th>
                     </tr>
@@ -234,7 +234,7 @@ export default function TVSeasonsSection({
                               </div>
                             ) : (
                               <div className="w-20 h-12 rounded bg-muted flex-shrink-0 flex items-center justify-center">
-                                <span className="text-xs text-muted-foreground">No Image</span>
+                                <span className="text-sm text-muted-foreground">No Image</span>
                               </div>
                             )}
                             <div className="flex-1 min-w-0">
@@ -242,7 +242,7 @@ export default function TVSeasonsSection({
                                 {episode.name}
                               </p>
                               {episode.overview && (
-                                <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                                <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
                                   {episode.overview}
                                 </p>
                               )}

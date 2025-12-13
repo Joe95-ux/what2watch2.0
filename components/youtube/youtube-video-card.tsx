@@ -297,7 +297,7 @@ export default function YouTubeVideoCard({
 
         {/* Duration - Bottom Right */}
         {duration && (
-          <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm px-2 py-1 rounded text-xs text-white font-medium z-[5]">
+          <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm px-2 py-1 rounded text-sm text-white font-medium z-[5]">
             {duration}
           </div>
         )}
@@ -511,7 +511,7 @@ export default function YouTubeVideoCard({
       >
         {/* Top Row: Published Time + Add Button */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>{publishedTime}</span>
           </div>
           <Tooltip
@@ -576,7 +576,7 @@ export default function YouTubeVideoCard({
         </h3>
 
         {/* Channel Name */}
-        <p className="text-xs text-muted-foreground line-clamp-1">
+        <p className="text-sm text-muted-foreground line-clamp-1">
           {video.channelTitle}
         </p>
       </div>

@@ -211,7 +211,7 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary mt-1"
+                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mt-1"
               >
                 <ExternalLink className="h-3 w-3" />
                 YouTube
@@ -235,7 +235,7 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
+      <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
         <span className={`px-2 py-1 rounded ${channel.isActive ? "bg-green-500/20 text-green-700 dark:text-green-400" : "bg-gray-500/20 text-gray-700 dark:text-gray-400"}`}>
           {channel.isActive ? "Active" : "Inactive"}
         </span>
@@ -276,7 +276,7 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
         </div>
       </div>
       {!canManage && (
-        <p className="mt-3 text-xs text-muted-foreground">
+        <p className="mt-3 text-sm text-muted-foreground">
           Only channels you added can be hidden or made private.
         </p>
       )}
