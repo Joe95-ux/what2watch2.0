@@ -208,7 +208,7 @@ export default function CreatePlaylistModal({ isOpen, onClose, playlist }: Creat
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
-        className="max-w-[calc(100vw-1rem)] sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0"
+        className="max-w-[calc(100vw-1rem)] sm:max-w-lg max-h-[90vh] overflow-hidden flex flex-col p-0"
         onClick={(e) => {
           e.stopPropagation();
         }}

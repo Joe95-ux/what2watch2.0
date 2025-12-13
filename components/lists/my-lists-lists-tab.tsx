@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useLists, useDeleteList, type List } from "@/hooks/use-lists";
+import { usePlaylists, useDeletePlaylist, type Playlist } from "@/hooks/use-playlists";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Plus, List as ListIcon, Grid3x3, Table2, Trash2, Edit } from "lucide-react";
+import { Plus, List as ListIcon, Grid3x3, Table2, Trash2, Edit, Music } from "lucide-react";
 import CreateListModal from "./create-list-modal";
+import CreatePlaylistModal from "@/components/playlists/create-playlist-modal";
 import ListCard from "@/components/browse/list-card";
+import PlaylistCard from "@/components/browse/playlist-card";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import Link from "next/link";
 import {
@@ -22,52 +25,93 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { SimplePagination as Pagination } from "@/components/ui/pagination";
+import { cn } from "@/lib/utils";
 
 const ITEMS_PER_PAGE = 24;
 
+type TabType = "lists" | "playlists";
+
 export default function MyListsListsTab() {
   const router = useRouter();
-  const { data: lists = [], isLoading } = useLists();
+  const searchParams = useSearchParams();
+  const { data: lists = [], isLoading: isLoadingLists } = useLists();
+  const { data: playlists = [], isLoading: isLoadingPlaylists } = usePlaylists();
   const deleteList = useDeleteList();
+  const deletePlaylist = useDeletePlaylist();
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isCreateListModalOpen, setIsCreateListModalOpen] = useState(false);
+  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
   const [editingList, setEditingList] = useState<List | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [listToDelete, setListToDelete] = useState<List | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ type: "list" | "playlist"; item: List | Playlist } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const tab = searchParams.get("type");
+    return (tab === "playlists") ? "playlists" : "lists";
+  });
+
+  // Update URL when tab changes
+  useEffect(() => {
+    const currentType = searchParams.get("type");
+    const expectedType = activeTab === "lists" ? null : activeTab;
+    
+    if (currentType !== expectedType) {
+      const params = new URLSearchParams(searchParams.toString());
+      if (activeTab === "lists") {
+        params.delete("type");
+      } else {
+        params.set("type", activeTab);
+      }
+      const newUrl = params.toString() ? `/lists?${params.toString()}` : "/lists";
+      router.push(newUrl);
+    }
+  }, [activeTab, router, searchParams]);
+
+  // Sync with URL changes (browser back/forward)
+  useEffect(() => {
+    const type = searchParams.get("type");
+    if (type === "playlists") {
+      setActiveTab("playlists");
+    } else {
+      setActiveTab("lists");
+    }
+  }, [searchParams]);
+
+  // Get current items based on active tab
+  const currentItems = activeTab === "lists" ? lists : playlists;
+  const isLoading = activeTab === "lists" ? isLoadingLists : isLoadingPlaylists;
 
   // Pagination
-  const totalPages = Math.ceil(lists.length / ITEMS_PER_PAGE);
-  const paginatedLists = useMemo(() => {
+  const totalPages = Math.ceil(currentItems.length / ITEMS_PER_PAGE);
+  const paginatedItems = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
-    return lists.slice(startIndex, endIndex);
-  }, [lists, currentPage]);
+    return currentItems.slice(startIndex, endIndex);
+  }, [currentItems, currentPage]);
 
   const handleDelete = async () => {
-    if (!listToDelete) return;
+    if (!itemToDelete) return;
     
     try {
-      await deleteList.mutateAsync(listToDelete.id);
-      toast.success("List deleted");
+      if (itemToDelete.type === "list") {
+        await deleteList.mutateAsync((itemToDelete.item as List).id);
+        toast.success("List deleted");
+      } else {
+        await deletePlaylist.mutateAsync((itemToDelete.item as Playlist).id);
+        toast.success("Playlist deleted");
+      }
       setDeleteDialogOpen(false);
-      setListToDelete(null);
+      setItemToDelete(null);
     } catch {
-      toast.error("Failed to delete list");
+      toast.error(`Failed to delete ${itemToDelete.type}`);
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header - Only show if user has lists */}
-      {lists.length > 0 && (
-        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">My Lists</h2>
-            <p className="text-muted-foreground mt-1">
-              Create and manage your ranked lists of favorite films
-            </p>
-          </div>
+      {/* Header */}
+      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+        <div></div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 border rounded-lg p-1">
             <Button
@@ -88,15 +132,60 @@ export default function MyListsListsTab() {
             </Button>
           </div>
           <Button onClick={() => {
-            setEditingList(undefined);
-            setIsCreateModalOpen(true);
+            if (activeTab === "lists") {
+              setEditingList(undefined);
+              setIsCreateListModalOpen(true);
+            } else {
+              setIsCreatePlaylistModalOpen(true);
+            }
           }} className="cursor-pointer">
             <Plus className="h-4 w-4 mr-2" />
-            Create List
+            Create {activeTab === "lists" ? "List" : "Playlist"}
           </Button>
-          </div>
         </div>
-      )}
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-border max-w-fit">
+        <div className="flex items-center gap-6 overflow-x-auto scrollbar-hide">
+          <button
+            onClick={() => {
+              setActiveTab("lists");
+              setCurrentPage(1);
+            }}
+            className={cn(
+              "relative py-3 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2",
+              activeTab === "lists"
+                ? "text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <ListIcon className="h-4 w-4" />
+            Curated Lists
+            {activeTab === "lists" && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+            )}
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("playlists");
+              setCurrentPage(1);
+            }}
+            className={cn(
+              "relative py-3 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2",
+              activeTab === "playlists"
+                ? "text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Music className="h-4 w-4" />
+            Playlists
+            {activeTab === "playlists" && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+            )}
+          </button>
+        </div>
+      </div>
 
       {/* Content */}
       {isLoading ? (
@@ -113,139 +202,176 @@ export default function MyListsListsTab() {
             </div>
           ))}
         </div>
-      ) : lists.length === 0 ? (
+      ) : currentItems.length === 0 ? (
         <div className="text-center py-12 border border-dashed rounded-lg">
-          <ListIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h2 className="text-2xl font-bold tracking-tight mb-2">My Lists</h2>
-          <p className="text-muted-foreground mb-4">
-            Create and manage your ranked lists of favorite films
-          </p>
-          <Button onClick={() => setIsCreateModalOpen(true)} className="cursor-pointer">
-            <Plus className="h-4 w-4 mr-2" />
-            Create List
-          </Button>
+          {activeTab === "lists" ? (
+            <>
+              <ListIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h2 className="text-2xl font-bold tracking-tight mb-2">My Lists</h2>
+              <p className="text-muted-foreground mb-4">
+                Create and manage your ranked lists of favorite films
+              </p>
+              <Button onClick={() => setIsCreateListModalOpen(true)} className="cursor-pointer">
+                <Plus className="h-4 w-4 mr-2" />
+                Create List
+              </Button>
+            </>
+          ) : (
+            <>
+              <Music className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h2 className="text-2xl font-bold tracking-tight mb-2">My Playlists</h2>
+              <p className="text-muted-foreground mb-4">
+                Create and manage your playlists of movies, TV shows, and YouTube videos
+              </p>
+              <Button onClick={() => setIsCreatePlaylistModalOpen(true)} className="cursor-pointer">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Playlist
+              </Button>
+            </>
+          )}
         </div>
-      ) : viewMode === "grid" ? (
+      ) : activeTab === "lists" ? (
+        viewMode === "grid" ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {(paginatedItems as List[]).map((list) => {
+                return (
+                  <div
+                    key={list.id}
+                    className="group relative"
+                  >
+                    <ListCard
+                      list={list}
+                      variant="grid"
+                      className="cursor-pointer"
+                    />
+                    {/* Action Buttons - Overlay on hover */}
+                    <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm border-0 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingList(list);
+                          setIsCreateListModalOpen(true);
+                        }}
+                      >
+                        <Edit className="h-3 w-3 text-white" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm border-0 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setItemToDelete({ type: "list", item: list });
+                          setDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3 text-white" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Pagination */}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </>
+        ) : (
+          <>
+            <div className="border rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="text-left p-4 font-semibold">Name</th>
+                    <th className="text-left p-4 font-semibold">Films</th>
+                    <th className="text-left p-4 font-semibold">Visibility</th>
+                    <th className="text-left p-4 font-semibold">Updated</th>
+                    <th className="text-right p-4 font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(paginatedItems as List[]).map((list) => (
+                    <tr key={list.id} className="border-t hover:bg-muted/50">
+                      <td className="p-4">
+                        <Link href={`/dashboard/lists/${list.id}`} className="hover:underline">
+                          <div className="font-medium">{list.name}</div>
+                          {list.description && (
+                            <div className="text-sm text-muted-foreground line-clamp-1">
+                              {list.description}
+                            </div>
+                          )}
+                        </Link>
+                      </td>
+                      <td className="p-4">
+                        <span className="text-sm">{list.items.length}</span>
+                      </td>
+                      <td className="p-4">
+                        <span className="text-sm capitalize">
+                          {list.visibility.toLowerCase().replace("_", " ")}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <span className="text-sm text-muted-foreground">
+                          {format(new Date(list.updatedAt), "MMM d, yyyy")}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditingList(list);
+                              setIsCreateListModalOpen(true);
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setItemToDelete({ type: "list", item: list });
+                              setDeleteDialogOpen(true);
+                            }}
+                            className="text-destructive hover:text-destructive cursor-pointer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* Pagination */}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </>
+        )
+      ) : (
+        // Playlists view
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {paginatedLists.map((list) => {
-              return (
-                <div
-                  key={list.id}
-                  className="group relative"
-                >
-                  <ListCard
-                    list={list}
-                    variant="grid"
-                    className="cursor-pointer"
-                  />
-                  {/* Action Buttons - Overlay on hover */}
-                  <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm border-0 cursor-pointer"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingList(list);
-                        setIsCreateModalOpen(true);
-                      }}
-                    >
-                      <Edit className="h-3 w-3 text-white" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm border-0 cursor-pointer"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setListToDelete(list);
-                        setDeleteDialogOpen(true);
-                      }}
-                    >
-                      <Trash2 className="h-3 w-3 text-white" />
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {/* Pagination */}
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
-        </>
-      ) : (
-        <>
-          <div className="border rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="text-left p-4 font-semibold">Name</th>
-                  <th className="text-left p-4 font-semibold">Films</th>
-                  <th className="text-left p-4 font-semibold">Visibility</th>
-                  <th className="text-left p-4 font-semibold">Updated</th>
-                  <th className="text-right p-4 font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedLists.map((list) => (
-                  <tr key={list.id} className="border-t hover:bg-muted/50">
-                    <td className="p-4">
-                      <Link href={`/dashboard/lists/${list.id}`} className="hover:underline">
-                        <div className="font-medium">{list.name}</div>
-                        {list.description && (
-                          <div className="text-sm text-muted-foreground line-clamp-1">
-                            {list.description}
-                          </div>
-                        )}
-                      </Link>
-                    </td>
-                    <td className="p-4">
-                      <span className="text-sm">{list.items.length}</span>
-                    </td>
-                    <td className="p-4">
-                      <span className="text-sm capitalize">
-                        {list.visibility.toLowerCase().replace("_", " ")}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <span className="text-sm text-muted-foreground">
-                        {format(new Date(list.updatedAt), "MMM d, yyyy")}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setEditingList(list);
-                            setIsCreateModalOpen(true);
-                          }}
-                          className="cursor-pointer"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setListToDelete(list);
-                            setDeleteDialogOpen(true);
-                          }}
-                          className="text-destructive hover:text-destructive cursor-pointer"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {(paginatedItems as Playlist[]).map((playlist) => (
+              <PlaylistCard
+                key={playlist.id}
+                playlist={playlist}
+                variant="grid"
+              />
+            ))}
           </div>
           {/* Pagination */}
           <Pagination
@@ -257,20 +383,25 @@ export default function MyListsListsTab() {
       )}
 
       <CreateListModal
-        isOpen={isCreateModalOpen}
+        isOpen={isCreateListModalOpen}
         onClose={() => {
-          setIsCreateModalOpen(false);
+          setIsCreateListModalOpen(false);
           setEditingList(undefined);
         }}
         list={editingList}
       />
 
+      <CreatePlaylistModal
+        isOpen={isCreatePlaylistModalOpen}
+        onClose={() => setIsCreatePlaylistModalOpen(false)}
+      />
+
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete List</AlertDialogTitle>
+            <AlertDialogTitle>Delete {itemToDelete?.type === "list" ? "List" : "Playlist"}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete &quot;{listToDelete?.name}&quot;? This action cannot be undone.
+              Are you sure you want to delete &quot;{itemToDelete?.item.name}&quot;? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

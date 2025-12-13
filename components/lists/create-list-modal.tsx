@@ -248,7 +248,7 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess, edit
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+      <DialogContent className="max-w-[calc(100vw-1rem)] sm:max-w-lg max-h-[90vh] overflow-hidden flex flex-col p-0">
         {/* Step Indicators */}
         <div className="px-6 pt-6 pb-4 border-b">
           <DialogTitle className="text-[1.5rem] font-bold mb-4">
