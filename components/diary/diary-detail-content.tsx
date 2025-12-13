@@ -831,7 +831,7 @@ function LogAgainDialog({ isOpen, onClose, log, onSuccess, isPending }: LogAgain
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] h-auto overflow-hidden p-0 flex flex-col max-h-[80vh]">
+      <DialogContent className="sm:max-w-[500px] h-auto overflow-hidden p-0 flex flex-col max-h-[90vh]">
         <DialogHeader className="sticky top-0 z-10 bg-background px-6 pt-6 pb-4 border-b">
           <DialogTitle>Log Again</DialogTitle>
           <DialogDescription>

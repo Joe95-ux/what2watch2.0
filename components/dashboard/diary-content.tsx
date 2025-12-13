@@ -1081,14 +1081,15 @@ function EditLogDialog({ isOpen, onClose, log, onSubmit, isPending }: EditLogDia
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[500px] h-auto overflow-hidden p-0 flex flex-col max-h-[90vh]">
+        <DialogHeader className="sticky top-0 z-10 bg-background px-6 pt-6 pb-4 border-b">
           <DialogTitle>Edit Entry</DialogTitle>
           <DialogDescription>
             Update when you watched &quot;{log.title}&quot; and your notes.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-4 min-h-0">
+          <div className="space-y-4">
           {/* Favorite and Watchlist Buttons */}
           <div className="flex items-center gap-2">
             <Button
@@ -1205,8 +1206,7 @@ function EditLogDialog({ isOpen, onClose, log, onSubmit, isPending }: EditLogDia
               placeholder="Add your thoughts, rating, or any notes about this viewing..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              rows={4}
-              className="resize-none"
+              rows={5}
             />
           </div>
           <div className="space-y-2">
@@ -1221,8 +1221,9 @@ function EditLogDialog({ isOpen, onClose, log, onSubmit, isPending }: EditLogDia
               Separate multiple tags with commas
             </p>
           </div>
+          </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="sticky bottom-0 z-10 bg-background border-t px-6 py-4">
           <Button variant="outline" onClick={onClose} className="cursor-pointer">
             Cancel
           </Button>
