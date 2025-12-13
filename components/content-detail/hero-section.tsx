@@ -213,9 +213,9 @@ export default function HeroSection({ item, type, details, trailer, videosData }
               type={type}
               trigger={
                 <Button
-                  variant="default"
+                  variant="outline"
                   size="sm"
-                  className="h-9 inline-flex items-center gap-2 rounded-[25px] ring-2 ring-ring bg-transparent hover:bg-muted px-4 py-2 cursor-pointer"
+                  className="h-9 inline-flex items-center gap-2 rounded-[25px] cursor-pointer"
                 >
                   <Clapperboard className="h-4 w-4" />
                   {type === "movie" ? "Log movie" : "Log TV show"}
