@@ -125,7 +125,7 @@ export function ForumPostList() {
     return (
       <div className="space-y-0">
         {Array.from({ length: 10 }).map((_, i) => (
-          <div key={i} className="p-4 rounded-lg">
+          <div key={i} className="p-4 rounded-lg border border-border">
             <div className="flex items-start justify-between mb-2">
               <Skeleton className="h-4 w-48" />
               <Skeleton className="h-8 w-8" />
@@ -171,7 +171,7 @@ export function ForumPostList() {
       {isFetchingNextPage && (
         <div className="space-y-0">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="p-4 rounded-lg">
+            <div key={i} className="p-4 rounded-lg border border-border">
               <div className="flex items-start justify-between mb-2">
                 <Skeleton className="h-4 w-48" />
                 <Skeleton className="h-8 w-8" />
