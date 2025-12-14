@@ -19,7 +19,6 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -42,7 +41,6 @@ export function ForumSidebar({
   const isMobile = useIsMobile();
   const [internalOpen, setInternalOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   // Use controlled state if provided, otherwise use internal state
   const isOpen = mobileOpen !== undefined ? mobileOpen : internalOpen;
@@ -260,37 +258,31 @@ export function ForumSidebar({
               </TooltipContent>
             )}
           </Tooltip>
-        </div>
 
-        {/* Search - Hidden when collapsed */}
-        {!isCollapsed && (
-          <div className="p-4 border-b">
-            <div className="relative">
-              <Input
-                placeholder="Search forum..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && searchQuery.trim()) {
-                    router.push(`/forum?search=${encodeURIComponent(searchQuery.trim())}`);
-                    if (isMobile) setIsOpen(false);
-                  }
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={pathname === "/forum/filter" ? "secondary" : "ghost"}
+                className={cn(
+                  "w-full transition-all",
+                  isCollapsed ? "justify-center p-2" : "justify-start gap-3"
+                )}
+                onClick={() => {
+                  router.push("/forum/filter");
+                  if (isMobile) setIsOpen(false);
                 }}
-                className="pr-8"
-              />
-              {searchQuery && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
-                  onClick={() => setSearchQuery("")}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
+              >
+                <Filter className="h-4 w-4" />
+                {!isCollapsed && <span>Filter</span>}
+              </Button>
+            </TooltipTrigger>
+            {isCollapsed && (
+              <TooltipContent side="right">
+                <span>Filter</span>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </div>
 
         {/* Categories */}
         {!isCollapsed && (

@@ -148,13 +148,37 @@ export function ForumPostDetailClient() {
               </div>
             </div>
           )}
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="space-y-6">
-              <Skeleton className="h-10 w-3/4" />
-              <Skeleton className="h-32 w-full" />
+              {/* Post skeleton - Reddit style */}
+              <div className="flex gap-3">
+                <div className="flex flex-col items-center gap-1 pt-1">
+                  <Skeleton className="h-8 w-8" />
+                  <Skeleton className="h-4 w-8" />
+                  <Skeleton className="h-8 w-8" />
+                </div>
+                <div className="flex-1 space-y-3">
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-20 w-full" />
+                </div>
+              </div>
+              {/* Replies skeleton */}
               <div className="space-y-4">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <Skeleton key={i} className="h-24 w-full" />
+                  <div key={i} className="flex gap-2">
+                    <div className="flex flex-col items-center gap-1 pt-1">
+                      <Skeleton className="h-6 w-6" />
+                      <Skeleton className="h-4 w-6" />
+                      <Skeleton className="h-6 w-6" />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-1/4" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -211,7 +235,7 @@ export function ForumPostDetailClient() {
           </div>
         )}
 
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
         {/* Post Content - Reddit Style */}
         <article className="flex gap-3 mb-6">

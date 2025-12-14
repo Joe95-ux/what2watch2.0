@@ -149,23 +149,23 @@ export function UserManagementTable() {
             className="pl-9 cursor-text"
           />
         </div>
-        <Select value={roleFilter} onValueChange={(value) => { setRoleFilter(value); setPage(1); }}>
+        <Select value={roleFilter || "all"} onValueChange={(value) => { setRoleFilter(value === "all" ? "" : value); setPage(1); }}>
           <SelectTrigger className="w-[140px] cursor-pointer">
             <SelectValue placeholder="All Roles" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Roles</SelectItem>
+            <SelectItem value="all">All Roles</SelectItem>
             <SelectItem value="USER">User</SelectItem>
             <SelectItem value="MODERATOR">Moderator</SelectItem>
             <SelectItem value="ADMIN">Admin</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={bannedFilter} onValueChange={(value) => { setBannedFilter(value); setPage(1); }}>
+        <Select value={bannedFilter || "all"} onValueChange={(value) => { setBannedFilter(value === "all" ? "" : value); setPage(1); }}>
           <SelectTrigger className="w-[140px] cursor-pointer">
             <SelectValue placeholder="All Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Status</SelectItem>
+            <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="false">Active</SelectItem>
             <SelectItem value="true">Banned</SelectItem>
           </SelectContent>

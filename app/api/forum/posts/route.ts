@@ -20,15 +20,32 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Build where clause
-    const where: any = {
+    const whereConditions: any[] = [
       // Only show published posts (not scheduled for future)
-      $or: [
-        { scheduledAt: null },
-        { scheduledAt: { $lte: new Date() } },
-      ],
+      {
+        OR: [
+          { scheduledAt: null },
+          { scheduledAt: { lte: new Date() } },
+        ],
+      },
+    ];
+
+    if (search && search.trim()) {
+      // Search in title and content
+      whereConditions.push({
+        OR: [
+          { title: { contains: search.trim(), mode: "insensitive" } },
+          { content: { contains: search.trim(), mode: "insensitive" } },
+        ],
+      });
+    }
+
+    const where: any = {
+      AND: whereConditions,
     };
+
     if (tag) {
-      where.tags = { $in: [tag] };
+      where.tags = { has: tag };
     }
     if (categoryId) {
       where.categoryId = categoryId;
@@ -44,13 +61,6 @@ export async function GET(request: NextRequest) {
     if (tmdbId && mediaType) {
       where.tmdbId = parseInt(tmdbId, 10);
       where.mediaType = mediaType;
-    }
-    if (search && search.trim()) {
-      // Search in title and content
-      where.$or = [
-        { title: { $regex: search.trim(), $options: "i" } },
-        { content: { $regex: search.trim(), $options: "i" } },
-      ];
     }
 
     // Build orderBy
@@ -81,17 +91,30 @@ export async function GET(request: NextRequest) {
               name: true,
               slug: true,
               color: true,
+              icon: true,
             },
           },
           replies: {
             select: {
               id: true,
+              userId: true,
+              createdAt: true,
+              updatedAt: true,
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  displayName: true,
+                  avatarUrl: true,
+                },
+              },
             },
           },
           reactions: {
             select: {
               id: true,
               reactionType: true,
+              createdAt: true,
             },
           },
         },
@@ -133,6 +156,46 @@ export async function GET(request: NextRequest) {
     // Format response
     const formattedPosts = sortedPosts.map((post) => {
       const score = calculateScore(post.reactions as Array<{ reactionType: string }>);
+      
+      // Get unique contributors from replies (first 5)
+      const contributorMap = new Map();
+      (post.replies as Array<{ userId: string; user: any }>).forEach((reply) => {
+        if (!contributorMap.has(reply.userId) && reply.user) {
+          contributorMap.set(reply.userId, {
+            id: reply.user.id,
+            username: reply.user.username,
+            displayName: reply.user.displayName || reply.user.username,
+            avatarUrl: reply.user.avatarUrl,
+          });
+        }
+      });
+      const contributors = Array.from(contributorMap.values()).slice(0, 5);
+      
+      // Calculate last activity (most recent of: last reply, last reaction, or post update)
+      const lastReplyDate = (post.replies as Array<{ createdAt: Date; updatedAt: Date }>).length > 0
+        ? new Date(Math.max(
+            ...(post.replies as Array<{ createdAt: Date; updatedAt: Date }>).map(r => 
+              Math.max(new Date(r.createdAt).getTime(), new Date(r.updatedAt).getTime())
+            )
+          ))
+        : null;
+      const lastReactionDate = (post.reactions as Array<{ createdAt: Date }>).length > 0
+        ? new Date(Math.max(
+            ...(post.reactions as Array<{ createdAt: Date }>).map(r => new Date(r.createdAt).getTime())
+          ))
+        : null;
+      const postUpdateDate = new Date(post.updatedAt);
+      
+      const activityDates = [
+        lastReplyDate,
+        lastReactionDate,
+        postUpdateDate,
+      ].filter(Boolean) as Date[];
+      
+      const lastActivity = activityDates.length > 0
+        ? new Date(Math.max(...activityDates.map(d => d.getTime())))
+        : postUpdateDate;
+      
       return {
         id: post.id,
         slug: post.slug,
@@ -146,10 +209,13 @@ export async function GET(request: NextRequest) {
           name: post.category.name,
           slug: post.category.slug,
           color: post.category.color,
+          icon: post.category.icon,
         } : null,
         views: post.views,
         score,
         replyCount: post.replies.length,
+        contributors,
+        lastActivity: lastActivity.toISOString(),
         author: {
           id: post.user.id,
           username: post.user.username,

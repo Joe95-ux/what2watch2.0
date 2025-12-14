@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Calendar, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -50,6 +50,7 @@ export function CreatePostDialog({
   const [tags, setTags] = useState("");
   const [categoryId, setCategoryId] = useState<string>("");
   const [scheduledAt, setScheduledAt] = useState<Date | undefined>(undefined);
+  const [scheduledTime, setScheduledTime] = useState<string>("");
 
   // Fetch categories
   const { data: categoriesData } = useQuery({
@@ -101,6 +102,7 @@ export function CreatePostDialog({
       setTags("");
       setCategoryId("");
       setScheduledAt(undefined);
+      setScheduledTime("");
       setStep(1);
       if (!scheduledAt) {
         const postSlug = data.post.slug || data.post.id;
@@ -157,6 +159,7 @@ export function CreatePostDialog({
     setTags("");
     setCategoryId("");
     setScheduledAt(undefined);
+    setScheduledTime("");
     onClose();
   };
 
@@ -172,15 +175,52 @@ export function CreatePostDialog({
               : "Add tags and schedule your post (optional)."}
           </DialogDescription>
           {/* Step Indicator */}
-          <div className="flex items-center gap-2 mt-4">
-            <div className={cn(
-              "flex-1 h-1.5 rounded-full transition-colors",
-              step >= 1 ? "bg-primary" : "bg-muted"
-            )} />
-            <div className={cn(
-              "flex-1 h-1.5 rounded-full transition-colors",
-              step >= 2 ? "bg-primary" : "bg-muted"
-            )} />
+          <div className="mt-4">
+            <div className="flex items-center gap-8 mb-4">
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className={cn(
+                  "text-sm font-medium transition-colors cursor-pointer",
+                  step === 1 ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Basic Info
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (title.trim() && content.trim()) {
+                    setStep(2);
+                  }
+                }}
+                className={cn(
+                  "text-sm font-medium transition-colors cursor-pointer",
+                  step === 2 ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                  (!title.trim() || !content.trim()) && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                Additional Details
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className={cn(
+                "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors",
+                step >= 1 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              )}>
+                1
+              </div>
+              <div className={cn(
+                "h-0.5 w-12 transition-colors",
+                step >= 2 ? "bg-primary" : "bg-muted"
+              )} />
+              <div className={cn(
+                "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors",
+                step >= 2 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              )}>
+                2
+              </div>
+            </div>
           </div>
         </DialogHeader>
 
@@ -257,69 +297,121 @@ export function CreatePostDialog({
 
                 <div className="space-y-2">
                   <Label htmlFor="schedule">Schedule Post (optional)</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        id="schedule"
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal cursor-pointer",
-                          !scheduledAt && "text-muted-foreground"
-                        )}
-                      >
-                        <Calendar className="mr-2 h-4 w-4" />
-                        {scheduledAt ? (
-                          format(scheduledAt, "PPP p")
-                        ) : (
-                          <span>Schedule for later</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        mode="single"
-                        selected={scheduledAt}
-                        onSelect={(date) => {
-                          if (date) {
-                            // Set time to current time or 9 AM if in the past
-                            const now = new Date();
-                            const scheduled = new Date(date);
-                            scheduled.setHours(now.getHours(), now.getMinutes(), 0, 0);
-                            // If the date is today and time has passed, set to 9 AM tomorrow
-                            if (scheduled < now && scheduled.toDateString() === now.toDateString()) {
-                              scheduled.setDate(scheduled.getDate() + 1);
-                              scheduled.setHours(9, 0, 0, 0);
+                  <div className="space-y-3">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id="schedule"
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal cursor-pointer",
+                            !scheduledAt && "text-muted-foreground"
+                          )}
+                        >
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {scheduledAt ? (
+                            format(scheduledAt, "PPP")
+                          ) : (
+                            <span>Select date</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={scheduledAt}
+                          onSelect={(date) => {
+                            if (date) {
+                              // If we have a scheduled date with time, preserve the time
+                              if (scheduledAt && scheduledTime) {
+                                const newDate = new Date(date);
+                                newDate.setHours(scheduledAt.getHours(), scheduledAt.getMinutes(), 0, 0);
+                                setScheduledAt(newDate);
+                              } else {
+                                // Set to 9 AM by default for new date selection
+                                const scheduled = new Date(date);
+                                const now = new Date();
+                                // If selected date is today, use current time + 1 hour, otherwise 9 AM
+                                if (date.toDateString() === now.toDateString()) {
+                                  scheduled.setHours(now.getHours() + 1, 0, 0, 0);
+                                  const hours = String(scheduled.getHours()).padStart(2, "0");
+                                  setScheduledTime(`${hours}:00`);
+                                } else {
+                                  scheduled.setHours(9, 0, 0, 0);
+                                  setScheduledTime("09:00");
+                                }
+                                setScheduledAt(scheduled);
+                              }
+                            } else {
+                              setScheduledAt(undefined);
+                              setScheduledTime("");
                             }
-                            setScheduledAt(scheduled);
-                          } else {
-                            setScheduledAt(undefined);
-                          }
-                        }}
-                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                        initialFocus
-                      />
-                      {scheduledAt && (
-                        <div className="p-3 border-t space-y-2">
-                          <div className="text-xs text-muted-foreground">
-                            Scheduled: {format(scheduledAt, "PPP 'at' p")}
-                          </div>
+                          }}
+                          disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    
+                    {scheduledAt && (
+                      <div className="space-y-2">
+                        <Label htmlFor="time" className="text-sm">Time</Label>
+                        <div className="relative">
+                          <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="time"
+                            type="time"
+                            value={scheduledTime || format(scheduledAt, "HH:mm")}
+                            onChange={(e) => {
+                              const time = e.target.value;
+                              setScheduledTime(time);
+                              if (time && scheduledAt) {
+                                const [hours, minutes] = time.split(":").map(Number);
+                                const newDate = new Date(scheduledAt);
+                                newDate.setHours(hours, minutes, 0, 0);
+                                
+                                // Validate: if date is today and time has passed, show error
+                                const now = new Date();
+                                if (newDate <= now && newDate.toDateString() === now.toDateString()) {
+                                  toast.error("Scheduled time must be in the future");
+                                  return;
+                                }
+                                
+                                setScheduledAt(newDate);
+                              }
+                            }}
+                            className="pl-10 cursor-text"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground">
+                            {scheduledAt && scheduledTime
+                              ? `Will publish on ${format(scheduledAt, "PPP 'at' p")}`
+                              : scheduledAt
+                              ? `Will publish on ${format(scheduledAt, "PPP 'at' p")}`
+                              : "Select date and time"}
+                          </p>
                           <Button
+                            type="button"
                             variant="ghost"
                             size="sm"
-                            className="w-full cursor-pointer"
-                            onClick={() => setScheduledAt(undefined)}
+                            className="h-7 text-xs cursor-pointer"
+                            onClick={() => {
+                              setScheduledAt(undefined);
+                              setScheduledTime("");
+                            }}
                           >
-                            Clear schedule
+                            Clear
                           </Button>
                         </div>
-                      )}
-                    </PopoverContent>
-                  </Popover>
-                  <p className="text-xs text-muted-foreground">
-                    {scheduledAt
-                      ? `Post will be published on ${format(scheduledAt, "PPP 'at' p")}`
-                      : "Leave empty to publish immediately"}
-                  </p>
+                      </div>
+                    )}
+                  </div>
+                  {!scheduledAt && (
+                    <p className="text-xs text-muted-foreground">
+                      Leave empty to publish immediately
+                    </p>
+                  )}
                 </div>
               </div>
             )}
