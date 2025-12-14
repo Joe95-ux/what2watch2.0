@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { MessageSquare, Eye, Tag, ChevronUp, ChevronDown } from "lucide-react";
+import { MessageCircle, Eye, Tag, ArrowBigUp, ArrowBigDown, MoreVertical, Flag, PanelLeft, Edit, Trash2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,8 +15,19 @@ import { cn } from "@/lib/utils";
 import { ForumSidebar } from "./forum-sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
-import { PanelLeft } from "lucide-react";
 import { useForumPostReaction, useToggleForumPostLike } from "@/hooks/use-forum-reactions";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ShareDropdown } from "@/components/ui/share-dropdown";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { EditPostDialog } from "./edit-post-dialog";
 
 interface ForumPost {
   id: string;
@@ -66,8 +77,12 @@ interface ForumReply {
 export function ForumPostDetailClient() {
   const params = useParams();
   const { isSignedIn } = useUser();
+  const { data: currentUser } = useCurrentUser();
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const postId = params.postId as string;
 
   const { data, isLoading, error } = useQuery<{ post: ForumPost }>({
@@ -91,6 +106,10 @@ export function ForumPostDetailClient() {
   const displayScore = reaction?.score ?? post?.score ?? 0;
 
   const handleVote = async (type: "upvote" | "downvote") => {
+    if (!isSignedIn) {
+      toast.error("Sign in to vote on posts");
+      return;
+    }
     if (!toggleReaction.mutate || !post) return;
     
     if (userReaction === type) {
@@ -99,6 +118,73 @@ export function ForumPostDetailClient() {
       toggleReaction.mutate({ type });
     }
   };
+
+  const isAuthor = currentUser?.id === post?.author.id;
+
+  const handleReport = async () => {
+    if (!isSignedIn) {
+      toast.error("Sign in to report posts");
+      return;
+    }
+    
+    if (!post) return;
+    
+    const reason = prompt("Please provide a reason for reporting this post:");
+    if (!reason || reason.trim().length === 0) {
+      return;
+    }
+
+    try {
+      const reportPostId = post.slug || post.id;
+      const response = await fetch(`/api/forum/posts/${reportPostId}/report`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reason.trim() }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to report post");
+      }
+
+      toast.success("Post reported successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to report post");
+    }
+  };
+
+  const deletePost = useMutation({
+    mutationFn: async () => {
+      if (!post) throw new Error("Post not found");
+      const postId = post.slug || post.id;
+      const response = await fetch(`/api/forum/posts/${postId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete post");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["forum-posts"] });
+      toast.success("Post deleted successfully");
+      router.push("/forum");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to delete post");
+    },
+  });
+
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this post? This action cannot be undone.")) {
+      return;
+    }
+    deletePost.mutate();
+  };
+
+  const postUrl = post?.slug ? `/forum/${post.slug}` : `/forum/${post?.id}`;
+  const fullPostUrl = typeof window !== "undefined" ? `${window.location.origin}${postUrl}` : postUrl;
 
   const getCategoryColor = (color?: string | null) => {
     if (!color) return "bg-blue-500/20 text-blue-700 dark:text-blue-400";
@@ -150,20 +236,22 @@ export function ForumPostDetailClient() {
           )}
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="space-y-6">
-              {/* Post skeleton - Reddit style */}
-              <div className="flex gap-3">
-                <div className="flex flex-col items-center gap-1 pt-1">
-                  <Skeleton className="h-8 w-8" />
-                  <Skeleton className="h-4 w-8" />
+              {/* Post skeleton */}
+              <div className="rounded-lg border border-border p-4 space-y-3">
+                <div className="flex items-start justify-between">
+                  <Skeleton className="h-4 w-48" />
                   <Skeleton className="h-8 w-8" />
                 </div>
-                <div className="flex-1 space-y-3">
-                  <Skeleton className="h-6 w-3/4" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-2/3" />
-                  <Skeleton className="h-20 w-full" />
-                </div>
+                <Skeleton className="h-8 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-9 w-full rounded-[25px]" />
               </div>
+              {/* Replies section header */}
+              <Skeleton className="h-6 w-32" />
+              {/* Reply form skeleton */}
+              <Skeleton className="h-24 w-full" />
               {/* Replies skeleton */}
               <div className="space-y-4">
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -237,45 +325,11 @@ export function ForumPostDetailClient() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-        {/* Post Content - Reddit Style */}
-        <article className="flex gap-3 mb-6">
-          {/* Vote Buttons */}
-          <div className="flex flex-col items-center gap-1 pt-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "h-8 w-8 p-0 hover:bg-orange-500/10 hover:text-orange-500",
-                isUpvoted && "text-orange-500 bg-orange-500/10"
-              )}
-              onClick={() => handleVote("upvote")}
-            >
-              <ChevronUp className="h-5 w-5" />
-            </Button>
-            <span className={cn(
-              "text-xs font-semibold min-w-[2rem] text-center",
-              isUpvoted && "text-orange-500",
-              isDownvoted && "text-blue-500"
-            )}>
-              {displayScore}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "h-8 w-8 p-0 hover:bg-blue-500/10 hover:text-blue-500",
-                isDownvoted && "text-blue-500 bg-blue-500/10"
-              )}
-              onClick={() => handleVote("downvote")}
-            >
-              <ChevronDown className="h-5 w-5" />
-            </Button>
-          </div>
-
-          {/* Post Content */}
-          <div className="flex-1 min-w-0">
-            {/* Header */}
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+        {/* Post Content */}
+        <article className="mb-6 rounded-lg border border-border p-4">
+          {/* Header with Dot Menu */}
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-1">
               {post.category && (
                 <Link
                   href={`/forum?category=${post.category.slug}`}
@@ -301,40 +355,123 @@ export function ForumPostDetailClient() {
               <span>•</span>
               <span>{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>
             </div>
-
-            <h1 className="text-2xl font-bold mb-3">{post.title}</h1>
-
-            {/* Tags */}
-            {post.tags.length > 0 && (
-              <div className="flex items-center gap-2 mb-4 flex-wrap">
-                {post.tags.map((tag) => (
-                  <Link
-                    key={tag}
-                    href={`/forum?tag=${encodeURIComponent(tag)}`}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted hover:bg-muted/80 text-xs rounded-full transition-colors"
+            
+            {/* Dot Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 cursor-pointer"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {isAuthor ? (
+                <>
+                  <DropdownMenuItem
+                    onClick={() => setIsEditDialogOpen(true)}
+                    className="cursor-pointer"
                   >
-                    <Tag className="h-3 w-3" />
-                    {tag}
-                  </Link>
-                ))}
-              </div>
-            )}
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Post
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleDelete}
+                    className="cursor-pointer text-destructive"
+                    disabled={deletePost.isPending}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Post
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem
+                  onClick={handleReport}
+                  className="cursor-pointer"
+                >
+                  <Flag className="h-4 w-4 mr-2" />
+                  Report Post
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
-            {/* Content */}
-            <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
-              <p className="whitespace-pre-wrap text-sm">{post.content}</p>
+          <h1 className="text-2xl font-bold mb-3">{post.title}</h1>
+
+          {/* Tags */}
+          {post.tags.length > 0 && (
+            <div className="flex items-center gap-2 mb-4 flex-wrap">
+              {post.tags.map((tag) => (
+                <Link
+                  key={tag}
+                  href={`/forum?tag=${encodeURIComponent(tag)}`}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted hover:bg-muted/80 text-xs rounded-full transition-colors"
+                >
+                  <Tag className="h-3 w-3" />
+                  {tag}
+                </Link>
+              ))}
             </div>
+          )}
 
-            {/* Meta Info */}
-            <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2 border-t border-border/50">
-              <div className="flex items-center gap-1">
-                <Eye className="h-4 w-4" />
-                <span>{post.views} {post.views === 1 ? "view" : "views"}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <MessageSquare className="h-4 w-4" />
-                <span>{post.replyCount} {post.replyCount === 1 ? "comment" : "comments"}</span>
-              </div>
+          {/* Content */}
+          <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
+            <p className="whitespace-pre-wrap text-sm">{post.content}</p>
+          </div>
+
+          {/* Action Buttons - Under Tags */}
+          <div className="flex items-center gap-2 rounded-[25px] bg-muted border border-border overflow-hidden">
+            {/* Vote Buttons */}
+            <button
+              onClick={() => handleVote("upvote")}
+              disabled={toggleReaction.isPending}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
+                isUpvoted ? "text-primary" : "hover:bg-muted/80",
+                toggleReaction.isPending && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              <ArrowBigUp className={cn("h-4 w-4", isUpvoted && "fill-current")} />
+              {displayScore > 0 && <span className="text-sm">{displayScore}</span>}
+            </button>
+            <div className="h-6 w-px bg-border" />
+            <button
+              onClick={() => handleVote("downvote")}
+              disabled={toggleReaction.isPending}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
+                isDownvoted ? "text-primary" : "hover:bg-muted/80",
+                toggleReaction.isPending && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              <ArrowBigDown className={cn("h-4 w-4", isDownvoted && "fill-current")} />
+            </button>
+            <div className="h-6 w-px bg-border" />
+            
+            {/* Comment Button */}
+            <div className="flex items-center gap-2 px-4 py-2 text-xs text-muted-foreground">
+              <MessageCircle className="h-4 w-4" />
+              {post.replyCount > 0 && <span className="text-sm">{post.replyCount}</span>}
+            </div>
+            <div className="h-6 w-px bg-border" />
+            
+            {/* Share Button */}
+            <ShareDropdown
+              shareUrl={fullPostUrl}
+              title={post.title}
+              variant="ghost"
+              size="sm"
+              showLabel={false}
+              className="rounded-none border-0 h-auto px-4 py-2 hover:bg-muted/80"
+            />
+            
+            {/* Views */}
+            <div className="flex items-center gap-1 px-4 py-2 text-xs text-muted-foreground ml-auto">
+              <Eye className="h-4 w-4" />
+              <span>{post.views}</span>
             </div>
           </div>
         </article>
@@ -357,6 +494,15 @@ export function ForumPostDetailClient() {
         </div>
         </div>
       </div>
+
+      {/* Edit Post Dialog */}
+      {isEditDialogOpen && post && (
+        <EditPostDialog
+          isOpen={isEditDialogOpen}
+          onClose={() => setIsEditDialogOpen(false)}
+          post={post}
+        />
+      )}
     </div>
   );
 }

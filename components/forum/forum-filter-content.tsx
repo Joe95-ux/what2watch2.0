@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import type { InfiniteData } from "@tanstack/react-query";
 import { ForumSidebar } from "./forum-sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,6 @@ import {
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { SimplePagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
@@ -69,8 +69,8 @@ export function ForumFilterContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isMobile = useIsMobile();
+  const observerTarget = useRef<HTMLDivElement>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [sortBy, setSortBy] = useState<"createdAt" | "views" | "replyCount" | "updatedAt">(
     (searchParams.get("sortBy") as any) || "updatedAt"
@@ -92,13 +92,20 @@ export function ForumFilterContent() {
     },
   });
 
-  // Fetch posts
-  const { data, isLoading, error } = useQuery<ForumPostsResponse>({
-    queryKey: ["forum-posts-filter", currentPage, searchQuery, sortBy, sortOrder, categoryFilter],
-    queryFn: async () => {
+  // Fetch posts with infinite scroll
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    error,
+  } = useInfiniteQuery<ForumPostsResponse, Error, InfiniteData<ForumPostsResponse>, readonly unknown[], number>({
+    queryKey: ["forum-posts-filter", searchQuery, sortBy, sortOrder, categoryFilter],
+    queryFn: async ({ pageParam = 1 }) => {
       const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: "50",
+        page: pageParam.toString(),
+        limit: "30",
         sortBy,
         order: sortOrder,
       });
@@ -113,7 +120,40 @@ export function ForumFilterContent() {
       }
       return response.json();
     },
+    getNextPageParam: (lastPage) => {
+      if (lastPage.pagination.page < lastPage.pagination.totalPages) {
+        return lastPage.pagination.page + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
   });
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Flatten all posts from all pages
+  const allPosts = data?.pages.flatMap((page: ForumPostsResponse) => page.posts) ?? [];
 
   // Update URL params when filters change
   useEffect(() => {
@@ -122,15 +162,9 @@ export function ForumFilterContent() {
     if (sortBy !== "updatedAt") params.set("sortBy", sortBy);
     if (sortOrder !== "desc") params.set("order", sortOrder);
     if (categoryFilter !== "all") params.set("category", categoryFilter);
-    if (currentPage > 1) params.set("page", currentPage.toString());
 
     router.replace(`/forum/filter?${params.toString()}`, { scroll: false });
-  }, [searchQuery, sortBy, sortOrder, categoryFilter, currentPage, router]);
-
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, sortBy, sortOrder, categoryFilter]);
+  }, [searchQuery, sortBy, sortOrder, categoryFilter, router]);
 
   const handleSortChange = (field: typeof sortBy, order: typeof sortOrder) => {
     setSortBy(field);
@@ -356,7 +390,7 @@ export function ForumFilterContent() {
             <div className="text-center py-12">
               <p className="text-destructive">Failed to load posts. Please try again.</p>
             </div>
-          ) : !data || data.posts.length === 0 ? (
+          ) : allPosts.length === 0 ? (
             <div className="text-center py-12 border border-dashed rounded-lg">
               <p className="text-muted-foreground">No posts found</p>
             </div>
@@ -370,11 +404,11 @@ export function ForumFilterContent() {
                       <TableHead className="w-[20%] font-semibold">Contributors</TableHead>
                       <TableHead className="w-[10%] text-right font-semibold">Replies</TableHead>
                       <TableHead className="w-[10%] text-right font-semibold">Views</TableHead>
-                      <TableHead className="w-[20%] font-semibold">Activity</TableHead>
+                      <TableHead className="w-[20%] text-right font-semibold">Activity</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {data.posts.map((post) => (
+                    {allPosts.map((post: ForumPost) => (
                       <TableRow key={post.id} className="border-b last:border-b-0 hover:bg-muted/30">
                         <TableCell>
                           <div className="space-y-1">
@@ -409,7 +443,7 @@ export function ForumFilterContent() {
                           <div className="flex items-center -space-x-2">
                             {post.contributors && post.contributors.length > 0 ? (
                               <>
-                                {post.contributors.slice(0, 5).map((contributor, idx) => (
+                                {post.contributors?.slice(0, 5).map((contributor, idx) => (
                                   <Avatar
                                     key={contributor.id}
                                     className="h-8 w-8 border-2 border-background"
@@ -438,7 +472,7 @@ export function ForumFilterContent() {
                         <TableCell className="text-right">
                           <span className="text-sm">{post.views}</span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-right">
                           <span className="text-sm text-muted-foreground">
                             {post.lastActivity
                               ? formatDistanceToNow(new Date(post.lastActivity), { addSuffix: true })
@@ -451,14 +485,15 @@ export function ForumFilterContent() {
                 </Table>
               </div>
 
-              {/* Pagination */}
-              {data.pagination.totalPages > 1 && (
-                <div className="mt-6">
-                  <SimplePagination
-                    currentPage={currentPage}
-                    totalPages={data.pagination.totalPages}
-                    onPageChange={setCurrentPage}
-                  />
+              {/* Observer target for infinite scroll */}
+              <div ref={observerTarget} className="h-4" />
+              
+              {/* Loading indicator when fetching next page */}
+              {isFetchingNextPage && (
+                <div className="mt-4 space-y-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-full" />
+                  ))}
                 </div>
               )}
             </>

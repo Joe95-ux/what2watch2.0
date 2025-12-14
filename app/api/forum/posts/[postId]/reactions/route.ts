@@ -15,6 +15,26 @@ export async function GET(
     const { postId } = await params;
     const { userId: clerkUserId } = await auth();
 
+    // Check if postId is an ObjectId (24 hex characters) or a slug
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(postId);
+    
+    // Find post by id or slug to get the actual post ID
+    const post = isObjectId
+      ? await db.forumPost.findUnique({
+          where: { id: postId },
+          select: { id: true },
+        })
+      : await db.forumPost.findFirst({
+          where: { slug: postId },
+          select: { id: true },
+        });
+
+    if (!post) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
+
+    const actualPostId = post.id;
+
     let userReaction: { reactionType: string } | null = null;
 
     if (clerkUserId) {
@@ -27,7 +47,7 @@ export async function GET(
         const reaction = await db.forumPostReaction.findUnique({
           where: {
             postId_userId: {
-              postId,
+              postId: actualPostId,
               userId: user.id,
             },
           },
@@ -43,13 +63,13 @@ export async function GET(
     const [upvotes, downvotes] = await Promise.all([
       db.forumPostReaction.count({
         where: {
-          postId,
+          postId: actualPostId,
           reactionType: "upvote",
         },
       }),
       db.forumPostReaction.count({
         where: {
-          postId,
+          postId: actualPostId,
           reactionType: "downvote",
         },
       }),
@@ -103,20 +123,30 @@ export async function POST(
       );
     }
 
-    // Verify post exists
-    const post = await db.forumPost.findUnique({
-      where: { id: postId },
-      select: { id: true },
-    });
+    // Check if postId is an ObjectId (24 hex characters) or a slug
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(postId);
+    
+    // Verify post exists and get actual post ID
+    const post = isObjectId
+      ? await db.forumPost.findUnique({
+          where: { id: postId },
+          select: { id: true },
+        })
+      : await db.forumPost.findFirst({
+          where: { slug: postId },
+          select: { id: true },
+        });
 
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
+    const actualPostId = post.id;
+
     const existingReaction = await db.forumPostReaction.findUnique({
       where: {
         postId_userId: {
-          postId,
+          postId: actualPostId,
           userId: user.id,
         },
       },
@@ -139,7 +169,7 @@ export async function POST(
       // Create new reaction
       await db.forumPostReaction.create({
         data: {
-          postId,
+          postId: actualPostId,
           userId: user.id,
           reactionType,
         },
@@ -150,13 +180,13 @@ export async function POST(
     const [upvotes, downvotes] = await Promise.all([
       db.forumPostReaction.count({
         where: {
-          postId,
+          postId: actualPostId,
           reactionType: "upvote",
         },
       }),
       db.forumPostReaction.count({
         where: {
-          postId,
+          postId: actualPostId,
           reactionType: "downvote",
         },
       }),
@@ -166,7 +196,7 @@ export async function POST(
 
     // Update post score
     await db.forumPost.update({
-      where: { id: postId },
+      where: { id: actualPostId },
       data: { score },
     });
 

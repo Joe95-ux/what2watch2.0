@@ -67,6 +67,7 @@ model User {
   forumReplies  ForumReply[]
   forumPostReactions ForumPostReaction[]
   forumReplyReactions ForumReplyReaction[]
+  forumPostReports ForumPostReport[]
   forumCategories ForumCategory[]
   moderationActions ForumModerationAction[]
   sharedPlaylists SharedPlaylist[]
@@ -405,7 +406,7 @@ model ForumPost {
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   title         String
-  slug          String   @unique // URL-friendly slug
+  slug          String  @unique
   content       String
   
   // Optional TMDB link
@@ -436,6 +437,7 @@ model ForumPost {
   
   replies       ForumReply[]
   reactions     ForumPostReaction[]
+  reports       ForumPostReport[]
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -513,6 +515,26 @@ model ForumReplyReaction {
   @@map("forum_reply_reactions")
   @@index([replyId])
   @@index([userId])
+}
+
+// Forum post reports - user reports for inappropriate posts
+model ForumPostReport {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  postId        String   @db.ObjectId
+  post          ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  reason        String   // Report reason (spam, harassment, etc.)
+  description   String?  // Optional additional details
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([postId, userId])
+  @@map("forum_post_reports")
+  @@index([postId])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 // Forum moderation actions - audit log for moderation

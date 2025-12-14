@@ -1,7 +1,7 @@
 "use client";
 
 import { formatDistanceToNow } from "date-fns";
-import { MessageSquare, ThumbsUp } from "lucide-react";
+import { MessageCircle, ThumbsUp } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { ForumReplyItem } from "./forum-reply-item";
@@ -31,7 +31,7 @@ export function ForumReplyList({ replies, postId }: ForumReplyListProps) {
   if (replies.length === 0) {
     return (
       <div className="text-center py-12 border border-dashed rounded-lg">
-        <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+        <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
         <p className="text-muted-foreground">No replies yet. Be the first to reply!</p>
       </div>
     );

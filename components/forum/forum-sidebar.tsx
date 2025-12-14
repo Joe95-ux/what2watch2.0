@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { 
   Home, 
-  MessageSquare, 
+  MessageCircle, 
   Users, 
   Award, 
   Filter, 
@@ -176,7 +176,7 @@ export function ForumSidebar({
                   if (isMobile) setIsOpen(false);
                 }}
               >
-                <MessageSquare className="h-4 w-4" />
+                <MessageCircle className="h-4 w-4" />
                 {!isCollapsed && <span>Topics</span>}
               </Button>
             </TooltipTrigger>
@@ -374,45 +374,6 @@ export function ForumSidebar({
             ) : (
               <p className="text-sm text-muted-foreground">No trending topics</p>
             )}
-          </div>
-        )}
-
-        {/* Quick Links */}
-        {!isCollapsed && (
-          <div className="p-4">
-            <h3 className="text-sm font-semibold mb-3">Quick Links</h3>
-            <div className="space-y-2">
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-sm"
-                onClick={() => {
-                  router.push("/forum?sortBy=score&order=desc");
-                  if (isMobile) setIsOpen(false);
-                }}
-              >
-                Top Posts
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-sm"
-                onClick={() => {
-                  router.push("/forum?sortBy=createdAt&order=desc");
-                  if (isMobile) setIsOpen(false);
-                }}
-              >
-                New Posts
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-sm"
-                onClick={() => {
-                  router.push("/forum?sortBy=views&order=desc");
-                  if (isMobile) setIsOpen(false);
-                }}
-              >
-                Most Viewed
-              </Button>
-            </div>
           </div>
         )}
       </ScrollArea>

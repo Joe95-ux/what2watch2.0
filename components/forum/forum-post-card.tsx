@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { MessageSquare, Eye, Tag } from "lucide-react";
+import { MessageCircle, Eye, Tag } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ForumLikeButton } from "./forum-like-button";
 import { cn } from "@/lib/utils";
@@ -131,7 +131,7 @@ export function ForumPostCard({ post }: ForumPostCardProps) {
               </div>
               <ForumLikeButton postId={post.id} initialScore={post.likes} />
               <div className="flex items-center gap-1">
-                <MessageSquare className="h-4 w-4" />
+                <MessageCircle className="h-4 w-4" />
                 <span>{post.replyCount}</span>
               </div>
             </div>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { MessageSquare, ChevronUp, ChevronDown } from "lucide-react";
+import { MessageCircle, ChevronUp, ChevronDown } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -130,7 +130,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
               onClick={() => setShowReplyForm(!showReplyForm)}
               className="h-7 px-2 text-xs cursor-pointer"
             >
-              <MessageSquare className="h-3 w-3 mr-1" />
+              <MessageCircle className="h-3 w-3 mr-1" />
               Reply
             </Button>
           )}

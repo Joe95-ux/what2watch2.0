@@ -2,12 +2,27 @@
 
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { MessageSquare, Eye, ChevronUp, ChevronDown, Hash } from "lucide-react";
+import { MessageCircle, Eye, ArrowBigUp, ArrowBigDown, Hash, MoreVertical, Flag, Edit, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useForumPostReaction, useToggleForumPostLike } from "@/hooks/use-forum-reactions";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { ShareDropdown } from "@/components/ui/share-dropdown";
+import { useUser } from "@clerk/nextjs";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useState } from "react";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { EditPostDialog } from "./edit-post-dialog";
 
 interface ForumPost {
   id: string;
@@ -42,6 +57,13 @@ interface ForumPostCardProps {
 }
 
 export function ForumPostCardReddit({ post }: ForumPostCardProps) {
+  const { isSignedIn } = useUser();
+  const { data: currentUser } = useCurrentUser();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  
+  const isAuthor = currentUser?.id === post.author.id;
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -60,18 +82,80 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
   const displayScore = reaction?.score ?? post.score;
 
   const handleVote = async (type: "upvote" | "downvote") => {
+    if (!isSignedIn) {
+      toast.error("Sign in to vote on posts");
+      return;
+    }
     if (!toggleReaction.mutate) return;
     
     if (userReaction === type) {
-      // Remove reaction if clicking the same button
       toggleReaction.mutate({ type: null });
     } else {
-      // Set new reaction
       toggleReaction.mutate({ type });
     }
   };
 
+  const handleReport = async () => {
+    if (!isSignedIn) {
+      toast.error("Sign in to report posts");
+      return;
+    }
+    
+    const reason = prompt("Please provide a reason for reporting this post:");
+    if (!reason || reason.trim().length === 0) {
+      return;
+    }
+
+    try {
+      const reportPostId = post.slug || post.id;
+      const response = await fetch(`/api/forum/posts/${reportPostId}/report`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reason.trim() }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to report post");
+      }
+
+      toast.success("Post reported successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to report post");
+    }
+  };
+
+  const deletePost = useMutation({
+    mutationFn: async () => {
+      const postId = post.slug || post.id;
+      const response = await fetch(`/api/forum/posts/${postId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete post");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["forum-posts"] });
+      toast.success("Post deleted successfully");
+      router.push("/forum");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to delete post");
+    },
+  });
+
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this post? This action cannot be undone.")) {
+      return;
+    }
+    deletePost.mutate();
+  };
+
   const postUrl = post.slug ? `/forum/${post.slug}` : `/forum/${post.id}`;
+  const fullPostUrl = typeof window !== "undefined" ? `${window.location.origin}${postUrl}` : postUrl;
 
   const getCategoryColor = (color?: string | null) => {
     if (!color) return "bg-blue-500/20 text-blue-700 dark:text-blue-400";
@@ -94,128 +178,198 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
   };
 
   return (
-    <div className="flex gap-2 p-3 hover:bg-accent/50 transition-colors border-b border-border/50 last:border-b-0">
-      {/* Vote Buttons - Reddit style */}
-      <div className="flex flex-col items-center gap-1 pt-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "h-8 w-8 p-0 hover:bg-orange-500/10 hover:text-orange-500",
-            isUpvoted && "text-orange-500 bg-orange-500/10"
+    <div className="p-4 hover:bg-accent/50 transition-colors border-b border-border/50 last:border-b-0 rounded-lg">
+      {/* Post Header with Dot Menu */}
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-1">
+          {post.category && (
+            <Link
+              href={`/forum?category=${post.category.slug}`}
+              onClick={(e) => e.stopPropagation()}
+              className={cn(
+                "px-2 py-0.5 rounded text-xs font-medium transition-colors",
+                getCategoryColor(post.category.color)
+              )}
+              style={post.category.color ? {
+                backgroundColor: `${post.category.color}20`,
+                color: post.category.color,
+              } : undefined}
+            >
+              {post.category.icon && <span className="mr-1">{post.category.icon}</span>}
+              {post.category.name}
+            </Link>
           )}
+          <Link
+            href={`/users/${post.author.username || post.author.id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="hover:underline font-medium text-foreground"
+          >
+            {post.author.displayName}
+          </Link>
+          <span>•</span>
+          <span>{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>
+        </div>
+        
+        {/* Dot Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 cursor-pointer"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {isAuthor ? (
+              <>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsEditDialogOpen(true);
+                  }}
+                  className="cursor-pointer"
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Post
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete();
+                  }}
+                  className="cursor-pointer text-destructive"
+                  disabled={deletePost.isPending}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Post
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleReport();
+                }}
+                className="cursor-pointer"
+              >
+                <Flag className="h-4 w-4 mr-2" />
+                Report Post
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Post Title */}
+      <Link href={postUrl} className="block mb-2">
+        <h3 className="text-base font-semibold hover:text-primary transition-colors line-clamp-2">
+          {post.title}
+        </h3>
+      </Link>
+
+      {/* Post Content Preview */}
+      <Link href={postUrl} className="block mb-3">
+        <p className="text-sm text-muted-foreground line-clamp-3">
+          {post.content}
+        </p>
+      </Link>
+
+      {/* Tags */}
+      {post.tags.length > 0 && (
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          {post.tags.slice(0, 3).map((tag) => (
+            <Link
+              key={tag}
+              href={`/forum?tag=${encodeURIComponent(tag)}`}
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted hover:bg-muted/80 text-xs rounded-full transition-colors"
+            >
+              <Hash className="h-3 w-3" />
+              {tag}
+            </Link>
+          ))}
+          {post.tags.length > 3 && (
+            <span className="text-xs text-muted-foreground">+{post.tags.length - 3} more</span>
+          )}
+        </div>
+      )}
+
+      {/* Action Buttons - Under Tags */}
+      <div className="flex items-center gap-2 rounded-[25px] bg-muted border border-border overflow-hidden">
+        {/* Vote Buttons */}
+        <button
           onClick={(e) => {
-            e.preventDefault();
             e.stopPropagation();
             handleVote("upvote");
           }}
-        >
-          <ChevronUp className="h-5 w-5" />
-        </Button>
-        <span className={cn(
-          "text-xs font-semibold min-w-[2rem] text-center",
-          isUpvoted && "text-orange-500",
-          isDownvoted && "text-blue-500"
-        )}>
-          {displayScore}
-        </span>
-        <Button
-          variant="ghost"
-          size="icon"
+          disabled={toggleReaction.isPending}
           className={cn(
-            "h-8 w-8 p-0 hover:bg-blue-500/10 hover:text-blue-500",
-            isDownvoted && "text-blue-500 bg-blue-500/10"
+            "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
+            isUpvoted ? "text-primary" : "hover:bg-muted/80",
+            toggleReaction.isPending && "opacity-50 cursor-not-allowed"
           )}
+        >
+          <ArrowBigUp className={cn("h-4 w-4", isUpvoted && "fill-current")} />
+          {displayScore > 0 && <span className="text-sm">{displayScore}</span>}
+        </button>
+        <div className="h-6 w-px bg-border" />
+        <button
           onClick={(e) => {
-            e.preventDefault();
             e.stopPropagation();
             handleVote("downvote");
           }}
-        >
-          <ChevronDown className="h-5 w-5" />
-        </Button>
-      </div>
-
-      {/* Post Content */}
-      <div className="flex-1 min-w-0">
-        <Link href={postUrl} className="block">
-          {/* Post Header */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-            {post.category && (
-              <Link
-                href={`/forum?category=${post.category.slug}`}
-                onClick={(e) => e.stopPropagation()}
-                className={cn(
-                  "px-2 py-0.5 rounded text-xs font-medium transition-colors",
-                  getCategoryColor(post.category.color)
-                )}
-                style={post.category.color ? {
-                  backgroundColor: `${post.category.color}20`,
-                  color: post.category.color,
-                } : undefined}
-              >
-                {post.category.icon && <span className="mr-1">{post.category.icon}</span>}
-                {post.category.name}
-              </Link>
-            )}
-            <Link
-              href={`/users/${post.author.username || post.author.id}`}
-              onClick={(e) => e.stopPropagation()}
-              className="hover:underline font-medium text-foreground"
-            >
-              {post.author.displayName}
-            </Link>
-            <span>•</span>
-            <span>{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>
-          </div>
-
-          {/* Post Title */}
-          <h3 className="text-base font-semibold mb-2 hover:text-primary transition-colors line-clamp-2">
-            {post.title}
-          </h3>
-
-          {/* Post Content Preview */}
-          <p className="text-sm text-muted-foreground mb-3 line-clamp-3">
-            {post.content}
-          </p>
-
-          {/* Tags */}
-          {post.tags.length > 0 && (
-            <div className="flex items-center gap-2 mb-3 flex-wrap">
-              {post.tags.slice(0, 3).map((tag) => (
-                <Link
-                  key={tag}
-                  href={`/forum?tag=${encodeURIComponent(tag)}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted hover:bg-muted/80 text-xs rounded-full transition-colors"
-                >
-                  <Hash className="h-3 w-3" />
-                  {tag}
-                </Link>
-              ))}
-              {post.tags.length > 3 && (
-                <span className="text-xs text-muted-foreground">+{post.tags.length - 3} more</span>
-              )}
-            </div>
+          disabled={toggleReaction.isPending}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
+            isDownvoted ? "text-primary" : "hover:bg-muted/80",
+            toggleReaction.isPending && "opacity-50 cursor-not-allowed"
           )}
-
-          {/* Post Actions */}
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <Link
-              href={postUrl}
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1 hover:text-primary transition-colors"
-            >
-              <MessageSquare className="h-4 w-4" />
-              <span>{post.replyCount} {post.replyCount === 1 ? "comment" : "comments"}</span>
-            </Link>
-            <div className="flex items-center gap-1">
-              <Eye className="h-4 w-4" />
-              <span>{post.views} {post.views === 1 ? "view" : "views"}</span>
-            </div>
-          </div>
+        >
+          <ArrowBigDown className={cn("h-4 w-4", isDownvoted && "fill-current")} />
+        </button>
+        <div className="h-6 w-px bg-border" />
+        
+        {/* Comment Button */}
+        <Link
+          href={postUrl}
+          onClick={(e) => e.stopPropagation()}
+          className="flex items-center gap-2 px-4 py-2 hover:bg-muted/80 transition-colors cursor-pointer"
+        >
+          <MessageCircle className="h-4 w-4" />
+          {post.replyCount > 0 && <span className="text-sm">{post.replyCount}</span>}
         </Link>
+        <div className="h-6 w-px bg-border" />
+        
+        {/* Share Button */}
+        <div onClick={(e) => e.stopPropagation()}>
+          <ShareDropdown
+            shareUrl={fullPostUrl}
+            title={post.title}
+            variant="ghost"
+            size="sm"
+            showLabel={false}
+            className="rounded-none border-0 h-auto px-4 py-2 hover:bg-muted/80"
+          />
+        </div>
+        
+        {/* Views */}
+        <div className="flex items-center gap-1 px-4 py-2 text-xs text-muted-foreground ml-auto">
+          <Eye className="h-4 w-4" />
+          <span>{post.views}</span>
+        </div>
       </div>
+
+      {/* Edit Post Dialog */}
+      {isEditDialogOpen && (
+        <EditPostDialog
+          isOpen={isEditDialogOpen}
+          onClose={() => setIsEditDialogOpen(false)}
+          post={post}
+        />
+      )}
     </div>
   );
 }

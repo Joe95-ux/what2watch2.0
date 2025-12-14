@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search") || "";
     const isHidden = searchParams.get("isHidden");
     const isLocked = searchParams.get("isLocked");
+    const hasReports = searchParams.get("hasReports");
     const userId = searchParams.get("userId");
 
     const skip = (page - 1) * limit;
@@ -20,9 +21,9 @@ export async function GET(request: NextRequest) {
     const where: any = {};
 
     if (search) {
-      where.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { content: { $regex: search, $options: "i" } },
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { content: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -32,6 +33,14 @@ export async function GET(request: NextRequest) {
 
     if (isLocked !== null && isLocked !== undefined) {
       where.isLocked = isLocked === "true";
+    }
+
+    if (hasReports !== null && hasReports !== undefined) {
+      if (hasReports === "true") {
+        where.reports = { some: {} };
+      } else {
+        where.reports = { none: {} };
+      }
     }
 
     if (userId) {
@@ -63,6 +72,7 @@ export async function GET(request: NextRequest) {
             select: {
               replies: true,
               reactions: true,
+              reports: true,
             },
           },
         },

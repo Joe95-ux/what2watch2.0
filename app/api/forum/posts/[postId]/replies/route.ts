@@ -14,8 +14,26 @@ export async function GET(
   try {
     const { postId } = await params;
 
+    // Check if postId is an ObjectId (24 hex characters) or a slug
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(postId);
+    
+    // Find post by id or slug to get the actual post ID
+    const post = isObjectId
+      ? await db.forumPost.findUnique({
+          where: { id: postId },
+          select: { id: true },
+        })
+      : await db.forumPost.findFirst({
+          where: { slug: postId },
+          select: { id: true },
+        });
+
+    if (!post) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
+
     const replies = await db.forumReply.findMany({
-      where: { postId },
+      where: { postId: post.id },
       include: {
         user: {
           select: {
@@ -125,15 +143,25 @@ export async function POST(
       );
     }
 
-    // Verify post exists
-    const post = await db.forumPost.findUnique({
-      where: { id: postId },
-      select: { id: true },
-    });
+    // Check if postId is an ObjectId (24 hex characters) or a slug
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(postId);
+    
+    // Verify post exists and get actual post ID
+    const post = isObjectId
+      ? await db.forumPost.findUnique({
+          where: { id: postId },
+          select: { id: true },
+        })
+      : await db.forumPost.findFirst({
+          where: { slug: postId },
+          select: { id: true },
+        });
 
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
+
+    const actualPostId = post.id;
 
     // If parentReplyId is provided, verify it exists and belongs to the same post
     if (parentReplyId) {
@@ -149,7 +177,7 @@ export async function POST(
         );
       }
 
-      if (parentReply.postId !== postId) {
+      if (parentReply.postId !== actualPostId) {
         return NextResponse.json(
           { error: "Parent reply does not belong to this post" },
           { status: 400 }
@@ -160,7 +188,7 @@ export async function POST(
     const reply = await db.forumReply.create({
       data: {
         userId: user.id,
-        postId,
+        postId: actualPostId,
         content: content.trim(),
         parentReplyId: parentReplyId || null,
       },

@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MoreHorizontal, Search, Eye, EyeOff, Lock, Unlock, Trash2 } from "lucide-react";
+import { MoreHorizontal, Search, Eye, EyeOff, Lock, Unlock, Trash2, Flag } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,9 +31,10 @@ export function PostModerationTable() {
   const [search, setSearch] = useState("");
   const [hiddenFilter, setHiddenFilter] = useState("");
   const [lockedFilter, setLockedFilter] = useState("");
+  const [reportedFilter, setReportedFilter] = useState("");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-forum-posts", page, search, hiddenFilter, lockedFilter],
+    queryKey: ["admin-forum-posts", page, search, hiddenFilter, lockedFilter, reportedFilter],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -42,6 +43,7 @@ export function PostModerationTable() {
       if (search) params.append("search", search);
       if (hiddenFilter) params.append("isHidden", hiddenFilter);
       if (lockedFilter) params.append("isLocked", lockedFilter);
+      if (reportedFilter) params.append("hasReports", reportedFilter);
 
       const res = await fetch(`/api/admin/forum/posts?${params}`);
       if (!res.ok) throw new Error("Failed to fetch posts");
@@ -98,6 +100,7 @@ export function PostModerationTable() {
                 <TableHead>Author</TableHead>
                 <TableHead>Views</TableHead>
                 <TableHead>Score</TableHead>
+                <TableHead>Reports</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
@@ -107,6 +110,7 @@ export function PostModerationTable() {
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-4 w-48" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-20" /></TableCell>
@@ -160,6 +164,18 @@ export function PostModerationTable() {
           <option value="false">Unlocked</option>
           <option value="true">Locked</option>
         </select>
+        <select
+          value={reportedFilter}
+          onChange={(e) => {
+            setReportedFilter(e.target.value);
+            setPage(1);
+          }}
+          className="h-10 w-[140px] rounded-md border border-input bg-background px-3 py-2 text-sm cursor-pointer"
+        >
+          <option value="">All Posts</option>
+          <option value="true">Reported</option>
+          <option value="false">Not Reported</option>
+        </select>
       </div>
 
       {/* Table */}
@@ -172,6 +188,7 @@ export function PostModerationTable() {
               <TableHead>Views</TableHead>
               <TableHead>Score</TableHead>
               <TableHead>Replies</TableHead>
+              <TableHead>Reports</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
@@ -179,7 +196,7 @@ export function PostModerationTable() {
           <TableBody>
             {posts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   No posts found
                 </TableCell>
               </TableRow>
@@ -198,6 +215,16 @@ export function PostModerationTable() {
                   <TableCell>{post.views}</TableCell>
                   <TableCell>{post.score}</TableCell>
                   <TableCell>{post._count?.replies || 0}</TableCell>
+                  <TableCell>
+                    {post._count?.reports > 0 ? (
+                      <Badge variant="destructive" className="flex items-center gap-1 w-fit">
+                        <Flag className="h-3 w-3" />
+                        {post._count.reports}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">0</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {post.isHidden && <Badge variant="secondary">Hidden</Badge>}
