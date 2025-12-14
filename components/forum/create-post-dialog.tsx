@@ -268,7 +268,7 @@ export function CreatePostDialog({
                     <SelectTrigger id="category" className="cursor-pointer">
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-[300px]">
                       <SelectItem value="none">None</SelectItem>
                       {categoriesData?.categories?.map((category: any) => (
                         <SelectItem key={category.id} value={category.id}>

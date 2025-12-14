@@ -245,7 +245,7 @@ export function EditPostDialog({
                   <SelectTrigger id="category" className="mt-1 cursor-pointer">
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[300px]">
                     <SelectItem value="none">None</SelectItem>
                     {categories.map((category: any) => (
                       <SelectItem key={category.id} value={category.id}>

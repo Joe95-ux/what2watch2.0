@@ -178,7 +178,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
   };
 
   return (
-    <div className="p-4 hover:bg-accent/50 transition-colors border-b border-border/50 last:border-b-0 rounded-lg">
+    <div className="p-4 hover:bg-accent/50 transition-colors rounded-lg">
       {/* Post Header with Dot Menu */}
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2 text-xs text-muted-foreground flex-1">
@@ -223,7 +223,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {isAuthor ? (
+            {isAuthor && (
               <>
                 <DropdownMenuItem
                   onClick={(e) => {
@@ -246,19 +246,19 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete Post
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
               </>
-            ) : (
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleReport();
-                }}
-                className="cursor-pointer"
-              >
-                <Flag className="h-4 w-4 mr-2" />
-                Report Post
-              </DropdownMenuItem>
             )}
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                handleReport();
+              }}
+              className="cursor-pointer"
+            >
+              <Flag className="h-4 w-4 mr-2" />
+              Report Post
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -298,50 +298,50 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
       )}
 
       {/* Action Buttons - Under Tags */}
-      <div className="flex items-center gap-2 rounded-[25px] bg-muted border border-border overflow-hidden">
-        {/* Vote Buttons */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleVote("upvote");
-          }}
-          disabled={toggleReaction.isPending}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
-            isUpvoted ? "text-primary" : "hover:bg-muted/80",
-            toggleReaction.isPending && "opacity-50 cursor-not-allowed"
-          )}
-        >
-          <ArrowBigUp className={cn("h-4 w-4", isUpvoted && "fill-current")} />
-          {displayScore > 0 && <span className="text-sm">{displayScore}</span>}
-        </button>
-        <div className="h-6 w-px bg-border" />
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleVote("downvote");
-          }}
-          disabled={toggleReaction.isPending}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
-            isDownvoted ? "text-primary" : "hover:bg-muted/80",
-            toggleReaction.isPending && "opacity-50 cursor-not-allowed"
-          )}
-        >
-          <ArrowBigDown className={cn("h-4 w-4", isDownvoted && "fill-current")} />
-        </button>
-        <div className="h-6 w-px bg-border" />
+      <div className="flex items-center gap-2">
+        {/* Vote Buttons - Act like one button */}
+        <div className="flex items-center rounded-[25px] bg-muted/50 overflow-hidden">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleVote("upvote");
+            }}
+            disabled={toggleReaction.isPending}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
+              isUpvoted ? "text-primary" : "hover:bg-muted",
+              toggleReaction.isPending && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            <ArrowBigUp className={cn("h-4 w-4", isUpvoted && "fill-current")} />
+            {displayScore > 0 && <span className="text-sm">{displayScore}</span>}
+          </button>
+          <div className="h-6 w-px bg-border" />
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleVote("downvote");
+            }}
+            disabled={toggleReaction.isPending}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
+              isDownvoted ? "text-primary" : "hover:bg-muted",
+              toggleReaction.isPending && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            <ArrowBigDown className={cn("h-4 w-4", isDownvoted && "fill-current")} />
+          </button>
+        </div>
         
         {/* Comment Button */}
         <Link
           href={postUrl}
           onClick={(e) => e.stopPropagation()}
-          className="flex items-center gap-2 px-4 py-2 hover:bg-muted/80 transition-colors cursor-pointer"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
         >
           <MessageCircle className="h-4 w-4" />
-          {post.replyCount > 0 && <span className="text-sm">{post.replyCount}</span>}
+          {post.replyCount > 0 && <span className="text-sm font-medium">{post.replyCount}</span>}
         </Link>
-        <div className="h-6 w-px bg-border" />
         
         {/* Share Button */}
         <div onClick={(e) => e.stopPropagation()}>
@@ -351,12 +351,12 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
             variant="ghost"
             size="sm"
             showLabel={false}
-            className="rounded-none border-0 h-auto px-4 py-2 hover:bg-muted/80"
+            className="rounded-lg bg-muted/50 hover:bg-muted h-auto px-3 py-2"
           />
         </div>
         
         {/* Views */}
-        <div className="flex items-center gap-1 px-4 py-2 text-xs text-muted-foreground ml-auto">
+        <div className="flex items-center gap-1 px-3 py-2 rounded-lg bg-muted/50 text-xs text-muted-foreground">
           <Eye className="h-4 w-4" />
           <span>{post.views}</span>
         </div>

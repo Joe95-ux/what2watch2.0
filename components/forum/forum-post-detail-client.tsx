@@ -3,7 +3,16 @@
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { MessageCircle, Eye, Tag, ArrowBigUp, ArrowBigDown, MoreVertical, Flag, PanelLeft, Edit, Trash2, ArrowLeft } from "lucide-react";
+import { MessageCircle, Eye, Tag, ArrowBigUp, ArrowBigDown, MoreVertical, Flag, PanelLeft, Edit, Trash2, ArrowLeft, Search, ArrowUpDown } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,12 +25,6 @@ import { ForumSidebar } from "./forum-sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
 import { useForumPostReaction, useToggleForumPostLike } from "@/hooks/use-forum-reactions";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { ShareDropdown } from "@/components/ui/share-dropdown";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -62,6 +65,7 @@ interface ForumReply {
   id: string;
   content: string;
   likes: number;
+  score?: number;
   author: {
     id: string;
     username: string;
@@ -83,6 +87,8 @@ export function ForumPostDetailClient() {
   const isMobile = useIsMobile();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [replySort, setReplySort] = useState<"newest" | "oldest" | "top">("newest");
+  const [replySearch, setReplySearch] = useState("");
   const postId = params.postId as string;
 
   const { data, isLoading, error } = useQuery<{ post: ForumPost }>({
@@ -99,6 +105,78 @@ export function ForumPostDetailClient() {
   const post = data?.post;
   const { data: reaction } = useForumPostReaction(post?.id || "");
   const toggleReaction = useToggleForumPostLike(post?.id || "");
+
+  // Fetch related posts
+  const { data: relatedPostsData } = useQuery({
+    queryKey: ["forum-related-posts", post?.id, post?.category?.id],
+    queryFn: async () => {
+      if (!post) return { posts: [] };
+      
+      const params = new URLSearchParams({
+        page: "1",
+        limit: "10",
+        sortBy: "score",
+        order: "desc",
+      });
+      
+      // Try to get posts from same category first
+      if (post.category?.id) {
+        params.set("categoryId", post.category.id);
+      }
+      
+      const response = await fetch(`/api/forum/posts?${params.toString()}`);
+      if (!response.ok) return { posts: [] };
+      const data = await response.json();
+      
+      // Filter out current post and limit to 10
+      const related = data.posts
+        .filter((p: any) => p.id !== post.id)
+        .slice(0, 10);
+      
+      return { posts: related };
+    },
+    enabled: !!post,
+  });
+
+  const relatedPosts = relatedPostsData?.posts || [];
+
+  // Filter and sort replies
+  const filterReplies = (replies: ForumReply[], search: string): ForumReply[] => {
+    if (!search.trim()) return replies;
+    const searchLower = search.toLowerCase();
+    return replies.filter(reply => 
+      reply.content.toLowerCase().includes(searchLower) ||
+      reply.author.displayName.toLowerCase().includes(searchLower)
+    ).map(reply => ({
+      ...reply,
+      replies: filterReplies(reply.replies || [], search)
+    }));
+  };
+
+  const sortReplies = (replies: ForumReply[], sortBy: "newest" | "oldest" | "top"): ForumReply[] => {
+    const sorted = [...replies].sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case "oldest":
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case "top":
+          const aScore = (a as ForumReply & { score?: number }).score ?? a.likes ?? 0;
+          const bScore = (b as ForumReply & { score?: number }).score ?? b.likes ?? 0;
+          return bScore - aScore;
+        default:
+          return 0;
+      }
+    });
+    return sorted.map(reply => ({
+      ...reply,
+      replies: sortReplies(reply.replies || [], sortBy)
+    }));
+  };
+
+  const filteredAndSortedReplies = post?.replies 
+    ? sortReplies(filterReplies(post.replies, replySearch), replySort)
+    : [];
 
   const userReaction = reaction?.reactionType || null;
   const isUpvoted = userReaction === "upvote";
@@ -324,12 +402,39 @@ export function ForumPostDetailClient() {
         )}
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
-        {/* Post Content */}
-        <article className="mb-6 rounded-lg border border-border p-4">
+          {/* Two Column Layout */}
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Main Content Column */}
+            <div className="flex-1 min-w-0">
+              {/* Post Content */}
+              <article className="mb-6 rounded-lg border border-border p-4">
+          {/* Back Button */}
+          <div className="mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.back()}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </div>
+          
           {/* Header with Dot Menu */}
           <div className="flex items-start justify-between mb-2">
             <div className="flex items-center gap-2 text-xs text-muted-foreground flex-1">
+              <Avatar className="h-6 w-6">
+                <AvatarImage src={post.author.avatarUrl} />
+                <AvatarFallback className="text-xs">
+                  {post.author.displayName
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2)}
+                </AvatarFallback>
+              </Avatar>
               {post.category && (
                 <Link
                   href={`/forum?category=${post.category.slug}`}
@@ -368,7 +473,7 @@ export function ForumPostDetailClient() {
                 </Button>
               </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {isAuthor ? (
+              {isAuthor && (
                 <>
                   <DropdownMenuItem
                     onClick={() => setIsEditDialogOpen(true)}
@@ -385,16 +490,16 @@ export function ForumPostDetailClient() {
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete Post
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                 </>
-              ) : (
-                <DropdownMenuItem
-                  onClick={handleReport}
-                  className="cursor-pointer"
-                >
-                  <Flag className="h-4 w-4 mr-2" />
-                  Report Post
-                </DropdownMenuItem>
               )}
+              <DropdownMenuItem
+                onClick={handleReport}
+                className="cursor-pointer"
+              >
+                <Flag className="h-4 w-4 mr-2" />
+                Report Post
+              </DropdownMenuItem>
             </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -423,40 +528,40 @@ export function ForumPostDetailClient() {
           </div>
 
           {/* Action Buttons - Under Tags */}
-          <div className="flex items-center gap-2 rounded-[25px] bg-muted border border-border overflow-hidden">
-            {/* Vote Buttons */}
-            <button
-              onClick={() => handleVote("upvote")}
-              disabled={toggleReaction.isPending}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
-                isUpvoted ? "text-primary" : "hover:bg-muted/80",
-                toggleReaction.isPending && "opacity-50 cursor-not-allowed"
-              )}
-            >
-              <ArrowBigUp className={cn("h-4 w-4", isUpvoted && "fill-current")} />
-              {displayScore > 0 && <span className="text-sm">{displayScore}</span>}
-            </button>
-            <div className="h-6 w-px bg-border" />
-            <button
-              onClick={() => handleVote("downvote")}
-              disabled={toggleReaction.isPending}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
-                isDownvoted ? "text-primary" : "hover:bg-muted/80",
-                toggleReaction.isPending && "opacity-50 cursor-not-allowed"
-              )}
-            >
-              <ArrowBigDown className={cn("h-4 w-4", isDownvoted && "fill-current")} />
-            </button>
-            <div className="h-6 w-px bg-border" />
+          <div className="flex items-center gap-2">
+            {/* Vote Buttons - Act like one button */}
+            <div className="flex items-center rounded-[25px] bg-muted/50 overflow-hidden">
+              <button
+                onClick={() => handleVote("upvote")}
+                disabled={toggleReaction.isPending}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
+                  isUpvoted ? "text-primary" : "hover:bg-muted",
+                  toggleReaction.isPending && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                <ArrowBigUp className={cn("h-4 w-4", isUpvoted && "fill-current")} />
+                {displayScore > 0 && <span className="text-sm">{displayScore}</span>}
+              </button>
+              <div className="h-6 w-px bg-border" />
+              <button
+                onClick={() => handleVote("downvote")}
+                disabled={toggleReaction.isPending}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
+                  isDownvoted ? "text-primary" : "hover:bg-muted",
+                  toggleReaction.isPending && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                <ArrowBigDown className={cn("h-4 w-4", isDownvoted && "fill-current")} />
+              </button>
+            </div>
             
             {/* Comment Button */}
-            <div className="flex items-center gap-2 px-4 py-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 text-xs text-muted-foreground">
               <MessageCircle className="h-4 w-4" />
-              {post.replyCount > 0 && <span className="text-sm">{post.replyCount}</span>}
+              {post.replyCount > 0 && <span className="text-sm font-medium">{post.replyCount}</span>}
             </div>
-            <div className="h-6 w-px bg-border" />
             
             {/* Share Button */}
             <ShareDropdown
@@ -465,11 +570,11 @@ export function ForumPostDetailClient() {
               variant="ghost"
               size="sm"
               showLabel={false}
-              className="rounded-none border-0 h-auto px-4 py-2 hover:bg-muted/80"
+              className="rounded-lg bg-muted/50 hover:bg-muted h-auto px-3 py-2"
             />
             
             {/* Views */}
-            <div className="flex items-center gap-1 px-4 py-2 text-xs text-muted-foreground ml-auto">
+            <div className="flex items-center gap-1 px-3 py-2 rounded-lg bg-muted/50 text-xs text-muted-foreground ml-auto">
               <Eye className="h-4 w-4" />
               <span>{post.views}</span>
             </div>
@@ -478,9 +583,55 @@ export function ForumPostDetailClient() {
 
         {/* Replies Section */}
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold">
-            {post.replyCount} {post.replyCount === 1 ? "Comment" : "Comments"}
-          </h2>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <h2 className="text-lg font-semibold">
+              {post.replyCount} {post.replyCount === 1 ? "Comment" : "Comments"}
+            </h2>
+            <div className="flex items-center gap-2">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search comments..."
+                  value={replySearch}
+                  onChange={(e) => setReplySearch(e.target.value)}
+                  className="pl-8 h-9 w-48"
+                />
+              </div>
+              
+              {/* Sort */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 gap-2">
+                    <ArrowUpDown className="h-4 w-4" />
+                    Sort
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setReplySort("newest")}
+                    className={cn("cursor-pointer", replySort === "newest" && "bg-accent")}
+                  >
+                    Newest First
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setReplySort("oldest")}
+                    className={cn("cursor-pointer", replySort === "oldest" && "bg-accent")}
+                  >
+                    Oldest First
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setReplySort("top")}
+                    className={cn("cursor-pointer", replySort === "top" && "bg-accent")}
+                  >
+                    Top Rated
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
 
           {/* Create Reply Form */}
           {isSignedIn && (
@@ -490,8 +641,84 @@ export function ForumPostDetailClient() {
           )}
 
           {/* Replies List */}
-          <ForumReplyList replies={post.replies} postId={postId} />
+          <ForumReplyList 
+            replies={filteredAndSortedReplies} 
+            postId={postId} 
+          />
         </div>
+      </div>
+
+      {/* Right Sidebar */}
+      <aside className="w-full lg:w-80 flex-shrink-0">
+        <div className="space-y-4 sticky top-24">
+          {/* Ad Placement */}
+          <div className="rounded-lg border border-border bg-muted/30 p-8 flex items-center justify-center min-h-[200px]">
+            <p className="text-sm text-muted-foreground text-center">Ad Placement</p>
+          </div>
+
+          {/* Related Topics */}
+          {relatedPosts.length > 0 && (
+            <div className="rounded-lg border border-border bg-background">
+              <div className="p-4 border-b">
+                <h3 className="text-sm font-semibold">Related Topics</h3>
+              </div>
+              <div className="divide-y divide-border">
+                {relatedPosts.map((relatedPost: any, index: number) => (
+                  <Link
+                    key={relatedPost.id}
+                    href={relatedPost.slug ? `/forum/${relatedPost.slug}` : `/forum/${relatedPost.id}`}
+                    className="block p-4 hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="space-y-2">
+                      {/* Category */}
+                      {relatedPost.category && (
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "px-2 py-0.5 rounded text-xs font-medium",
+                              getCategoryColor(relatedPost.category.color)
+                            )}
+                            style={relatedPost.category.color ? {
+                              backgroundColor: `${relatedPost.category.color}20`,
+                              color: relatedPost.category.color,
+                            } : undefined}
+                          >
+                            {relatedPost.category.icon && <span className="mr-1">{relatedPost.category.icon}</span>}
+                            {relatedPost.category.name}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Title */}
+                      <h4 className="text-sm font-medium line-clamp-2 hover:text-primary transition-colors">
+                        {relatedPost.title}
+                      </h4>
+                      
+                      {/* Content Preview */}
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {relatedPost.content}
+                      </p>
+                      
+                      {/* Stats */}
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <ArrowBigUp className="h-3 w-3" />
+                          <span>{relatedPost.score > 0 ? relatedPost.score : 0}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <MessageCircle className="h-3 w-3" />
+                          <span>{relatedPost.replyCount || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </aside>
+          </div>
         </div>
       </div>
 

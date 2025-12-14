@@ -26,7 +26,7 @@ const navLinks: NavLink[] = [
   { href: "/popular", label: "Popular" },
   { href: "/lists", label: "Lists" },
   { href: "/members", label: "Members" },
-  { href: "/forum", label: "Forums" },
+  { href: "/forum", label: "Forum" },
   { href: "/youtube", label: "YouTube" },
 ];
 

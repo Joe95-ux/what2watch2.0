@@ -11,7 +11,9 @@ import {
   TrendingUp, 
   BookOpen,
   ChevronLeft, 
-  ChevronRight, 
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
   X,
   Hash
 } from "lucide-react";
@@ -88,11 +90,15 @@ export function ForumSidebar({
     return colorMap[color] || `bg-[${color}]/20 text-[${color}] border-[${color}]/30`;
   };
 
+  const [categoriesExpanded, setCategoriesExpanded] = useState(false);
+  const visibleCategories = categoriesExpanded ? categories : categories.slice(0, 10);
+  const hasMoreCategories = categories.length > 10;
+
   const sidebarContent = (
     <div className="flex flex-col h-full bg-background">
-      {/* Mobile Close Button */}
+      {/* Mobile Close Button - Fixed */}
       {isMobile && (
-        <div className="p-4 border-b flex items-center justify-between">
+        <div className="p-4 border-b flex items-center justify-between flex-shrink-0">
           <h2 className="font-semibold text-lg">Forum</h2>
           <SheetClose asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -102,10 +108,10 @@ export function ForumSidebar({
         </div>
       )}
       
-      {/* Collapse Button - Desktop only */}
+      {/* Collapse Button - Desktop only - Fixed */}
       {!isMobile && (
         <div className={cn(
-          "p-2 border-b flex items-center transition-all",
+          "p-2 border-b flex items-center transition-all flex-shrink-0",
           isCollapsed ? "justify-center" : "justify-end"
         )}>
           <Tooltip>
@@ -133,7 +139,8 @@ export function ForumSidebar({
         </div>
       )}
 
-      <ScrollArea className="flex-1">
+      {/* Scrollable Content */}
+      <ScrollArea className="flex-1 min-h-0">
         {/* Navigation Links */}
         <div className={cn(
           "border-b transition-all",
@@ -287,8 +294,7 @@ export function ForumSidebar({
         {/* Categories */}
         {!isCollapsed && (
           <div className="p-4 border-b">
-            <div className="flex items-center gap-2 mb-3">
-              <Filter className="h-4 w-4 text-muted-foreground" />
+            <div className="mb-3">
               <h3 className="text-sm font-semibold">Categories</h3>
             </div>
             {isLoadingCategories ? (
@@ -311,7 +317,7 @@ export function ForumSidebar({
                 >
                   All Categories
                 </Button>
-                {categories.map((category: any) => (
+                {visibleCategories.map((category: any) => (
                   <Button
                     key={category.id}
                     variant={activeCategory === category.slug ? "secondary" : "ghost"}
@@ -341,6 +347,25 @@ export function ForumSidebar({
                     </div>
                   </Button>
                 ))}
+                {hasMoreCategories && (
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-sm text-muted-foreground"
+                    onClick={() => setCategoriesExpanded(!categoriesExpanded)}
+                  >
+                    {categoriesExpanded ? (
+                      <>
+                        <ChevronUp className="h-4 w-4" />
+                        <span>Show Less</span>
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4" />
+                        <span>Show {categories.length - 10} More</span>
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">No categories yet</p>

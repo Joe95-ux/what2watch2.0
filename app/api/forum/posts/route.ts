@@ -28,6 +28,10 @@ export async function GET(request: NextRequest) {
           { scheduledAt: { lte: new Date() } },
         ],
       },
+      // Only show non-hidden posts
+      { isHidden: false },
+      // Only show posts with slugs (required field)
+      { slug: { not: null } },
     ];
 
     if (search && search.trim()) {

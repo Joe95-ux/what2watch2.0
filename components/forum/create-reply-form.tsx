@@ -88,10 +88,11 @@ export function CreateReplyForm({
               onSuccess?.();
             }}
             disabled={createReply.isPending}
+            className="cursor-pointer"
           >
             Cancel
           </Button>
-          <Button type="submit" size="sm" disabled={createReply.isPending}>
+          <Button type="submit" size="sm" disabled={createReply.isPending} className="cursor-pointer">
             {createReply.isPending && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}

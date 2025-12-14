@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MoreHorizontal, Search, Eye, EyeOff, Lock, Unlock, Trash2, Flag } from "lucide-react";
+import { MoreHorizontal, Search, Eye, EyeOff, Lock, Unlock, Trash2, Flag, Edit } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
+import { EditPostDialog } from "@/components/forum/edit-post-dialog";
 
 export function PostModerationTable() {
   const queryClient = useQueryClient();
@@ -32,6 +33,7 @@ export function PostModerationTable() {
   const [hiddenFilter, setHiddenFilter] = useState("");
   const [lockedFilter, setLockedFilter] = useState("");
   const [reportedFilter, setReportedFilter] = useState("");
+  const [editingPost, setEditingPost] = useState<any>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-forum-posts", page, search, hiddenFilter, lockedFilter, reportedFilter],
@@ -242,6 +244,13 @@ export function PostModerationTable() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => setEditingPost(post)}
+                          className="cursor-pointer"
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit Post
+                        </DropdownMenuItem>
                         {post.isHidden ? (
                           <DropdownMenuItem
                             onClick={() =>
@@ -332,6 +341,24 @@ export function PostModerationTable() {
             </Button>
           </div>
         </div>
+      )}
+
+      {/* Edit Post Dialog */}
+      {editingPost && (
+        <EditPostDialog
+          isOpen={!!editingPost}
+          onClose={() => setEditingPost(null)}
+          post={{
+            id: editingPost.id,
+            slug: editingPost.slug,
+            title: editingPost.title,
+            content: editingPost.content,
+            tags: editingPost.tags || [],
+            tmdbId: editingPost.tmdbId,
+            mediaType: editingPost.mediaType,
+            category: editingPost.category,
+          }}
+        />
       )}
     </div>
   );

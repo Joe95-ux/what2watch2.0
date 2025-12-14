@@ -35,7 +35,10 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
       {/* Navigation Links - Styled like DropdownMenu */}
       <div className="p-1">
         {navLinks.map((link) => {
-          const isActive = pathname === link.href;
+          // For forum, match exact path or paths starting with /forum/
+          const isActive = link.href === "/forum" 
+            ? pathname === link.href || pathname?.startsWith(link.href + "/")
+            : pathname === link.href;
           return (
             <Link
               key={link.href}

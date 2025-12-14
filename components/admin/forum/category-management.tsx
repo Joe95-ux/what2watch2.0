@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Table,
@@ -32,16 +32,19 @@ export function CategoryManagement() {
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [page, setPage] = useState(1);
 
-  const { data: categories, isLoading } = useQuery({
-    queryKey: ["admin-forum-categories"],
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin-forum-categories", page],
     queryFn: async () => {
-      const res = await fetch("/api/forum/categories");
+      const res = await fetch(`/api/admin/forum/categories?page=${page}&limit=20`);
       if (!res.ok) throw new Error("Failed to fetch categories");
-      const data = await res.json();
-      return data.categories;
+      return res.json();
     },
   });
+
+  const categories = data?.categories || [];
+  const pagination = data?.pagination;
 
   const createCategory = useMutation({
     mutationFn: async (data: {
@@ -68,6 +71,7 @@ export function CategoryManagement() {
       queryClient.invalidateQueries({ queryKey: ["forum-categories"] });
       toast.success("Category created successfully");
       setIsCreateOpen(false);
+      setPage(1); // Reset to first page after creating
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -193,14 +197,14 @@ export function CategoryManagement() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {categories?.length === 0 ? (
+            {categories.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                   No categories found
                 </TableCell>
               </TableRow>
             ) : (
-              categories?.map((category: any) => (
+              categories.map((category: any) => (
                 <TableRow key={category.id}>
                   <TableCell className="font-medium">{category.name}</TableCell>
                   <TableCell className="text-muted-foreground">{category.slug}</TableCell>
@@ -255,6 +259,35 @@ export function CategoryManagement() {
         </Table>
       </div>
 
+      {/* Pagination */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {((page - 1) * pagination.limit) + 1} to {Math.min(page * pagination.limit, pagination.total)} of {pagination.total} categories
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="cursor-pointer"
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+              disabled={page === pagination.totalPages}
+              className="cursor-pointer"
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Create/Edit Dialog */}
       <CategoryDialog
         isOpen={isCreateOpen || !!editingCategory}
@@ -289,13 +322,35 @@ function CategoryDialog({
   onSubmit: (data: any) => void;
   isPending: boolean;
 }) {
-  const [name, setName] = useState(category?.name || "");
-  const [slug, setSlug] = useState(category?.slug || "");
-  const [description, setDescription] = useState(category?.description || "");
-  const [icon, setIcon] = useState(category?.icon || "");
-  const [color, setColor] = useState(category?.color || "");
-  const [order, setOrder] = useState(category?.order?.toString() || "0");
-  const [isActive, setIsActive] = useState(category?.isActive ?? true);
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [description, setDescription] = useState("");
+  const [icon, setIcon] = useState("");
+  const [color, setColor] = useState("");
+  const [order, setOrder] = useState("0");
+  const [isActive, setIsActive] = useState(true);
+
+  // Update form when category changes
+  useEffect(() => {
+    if (category) {
+      setName(category.name || "");
+      setSlug(category.slug || "");
+      setDescription(category.description || "");
+      setIcon(category.icon || "");
+      setColor(category.color || "");
+      setOrder(category.order?.toString() || "0");
+      setIsActive(category.isActive ?? true);
+    } else {
+      // Reset form for create mode
+      setName("");
+      setSlug("");
+      setDescription("");
+      setIcon("");
+      setColor("");
+      setOrder("0");
+      setIsActive(true);
+    }
+  }, [category, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
