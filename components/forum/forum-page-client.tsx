@@ -126,14 +126,14 @@ export function ForumPageClient() {
           {/* Category Filter and Sort */}
           <div className="flex items-center gap-4 flex-wrap">
             <Select
-              value={category || ""}
-              onValueChange={(value) => updateSearchParam("category", value || null)}
+              value={category || "all"}
+              onValueChange={(value) => updateSearchParam("category", value === "all" ? null : value)}
             >
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem value="all">All Categories</SelectItem>
                 {categoriesData?.categories?.map((cat: any) => (
                   <SelectItem key={cat.id} value={cat.slug}>
                     {cat.name}

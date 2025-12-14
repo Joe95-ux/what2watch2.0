@@ -170,12 +170,12 @@ export function CreatePostDialog({
 
             <div className="space-y-2">
               <Label htmlFor="category">Category (optional)</Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
+              <Select value={categoryId || "none"} onValueChange={(value) => setCategoryId(value === "none" ? "" : value)}>
                 <SelectTrigger id="category">
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {categoriesData?.categories?.map((category: any) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
