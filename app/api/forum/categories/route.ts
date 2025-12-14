@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { requireAdmin } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 
 // GET - Fetch all active forum categories
@@ -34,14 +34,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create a new forum category (admin only for now)
+// POST - Create a new forum category (admin only)
 export async function POST(request: NextRequest) {
   try {
-    const { userId: clerkUserId } = await auth();
-
-    if (!clerkUserId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    await requireAdmin();
 
     const body = await request.json();
     const { name, slug, description, icon, color, order } = body;
@@ -80,14 +76,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await db.user.findUnique({
-      where: { clerkId: clerkUserId },
-      select: { id: true },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+    const admin = await requireAdmin();
 
     const category = await db.forumCategory.create({
       data: {
@@ -97,7 +86,7 @@ export async function POST(request: NextRequest) {
         icon: icon || null,
         color: color || null,
         order: order || 0,
-        createdById: user.id,
+        createdById: admin.id,
       },
     });
 

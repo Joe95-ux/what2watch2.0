@@ -40,6 +40,8 @@ import {
   ClipboardList,
   Youtube,
   Bell,
+  Shield,
+  MessageSquare,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -101,6 +103,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: "/dashboard/youtube/notifications", label: "Notifications", icon: Bell },
     { href: "/dashboard/youtube/management", label: "Channel Management", icon: Settings },
   ];
+
+  // Admin links (only show if user is admin)
+  const isAdmin = currentUser?.isForumAdmin || currentUser?.role === "ADMIN" || currentUser?.role === "SUPER_ADMIN";
+  const adminLinks = isAdmin ? [
+    { href: "/dashboard/admin/forum", label: "Forum Admin", icon: MessageSquare },
+    { href: "/dashboard/admin/moderation", label: "General Moderation", icon: Shield },
+  ] : [];
 
   return (
     <SidebarProvider>
@@ -237,6 +246,34 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
+
+              {/* Admin Group - Only show if user is admin */}
+              {isAdmin && adminLinks.length > 0 && (
+                <>
+                  <SidebarSeparator />
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Admin</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <SidebarMenu>
+                        {adminLinks.map((item) => {
+                          const Icon = item.icon;
+                          const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
+                          return (
+                            <SidebarMenuItem key={item.href}>
+                              <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
+                                <SidebarNavLink href={item.href}>
+                                  <Icon />
+                                  <span>{item.label}</span>
+                                </SidebarNavLink>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                          );
+                        })}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+                </>
+              )}
 
               <SidebarSeparator />
 

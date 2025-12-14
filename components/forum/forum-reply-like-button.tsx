@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ThumbsUp } from "lucide-react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useForumReplyReaction, useToggleForumReplyLike } from "@/hooks/use-forum-reactions";
 import { useUser } from "@clerk/nextjs";
@@ -14,37 +14,63 @@ interface ForumReplyLikeButtonProps {
 
 export function ForumReplyLikeButton({ replyId, className }: ForumReplyLikeButtonProps) {
   const { isSignedIn } = useUser();
-  const { data: reactionData, isLoading } = useForumReplyReaction(replyId);
-  const toggleLike = useToggleForumReplyLike();
+  const { data: reaction, isLoading } = useForumReplyReaction(replyId);
+  const toggleReaction = useToggleForumReplyLike(replyId);
 
-  const handleLike = async () => {
+  const userReaction = reaction?.reactionType || null;
+  const isUpvoted = userReaction === "upvote";
+  const isDownvoted = userReaction === "downvote";
+  const displayScore = reaction?.score ?? 0;
+
+  const handleVote = async (type: "upvote" | "downvote") => {
     if (!isSignedIn) {
-      toast.error("Sign in to like replies");
+      toast.error("Sign in to vote on replies");
       return;
     }
 
-    try {
-      await toggleLike.mutateAsync(replyId);
-    } catch (error) {
-      toast.error("Failed to toggle like");
+    if (!toggleReaction.mutate) return;
+    
+    if (userReaction === type) {
+      toggleReaction.mutate({ type: null });
+    } else {
+      toggleReaction.mutate({ type });
     }
   };
 
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={handleLike}
-      disabled={isLoading || toggleLike.isPending}
-      className={cn(
-        "h-8 cursor-pointer",
-        reactionData?.isLiked && "text-primary",
-        className
-      )}
-    >
-      <ThumbsUp className={cn("h-4 w-4 mr-1", reactionData?.isLiked && "fill-current")} />
-      {reactionData?.likeCount || 0}
-    </Button>
+    <div className={cn("flex flex-col items-center gap-1", className)}>
+      <Button
+        variant="ghost"
+        size="icon"
+        className={cn(
+          "h-6 w-6 p-0 hover:bg-orange-500/10 hover:text-orange-500",
+          isUpvoted && "text-orange-500 bg-orange-500/10"
+        )}
+        onClick={() => handleVote("upvote")}
+        disabled={isLoading || toggleReaction.isPending}
+      >
+        <ChevronUp className="h-4 w-4" />
+      </Button>
+      <span className={cn(
+        "text-xs font-semibold min-w-[1.5rem] text-center text-muted-foreground",
+        isUpvoted && "text-orange-500",
+        isDownvoted && "text-blue-500"
+      )}>
+        {displayScore}
+      </span>
+      <Button
+        variant="ghost"
+        size="icon"
+        className={cn(
+          "h-6 w-6 p-0 hover:bg-blue-500/10 hover:text-blue-500",
+          isDownvoted && "text-blue-500 bg-blue-500/10"
+        )}
+        onClick={() => handleVote("downvote")}
+        disabled={isLoading || toggleReaction.isPending}
+      >
+        <ChevronDown className="h-4 w-4" />
+      </Button>
+    </div>
   );
 }
 

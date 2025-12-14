@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ForumPostCard } from "./forum-post-card";
+import { ForumPostCardReddit } from "./forum-post-card-reddit";
 import { SimplePagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageSquare } from "lucide-react";
@@ -22,8 +22,9 @@ interface ForumPost {
     color?: string;
   } | null;
   views: number;
-  likes: number;
+  score: number;
   replyCount: number;
+  slug?: string;
   author: {
     id: string;
     username: string;
@@ -87,9 +88,20 @@ export function ForumPostList() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-0 border border-border rounded-lg overflow-hidden">
         {Array.from({ length: 10 }).map((_, i) => (
-          <Skeleton key={i} className="h-32 w-full" />
+          <div key={i} className="flex gap-2 p-3 border-b border-border/50 last:border-b-0">
+            <div className="flex flex-col items-center gap-1 pt-1">
+              <Skeleton className="h-8 w-8" />
+              <Skeleton className="h-4 w-8" />
+              <Skeleton className="h-8 w-8" />
+            </div>
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+          </div>
         ))}
       </div>
     );
@@ -118,7 +130,7 @@ export function ForumPostList() {
   return (
     <div className="space-y-4">
       {data.posts.map((post) => (
-        <ForumPostCard key={post.id} post={post} />
+        <ForumPostCardReddit key={post.id} post={post} />
       ))}
       {data.pagination.totalPages > 1 && (
         <SimplePagination

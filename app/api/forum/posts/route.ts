@@ -14,13 +14,19 @@ export async function GET(request: NextRequest) {
     const tmdbId = searchParams.get("tmdbId");
     const mediaType = searchParams.get("mediaType");
     const search = searchParams.get("search");
-    const sortBy = searchParams.get("sortBy") || "createdAt"; // createdAt, views, likes, replies
+    const sortBy = searchParams.get("sortBy") || "createdAt"; // createdAt, views, score, replies
     const order = searchParams.get("order") || "desc"; // asc, desc
 
     const skip = (page - 1) * limit;
 
     // Build where clause
-    const where: any = {};
+    const where: any = {
+      // Only show published posts (not scheduled for future)
+      $or: [
+        { scheduledAt: null },
+        { scheduledAt: { $lte: new Date() } },
+      ],
+    };
     if (tag) {
       where.tags = { $in: [tag] };
     }
@@ -85,6 +91,7 @@ export async function GET(request: NextRequest) {
           reactions: {
             select: {
               id: true,
+              reactionType: true,
             },
           },
         },
@@ -105,32 +112,54 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Calculate score from reactions (upvotes - downvotes)
+    const calculateScore = (reactions: Array<{ reactionType: string }>) => {
+      return reactions.reduce((score, reaction) => {
+        if (reaction.reactionType === "upvote") return score + 1;
+        if (reaction.reactionType === "downvote") return score - 1;
+        return score;
+      }, 0);
+    };
+
+    // Sort by score if needed
+    if (sortBy === "score") {
+      sortedPosts = [...posts].sort((a, b) => {
+        const aScore = calculateScore(a.reactions as Array<{ reactionType: string }>);
+        const bScore = calculateScore(b.reactions as Array<{ reactionType: string }>);
+        return order === "desc" ? bScore - aScore : aScore - bScore;
+      });
+    }
+
     // Format response
-    const formattedPosts = sortedPosts.map((post) => ({
-      id: post.id,
-      title: post.title,
-      content: post.content,
-      tags: post.tags,
-      tmdbId: post.tmdbId,
-      mediaType: post.mediaType,
-      category: post.category ? {
-        id: post.category.id,
-        name: post.category.name,
-        slug: post.category.slug,
-        color: post.category.color,
-      } : null,
-      views: post.views,
-      likes: post.reactions.length, // Use actual reaction count
-      replyCount: post.replies.length,
-      author: {
-        id: post.user.id,
-        username: post.user.username,
-        displayName: post.user.displayName || post.user.username,
-        avatarUrl: post.user.avatarUrl,
-      },
-      createdAt: post.createdAt,
-      updatedAt: post.updatedAt,
-    }));
+    const formattedPosts = sortedPosts.map((post) => {
+      const score = calculateScore(post.reactions as Array<{ reactionType: string }>);
+      return {
+        id: post.id,
+        slug: post.slug,
+        title: post.title,
+        content: post.content,
+        tags: post.tags,
+        tmdbId: post.tmdbId,
+        mediaType: post.mediaType,
+        category: post.category ? {
+          id: post.category.id,
+          name: post.category.name,
+          slug: post.category.slug,
+          color: post.category.color,
+        } : null,
+        views: post.views,
+        score,
+        replyCount: post.replies.length,
+        author: {
+          id: post.user.id,
+          username: post.user.username,
+          displayName: post.user.displayName || post.user.username,
+          avatarUrl: post.user.avatarUrl,
+        },
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+      };
+    });
 
     return NextResponse.json({
       posts: formattedPosts,
@@ -169,7 +198,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, content, tags, tmdbId, mediaType, categoryId } = body;
+    const { title, content, tags, tmdbId, mediaType, categoryId, scheduledAt } = body;
 
     if (!title || !title.trim()) {
       return NextResponse.json(
@@ -217,17 +246,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Generate slug from title
+    const { generateUniqueForumPostSlug } = await import("@/lib/forum-slug");
+    const slug = await generateUniqueForumPostSlug(title.trim());
+
+    // Parse scheduledAt if provided
+    const scheduledDate = scheduledAt ? new Date(scheduledAt) : null;
+    if (scheduledDate && scheduledDate < new Date()) {
+      return NextResponse.json(
+        { error: "Scheduled date must be in the future" },
+        { status: 400 }
+      );
+    }
+
     const post = await db.forumPost.create({
       data: {
         userId: user.id,
         title: title.trim(),
+        slug,
         content: content.trim(),
         tags: validTags,
         categoryId: categoryId || null,
         tmdbId: tmdbId ? parseInt(tmdbId, 10) : null,
         mediaType: mediaType || null,
         views: 0,
-        likes: 0,
+        score: 0,
+        scheduledAt: scheduledDate,
       },
       include: {
         user: {
@@ -269,6 +313,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       post: {
         id: post.id,
+        slug: post.slug,
         title: post.title,
         content: post.content,
         tags: post.tags,
@@ -281,7 +326,7 @@ export async function POST(request: NextRequest) {
           color: post.category.color,
         } : null,
         views: post.views,
-        likes: post.likes,
+        score: post.score,
         replyCount: post.replies.length,
         author: {
           id: post.user.id,

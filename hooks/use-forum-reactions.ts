@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface ForumReactionResponse {
-  isLiked: boolean;
-  likeCount: number;
+  reactionType: "upvote" | "downvote" | null;
+  score: number;
 }
 
 // Get reaction status for a forum post
@@ -11,11 +11,11 @@ export function useForumPostReaction(postId: string | null) {
     queryKey: ["forum-post", postId, "reaction"],
     queryFn: async () => {
       if (!postId) {
-        return { isLiked: false, likeCount: 0 };
+        return { reactionType: null, score: 0 };
       }
       const response = await fetch(`/api/forum/posts/${postId}/reactions`);
       if (!response.ok) {
-        return { isLiked: false, likeCount: 0 };
+        return { reactionType: null, score: 0 };
       }
       return response.json();
     },
@@ -24,25 +24,25 @@ export function useForumPostReaction(postId: string | null) {
   });
 }
 
-// Toggle like on a forum post
-export function useToggleForumPostLike() {
+// Toggle reaction on a forum post
+export function useToggleForumPostLike(postId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (postId: string) => {
+    mutationFn: async ({ type }: { type: "upvote" | "downvote" | null }) => {
       const response = await fetch(`/api/forum/posts/${postId}/reactions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ reactionType: "like" }),
+        body: JSON.stringify({ reactionType: type }),
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to toggle like");
+        throw new Error(error.error || "Failed to toggle reaction");
       }
       return response.json();
     },
-    onMutate: async (postId) => {
+    onMutate: async ({ type }) => {
       await queryClient.cancelQueries({
         queryKey: ["forum-post", postId, "reaction"],
       });
@@ -54,20 +54,34 @@ export function useToggleForumPostLike() {
       ]);
 
       if (previousData) {
+        const currentType = previousData.reactionType;
+        let newType: "upvote" | "downvote" | null = type;
+        let scoreDelta = 0;
+
+        if (currentType === type) {
+          // Remove reaction
+          newType = null;
+          scoreDelta = type === "upvote" ? -1 : 1;
+        } else if (currentType === null) {
+          // Add new reaction
+          scoreDelta = type === "upvote" ? 1 : -1;
+        } else {
+          // Switch reaction
+          scoreDelta = type === "upvote" ? 2 : -2;
+        }
+
         queryClient.setQueryData<ForumReactionResponse>(
           ["forum-post", postId, "reaction"],
           {
-            isLiked: !previousData.isLiked,
-            likeCount: previousData.isLiked
-              ? Math.max(0, previousData.likeCount - 1)
-              : previousData.likeCount + 1,
+            reactionType: newType,
+            score: previousData.score + scoreDelta,
           }
         );
       }
 
       return { previousData };
     },
-    onError: (err, postId, context) => {
+    onError: (err, _, context) => {
       if (context?.previousData) {
         queryClient.setQueryData(
           ["forum-post", postId, "reaction"],
@@ -75,7 +89,7 @@ export function useToggleForumPostLike() {
         );
       }
     },
-    onSuccess: (_, postId) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["forum-post", postId, "reaction"],
       });
@@ -95,11 +109,11 @@ export function useForumReplyReaction(replyId: string | null) {
     queryKey: ["forum-reply", replyId, "reaction"],
     queryFn: async () => {
       if (!replyId) {
-        return { isLiked: false, likeCount: 0 };
+        return { reactionType: null, score: 0 };
       }
       const response = await fetch(`/api/forum/replies/${replyId}/reactions`);
       if (!response.ok) {
-        return { isLiked: false, likeCount: 0 };
+        return { reactionType: null, score: 0 };
       }
       return response.json();
     },
@@ -108,25 +122,25 @@ export function useForumReplyReaction(replyId: string | null) {
   });
 }
 
-// Toggle like on a forum reply
-export function useToggleForumReplyLike() {
+// Toggle reaction on a forum reply
+export function useToggleForumReplyLike(replyId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (replyId: string) => {
+    mutationFn: async ({ type }: { type: "upvote" | "downvote" | null }) => {
       const response = await fetch(`/api/forum/replies/${replyId}/reactions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ reactionType: "like" }),
+        body: JSON.stringify({ reactionType: type }),
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to toggle like");
+        throw new Error(error.error || "Failed to toggle reaction");
       }
       return response.json();
     },
-    onMutate: async (replyId) => {
+    onMutate: async ({ type }) => {
       await queryClient.cancelQueries({
         queryKey: ["forum-reply", replyId, "reaction"],
       });
@@ -138,20 +152,34 @@ export function useToggleForumReplyLike() {
       ]);
 
       if (previousData) {
+        const currentType = previousData.reactionType;
+        let newType: "upvote" | "downvote" | null = type;
+        let scoreDelta = 0;
+
+        if (currentType === type) {
+          // Remove reaction
+          newType = null;
+          scoreDelta = type === "upvote" ? -1 : 1;
+        } else if (currentType === null) {
+          // Add new reaction
+          scoreDelta = type === "upvote" ? 1 : -1;
+        } else {
+          // Switch reaction
+          scoreDelta = type === "upvote" ? 2 : -2;
+        }
+
         queryClient.setQueryData<ForumReactionResponse>(
           ["forum-reply", replyId, "reaction"],
           {
-            isLiked: !previousData.isLiked,
-            likeCount: previousData.isLiked
-              ? Math.max(0, previousData.likeCount - 1)
-              : previousData.likeCount + 1,
+            reactionType: newType,
+            score: previousData.score + scoreDelta,
           }
         );
       }
 
       return { previousData };
     },
-    onError: (err, replyId, context) => {
+    onError: (err, _, context) => {
       if (context?.previousData) {
         queryClient.setQueryData(
           ["forum-reply", replyId, "reaction"],
@@ -159,7 +187,7 @@ export function useToggleForumReplyLike() {
         );
       }
     },
-    onSuccess: (_, replyId) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["forum-reply", replyId, "reaction"],
       });

@@ -129,7 +129,7 @@ export function ForumPostCard({ post }: ForumPostCardProps) {
                 <Eye className="h-4 w-4" />
                 <span>{post.views}</span>
               </div>
-              <ForumLikeButton postId={post.id} variant="post" />
+              <ForumLikeButton postId={post.id} initialScore={post.likes} />
               <div className="flex items-center gap-1">
                 <MessageSquare className="h-4 w-4" />
                 <span>{post.replyCount}</span>

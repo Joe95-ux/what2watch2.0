@@ -181,7 +181,8 @@ export async function POST(
       reply: {
         id: reply.id,
         content: reply.content,
-        likes: reply.likes,
+        likes: 0,
+        score: reply.score,
         author: {
           id: reply.user.id,
           username: reply.user.username,

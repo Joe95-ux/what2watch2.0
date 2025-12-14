@@ -43,6 +43,15 @@ model User {
   notifyOnActivityLikes Boolean @default(true)
   notifyOnMentions Boolean @default(true)
   
+  // Admin & Moderation
+  role            String   @default("USER") // "USER", "MODERATOR", "ADMIN", "SUPER_ADMIN"
+  isForumModerator Boolean @default(false)
+  isForumAdmin     Boolean @default(false)
+  isBanned         Boolean @default(false)
+  bannedAt         DateTime?
+  bannedUntil      DateTime? // Temporary ban
+  banReason        String?
+  
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -59,6 +68,7 @@ model User {
   forumPostReactions ForumPostReaction[]
   forumReplyReactions ForumReplyReaction[]
   forumCategories ForumCategory[]
+  moderationActions ForumModerationAction[]
   sharedPlaylists SharedPlaylist[]
   recentlyViewed RecentlyViewed[]
   viewingLogs   ViewingLog[]
@@ -395,6 +405,7 @@ model ForumPost {
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   title         String
+  slug          String   @unique // URL-friendly slug
   content       String
   
   // Optional TMDB link
@@ -410,7 +421,18 @@ model ForumPost {
   
   // Engagement
   views         Int      @default(0)
-  likes         Int      @default(0)
+  score         Int      @default(0) // upvotes - downvotes
+  
+  // Post scheduling
+  scheduledAt   DateTime? // If set, post will be published at this time
+  
+  // Moderation
+  isHidden      Boolean  @default(false)
+  isLocked      Boolean  @default(false)
+  hiddenAt      DateTime?
+  lockedAt      DateTime?
+  hiddenById    String?  @db.ObjectId
+  lockedById    String?  @db.ObjectId
   
   replies       ForumReply[]
   reactions     ForumPostReaction[]
@@ -424,6 +446,7 @@ model ForumPost {
   @@index([tmdbId, mediaType])
   @@index([createdAt])
   @@index([title]) // For search
+  @@index([scheduledAt])
 }
 
 // Forum replies - comments on forum posts
@@ -439,8 +462,15 @@ model ForumReply {
   
   // Optional reply to another reply
   parentReplyId String?  @db.ObjectId
+  parentReply   ForumReply? @relation("ReplyReplies", fields: [parentReplyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  childReplies  ForumReply[] @relation("ReplyReplies")
   
-  likes         Int      @default(0)
+  score         Int      @default(0) // upvotes - downvotes
+  
+  // Moderation
+  isHidden      Boolean  @default(false)
+  hiddenAt      DateTime?
+  hiddenById    String?  @db.ObjectId
   
   reactions     ForumReplyReaction[]
   
@@ -450,6 +480,7 @@ model ForumReply {
   @@map("forum_replies")
   @@index([postId])
   @@index([userId])
+  @@index([parentReplyId])
 }
 
 // Forum post reactions
@@ -459,7 +490,7 @@ model ForumPostReaction {
   post          ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
   userId        String   @db.ObjectId
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reactionType  String   @default("like") // "like" for now, can extend later
+  reactionType  String   // "upvote" or "downvote"
   createdAt     DateTime @default(now())
 
   @@unique([postId, userId])
@@ -475,13 +506,34 @@ model ForumReplyReaction {
   reply         ForumReply @relation(fields: [replyId], references: [id], onDelete: Cascade)
   userId        String   @db.ObjectId
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reactionType  String   @default("like") // "like" for now, can extend later
+  reactionType  String   // "upvote" or "downvote"
   createdAt     DateTime @default(now())
 
   @@unique([replyId, userId])
   @@map("forum_reply_reactions")
   @@index([replyId])
   @@index([userId])
+}
+
+// Forum moderation actions - audit log for moderation
+model ForumModerationAction {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  moderatorId   String   @db.ObjectId
+  moderator     User     @relation(fields: [moderatorId], references: [id], onDelete: Cascade)
+  
+  actionType    String   // "DELETE_POST", "HIDE_POST", "UNHIDE_POST", "LOCK_POST", "UNLOCK_POST", "DELETE_REPLY", "HIDE_REPLY", "WARN_USER", "BAN_USER", "UNBAN_USER"
+  targetType    String   // "POST", "REPLY", "USER"
+  targetId      String   // ID of the target (post, reply, or user)
+  
+  reason        String?
+  notes         String?
+  
+  createdAt     DateTime @default(now())
+
+  @@map("forum_moderation_actions")
+  @@index([moderatorId])
+  @@index([targetType, targetId])
+  @@index([createdAt])
 }
 
 // Shared playlists - tracking who shared playlists with whom
