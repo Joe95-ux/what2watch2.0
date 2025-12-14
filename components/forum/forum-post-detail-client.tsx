@@ -24,6 +24,8 @@ import { cn } from "@/lib/utils";
 import { ForumSidebar } from "./forum-sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import Footer from "@/components/footer";
 import { useForumPostReaction, useToggleForumPostLike } from "@/hooks/use-forum-reactions";
 import { ShareDropdown } from "@/components/ui/share-dropdown";
 import { toast } from "sonner";
@@ -31,6 +33,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { EditPostDialog } from "./edit-post-dialog";
+import { ReportDialog } from "./report-dialog";
 
 interface ForumPost {
   id: string;
@@ -87,6 +90,8 @@ export function ForumPostDetailClient() {
   const isMobile = useIsMobile();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [isReporting, setIsReporting] = useState(false);
   const [replySort, setReplySort] = useState<"newest" | "oldest" | "top">("newest");
   const [replySearch, setReplySearch] = useState("");
   const postId = params.postId as string;
@@ -199,25 +204,15 @@ export function ForumPostDetailClient() {
 
   const isAuthor = currentUser?.id === post?.author.id;
 
-  const handleReport = async () => {
-    if (!isSignedIn) {
-      toast.error("Sign in to report posts");
-      return;
-    }
-    
-    if (!post) return;
-    
-    const reason = prompt("Please provide a reason for reporting this post:");
-    if (!reason || reason.trim().length === 0) {
-      return;
-    }
-
+  const handleReport = async (reason: string, description?: string) => {
+    setIsReporting(true);
     try {
+      if (!post) return;
       const reportPostId = post.slug || post.id;
       const response = await fetch(`/api/forum/posts/${reportPostId}/report`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: reason.trim() }),
+        body: JSON.stringify({ reason, description }),
       });
 
       if (!response.ok) {
@@ -228,6 +223,8 @@ export function ForumPostDetailClient() {
       toast.success("Post reported successfully");
     } catch (error: any) {
       toast.error(error.message || "Failed to report post");
+    } finally {
+      setIsReporting(false);
     }
   };
 
@@ -356,24 +353,30 @@ export function ForumPostDetailClient() {
 
   if (error || !data || !post) {
     return (
-      <div className="min-h-screen bg-background flex">
+      <div className="h-screen bg-background flex overflow-hidden">
         <ForumSidebar 
           mobileOpen={mobileSidebarOpen}
           onMobileOpenChange={setMobileSidebarOpen}
         />
-        <div className="flex-1 min-w-0">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="text-center py-12">
-              <p className="text-destructive">Failed to load post. Please try again.</p>
+        <div className={cn(
+          "flex-1 min-w-0 transition-all duration-300 flex flex-col overflow-hidden",
+          !isMobile && "ml-64"
+        )}>
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <div className="text-center py-12">
+                <p className="text-destructive">Failed to load post. Please try again.</p>
+              </div>
             </div>
-          </div>
+            <Footer />
+          </ScrollArea>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="h-screen bg-background flex overflow-hidden">
       {/* Sidebar */}
       <ForumSidebar 
         mobileOpen={mobileSidebarOpen}
@@ -381,10 +384,13 @@ export function ForumPostDetailClient() {
       />
 
       {/* Main Content */}
-      <div className="flex-1 min-w-0">
+      <div className={cn(
+        "flex-1 min-w-0 transition-all duration-300 flex flex-col overflow-hidden",
+        !isMobile && "ml-64"
+      )}>
         {/* Mobile Sidebar Trigger */}
         {isMobile && (
-          <div className="sticky top-[65px] z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="sticky top-[65px] z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
             <div className="px-4 py-2 flex items-center gap-3">
               <Button
                 variant="ghost"
@@ -401,13 +407,15 @@ export function ForumPostDetailClient() {
           </div>
         )}
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Scrollable Content Area */}
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           {/* Two Column Layout */}
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Main Content Column */}
             <div className="flex-1 min-w-0">
               {/* Post Content */}
-              <article className="mb-6 rounded-lg border border-border p-4">
+              <article className="rounded-lg">
           {/* Back Button */}
           <div className="mb-4">
             <Button
@@ -494,7 +502,7 @@ export function ForumPostDetailClient() {
                 </>
               )}
               <DropdownMenuItem
-                onClick={handleReport}
+                onClick={() => setIsReportDialogOpen(true)}
                 className="cursor-pointer"
               >
                 <Flag className="h-4 w-4 mr-2" />
@@ -535,7 +543,7 @@ export function ForumPostDetailClient() {
                 onClick={() => handleVote("upvote")}
                 disabled={toggleReaction.isPending}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
+                  "flex items-center gap-1 px-4 py-2 transition-colors cursor-pointer",
                   isUpvoted ? "text-primary" : "hover:bg-muted",
                   toggleReaction.isPending && "opacity-50 cursor-not-allowed"
                 )}
@@ -548,7 +556,7 @@ export function ForumPostDetailClient() {
                 onClick={() => handleVote("downvote")}
                 disabled={toggleReaction.isPending}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
+                  "flex items-center gap-1 px-4 py-2 transition-colors cursor-pointer",
                   isDownvoted ? "text-primary" : "hover:bg-muted",
                   toggleReaction.isPending && "opacity-50 cursor-not-allowed"
                 )}
@@ -558,7 +566,7 @@ export function ForumPostDetailClient() {
             </div>
             
             {/* Comment Button */}
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-[25px] bg-muted/50 text-xs text-muted-foreground">
               <MessageCircle className="h-4 w-4" />
               {post.replyCount > 0 && <span className="text-sm font-medium">{post.replyCount}</span>}
             </div>
@@ -569,12 +577,12 @@ export function ForumPostDetailClient() {
               title={post.title}
               variant="ghost"
               size="sm"
-              showLabel={false}
-              className="rounded-lg bg-muted/50 hover:bg-muted h-auto px-3 py-2"
+              showLabel={true}
+              className="rounded-[25px] bg-muted/50 hover:bg-muted h-auto px-3 py-2"
             />
             
             {/* Views */}
-            <div className="flex items-center gap-1 px-3 py-2 rounded-lg bg-muted/50 text-xs text-muted-foreground ml-auto">
+            <div className="flex items-center gap-1 px-3 py-2 rounded-[25px] bg-muted/50 text-xs text-muted-foreground ml-auto">
               <Eye className="h-4 w-4" />
               <span>{post.views}</span>
             </div>
@@ -582,7 +590,7 @@ export function ForumPostDetailClient() {
         </article>
 
         {/* Replies Section */}
-        <div className="space-y-4">
+        <div className="mt-8 space-y-4">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <h2 className="text-lg font-semibold">
               {post.replyCount} {post.replyCount === 1 ? "Comment" : "Comments"}
@@ -719,7 +727,11 @@ export function ForumPostDetailClient() {
         </div>
       </aside>
           </div>
+          
+          {/* Footer inside content area */}
+          <Footer />
         </div>
+        </ScrollArea>
       </div>
 
       {/* Edit Post Dialog */}
@@ -730,6 +742,15 @@ export function ForumPostDetailClient() {
           post={post}
         />
       )}
+
+      {/* Report Dialog */}
+      <ReportDialog
+        isOpen={isReportDialogOpen}
+        onClose={() => setIsReportDialogOpen(false)}
+        onSubmit={handleReport}
+        type="post"
+        isPending={isReporting}
+      />
     </div>
   );
 }

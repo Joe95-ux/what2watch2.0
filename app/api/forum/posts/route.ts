@@ -42,34 +42,45 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const where: any = {
-      AND: whereConditions,
-    };
-
     if (tag) {
-      where.tags = { has: tag };
+      whereConditions.push({ tags: { has: tag } });
     }
+    
     if (categoryId) {
-      where.categoryId = categoryId;
+      whereConditions.push({ categoryId });
     } else if (categorySlug) {
       const category = await db.forumCategory.findUnique({
         where: { slug: categorySlug },
         select: { id: true },
       });
       if (category) {
-        where.categoryId = category.id;
+        whereConditions.push({ categoryId: category.id });
       }
     }
+    
     if (tmdbId && mediaType) {
-      where.tmdbId = parseInt(tmdbId, 10);
-      where.mediaType = mediaType;
+      whereConditions.push({
+        tmdbId: parseInt(tmdbId, 10),
+        mediaType,
+      });
     }
+
+    const where: any = {
+      AND: whereConditions,
+    };
 
     // Build orderBy
     let orderBy: any = {};
-    if (sortBy === "replies") {
-      // For replies count, we'll need to sort after fetching
+    if (sortBy === "replies" || sortBy === "score") {
+      // For replies count and score, we'll need to sort after fetching (client-side)
+      // Use createdAt as initial sort to ensure consistent ordering
       orderBy = { createdAt: order === "desc" ? "desc" : "asc" };
+    } else if (sortBy === "createdAt" || sortBy === "updatedAt" || sortBy === "views") {
+      // For these fields, use the field directly with createdAt as secondary sort
+      orderBy = [
+        { [sortBy]: order === "desc" ? "desc" : "asc" },
+        { createdAt: "desc" }, // Secondary sort for consistency
+      ];
     } else {
       orderBy = { [sortBy]: order === "desc" ? "desc" : "asc" };
     }
@@ -127,15 +138,6 @@ export async function GET(request: NextRequest) {
       db.forumPost.count({ where }),
     ]);
 
-    // Sort by reply count if needed
-    let sortedPosts = posts;
-    if (sortBy === "replies") {
-      sortedPosts = [...posts].sort((a, b) => {
-        const aCount = a.replies.length;
-        const bCount = b.replies.length;
-        return order === "desc" ? bCount - aCount : aCount - bCount;
-      });
-    }
 
     // Calculate score from reactions (upvotes - downvotes)
     const calculateScore = (reactions: Array<{ reactionType: string }>) => {
@@ -146,12 +148,27 @@ export async function GET(request: NextRequest) {
       }, 0);
     };
 
-    // Sort by score if needed
-    if (sortBy === "score") {
+    // Sort by reply count or score if needed (client-side sorting after fetching)
+    let sortedPosts = posts;
+    if (sortBy === "replies") {
+      sortedPosts = [...posts].sort((a, b) => {
+        const aCount = a.replies.length;
+        const bCount = b.replies.length;
+        if (aCount !== bCount) {
+          return order === "desc" ? bCount - aCount : aCount - bCount;
+        }
+        // If reply counts are equal, sort by createdAt as tiebreaker
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    } else if (sortBy === "score") {
       sortedPosts = [...posts].sort((a, b) => {
         const aScore = calculateScore(a.reactions as Array<{ reactionType: string }>);
         const bScore = calculateScore(b.reactions as Array<{ reactionType: string }>);
-        return order === "desc" ? bScore - aScore : aScore - bScore;
+        if (aScore !== bScore) {
+          return order === "desc" ? bScore - aScore : aScore - bScore;
+        }
+        // If scores are equal, sort by createdAt as tiebreaker
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
     }
 

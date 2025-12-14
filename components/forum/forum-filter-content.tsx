@@ -31,6 +31,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import Footer from "@/components/footer";
 
 interface ForumPost {
   id: string;
@@ -200,7 +202,7 @@ export function ForumFilterContent() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="h-screen bg-background flex overflow-hidden">
       {/* Sidebar */}
       <ForumSidebar 
         mobileOpen={mobileSidebarOpen}
@@ -208,10 +210,13 @@ export function ForumFilterContent() {
       />
 
       {/* Main Content */}
-      <div className="flex-1 min-w-0">
+      <div className={cn(
+        "flex-1 min-w-0 transition-all duration-300 flex flex-col overflow-hidden",
+        !isMobile && "ml-64"
+      )}>
         {/* Mobile Sidebar Trigger */}
         {isMobile && (
-          <div className="sticky top-[65px] z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="sticky top-[65px] z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
             <div className="px-4 py-2 flex items-center gap-3">
               <Button
                 variant="ghost"
@@ -228,7 +233,9 @@ export function ForumFilterContent() {
           </div>
         )}
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Scrollable Content Area */}
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           {/* Header */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold mb-2">Filter Forum</h1>
@@ -348,7 +355,7 @@ export function ForumFilterContent() {
                         <Filter className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuContent align="end" className="w-48 max-h-[300px] overflow-y-auto">
                       <DropdownMenuLabel>Filter by category</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
@@ -498,7 +505,11 @@ export function ForumFilterContent() {
               )}
             </>
           )}
-        </div>
+          </div>
+          
+          {/* Footer inside content area */}
+          <Footer />
+        </ScrollArea>
       </div>
     </div>
   );

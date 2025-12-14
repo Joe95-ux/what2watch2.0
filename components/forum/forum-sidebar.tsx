@@ -140,7 +140,7 @@ export function ForumSidebar({
       )}
 
       {/* Scrollable Content */}
-      <ScrollArea className="flex-1 min-h-0">
+      <ScrollArea className="flex-1 min-h-0 overflow-hidden">
         {/* Navigation Links */}
         <div className={cn(
           "border-b transition-all",
@@ -418,9 +418,10 @@ export function ForumSidebar({
   return (
     <aside
       className={cn(
-        "border-r bg-background transition-all duration-300 flex-shrink-0",
+        "border-r bg-background transition-all duration-300 flex-shrink-0 h-screen fixed top-0 left-0 z-20",
         isCollapsed ? "w-16" : "w-64"
       )}
+      style={{ top: '65px', height: 'calc(100vh - 65px)' }}
     >
       {sidebarContent}
     </aside>

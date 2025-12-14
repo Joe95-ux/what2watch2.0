@@ -10,6 +10,9 @@ import { ForumSidebar } from "./forum-sidebar";
 import { PopularTopics } from "./popular-topics";
 import { useUser } from "@clerk/nextjs";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import Footer from "@/components/footer";
+import { cn } from "@/lib/utils";
 
 export function ForumPageClient() {
   const router = useRouter();
@@ -23,7 +26,7 @@ export function ForumPageClient() {
   const mediaType = searchParams.get("mediaType");
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="h-screen bg-background flex overflow-hidden">
       {/* Sidebar */}
       <ForumSidebar 
         mobileOpen={mobileSidebarOpen}
@@ -31,10 +34,13 @@ export function ForumPageClient() {
       />
 
       {/* Main Content */}
-      <div className="flex-1 min-w-0 transition-all duration-300">
+      <div className={cn(
+        "flex-1 min-w-0 transition-all duration-300 flex flex-col overflow-hidden",
+        !isMobile && "ml-64"
+      )}>
         {/* Mobile Sidebar Trigger */}
         {isMobile && (
-          <div className="sticky top-[65px] z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="sticky top-[65px] z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
             <div className="px-4 py-2 flex items-center gap-3">
               <Button
                 variant="ghost"
@@ -51,54 +57,59 @@ export function ForumPageClient() {
           </div>
         )}
 
-        {/* Content Area */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {/* Two Column Layout */}
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Main Content Column */}
-            <div className="flex-1 min-w-0">
-              {/* Header with Create Post Button */}
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h1 className="text-2xl font-bold">Forum</h1>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Discuss movies, TV shows, and more with the community
-                  </p>
+        {/* Scrollable Content Area */}
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            {/* Two Column Layout */}
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* Main Content Column */}
+              <div className="flex-1 min-w-0">
+                {/* Header with Create Post Button */}
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h1 className="text-2xl font-bold">Forum</h1>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Discuss movies, TV shows, and more with the community
+                    </p>
+                  </div>
+                  {isSignedIn && (
+                    <Button
+                      onClick={() => setIsCreateDialogOpen(true)}
+                      className="cursor-pointer"
+                      size="sm"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      New Post
+                    </Button>
+                  )}
                 </div>
-                {isSignedIn && (
-                  <Button
-                    onClick={() => setIsCreateDialogOpen(true)}
-                    className="cursor-pointer"
-                    size="sm"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Post
-                  </Button>
-                )}
+
+                {/* Post List */}
+                <ForumPostList />
               </div>
 
-              {/* Post List */}
-              <ForumPostList />
+              {/* Right Sidebar */}
+              <aside className="w-full lg:w-80 flex-shrink-0">
+                <div className="sticky top-24">
+                  <PopularTopics />
+                </div>
+              </aside>
             </div>
-
-            {/* Right Sidebar */}
-            <aside className="w-full lg:w-80 flex-shrink-0">
-              <div className="sticky top-24">
-                <PopularTopics />
-              </div>
-            </aside>
           </div>
 
-          {/* Create Post Dialog */}
-          {isSignedIn && (
-            <CreatePostDialog
-              isOpen={isCreateDialogOpen}
-              onClose={() => setIsCreateDialogOpen(false)}
-              tmdbId={tmdbId ? parseInt(tmdbId, 10) : undefined}
-              mediaType={mediaType as "movie" | "tv" | undefined}
-            />
-          )}
-        </div>
+          {/* Footer inside content area */}
+          <Footer />
+        </ScrollArea>
+
+        {/* Create Post Dialog */}
+        {isSignedIn && (
+          <CreatePostDialog
+            isOpen={isCreateDialogOpen}
+            onClose={() => setIsCreateDialogOpen(false)}
+            tmdbId={tmdbId ? parseInt(tmdbId, 10) : undefined}
+            mediaType={mediaType as "movie" | "tv" | undefined}
+          />
+        )}
       </div>
     </div>
   );

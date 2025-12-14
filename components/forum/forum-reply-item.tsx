@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { ReportDialog } from "./report-dialog";
 
 interface ForumReply {
   id: string;
@@ -53,6 +54,8 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
   const queryClient = useQueryClient();
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [isReporting, setIsReporting] = useState(false);
   const maxDepth = 5;
 
   const isAuthor = currentUser?.id === reply.author.id;
@@ -88,22 +91,13 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
       .slice(0, 2);
   };
 
-  const handleReport = async () => {
-    if (!isSignedIn) {
-      toast.error("Sign in to report replies");
-      return;
-    }
-    
-    const reason = prompt("Please provide a reason for reporting this reply:");
-    if (!reason || reason.trim().length === 0) {
-      return;
-    }
-
+  const handleReport = async (reason: string, description?: string) => {
+    setIsReporting(true);
     try {
       const response = await fetch(`/api/forum/replies/${reply.id}/report`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: reason.trim() }),
+        body: JSON.stringify({ reason, description }),
       });
 
       if (!response.ok) {
@@ -114,6 +108,8 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
       toast.success("Reply reported successfully");
     } catch (error: any) {
       toast.error(error.message || "Failed to report reply");
+    } finally {
+      setIsReporting(false);
     }
   };
 
@@ -222,39 +218,36 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
 
         {/* Action Buttons - Same design as posts but bg only on hover */}
         <div className="flex items-center gap-2">
-          {/* Vote Buttons - Act like one button */}
-          <div className="flex items-center rounded-[25px] bg-muted/50 overflow-hidden">
-            <button
-              onClick={() => handleVote("upvote")}
-              disabled={toggleReaction.isPending}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer hover:bg-muted",
-                isUpvoted && "text-primary",
-                toggleReaction.isPending && "opacity-50 cursor-not-allowed"
-              )}
-            >
-              <ArrowBigUp className={cn("h-4 w-4", isUpvoted && "fill-current")} />
-              {displayScore > 0 && <span className="text-sm">{displayScore}</span>}
-            </button>
-            <div className="h-6 w-px bg-border" />
-            <button
-              onClick={() => handleVote("downvote")}
-              disabled={toggleReaction.isPending}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer hover:bg-muted",
-                isDownvoted && "text-primary",
-                toggleReaction.isPending && "opacity-50 cursor-not-allowed"
-              )}
-            >
-              <ArrowBigDown className={cn("h-4 w-4", isDownvoted && "fill-current")} />
-            </button>
-          </div>
+          {/* Vote Buttons - No bg or separation */}
+          <button
+            onClick={() => handleVote("upvote")}
+            disabled={toggleReaction.isPending}
+            className={cn(
+              "flex items-center gap-1 px-4 py-2 rounded-[25px] transition-colors cursor-pointer hover:bg-muted/50",
+              isUpvoted && "text-primary",
+              toggleReaction.isPending && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            <ArrowBigUp className={cn("h-4 w-4", isUpvoted && "fill-current")} />
+            {displayScore > 0 && <span className="text-sm">{displayScore}</span>}
+          </button>
+          <button
+            onClick={() => handleVote("downvote")}
+            disabled={toggleReaction.isPending}
+            className={cn(
+              "flex items-center gap-1 px-4 py-2 rounded-[25px] transition-colors cursor-pointer hover:bg-muted/50",
+              isDownvoted && "text-primary",
+              toggleReaction.isPending && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            <ArrowBigDown className={cn("h-4 w-4", isDownvoted && "fill-current")} />
+          </button>
           
           {/* Reply Button */}
           {isSignedIn && depth < maxDepth && (
             <button
               onClick={() => setShowReplyForm(!showReplyForm)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer text-xs text-muted-foreground"
+              className="flex items-center gap-2 px-3 py-2 rounded-[25px] hover:bg-muted/50 transition-colors cursor-pointer text-xs text-muted-foreground"
             >
               <MessageCircle className="h-4 w-4" />
               Reply
@@ -269,7 +262,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
               variant="ghost"
               size="sm"
               showLabel={false}
-              className="rounded-lg hover:bg-muted/50 h-auto px-3 py-2"
+              className="rounded-[25px] hover:bg-muted/50 h-auto px-3 py-2"
             />
           </div>
           
@@ -279,7 +272,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 cursor-pointer hover:bg-muted/50"
+                className="h-8 w-8 cursor-pointer hover:bg-muted/50 rounded-[25px]"
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreVertical className="h-4 w-4" />
@@ -315,7 +308,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleReport();
+                  setIsReportDialogOpen(true);
                 }}
                 className="cursor-pointer"
               >
@@ -329,7 +322,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
           {hasReplies && (
             <button
               onClick={() => setIsCollapsed(true)}
-              className="flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer text-xs text-muted-foreground"
+              className="flex items-center gap-1 px-3 py-2 rounded-[25px] hover:bg-muted/50 transition-colors cursor-pointer text-xs text-muted-foreground"
             >
               <ChevronUp className="h-4 w-4" />
               Hide {reply.replies.length} {reply.replies.length === 1 ? "reply" : "replies"}
@@ -362,6 +355,15 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
           </div>
         )}
       </div>
+
+      {/* Report Dialog */}
+      <ReportDialog
+        isOpen={isReportDialogOpen}
+        onClose={() => setIsReportDialogOpen(false)}
+        onSubmit={handleReport}
+        type="reply"
+        isPending={isReporting}
+      />
     </div>
   );
 }

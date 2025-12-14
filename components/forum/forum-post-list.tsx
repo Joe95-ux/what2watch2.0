@@ -123,7 +123,7 @@ export function ForumPostList() {
 
   if (isLoading) {
     return (
-      <div className="space-y-0">
+      <div className="space-y-6">
         {Array.from({ length: 10 }).map((_, i) => (
           <div key={i} className="p-4 rounded-lg border border-border">
             <div className="flex items-start justify-between mb-2">
@@ -161,7 +161,7 @@ export function ForumPostList() {
   }
 
   return (
-    <div className="space-y-0">
+    <div className="space-y-6">
       {allPosts.map((post) => (
         <ForumPostCardReddit key={post.id} post={post} />
       ))}
@@ -169,7 +169,7 @@ export function ForumPostList() {
       <div ref={observerTarget} className="h-4" />
       {/* Loading indicator when fetching next page */}
       {isFetchingNextPage && (
-        <div className="space-y-0">
+        <div className="space-y-6">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="p-4 rounded-lg border border-border">
               <div className="flex items-start justify-between mb-2">

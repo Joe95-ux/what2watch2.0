@@ -23,6 +23,7 @@ import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { EditPostDialog } from "./edit-post-dialog";
+import { ReportDialog } from "./report-dialog";
 
 interface ForumPost {
   id: string;
@@ -62,6 +63,8 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [isReporting, setIsReporting] = useState(false);
   
   const isAuthor = currentUser?.id === post.author.id;
   const getInitials = (name: string) => {
@@ -95,23 +98,14 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
     }
   };
 
-  const handleReport = async () => {
-    if (!isSignedIn) {
-      toast.error("Sign in to report posts");
-      return;
-    }
-    
-    const reason = prompt("Please provide a reason for reporting this post:");
-    if (!reason || reason.trim().length === 0) {
-      return;
-    }
-
+  const handleReport = async (reason: string, description?: string) => {
+    setIsReporting(true);
     try {
       const reportPostId = post.slug || post.id;
       const response = await fetch(`/api/forum/posts/${reportPostId}/report`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: reason.trim() }),
+        body: JSON.stringify({ reason, description }),
       });
 
       if (!response.ok) {
@@ -122,6 +116,8 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
       toast.success("Post reported successfully");
     } catch (error: any) {
       toast.error(error.message || "Failed to report post");
+    } finally {
+      setIsReporting(false);
     }
   };
 
@@ -178,7 +174,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
   };
 
   return (
-    <div className="p-4 hover:bg-accent/50 transition-colors rounded-lg">
+    <div className="p-4 bg-accent/30 hover:bg-accent/50 transition-colors rounded-lg">
       {/* Post Header with Dot Menu */}
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2 text-xs text-muted-foreground flex-1">
@@ -252,7 +248,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
             <DropdownMenuItem
               onClick={(e) => {
                 e.stopPropagation();
-                handleReport();
+                setIsReportDialogOpen(true);
               }}
               className="cursor-pointer"
             >
@@ -308,7 +304,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
             }}
             disabled={toggleReaction.isPending}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
+              "flex items-center gap-1 px-4 py-2 transition-colors cursor-pointer",
               isUpvoted ? "text-primary" : "hover:bg-muted",
               toggleReaction.isPending && "opacity-50 cursor-not-allowed"
             )}
@@ -324,7 +320,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
             }}
             disabled={toggleReaction.isPending}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer",
+              "flex items-center gap-1 px-4 py-2 transition-colors cursor-pointer",
               isDownvoted ? "text-primary" : "hover:bg-muted",
               toggleReaction.isPending && "opacity-50 cursor-not-allowed"
             )}
@@ -337,7 +333,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
         <Link
           href={postUrl}
           onClick={(e) => e.stopPropagation()}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+          className="flex items-center gap-2 px-3 py-2 rounded-[25px] bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
         >
           <MessageCircle className="h-4 w-4" />
           {post.replyCount > 0 && <span className="text-sm font-medium">{post.replyCount}</span>}
@@ -350,13 +346,13 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
             title={post.title}
             variant="ghost"
             size="sm"
-            showLabel={false}
-            className="rounded-lg bg-muted/50 hover:bg-muted h-auto px-3 py-2"
+            showLabel={true}
+            className="rounded-[25px] bg-muted/50 hover:bg-muted h-auto px-3 py-2"
           />
         </div>
         
         {/* Views */}
-        <div className="flex items-center gap-1 px-3 py-2 rounded-lg bg-muted/50 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1 px-3 py-2 rounded-[25px] bg-muted/50 text-xs text-muted-foreground">
           <Eye className="h-4 w-4" />
           <span>{post.views}</span>
         </div>
@@ -370,6 +366,15 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
           post={post}
         />
       )}
+
+      {/* Report Dialog */}
+      <ReportDialog
+        isOpen={isReportDialogOpen}
+        onClose={() => setIsReportDialogOpen(false)}
+        onSubmit={handleReport}
+        type="post"
+        isPending={isReporting}
+      />
     </div>
   );
 }
