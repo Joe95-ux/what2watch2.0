@@ -38,7 +38,7 @@ export async function GET(
     interface FormattedReply {
       id: string;
       content: string;
-      likes: number;
+      score: number;
       author: {
         id: string;
         username: string | null;
@@ -59,7 +59,7 @@ export async function GET(
         return {
           id: reply.id,
           content: reply.content,
-          likes: reply.likes,
+          score: reply.score,
           author: {
             id: reply.user.id,
             username: reply.user.username,
@@ -163,7 +163,6 @@ export async function POST(
         postId,
         content: content.trim(),
         parentReplyId: parentReplyId || null,
-        likes: 0,
       },
       include: {
         user: {
@@ -181,7 +180,6 @@ export async function POST(
       reply: {
         id: reply.id,
         content: reply.content,
-        likes: 0,
         score: reply.score,
         author: {
           id: reply.user.id,
