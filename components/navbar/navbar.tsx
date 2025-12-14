@@ -26,7 +26,7 @@ const navLinks: NavLink[] = [
   { href: "/popular", label: "Popular" },
   { href: "/lists", label: "Lists" },
   { href: "/members", label: "Members" },
-  { href: "/dashboard/my-list", label: "My List" },
+  { href: "/forum", label: "Forums" },
   { href: "/youtube", label: "YouTube" },
 ];
 
@@ -57,7 +57,7 @@ export default function Navbar() {
   const shouldUseMaxSearchNav = pathname === "/search" || pathname?.startsWith("/search");
 
   // Check if we're on a page with hero section (dark navbar needed)
-  const hasHeroSection = pathname === "/browse" || pathname === "/popular" || pathname === "/lists" || pathname === "/members" || pathname?.startsWith("/browse/") || pathname?.startsWith("/popular") || pathname?.startsWith("/lists/");
+  const hasHeroSection = pathname === "/browse" || pathname === "/popular" || pathname === "/lists" || pathname === "/members" || pathname === "/forum" || pathname?.startsWith("/browse/") || pathname?.startsWith("/popular") || pathname?.startsWith("/lists/") || pathname?.startsWith("/forum/");
 
   return (
     <nav className={cn(

@@ -56,6 +56,9 @@ model User {
   reviewReports ReviewReport[]
   forumPosts    ForumPost[]
   forumReplies  ForumReply[]
+  forumPostReactions ForumPostReaction[]
+  forumReplyReactions ForumReplyReaction[]
+  forumCategories ForumCategory[]
   sharedPlaylists SharedPlaylist[]
   recentlyViewed RecentlyViewed[]
   viewingLogs   ViewingLog[]
@@ -361,6 +364,30 @@ model ReviewReport {
   @@index([createdAt])
 }
 
+// Forum categories - structured categories for organizing posts
+model ForumCategory {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  name          String   @unique
+  slug          String   @unique
+  description   String?
+  icon          String?  // Icon name or emoji
+  color         String?  // Hex color for UI
+  order         Int      @default(0) // Display order
+  isActive      Boolean  @default(true)
+  postCount     Int      @default(0) // Cached count of posts in this category
+  
+  createdById   String?  @db.ObjectId
+  createdBy     User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  posts         ForumPost[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("forum_categories")
+  @@index([isActive])
+  @@index([order])
+}
+
 // Forum posts - discussion threads
 model ForumPost {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
@@ -374,7 +401,11 @@ model ForumPost {
   tmdbId        Int?
   mediaType     String?  // "movie" or "tv"
   
-  // Categories/Tags
+  // Category
+  categoryId    String?  @db.ObjectId
+  category      ForumCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  
+  // Tags (user-defined tags, separate from categories)
   tags          String[] @default([])
   
   // Engagement
@@ -382,14 +413,17 @@ model ForumPost {
   likes         Int      @default(0)
   
   replies       ForumReply[]
+  reactions     ForumPostReaction[]
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@map("forum_posts")
   @@index([userId])
+  @@index([categoryId])
   @@index([tmdbId, mediaType])
   @@index([createdAt])
+  @@index([title]) // For search
 }
 
 // Forum replies - comments on forum posts
@@ -408,11 +442,45 @@ model ForumReply {
   
   likes         Int      @default(0)
   
+  reactions     ForumReplyReaction[]
+  
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@map("forum_replies")
   @@index([postId])
+  @@index([userId])
+}
+
+// Forum post reactions
+model ForumPostReaction {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  postId        String   @db.ObjectId
+  post          ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactionType  String   @default("like") // "like" for now, can extend later
+  createdAt     DateTime @default(now())
+
+  @@unique([postId, userId])
+  @@map("forum_post_reactions")
+  @@index([postId])
+  @@index([userId])
+}
+
+// Forum reply reactions
+model ForumReplyReaction {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  replyId       String   @db.ObjectId
+  reply         ForumReply @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactionType  String   @default("like") // "like" for now, can extend later
+  createdAt     DateTime @default(now())
+
+  @@unique([replyId, userId])
+  @@map("forum_reply_reactions")
+  @@index([replyId])
   @@index([userId])
 }
 

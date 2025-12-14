@@ -6,7 +6,7 @@ import {
   Home, 
   Film, 
   Tv, 
-  Heart, 
+  MessageSquare, 
   List, 
   Youtube,
   Settings,
@@ -27,7 +27,7 @@ const sidebarLinks: NavLink[] = [
   { href: "/movies", label: "Movies", icon: Film },
   { href: "/tv", label: "TV Shows", icon: Tv },
   { href: "/lists", label: "Lists", icon: List },
-  { href: "/dashboard/my-list", label: "My List", icon: Heart },
+  { href: "/forum", label: "Forums", icon: MessageSquare },
   { href: "/youtube", label: "YouTube", icon: Youtube },
 ];
 
