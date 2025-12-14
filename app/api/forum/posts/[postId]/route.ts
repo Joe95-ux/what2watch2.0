@@ -256,7 +256,7 @@ export async function PATCH(
     }
 
     // Generate new slug if title changed
-    let slug = post.title === title.trim() ? undefined : undefined;
+    let slug: string | undefined = undefined;
     if (post.title !== title.trim()) {
       const { generateUniqueForumPostSlug } = await import("@/lib/forum-slug");
       slug = await generateUniqueForumPostSlug(title.trim(), post.id);
