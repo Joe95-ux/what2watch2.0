@@ -493,7 +493,7 @@ export function MyReportsContent() {
             </DialogHeader>
 
             {/* Scrollable Content */}
-            <ScrollArea className="flex-1 px-6 py-4 min-h-0">
+            <div className="overflow-y-auto flex-1 p-6 scrollbar-thin">
               <div className="space-y-6">
                 {/* Status */}
                 <div>
@@ -614,7 +614,7 @@ export function MyReportsContent() {
                   </div>
                 )}
               </div>
-            </ScrollArea>
+            </div>
 
             {/* Fixed Footer */}
             <DialogFooter className="px-6 py-4 border-t flex-shrink-0">
