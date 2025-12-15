@@ -43,7 +43,21 @@ export async function GET(request: NextRequest) {
       shouldFetchPosts
         ? db.forumPostReport.findMany({
             where: postReportsWhere,
-            include: {
+            select: {
+              id: true,
+              postId: true,
+              userId: true,
+              reason: true,
+              description: true,
+              status: true,
+              appealReason: true,
+              appealAt: true,
+              reviewedAt: true,
+              reviewedById: true,
+              reviewNotes: true,
+              createdAt: true,
+              // Exclude updatedAt - some records have null values causing Prisma errors
+              // We'll compute it as reviewedAt || createdAt in the mapping
               post: {
                 select: {
                   id: true,
@@ -81,7 +95,21 @@ export async function GET(request: NextRequest) {
       shouldFetchReplies
         ? db.forumReplyReport.findMany({
             where: replyReportsWhere,
-            include: {
+            select: {
+              id: true,
+              replyId: true,
+              userId: true,
+              reason: true,
+              description: true,
+              status: true,
+              appealReason: true,
+              appealAt: true,
+              reviewedAt: true,
+              reviewedById: true,
+              reviewNotes: true,
+              createdAt: true,
+              // Exclude updatedAt - some records have null values causing Prisma errors
+              // We'll compute it as reviewedAt || createdAt in the mapping
               reply: {
                 select: {
                   id: true,
@@ -163,7 +191,7 @@ export async function GET(request: NextRequest) {
           reviewedAt: report.reviewedAt,
           reviewNotes: report.reviewNotes,
           createdAt: report.createdAt,
-          updatedAt: report.updatedAt,
+          updatedAt: report.reviewedAt || report.createdAt, // Use reviewedAt if available, otherwise createdAt
         })),
       ...allReplyReports
         .filter((report) => report.reply && report.reply.post) // Filter out reports with deleted replies/posts
@@ -199,7 +227,7 @@ export async function GET(request: NextRequest) {
           reviewedAt: report.reviewedAt,
           reviewNotes: report.reviewNotes,
           createdAt: report.createdAt,
-          updatedAt: report.updatedAt,
+          updatedAt: report.reviewedAt || report.createdAt, // Use reviewedAt if available, otherwise createdAt
         })),
     ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
