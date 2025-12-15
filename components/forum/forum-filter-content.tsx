@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
@@ -63,37 +63,9 @@ interface ForumPostsResponse {
   };
 }
 
-function ForumFilterContentFallback() {
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <div className="space-y-4">
-        <div className="h-8 w-48 bg-muted animate-pulse rounded" />
-        <div className="h-10 w-full bg-muted animate-pulse rounded" />
-        <div className="space-y-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-16 w-full bg-muted animate-pulse rounded" />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SearchParamsProvider({ 
-  children 
-}: { 
-  children: (params: URLSearchParams) => React.ReactNode 
-}) {
-  const searchParams = useSearchParams();
-  return <>{children(searchParams)}</>;
-}
-
-interface ForumFilterContentInnerProps {
-  searchParams: URLSearchParams;
-}
-
-function ForumFilterContentInner({ searchParams }: ForumFilterContentInnerProps) {
+function ForumFilterContentInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const observerTarget = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [sortBy, setSortBy] = useState<"createdAt" | "views" | "replyCount" | "updatedAt">(
@@ -499,12 +471,6 @@ function ForumFilterContentInner({ searchParams }: ForumFilterContentInnerProps)
 }
 
 export function ForumFilterContent() {
-  return (
-    <Suspense fallback={<ForumFilterContentFallback />}>
-      <SearchParamsProvider>
-        {(searchParams) => <ForumFilterContentInner searchParams={searchParams} />}
-      </SearchParamsProvider>
-    </Suspense>
-  );
+  return <ForumFilterContentInner />;
 }
 
