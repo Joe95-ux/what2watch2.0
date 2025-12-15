@@ -1,21 +1,66 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Flag, FileText, MessageSquare, AlertCircle, CheckCircle2, XCircle, Clock } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Flag,
+  FileText,
+  MessageSquare,
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Eye,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
-import { AppealDialog } from "./appeal-dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+
+type SortField = "createdAt" | "status" | "type" | "reason";
+type SortOrder = "asc" | "desc";
+type StatusFilter = "all" | "pending" | "reviewed" | "appealed" | "appeal_approved" | "appeal_rejected";
+type TypeFilter = "all" | "post" | "reply";
 
 export function MyReportsContent() {
   const queryClient = useQueryClient();
-  const [appealingReport, setAppealingReport] = useState<any>(null);
+  const [selectedReport, setSelectedReport] = useState<any>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [sortField, setSortField] = useState<SortField>("createdAt");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+  const [appealReason, setAppealReason] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["my-forum-reports"],
@@ -50,7 +95,8 @@ export function MyReportsContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-forum-reports"] });
       toast.success("Appeal submitted successfully");
-      setAppealingReport(null);
+      setSelectedReport(null);
+      setAppealReason("");
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -59,41 +105,88 @@ export function MyReportsContent() {
 
   const postReports = data?.postReports || [];
   const replyReports = data?.replyReports || [];
+  const allReports = [...postReports, ...replyReports];
+
+  // Filter reports
+  const filteredReports = useMemo(() => {
+    return allReports.filter((report: any) => {
+      if (statusFilter !== "all" && report.status !== statusFilter) return false;
+      if (typeFilter !== "all" && report.type !== typeFilter) return false;
+      return true;
+    });
+  }, [allReports, statusFilter, typeFilter]);
+
+  // Sort reports
+  const sortedReports = useMemo(() => {
+    return [...filteredReports].sort((a: any, b: any) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (sortField) {
+        case "createdAt":
+          aValue = new Date(a.createdAt).getTime();
+          bValue = new Date(b.createdAt).getTime();
+          break;
+        case "status":
+          aValue = a.status;
+          bValue = b.status;
+          break;
+        case "type":
+          aValue = a.type;
+          bValue = b.type;
+          break;
+        case "reason":
+          aValue = a.reason;
+          bValue = b.reason;
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredReports, sortField, sortOrder]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
         return (
-          <Badge variant="outline" className="border-yellow-500 text-yellow-600 dark:text-yellow-400">
+          <Badge variant="outline" className="border-yellow-500 text-yellow-600 dark:text-yellow-400 font-sm">
             <Clock className="h-3 w-3 mr-1" />
-            Pending Review
+            Pending
           </Badge>
         );
       case "reviewed":
-        return <Badge variant="secondary">Reviewed</Badge>;
+        return (
+          <Badge variant="secondary" className="font-sm">
+            Reviewed
+          </Badge>
+        );
       case "appealed":
         return (
-          <Badge variant="outline" className="border-blue-500 text-blue-600 dark:text-blue-400">
+          <Badge variant="outline" className="border-blue-500 text-blue-600 dark:text-blue-400 font-sm">
             <AlertCircle className="h-3 w-3 mr-1" />
-            Appeal Submitted
+            Appealed
           </Badge>
         );
       case "appeal_approved":
         return (
-          <Badge variant="default" className="bg-green-500">
+          <Badge variant="default" className="bg-green-500 hover:bg-green-600 font-sm">
             <CheckCircle2 className="h-3 w-3 mr-1" />
-            Appeal Approved
+            Approved
           </Badge>
         );
       case "appeal_rejected":
         return (
-          <Badge variant="destructive">
+          <Badge variant="destructive" className="font-sm">
             <XCircle className="h-3 w-3 mr-1" />
-            Appeal Rejected
+            Rejected
           </Badge>
         );
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return <Badge variant="secondary" className="font-sm">{status}</Badge>;
     }
   };
 
@@ -101,22 +194,73 @@ export function MyReportsContent() {
     return report.status === "reviewed" || report.status === "pending";
   };
 
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortOrder("asc");
+    }
+  };
+
+  const handleViewDetails = (report: any) => {
+    setSelectedReport(report);
+    setAppealReason("");
+  };
+
+  const handleAppeal = async () => {
+    if (!selectedReport || !appealReason.trim()) return;
+    await appealReport.mutateAsync({
+      reportId: selectedReport.id,
+      appealReason: appealReason.trim(),
+      targetType: selectedReport.type,
+    });
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-3.5 w-3.5 ml-1 text-muted-foreground" />;
+    }
+    return sortOrder === "asc" ? (
+      <ArrowUp className="h-3.5 w-3.5 ml-1" />
+    ) : (
+      <ArrowDown className="h-3.5 w-3.5 ml-1" />
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-48" />
-        <div className="space-y-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 w-full" />
-          ))}
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[100px]"><Skeleton className="h-4 w-20" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-24" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-32" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-24" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-20" /></TableHead>
+                <TableHead className="w-[120px]"><Skeleton className="h-4 w-16" /></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-full" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-20" /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       </div>
     );
   }
-
-  const allReports = [...postReports, ...replyReports].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
 
   if (allReports.length === 0) {
     return (
@@ -132,6 +276,7 @@ export function MyReportsContent() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div>
         <h2 className="text-2xl font-bold mb-2">Reported Content</h2>
         <p className="text-sm text-muted-foreground">
@@ -139,176 +284,358 @@ export function MyReportsContent() {
         </p>
       </div>
 
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList>
-          <TabsTrigger value="all" className="cursor-pointer">All ({allReports.length})</TabsTrigger>
-          <TabsTrigger value="posts" className="cursor-pointer">Posts ({postReports.length})</TabsTrigger>
-          <TabsTrigger value="replies" className="cursor-pointer">Replies ({replyReports.length})</TabsTrigger>
-        </TabsList>
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Label htmlFor="status-filter" className="text-sm font-medium">Status:</Label>
+          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilter)}>
+            <SelectTrigger id="status-filter" className="w-[140px] h-9 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="reviewed">Reviewed</SelectItem>
+              <SelectItem value="appealed">Appealed</SelectItem>
+              <SelectItem value="appeal_approved">Approved</SelectItem>
+              <SelectItem value="appeal_rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="type-filter" className="text-sm font-medium">Type:</Label>
+          <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as TypeFilter)}>
+            <SelectTrigger id="type-filter" className="w-[120px] h-9 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="post">Posts</SelectItem>
+              <SelectItem value="reply">Replies</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="text-sm text-muted-foreground ml-auto">
+          {sortedReports.length} {sortedReports.length === 1 ? "report" : "reports"}
+        </div>
+      </div>
 
-        <TabsContent value="all" className="space-y-4">
-          {allReports.map((report: any) => (
-            <ReportCard
-              key={report.id}
-              report={report}
-              getStatusBadge={getStatusBadge}
-              canAppeal={canAppeal}
-              onAppeal={() => setAppealingReport(report)}
-            />
-          ))}
-        </TabsContent>
+      {/* Table */}
+      <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[100px]">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-sm font-medium -ml-3 cursor-pointer"
+                  onClick={() => handleSort("type")}
+                >
+                  Type
+                  <SortIcon field="type" />
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-sm font-medium -ml-3 cursor-pointer"
+                  onClick={() => handleSort("reason")}
+                >
+                  Content
+                  <SortIcon field="reason" />
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-sm font-medium -ml-3 cursor-pointer"
+                  onClick={() => handleSort("reason")}
+                >
+                  Reason
+                  <SortIcon field="reason" />
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-sm font-medium -ml-3 cursor-pointer"
+                  onClick={() => handleSort("status")}
+                >
+                  Status
+                  <SortIcon field="status" />
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-sm font-medium -ml-3 cursor-pointer"
+                  onClick={() => handleSort("createdAt")}
+                >
+                  Reported
+                  <SortIcon field="createdAt" />
+                </Button>
+              </TableHead>
+              <TableHead className="w-[120px] text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedReports.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">
+                  No reports found matching your filters
+                </TableCell>
+              </TableRow>
+            ) : (
+              sortedReports.map((report: any) => (
+                <TableRow key={report.id} className="hover:bg-muted/50">
+                  <TableCell className="text-sm">
+                    <div className="flex items-center gap-2">
+                      {report.type === "post" ? (
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      <span className="capitalize">{report.type}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    <div className="line-clamp-2">
+                      {report.type === "post" ? (
+                        <Link
+                          href={`/forum/${report.target.slug || report.target.id}`}
+                          className="hover:underline text-foreground"
+                        >
+                          {report.target.title || "Untitled Post"}
+                        </Link>
+                      ) : (
+                        <div>
+                          <Link
+                            href={`/forum/${report.target.post.slug || report.target.post.id}`}
+                            className="text-xs text-muted-foreground hover:underline block mb-1"
+                          >
+                            {report.target.post.title}
+                          </Link>
+                          <span className="line-clamp-2">{report.target.content}</span>
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    <div className="line-clamp-2">
+                      <span className="font-medium">{report.reason}</span>
+                      {report.description && (
+                        <span className="text-muted-foreground block mt-0.5">
+                          {report.description}
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {getStatusBadge(report.status)}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {formatDistanceToNow(new Date(report.createdAt), { addSuffix: true })}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-sm cursor-pointer"
+                        onClick={() => handleViewDetails(report)}
+                      >
+                        <Eye className="h-3.5 w-3.5 mr-1.5" />
+                        View
+                      </Button>
+                      {canAppeal(report) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-sm cursor-pointer"
+                          onClick={() => {
+                            setSelectedReport(report);
+                            setAppealReason("");
+                          }}
+                        >
+                          <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
+                          Appeal
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
-        <TabsContent value="posts" className="space-y-4">
-          {postReports.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No post reports</p>
-          ) : (
-            postReports.map((report: any) => (
-              <ReportCard
-                key={report.id}
-                report={report}
-                getStatusBadge={getStatusBadge}
-                canAppeal={canAppeal}
-                onAppeal={() => setAppealingReport(report)}
-              />
-            ))
-          )}
-        </TabsContent>
+      {/* Detail/Appeal Dialog */}
+      {selectedReport && (
+        <Dialog open={!!selectedReport} onOpenChange={() => setSelectedReport(null)}>
+          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-lg">
+                {selectedReport.type === "post" ? "Post Report Details" : "Reply Report Details"}
+              </DialogTitle>
+              <DialogDescription className="text-sm">
+                {canAppeal(selectedReport)
+                  ? "Review the report details and submit an appeal if you believe this is incorrect."
+                  : "View the report details and review status."}
+              </DialogDescription>
+            </DialogHeader>
 
-        <TabsContent value="replies" className="space-y-4">
-          {replyReports.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No reply reports</p>
-          ) : (
-            replyReports.map((report: any) => (
-              <ReportCard
-                key={report.id}
-                report={report}
-                getStatusBadge={getStatusBadge}
-                canAppeal={canAppeal}
-                onAppeal={() => setAppealingReport(report)}
-              />
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
+            <div className="space-y-6 py-4">
+              {/* Status */}
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Status</Label>
+                {getStatusBadge(selectedReport.status)}
+              </div>
 
-      {/* Appeal Dialog */}
-      {appealingReport && (
-        <AppealDialog
-          isOpen={!!appealingReport}
-          onClose={() => setAppealingReport(null)}
-          onSubmit={async (appealReason) => {
-            await appealReport.mutateAsync({
-              reportId: appealingReport.id,
-              appealReason,
-              targetType: appealingReport.type,
-            });
-          }}
-          type={appealingReport.type}
-          content={
-            appealingReport.type === "post"
-              ? appealingReport.target.content || appealingReport.target.title || ""
-              : appealingReport.target.content || ""
-          }
-          reportReason={appealingReport.reason}
-          isPending={appealReport.isPending}
-        />
+              {/* Your Content */}
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Your Content</Label>
+                <div className="p-3 rounded-lg border bg-muted/50">
+                  {selectedReport.type === "post" ? (
+                    <div>
+                      <Link
+                        href={`/forum/${selectedReport.target.slug || selectedReport.target.id}`}
+                        className="text-sm font-medium hover:underline text-primary mb-2 block"
+                      >
+                        {selectedReport.target.title || "Untitled Post"}
+                      </Link>
+                      {selectedReport.target.content && (
+                        <p className="text-sm whitespace-pre-wrap line-clamp-6">
+                          {selectedReport.target.content}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <Link
+                        href={`/forum/${selectedReport.target.post.slug || selectedReport.target.post.id}`}
+                        className="text-xs text-muted-foreground hover:underline mb-2 block"
+                      >
+                        Post: {selectedReport.target.post.title}
+                      </Link>
+                      <p className="text-sm whitespace-pre-wrap line-clamp-6">
+                        {selectedReport.target.content}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Report Reason */}
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Report Reason</Label>
+                <div className="p-3 rounded-lg border bg-muted/50">
+                  <p className="text-sm font-medium">{selectedReport.reason}</p>
+                  {selectedReport.description && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {selectedReport.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Reporter */}
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Reported By</Label>
+                <p className="text-sm text-muted-foreground">
+                  {selectedReport.reporter?.displayName || selectedReport.reporter?.username || "Unknown"}
+                </p>
+              </div>
+
+              {/* Reported Date */}
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Reported</Label>
+                <p className="text-sm text-muted-foreground">
+                  {formatDistanceToNow(new Date(selectedReport.createdAt), { addSuffix: true })}
+                </p>
+              </div>
+
+              {/* Appeal Reason (if exists) */}
+              {selectedReport.appealReason && (
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Your Appeal</Label>
+                  <div className="p-3 rounded-lg border bg-muted/50">
+                    <p className="text-sm whitespace-pre-wrap">{selectedReport.appealReason}</p>
+                    {selectedReport.appealAt && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Submitted {formatDistanceToNow(new Date(selectedReport.appealAt), { addSuffix: true })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Review Notes (if exists) */}
+              {selectedReport.reviewNotes && (
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Admin Review Notes</Label>
+                  <div className="p-3 rounded-lg border bg-muted/50">
+                    <p className="text-sm whitespace-pre-wrap">{selectedReport.reviewNotes}</p>
+                    {selectedReport.reviewedAt && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Reviewed {formatDistanceToNow(new Date(selectedReport.reviewedAt), { addSuffix: true })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Appeal Form */}
+              {canAppeal(selectedReport) && (
+                <div>
+                  <Label htmlFor="appeal-reason" className="text-sm font-medium mb-2 block">
+                    Appeal Reason *
+                  </Label>
+                  <Textarea
+                    id="appeal-reason"
+                    value={appealReason}
+                    onChange={(e) => setAppealReason(e.target.value)}
+                    placeholder="Please explain why you believe this report is incorrect..."
+                    rows={5}
+                    className="text-sm cursor-text resize-none"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    Your appeal will be reviewed by moderators.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSelectedReport(null);
+                  setAppealReason("");
+                }}
+                disabled={appealReport.isPending}
+                className="cursor-pointer text-sm"
+              >
+                {canAppeal(selectedReport) ? "Cancel" : "Close"}
+              </Button>
+              {canAppeal(selectedReport) && (
+                <Button
+                  onClick={handleAppeal}
+                  disabled={appealReport.isPending || !appealReason.trim()}
+                  className="cursor-pointer text-sm"
+                >
+                  {appealReport.isPending ? "Submitting..." : "Submit Appeal"}
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
 }
-
-function ReportCard({
-  report,
-  getStatusBadge,
-  canAppeal,
-  onAppeal,
-}: {
-  report: any;
-  getStatusBadge: (status: string) => React.ReactNode;
-  canAppeal: (report: any) => boolean;
-  onAppeal: () => void;
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            {report.type === "post" ? (
-              <FileText className="h-5 w-5 text-muted-foreground" />
-            ) : (
-              <MessageSquare className="h-5 w-5 text-muted-foreground" />
-            )}
-            <div>
-              <CardTitle className="text-lg">
-                {report.type === "post" ? "Post Report" : "Reply Report"}
-              </CardTitle>
-              <CardDescription>
-                Reported {formatDistanceToNow(new Date(report.createdAt), { addSuffix: true })}
-              </CardDescription>
-            </div>
-          </div>
-          {getStatusBadge(report.status)}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <h4 className="text-sm font-medium mb-2">Your Content</h4>
-          <div className="p-3 rounded-lg border bg-muted/50">
-            {report.type === "post" ? (
-              <div>
-                <Link
-                  href={`/forum/${report.target.slug || report.target.id}`}
-                  className="font-medium hover:underline cursor-pointer"
-                >
-                  {report.target.title}
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                <Link
-                  href={`/forum/${report.target.post.slug || report.target.post.id}`}
-                  className="text-xs text-muted-foreground hover:underline cursor-pointer"
-                >
-                  Post: {report.target.post.title}
-                </Link>
-                <p className="text-sm line-clamp-3">{report.target.content}</p>
-              </div>
-            )}
-          </div>
-        </div>
-        <div>
-          <h4 className="text-sm font-medium mb-2">Report Reason</h4>
-          <div className="p-3 rounded-lg border bg-muted/50">
-            <p className="text-sm font-medium">{report.reason}</p>
-            {report.description && (
-              <p className="text-sm text-muted-foreground mt-1">{report.description}</p>
-            )}
-          </div>
-        </div>
-        {report.appealReason && (
-          <div>
-            <h4 className="text-sm font-medium mb-2">Your Appeal</h4>
-            <div className="p-3 rounded-lg border bg-muted/50">
-              <p className="text-sm">{report.appealReason}</p>
-            </div>
-          </div>
-        )}
-        {report.reviewNotes && (
-          <div>
-            <h4 className="text-sm font-medium mb-2">Admin Review Notes</h4>
-            <div className="p-3 rounded-lg border bg-muted/50">
-              <p className="text-sm">{report.reviewNotes}</p>
-            </div>
-          </div>
-        )}
-        {canAppeal(report) && (
-          <Button onClick={onAppeal} variant="outline" className="cursor-pointer">
-            <AlertCircle className="h-4 w-4 mr-2" />
-            Appeal Report
-          </Button>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-

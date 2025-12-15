@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useFollowingPlaylists } from "@/hooks/use-playlist-likes";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, List } from "lucide-react";
+import { ChevronLeft, ChevronRight, Film } from "lucide-react";
 import { Playlist } from "@/hooks/use-playlists";
 import PlaylistCard from "@/components/browse/playlist-card";
 
@@ -29,16 +29,27 @@ export default function FriendsPlaylistsContent() {
   }, [playlists.length]);
 
   return (
-    <>
+    <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">Friends&apos; Playlists</h1>
+        <p className="text-muted-foreground">
+          {playlists.length} {playlists.length === 1 ? "playlist" : "playlists"} from users you follow
+        </p>
+      </div>
+
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="aspect-[3/4] w-full rounded-lg" />
+            <div key={i} className="w-full">
+              <Skeleton className="w-full h-[225px] rounded-lg mb-2" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
           ))}
         </div>
       ) : playlists.length === 0 ? (
         <div className="text-center py-12">
-          <List className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <Film className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">No playlists yet</h3>
           <p className="text-muted-foreground">
             Start following users to see their playlists here
@@ -83,7 +94,7 @@ export default function FriendsPlaylistsContent() {
           )}
         </>
       )}
-    </>
+    </div>
   );
 }
 
