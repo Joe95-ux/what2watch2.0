@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { ForumFilterContent } from "@/components/forum/forum-filter-content";
 
 function ForumFilterFallback() {
@@ -19,9 +18,7 @@ function ForumFilterFallback() {
 
 export default function ForumFilterPage() {
   return (
-    <Suspense fallback={<ForumFilterFallback />}>
-      <ForumFilterContent />
-    </Suspense>
+    <ForumFilterContent />
   );
 }
 

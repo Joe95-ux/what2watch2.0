@@ -79,9 +79,21 @@ function ForumFilterContentFallback() {
   );
 }
 
-function ForumFilterContentInner() {
-  const router = useRouter();
+function SearchParamsProvider({ 
+  children 
+}: { 
+  children: (params: URLSearchParams) => React.ReactNode 
+}) {
   const searchParams = useSearchParams();
+  return <>{children(searchParams)}</>;
+}
+
+interface ForumFilterContentInnerProps {
+  searchParams: URLSearchParams;
+}
+
+function ForumFilterContentInner({ searchParams }: ForumFilterContentInnerProps) {
+  const router = useRouter();
   const observerTarget = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [sortBy, setSortBy] = useState<"createdAt" | "views" | "replyCount" | "updatedAt">(
@@ -489,7 +501,9 @@ function ForumFilterContentInner() {
 export function ForumFilterContent() {
   return (
     <Suspense fallback={<ForumFilterContentFallback />}>
-      <ForumFilterContentInner />
+      <SearchParamsProvider>
+        {(searchParams) => <ForumFilterContentInner searchParams={searchParams} />}
+      </SearchParamsProvider>
     </Suspense>
   );
 }
