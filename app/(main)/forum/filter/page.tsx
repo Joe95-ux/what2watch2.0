@@ -1,5 +1,8 @@
 import { ForumFilterContent } from "@/components/forum/forum-filter-content";
 
+// Force dynamic rendering since this page uses client-side URL mutations (router.replace)
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   searchParams: Promise<{
     search?: string;
