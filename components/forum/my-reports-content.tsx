@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Flag,
   FileText,
@@ -153,40 +154,40 @@ export function MyReportsContent() {
     switch (status) {
       case "pending":
         return (
-          <Badge variant="outline" className="border-yellow-500 text-yellow-600 dark:text-yellow-400 font-sm">
-            <Clock className="h-3 w-3 mr-1" />
+          <Badge variant="outline" className="border-yellow-500 bg-yellow-50 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-400 dark:border-yellow-500 font-sm font-medium">
+            <Clock className="h-3.5 w-3.5 mr-1.5" />
             Pending
           </Badge>
         );
       case "reviewed":
         return (
-          <Badge variant="secondary" className="font-sm">
+          <Badge variant="secondary" className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 font-sm font-medium">
             Reviewed
           </Badge>
         );
       case "appealed":
         return (
-          <Badge variant="outline" className="border-blue-500 text-blue-600 dark:text-blue-400 font-sm">
-            <AlertCircle className="h-3 w-3 mr-1" />
+          <Badge variant="outline" className="border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-500 font-sm font-medium">
+            <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
             Appealed
           </Badge>
         );
       case "appeal_approved":
         return (
-          <Badge variant="default" className="bg-green-500 hover:bg-green-600 font-sm">
-            <CheckCircle2 className="h-3 w-3 mr-1" />
+          <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-white dark:bg-green-500 dark:hover:bg-green-600 font-sm font-medium">
+            <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
             Approved
           </Badge>
         );
       case "appeal_rejected":
         return (
-          <Badge variant="destructive" className="font-sm">
-            <XCircle className="h-3 w-3 mr-1" />
+          <Badge variant="destructive" className="bg-red-600 hover:bg-red-700 text-white dark:bg-red-500 dark:hover:bg-red-600 font-sm font-medium">
+            <XCircle className="h-3.5 w-3.5 mr-1.5" />
             Rejected
           </Badge>
         );
       default:
-        return <Badge variant="secondary" className="font-sm">{status}</Badge>;
+        return <Badge variant="secondary" className="font-sm font-medium">{status}</Badge>;
     }
   };
 
@@ -478,8 +479,9 @@ export function MyReportsContent() {
       {/* Detail/Appeal Dialog */}
       {selectedReport && (
         <Dialog open={!!selectedReport} onOpenChange={() => setSelectedReport(null)}>
-          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
+          <DialogContent className="sm:max-w-[700px] flex flex-col max-h-[90vh] p-0">
+            {/* Fixed Header */}
+            <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
               <DialogTitle className="text-lg">
                 {selectedReport.type === "post" ? "Post Report Details" : "Reply Report Details"}
               </DialogTitle>
@@ -490,128 +492,132 @@ export function MyReportsContent() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6 py-4">
-              {/* Status */}
-              <div>
-                <Label className="text-sm font-medium mb-2 block">Status</Label>
-                {getStatusBadge(selectedReport.status)}
-              </div>
+            {/* Scrollable Content */}
+            <ScrollArea className="flex-1 px-6 py-4">
+              <div className="space-y-6">
+                {/* Status */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Status</Label>
+                  {getStatusBadge(selectedReport.status)}
+                </div>
 
-              {/* Your Content */}
-              <div>
-                <Label className="text-sm font-medium mb-2 block">Your Content</Label>
-                <div className="p-3 rounded-lg border bg-muted/50">
-                  {selectedReport.type === "post" ? (
-                    <div>
-                      <Link
-                        href={`/forum/${selectedReport.target.slug || selectedReport.target.id}`}
-                        className="text-sm font-medium hover:underline text-primary mb-2 block"
-                      >
-                        {selectedReport.target.title || "Untitled Post"}
-                      </Link>
-                      {selectedReport.target.content && (
-                        <p className="text-sm whitespace-pre-wrap line-clamp-6">
+                {/* Your Content */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Your Content</Label>
+                  <div className="p-3 rounded-lg border bg-muted/50">
+                    {selectedReport.type === "post" ? (
+                      <div>
+                        <Link
+                          href={`/forum/${selectedReport.target.slug || selectedReport.target.id}`}
+                          className="text-sm font-medium hover:underline text-primary mb-2 block"
+                        >
+                          {selectedReport.target.title || "Untitled Post"}
+                        </Link>
+                        {selectedReport.target.content && (
+                          <p className="text-sm whitespace-pre-wrap">
+                            {selectedReport.target.content}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div>
+                        <Link
+                          href={`/forum/${selectedReport.target.post.slug || selectedReport.target.post.id}`}
+                          className="text-xs text-muted-foreground hover:underline mb-2 block"
+                        >
+                          Post: {selectedReport.target.post.title}
+                        </Link>
+                        <p className="text-sm whitespace-pre-wrap">
                           {selectedReport.target.content}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Report Reason */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Report Reason</Label>
+                  <div className="p-3 rounded-lg border bg-muted/50">
+                    <p className="text-sm font-medium">{selectedReport.reason}</p>
+                    {selectedReport.description && (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {selectedReport.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Reporter and Date - Same Row */}
+                <div className="flex flex-row items-start gap-6 flex-wrap sm:flex-nowrap">
+                  <div className="flex-1 min-w-[200px]">
+                    <Label className="text-sm font-medium mb-2 block">Reported By</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedReport.reporter?.displayName || selectedReport.reporter?.username || "Unknown"}
+                    </p>
+                  </div>
+                  <div className="flex-1 min-w-[200px]">
+                    <Label className="text-sm font-medium mb-2 block">Reported</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {formatDistanceToNow(new Date(selectedReport.createdAt), { addSuffix: true })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Appeal Reason (if exists) */}
+                {selectedReport.appealReason && (
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">Your Appeal</Label>
+                    <div className="p-3 rounded-lg border bg-muted/50">
+                      <p className="text-sm whitespace-pre-wrap">{selectedReport.appealReason}</p>
+                      {selectedReport.appealAt && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Submitted {formatDistanceToNow(new Date(selectedReport.appealAt), { addSuffix: true })}
                         </p>
                       )}
                     </div>
-                  ) : (
-                    <div>
-                      <Link
-                        href={`/forum/${selectedReport.target.post.slug || selectedReport.target.post.id}`}
-                        className="text-xs text-muted-foreground hover:underline mb-2 block"
-                      >
-                        Post: {selectedReport.target.post.title}
-                      </Link>
-                      <p className="text-sm whitespace-pre-wrap line-clamp-6">
-                        {selectedReport.target.content}
-                      </p>
+                  </div>
+                )}
+
+                {/* Review Notes (if exists) */}
+                {selectedReport.reviewNotes && (
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">Admin Review Notes</Label>
+                    <div className="p-3 rounded-lg border bg-muted/50">
+                      <p className="text-sm whitespace-pre-wrap">{selectedReport.reviewNotes}</p>
+                      {selectedReport.reviewedAt && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Reviewed {formatDistanceToNow(new Date(selectedReport.reviewedAt), { addSuffix: true })}
+                        </p>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
+                )}
 
-              {/* Report Reason */}
-              <div>
-                <Label className="text-sm font-medium mb-2 block">Report Reason</Label>
-                <div className="p-3 rounded-lg border bg-muted/50">
-                  <p className="text-sm font-medium">{selectedReport.reason}</p>
-                  {selectedReport.description && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {selectedReport.description}
+                {/* Appeal Form */}
+                {canAppeal(selectedReport) && (
+                  <div>
+                    <Label htmlFor="appeal-reason" className="text-sm font-medium mb-2 block">
+                      Appeal Reason *
+                    </Label>
+                    <Textarea
+                      id="appeal-reason"
+                      value={appealReason}
+                      onChange={(e) => setAppealReason(e.target.value)}
+                      placeholder="Please explain why you believe this report is incorrect..."
+                      rows={5}
+                      className="text-sm cursor-text resize-none"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1.5">
+                      Your appeal will be reviewed by moderators.
                     </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Reporter */}
-              <div>
-                <Label className="text-sm font-medium mb-2 block">Reported By</Label>
-                <p className="text-sm text-muted-foreground">
-                  {selectedReport.reporter?.displayName || selectedReport.reporter?.username || "Unknown"}
-                </p>
-              </div>
-
-              {/* Reported Date */}
-              <div>
-                <Label className="text-sm font-medium mb-2 block">Reported</Label>
-                <p className="text-sm text-muted-foreground">
-                  {formatDistanceToNow(new Date(selectedReport.createdAt), { addSuffix: true })}
-                </p>
-              </div>
-
-              {/* Appeal Reason (if exists) */}
-              {selectedReport.appealReason && (
-                <div>
-                  <Label className="text-sm font-medium mb-2 block">Your Appeal</Label>
-                  <div className="p-3 rounded-lg border bg-muted/50">
-                    <p className="text-sm whitespace-pre-wrap">{selectedReport.appealReason}</p>
-                    {selectedReport.appealAt && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Submitted {formatDistanceToNow(new Date(selectedReport.appealAt), { addSuffix: true })}
-                      </p>
-                    )}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            </ScrollArea>
 
-              {/* Review Notes (if exists) */}
-              {selectedReport.reviewNotes && (
-                <div>
-                  <Label className="text-sm font-medium mb-2 block">Admin Review Notes</Label>
-                  <div className="p-3 rounded-lg border bg-muted/50">
-                    <p className="text-sm whitespace-pre-wrap">{selectedReport.reviewNotes}</p>
-                    {selectedReport.reviewedAt && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Reviewed {formatDistanceToNow(new Date(selectedReport.reviewedAt), { addSuffix: true })}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Appeal Form */}
-              {canAppeal(selectedReport) && (
-                <div>
-                  <Label htmlFor="appeal-reason" className="text-sm font-medium mb-2 block">
-                    Appeal Reason *
-                  </Label>
-                  <Textarea
-                    id="appeal-reason"
-                    value={appealReason}
-                    onChange={(e) => setAppealReason(e.target.value)}
-                    placeholder="Please explain why you believe this report is incorrect..."
-                    rows={5}
-                    className="text-sm cursor-text resize-none"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1.5">
-                    Your appeal will be reviewed by moderators.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <DialogFooter>
+            {/* Fixed Footer */}
+            <DialogFooter className="px-6 py-4 border-t flex-shrink-0">
               <Button
                 variant="outline"
                 onClick={() => {
