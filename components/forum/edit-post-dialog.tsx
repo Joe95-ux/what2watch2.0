@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { TiptapEditor } from "./tiptap-editor";
 import {
   Select,
   SelectContent,
@@ -214,14 +215,13 @@ export function EditPostDialog({
               </div>
               <div>
                 <Label htmlFor="content">Content *</Label>
-                <Textarea
-                  id="content"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Write your post content..."
-                  className="mt-1 min-h-[200px] cursor-text"
-                  required
-                />
+                <div className="mt-1">
+                  <TiptapEditor
+                    content={content}
+                    onChange={setContent}
+                    placeholder="Write your post content..."
+                  />
+                </div>
               </div>
             </div>
           ) : (

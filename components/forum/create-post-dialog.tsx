@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { TiptapEditor } from "./tiptap-editor";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -247,18 +248,13 @@ export function CreatePostDialog({
 
                 <div className="space-y-2">
                   <Label htmlFor="content">Content</Label>
-                  <Textarea
-                    id="content"
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
+                  <TiptapEditor
+                    content={content}
+                    onChange={setContent}
                     placeholder="Write your post content..."
-                    rows={10}
-                    maxLength={10000}
-                    required
-                    className="resize-none cursor-text"
                   />
                   <p className="text-xs text-muted-foreground">
-                    {content.length}/10,000 characters
+                    {content.replace(/<[^>]*>/g, "").length}/10,000 characters
                   </p>
                 </div>
 

@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MoreHorizontal, Search, Eye, EyeOff, Lock, Unlock, Trash2, Flag, Edit } from "lucide-react";
+import { MoreHorizontal, Search, Eye, EyeOff, Lock, Unlock, Trash2, Flag, Edit, X } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { EditPostDialog } from "@/components/forum/edit-post-dialog";
+import { cn } from "@/lib/utils";
 
 export function PostModerationTable() {
   const queryClient = useQueryClient();
@@ -143,9 +144,9 @@ export function PostModerationTable() {
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4 overflow-x-auto scrollbar-hide">
-        {/* Mobile: Search button or expanded search */}
+        {/* Mobile: Search button (icon only) or expanded search covering entire row */}
         {isSearchExpanded ? (
-          <div className="relative flex-1 min-w-0 lg:hidden">
+          <div className="relative w-full lg:hidden">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search posts..."
@@ -154,41 +155,49 @@ export function PostModerationTable() {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              onBlur={() => {
-                // Collapse if search is empty
-                if (!search) {
-                  setIsSearchExpanded(false);
-                }
-              }}
               autoFocus
-              className="pl-9 cursor-text"
+              className="pl-9 pr-9 cursor-text"
             />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setIsSearchExpanded(false);
+                setSearch("");
+              }}
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
         ) : (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setIsSearchExpanded(true)}
-            className="lg:hidden cursor-pointer flex-shrink-0"
-          >
-            <Search className="h-4 w-4 mr-2" />
-            Search
-          </Button>
-        )}
-        {/* Desktop search - always visible */}
-        <div className="relative flex-1 hidden lg:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search posts..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="pl-9 cursor-text"
-          />
-        </div>
-        <div className="flex items-center gap-4 flex-shrink-0">
+          <>
+            {/* Mobile: Icon-only search button - stays on same row as filters */}
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => setIsSearchExpanded(true)}
+              className="lg:hidden cursor-pointer flex-shrink-0 h-10 w-10"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+            {/* Desktop search - always visible */}
+            <div className="relative flex-1 hidden lg:block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search posts..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                className="pl-9 cursor-text"
+              />
+            </div>
+            {/* Filters - visible when search is not expanded */}
+            <div className="flex items-center gap-4 flex-shrink-0">
           <Select value={hiddenFilter || "all"} onValueChange={(value) => { setHiddenFilter(value === "all" ? "" : value); setPage(1); }}>
             <SelectTrigger className="w-[140px] cursor-pointer">
               <SelectValue placeholder="All Posts" />

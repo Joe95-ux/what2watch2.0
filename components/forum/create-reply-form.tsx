@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { TiptapEditor } from "./tiptap-editor";
 
 interface CreateReplyFormProps {
   postId: string;
@@ -65,18 +66,14 @@ export function CreateReplyForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <Textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
+      <TiptapEditor
+        content={content}
+        onChange={setContent}
         placeholder={parentReplyId ? "Write your reply..." : "Write a reply..."}
-        rows={4}
-        maxLength={5000}
-        required
-        className="resize-none"
       />
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">
-          {content.length}/5,000 characters
+          {content.replace(/<[^>]*>/g, "").length}/5,000 characters
         </p>
         <div className="flex items-center gap-2">
           <Button
