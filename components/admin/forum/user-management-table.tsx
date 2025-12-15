@@ -225,6 +225,8 @@ export function UserManagementTable() {
             </SelectContent>
           </Select>
         </div>
+          </>
+        )}
       </div>
 
       {/* Table */}

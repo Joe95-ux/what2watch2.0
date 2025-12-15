@@ -229,6 +229,8 @@ export function PostModerationTable() {
             </SelectContent>
           </Select>
         </div>
+          </>
+        )}
       </div>
 
       {/* Table */}
