@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { PanelLeft } from "lucide-react";
@@ -60,7 +60,9 @@ export function ForumLayout({ children, mobileHeaderTitle }: ForumLayoutProps) {
 
         {/* Scrollable Content Area */}
         <div className="flex-1 min-h-0 overflow-y-auto">
-          {children}
+          <Suspense fallback={null}>
+            {children}
+          </Suspense>
         </div>
       </div>
     </div>
