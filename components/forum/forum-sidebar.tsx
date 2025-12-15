@@ -18,7 +18,6 @@ import {
   Hash
 } from "lucide-react";
 import { BiSolidCategory } from "react-icons/bi";
-import { BiSolidCategory } from "react-icons/bi";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
