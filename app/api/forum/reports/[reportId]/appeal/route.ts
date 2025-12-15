@@ -77,7 +77,7 @@ export async function POST(
           contentOwnerName: report.post.user.displayName || report.post.user.username || "User",
           contentType: "post",
           contentTitle: report.post.title,
-          appealUrl: `${baseUrl}/dashboard/forum/reports`,
+          appealUrl: `${baseUrl}/dashboard/reports`,
         });
 
         await sendEmail({
@@ -155,7 +155,7 @@ export async function POST(
         const emailHtml = getAppealSubmittedEmail({
           contentOwnerName: report.reply.user.displayName || report.reply.user.username || "User",
           contentType: "reply",
-          appealUrl: `${baseUrl}/dashboard/forum/reports`,
+          appealUrl: `${baseUrl}/dashboard/reports`,
         });
 
         await sendEmail({

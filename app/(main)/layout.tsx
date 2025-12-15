@@ -11,12 +11,13 @@ export default function MainLayout({
 }) {
   const pathname = usePathname();
   const isDashboard = pathname === "/dashboard" || pathname?.startsWith("/dashboard/");
+  const isForum = pathname === "/forum" || pathname?.startsWith("/forum/");
 
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1">{children}</main>
-      {!isDashboard && <Footer />}
+      {!isDashboard && !isForum && <Footer />}
     </div>
   );
 }

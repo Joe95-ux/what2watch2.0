@@ -408,7 +408,7 @@ export function ForumSidebar({
   if (isMobile) {
     return (
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent side="left" className="w-[280px] p-0">
+        <SheetContent side="left" className="w-[280px] p-0 [&>button]:hidden">
           {sidebarContent}
         </SheetContent>
       </Sheet>

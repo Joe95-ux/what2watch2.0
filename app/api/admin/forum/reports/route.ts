@@ -10,18 +10,26 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "50", 10);
-    const status = searchParams.get("status") || "pending"; // pending, reviewed, appealed
+    const statusParam = searchParams.get("status");
+    const status = statusParam || "pending"; // pending, reviewed, appealed, appeal_approved, appeal_rejected
     const type = searchParams.get("type") || "all"; // all, post, reply
 
     const skip = (page - 1) * limit;
 
     // Fetch post reports
     const postReportsWhere: any = { status };
+    
+    // If type is "all", we need to fetch all reports first, then paginate after combining
+    // If type is "post" or "reply", we can paginate directly
+    const shouldFetchAll = type === "all";
+    const postSkip = shouldFetchAll ? 0 : (type === "reply" ? 0 : skip);
+    const postTake = shouldFetchAll ? undefined : (type === "reply" ? 0 : limit);
+    
     const [postReports, postReportsTotal] = await Promise.all([
       db.forumPostReport.findMany({
         where: postReportsWhere,
-        skip: type === "reply" ? 0 : skip,
-        take: type === "reply" ? 0 : (type === "all" ? limit : limit),
+        skip: postSkip,
+        take: postTake,
         include: {
           post: {
             select: {
@@ -61,11 +69,14 @@ export async function GET(request: NextRequest) {
 
     // Fetch reply reports
     const replyReportsWhere: any = { status };
+    const replySkip = shouldFetchAll ? 0 : (type === "post" ? 0 : skip);
+    const replyTake = shouldFetchAll ? undefined : (type === "post" ? 0 : limit);
+    
     const [replyReports, replyReportsTotal] = await Promise.all([
       db.forumReplyReport.findMany({
         where: replyReportsWhere,
-        skip: type === "post" ? 0 : skip,
-        take: type === "post" ? 0 : (type === "all" ? limit : limit),
+        skip: replySkip,
+        take: replyTake,
         include: {
           reply: {
             select: {
@@ -162,7 +173,10 @@ export async function GET(request: NextRequest) {
       })),
     ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    const total = postReportsTotal + replyReportsTotal;
+    // Calculate total - if type is "all", use combined total, otherwise use the specific type total
+    const total = type === "all" 
+      ? postReportsTotal + replyReportsTotal
+      : (type === "post" ? postReportsTotal : replyReportsTotal);
 
     // If type is "all", we need to paginate the combined results
     if (type === "all") {

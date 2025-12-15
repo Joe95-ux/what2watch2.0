@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function ReportsManagementTable() {
   const queryClient = useQueryClient();
@@ -214,30 +215,28 @@ export function ReportsManagementTable() {
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex items-center gap-4">
-        <select
-          value={statusFilter}
-          onChange={(e) => {
-            setStatusFilter(e.target.value);
-            setPage(1);
-          }}
-          className="h-10 px-3 rounded-md border border-input bg-background cursor-pointer"
-        >
-          <option value="pending">Pending</option>
-          <option value="reviewed">Reviewed</option>
-          <option value="appealed">Appealed</option>
-        </select>
-        <select
-          value={typeFilter}
-          onChange={(e) => {
-            setTypeFilter(e.target.value);
-            setPage(1);
-          }}
-          className="h-10 px-3 rounded-md border border-input bg-background cursor-pointer"
-        >
-          <option value="all">All Types</option>
-          <option value="post">Posts Only</option>
-          <option value="reply">Replies Only</option>
-        </select>
+        <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setPage(1); }}>
+          <SelectTrigger className="w-[140px] cursor-pointer">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="reviewed">Reviewed</SelectItem>
+            <SelectItem value="appealed">Appealed</SelectItem>
+            <SelectItem value="appeal_approved">Appeal Approved</SelectItem>
+            <SelectItem value="appeal_rejected">Appeal Rejected</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={typeFilter} onValueChange={(value) => { setTypeFilter(value); setPage(1); }}>
+          <SelectTrigger className="w-[140px] cursor-pointer">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="post">Posts Only</SelectItem>
+            <SelectItem value="reply">Replies Only</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Table */}

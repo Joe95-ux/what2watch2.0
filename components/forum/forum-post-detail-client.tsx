@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { MessageCircle, Eye, Tag, ArrowBigUp, ArrowBigDown, MoreVertical, Flag, PanelLeft, Edit, Trash2, ArrowLeft, Search, ArrowUpDown } from "lucide-react";
+import { MessageCircle, Eye, Tag, ArrowBigUp, ArrowBigDown, MoreVertical, Flag, Edit, Trash2, ArrowLeft, Search, ArrowUpDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -21,8 +21,6 @@ import { CreateReplyForm } from "./create-reply-form";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { ForumSidebar } from "./forum-sidebar";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
 import { useForumPostReaction, useToggleForumPostLike } from "@/hooks/use-forum-reactions";
 import { ShareDropdown } from "@/components/ui/share-dropdown";
@@ -85,8 +83,6 @@ export function ForumPostDetailClient() {
   const { data: currentUser } = useCurrentUser();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const isMobile = useIsMobile();
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
@@ -285,64 +281,40 @@ export function ForumPostDetailClient() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex">
-        <ForumSidebar 
-          mobileOpen={mobileSidebarOpen}
-          onMobileOpenChange={setMobileSidebarOpen}
-        />
-        <div className="flex-1 min-w-0">
-          {isMobile && (
-            <div className="sticky top-[65px] z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-              <div className="px-4 py-2 flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setMobileSidebarOpen(true)}
-                  className="cursor-pointer h-9 w-9"
-                >
-                  <PanelLeft className="h-5 w-5" />
-                </Button>
-                <div className="h-4 w-px bg-border flex-shrink-0" />
-                <Skeleton className="h-5 w-32" />
-              </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="space-y-6">
+          {/* Post skeleton */}
+          <div className="rounded-lg border border-border p-4 space-y-3">
+            <div className="flex items-start justify-between">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-8 w-8" />
             </div>
-          )}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div className="space-y-6">
-              {/* Post skeleton */}
-              <div className="rounded-lg border border-border p-4 space-y-3">
-                <div className="flex items-start justify-between">
-                  <Skeleton className="h-4 w-48" />
-                  <Skeleton className="h-8 w-8" />
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-9 w-full rounded-[25px]" />
+          </div>
+          {/* Replies section header */}
+          <Skeleton className="h-6 w-32" />
+          {/* Reply form skeleton */}
+          <Skeleton className="h-24 w-full" />
+          {/* Replies skeleton */}
+          <div className="space-y-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex gap-2">
+                <div className="flex flex-col items-center gap-1 pt-1">
+                  <Skeleton className="h-6 w-6" />
+                  <Skeleton className="h-4 w-6" />
+                  <Skeleton className="h-6 w-6" />
                 </div>
-                <Skeleton className="h-8 w-3/4" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-2/3" />
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-9 w-full rounded-[25px]" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-1/4" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
               </div>
-              {/* Replies section header */}
-              <Skeleton className="h-6 w-32" />
-              {/* Reply form skeleton */}
-              <Skeleton className="h-24 w-full" />
-              {/* Replies skeleton */}
-              <div className="space-y-4">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="flex gap-2">
-                    <div className="flex flex-col items-center gap-1 pt-1">
-                      <Skeleton className="h-6 w-6" />
-                      <Skeleton className="h-4 w-6" />
-                      <Skeleton className="h-6 w-6" />
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-1/4" />
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-3/4" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
@@ -351,84 +323,39 @@ export function ForumPostDetailClient() {
 
   if (error || !data || !post) {
     return (
-      <div className="h-screen bg-background flex overflow-hidden">
-        <ForumSidebar 
-          mobileOpen={mobileSidebarOpen}
-          onMobileOpenChange={setMobileSidebarOpen}
-        />
-        <div className={cn(
-          "flex-1 min-w-0 transition-all duration-300 flex flex-col overflow-hidden",
-          !isMobile && "ml-64"
-        )}>
-          <div className="flex-1 min-h-0 overflow-y-auto">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-              <div className="text-center py-12">
-                <p className="text-destructive">Failed to load post. Please try again.</p>
-              </div>
-            </div>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="text-center py-12">
+          <p className="text-destructive">Failed to load post. Please try again.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen bg-background flex overflow-hidden">
-      {/* Sidebar */}
-      <ForumSidebar 
-        mobileOpen={mobileSidebarOpen}
-        onMobileOpenChange={setMobileSidebarOpen}
-      />
-
-      {/* Main Content */}
-      <div className={cn(
-        "flex-1 min-w-0 transition-all duration-300 flex flex-col overflow-hidden",
-        !isMobile && "ml-64"
-      )}>
-        {/* Mobile Sidebar Trigger */}
-        {isMobile && (
-          <div className="sticky top-[65px] z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
-            <div className="px-4 py-2 flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setMobileSidebarOpen(true)}
-                className="cursor-pointer h-9 w-9"
-                aria-label="Toggle sidebar"
-              >
-                <PanelLeft className="h-5 w-5" />
-              </Button>
-              <div className="h-4 w-px bg-border flex-shrink-0" />
-              <h1 className="text-sm font-semibold">Forum</h1>
-            </div>
-          </div>
-        )}
-
-        {/* Scrollable Content Area */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {/* Two Column Layout */}
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Main Content Column */}
-            <div className="flex-1 min-w-0">
-              {/* Post Content */}
-              <article className="rounded-lg">
-          {/* Back Button */}
-          <div className="mb-4">
+    <>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Two Column Layout */}
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Main Content Column */}
+          <div className="flex-1 min-w-0">
+            {/* Post Content */}
+            <article className="rounded-lg">
+              {/* Back Button */}
+              <div className="mb-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => router.back()}
               className="gap-2"
             >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-          </div>
-          
-          {/* Header with Dot Menu */}
-          <div className="flex items-start justify-between mb-2">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-1">
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
+              </div>
+              
+              {/* Header with Dot Menu */}
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground flex-1">
               <Avatar className="h-6 w-6">
                 <AvatarImage src={post.author.avatarUrl} />
                 <AvatarFallback className="text-xs">
@@ -464,130 +391,130 @@ export function ForumPostDetailClient() {
               </Link>
               <span>•</span>
               <span>{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>
-            </div>
-            
-            {/* Dot Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 cursor-pointer"
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {isAuthor && (
-                <>
-                  <DropdownMenuItem
-                    onClick={() => setIsEditDialogOpen(true)}
-                    className="cursor-pointer"
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Post
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={handleDelete}
-                    className="cursor-pointer text-destructive"
-                    disabled={deletePost.isPending}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Post
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                </>
+                </div>
+                
+                {/* Dot Menu */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 cursor-pointer"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {isAuthor && (
+                      <>
+                        <DropdownMenuItem
+                          onClick={() => setIsEditDialogOpen(true)}
+                          className="cursor-pointer"
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit Post
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={handleDelete}
+                          className="cursor-pointer text-destructive"
+                          disabled={deletePost.isPending}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Post
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    <DropdownMenuItem
+                      onClick={() => setIsReportDialogOpen(true)}
+                      className="cursor-pointer"
+                    >
+                      <Flag className="h-4 w-4 mr-2" />
+                      Report Post
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              <h1 className="text-2xl font-bold mb-3">{post.title}</h1>
+
+              {/* Tags */}
+              {post.tags.length > 0 && (
+                <div className="flex items-center gap-2 mb-4 flex-wrap">
+                  {post.tags.map((tag) => (
+                    <Link
+                      key={tag}
+                      href={`/forum?tag=${encodeURIComponent(tag)}`}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted hover:bg-muted/80 text-xs rounded-full transition-colors"
+                    >
+                      <Tag className="h-3 w-3" />
+                      {tag}
+                    </Link>
+                  ))}
+                </div>
               )}
-              <DropdownMenuItem
-                onClick={() => setIsReportDialogOpen(true)}
-                className="cursor-pointer"
-              >
-                <Flag className="h-4 w-4 mr-2" />
-                Report Post
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
 
-          <h1 className="text-2xl font-bold mb-3">{post.title}</h1>
+              {/* Content */}
+              <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
+                <p className="whitespace-pre-wrap text-sm">{post.content}</p>
+              </div>
 
-          {/* Tags */}
-          {post.tags.length > 0 && (
-            <div className="flex items-center gap-2 mb-4 flex-wrap">
-              {post.tags.map((tag) => (
-                <Link
-                  key={tag}
-                  href={`/forum?tag=${encodeURIComponent(tag)}`}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted hover:bg-muted/80 text-xs rounded-full transition-colors"
-                >
-                  <Tag className="h-3 w-3" />
-                  {tag}
-                </Link>
-              ))}
-            </div>
-          )}
+              {/* Action Buttons - Under Tags */}
+              <div className="flex items-center gap-2">
+                {/* Vote Buttons - Act like one button */}
+                <div className="flex items-center rounded-[25px] bg-muted/50 overflow-hidden">
+                  <button
+                    onClick={() => handleVote("upvote")}
+                    disabled={toggleReaction.isPending}
+                    className={cn(
+                      "flex items-center gap-1 px-4 py-2 transition-colors cursor-pointer",
+                      isUpvoted ? "text-primary" : "hover:bg-muted",
+                      toggleReaction.isPending && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    <ArrowBigUp className={cn("h-4 w-4", isUpvoted && "fill-current")} />
+                    {displayScore > 0 && <span className="text-sm">{displayScore}</span>}
+                  </button>
+                  <div className="h-6 w-px bg-border" />
+                  <button
+                    onClick={() => handleVote("downvote")}
+                    disabled={toggleReaction.isPending}
+                    className={cn(
+                      "flex items-center gap-1 px-4 py-2 transition-colors cursor-pointer",
+                      isDownvoted ? "text-primary" : "hover:bg-muted",
+                      toggleReaction.isPending && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    <ArrowBigDown className={cn("h-4 w-4", isDownvoted && "fill-current")} />
+                  </button>
+                </div>
+                
+                {/* Comment Button */}
+                <div className="flex items-center gap-2 px-3 py-2 rounded-[25px] bg-muted/50 text-xs text-muted-foreground">
+                  <MessageCircle className="h-4 w-4" />
+                  {post.replyCount > 0 && <span className="text-sm font-medium">{post.replyCount}</span>}
+                </div>
+                
+                {/* Share Button */}
+                <ShareDropdown
+                  shareUrl={fullPostUrl}
+                  title={post.title}
+                  variant="ghost"
+                  size="sm"
+                  showLabel={true}
+                  className="rounded-[25px] bg-muted/50 hover:bg-muted h-auto px-3 py-2"
+                />
+                
+                {/* Views */}
+                <div className="flex items-center gap-1 px-3 py-2 rounded-[25px] bg-muted/50 text-xs text-muted-foreground ml-auto">
+                  <Eye className="h-4 w-4" />
+                  <span>{post.views}</span>
+                </div>
+              </div>
+            </article>
 
-          {/* Content */}
-          <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
-            <p className="whitespace-pre-wrap text-sm">{post.content}</p>
-          </div>
-
-          {/* Action Buttons - Under Tags */}
-          <div className="flex items-center gap-2">
-            {/* Vote Buttons - Act like one button */}
-            <div className="flex items-center rounded-[25px] bg-muted/50 overflow-hidden">
-              <button
-                onClick={() => handleVote("upvote")}
-                disabled={toggleReaction.isPending}
-                className={cn(
-                  "flex items-center gap-1 px-4 py-2 transition-colors cursor-pointer",
-                  isUpvoted ? "text-primary" : "hover:bg-muted",
-                  toggleReaction.isPending && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                <ArrowBigUp className={cn("h-4 w-4", isUpvoted && "fill-current")} />
-                {displayScore > 0 && <span className="text-sm">{displayScore}</span>}
-              </button>
-              <div className="h-6 w-px bg-border" />
-              <button
-                onClick={() => handleVote("downvote")}
-                disabled={toggleReaction.isPending}
-                className={cn(
-                  "flex items-center gap-1 px-4 py-2 transition-colors cursor-pointer",
-                  isDownvoted ? "text-primary" : "hover:bg-muted",
-                  toggleReaction.isPending && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                <ArrowBigDown className={cn("h-4 w-4", isDownvoted && "fill-current")} />
-              </button>
-            </div>
-            
-            {/* Comment Button */}
-            <div className="flex items-center gap-2 px-3 py-2 rounded-[25px] bg-muted/50 text-xs text-muted-foreground">
-              <MessageCircle className="h-4 w-4" />
-              {post.replyCount > 0 && <span className="text-sm font-medium">{post.replyCount}</span>}
-            </div>
-            
-            {/* Share Button */}
-            <ShareDropdown
-              shareUrl={fullPostUrl}
-              title={post.title}
-              variant="ghost"
-              size="sm"
-              showLabel={true}
-              className="rounded-[25px] bg-muted/50 hover:bg-muted h-auto px-3 py-2"
-            />
-            
-            {/* Views */}
-            <div className="flex items-center gap-1 px-3 py-2 rounded-[25px] bg-muted/50 text-xs text-muted-foreground ml-auto">
-              <Eye className="h-4 w-4" />
-              <span>{post.views}</span>
-            </div>
-          </div>
-        </article>
-
-        {/* Replies Section */}
-        <div className="mt-8 space-y-4">
+            {/* Replies Section */}
+            <div className="mt-8 space-y-4">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <h2 className="text-lg font-semibold">
               {post.replyCount} {post.replyCount === 1 ? "Comment" : "Comments"}
@@ -646,15 +573,15 @@ export function ForumPostDetailClient() {
           )}
 
           {/* Replies List */}
-          <ForumReplyList 
-            replies={filteredAndSortedReplies} 
-            postId={postId} 
-          />
-        </div>
-      </div>
+              <ForumReplyList 
+                replies={filteredAndSortedReplies} 
+                postId={postId} 
+              />
+            </div>
+          </div>
 
-      {/* Right Sidebar */}
-      <aside className="w-full lg:w-80 flex-shrink-0">
+          {/* Right Sidebar */}
+          <aside className="w-full lg:w-80 flex-shrink-0 sticky top-0">
         <div className="space-y-4 sticky top-0">
           {/* Ad Placement */}
           <div className="rounded-lg border border-border bg-muted/30 p-8 flex items-center justify-center min-h-[200px]">
@@ -723,8 +650,6 @@ export function ForumPostDetailClient() {
           )}
         </div>
       </aside>
-          </div>
-        </div>
         </div>
       </div>
 
@@ -745,7 +670,7 @@ export function ForumPostDetailClient() {
         type="post"
         isPending={isReporting}
       />
-    </div>
+    </>
   );
 }
 

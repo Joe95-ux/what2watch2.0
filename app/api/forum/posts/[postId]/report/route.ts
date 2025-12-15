@@ -107,7 +107,7 @@ export async function POST(
         contentPreview,
         reportReason: reason.trim(),
         viewContentUrl: `${baseUrl}/forum/${post.slug || post.id}`,
-        appealUrl: `${baseUrl}/dashboard/forum/reports`,
+        appealUrl: `${baseUrl}/dashboard/reports`,
       });
 
       await sendEmail({

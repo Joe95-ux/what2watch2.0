@@ -20,12 +20,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // Get all posts by this user first
+    const userPosts = await db.forumPost.findMany({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+    const userPostIds = userPosts.map((p) => p.id);
+
     // Get post reports for user's posts
     const postReports = await db.forumPostReport.findMany({
       where: {
-        post: {
-          userId: user.id,
-        },
+        postId: { in: userPostIds },
+        // Include all statuses - don't filter
       },
       include: {
         post: {
@@ -33,6 +39,7 @@ export async function GET(request: NextRequest) {
             id: true,
             title: true,
             slug: true,
+            content: true,
           },
         },
         user: {
@@ -53,12 +60,18 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
+    // Get all replies by this user first
+    const userReplies = await db.forumReply.findMany({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+    const userReplyIds = userReplies.map((r) => r.id);
+
     // Get reply reports for user's replies
     const replyReports = await db.forumReplyReport.findMany({
       where: {
-        reply: {
-          userId: user.id,
-        },
+        replyId: { in: userReplyIds },
+        // Include all statuses - don't filter
       },
       include: {
         reply: {
@@ -97,7 +110,10 @@ export async function GET(request: NextRequest) {
         id: r.id,
         type: "post",
         targetId: r.postId,
-        target: r.post,
+        target: {
+          ...r.post,
+          content: r.post.content || "",
+        },
         reporter: r.user,
         reason: r.reason,
         description: r.description,

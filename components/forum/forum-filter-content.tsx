@@ -4,11 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
-import { ForumSidebar } from "./forum-sidebar";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PanelLeft, Search, X, ArrowUpDown, Filter } from "lucide-react";
+import { Search, X, ArrowUpDown, Filter } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -68,9 +66,7 @@ interface ForumPostsResponse {
 export function ForumFilterContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const isMobile = useIsMobile();
   const observerTarget = useRef<HTMLDivElement>(null);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [sortBy, setSortBy] = useState<"createdAt" | "views" | "replyCount" | "updatedAt">(
     (searchParams.get("sortBy") as any) || "updatedAt"
@@ -200,47 +196,14 @@ export function ForumFilterContent() {
   };
 
   return (
-    <div className="h-screen bg-background flex overflow-hidden">
-      {/* Sidebar */}
-      <ForumSidebar 
-        mobileOpen={mobileSidebarOpen}
-        onMobileOpenChange={setMobileSidebarOpen}
-      />
-
-      {/* Main Content */}
-      <div className={cn(
-        "flex-1 min-w-0 transition-all duration-300 flex flex-col overflow-hidden",
-        !isMobile && "ml-64"
-      )}>
-        {/* Mobile Sidebar Trigger */}
-        {isMobile && (
-          <div className="sticky top-[65px] z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
-            <div className="px-4 py-2 flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setMobileSidebarOpen(true)}
-                className="cursor-pointer h-9 w-9"
-                aria-label="Toggle sidebar"
-              >
-                <PanelLeft className="h-5 w-5" />
-              </Button>
-              <div className="h-4 w-px bg-border flex-shrink-0" />
-              <h1 className="text-sm font-semibold">Filter Forum</h1>
-            </div>
-          </div>
-        )}
-
-        {/* Scrollable Content Area */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold mb-2">Filter Forum</h1>
-            <p className="text-sm text-muted-foreground">
-              Search and filter forum posts
-            </p>
-          </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold mb-2">Filter Forum</h1>
+        <p className="text-sm text-muted-foreground">
+          Search and filter forum posts
+        </p>
+      </div>
 
           {/* Search and Filters */}
           <div className="mb-6">
@@ -503,9 +466,6 @@ export function ForumFilterContent() {
               )}
             </>
           )}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

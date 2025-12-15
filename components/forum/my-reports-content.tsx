@@ -206,7 +206,7 @@ export function MyReportsContent() {
           type={appealingReport.type}
           content={
             appealingReport.type === "post"
-              ? appealingReport.target.content || ""
+              ? appealingReport.target.content || appealingReport.target.title || ""
               : appealingReport.target.content || ""
           }
           reportReason={appealingReport.reason}

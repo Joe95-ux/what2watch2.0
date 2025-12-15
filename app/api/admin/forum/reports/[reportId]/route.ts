@@ -93,7 +93,7 @@ export async function PATCH(
           action: action === "approve" ? "approved" : "rejected",
           reviewNotes: reviewNotes || undefined,
           viewContentUrl: `${baseUrl}/forum/${report.post.slug || report.post.id}`,
-          appealUrl: `${baseUrl}/dashboard/forum/reports`,
+          appealUrl: `${baseUrl}/dashboard/reports`,
         });
 
         await sendEmail({
@@ -144,7 +144,7 @@ export async function PATCH(
           action: action === "approve" ? "approved" : "rejected",
           reviewNotes: reviewNotes || undefined,
           viewContentUrl: `${baseUrl}/forum/${report.reply.post.slug || report.reply.post.id}`,
-          appealUrl: `${baseUrl}/dashboard/forum/reports`,
+          appealUrl: `${baseUrl}/dashboard/reports`,
         });
 
         await sendEmail({

@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MoreHorizontal, Search, Eye, EyeOff, Lock, Unlock, Trash2, Flag, Edit } from "lucide-react";
 import {
   DropdownMenu,
@@ -142,42 +143,36 @@ export function PostModerationTable() {
             className="pl-9 cursor-text"
           />
         </div>
-        <select
-          value={hiddenFilter}
-          onChange={(e) => {
-            setHiddenFilter(e.target.value);
-            setPage(1);
-          }}
-          className="h-10 w-[140px] rounded-md border border-input bg-background px-3 py-2 text-sm cursor-pointer"
-        >
-          <option value="">All Posts</option>
-          <option value="false">Visible</option>
-          <option value="true">Hidden</option>
-        </select>
-        <select
-          value={lockedFilter}
-          onChange={(e) => {
-            setLockedFilter(e.target.value);
-            setPage(1);
-          }}
-          className="h-10 w-[140px] rounded-md border border-input bg-background px-3 py-2 text-sm cursor-pointer"
-        >
-          <option value="">All Posts</option>
-          <option value="false">Unlocked</option>
-          <option value="true">Locked</option>
-        </select>
-        <select
-          value={reportedFilter}
-          onChange={(e) => {
-            setReportedFilter(e.target.value);
-            setPage(1);
-          }}
-          className="h-10 w-[140px] rounded-md border border-input bg-background px-3 py-2 text-sm cursor-pointer"
-        >
-          <option value="">All Posts</option>
-          <option value="true">Reported</option>
-          <option value="false">Not Reported</option>
-        </select>
+        <Select value={hiddenFilter || "all"} onValueChange={(value) => { setHiddenFilter(value === "all" ? "" : value); setPage(1); }}>
+          <SelectTrigger className="w-[140px] cursor-pointer">
+            <SelectValue placeholder="All Posts" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Posts</SelectItem>
+            <SelectItem value="false">Visible</SelectItem>
+            <SelectItem value="true">Hidden</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={lockedFilter || "all"} onValueChange={(value) => { setLockedFilter(value === "all" ? "" : value); setPage(1); }}>
+          <SelectTrigger className="w-[140px] cursor-pointer">
+            <SelectValue placeholder="All Posts" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Posts</SelectItem>
+            <SelectItem value="false">Unlocked</SelectItem>
+            <SelectItem value="true">Locked</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={reportedFilter || "all"} onValueChange={(value) => { setReportedFilter(value === "all" ? "" : value); setPage(1); }}>
+          <SelectTrigger className="w-[140px] cursor-pointer">
+            <SelectValue placeholder="All Posts" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Posts</SelectItem>
+            <SelectItem value="true">Reported</SelectItem>
+            <SelectItem value="false">Not Reported</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Table */}
