@@ -109,10 +109,52 @@ export default function MyListsListsTab() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with Tabs - Desktop: same row, Mobile: toggle/CTA above tabs */}
       <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-        <div></div>
-        <div className="flex items-center gap-2">
+        {/* Tabs - Desktop: left side, Mobile: below toggle/CTA */}
+        <div className="border-b border-border max-w-fit sm:border-b-0 sm:border-0 order-2 sm:order-1">
+          <div className="flex items-center gap-6 overflow-x-auto scrollbar-hide">
+            <button
+              onClick={() => {
+                setActiveTab("lists");
+                setCurrentPage(1);
+              }}
+              className={cn(
+                "relative py-3 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2",
+                activeTab === "lists"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <ListIcon className="h-4 w-4" />
+              Curated Lists
+              {activeTab === "lists" && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+              )}
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("playlists");
+                setCurrentPage(1);
+              }}
+              className={cn(
+                "relative py-3 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2",
+                activeTab === "playlists"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Music className="h-4 w-4" />
+              Playlists
+              {activeTab === "playlists" && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* View Toggle and CTA - Desktop: right side, Mobile: above tabs */}
+        <div className="flex items-center gap-2 order-1 sm:order-2">
           <div className="flex items-center gap-1 border rounded-lg p-1">
             <Button
               variant={viewMode === "grid" ? "default" : "ghost"}
@@ -142,48 +184,6 @@ export default function MyListsListsTab() {
             <Plus className="h-4 w-4 mr-2" />
             Create {activeTab === "lists" ? "List" : "Playlist"}
           </Button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="border-b border-border max-w-fit">
-        <div className="flex items-center gap-6 overflow-x-auto scrollbar-hide">
-          <button
-            onClick={() => {
-              setActiveTab("lists");
-              setCurrentPage(1);
-            }}
-            className={cn(
-              "relative py-3 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2",
-              activeTab === "lists"
-                ? "text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <ListIcon className="h-4 w-4" />
-            Curated Lists
-            {activeTab === "lists" && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-            )}
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab("playlists");
-              setCurrentPage(1);
-            }}
-            className={cn(
-              "relative py-3 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2",
-              activeTab === "playlists"
-                ? "text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Music className="h-4 w-4" />
-            Playlists
-            {activeTab === "playlists" && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-            )}
-          </button>
         </div>
       </div>
 

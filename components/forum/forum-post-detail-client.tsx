@@ -462,7 +462,7 @@ export function ForumPostDetailClient() {
               {/* Action Buttons - Under Tags */}
               <div className="flex items-center gap-2">
                 {/* Vote Buttons - Act like one button */}
-                <div className="flex items-center rounded-[25px] bg-muted/50 overflow-hidden">
+                <div className="flex items-center rounded-[25px] bg-muted dark:bg-muted/80 overflow-hidden">
                   <button
                     onClick={() => handleVote("upvote")}
                     disabled={toggleReaction.isPending}
@@ -490,7 +490,7 @@ export function ForumPostDetailClient() {
                 </div>
                 
                 {/* Comment Button */}
-                <div className="flex items-center gap-2 px-3 py-2 rounded-[25px] bg-muted/50 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-[25px] bg-muted dark:bg-muted/80 text-xs text-muted-foreground">
                   <MessageCircle className="h-4 w-4" />
                   {post.replyCount > 0 && <span className="text-sm font-medium">{post.replyCount}</span>}
                 </div>
@@ -502,11 +502,11 @@ export function ForumPostDetailClient() {
                   variant="ghost"
                   size="sm"
                   showLabel={true}
-                  className="rounded-[25px] bg-muted/50 hover:bg-muted h-auto px-3 py-2"
+                  className="rounded-[25px] bg-muted dark:bg-muted/80 hover:bg-muted/90 dark:hover:bg-muted h-auto px-3 py-2"
                 />
                 
                 {/* Views */}
-                <div className="flex items-center gap-1 px-3 py-2 rounded-[25px] bg-muted/50 text-xs text-muted-foreground ml-auto">
+                <div className="flex items-center gap-1 px-3 py-2 rounded-[25px] bg-muted dark:bg-muted/80 text-xs text-muted-foreground ml-auto">
                   <Eye className="h-4 w-4" />
                   <span>{post.views}</span>
                 </div>
@@ -581,8 +581,8 @@ export function ForumPostDetailClient() {
           </div>
 
           {/* Right Sidebar */}
-          <aside className="w-full lg:w-80 flex-shrink-0 sticky top-0">
-        <div className="space-y-4 sticky top-0">
+          <aside className="w-full lg:w-80 flex-shrink-0 lg:sticky lg:top-4 self-start">
+        <div className="space-y-4">
           {/* Ad Placement */}
           <div className="rounded-lg border border-border bg-muted/30 p-8 flex items-center justify-center min-h-[200px]">
             <p className="text-sm text-muted-foreground text-center">Ad Placement</p>

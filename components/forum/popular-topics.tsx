@@ -116,11 +116,11 @@ export function PopularTopics() {
               {/* Stats */}
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1">
-                  <ArrowBigUp className="h-3 w-3" />
+                  <ArrowBigUp className="size-4" />
                   <span>{post.score > 0 ? post.score : 0}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <MessageCircle className="h-3 w-3" />
+                  <MessageCircle className="size-4" />
                   <span>{post.replyCount || 0}</span>
                 </div>
               </div>

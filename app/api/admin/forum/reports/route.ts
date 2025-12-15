@@ -11,13 +11,13 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "50", 10);
     const statusParam = searchParams.get("status");
-    const status = statusParam || "pending"; // pending, reviewed, appealed, appeal_approved, appeal_rejected
+    const status = statusParam === "all" ? undefined : (statusParam || "pending"); // undefined = all, pending, reviewed, appealed, appeal_approved, appeal_rejected
     const type = searchParams.get("type") || "all"; // all, post, reply
 
     const skip = (page - 1) * limit;
 
     // Fetch post reports
-    const postReportsWhere: any = { status };
+    const postReportsWhere: any = status ? { status } : {};
     
     // If type is "all", we need to fetch all reports first, then paginate after combining
     // If type is "post" or "reply", we can paginate directly
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Fetch reply reports
-    const replyReportsWhere: any = { status };
+    const replyReportsWhere: any = status ? { status } : {};
     const replySkip = shouldFetchAll ? 0 : (type === "post" ? 0 : skip);
     const replyTake = shouldFetchAll ? undefined : (type === "post" ? 0 : limit);
     

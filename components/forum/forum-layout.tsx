@@ -16,6 +16,7 @@ interface ForumLayoutProps {
 export function ForumLayout({ children, mobileHeaderTitle }: ForumLayoutProps) {
   const isMobile = useIsMobile();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const pathname = usePathname();
 
   // Determine mobile header title
@@ -32,12 +33,13 @@ export function ForumLayout({ children, mobileHeaderTitle }: ForumLayoutProps) {
       <ForumSidebar 
         mobileOpen={mobileSidebarOpen}
         onMobileOpenChange={setMobileSidebarOpen}
+        onCollapsedChange={setIsSidebarCollapsed}
       />
 
       {/* Main Content */}
       <div className={cn(
         "flex-1 min-w-0 transition-all duration-300 flex flex-col",
-        !isMobile && "ml-64"
+        !isMobile && (isSidebarCollapsed ? "ml-16" : "ml-64")
       )}>
         {/* Mobile Sidebar Trigger */}
         {isMobile && (
@@ -58,8 +60,8 @@ export function ForumLayout({ children, mobileHeaderTitle }: ForumLayoutProps) {
           </div>
         )}
 
-        {/* Scrollable Content Area */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        {/* Content Area - No height constraint for infinite scroll */}
+        <div className="flex-1">
           {children}
         </div>
       </div>

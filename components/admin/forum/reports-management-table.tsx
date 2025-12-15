@@ -32,7 +32,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export function ReportsManagementTable() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState("pending");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [reviewingReport, setReviewingReport] = useState<any>(null);
   const [reviewAction, setReviewAction] = useState<"approve" | "reject" | null>(null);
@@ -220,6 +220,7 @@ export function ReportsManagementTable() {
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="reviewed">Reviewed</SelectItem>
             <SelectItem value="appealed">Appealed</SelectItem>

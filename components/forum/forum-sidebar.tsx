@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { 
   Home, 
@@ -17,6 +17,8 @@ import {
   X,
   Hash
 } from "lucide-react";
+import { BiSolidCategory } from "react-icons/bi";
+import { BiSolidCategory } from "react-icons/bi";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,11 +33,13 @@ import Link from "next/link";
 interface ForumSidebarProps {
   mobileOpen?: boolean;
   onMobileOpenChange?: (open: boolean) => void;
+  onCollapsedChange?: (collapsed: boolean) => void;
 }
 
 export function ForumSidebar({ 
   mobileOpen,
-  onMobileOpenChange
+  onMobileOpenChange,
+  onCollapsedChange
 }: ForumSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -43,6 +47,20 @@ export function ForumSidebar({
   const isMobile = useIsMobile();
   const [internalOpen, setInternalOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Notify parent of collapse state changes
+  const handleCollapseToggle = () => {
+    const newCollapsed = !isCollapsed;
+    setIsCollapsed(newCollapsed);
+    onCollapsedChange?.(newCollapsed);
+  };
+
+  // Notify parent of initial collapsed state
+  useEffect(() => {
+    if (!isMobile) {
+      onCollapsedChange?.(isCollapsed);
+    }
+  }, [isCollapsed, isMobile, onCollapsedChange]);
 
   // Use controlled state if provided, otherwise use internal state
   const isOpen = mobileOpen !== undefined ? mobileOpen : internalOpen;
@@ -69,6 +87,9 @@ export function ForumSidebar({
 
   const categories = categoriesData?.categories || [];
   const activeCategory = searchParams.get("category");
+  
+  // Check if we're on the forum home page (not a sub-page)
+  const isForumHome = pathname === "/forum" || pathname === "/forum/";
 
   const getCategoryColor = (color?: string | null) => {
     if (!color) return "bg-blue-500/20 text-blue-700 dark:text-blue-400";
@@ -123,7 +144,7 @@ export function ForumSidebar({
                   "h-8 w-8",
                   isCollapsed && "mx-auto"
                 )}
-                onClick={() => setIsCollapsed(!isCollapsed)}
+                onClick={handleCollapseToggle}
               >
                 {isCollapsed ? (
                   <ChevronRight className="h-4 w-4" />
@@ -149,9 +170,9 @@ export function ForumSidebar({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant={pathname === "/forum" ? "secondary" : "ghost"}
+                variant={isForumHome ? "secondary" : "ghost"}
                 className={cn(
-                  "w-full transition-all",
+                  "w-full transition-all cursor-pointer",
                   isCollapsed ? "justify-center p-2" : "justify-start gap-3"
                 )}
                 onClick={() => {
@@ -175,7 +196,7 @@ export function ForumSidebar({
               <Button
                 variant="ghost"
                 className={cn(
-                  "w-full transition-all",
+                  "w-full transition-all cursor-pointer",
                   isCollapsed ? "justify-center p-2" : "justify-start gap-3"
                 )}
                 onClick={() => {
@@ -199,7 +220,7 @@ export function ForumSidebar({
               <Button
                 variant="ghost"
                 className={cn(
-                  "w-full transition-all",
+                  "w-full transition-all cursor-pointer",
                   isCollapsed ? "justify-center p-2" : "justify-start gap-3"
                 )}
                 onClick={() => {
@@ -223,7 +244,7 @@ export function ForumSidebar({
               <Button
                 variant="ghost"
                 className={cn(
-                  "w-full transition-all",
+                  "w-full transition-all cursor-pointer",
                   isCollapsed ? "justify-center p-2" : "justify-start gap-3"
                 )}
                 onClick={() => {
@@ -247,7 +268,7 @@ export function ForumSidebar({
               <Button
                 variant="ghost"
                 className={cn(
-                  "w-full transition-all",
+                  "w-full transition-all cursor-pointer",
                   isCollapsed ? "justify-center p-2" : "justify-start gap-3"
                 )}
                 onClick={() => {
@@ -271,7 +292,7 @@ export function ForumSidebar({
               <Button
                 variant={pathname === "/forum/filter" ? "secondary" : "ghost"}
                 className={cn(
-                  "w-full transition-all",
+                  "w-full transition-all cursor-pointer",
                   isCollapsed ? "justify-center p-2" : "justify-start gap-3"
                 )}
                 onClick={() => {
@@ -292,86 +313,140 @@ export function ForumSidebar({
         </div>
 
         {/* Categories */}
-        {!isCollapsed && (
-          <div className="p-4 border-b">
+        <div className={cn("border-b", isCollapsed ? "p-2" : "p-4")}>
+          {!isCollapsed && (
             <div className="mb-3">
-              <h3 className="text-sm font-semibold">Categories</h3>
+              <h3 className="text-sm font-semibold text-muted-foreground">Categories</h3>
             </div>
-            {isLoadingCategories ? (
-              <div className="space-y-2">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-8 w-full" />
-                ))}
-              </div>
-            ) : categories.length > 0 ? (
-              <div className="space-y-2">
-                <Button
-                  variant={!activeCategory ? "secondary" : "ghost"}
-                  className="w-full justify-start text-sm"
-                  onClick={() => {
-                    const params = new URLSearchParams(searchParams.toString());
-                    params.delete("category");
-                    router.push(`/forum?${params.toString()}`);
-                    if (isMobile) setIsOpen(false);
-                  }}
-                >
-                  All Categories
-                </Button>
-                {visibleCategories.map((category: any) => (
+          )}
+          {isLoadingCategories ? (
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className={cn("w-full", isCollapsed ? "h-8 w-8 mx-auto" : "h-8")} />
+              ))}
+            </div>
+          ) : categories.length > 0 ? (
+            <div className="space-y-2">
+              {isCollapsed ? (
+                <>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={!activeCategory ? "secondary" : "ghost"}
+                        size="icon"
+                        className={cn(
+                          "w-full transition-all cursor-pointer",
+                          isCollapsed ? "justify-center p-2" : "justify-start gap-3"
+                        )}
+                        onClick={() => {
+                          const params = new URLSearchParams(searchParams.toString());
+                          params.delete("category");
+                          router.push(`/forum?${params.toString()}`);
+                          if (isMobile) setIsOpen(false);
+                        }}
+                      >
+                        <BiSolidCategory className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <span>All Categories</span>
+                    </TooltipContent>
+                  </Tooltip>
+                  {visibleCategories.map((category: any) => (
+                    <Tooltip key={category.id}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={activeCategory === category.slug ? "secondary" : "ghost"}
+                          size="icon"
+                          className={cn(
+                            "w-full transition-all cursor-pointer",
+                            isCollapsed ? "justify-center p-2" : "justify-start gap-3"
+                          )}
+                          onClick={() => {
+                            const params = new URLSearchParams(searchParams.toString());
+                            params.set("category", category.slug);
+                            router.push(`/forum?${params.toString()}`);
+                            if (isMobile) setIsOpen(false);
+                          }}
+                        >
+                          {category.icon ? (
+                            <span className="text-base">{category.icon}</span>
+                          ) : (
+                            <BiSolidCategory className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        <span>{category.name}</span>
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </>
+              ) : (
+                <>
                   <Button
-                    key={category.id}
-                    variant={activeCategory === category.slug ? "secondary" : "ghost"}
-                    className="w-full justify-start text-sm"
+                    variant={!activeCategory ? "secondary" : "ghost"}
+                    className="w-full justify-start text-sm pl-4 cursor-pointer"
                     onClick={() => {
                       const params = new URLSearchParams(searchParams.toString());
-                      params.set("category", category.slug);
+                      params.delete("category");
                       router.push(`/forum?${params.toString()}`);
                       if (isMobile) setIsOpen(false);
                     }}
                   >
-                    <div className="flex items-center gap-2 w-full">
-                      {category.icon && <span>{category.icon}</span>}
-                      <span className="flex-1 text-left">{category.name}</span>
-                      {category.color && (
-                        <Badge
-                          className={cn(
-                            "h-2.5 w-2.5 rounded-full p-0 border",
-                            getCategoryColor(category.color)
-                          )}
-                          style={category.color ? {
-                            backgroundColor: `${category.color}60`,
-                            borderColor: category.color,
-                          } : undefined}
-                        />
+                    All Categories
+                  </Button>
+                  {visibleCategories.map((category: any) => (
+                    <Button
+                      key={category.id}
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-start text-sm pl-4 relative cursor-pointer",
+                        activeCategory === category.slug && category.color && "border-l-2"
                       )}
-                    </div>
-                  </Button>
-                ))}
-                {hasMoreCategories && (
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-sm text-muted-foreground"
-                    onClick={() => setCategoriesExpanded(!categoriesExpanded)}
-                  >
-                    {categoriesExpanded ? (
-                      <>
-                        <ChevronUp className="h-4 w-4" />
-                        <span>Show Less</span>
-                      </>
-                    ) : (
-                      <>
-                        <ChevronDown className="h-4 w-4" />
-                        <span>Show {categories.length - 10} More</span>
-                      </>
-                    )}
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No categories yet</p>
-            )}
-          </div>
-        )}
+                      style={activeCategory === category.slug && category.color ? {
+                        borderLeftColor: category.color,
+                        borderLeftWidth: "2px",
+                      } : undefined}
+                      onClick={() => {
+                        const params = new URLSearchParams(searchParams.toString());
+                        params.set("category", category.slug);
+                        router.push(`/forum?${params.toString()}`);
+                        if (isMobile) setIsOpen(false);
+                      }}
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        {category.icon && <span className="text-base">{category.icon}</span>}
+                        <span className="flex-1 text-left">{category.name}</span>
+                      </div>
+                    </Button>
+                  ))}
+                  {hasMoreCategories && (
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-sm text-muted-foreground pl-4 cursor-pointer"
+                      onClick={() => setCategoriesExpanded(!categoriesExpanded)}
+                    >
+                      {categoriesExpanded ? (
+                        <>
+                          <ChevronUp className="h-4 w-4" />
+                          <span>Show Less</span>
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="h-4 w-4" />
+                          <span>Show {categories.length - 10} More</span>
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          ) : (
+            !isCollapsed && <p className="text-sm text-muted-foreground">No categories yet</p>
+          )}
+        </div>
 
         {/* Trending Topics */}
         {!isCollapsed && (

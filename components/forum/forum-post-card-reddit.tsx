@@ -174,7 +174,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
   };
 
   return (
-    <div className="p-4 bg-accent/30 hover:bg-accent/50 transition-colors rounded-lg">
+    <div className="p-4 bg-muted/50 dark:bg-muted/30 hover:bg-muted/70 dark:hover:bg-muted/50 transition-colors rounded-lg">
       {/* Post Header with Dot Menu */}
       <div className="flex items-start justify-between mb-2 gap-2">
         <div className="flex-1 min-w-0">
@@ -303,7 +303,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
       {/* Action Buttons - Under Tags */}
       <div className="flex items-center gap-2">
         {/* Vote Buttons - Act like one button */}
-        <div className="flex items-center rounded-[25px] bg-muted/70 dark:bg-muted/50 overflow-hidden">
+        <div className="flex items-center rounded-[25px] bg-muted dark:bg-muted/80 overflow-hidden">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -340,7 +340,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
         <Link
           href={postUrl}
           onClick={(e) => e.stopPropagation()}
-          className="flex items-center gap-2 px-3 py-2 rounded-[25px] bg-muted/70 dark:bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+          className="flex items-center gap-2 px-3 py-2 rounded-[25px] bg-muted dark:bg-muted/80 hover:bg-muted/90 dark:hover:bg-muted transition-colors cursor-pointer"
         >
           <MessageCircle className="h-4 w-4" />
           {post.replyCount > 0 && <span className="text-sm font-medium">{post.replyCount}</span>}
@@ -354,12 +354,12 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
             variant="ghost"
             size="sm"
             showLabel={true}
-            className="rounded-[25px] bg-muted/70 dark:bg-muted/50 hover:bg-muted h-auto px-3 py-2"
+            className="rounded-[25px] bg-muted dark:bg-muted/80 hover:bg-muted/90 dark:hover:bg-muted h-auto px-3 py-2"
           />
         </div>
         
         {/* Views */}
-        <div className="flex items-center gap-1 px-3 py-2 rounded-[25px] bg-muted/70 dark:bg-muted/50 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1 px-3 py-2 rounded-[25px] bg-muted dark:bg-muted/80 text-xs text-muted-foreground">
           <Eye className="h-4 w-4" />
           <span>{post.views}</span>
         </div>
