@@ -26,7 +26,6 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 
 export function CategoryManagement() {
   const queryClient = useQueryClient();
@@ -309,6 +308,35 @@ export function CategoryManagement() {
   );
 }
 
+// Words that should be excluded from slugs (articles, prepositions, conjunctions)
+const SLUG_STOP_WORDS = new Set([
+  "a", "an", "the", "and", "or", "but", "nor", "for", "so", "yet",
+  "at", "by", "in", "of", "on", "to", "up", "as", "is", "was",
+  "are", "were", "be", "been", "being", "have", "has", "had",
+  "do", "does", "did", "will", "would", "could", "should", "may",
+  "might", "must", "can", "this", "that", "these", "those"
+]);
+
+// Generate slug from name
+function generateSlug(name: string): string {
+  if (!name) return "";
+  
+  return name
+    .toLowerCase()
+    .trim()
+    // Split by spaces and filter out stop words
+    .split(/\s+/)
+    .filter(word => word.length > 0 && !SLUG_STOP_WORDS.has(word))
+    // Join with hyphens and clean up
+    .join("-")
+    // Remove any remaining invalid characters, keep only alphanumeric, hyphens, and underscores
+    .replace(/[^a-z0-9-_]/g, "-")
+    // Replace multiple consecutive hyphens with a single hyphen
+    .replace(/-+/g, "-")
+    // Remove leading/trailing hyphens
+    .replace(/^-+|-+$/g, "");
+}
+
 function CategoryDialog({
   isOpen,
   onClose,
@@ -329,6 +357,7 @@ function CategoryDialog({
   const [color, setColor] = useState("");
   const [order, setOrder] = useState("0");
   const [isActive, setIsActive] = useState(true);
+  const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
 
   // Update form when category changes
   useEffect(() => {
@@ -340,6 +369,7 @@ function CategoryDialog({
       setColor(category.color || "");
       setOrder(category.order?.toString() || "0");
       setIsActive(category.isActive ?? true);
+      setIsSlugManuallyEdited(true); // In edit mode, slug is already set
     } else {
       // Reset form for create mode
       setName("");
@@ -349,8 +379,17 @@ function CategoryDialog({
       setColor("");
       setOrder("0");
       setIsActive(true);
+      setIsSlugManuallyEdited(false);
     }
   }, [category, isOpen]);
+
+  // Auto-generate slug from name (only if slug hasn't been manually edited)
+  useEffect(() => {
+    if (!category && !isSlugManuallyEdited && name) {
+      const generatedSlug = generateSlug(name);
+      setSlug(generatedSlug);
+    }
+  }, [name, category, isSlugManuallyEdited]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -367,88 +406,103 @@ function CategoryDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[500px] flex flex-col max-h-[90vh] p-0 overflow-hidden">
+        {/* Fixed Header */}
+        <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
           <DialogTitle>{category ? "Edit Category" : "Create Category"}</DialogTitle>
           <DialogDescription>
             {category ? "Update category details" : "Create a new forum category"}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="cursor-text"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="slug">Slug *</Label>
-              <Input
-                id="slug"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "-"))}
-                required
-                className="cursor-text"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="cursor-text"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="icon">Icon (emoji or icon name)</Label>
-              <Input
-                id="icon"
-                value={icon}
-                onChange={(e) => setIcon(e.target.value)}
-                className="cursor-text"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="color">Color (hex)</Label>
-              <Input
-                id="color"
-                type="color"
-                value={color || "#3B82F6"}
-                onChange={(e) => setColor(e.target.value)}
-                className="cursor-pointer h-12"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="order">Order</Label>
-              <Input
-                id="order"
-                type="number"
-                value={order}
-                onChange={(e) => setOrder(e.target.value)}
-                className="cursor-text"
-              />
-            </div>
-            {category && (
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
-                  className="cursor-pointer"
+
+        {/* Scrollable Content */}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 px-6 py-4 scrollbar-thin overflow-y-auto">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name *</Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="cursor-text"
                 />
-                <Label htmlFor="isActive" className="cursor-pointer">Active</Label>
               </div>
-            )}
+              <div className="space-y-2">
+                <Label htmlFor="slug">Slug *</Label>
+                <Input
+                  id="slug"
+                  value={slug}
+                  onChange={(e) => {
+                    setIsSlugManuallyEdited(true);
+                    setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "-").replace(/-+/g, "-"));
+                  }}
+                  required
+                  className="cursor-text"
+                />
+                {!category && !isSlugManuallyEdited && name && (
+                  <p className="text-xs text-muted-foreground">
+                    Slug will be auto-generated from name
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  className="cursor-text resize-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="icon">Icon (emoji or icon name)</Label>
+                <Input
+                  id="icon"
+                  value={icon}
+                  onChange={(e) => setIcon(e.target.value)}
+                  className="cursor-text"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="color">Color (hex)</Label>
+                <Input
+                  id="color"
+                  type="color"
+                  value={color || "#3B82F6"}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="cursor-pointer h-12"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="order">Order</Label>
+                <Input
+                  id="order"
+                  type="number"
+                  value={order}
+                  onChange={(e) => setOrder(e.target.value)}
+                  className="cursor-text"
+                />
+              </div>
+              {category && (
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="isActive"
+                    checked={isActive}
+                    onChange={(e) => setIsActive(e.target.checked)}
+                    className="cursor-pointer"
+                  />
+                  <Label htmlFor="isActive" className="cursor-pointer">Active</Label>
+                </div>
+              )}
+            </div>
           </div>
-          <DialogFooter>
+
+          {/* Fixed Footer */}
+          <DialogFooter className="px-6 py-4 border-t flex-shrink-0">
             <Button type="button" variant="outline" onClick={onClose} className="cursor-pointer">
               Cancel
             </Button>

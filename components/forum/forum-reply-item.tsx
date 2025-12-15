@@ -212,7 +212,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
           </span>
         </div>
 
-        <div className="text-sm mb-2 whitespace-pre-wrap">
+        <div className="text-base mb-2 whitespace-pre-wrap">
           {reply.content}
         </div>
 

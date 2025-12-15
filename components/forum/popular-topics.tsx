@@ -79,7 +79,7 @@ export function PopularTopics() {
   return (
     <div className="rounded-lg border border-border bg-background">
       <div className="p-4 border-b">
-        <h3 className="text-sm font-semibold">Popular Topics</h3>
+        <h3 className="text-[1.1rem] font-semibold">Popular Topics</h3>
       </div>
       <div className="divide-y divide-border">
         {posts.map((post: PopularPost) => (
@@ -109,7 +109,7 @@ export function PopularTopics() {
               )}
               
               {/* Title */}
-              <h4 className="text-sm font-medium line-clamp-2 hover:text-primary transition-colors">
+              <h4 className="text-base font-medium line-clamp-2 hover:text-primary transition-colors">
                 {post.title}
               </h4>
               

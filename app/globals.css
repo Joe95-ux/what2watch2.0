@@ -119,6 +119,21 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Set minimum font size to 15px globally */
+  html {
+    font-size: 16px;
+  }
+  body {
+    font-size: 1rem;
+  }
+  /* Ensure text elements are at least 15px */
+  p, span, div, a, button, input, textarea, select, label, li, td, th {
+    font-size: clamp(0.9375rem, 1em, 2rem); /* 15px minimum, scales with parent */
+  }
+  /* Small text should still be at least 15px */
+  .text-xs, .text-sm {
+    font-size: clamp(0.9375rem, 0.875rem, 1rem); /* 15px minimum */
+  }
 }
 
 @keyframes gradient-slide {

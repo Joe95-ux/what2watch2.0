@@ -354,43 +354,50 @@ export function ForumPostDetailClient() {
               </div>
               
               {/* Header with Dot Menu */}
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground flex-1">
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={post.author.avatarUrl} />
-                <AvatarFallback className="text-xs">
-                  {post.author.displayName
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .toUpperCase()
-                    .slice(0, 2)}
-                </AvatarFallback>
-              </Avatar>
-              {post.category && (
-                <Link
-                  href={`/forum?category=${post.category.slug}`}
-                  className={cn(
-                    "px-2 py-0.5 rounded text-xs font-medium transition-colors",
-                    getCategoryColor(post.category.color)
+              <div className="flex items-start justify-between mb-2 gap-2">
+                <div className="flex-1 min-w-0">
+                  {/* Category - Always on top */}
+                  {post.category && (
+                    <div className="mb-1.5">
+                      <Link
+                        href={`/forum?category=${post.category.slug}`}
+                        className={cn(
+                          "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium transition-colors",
+                          getCategoryColor(post.category.color)
+                        )}
+                        style={post.category.color ? {
+                          backgroundColor: `${post.category.color}20`,
+                          color: post.category.color,
+                        } : undefined}
+                      >
+                        {post.category.icon && <span className="mr-1">{post.category.icon}</span>}
+                        {post.category.name}
+                      </Link>
+                    </div>
                   )}
-                  style={post.category.color ? {
-                    backgroundColor: `${post.category.color}20`,
-                    color: post.category.color,
-                  } : undefined}
-                >
-                  {post.category.icon && <span className="mr-1">{post.category.icon}</span>}
-                  {post.category.name}
-                </Link>
-              )}
-              <Link
-                href={`/users/${post.author.username || post.author.id}`}
-                className="hover:underline font-medium text-foreground"
-              >
-                {post.author.displayName}
-              </Link>
-              <span>•</span>
-              <span>{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>
+                  
+                  {/* Author and Time - Below category on mobile, inline on desktop */}
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={post.author.avatarUrl} />
+                      <AvatarFallback className="text-xs">
+                        {post.author.displayName
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()
+                          .slice(0, 2)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <Link
+                      href={`/users/${post.author.username || post.author.id}`}
+                      className="hover:underline font-medium text-foreground"
+                    >
+                      {post.author.displayName}
+                    </Link>
+                    <span>•</span>
+                    <span>{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>
+                  </div>
                 </div>
                 
                 {/* Dot Menu */}
@@ -399,7 +406,7 @@ export function ForumPostDetailClient() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 cursor-pointer"
+                      className="h-8 w-8 cursor-pointer flex-shrink-0"
                     >
                       <MoreVertical className="h-4 w-4" />
                     </Button>
@@ -456,7 +463,7 @@ export function ForumPostDetailClient() {
 
               {/* Content */}
               <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
-                <p className="whitespace-pre-wrap text-sm">{post.content}</p>
+                <p className="whitespace-pre-wrap text-base">{post.content}</p>
               </div>
 
               {/* Action Buttons - Under Tags */}

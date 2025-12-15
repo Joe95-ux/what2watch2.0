@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Table,
@@ -35,6 +35,18 @@ export function PostModerationTable() {
   const [lockedFilter, setLockedFilter] = useState("");
   const [reportedFilter, setReportedFilter] = useState("");
   const [editingPost, setEditingPost] = useState<any>(null);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+
+  // Handle window resize to reset search expansion on desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsSearchExpanded(false);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-forum-posts", page, search, hiddenFilter, lockedFilter, reportedFilter],
@@ -130,8 +142,41 @@ export function PostModerationTable() {
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4 overflow-x-auto scrollbar-hide">
+        {/* Mobile: Search button or expanded search */}
+        {isSearchExpanded ? (
+          <div className="relative flex-1 min-w-0 lg:hidden">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search posts..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              onBlur={() => {
+                // Collapse if search is empty
+                if (!search) {
+                  setIsSearchExpanded(false);
+                }
+              }}
+              autoFocus
+              className="pl-9 cursor-text"
+            />
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsSearchExpanded(true)}
+            className="lg:hidden cursor-pointer flex-shrink-0"
+          >
+            <Search className="h-4 w-4 mr-2" />
+            Search
+          </Button>
+        )}
+        {/* Desktop search - always visible */}
+        <div className="relative flex-1 hidden lg:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search posts..."
@@ -143,36 +188,38 @@ export function PostModerationTable() {
             className="pl-9 cursor-text"
           />
         </div>
-        <Select value={hiddenFilter || "all"} onValueChange={(value) => { setHiddenFilter(value === "all" ? "" : value); setPage(1); }}>
-          <SelectTrigger className="w-[140px] cursor-pointer">
-            <SelectValue placeholder="All Posts" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Posts</SelectItem>
-            <SelectItem value="false">Visible</SelectItem>
-            <SelectItem value="true">Hidden</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={lockedFilter || "all"} onValueChange={(value) => { setLockedFilter(value === "all" ? "" : value); setPage(1); }}>
-          <SelectTrigger className="w-[140px] cursor-pointer">
-            <SelectValue placeholder="All Posts" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Posts</SelectItem>
-            <SelectItem value="false">Unlocked</SelectItem>
-            <SelectItem value="true">Locked</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={reportedFilter || "all"} onValueChange={(value) => { setReportedFilter(value === "all" ? "" : value); setPage(1); }}>
-          <SelectTrigger className="w-[140px] cursor-pointer">
-            <SelectValue placeholder="All Posts" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Posts</SelectItem>
-            <SelectItem value="true">Reported</SelectItem>
-            <SelectItem value="false">Not Reported</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-4 flex-shrink-0">
+          <Select value={hiddenFilter || "all"} onValueChange={(value) => { setHiddenFilter(value === "all" ? "" : value); setPage(1); }}>
+            <SelectTrigger className="w-[140px] cursor-pointer">
+              <SelectValue placeholder="All Posts" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Posts</SelectItem>
+              <SelectItem value="false">Visible</SelectItem>
+              <SelectItem value="true">Hidden</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={lockedFilter || "all"} onValueChange={(value) => { setLockedFilter(value === "all" ? "" : value); setPage(1); }}>
+            <SelectTrigger className="w-[140px] cursor-pointer">
+              <SelectValue placeholder="All Posts" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Posts</SelectItem>
+              <SelectItem value="false">Unlocked</SelectItem>
+              <SelectItem value="true">Locked</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={reportedFilter || "all"} onValueChange={(value) => { setReportedFilter(value === "all" ? "" : value); setPage(1); }}>
+            <SelectTrigger className="w-[140px] cursor-pointer">
+              <SelectValue placeholder="All Posts" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Posts</SelectItem>
+              <SelectItem value="true">Reported</SelectItem>
+              <SelectItem value="false">Not Reported</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Table */}

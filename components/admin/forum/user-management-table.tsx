@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Table,
@@ -36,6 +36,18 @@ export function UserManagementTable() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [bannedFilter, setBannedFilter] = useState("");
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+
+  // Handle window resize to reset search expansion on desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsSearchExpanded(false);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-forum-users", page, search, roleFilter, bannedFilter],
@@ -136,8 +148,41 @@ export function UserManagementTable() {
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4 overflow-x-auto scrollbar-hide">
+        {/* Mobile: Search button or expanded search */}
+        {isSearchExpanded ? (
+          <div className="relative flex-1 min-w-0 lg:hidden">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search users..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              onBlur={() => {
+                // Collapse if search is empty
+                if (!search) {
+                  setIsSearchExpanded(false);
+                }
+              }}
+              autoFocus
+              className="pl-9 cursor-text"
+            />
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsSearchExpanded(true)}
+            className="lg:hidden cursor-pointer flex-shrink-0"
+          >
+            <Search className="h-4 w-4 mr-2" />
+            Search
+          </Button>
+        )}
+        {/* Desktop search - always visible */}
+        <div className="relative flex-1 hidden lg:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search users..."
@@ -149,27 +194,29 @@ export function UserManagementTable() {
             className="pl-9 cursor-text"
           />
         </div>
-        <Select value={roleFilter || "all"} onValueChange={(value) => { setRoleFilter(value === "all" ? "" : value); setPage(1); }}>
-          <SelectTrigger className="w-[140px] cursor-pointer">
-            <SelectValue placeholder="All Roles" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Roles</SelectItem>
-            <SelectItem value="USER">User</SelectItem>
-            <SelectItem value="MODERATOR">Moderator</SelectItem>
-            <SelectItem value="ADMIN">Admin</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={bannedFilter || "all"} onValueChange={(value) => { setBannedFilter(value === "all" ? "" : value); setPage(1); }}>
-          <SelectTrigger className="w-[140px] cursor-pointer">
-            <SelectValue placeholder="All Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="false">Active</SelectItem>
-            <SelectItem value="true">Banned</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-4 flex-shrink-0">
+          <Select value={roleFilter || "all"} onValueChange={(value) => { setRoleFilter(value === "all" ? "" : value); setPage(1); }}>
+            <SelectTrigger className="w-[140px] cursor-pointer">
+              <SelectValue placeholder="All Roles" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="USER">User</SelectItem>
+              <SelectItem value="MODERATOR">Moderator</SelectItem>
+              <SelectItem value="ADMIN">Admin</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={bannedFilter || "all"} onValueChange={(value) => { setBannedFilter(value === "all" ? "" : value); setPage(1); }}>
+            <SelectTrigger className="w-[140px] cursor-pointer">
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="false">Active</SelectItem>
+              <SelectItem value="true">Banned</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Table */}

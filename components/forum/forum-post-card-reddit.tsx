@@ -268,14 +268,14 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
 
       {/* Post Title */}
       <Link href={postUrl} className="block mb-2">
-        <h3 className="text-base font-semibold hover:text-primary transition-colors line-clamp-2">
+        <h3 className="text-[1.2rem] font-semibold hover:text-primary transition-colors line-clamp-2">
           {post.title}
         </h3>
       </Link>
 
       {/* Post Content Preview */}
       <Link href={postUrl} className="block mb-3">
-        <p className="text-sm text-muted-foreground line-clamp-3">
+        <p className="text-base text-muted-foreground line-clamp-3">
           {post.content}
         </p>
       </Link>
