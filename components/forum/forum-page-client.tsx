@@ -49,7 +49,7 @@ export function ForumPageClient() {
           </div>
 
           {/* Right Sidebar */}
-          <aside className="w-full lg:w-80 flex-shrink-0 lg:sticky lg:top-4 self-start">
+          <aside className="w-full lg:w-80 flex-shrink-0 lg:sticky lg:top-[85px] self-start">
             <div className="">
               <PopularTopics />
             </div>

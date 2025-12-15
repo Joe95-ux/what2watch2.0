@@ -581,7 +581,7 @@ export function ForumPostDetailClient() {
           </div>
 
           {/* Right Sidebar */}
-          <aside className="w-full lg:w-80 flex-shrink-0 lg:sticky lg:top-4 self-start">
+          <aside className="w-full lg:w-80 flex-shrink-0 lg:sticky lg:top-[85px] self-start">
         <div className="space-y-4">
           {/* Ad Placement */}
           <div className="rounded-lg border border-border bg-muted/30 p-8 flex items-center justify-center min-h-[200px]">

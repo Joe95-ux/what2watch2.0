@@ -87,8 +87,14 @@ export function ForumSidebar({
   const categories = categoriesData?.categories || [];
   const activeCategory = searchParams.get("category");
   
-  // Check if we're on the forum home page (not a sub-page)
-  const isForumHome = pathname === "/forum" || pathname === "/forum/";
+  // Check if we're on the exact forum home page with no filters
+  // Home should only be active when on /forum with no category and not on /forum/filter
+  const isOnForumRoute = pathname === "/forum" || pathname === "/forum/";
+  const isNotFilterPage = pathname !== "/forum/filter";
+  const isForumHome = isOnForumRoute && !activeCategory && isNotFilterPage;
+  
+  // "All Categories" is active when no category is selected (but Home takes precedence if on exact home)
+  const isAllCategoriesActive = !activeCategory && !isForumHome;
 
   const getCategoryColor = (color?: string | null) => {
     if (!color) return "bg-blue-500/20 text-blue-700 dark:text-blue-400";
@@ -384,7 +390,7 @@ export function ForumSidebar({
               ) : (
                 <>
                   <Button
-                    variant={!activeCategory ? "secondary" : "ghost"}
+                    variant={isAllCategoriesActive ? "secondary" : "ghost"}
                     className="w-full justify-start text-sm pl-4 cursor-pointer"
                     onClick={() => {
                       const params = new URLSearchParams(searchParams.toString());
@@ -398,14 +404,14 @@ export function ForumSidebar({
                   {visibleCategories.map((category: any) => (
                     <Button
                       key={category.id}
-                      variant="ghost"
+                      variant={activeCategory === category.slug ? "secondary" : "ghost"}
                       className={cn(
                         "w-full justify-start text-sm pl-4 relative cursor-pointer",
-                        activeCategory === category.slug && category.color && "border-l-2"
+                        activeCategory === category.slug && category.color && "border-l-4"
                       )}
                       style={activeCategory === category.slug && category.color ? {
                         borderLeftColor: category.color,
-                        borderLeftWidth: "2px",
+                        borderLeftWidth: "4px",
                       } : undefined}
                       onClick={() => {
                         const params = new URLSearchParams(searchParams.toString());

@@ -11,84 +11,45 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "50", 10);
     const statusParam = searchParams.get("status");
-    const status = statusParam === "all" ? undefined : (statusParam || "pending"); // undefined = all, pending, reviewed, appealed, appeal_approved, appeal_rejected
+    const status = statusParam === "all" ? undefined : statusParam; // undefined = all statuses
     const type = searchParams.get("type") || "all"; // all, post, reply
 
     const skip = (page - 1) * limit;
 
-    // Fetch post reports
-    const postReportsWhere: any = status ? { status } : {};
+    // Build where clauses
+    const postReportsWhere: any = {};
+    const replyReportsWhere: any = {};
     
-    // If type is "all", we need to fetch all reports first, then paginate after combining
-    // If type is "post" or "reply", we can paginate directly
-    const shouldFetchAll = type === "all";
-    const postSkip = shouldFetchAll ? 0 : (type === "reply" ? 0 : skip);
-    const postTake = shouldFetchAll ? undefined : (type === "reply" ? 0 : limit);
+    // Apply status filter if specified
+    if (status) {
+      postReportsWhere.status = status;
+      replyReportsWhere.status = status;
+    }
     
-    const [postReports, postReportsTotal] = await Promise.all([
-      db.forumPostReport.findMany({
-        where: postReportsWhere,
-        skip: postSkip,
-        take: postTake,
-        include: {
-          post: {
-            select: {
-              id: true,
-              title: true,
-              slug: true,
-              content: true,
-              userId: true,
-              user: {
-                select: {
-                  id: true,
-                  username: true,
-                  displayName: true,
-                },
-              },
-            },
-          },
-          user: {
-            select: {
-              id: true,
-              username: true,
-              displayName: true,
-            },
-          },
-          reviewedBy: {
-            select: {
-              id: true,
-              username: true,
-              displayName: true,
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      }),
-      db.forumPostReport.count({ where: postReportsWhere }),
-    ]);
+    // Apply type filter - fetch only the needed type
+    const shouldFetchPosts = type === "all" || type === "post";
+    const shouldFetchReplies = type === "all" || type === "reply";
 
-    // Fetch reply reports
-    const replyReportsWhere: any = status ? { status } : {};
-    const replySkip = shouldFetchAll ? 0 : (type === "post" ? 0 : skip);
-    const replyTake = shouldFetchAll ? undefined : (type === "post" ? 0 : limit);
-    
-    const [replyReports, replyReportsTotal] = await Promise.all([
-      db.forumReplyReport.findMany({
-        where: replyReportsWhere,
-        skip: replySkip,
-        take: replyTake,
-        include: {
-          reply: {
-            select: {
-              id: true,
-              content: true,
-              userId: true,
-              postId: true,
+    // Fetch all post reports (no pagination yet - we'll paginate after combining)
+    const [allPostReports, allReplyReports] = await Promise.all([
+      shouldFetchPosts
+        ? db.forumPostReport.findMany({
+            where: postReportsWhere,
+            include: {
               post: {
                 select: {
                   id: true,
                   title: true,
                   slug: true,
+                  content: true,
+                  userId: true,
+                  user: {
+                    select: {
+                      id: true,
+                      username: true,
+                      displayName: true,
+                    },
+                  },
                 },
               },
               user: {
@@ -98,31 +59,66 @@ export async function GET(request: NextRequest) {
                   displayName: true,
                 },
               },
+              reviewedBy: {
+                select: {
+                  id: true,
+                  username: true,
+                  displayName: true,
+                },
+              },
             },
-          },
-          user: {
-            select: {
-              id: true,
-              username: true,
-              displayName: true,
+            orderBy: { createdAt: "desc" },
+          })
+        : Promise.resolve([]),
+      shouldFetchReplies
+        ? db.forumReplyReport.findMany({
+            where: replyReportsWhere,
+            include: {
+              reply: {
+                select: {
+                  id: true,
+                  content: true,
+                  userId: true,
+                  postId: true,
+                  post: {
+                    select: {
+                      id: true,
+                      title: true,
+                      slug: true,
+                    },
+                  },
+                  user: {
+                    select: {
+                      id: true,
+                      username: true,
+                      displayName: true,
+                    },
+                  },
+                },
+              },
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  displayName: true,
+                },
+              },
+              reviewedBy: {
+                select: {
+                  id: true,
+                  username: true,
+                  displayName: true,
+                },
+              },
             },
-          },
-          reviewedBy: {
-            select: {
-              id: true,
-              username: true,
-              displayName: true,
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      }),
-      db.forumReplyReport.count({ where: replyReportsWhere }),
+            orderBy: { createdAt: "desc" },
+          })
+        : Promise.resolve([]),
     ]);
 
     // Combine and format reports
     let allReports = [
-      ...postReports.map((report) => ({
+      ...allPostReports.map((report) => ({
         id: report.id,
         type: "post" as const,
         targetId: report.postId,
@@ -145,7 +141,7 @@ export async function GET(request: NextRequest) {
         createdAt: report.createdAt,
         updatedAt: report.updatedAt,
       })),
-      ...replyReports.map((report) => ({
+      ...allReplyReports.map((report) => ({
         id: report.id,
         type: "reply" as const,
         targetId: report.replyId,
@@ -173,18 +169,14 @@ export async function GET(request: NextRequest) {
       })),
     ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    // Calculate total - if type is "all", use combined total, otherwise use the specific type total
-    const total = type === "all" 
-      ? postReportsTotal + replyReportsTotal
-      : (type === "post" ? postReportsTotal : replyReportsTotal);
+    // Calculate total before pagination
+    const total = allReports.length;
 
-    // If type is "all", we need to paginate the combined results
-    if (type === "all") {
-      allReports = allReports.slice(skip, skip + limit);
-    }
+    // Apply pagination
+    const paginatedReports = allReports.slice(skip, skip + limit);
 
     return NextResponse.json({
-      reports: allReports,
+      reports: paginatedReports,
       pagination: {
         page,
         limit,
