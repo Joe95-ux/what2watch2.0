@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { ForumLayout } from "@/components/forum/forum-layout";
 
 export default function ForumLayoutWrapper({
@@ -5,6 +6,12 @@ export default function ForumLayoutWrapper({
 }: {
   children: React.ReactNode;
 }) {
-  return <ForumLayout>{children}</ForumLayout>;
+  return (
+    <ForumLayout>
+      <Suspense fallback={null}>
+        {children}
+      </Suspense>
+    </ForumLayout>
+  );
 }
 
