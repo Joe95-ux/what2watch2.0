@@ -161,7 +161,7 @@ export function MyReportsContent() {
         );
       case "reviewed":
         return (
-          <Badge variant="secondary" className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 font-sm font-medium">
+          <Badge variant="outline" className="border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-500 font-sm font-medium">
             Reviewed
           </Badge>
         );
@@ -479,7 +479,7 @@ export function MyReportsContent() {
       {/* Detail/Appeal Dialog */}
       {selectedReport && (
         <Dialog open={!!selectedReport} onOpenChange={() => setSelectedReport(null)}>
-          <DialogContent className="sm:max-w-[700px] flex flex-col max-h-[90vh] p-0">
+          <DialogContent className="sm:max-w-[700px] flex flex-col max-h-[90vh] p-0 overflow-hidden">
             {/* Fixed Header */}
             <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
               <DialogTitle className="text-lg">
@@ -493,7 +493,7 @@ export function MyReportsContent() {
             </DialogHeader>
 
             {/* Scrollable Content */}
-            <ScrollArea className="flex-1 px-6 py-4">
+            <ScrollArea className="flex-1 px-6 py-4 min-h-0">
               <div className="space-y-6">
                 {/* Status */}
                 <div>
