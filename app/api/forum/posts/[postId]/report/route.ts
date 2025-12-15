@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { sendEmail } from "@/lib/email";
+import { getContentReportedEmail } from "@/lib/email-templates";
 
 interface RouteParams {
   params: Promise<{ postId: string }>;
@@ -41,8 +43,26 @@ export async function POST(
     // Check if postId is ObjectID or slug
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(postId);
     const post = isObjectId
-      ? await db.forumPost.findUnique({ where: { id: postId }, select: { id: true } })
-      : await db.forumPost.findFirst({ where: { slug: postId }, select: { id: true } });
+      ? await db.forumPost.findUnique({ 
+          where: { id: postId }, 
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            content: true,
+            user: { select: { id: true, email: true, displayName: true, username: true, emailNotifications: true } },
+          },
+        })
+      : await db.forumPost.findFirst({ 
+          where: { slug: postId }, 
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            content: true,
+            user: { select: { id: true, email: true, displayName: true, username: true, emailNotifications: true } },
+          },
+        });
     
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
@@ -74,6 +94,28 @@ export async function POST(
         description: description?.trim() || null,
       },
     });
+
+    // Send email notification to post owner (if enabled)
+    if (post.user.emailNotifications && post.user.email) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const contentPreview = post.content.length > 200 ? post.content.substring(0, 200) + "..." : post.content;
+      
+      const emailHtml = getContentReportedEmail({
+        contentOwnerName: post.user.displayName || post.user.username || "User",
+        contentType: "post",
+        contentTitle: post.title,
+        contentPreview,
+        reportReason: reason.trim(),
+        viewContentUrl: `${baseUrl}/forum/${post.slug || post.id}`,
+        appealUrl: `${baseUrl}/dashboard/forum/reports`,
+      });
+
+      await sendEmail({
+        to: post.user.email,
+        subject: "Your Forum Post Has Been Reported",
+        html: emailHtml,
+      });
+    }
 
     return NextResponse.json({ success: true, message: "Post reported successfully" });
   } catch (error) {

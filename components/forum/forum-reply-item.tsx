@@ -217,13 +217,13 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
         </div>
 
         {/* Action Buttons - Same design as posts but bg only on hover */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-0">
           {/* Vote Buttons - No bg or separation */}
           <button
             onClick={() => handleVote("upvote")}
             disabled={toggleReaction.isPending}
             className={cn(
-              "flex items-center gap-1 px-4 py-2 rounded-[25px] transition-colors cursor-pointer hover:bg-muted/50",
+              "flex items-center gap-1 px-3 py-2 rounded-[25px] transition-colors cursor-pointer hover:bg-muted/50",
               isUpvoted && "text-primary",
               toggleReaction.isPending && "opacity-50 cursor-not-allowed"
             )}
@@ -235,7 +235,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
             onClick={() => handleVote("downvote")}
             disabled={toggleReaction.isPending}
             className={cn(
-              "flex items-center gap-1 px-4 py-2 rounded-[25px] transition-colors cursor-pointer hover:bg-muted/50",
+              "flex items-center gap-1 px-3 py-2 rounded-[25px] transition-colors cursor-pointer hover:bg-muted/50",
               isDownvoted && "text-primary",
               toggleReaction.isPending && "opacity-50 cursor-not-allowed"
             )}

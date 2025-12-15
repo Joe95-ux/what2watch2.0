@@ -218,10 +218,10 @@ export function PostModerationTable() {
                   <TableCell>{post.score}</TableCell>
                   <TableCell>{post._count?.replies || 0}</TableCell>
                   <TableCell>
-                    {post._count?.reports > 0 ? (
+                    {(post._count?.totalReports || post._count?.reports || 0) > 0 ? (
                       <Badge variant="destructive" className="flex items-center gap-1 w-fit">
                         <Flag className="h-3 w-3" />
-                        {post._count.reports}
+                        {post._count?.totalReports || post._count?.reports || 0}
                       </Badge>
                     ) : (
                       <span className="text-muted-foreground">0</span>

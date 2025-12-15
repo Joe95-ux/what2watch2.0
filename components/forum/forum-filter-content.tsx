@@ -31,8 +31,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import Footer from "@/components/footer";
 
 interface ForumPost {
   id: string;
@@ -234,7 +232,7 @@ export function ForumFilterContent() {
         )}
 
         {/* Scrollable Content Area */}
-        <ScrollArea className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           {/* Header */}
           <div className="mb-6">
@@ -506,10 +504,7 @@ export function ForumFilterContent() {
             </>
           )}
           </div>
-          
-          {/* Footer inside content area */}
-          <Footer />
-        </ScrollArea>
+        </div>
       </div>
     </div>
   );

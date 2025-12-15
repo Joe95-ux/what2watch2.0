@@ -10,8 +10,6 @@ import { ForumSidebar } from "./forum-sidebar";
 import { PopularTopics } from "./popular-topics";
 import { useUser } from "@clerk/nextjs";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import Footer from "@/components/footer";
 import { cn } from "@/lib/utils";
 
 export function ForumPageClient() {
@@ -58,7 +56,7 @@ export function ForumPageClient() {
         )}
 
         {/* Scrollable Content Area */}
-        <ScrollArea className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             {/* Two Column Layout */}
             <div className="flex flex-col lg:flex-row gap-6">
@@ -90,16 +88,13 @@ export function ForumPageClient() {
 
               {/* Right Sidebar */}
               <aside className="w-full lg:w-80 flex-shrink-0">
-                <div className="sticky top-24">
+                <div className="sticky top-0">
                   <PopularTopics />
                 </div>
               </aside>
             </div>
           </div>
-
-          {/* Footer inside content area */}
-          <Footer />
-        </ScrollArea>
+        </div>
 
         {/* Create Post Dialog */}
         {isSignedIn && (

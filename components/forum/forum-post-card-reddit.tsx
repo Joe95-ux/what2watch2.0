@@ -296,7 +296,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
       {/* Action Buttons - Under Tags */}
       <div className="flex items-center gap-2">
         {/* Vote Buttons - Act like one button */}
-        <div className="flex items-center rounded-[25px] bg-muted/50 overflow-hidden">
+        <div className="flex items-center rounded-[25px] bg-muted/70 dark:bg-muted/50 overflow-hidden">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -333,7 +333,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
         <Link
           href={postUrl}
           onClick={(e) => e.stopPropagation()}
-          className="flex items-center gap-2 px-3 py-2 rounded-[25px] bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+          className="flex items-center gap-2 px-3 py-2 rounded-[25px] bg-muted/70 dark:bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
         >
           <MessageCircle className="h-4 w-4" />
           {post.replyCount > 0 && <span className="text-sm font-medium">{post.replyCount}</span>}
@@ -347,12 +347,12 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
             variant="ghost"
             size="sm"
             showLabel={true}
-            className="rounded-[25px] bg-muted/50 hover:bg-muted h-auto px-3 py-2"
+            className="rounded-[25px] bg-muted/70 dark:bg-muted/50 hover:bg-muted h-auto px-3 py-2"
           />
         </div>
         
         {/* Views */}
-        <div className="flex items-center gap-1 px-3 py-2 rounded-[25px] bg-muted/50 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1 px-3 py-2 rounded-[25px] bg-muted/70 dark:bg-muted/50 text-xs text-muted-foreground">
           <Eye className="h-4 w-4" />
           <span>{post.views}</span>
         </div>

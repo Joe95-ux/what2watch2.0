@@ -69,6 +69,8 @@ model User {
   forumReplyReactions ForumReplyReaction[]
   forumPostReports ForumPostReport[]
   forumReplyReports ForumReplyReport[]
+  forumPostReportReviews ForumPostReport[] @relation("ForumPostReportReviews")
+  forumReplyReportReviews ForumReplyReport[] @relation("ForumReplyReportReviews")
   forumCategories ForumCategory[]
   moderationActions ForumModerationAction[]
   sharedPlaylists SharedPlaylist[]
@@ -530,13 +532,24 @@ model ForumPostReport {
   reason        String   // Report reason (spam, harassment, etc.)
   description   String?  // Optional additional details
   
+  // Appeal system
+  status        String   @default("pending") // "pending", "reviewed", "appealed", "appeal_approved", "appeal_rejected"
+  appealReason  String?  // Owner's appeal reason
+  appealAt      DateTime? // When owner appealed
+  reviewedAt    DateTime? // When admin reviewed
+  reviewedById  String?  @db.ObjectId // Admin who reviewed
+  reviewedBy    User?    @relation("ForumPostReportReviews", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewNotes   String?  // Admin's review notes
+  
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@unique([postId, userId])
   @@map("forum_post_reports")
   @@index([postId])
   @@index([userId])
   @@index([createdAt])
+  @@index([status])
 }
 
 // Forum reply reports - user reports for inappropriate replies
@@ -550,13 +563,24 @@ model ForumReplyReport {
   reason        String   // Report reason (spam, harassment, etc.)
   description   String?  // Optional additional details
   
+  // Appeal system
+  status        String   @default("pending") // "pending", "reviewed", "appealed", "appeal_approved", "appeal_rejected"
+  appealReason  String?  // Owner's appeal reason
+  appealAt      DateTime? // When owner appealed
+  reviewedAt    DateTime? // When admin reviewed
+  reviewedById  String?  @db.ObjectId // Admin who reviewed
+  reviewedBy    User?    @relation("ForumReplyReportReviews", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewNotes   String?  // Admin's review notes
+  
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@unique([replyId, userId])
   @@map("forum_reply_reports")
   @@index([replyId])
   @@index([userId])
   @@index([createdAt])
+  @@index([status])
 }
 
 // Forum moderation actions - audit log for moderation

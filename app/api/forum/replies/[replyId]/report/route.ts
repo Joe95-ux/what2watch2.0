@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { sendEmail } from "@/lib/email";
+import { getContentReportedEmail } from "@/lib/email-templates";
 
 interface RouteParams {
   params: Promise<{ replyId: string }>;
@@ -40,7 +42,10 @@ export async function POST(
 
     const reply = await db.forumReply.findUnique({
       where: { id: replyId },
-      select: { id: true },
+      include: {
+        user: { select: { id: true, email: true, displayName: true, username: true, emailNotifications: true } },
+        post: { select: { id: true, slug: true, title: true } },
+      },
     });
     
     if (!reply) {
@@ -73,6 +78,27 @@ export async function POST(
         description: description?.trim() || null,
       },
     });
+
+    // Send email notification to reply owner (if enabled)
+    if (reply.user.emailNotifications && reply.user.email) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const contentPreview = reply.content.length > 200 ? reply.content.substring(0, 200) + "..." : reply.content;
+      
+      const emailHtml = getContentReportedEmail({
+        contentOwnerName: reply.user.displayName || reply.user.username || "User",
+        contentType: "reply",
+        contentPreview,
+        reportReason: reason.trim(),
+        viewContentUrl: `${baseUrl}/forum/${reply.post.slug || reply.post.id}`,
+        appealUrl: `${baseUrl}/dashboard/forum/reports`,
+      });
+
+      await sendEmail({
+        to: reply.user.email,
+        subject: "Your Forum Reply Has Been Reported",
+        html: emailHtml,
+      });
+    }
 
     return NextResponse.json({ success: true, message: "Reply reported successfully" });
   } catch (error) {

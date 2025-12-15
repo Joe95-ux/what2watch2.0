@@ -94,6 +94,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: "/dashboard/diary", label: "Diary", icon: BookOpen },
     { href: "/dashboard/diary/stats", label: "Diary Stats", icon: BarChart3 },
     { href: "/dashboard/my-stats", label: "My Stats", icon: BarChart3 },
+    { href: "/dashboard/forum/reports", label: "Forum Reports", icon: MessageSquare },
   ];
 
   // YouTube links

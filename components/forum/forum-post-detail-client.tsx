@@ -24,8 +24,6 @@ import { cn } from "@/lib/utils";
 import { ForumSidebar } from "./forum-sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import Footer from "@/components/footer";
 import { useForumPostReaction, useToggleForumPostLike } from "@/hooks/use-forum-reactions";
 import { ShareDropdown } from "@/components/ui/share-dropdown";
 import { toast } from "sonner";
@@ -362,14 +360,13 @@ export function ForumPostDetailClient() {
           "flex-1 min-w-0 transition-all duration-300 flex flex-col overflow-hidden",
           !isMobile && "ml-64"
         )}>
-          <ScrollArea className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
               <div className="text-center py-12">
                 <p className="text-destructive">Failed to load post. Please try again.</p>
               </div>
             </div>
-            <Footer />
-          </ScrollArea>
+          </div>
         </div>
       </div>
     );
@@ -408,7 +405,7 @@ export function ForumPostDetailClient() {
         )}
 
         {/* Scrollable Content Area */}
-        <ScrollArea className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           {/* Two Column Layout */}
           <div className="flex flex-col lg:flex-row gap-6">
@@ -658,7 +655,7 @@ export function ForumPostDetailClient() {
 
       {/* Right Sidebar */}
       <aside className="w-full lg:w-80 flex-shrink-0">
-        <div className="space-y-4 sticky top-24">
+        <div className="space-y-4 sticky top-0">
           {/* Ad Placement */}
           <div className="rounded-lg border border-border bg-muted/30 p-8 flex items-center justify-center min-h-[200px]">
             <p className="text-sm text-muted-foreground text-center">Ad Placement</p>
@@ -727,11 +724,8 @@ export function ForumPostDetailClient() {
         </div>
       </aside>
           </div>
-          
-          {/* Footer inside content area */}
-          <Footer />
         </div>
-        </ScrollArea>
+        </div>
       </div>
 
       {/* Edit Post Dialog */}

@@ -37,9 +37,17 @@ export async function GET(request: NextRequest) {
 
     if (hasReports !== null && hasReports !== undefined) {
       if (hasReports === "true") {
-        where.reports = { some: {} };
+        // Include posts that have direct reports OR posts that have replies with reports
+        where.OR = [
+          { reports: { some: {} } },
+          { replies: { some: { reports: { some: {} } } } },
+        ];
       } else {
-        where.reports = { none: {} };
+        // Posts with no direct reports AND no replies with reports
+        where.AND = [
+          { reports: { none: {} } },
+          { replies: { every: { reports: { none: {} } } } },
+        ];
       }
     }
 
@@ -81,8 +89,28 @@ export async function GET(request: NextRequest) {
       db.forumPost.count({ where }),
     ]);
 
+    // Calculate total reports including reply reports for each post
+    const postsWithTotalReports = await Promise.all(
+      posts.map(async (post) => {
+        const replyReportsCount = await db.forumReplyReport.count({
+          where: {
+            reply: {
+              postId: post.id,
+            },
+          },
+        });
+        return {
+          ...post,
+          _count: {
+            ...post._count,
+            totalReports: post._count.reports + replyReportsCount,
+          },
+        };
+      })
+    );
+
     return NextResponse.json({
-      posts,
+      posts: postsWithTotalReports,
       pagination: {
         page,
         limit,

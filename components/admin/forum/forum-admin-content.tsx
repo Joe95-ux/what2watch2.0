@@ -5,7 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserManagementTable } from "./user-management-table";
 import { PostModerationTable } from "./post-moderation-table";
 import { CategoryManagement } from "./category-management";
-import { Users, MessageSquare, Hash } from "lucide-react";
+import { ReportsManagementTable } from "./reports-management-table";
+import { Users, MessageSquare, Hash, Flag } from "lucide-react";
 
 export function ForumAdminContent() {
   const [activeTab, setActiveTab] = useState("users");
@@ -34,6 +35,10 @@ export function ForumAdminContent() {
               <Hash className="mr-2 h-4 w-4" />
               Categories
             </TabsTrigger>
+            <TabsTrigger value="reports" className="cursor-pointer">
+              <Flag className="mr-2 h-4 w-4" />
+              Reports
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users" className="mt-6">
@@ -46,6 +51,10 @@ export function ForumAdminContent() {
 
           <TabsContent value="categories" className="mt-6">
             <CategoryManagement />
+          </TabsContent>
+
+          <TabsContent value="reports" className="mt-6">
+            <ReportsManagementTable />
           </TabsContent>
         </Tabs>
       </div>
