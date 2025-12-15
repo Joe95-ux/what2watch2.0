@@ -23,6 +23,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { ReportDialog } from "./report-dialog";
+import { SafeHtmlContent } from "./safe-html-content";
 
 interface ForumReply {
   id: string;
@@ -212,9 +213,10 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
           </span>
         </div>
 
-        <div className="text-base mb-2 whitespace-pre-wrap">
-          {reply.content}
-        </div>
+        <SafeHtmlContent 
+          content={reply.content}
+          className="text-base mb-2 [&_p]:mb-2 [&_p:last-child]:mb-0 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-2"
+        />
 
         {/* Action Buttons - Same design as posts but bg only on hover */}
         <div className="flex items-center gap-0">

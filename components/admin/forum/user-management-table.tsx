@@ -148,7 +148,7 @@ export function UserManagementTable() {
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4 overflow-x-auto scrollbar-hide">
+      <div className="flex flex-row items-stretch lg:items-center gap-4 overflow-x-auto scrollbar-hide">
         {/* Mobile: Search button (icon only) or expanded search covering entire row */}
         {isSearchExpanded ? (
           <div className="relative w-full lg:hidden">

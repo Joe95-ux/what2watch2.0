@@ -30,6 +30,7 @@ import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { EditPostDialog } from "./edit-post-dialog";
 import { ReportDialog } from "./report-dialog";
+import { SafeHtmlContent } from "./safe-html-content";
 
 interface ForumPost {
   id: string;
@@ -463,7 +464,10 @@ export function ForumPostDetailClient() {
 
               {/* Content */}
               <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
-                <p className="whitespace-pre-wrap text-base">{post.content}</p>
+                <SafeHtmlContent 
+                  content={post.content}
+                  className="text-base [&_p]:mb-3 [&_p:last-child]:mb-0 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-2"
+                />
               </div>
 
               {/* Action Buttons - Under Tags */}
@@ -634,9 +638,12 @@ export function ForumPostDetailClient() {
                       </h4>
                       
                       {/* Content Preview */}
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {relatedPost.content}
-                      </p>
+                      <div className="text-xs text-muted-foreground line-clamp-2">
+                        <SafeHtmlContent 
+                          content={relatedPost.content}
+                          className="[&_p]:mb-1 [&_p:last-child]:mb-0 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded [&_img]:my-1"
+                        />
+                      </div>
                       
                       {/* Stats */}
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">

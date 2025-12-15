@@ -24,6 +24,7 @@ import { useState } from "react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { EditPostDialog } from "./edit-post-dialog";
 import { ReportDialog } from "./report-dialog";
+import { SafeHtmlContent } from "./safe-html-content";
 
 interface ForumPost {
   id: string;
@@ -275,9 +276,12 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
 
       {/* Post Content Preview */}
       <Link href={postUrl} className="block mb-3">
-        <p className="text-base text-muted-foreground line-clamp-3">
-          {post.content}
-        </p>
+        <div className="text-base text-muted-foreground line-clamp-3">
+          <SafeHtmlContent 
+            content={post.content}
+            className="[&_p]:mb-2 [&_p:last-child]:mb-0 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-1"
+          />
+        </div>
       </Link>
 
       {/* Tags */}
