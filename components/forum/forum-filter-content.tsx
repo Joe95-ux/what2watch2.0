@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -63,20 +63,25 @@ interface ForumPostsResponse {
   };
 }
 
-function ForumFilterContentInner() {
+interface ForumFilterContentProps {
+  initialSearch?: string;
+  initialSortBy?: "createdAt" | "views" | "replyCount" | "updatedAt";
+  initialSortOrder?: "asc" | "desc";
+  initialCategory?: string;
+}
+
+function ForumFilterContentInner({
+  initialSearch = "",
+  initialSortBy = "updatedAt",
+  initialSortOrder = "desc",
+  initialCategory = "all",
+}: ForumFilterContentProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const observerTarget = useRef<HTMLDivElement>(null);
-  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
-  const [sortBy, setSortBy] = useState<"createdAt" | "views" | "replyCount" | "updatedAt">(
-    (searchParams.get("sortBy") as any) || "updatedAt"
-  );
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">(
-    (searchParams.get("order") as any) || "desc"
-  );
-  const [categoryFilter, setCategoryFilter] = useState<string>(
-    searchParams.get("category") || "all"
-  );
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [sortBy, setSortBy] = useState<"createdAt" | "views" | "replyCount" | "updatedAt">(initialSortBy);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">(initialSortOrder);
+  const [categoryFilter, setCategoryFilter] = useState<string>(initialCategory);
 
   // Fetch categories for filter
   const { data: categoriesData } = useQuery({
@@ -470,7 +475,7 @@ function ForumFilterContentInner() {
   );
 }
 
-export function ForumFilterContent() {
-  return <ForumFilterContentInner />;
+export function ForumFilterContent(props: ForumFilterContentProps) {
+  return <ForumFilterContentInner {...props} />;
 }
 
