@@ -63,7 +63,7 @@ interface ForumPostsResponse {
   };
 }
 
-export function ForumFilterContent() {
+function ForumFilterContentInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const observerTarget = useRef<HTMLDivElement>(null);
@@ -468,5 +468,9 @@ export function ForumFilterContent() {
           )}
     </div>
   );
+}
+
+export function ForumFilterContent() {
+  return <ForumFilterContentInner />;
 }
 
