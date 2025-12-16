@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { MessageCircle, Eye, Tag, MoreVertical, Flag, Edit, Trash2, ArrowLeft, Search, ArrowUpDown } from "lucide-react";
-import { BiUpvote, BiDownvote } from "react-icons/bi";
+import { BiSolidUpvote, BiSolidDownvote } from "react-icons/bi";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -496,7 +496,7 @@ export function ForumPostDetailClient() {
                       toggleReaction.isPending && "opacity-50 cursor-not-allowed"
                     )}
                   >
-                    <BiUpvote className={cn("h-5 w-5", isUpvoted && "fill-current")} />
+                    <BiSolidUpvote className={cn("h-5 w-5 [stroke-width:2px] stroke-current", isUpvoted ? "fill-white" : "fill-transparent")} />
                     {displayScore > 0 && <span className="text-sm">{displayScore}</span>}
                   </button>
                   <div className="h-6 w-px bg-border" />
@@ -509,7 +509,7 @@ export function ForumPostDetailClient() {
                       toggleReaction.isPending && "opacity-50 cursor-not-allowed"
                     )}
                   >
-                    <BiDownvote className={cn("h-5 w-5", isDownvoted && "fill-current")} />
+                    <BiSolidDownvote className={cn("h-5 w-5 [stroke-width:2px] stroke-current", isDownvoted ? "fill-white" : "fill-transparent")} />
                   </button>
                 </div>
                 
@@ -661,7 +661,7 @@ export function ForumPostDetailClient() {
                       {/* Stats */}
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
-                          <BiUpvote className="h-5 w-5" />
+                          <BiSolidUpvote className="h-5 w-5 [stroke-width:2px] stroke-current fill-transparent" />
                           <span>{relatedPost.score > 0 ? relatedPost.score : 0}</span>
                         </div>
                         <div className="flex items-center gap-1">

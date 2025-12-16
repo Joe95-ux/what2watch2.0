@@ -391,7 +391,7 @@ export function ForumSidebar({
                 <>
                   <Button
                     variant={isAllCategoriesActive ? "secondary" : "ghost"}
-                    className="w-full justify-start text-sm pl-4 cursor-pointer"
+                    className="w-full justify-start text-sm px-2 cursor-pointer"
                     onClick={() => {
                       const params = new URLSearchParams(searchParams.toString());
                       params.delete("category");
@@ -406,7 +406,7 @@ export function ForumSidebar({
                       key={category.id}
                       variant={activeCategory === category.slug ? "secondary" : "ghost"}
                       className={cn(
-                        "w-full justify-start text-sm pl-4 relative cursor-pointer",
+                        "w-full justify-start text-sm px-2 relative cursor-pointer",
                         activeCategory === category.slug && category.color && "border-l-4"
                       )}
                       style={activeCategory === category.slug && category.color ? {
@@ -429,7 +429,7 @@ export function ForumSidebar({
                   {hasMoreCategories && (
                     <Button
                       variant="ghost"
-                      className="w-full justify-start text-sm text-muted-foreground pl-4 cursor-pointer"
+                      className="w-full justify-start text-sm text-muted-foreground px-2 cursor-pointer"
                       onClick={() => setCategoriesExpanded(!categoriesExpanded)}
                     >
                       {categoriesExpanded ? (

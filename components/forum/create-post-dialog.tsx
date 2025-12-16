@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import {
@@ -13,19 +13,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { TiptapEditor } from "./tiptap-editor";
 import { CategoryFields } from "./category-fields";
+import { CategorySelect } from "./category-select";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Calendar, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { Loader2, Calendar, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -67,6 +60,18 @@ export function CreatePostDialog({
     },
   });
 
+  // Set default category to "General Discussion" on mount
+  useEffect(() => {
+    if (categoriesData?.categories && !categoryId) {
+      const generalDiscussion = categoriesData.categories.find(
+        (cat: any) => cat.slug === "general-discussion"
+      );
+      if (generalDiscussion) {
+        setCategoryId(generalDiscussion.id);
+      }
+    }
+  }, [categoriesData, categoryId]);
+
   const createPost = useMutation({
     mutationFn: async (data: {
       title: string;
@@ -100,15 +105,8 @@ export function CreatePostDialog({
       } else {
         toast.success("Post created successfully!");
       }
-      onClose();
-      setTitle("");
-      setContent("");
-      setTags("");
-      setCategoryId("");
-      setMetadata({});
-      setScheduledAt(undefined);
-      setScheduledTime("");
       setStep(1);
+      handleClose();
       if (!scheduledAt) {
         const postSlug = data.post.slug || data.post.id;
         router.push(`/forum/${postSlug}`);
@@ -120,54 +118,62 @@ export function CreatePostDialog({
   });
 
   const handleNext = () => {
+    // Validate required fields for step 1
     if (!title.trim()) {
       toast.error("Title is required");
       return;
     }
 
-    if (!content.trim()) {
+    // For bug reports, content is not required
+    const selectedCategory = categoriesData?.categories?.find((cat: any) => cat.id === categoryId);
+    const slug = selectedCategory?.slug?.toLowerCase() || "";
+    const isBugReport = slug === "bug-report" || slug === "help-support" || slug === "help-&-support";
+
+    if (!isBugReport && !content.trim()) {
       toast.error("Content is required");
       return;
     }
 
-    // Validate category-specific required fields
-    const selectedCategory = categoriesData?.categories?.find((cat: any) => cat.id === categoryId);
+    // Validate category-specific required fields (only recommended fields)
     if (selectedCategory) {
-      const slug = selectedCategory.slug.toLowerCase();
-      
-      // Bug Report validation
-      if ((slug === "bug-report" || slug === "help-support" || slug === "help-&-support") && 
-          (!metadata.severity || !metadata.stepsToReproduce || !metadata.expectedBehavior || !metadata.actualBehavior)) {
-        toast.error("Please fill in all required bug report fields");
-        return;
+      // Bug Report validation - only severity, steps, expected, actual are required
+      if (isBugReport) {
+        if (!metadata.severity || !metadata.stepsToReproduce || !metadata.expectedBehavior || !metadata.actualBehavior) {
+          toast.error("Please fill in all required bug report fields");
+          return;
+        }
       }
       
-      // Feature Request validation
-      if ((slug === "feature-request" || slug === "feedback" || slug === "feature-requests") && 
-          (!metadata.priority || !metadata.useCase)) {
-        toast.error("Please fill in all required feature request fields");
-        return;
+      // Feature Request validation - only priority and useCase are required
+      if ((slug === "feature-request" || slug === "feedback" || slug === "feature-requests")) {
+        if (!metadata.priority || !metadata.useCase) {
+          toast.error("Please fill in all required feature request fields");
+          return;
+        }
       }
       
-      // Playlist validation
-      if ((slug === "playlists" || slug === "playlists-lists" || slug === "playlists-&-lists") && 
-          (!metadata.playlistLink || !metadata.whyRecommend)) {
-        toast.error("Please fill in all required playlist fields");
-        return;
+      // Playlist validation - only playlistLink is required
+      if ((slug === "playlists" || slug === "playlists-lists" || slug === "playlists-&-lists")) {
+        if (!metadata.playlistLink) {
+          toast.error("Playlist link is required");
+          return;
+        }
       }
       
-      // List validation
-      if ((slug === "lists" || slug === "curated-lists") && 
-          (!metadata.listLink || !metadata.whyRecommend)) {
-        toast.error("Please fill in all required list fields");
-        return;
+      // List validation - only listLink is required
+      if ((slug === "lists" || slug === "curated-lists")) {
+        if (!metadata.listLink) {
+          toast.error("List link is required");
+          return;
+        }
       }
       
-      // Watchlist validation
-      if ((slug === "watchlists" || slug === "watchlist") && 
-          (!metadata.watchlistLink || !metadata.whyRecommend)) {
-        toast.error("Please fill in all required watchlist fields");
-        return;
+      // Watchlist validation - only watchlistLink is required
+      if ((slug === "watchlists" || slug === "watchlist")) {
+        if (!metadata.watchlistLink) {
+          toast.error("Watchlist link is required");
+          return;
+        }
       }
     }
 
@@ -190,9 +196,15 @@ export function CreatePostDialog({
     // Only include metadata if category is selected and has values
     const metadataToSend = Object.keys(metadata).length > 0 ? metadata : undefined;
 
+    // For bug reports, use empty content
+    const selectedCategory = categoriesData?.categories?.find((cat: any) => cat.id === categoryId);
+    const slug = selectedCategory?.slug?.toLowerCase() || "";
+    const isBugReport = slug === "bug-report" || slug === "help-support" || slug === "help-&-support";
+    const finalContent = isBugReport ? "" : content.trim();
+
     createPost.mutate({
       title: title.trim(),
-      content: content.trim(),
+      content: finalContent,
       tags: tagArray,
       categoryId: categoryId || undefined,
       metadata: metadataToSend,
@@ -207,7 +219,15 @@ export function CreatePostDialog({
     setTitle("");
     setContent("");
     setTags("");
-    setCategoryId("");
+    // Reset to default category
+    if (categoriesData?.categories) {
+      const generalDiscussion = categoriesData.categories.find(
+        (cat: any) => cat.slug === "general-discussion"
+      );
+      setCategoryId(generalDiscussion?.id || "");
+    } else {
+      setCategoryId("");
+    }
     setMetadata({});
     setScheduledAt(undefined);
     setScheduledTime("");
@@ -217,10 +237,30 @@ export function CreatePostDialog({
   // Get selected category slug for CategoryFields
   const selectedCategory = categoriesData?.categories?.find((cat: any) => cat.id === categoryId);
   const categorySlug = selectedCategory?.slug;
+  const isBugReport = categorySlug && (
+    categorySlug.toLowerCase() === "bug-report" ||
+    categorySlug.toLowerCase() === "help-support" ||
+    categorySlug.toLowerCase() === "help-&-support"
+  );
+
+  // Determine content label based on category
+  const getContentLabel = () => {
+    if (!categorySlug) return "Content";
+    const slug = categorySlug.toLowerCase();
+    if (slug === "watchlists" || slug === "watchlist" || 
+        slug === "playlists" || slug === "playlists-lists" || slug === "playlists-&-lists" ||
+        slug === "lists" || slug === "curated-lists") {
+      return "Content";
+    }
+    return "Content";
+  };
+
+  const categories = categoriesData?.categories || [];
+  const defaultCategoryId = categories.find((cat: any) => cat.slug === "general-discussion")?.id;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] h-auto overflow-hidden p-0 flex flex-col max-h-[90vh]">
+      <DialogContent className="sm:max-w-[45rem] h-auto overflow-hidden p-0 flex flex-col max-h-[90vh]">
         {/* Fixed Header */}
         <DialogHeader className="sticky top-0 z-10 bg-background px-6 pt-6 pb-4 border-b">
           <DialogTitle>Create New Post</DialogTitle>
@@ -245,14 +285,14 @@ export function CreatePostDialog({
               <button
                 type="button"
                 onClick={() => {
-                  if (title.trim() && content.trim()) {
-                    setStep(2);
+                  if (title.trim() && (isBugReport || content.trim())) {
+                    handleNext();
                   }
                 }}
                 className={cn(
                   "text-sm font-medium transition-colors cursor-pointer",
                   step === 2 ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-                  (!title.trim() || !content.trim()) && "opacity-50 cursor-not-allowed"
+                  (!title.trim() || (!isBugReport && !content.trim())) && "opacity-50 cursor-not-allowed"
                 )}
               >
                 Additional Details
@@ -284,57 +324,55 @@ export function CreatePostDialog({
           <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-4 min-h-0">
             {step === 1 ? (
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Title</Label>
-                  <Input
-                    id="title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Enter post title..."
-                    maxLength={200}
-                    required
-                    className="cursor-text"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {title.length}/200 characters
-                  </p>
+                {/* Title and Category on same row */}
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Title</Label>
+                    <Input
+                      id="title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="Enter post title..."
+                      maxLength={200}
+                      required
+                      className="cursor-text"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {title.length}/200 characters
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Category</Label>
+                    <CategorySelect
+                      categories={categories}
+                      value={categoryId}
+                      onValueChange={(value) => {
+                        setCategoryId(value);
+                        // Reset metadata when category changes
+                        if (value !== categoryId) {
+                          setMetadata({});
+                        }
+                      }}
+                      defaultCategoryId={defaultCategoryId}
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="content">Content</Label>
-                  <TiptapEditor
-                    content={content}
-                    onChange={setContent}
-                    placeholder="Write your post content..."
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {content.replace(/<[^>]*>/g, "").length}/10,000 characters
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category (optional)</Label>
-                  <Select value={categoryId || "none"} onValueChange={(value) => {
-                    const newCategoryId = value === "none" ? "" : value;
-                    setCategoryId(newCategoryId);
-                    // Reset metadata when category changes
-                    if (newCategoryId !== categoryId) {
-                      setMetadata({});
-                    }
-                  }}>
-                    <SelectTrigger id="category" className="cursor-pointer">
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[300px]">
-                      <SelectItem value="none">None</SelectItem>
-                      {categoriesData?.categories?.map((category: any) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {/* Content field - hidden for bug reports */}
+                {!isBugReport && (
+                  <div className="space-y-2">
+                    <Label htmlFor="content">{getContentLabel()}</Label>
+                    <TiptapEditor
+                      content={content}
+                      onChange={setContent}
+                      placeholder="Write your post content..."
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {content.replace(/<[^>]*>/g, "").length}/10,000 characters
+                    </p>
+                  </div>
+                )}
 
                 {/* Category-specific fields */}
                 {categorySlug && (
@@ -347,6 +385,7 @@ export function CreatePostDialog({
               </div>
             ) : (
               <div className="space-y-4">
+                {/* Tags */}
                 <div className="space-y-2">
                   <Label htmlFor="tags">Tags (comma-separated, max 5)</Label>
                   <Input
@@ -361,6 +400,7 @@ export function CreatePostDialog({
                   </p>
                 </div>
 
+                {/* Schedule Post */}
                 <div className="space-y-2">
                   <Label htmlFor="schedule">Schedule Post (optional)</Label>
                   <div className="space-y-3">
@@ -368,6 +408,7 @@ export function CreatePostDialog({
                       <PopoverTrigger asChild>
                         <Button
                           id="schedule"
+                          type="button"
                           variant="outline"
                           className={cn(
                             "w-full justify-start text-left font-normal cursor-pointer",
@@ -388,16 +429,13 @@ export function CreatePostDialog({
                           selected={scheduledAt}
                           onSelect={(date) => {
                             if (date) {
-                              // If we have a scheduled date with time, preserve the time
                               if (scheduledAt && scheduledTime) {
                                 const newDate = new Date(date);
                                 newDate.setHours(scheduledAt.getHours(), scheduledAt.getMinutes(), 0, 0);
                                 setScheduledAt(newDate);
                               } else {
-                                // Set to 9 AM by default for new date selection
                                 const scheduled = new Date(date);
                                 const now = new Date();
-                                // If selected date is today, use current time + 1 hour, otherwise 9 AM
                                 if (date.toDateString() === now.toDateString()) {
                                   scheduled.setHours(now.getHours() + 1, 0, 0, 0);
                                   const hours = String(scheduled.getHours()).padStart(2, "0");
@@ -436,7 +474,6 @@ export function CreatePostDialog({
                                 const newDate = new Date(scheduledAt);
                                 newDate.setHours(hours, minutes, 0, 0);
                                 
-                                // Validate: if date is today and time has passed, show error
                                 const now = new Date();
                                 if (newDate <= now && newDate.toDateString() === now.toDateString()) {
                                   toast.error("Scheduled time must be in the future");
@@ -545,4 +582,3 @@ export function CreatePostDialog({
     </Dialog>
   );
 }
-

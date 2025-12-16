@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { MessageCircle } from "lucide-react";
-import { BiUpvote } from "react-icons/bi";
+import { BiSolidUpvote } from "react-icons/bi";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -117,7 +117,7 @@ export function PopularTopics() {
               {/* Stats */}
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1">
-                  <BiUpvote className="h-5 w-5" />
+                  <BiSolidUpvote className="h-5 w-5 [stroke-width:2px] stroke-current fill-transparent" />
                   <span>{post.score > 0 ? post.score : 0}</span>
                 </div>
                 <div className="flex items-center gap-1">

@@ -18,15 +18,7 @@ export function FeatureRequestFields({ metadata, onChange }: FeatureRequestField
   };
 
   return (
-    <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-      <div className="space-y-2">
-        <Label className="text-sm font-semibold">Feature Request Details</Label>
-        <p className="text-xs text-muted-foreground">
-          Help us understand your feature idea
-        </p>
-      </div>
-
-      <div className="space-y-4">
+    <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="priority">
             Priority <span className="text-destructive">*</span>
