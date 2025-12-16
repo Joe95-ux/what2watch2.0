@@ -42,7 +42,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ users: u
       distinct: ["userId"],
     });
 
-    const uniqueUserIds = [...new Set(activities.map((a) => a.userId))];
+    const uniqueUserIds = [...new Set(activities.map((a: { userId: string }) => a.userId))];
 
     // Fetch user details
     const users = await db.user.findMany({
