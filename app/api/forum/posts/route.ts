@@ -221,6 +221,7 @@ export async function GET(request: NextRequest) {
         title: post.title,
         content: post.content,
         tags: post.tags,
+        metadata: post.metadata,
         tmdbId: post.tmdbId,
         mediaType: post.mediaType,
         category: post.category ? {
@@ -283,7 +284,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, content, tags, tmdbId, mediaType, categoryId, scheduledAt } = body;
+    const { title, content, tags, tmdbId, mediaType, categoryId, metadata, scheduledAt } = body;
 
     if (!title || !title.trim()) {
       return NextResponse.json(
@@ -344,6 +345,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate and sanitize metadata if provided
+    let sanitizedMetadata = null;
+    if (metadata && typeof metadata === "object" && Object.keys(metadata).length > 0) {
+      // Only allow metadata if category is selected
+      if (!categoryId) {
+        return NextResponse.json(
+          { error: "Metadata can only be provided when a category is selected" },
+          { status: 400 }
+        );
+      }
+      // Sanitize metadata - ensure it's a plain object
+      sanitizedMetadata = JSON.parse(JSON.stringify(metadata));
+    }
+
     const post = await db.forumPost.create({
       data: {
         userId: user.id,
@@ -352,6 +367,7 @@ export async function POST(request: NextRequest) {
         content: content.trim(),
         tags: validTags,
         categoryId: categoryId || null,
+        metadata: sanitizedMetadata,
         tmdbId: tmdbId ? parseInt(tmdbId, 10) : null,
         mediaType: mediaType || null,
         views: 0,

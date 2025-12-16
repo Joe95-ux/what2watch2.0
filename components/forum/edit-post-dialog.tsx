@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { TiptapEditor } from "./tiptap-editor";
+import { CategoryFields } from "./category-fields";
 import {
   Select,
   SelectContent,
@@ -36,6 +37,7 @@ interface ForumPost {
   title: string;
   content: string;
   tags: string[];
+  metadata?: Record<string, any> | null;
   tmdbId?: number;
   mediaType?: string;
   category?: {
@@ -65,6 +67,7 @@ export function EditPostDialog({
   const [content, setContent] = useState(post.content);
   const [tags, setTags] = useState(post.tags.join(", "));
   const [categoryId, setCategoryId] = useState(post.category?.id || "none");
+  const [metadata, setMetadata] = useState<Record<string, any>>(post.metadata || {});
   const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
 
   // Reset form when dialog opens
@@ -74,6 +77,7 @@ export function EditPostDialog({
       setContent(post.content);
       setTags(post.tags.join(", "));
       setCategoryId(post.category?.id || "none");
+      setMetadata(post.metadata || {});
       setStep(1);
     }
   }, [isOpen, post]);
@@ -106,6 +110,7 @@ export function EditPostDialog({
           content: content.trim(),
           tags: validTags,
           categoryId: categoryId === "none" ? null : categoryId,
+          metadata: Object.keys(metadata).length > 0 ? metadata : null,
           scheduledAt: scheduledAt ? scheduledAt.toISOString() : null,
         }),
       });
@@ -140,6 +145,48 @@ export function EditPostDialog({
         toast.error("Title and content are required");
         return;
       }
+      
+      // Validate category-specific required fields
+      const selectedCategory = categoriesData?.categories?.find((cat: any) => cat.id === categoryId);
+      if (selectedCategory && categoryId !== "none") {
+        const slug = selectedCategory.slug.toLowerCase();
+        
+        // Bug Report validation
+        if ((slug === "bug-report" || slug === "help-support" || slug === "help-&-support") && 
+            (!metadata.severity || !metadata.stepsToReproduce || !metadata.expectedBehavior || !metadata.actualBehavior)) {
+          toast.error("Please fill in all required bug report fields");
+          return;
+        }
+        
+        // Feature Request validation
+        if ((slug === "feature-request" || slug === "feedback" || slug === "feature-requests") && 
+            (!metadata.priority || !metadata.useCase)) {
+          toast.error("Please fill in all required feature request fields");
+          return;
+        }
+        
+        // Playlist validation
+        if ((slug === "playlists" || slug === "playlists-lists" || slug === "playlists-&-lists") && 
+            (!metadata.playlistLink || !metadata.whyRecommend)) {
+          toast.error("Please fill in all required playlist fields");
+          return;
+        }
+        
+        // List validation
+        if ((slug === "lists" || slug === "curated-lists") && 
+            (!metadata.listLink || !metadata.whyRecommend)) {
+          toast.error("Please fill in all required list fields");
+          return;
+        }
+        
+        // Watchlist validation
+        if ((slug === "watchlists" || slug === "watchlist") && 
+            (!metadata.watchlistLink || !metadata.whyRecommend)) {
+          toast.error("Please fill in all required watchlist fields");
+          return;
+        }
+      }
+      
       setStep(2);
     } else {
       updatePost.mutate();
@@ -241,7 +288,13 @@ export function EditPostDialog({
               </div>
               <div>
                 <Label htmlFor="category">Category</Label>
-                <Select value={categoryId} onValueChange={setCategoryId}>
+                <Select value={categoryId} onValueChange={(value) => {
+                  setCategoryId(value);
+                  // Reset metadata when category changes
+                  if (value !== categoryId) {
+                    setMetadata({});
+                  }
+                }}>
                   <SelectTrigger id="category" className="mt-1 cursor-pointer">
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
@@ -256,6 +309,15 @@ export function EditPostDialog({
                   </SelectContent>
                 </Select>
               </div>
+              
+              {/* Category-specific fields */}
+              {categoryId !== "none" && (
+                <CategoryFields
+                  categorySlug={categories.find((cat: any) => cat.id === categoryId)?.slug}
+                  metadata={metadata}
+                  onChange={setMetadata}
+                />
+              )}
               <div>
                 <Label>Schedule Post (Optional)</Label>
                 <Popover>

@@ -1,6 +1,7 @@
 "use client";
 
-import { Share2, Facebook, Twitter, MessageCircle, Mail, Link2 } from "lucide-react";
+import { Facebook, Twitter, MessageCircle, Mail, Link2 } from "lucide-react";
+import { FaShare } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -91,7 +92,7 @@ export function ShareDropdown({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant={variant} size={size} className={className}>
-          <Share2 className="h-4 w-4" />
+          <FaShare className="h-5 w-5" />
           {showLabel && "Share"}
         </Button>
       </DropdownMenuTrigger>

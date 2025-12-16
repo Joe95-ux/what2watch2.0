@@ -423,6 +423,13 @@ model ForumPost {
   // Tags (user-defined tags, separate from categories)
   tags          String[] @default([])
   
+  // Category-specific metadata (JSON field for flexible data storage)
+  // Examples:
+  // - Bug reports: { severity, stepsToReproduce, expectedBehavior, actualBehavior, browserInfo, screenshots }
+  // - Feature requests: { priority, useCase, currentWorkaround, mockups }
+  // - Playlists/Lists/Watchlists: { linkId, linkType, whyRecommend, thumbnail }
+  metadata      Json?   // Category-specific metadata stored as JSON
+  
   // Engagement
   views         Int      @default(0)
   score         Int      @default(0) // upvotes - downvotes

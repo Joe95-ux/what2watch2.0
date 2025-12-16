@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { TiptapEditor } from "./tiptap-editor";
+import { CategoryFields } from "./category-fields";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -50,6 +51,7 @@ export function CreatePostDialog({
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
   const [categoryId, setCategoryId] = useState<string>("");
+  const [metadata, setMetadata] = useState<Record<string, any>>({});
   const [scheduledAt, setScheduledAt] = useState<Date | undefined>(undefined);
   const [scheduledTime, setScheduledTime] = useState<string>("");
 
@@ -71,6 +73,7 @@ export function CreatePostDialog({
       content: string;
       tags: string[];
       categoryId?: string;
+      metadata?: Record<string, any>;
       tmdbId?: number;
       mediaType?: "movie" | "tv";
       scheduledAt?: Date;
@@ -102,6 +105,7 @@ export function CreatePostDialog({
       setContent("");
       setTags("");
       setCategoryId("");
+      setMetadata({});
       setScheduledAt(undefined);
       setScheduledTime("");
       setStep(1);
@@ -126,6 +130,47 @@ export function CreatePostDialog({
       return;
     }
 
+    // Validate category-specific required fields
+    const selectedCategory = categoriesData?.categories?.find((cat: any) => cat.id === categoryId);
+    if (selectedCategory) {
+      const slug = selectedCategory.slug.toLowerCase();
+      
+      // Bug Report validation
+      if ((slug === "bug-report" || slug === "help-support" || slug === "help-&-support") && 
+          (!metadata.severity || !metadata.stepsToReproduce || !metadata.expectedBehavior || !metadata.actualBehavior)) {
+        toast.error("Please fill in all required bug report fields");
+        return;
+      }
+      
+      // Feature Request validation
+      if ((slug === "feature-request" || slug === "feedback" || slug === "feature-requests") && 
+          (!metadata.priority || !metadata.useCase)) {
+        toast.error("Please fill in all required feature request fields");
+        return;
+      }
+      
+      // Playlist validation
+      if ((slug === "playlists" || slug === "playlists-lists" || slug === "playlists-&-lists") && 
+          (!metadata.playlistLink || !metadata.whyRecommend)) {
+        toast.error("Please fill in all required playlist fields");
+        return;
+      }
+      
+      // List validation
+      if ((slug === "lists" || slug === "curated-lists") && 
+          (!metadata.listLink || !metadata.whyRecommend)) {
+        toast.error("Please fill in all required list fields");
+        return;
+      }
+      
+      // Watchlist validation
+      if ((slug === "watchlists" || slug === "watchlist") && 
+          (!metadata.watchlistLink || !metadata.whyRecommend)) {
+        toast.error("Please fill in all required watchlist fields");
+        return;
+      }
+    }
+
     setStep(2);
   };
 
@@ -142,11 +187,15 @@ export function CreatePostDialog({
       .filter((tag) => tag.length > 0)
       .slice(0, 5);
 
+    // Only include metadata if category is selected and has values
+    const metadataToSend = Object.keys(metadata).length > 0 ? metadata : undefined;
+
     createPost.mutate({
       title: title.trim(),
       content: content.trim(),
       tags: tagArray,
       categoryId: categoryId || undefined,
+      metadata: metadataToSend,
       tmdbId,
       mediaType,
       scheduledAt: scheduledAt,
@@ -159,10 +208,15 @@ export function CreatePostDialog({
     setContent("");
     setTags("");
     setCategoryId("");
+    setMetadata({});
     setScheduledAt(undefined);
     setScheduledTime("");
     onClose();
   };
+
+  // Get selected category slug for CategoryFields
+  const selectedCategory = categoriesData?.categories?.find((cat: any) => cat.id === categoryId);
+  const categorySlug = selectedCategory?.slug;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -260,7 +314,14 @@ export function CreatePostDialog({
 
                 <div className="space-y-2">
                   <Label htmlFor="category">Category (optional)</Label>
-                  <Select value={categoryId || "none"} onValueChange={(value) => setCategoryId(value === "none" ? "" : value)}>
+                  <Select value={categoryId || "none"} onValueChange={(value) => {
+                    const newCategoryId = value === "none" ? "" : value;
+                    setCategoryId(newCategoryId);
+                    // Reset metadata when category changes
+                    if (newCategoryId !== categoryId) {
+                      setMetadata({});
+                    }
+                  }}>
                     <SelectTrigger id="category" className="cursor-pointer">
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
@@ -274,6 +335,15 @@ export function CreatePostDialog({
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Category-specific fields */}
+                {categorySlug && (
+                  <CategoryFields
+                    categorySlug={categorySlug}
+                    metadata={metadata}
+                    onChange={setMetadata}
+                  />
+                )}
               </div>
             ) : (
               <div className="space-y-4">

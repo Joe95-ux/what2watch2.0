@@ -3,7 +3,8 @@
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { MessageCircle, Eye, Tag, ArrowBigUp, ArrowBigDown, MoreVertical, Flag, Edit, Trash2, ArrowLeft, Search, ArrowUpDown } from "lucide-react";
+import { MessageCircle, Eye, Tag, MoreVertical, Flag, Edit, Trash2, ArrowLeft, Search, ArrowUpDown } from "lucide-react";
+import { BiUpvote, BiDownvote } from "react-icons/bi";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -31,6 +32,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { EditPostDialog } from "./edit-post-dialog";
 import { ReportDialog } from "./report-dialog";
 import { SafeHtmlContent } from "./safe-html-content";
+import { PostMetadataDisplay } from "./post-metadata-display";
 
 interface ForumPost {
   id: string;
@@ -38,6 +40,7 @@ interface ForumPost {
   title: string;
   content: string;
   tags: string[];
+  metadata?: Record<string, any> | null;
   tmdbId?: number;
   mediaType?: string;
   category?: {
@@ -470,6 +473,16 @@ export function ForumPostDetailClient() {
                 />
               </div>
 
+              {/* Category Metadata */}
+              {post.metadata && (
+                <div className="mb-4">
+                  <PostMetadataDisplay 
+                    metadata={post.metadata} 
+                    categorySlug={post.category?.slug}
+                  />
+                </div>
+              )}
+
               {/* Action Buttons - Under Tags */}
               <div className="flex items-center gap-2">
                 {/* Vote Buttons - Act like one button */}
@@ -483,7 +496,7 @@ export function ForumPostDetailClient() {
                       toggleReaction.isPending && "opacity-50 cursor-not-allowed"
                     )}
                   >
-                    <ArrowBigUp className={cn("h-4 w-4", isUpvoted && "fill-current")} />
+                    <BiUpvote className={cn("h-5 w-5", isUpvoted && "fill-current")} />
                     {displayScore > 0 && <span className="text-sm">{displayScore}</span>}
                   </button>
                   <div className="h-6 w-px bg-border" />
@@ -496,7 +509,7 @@ export function ForumPostDetailClient() {
                       toggleReaction.isPending && "opacity-50 cursor-not-allowed"
                     )}
                   >
-                    <ArrowBigDown className={cn("h-4 w-4", isDownvoted && "fill-current")} />
+                    <BiDownvote className={cn("h-5 w-5", isDownvoted && "fill-current")} />
                   </button>
                 </div>
                 
@@ -648,7 +661,7 @@ export function ForumPostDetailClient() {
                       {/* Stats */}
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
-                          <ArrowBigUp className="h-3 w-3" />
+                          <BiUpvote className="h-5 w-5" />
                           <span>{relatedPost.score > 0 ? relatedPost.score : 0}</span>
                         </div>
                         <div className="flex items-center gap-1">

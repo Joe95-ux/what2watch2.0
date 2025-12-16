@@ -133,6 +133,7 @@ export async function GET(
         title: post.title,
         content: post.content,
         tags: post.tags,
+        metadata: post.metadata,
         tmdbId: post.tmdbId,
         mediaType: post.mediaType,
         category: post.category ? {
@@ -189,7 +190,7 @@ export async function PATCH(
 
     const { postId } = await params;
     const body = await request.json();
-    const { title, content, tags, categoryId, scheduledAt } = body;
+    const { title, content, tags, categoryId, metadata, scheduledAt } = body;
 
     // Check if postId is an ObjectId or slug
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(postId);
@@ -255,6 +256,26 @@ export async function PATCH(
       }
     }
 
+    // Validate and sanitize metadata if provided
+    let sanitizedMetadata = null;
+    if (metadata !== undefined && metadata !== null) {
+      if (typeof metadata !== "object" || Array.isArray(metadata)) {
+        return NextResponse.json(
+          { error: "Metadata must be an object" },
+          { status: 400 }
+        );
+      }
+      // Only allow metadata if category is selected
+      if (!categoryId && Object.keys(metadata).length > 0) {
+        return NextResponse.json(
+          { error: "Metadata can only be provided when a category is selected" },
+          { status: 400 }
+        );
+      }
+      // Sanitize metadata - ensure it's a plain object
+      sanitizedMetadata = Object.keys(metadata).length > 0 ? JSON.parse(JSON.stringify(metadata)) : null;
+    }
+
     // Generate new slug if title changed
     let slug: string | undefined = undefined;
     if (post.title !== title.trim()) {
@@ -276,6 +297,7 @@ export async function PATCH(
       content: content.trim(),
       tags: validTags,
       categoryId: categoryId || null,
+      ...(sanitizedMetadata !== undefined && { metadata: sanitizedMetadata }),
       ...(scheduledDate && { scheduledAt: scheduledDate }),
     };
 

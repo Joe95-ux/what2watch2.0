@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { MessageCircle, Eye, ArrowBigUp, ArrowBigDown, Hash, MoreVertical, Flag, Edit, Trash2 } from "lucide-react";
+import { MessageCircle, Eye, Hash, MoreVertical, Flag, Edit, Trash2 } from "lucide-react";
+import { BiUpvote, BiDownvote } from "react-icons/bi";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -320,7 +321,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
               toggleReaction.isPending && "opacity-50 cursor-not-allowed"
             )}
           >
-            <ArrowBigUp className={cn("h-4 w-4", isUpvoted && "fill-current")} />
+            <BiUpvote className={cn("h-5 w-5", isUpvoted && "fill-current")} />
             {displayScore > 0 && <span className="text-sm">{displayScore}</span>}
           </button>
           <div className="h-6 w-px bg-border" />
@@ -336,7 +337,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
               toggleReaction.isPending && "opacity-50 cursor-not-allowed"
             )}
           >
-            <ArrowBigDown className={cn("h-4 w-4", isDownvoted && "fill-current")} />
+            <BiDownvote className={cn("h-5 w-5", isDownvoted && "fill-current")} />
           </button>
         </div>
         

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { MessageCircle, ArrowBigUp, ArrowBigDown, MoreVertical, Flag, Edit, Trash2, ChevronDown, ChevronUp, Eye } from "lucide-react";
+import { MessageCircle, MoreVertical, Flag, Edit, Trash2, ChevronDown, ChevronUp, Eye } from "lucide-react";
+import { BiUpvote, BiDownvote } from "react-icons/bi";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -230,7 +231,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
               toggleReaction.isPending && "opacity-50 cursor-not-allowed"
             )}
           >
-            <ArrowBigUp className={cn("h-4 w-4", isUpvoted && "fill-current")} />
+            <BiUpvote className={cn("h-5 w-5", isUpvoted && "fill-current")} />
             {displayScore > 0 && <span className="text-sm">{displayScore}</span>}
           </button>
           <button
@@ -242,7 +243,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
               toggleReaction.isPending && "opacity-50 cursor-not-allowed"
             )}
           >
-            <ArrowBigDown className={cn("h-4 w-4", isDownvoted && "fill-current")} />
+            <BiDownvote className={cn("h-5 w-5", isDownvoted && "fill-current")} />
           </button>
           
           {/* Reply Button */}
