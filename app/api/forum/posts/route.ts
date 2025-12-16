@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { moderateContent } from "@/lib/moderation";
-import DOMPurify from "isomorphic-dompurify";
+import { sanitizeTitle, sanitizeContent } from "@/lib/server-html-sanitizer";
 import { checkDuplicateContent, checkRapidPosting } from "@/lib/spam-detection";
 import { validateLinksInContent } from "@/lib/link-validation";
 
@@ -370,20 +370,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Sanitize HTML on server-side (additional layer of protection)
-    const sanitizedTitle = DOMPurify.sanitize(titleModeration.sanitized || title.trim(), {
-      ALLOWED_TAGS: [], // Strip all HTML tags from title
-      ALLOWED_ATTR: [],
-    });
-
-    const sanitizedContent = DOMPurify.sanitize(contentModeration.sanitized || content.trim(), {
-      ALLOWED_TAGS: [
-        "p", "br", "strong", "em", "u", "s", "code", "pre",
-        "h1", "h2", "h3", "ul", "ol", "li", "blockquote",
-        "a", "img", "div", "span"
-      ],
-      ALLOWED_ATTR: ["href", "target", "rel", "src", "alt", "class"],
-      ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
-    });
+    const sanitizedTitle = sanitizeTitle(titleModeration.sanitized || title.trim());
+    const sanitizedContent = sanitizeContent(contentModeration.sanitized || content.trim());
 
     // Spam detection - Check for duplicate content
     const duplicateCheck = await checkDuplicateContent(sanitizedTitle, sanitizedContent, user.id);

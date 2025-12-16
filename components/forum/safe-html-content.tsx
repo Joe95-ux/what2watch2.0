@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import DOMPurify from "isomorphic-dompurify";
+import DOMPurify from "dompurify";
 
 interface SafeHtmlContentProps {
   content: string;
@@ -11,12 +11,17 @@ interface SafeHtmlContentProps {
 /**
  * Safely renders HTML content from Tiptap editor
  * Sanitizes HTML to prevent XSS attacks
+ * Content is already sanitized on the server, but we do client-side sanitization as well
+ * This component only runs in the browser (client-side)
  */
 export function SafeHtmlContent({ content, className }: SafeHtmlContentProps) {
   const sanitizedContent = useMemo(() => {
     if (!content) return "";
     
-    // Sanitize HTML content
+    // Content is already sanitized on the server before storage
+    // Client-side sanitization is an additional safety layer
+    // DOMPurify only works in browser, which is fine since this is a client component
+    
     return DOMPurify.sanitize(content, {
       ALLOWED_TAGS: [
         "p", "br", "strong", "em", "u", "s", "code", "pre",

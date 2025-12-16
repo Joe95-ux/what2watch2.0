@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { moderateContent } from "@/lib/moderation";
-import DOMPurify from "isomorphic-dompurify";
+import { sanitizeContent } from "@/lib/server-html-sanitizer";
 
 interface RouteParams {
   params: Promise<{ postId: string }>;
@@ -183,15 +183,7 @@ export async function POST(
     }
 
     // Sanitize HTML on server-side
-    const sanitizedContent = DOMPurify.sanitize(contentModeration.sanitized || content.trim(), {
-      ALLOWED_TAGS: [
-        "p", "br", "strong", "em", "u", "s", "code", "pre",
-        "h1", "h2", "h3", "ul", "ol", "li", "blockquote",
-        "a", "img", "div", "span"
-      ],
-      ALLOWED_ATTR: ["href", "target", "rel", "src", "alt", "class"],
-      ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
-    });
+    const sanitizedContent = sanitizeContent(contentModeration.sanitized || content.trim());
 
     // Check if postId is an ObjectId (24 hex characters) or a slug
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(postId);
