@@ -1,6 +1,9 @@
 import { Suspense } from "react";
 import { PopularPostsPageClient } from "@/components/forum/popular-posts-page-client";
 
+// Force dynamic rendering since this page uses useSearchParams() in ForumPostList
+export const dynamic = "force-dynamic";
+
 function PopularPostsPageFallback() {
   return null;
 }
