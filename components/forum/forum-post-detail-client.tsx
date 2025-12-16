@@ -33,6 +33,8 @@ import { EditPostDialog } from "./edit-post-dialog";
 import { ReportDialog } from "./report-dialog";
 import { SafeHtmlContent } from "./safe-html-content";
 import { PostMetadataDisplay } from "./post-metadata-display";
+import { RecentPosts } from "./recent-posts";
+import { X } from "lucide-react";
 
 interface ForumPost {
   id: string;
@@ -92,6 +94,7 @@ export function ForumPostDetailClient() {
   const [isReporting, setIsReporting] = useState(false);
   const [replySort, setReplySort] = useState<"newest" | "oldest" | "top">("newest");
   const [replySearch, setReplySearch] = useState("");
+  const [adsClosed, setAdsClosed] = useState(false);
   const postId = params.postId as string;
 
   const { data, isLoading, error } = useQuery<{ post: ForumPost }>({
@@ -109,39 +112,6 @@ export function ForumPostDetailClient() {
   const { data: reaction } = useForumPostReaction(post?.id || "");
   const toggleReaction = useToggleForumPostLike(post?.id || "");
 
-  // Fetch related posts
-  const { data: relatedPostsData } = useQuery({
-    queryKey: ["forum-related-posts", post?.id, post?.category?.id],
-    queryFn: async () => {
-      if (!post) return { posts: [] };
-      
-      const params = new URLSearchParams({
-        page: "1",
-        limit: "10",
-        sortBy: "score",
-        order: "desc",
-      });
-      
-      // Try to get posts from same category first
-      if (post.category?.id) {
-        params.set("categoryId", post.category.id);
-      }
-      
-      const response = await fetch(`/api/forum/posts?${params.toString()}`);
-      if (!response.ok) return { posts: [] };
-      const data = await response.json();
-      
-      // Filter out current post and limit to 10
-      const related = data.posts
-        .filter((p: any) => p.id !== post.id)
-        .slice(0, 10);
-      
-      return { posts: related };
-    },
-    enabled: !!post,
-  });
-
-  const relatedPosts = relatedPostsData?.posts || [];
 
   // Filter and sort replies
   const filterReplies = (replies: ForumReply[], search: string): ForumReply[] => {
@@ -496,7 +466,7 @@ export function ForumPostDetailClient() {
                       toggleReaction.isPending && "opacity-50 cursor-not-allowed"
                     )}
                   >
-                    <BiSolidUpvote className={cn("h-5 w-5 [stroke-width:2px] stroke-current", isUpvoted ? "fill-white" : "fill-transparent")} />
+                    <BiSolidUpvote className={cn("h-4 w-4 [stroke-width:2px] stroke-current", isUpvoted ? "fill-white" : "fill-transparent")} />
                     {displayScore > 0 && <span className="text-sm">{displayScore}</span>}
                   </button>
                   <div className="h-6 w-px bg-border" />
@@ -509,7 +479,7 @@ export function ForumPostDetailClient() {
                       toggleReaction.isPending && "opacity-50 cursor-not-allowed"
                     )}
                   >
-                    <BiSolidDownvote className={cn("h-5 w-5 [stroke-width:2px] stroke-current", isDownvoted ? "fill-white" : "fill-transparent")} />
+                    <BiSolidDownvote className={cn("h-4 w-4 [stroke-width:2px] stroke-current", isDownvoted ? "fill-white" : "fill-transparent")} />
                   </button>
                 </div>
                 
@@ -604,79 +574,28 @@ export function ForumPostDetailClient() {
             </div>
           </div>
 
-          {/* Right Sidebar */}
+          {/* Right Sidebar - Sticky */}
           <aside className="w-full lg:w-80 flex-shrink-0 lg:sticky lg:top-[85px] self-start">
-        <div className="space-y-4">
-          {/* Ad Placement */}
-          <div className="rounded-lg border border-border bg-muted/30 p-8 flex items-center justify-center min-h-[200px]">
-            <p className="text-sm text-muted-foreground text-center">Ad Placement</p>
-          </div>
-
-          {/* Related Topics */}
-          {relatedPosts.length > 0 && (
-            <div className="rounded-lg border border-border bg-background">
-              <div className="p-4 border-b">
-                <h3 className="text-sm font-semibold">Related Topics</h3>
-              </div>
-              <div className="divide-y divide-border">
-                {relatedPosts.map((relatedPost: any, index: number) => (
-                  <Link
-                    key={relatedPost.id}
-                    href={relatedPost.slug ? `/forum/${relatedPost.slug}` : `/forum/${relatedPost.id}`}
-                    className="block p-4 hover:bg-accent/50 transition-colors"
+            <div className="space-y-4">
+              {/* Ad Placement - Closable */}
+              {!adsClosed && (
+                <div className="rounded-lg border border-border bg-muted/30 p-8 flex items-center justify-center min-h-[200px] relative">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 h-6 w-6 cursor-pointer"
+                    onClick={() => setAdsClosed(true)}
                   >
-                    <div className="space-y-2">
-                      {/* Category */}
-                      {relatedPost.category && (
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={cn(
-                              "px-2 py-0.5 rounded text-xs font-medium",
-                              getCategoryColor(relatedPost.category.color)
-                            )}
-                            style={relatedPost.category.color ? {
-                              backgroundColor: `${relatedPost.category.color}20`,
-                              color: relatedPost.category.color,
-                            } : undefined}
-                          >
-                            {relatedPost.category.icon && <span className="mr-1">{relatedPost.category.icon}</span>}
-                            {relatedPost.category.name}
-                          </span>
-                        </div>
-                      )}
-                      
-                      {/* Title */}
-                      <h4 className="text-sm font-medium line-clamp-2 hover:text-primary transition-colors">
-                        {relatedPost.title}
-                      </h4>
-                      
-                      {/* Content Preview */}
-                      <div className="text-xs text-muted-foreground line-clamp-2">
-                        <SafeHtmlContent 
-                          content={relatedPost.content}
-                          className="[&_p]:mb-1 [&_p:last-child]:mb-0 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded [&_img]:my-1"
-                        />
-                      </div>
-                      
-                      {/* Stats */}
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <BiSolidUpvote className="h-5 w-5 [stroke-width:2px] stroke-current fill-transparent" />
-                          <span>{relatedPost.score > 0 ? relatedPost.score : 0}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <MessageCircle className="h-3 w-3" />
-                          <span>{relatedPost.replyCount || 0}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <p className="text-sm text-muted-foreground text-center">Ad Placement</p>
+                </div>
+              )}
+
+              {/* Recent Posts */}
+              <RecentPosts excludePostId={post.id} limit={5} />
             </div>
-          )}
-        </div>
-      </aside>
+          </aside>
         </div>
       </div>
 

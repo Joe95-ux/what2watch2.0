@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { moderateContent } from "@/lib/moderation";
+import DOMPurify from "isomorphic-dompurify";
+import { checkDuplicateContent, checkRapidPosting } from "@/lib/spam-detection";
+import { validateLinksInContent } from "@/lib/link-validation";
 
 // GET - Fetch forum posts with pagination and filters
 export async function GET(request: NextRequest) {
@@ -283,6 +288,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // Rate limiting - 5 posts per hour
+    const rateLimitResult = checkRateLimit(
+      user.id,
+      5,
+      60 * 60 * 1000 // 1 hour
+    );
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: rateLimitResult.error || "Rate limit exceeded. Please try again later." },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": "5",
+            "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+            "X-RateLimit-Reset": new Date(rateLimitResult.resetTime).toISOString(),
+          },
+        }
+      );
+    }
+
     const body = await request.json();
     const { title, content, tags, tmdbId, mediaType, categoryId, metadata, scheduledAt } = body;
 
@@ -310,6 +336,79 @@ export async function POST(request: NextRequest) {
     if (content.length > 10000) {
       return NextResponse.json(
         { error: "Content must be 10,000 characters or less" },
+        { status: 400 }
+      );
+    }
+
+    // Server-side content moderation and sanitization
+    const titleModeration = moderateContent(title.trim(), {
+      minLength: 1,
+      maxLength: 200,
+      allowProfanity: false,
+      sanitizeHtml: true,
+    });
+
+    if (!titleModeration.allowed) {
+      return NextResponse.json(
+        { error: titleModeration.error || "Title contains inappropriate content" },
+        { status: 400 }
+      );
+    }
+
+    const contentModeration = moderateContent(content.trim(), {
+      minLength: 1,
+      maxLength: 10000,
+      allowProfanity: false,
+      sanitizeHtml: true,
+    });
+
+    if (!contentModeration.allowed) {
+      return NextResponse.json(
+        { error: contentModeration.error || "Content contains inappropriate content" },
+        { status: 400 }
+      );
+    }
+
+    // Sanitize HTML on server-side (additional layer of protection)
+    const sanitizedTitle = DOMPurify.sanitize(titleModeration.sanitized || title.trim(), {
+      ALLOWED_TAGS: [], // Strip all HTML tags from title
+      ALLOWED_ATTR: [],
+    });
+
+    const sanitizedContent = DOMPurify.sanitize(contentModeration.sanitized || content.trim(), {
+      ALLOWED_TAGS: [
+        "p", "br", "strong", "em", "u", "s", "code", "pre",
+        "h1", "h2", "h3", "ul", "ol", "li", "blockquote",
+        "a", "img", "div", "span"
+      ],
+      ALLOWED_ATTR: ["href", "target", "rel", "src", "alt", "class"],
+      ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    });
+
+    // Spam detection - Check for duplicate content
+    const duplicateCheck = await checkDuplicateContent(sanitizedTitle, sanitizedContent, user.id);
+    if (duplicateCheck.isDuplicate) {
+      return NextResponse.json(
+        { error: duplicateCheck.reason || "This content appears to be a duplicate." },
+        { status: 400 }
+      );
+    }
+
+    // Spam detection - Check for rapid posting
+    const rapidPostingCheck = await checkRapidPosting(user.id, 5, 60 * 60 * 1000);
+    if (rapidPostingCheck.isRapid) {
+      return NextResponse.json(
+        { error: rapidPostingCheck.reason || "You are posting too frequently. Please slow down." },
+        { status: 429 }
+      );
+    }
+
+    // Link validation - Check all links in content
+    const linkValidation = await validateLinksInContent(sanitizedContent);
+    if (!linkValidation.allSafe && linkValidation.unsafeLinks.length > 0) {
+      const firstUnsafe = linkValidation.unsafeLinks[0];
+      return NextResponse.json(
+        { error: firstUnsafe.reason || "One or more links in your content are not safe." },
         { status: 400 }
       );
     }
@@ -362,9 +461,9 @@ export async function POST(request: NextRequest) {
     const post = await db.forumPost.create({
       data: {
         userId: user.id,
-        title: title.trim(),
+        title: sanitizedTitle,
         slug,
-        content: content.trim(),
+        content: sanitizedContent,
         tags: validTags,
         categoryId: categoryId || null,
         metadata: sanitizedMetadata,

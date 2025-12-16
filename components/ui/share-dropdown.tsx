@@ -92,7 +92,7 @@ export function ShareDropdown({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant={variant} size={size} className={className}>
-          <FaShare className="h-5 w-5" />
+          <FaShare className="h-4 w-4" />
           {showLabel && "Share"}
         </Button>
       </DropdownMenuTrigger>

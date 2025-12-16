@@ -321,7 +321,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
               toggleReaction.isPending && "opacity-50 cursor-not-allowed"
             )}
           >
-            <BiSolidUpvote className={cn("h-5 w-5 [stroke-width:2px] stroke-current", isUpvoted ? "fill-white" : "fill-transparent")} />
+            <BiSolidUpvote className={cn("h-4 w-4 [stroke-width:2px] stroke-current", isUpvoted ? "fill-white" : "fill-transparent")} />
             {displayScore > 0 && <span className="text-sm">{displayScore}</span>}
           </button>
           <div className="h-6 w-px bg-border" />
@@ -337,7 +337,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
               toggleReaction.isPending && "opacity-50 cursor-not-allowed"
             )}
           >
-            <BiSolidDownvote className={cn("h-5 w-5 [stroke-width:2px] stroke-current", isDownvoted ? "fill-white" : "fill-transparent")} />
+            <BiSolidDownvote className={cn("h-4 w-4 [stroke-width:2px] stroke-current", isDownvoted ? "fill-white" : "fill-transparent")} />
           </button>
         </div>
         

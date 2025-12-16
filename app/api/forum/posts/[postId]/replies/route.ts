@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { moderateContent } from "@/lib/moderation";
+import DOMPurify from "isomorphic-dompurify";
 
 interface RouteParams {
   params: Promise<{ postId: string }>;
@@ -125,6 +128,27 @@ export async function POST(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // Rate limiting - 20 replies per hour
+    const rateLimitResult = checkRateLimit(
+      user.id,
+      20,
+      60 * 60 * 1000 // 1 hour
+    );
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: rateLimitResult.error || "Rate limit exceeded. Please try again later." },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": "20",
+            "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+            "X-RateLimit-Reset": new Date(rateLimitResult.resetTime).toISOString(),
+          },
+        }
+      );
+    }
+
     const { postId } = await params;
     const body = await request.json();
     const { content, parentReplyId } = body;
@@ -142,6 +166,32 @@ export async function POST(
         { status: 400 }
       );
     }
+
+    // Server-side content moderation and sanitization
+    const contentModeration = moderateContent(content.trim(), {
+      minLength: 1,
+      maxLength: 5000,
+      allowProfanity: false,
+      sanitizeHtml: true,
+    });
+
+    if (!contentModeration.allowed) {
+      return NextResponse.json(
+        { error: contentModeration.error || "Content contains inappropriate content" },
+        { status: 400 }
+      );
+    }
+
+    // Sanitize HTML on server-side
+    const sanitizedContent = DOMPurify.sanitize(contentModeration.sanitized || content.trim(), {
+      ALLOWED_TAGS: [
+        "p", "br", "strong", "em", "u", "s", "code", "pre",
+        "h1", "h2", "h3", "ul", "ol", "li", "blockquote",
+        "a", "img", "div", "span"
+      ],
+      ALLOWED_ATTR: ["href", "target", "rel", "src", "alt", "class"],
+      ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    });
 
     // Check if postId is an ObjectId (24 hex characters) or a slug
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(postId);
@@ -189,7 +239,7 @@ export async function POST(
       data: {
         userId: user.id,
         postId: actualPostId,
-        content: content.trim(),
+        content: sanitizedContent,
         parentReplyId: parentReplyId || null,
       },
       include: {

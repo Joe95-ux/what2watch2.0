@@ -39,6 +39,8 @@ export function CreatePostDialog({
 }: CreatePostDialogProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const STORAGE_KEY = "forum-create-post-draft";
+  
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -60,17 +62,80 @@ export function CreatePostDialog({
     },
   });
 
-  // Set default category to "General Discussion" on mount
+  // Load persisted values when dialog opens
   useEffect(() => {
-    if (categoriesData?.categories && !categoryId) {
-      const generalDiscussion = categoriesData.categories.find(
-        (cat: any) => cat.slug === "general-discussion"
-      );
-      if (generalDiscussion) {
-        setCategoryId(generalDiscussion.id);
+    if (isOpen) {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const draft = JSON.parse(saved);
+          setTitle(draft.title || "");
+          setContent(draft.content || "");
+          setTags(draft.tags || "");
+          setCategoryId(draft.categoryId || "");
+          setMetadata(draft.metadata || {});
+          setStep(draft.step || 1);
+          if (draft.scheduledAt) {
+            const date = new Date(draft.scheduledAt);
+            setScheduledAt(date);
+            setScheduledTime(draft.scheduledTime || "");
+          }
+        } else {
+          // No saved draft - set default category
+          if (categoriesData?.categories) {
+            const generalDiscussion = categoriesData.categories.find(
+              (cat: any) => cat.slug === "general-discussion"
+            );
+            if (generalDiscussion) {
+              setCategoryId(generalDiscussion.id);
+            }
+          }
+        }
+      } catch (error) {
+        // Ignore parse errors, set default category
+        if (categoriesData?.categories) {
+          const generalDiscussion = categoriesData.categories.find(
+            (cat: any) => cat.slug === "general-discussion"
+          );
+          if (generalDiscussion) {
+            setCategoryId(generalDiscussion.id);
+          }
+        }
       }
     }
-  }, [categoriesData, categoryId]);
+  }, [isOpen, categoriesData, STORAGE_KEY]);
+
+  // Set default category if no category is selected and no saved draft
+  useEffect(() => {
+    if (categoriesData?.categories && !categoryId && isOpen) {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) {
+        const generalDiscussion = categoriesData.categories.find(
+          (cat: any) => cat.slug === "general-discussion"
+        );
+        if (generalDiscussion) {
+          setCategoryId(generalDiscussion.id);
+        }
+      }
+    }
+  }, [categoriesData, categoryId, isOpen, STORAGE_KEY]);
+
+  // Persist values to localStorage whenever they change
+  useEffect(() => {
+    if (isOpen && (title || content || tags || categoryId || Object.keys(metadata).length > 0)) {
+      const draft = {
+        title,
+        content,
+        tags,
+        categoryId,
+        metadata,
+        step,
+        scheduledAt: scheduledAt?.toISOString(),
+        scheduledTime,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+    }
+  }, [isOpen, title, content, tags, categoryId, metadata, step, scheduledAt, scheduledTime, STORAGE_KEY]);
 
   const createPost = useMutation({
     mutationFn: async (data: {
@@ -99,6 +164,9 @@ export function CreatePostDialog({
       return response.json();
     },
     onSuccess: (data) => {
+      // Clear persisted draft on successful submission
+      localStorage.removeItem(STORAGE_KEY);
+      
       queryClient.invalidateQueries({ queryKey: ["forum-posts"] });
       if (scheduledAt) {
         toast.success("Post scheduled successfully!");
@@ -215,22 +283,9 @@ export function CreatePostDialog({
   };
 
   const handleClose = () => {
+    // Don't clear form values - they're persisted in localStorage
+    // Only reset step
     setStep(1);
-    setTitle("");
-    setContent("");
-    setTags("");
-    // Reset to default category
-    if (categoriesData?.categories) {
-      const generalDiscussion = categoriesData.categories.find(
-        (cat: any) => cat.slug === "general-discussion"
-      );
-      setCategoryId(generalDiscussion?.id || "");
-    } else {
-      setCategoryId("");
-    }
-    setMetadata({});
-    setScheduledAt(undefined);
-    setScheduledTime("");
     onClose();
   };
 
@@ -253,6 +308,17 @@ export function CreatePostDialog({
       return "Content";
     }
     return "Content";
+  };
+
+  // Check if category fields should be shown before content
+  const shouldShowFieldsBeforeContent = () => {
+    if (!categorySlug) return false;
+    const slug = categorySlug.toLowerCase();
+    return (
+      slug === "watchlists" || slug === "watchlist" ||
+      slug === "playlists" || slug === "playlists-lists" || slug === "playlists-&-lists" ||
+      slug === "lists" || slug === "curated-lists"
+    );
   };
 
   const categories = categoriesData?.categories || [];
@@ -359,6 +425,15 @@ export function CreatePostDialog({
                   </div>
                 </div>
 
+                {/* Category-specific fields - show before content for watchlist/list/playlist */}
+                {categorySlug && shouldShowFieldsBeforeContent() && (
+                  <CategoryFields
+                    categorySlug={categorySlug}
+                    metadata={metadata}
+                    onChange={setMetadata}
+                  />
+                )}
+
                 {/* Content field - hidden for bug reports */}
                 {!isBugReport && (
                   <div className="space-y-2">
@@ -374,8 +449,8 @@ export function CreatePostDialog({
                   </div>
                 )}
 
-                {/* Category-specific fields */}
-                {categorySlug && (
+                {/* Category-specific fields - show after content for other categories */}
+                {categorySlug && !shouldShowFieldsBeforeContent() && (
                   <CategoryFields
                     categorySlug={categorySlug}
                     metadata={metadata}

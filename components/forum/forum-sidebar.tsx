@@ -199,23 +199,23 @@ export function ForumSidebar({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant="ghost"
+                variant={pathname === "/forum/popular" ? "secondary" : "ghost"}
                 className={cn(
                   "w-full transition-all cursor-pointer",
                   isCollapsed ? "justify-center p-2" : "justify-start gap-3"
                 )}
                 onClick={() => {
-                  // TODO: Navigate to topics page
+                  router.push("/forum/popular");
                   if (isMobile) setIsOpen(false);
                 }}
               >
-                <MessageCircle className="h-4 w-4" />
-                {!isCollapsed && <span>Topics</span>}
+                <TrendingUp className="h-4 w-4" />
+                {!isCollapsed && <span>Popular</span>}
               </Button>
             </TooltipTrigger>
             {isCollapsed && (
               <TooltipContent side="right">
-                <span>Topics</span>
+                <span>Popular</span>
               </TooltipContent>
             )}
           </Tooltip>

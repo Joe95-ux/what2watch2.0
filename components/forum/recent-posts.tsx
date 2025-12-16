@@ -7,7 +7,7 @@ import { BiSolidUpvote } from "react-icons/bi";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-interface PopularPost {
+interface RecentPost {
   id: string;
   slug?: string;
   title: string;
@@ -22,14 +22,23 @@ interface PopularPost {
   } | null;
 }
 
-export function PopularPosts() {
+interface RecentPostsProps {
+  excludePostId?: string;
+  limit?: number;
+}
+
+export function RecentPosts({ excludePostId, limit = 5 }: RecentPostsProps) {
   const { data, isLoading } = useQuery({
-    queryKey: ["forum-popular-posts"],
+    queryKey: ["forum-recent-posts", excludePostId, limit],
     queryFn: async () => {
-      const response = await fetch("/api/forum/posts?page=1&limit=10&sortBy=score&order=desc");
+      const response = await fetch(`/api/forum/posts?page=1&limit=${limit + (excludePostId ? 1 : 0)}&sortBy=createdAt&order=desc`);
       if (!response.ok) return { posts: [] };
       const data = await response.json();
-      return data;
+      // Filter out the excluded post if provided
+      const filteredPosts = excludePostId 
+        ? data.posts.filter((post: RecentPost) => post.id !== excludePostId && post.slug !== excludePostId)
+        : data.posts;
+      return { posts: filteredPosts.slice(0, limit) };
     },
   });
 
@@ -61,7 +70,7 @@ export function PopularPosts() {
           <Skeleton className="h-4 w-24" />
         </div>
         <div className="divide-y divide-border">
-          {Array.from({ length: 5 }).map((_, i) => (
+          {Array.from({ length: limit }).map((_, i) => (
             <div key={i} className="p-4 space-y-2">
               <Skeleton className="h-3 w-16" />
               <Skeleton className="h-4 w-full" />
@@ -80,10 +89,10 @@ export function PopularPosts() {
   return (
     <div className="rounded-lg border border-border bg-background">
       <div className="p-4 border-b">
-        <h3 className="text-[1.1rem] font-semibold">Popular Posts</h3>
+        <h3 className="text-[1.1rem] font-semibold">Recent Posts</h3>
       </div>
       <div className="divide-y divide-border">
-        {posts.map((post: PopularPost) => (
+        {posts.map((post: RecentPost) => (
           <Link
             key={post.id}
             href={post.slug ? `/forum/${post.slug}` : `/forum/${post.id}`}

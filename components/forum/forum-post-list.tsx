@@ -44,7 +44,12 @@ interface ForumPostsResponse {
   };
 }
 
-export function ForumPostList() {
+interface ForumPostListProps {
+  defaultSortBy?: string;
+  defaultOrder?: string;
+}
+
+export function ForumPostList({ defaultSortBy, defaultOrder }: ForumPostListProps = {}) {
   const searchParams = useSearchParams();
   const observerTarget = useRef<HTMLDivElement>(null);
 
@@ -54,8 +59,8 @@ export function ForumPostList() {
   const search = searchParams.get("search");
   const tmdbId = searchParams.get("tmdbId");
   const mediaType = searchParams.get("mediaType");
-  const sortBy = searchParams.get("sortBy") || "createdAt";
-  const order = searchParams.get("order") || "desc";
+  const sortBy = searchParams.get("sortBy") || defaultSortBy || "createdAt";
+  const order = searchParams.get("order") || defaultOrder || "desc";
 
   const {
     data,

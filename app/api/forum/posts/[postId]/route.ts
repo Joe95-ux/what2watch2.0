@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { moderateContent } from "@/lib/moderation";
+import DOMPurify from "isomorphic-dompurify";
 
 interface RouteParams {
   params: Promise<{ postId: string }>;
@@ -234,6 +236,51 @@ export async function PATCH(
       );
     }
 
+    // Server-side content moderation and sanitization
+    const titleModeration = moderateContent(title.trim(), {
+      minLength: 1,
+      maxLength: 200,
+      allowProfanity: false,
+      sanitizeHtml: true,
+    });
+
+    if (!titleModeration.allowed) {
+      return NextResponse.json(
+        { error: titleModeration.error || "Title contains inappropriate content" },
+        { status: 400 }
+      );
+    }
+
+    const contentModeration = moderateContent(content.trim(), {
+      minLength: 1,
+      maxLength: 10000,
+      allowProfanity: false,
+      sanitizeHtml: true,
+    });
+
+    if (!contentModeration.allowed) {
+      return NextResponse.json(
+        { error: contentModeration.error || "Content contains inappropriate content" },
+        { status: 400 }
+      );
+    }
+
+    // Sanitize HTML on server-side
+    const sanitizedTitle = DOMPurify.sanitize(titleModeration.sanitized || title.trim(), {
+      ALLOWED_TAGS: [],
+      ALLOWED_ATTR: [],
+    });
+
+    const sanitizedContent = DOMPurify.sanitize(contentModeration.sanitized || content.trim(), {
+      ALLOWED_TAGS: [
+        "p", "br", "strong", "em", "u", "s", "code", "pre",
+        "h1", "h2", "h3", "ul", "ol", "li", "blockquote",
+        "a", "img", "div", "span"
+      ],
+      ALLOWED_ATTR: ["href", "target", "rel", "src", "alt", "class"],
+      ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    });
+
     // Process tags
     const validTags = tags
       ? (Array.isArray(tags) ? tags : tags.split(","))
@@ -293,8 +340,8 @@ export async function PATCH(
     }
 
     const updateData: any = {
-      title: title.trim(),
-      content: content.trim(),
+      title: sanitizedTitle,
+      content: sanitizedContent,
       tags: validTags,
       categoryId: categoryId || null,
       ...(sanitizedMetadata !== undefined && { metadata: sanitizedMetadata }),

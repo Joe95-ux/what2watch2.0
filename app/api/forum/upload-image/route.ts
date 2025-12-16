@@ -35,10 +35,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
+    // Validate file type - only allow specific image types
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: "File must be an image" },
+        { error: "File must be a JPEG, PNG, GIF, or WebP image" },
         { status: 400 }
       );
     }
@@ -51,6 +52,22 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Validate file extension matches MIME type
+    const fileName = file.name.toLowerCase();
+    const validExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+    const hasValidExtension = validExtensions.some((ext) => fileName.endsWith(ext));
+    
+    if (!hasValidExtension) {
+      return NextResponse.json(
+        { error: "Invalid file extension. Only JPEG, PNG, GIF, and WebP are allowed." },
+        { status: 400 }
+      );
+    }
+
+    // Check image dimensions (optional - can be done after upload)
+    // For now, we'll let Cloudinary handle dimension validation
+    // In production, you might want to validate dimensions before upload
 
     // Convert file to buffer
     const bytes = await file.arrayBuffer();

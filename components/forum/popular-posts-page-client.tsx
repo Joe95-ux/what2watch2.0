@@ -1,21 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { ForumPostList } from "./forum-post-list";
 import { CreatePostDialog } from "./create-post-dialog";
-import { PopularPosts } from "./popular-topics";
+import { RecentPosts } from "./recent-posts";
 import { useUser } from "@clerk/nextjs";
 
-export function ForumPageClient() {
-  const searchParams = useSearchParams();
+export function PopularPostsPageClient() {
   const { isSignedIn } = useUser();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-
-  const tmdbId = searchParams.get("tmdbId");
-  const mediaType = searchParams.get("mediaType");
 
   return (
     <>
@@ -27,9 +22,9 @@ export function ForumPageClient() {
             {/* Header with Create Post Button */}
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h1 className="text-2xl font-bold">Forum</h1>
+                <h1 className="text-2xl font-bold">Popular Posts</h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Discuss movies, TV shows, and more with the community
+                  Most upvoted posts in the forum
                 </p>
               </div>
               {isSignedIn && (
@@ -44,14 +39,18 @@ export function ForumPageClient() {
               )}
             </div>
 
-            {/* Post List */}
-            <ForumPostList />
+            {/* Post List - Sorted by Popular */}
+            <ForumPostList 
+              defaultSortBy="score"
+              defaultOrder="desc"
+            />
           </div>
 
-          {/* Right Sidebar */}
+          {/* Right Sidebar - Sticky */}
           <aside className="w-full lg:w-80 flex-shrink-0 lg:sticky lg:top-[85px] self-start">
-            <div className="">
-              <PopularPosts />
+            <div className="space-y-4">
+              {/* Recent Posts */}
+              <RecentPosts limit={5} />
             </div>
           </aside>
         </div>
@@ -62,8 +61,6 @@ export function ForumPageClient() {
         <CreatePostDialog
           isOpen={isCreateDialogOpen}
           onClose={() => setIsCreateDialogOpen(false)}
-          tmdbId={tmdbId ? parseInt(tmdbId, 10) : undefined}
-          mediaType={mediaType as "movie" | "tv" | undefined}
         />
       )}
     </>

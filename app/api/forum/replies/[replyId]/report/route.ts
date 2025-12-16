@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { getContentReportedEmail } from "@/lib/email-templates";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 interface RouteParams {
   params: Promise<{ replyId: string }>;
@@ -38,6 +39,27 @@ export async function POST(
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Rate limiting - 10 reports per hour
+    const rateLimitResult = checkRateLimit(
+      user.id,
+      10,
+      60 * 60 * 1000 // 1 hour
+    );
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: rateLimitResult.error || "Rate limit exceeded. Please try again later." },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": "10",
+            "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+            "X-RateLimit-Reset": new Date(rateLimitResult.resetTime).toISOString(),
+          },
+        }
+      );
     }
 
     const reply = await db.forumReply.findUnique({

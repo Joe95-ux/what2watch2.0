@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 interface RouteParams {
   params: Promise<{ postId: string }>;
@@ -109,6 +110,27 @@ export async function POST(
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Rate limiting - 50 reactions per hour
+    const rateLimitResult = checkRateLimit(
+      user.id,
+      50,
+      60 * 60 * 1000 // 1 hour
+    );
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: rateLimitResult.error || "Rate limit exceeded. Please try again later." },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": "50",
+            "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+            "X-RateLimit-Reset": new Date(rateLimitResult.resetTime).toISOString(),
+          },
+        }
+      );
     }
 
     const { postId } = await params;
