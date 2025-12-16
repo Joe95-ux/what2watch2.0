@@ -63,7 +63,6 @@ export function FeatureRequestFields({ metadata, onChange }: FeatureRequestField
             className="resize-none cursor-text"
           />
         </div>
-      </div>
     </div>
   );
 }
