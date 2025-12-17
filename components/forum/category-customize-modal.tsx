@@ -13,10 +13,17 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { BiSolidCategory } from "react-icons/bi";
+import { ChevronDown } from "lucide-react";
 
 interface Category {
   id: string;
@@ -167,8 +174,9 @@ export function CategoryCustomizeModal({ open, onOpenChange }: CategoryCustomize
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-4">
           {/* Search and Filter */}
-          <div className="space-y-4 mb-6">
-            <div className="relative">
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 mb-6">
+            {/* Search - takes most space on large screens */}
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search categories..."
@@ -178,30 +186,49 @@ export function CategoryCustomizeModal({ open, onOpenChange }: CategoryCustomize
               />
             </div>
 
-            {/* Filter Buttons */}
-            <div className="flex items-center gap-2">
-              <Button
-                variant={filterType === "all" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilterType("all")}
-              >
-                All
-              </Button>
-              <Button
-                variant={filterType === "selected" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilterType("selected")}
-              >
-                Selected ({selectedCategoryIds.length})
-              </Button>
-              <Button
-                variant={filterType === "unselected" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilterType("unselected")}
-              >
-                Unselected ({categories.length - selectedCategoryIds.length})
-              </Button>
-            </div>
+            {/* Filter Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full lg:w-auto cursor-pointer"
+                >
+                  {filterType === "all" && "All"}
+                  {filterType === "selected" && `Selected (${selectedCategoryIds.length})`}
+                  {filterType === "unselected" && `Unselected (${categories.length - selectedCategoryIds.length})`}
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem
+                  onClick={() => setFilterType("all")}
+                  className={cn(
+                    "cursor-pointer",
+                    filterType === "all" && "bg-accent"
+                  )}
+                >
+                  All
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setFilterType("selected")}
+                  className={cn(
+                    "cursor-pointer",
+                    filterType === "selected" && "bg-accent"
+                  )}
+                >
+                  Selected ({selectedCategoryIds.length})
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setFilterType("unselected")}
+                  className={cn(
+                    "cursor-pointer",
+                    filterType === "unselected" && "bg-accent"
+                  )}
+                >
+                  Unselected ({categories.length - selectedCategoryIds.length})
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Categories List */}
