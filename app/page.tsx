@@ -503,7 +503,7 @@ export default function LandingPage() {
           {/* Dark Overlay for Contrast - 60% opacity */}
           <div className="absolute inset-0 bg-black/95" />
           {/* Glassmorphism Effect - Less glassy */}
-          <div className="absolute inset-0 backdrop-blur-[2px] bg-white/3" />
+          <div className="absolute inset-0 backdrop-blur-[4px] bg-white/3" />
           {/* Gradient Fade at Bottom */}
           <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
         </div>

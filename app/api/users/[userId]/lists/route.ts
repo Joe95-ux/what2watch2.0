@@ -8,8 +8,28 @@ export async function GET(
   { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const { userId } = await params;
+    const { userId: identifier } = await params;
     const { userId: clerkUserId } = await auth();
+
+    // Look up user by username or ID
+    const targetUser = await db.user.findFirst({
+      where: {
+        OR: [
+          { username: identifier },
+          { id: identifier },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (!targetUser) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    const userId = targetUser.id;
 
     // Get current user if authenticated
     let currentUserId: string | null = null;
@@ -58,7 +78,11 @@ export async function GET(
       include: {
         items: {
           orderBy: { position: "asc" },
-          take: 1, // Just get count
+          take: 3, // Get up to 3 items for poster grid
+          select: {
+            position: true,
+            posterPath: true,
+          },
         },
         user: {
           select: {

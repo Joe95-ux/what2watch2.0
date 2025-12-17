@@ -7,7 +7,9 @@ export type ActivityType =
   | "LIKED_FILM"
   | "CREATED_LIST"
   | "CREATED_PLAYLIST"
-  | "FOLLOWED_USER";
+  | "FOLLOWED_USER"
+  | "CREATED_FORUM_POST"
+  | "CREATED_FORUM_REPLY";
 
 export interface Activity {
   id: string;

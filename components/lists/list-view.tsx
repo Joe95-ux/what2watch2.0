@@ -672,7 +672,7 @@ export default function ListView({
             <div className="flex-1">
               {list.user && (
                 <div className="flex items-center gap-3 mb-4">
-                  <Link href={`/${list.user.username || list.user.id}`}>
+                  <Link href={`/users/${list.user.username || list.user.id}`}>
                     <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 ring-primary transition-all">
                       <AvatarImage
                         src={list.user.avatarUrl || undefined}
@@ -689,7 +689,7 @@ export default function ListView({
                     <p className="text-sm text-muted-foreground">
                       Created by{" "}
                       <Link
-                        href={`/${list.user.username || list.user.id}`}
+                        href={`/users/${list.user.username || list.user.id}`}
                         className="hover:text-primary transition-colors cursor-pointer"
                       >
                         {list.user.username || list.user.displayName || "Unknown"}
@@ -724,7 +724,7 @@ export default function ListView({
                     <span>
                       Created by{" "}
                       <Link
-                        href={`/${list.user.username || list.user.id}`}
+                        href={`/users/${list.user.username || list.user.id}`}
                         className="hover:text-primary transition-colors cursor-pointer"
                       >
                         {list.user.username || list.user.displayName || "Unknown"}

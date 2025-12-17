@@ -858,6 +858,8 @@ enum ActivityType {
   CREATED_LIST     // User created a list
   CREATED_PLAYLIST // User created a playlist
   FOLLOWED_USER    // User followed someone
+  CREATED_FORUM_POST   // User created a forum post
+  CREATED_FORUM_REPLY  // User replied to a forum post
 }
 
 model Activity {

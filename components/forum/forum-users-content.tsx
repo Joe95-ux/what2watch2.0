@@ -305,25 +305,36 @@ function ForumUsersContentInner({
                 {allUsers.map((user: ForumUser) => (
                   <TableRow key={user.id} className="border-b last:border-b-0 hover:bg-muted/30">
                     <TableCell>
-                      <Link
-                        href={`/users/${user.username || user.id}`}
-                        className="flex items-center gap-3 hover:underline cursor-pointer"
-                      >
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={user.avatarUrl || undefined} />
-                          <AvatarFallback>
-                            {getInitials(user.displayName || user.username || "U")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium">
-                            {user.displayName || user.username || "Anonymous"}
+                      <div className="flex items-center gap-3">
+                        <Link
+                          href={`/users/${user.username || user.id}`}
+                          className="flex items-center gap-3 hover:underline cursor-pointer flex-1"
+                        >
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={user.avatarUrl || undefined} />
+                            <AvatarFallback>
+                              {getInitials(user.displayName || user.username || "U")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">
+                              {user.displayName || user.username || "Anonymous"}
+                            </div>
+                            {user.username && user.displayName && (
+                              <div className="text-sm text-muted-foreground">@{user.username}</div>
+                            )}
                           </div>
-                          {user.username && user.displayName && (
-                            <div className="text-sm text-muted-foreground">@{user.username}</div>
-                          )}
-                        </div>
-                      </Link>
+                        </Link>
+                        <Link href={`/users/${user.username || user.id}`}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="cursor-pointer"
+                          >
+                            View Profile
+                          </Button>
+                        </Link>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <span className="text-sm text-muted-foreground">

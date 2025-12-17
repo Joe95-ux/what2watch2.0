@@ -40,7 +40,8 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  ArrowUpDown
+  ArrowUpDown,
+  MessageSquare
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -56,6 +57,8 @@ const ACTIVITY_TYPES: { value: ActivityType | "all"; label: string; icon: React.
   { value: "LIKED_FILM", label: "Liked", icon: <Heart className="h-4 w-4" /> },
   { value: "CREATED_LIST", label: "Lists", icon: <List className="h-4 w-4" /> },
   { value: "CREATED_PLAYLIST", label: "Playlists", icon: <Music className="h-4 w-4" /> },
+  { value: "CREATED_FORUM_POST", label: "Forum Posts", icon: <MessageSquare className="h-4 w-4" /> },
+  { value: "CREATED_FORUM_REPLY", label: "Forum Replies", icon: <MessageSquare className="h-4 w-4" /> },
   { value: "FOLLOWED_USER", label: "Followed", icon: <UserPlus className="h-4 w-4" /> },
 ];
 
@@ -131,6 +134,33 @@ function ActivityItem({ activity }: { activity: Activity }) {
             )}
           </>
         );
+      case "CREATED_FORUM_POST":
+        const postMetadata = activity.metadata as { postId?: string; postSlug?: string; categoryName?: string } | null;
+        return (
+          <>
+            <span className="font-semibold">{displayName}</span> created a post{" "}
+            {activity.title && (
+              <Link href={`/forum/posts/${postMetadata?.postSlug || postMetadata?.postId || ""}`} className="font-semibold hover:underline">
+                {activity.title}
+              </Link>
+            )}
+            {postMetadata?.categoryName && (
+              <> in <span className="font-semibold">{postMetadata.categoryName}</span></>
+            )}
+          </>
+        );
+      case "CREATED_FORUM_REPLY":
+        const replyMetadata = activity.metadata as { postId?: string; postSlug?: string; postTitle?: string } | null;
+        return (
+          <>
+            <span className="font-semibold">{displayName}</span> replied to{" "}
+            {replyMetadata?.postTitle && (
+              <Link href={`/forum/posts/${replyMetadata.postSlug || replyMetadata.postId || ""}`} className="font-semibold hover:underline">
+                {replyMetadata.postTitle}
+              </Link>
+            )}
+          </>
+        );
       default:
         return null;
     }
@@ -152,6 +182,9 @@ function ActivityItem({ activity }: { activity: Activity }) {
         return <Music className="h-4 w-4" />;
       case "FOLLOWED_USER":
         return <UserPlus className="h-4 w-4" />;
+      case "CREATED_FORUM_POST":
+      case "CREATED_FORUM_REPLY":
+        return <MessageSquare className="h-4 w-4" />;
       default:
         return <Calendar className="h-4 w-4" />;
     }

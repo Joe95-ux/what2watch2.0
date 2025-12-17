@@ -17,7 +17,27 @@ export async function GET(
         })
       : null;
 
-    const { userId: targetUserId } = await params;
+    const { userId: identifier } = await params;
+
+    // Look up user by username or ID
+    const targetUser = await db.user.findFirst({
+      where: {
+        OR: [
+          { username: identifier },
+          { id: identifier },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (!targetUser) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    const targetUserId = targetUser.id;
 
     // Check if current user is following target user
     let isFollowing = false;

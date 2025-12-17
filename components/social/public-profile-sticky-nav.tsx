@@ -1,42 +1,41 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { List, Star, Heart, Users, UserCheck, ClipboardList, Bookmark, MessagesSquare } from "lucide-react";
+import { List, Star, Heart, Users, UserCheck, ClipboardList, MessageSquare } from "lucide-react";
 import { useRef, useEffect } from "react";
 
-interface ProfileStickyNavProps {
+interface PublicProfileStickyNavProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   isScrolled: boolean;
   counts?: {
     playlists?: number;
     lists?: number;
-    watchlist?: number;
     favorites?: number;
     followers?: number;
     following?: number;
-    reviews?: number;
     discussions?: number;
   };
+  isOwnProfile?: boolean;
 }
 
 const tabs = [
-  { id: "playlists", label: "Playlists", icon: List },
   { id: "lists", label: "Lists", icon: ClipboardList },
-  { id: "watchlist", label: "Watchlist", icon: Bookmark },
+  { id: "playlists", label: "Playlists", icon: List },
   { id: "reviews", label: "Reviews", icon: Star },
   { id: "my-list", label: "My List", icon: Heart },
-  { id: "discussions", label: "Discussions", icon: MessagesSquare },
+  { id: "discussions", label: "Discussions", icon: MessageSquare },
   { id: "followers", label: "Followers", icon: Users },
   { id: "following", label: "Following", icon: UserCheck },
 ];
 
-export default function ProfileStickyNav({ 
+export default function PublicProfileStickyNav({ 
   activeTab, 
   onTabChange,
   isScrolled,
-  counts = {}
-}: ProfileStickyNavProps) {
+  counts = {},
+  isOwnProfile = false
+}: PublicProfileStickyNavProps) {
   const navRef = useRef<HTMLDivElement>(null);
   const activeTabRef = useRef<HTMLButtonElement>(null);
 
@@ -70,6 +69,14 @@ export default function ProfileStickyNav({
     return tab.label;
   };
 
+  // Filter tabs based on isOwnProfile
+  const visibleTabs = tabs.filter(tab => {
+    if (tab.id === "my-list" && !isOwnProfile) {
+      return false;
+    }
+    return true;
+  });
+
   return (
     <div
       ref={navRef}
@@ -80,9 +87,9 @@ export default function ProfileStickyNav({
           : "bg-transparent"
       )}
     >
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-[70rem] mx-auto px-4 sm:px-6">
         <div className="flex items-center gap-8 overflow-x-auto scrollbar-hide scroll-smooth">
-          {tabs.map((tab) => {
+          {visibleTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (

@@ -728,7 +728,7 @@ export default function WatchlistView({
             <div className="flex-1">
               {user ? (
                 <div className="flex items-center gap-3 mb-4">
-                  <Link href={`/users/${user.id}`}>
+                  <Link href={`/users/${user.username || user.id}`}>
                     <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 ring-primary transition-all">
                       <AvatarImage
                         src={user.avatarUrl || undefined}
@@ -745,7 +745,7 @@ export default function WatchlistView({
                     <p className="text-sm text-muted-foreground">
                       Created by{" "}
                       <Link
-                        href={`/users/${user.id}`}
+                        href={`/users/${user.username || user.id}`}
                         className="hover:text-primary transition-colors cursor-pointer"
                       >
                         {user.username || user.displayName || "Unknown"}

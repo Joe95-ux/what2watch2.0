@@ -243,8 +243,41 @@ export async function POST(
             avatarUrl: true,
           },
         },
+        post: {
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            categoryId: true,
+            tmdbId: true,
+            mediaType: true,
+          },
+        },
       },
     });
+
+    // Create activity for forum reply creation
+    try {
+      await db.activity.create({
+        data: {
+          userId: user.id,
+          type: "CREATED_FORUM_REPLY",
+          title: reply.post.title,
+          metadata: {
+            replyId: reply.id,
+            postId: reply.postId,
+            postSlug: reply.post.slug,
+            parentReplyId: reply.parentReplyId,
+            categoryId: reply.post.categoryId,
+            tmdbId: reply.post.tmdbId,
+            mediaType: reply.post.mediaType,
+          },
+        },
+      });
+    } catch (error) {
+      // Silently fail - activity creation is not critical
+      console.error("Failed to create activity for forum reply:", error);
+    }
 
     return NextResponse.json({
       reply: {

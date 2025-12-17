@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useClerk } from "@clerk/nextjs";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -23,7 +24,7 @@ import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { MovieCardSkeleton } from "@/components/skeletons/movie-card-skeleton";
 import { Playlist } from "@/hooks/use-playlists";
-import { Users, UserCheck, List, Star, Heart, Edit, Image as ImageIcon, KeyRound, User as UserIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, UserCheck, List, Star, Heart, Edit, Image as ImageIcon, KeyRound, User as UserIcon, ChevronLeft, ChevronRight, MessagesSquare, ArrowRight } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useUserFollowers, useUserFollowing, type User } from "@/hooks/use-follow";
 import { useFavorites } from "@/hooks/use-favorites";
@@ -44,7 +45,7 @@ import Link from "next/link";
 export default function DashboardProfileContent() {
   const { data: currentUser, isLoading: isLoadingCurrentUser } = useCurrentUser();
   const { openUserProfile } = useClerk();
-  const [activeTab, setActiveTab] = useState<"playlists" | "lists" | "watchlist" | "reviews" | "my-list" | "followers" | "following">("playlists");
+  const [activeTab, setActiveTab] = useState<"playlists" | "lists" | "watchlist" | "reviews" | "my-list" | "discussions" | "followers" | "following">("playlists");
   const [isEditBannerOpen, setIsEditBannerOpen] = useState(false);
   const [selectedBannerGradient, setSelectedBannerGradient] = useState<string>("gradient-1");
   const [isScrolled, setIsScrolled] = useState(false);
@@ -90,6 +91,23 @@ export default function DashboardProfileContent() {
 
   const reviews = reviewsData?.reviews || [];
   const reviewsTotal = reviewsData?.pagination?.total || 0;
+
+  // Fetch forum stats
+  const { data: forumStatsData, isLoading: isLoadingForumStats } = useQuery({
+    queryKey: ["user", userId, "forum-stats"],
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${userId}/forum-stats`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch forum stats");
+      }
+      return response.json();
+    },
+    enabled: !!userId,
+  });
+
+  const forumStats = forumStatsData?.stats || { postCount: 0, replyCount: 0, totalReactions: 0 };
+  const recentPosts = forumStatsData?.recentPosts || [];
+  const recentReplies = forumStatsData?.recentReplies || [];
 
   // Pagination calculations
   const totalPages = useMemo(() => {
@@ -653,6 +671,135 @@ export default function DashboardProfileContent() {
         </>
       )}
 
+      {activeTab === "discussions" && (
+        <>
+          {isLoadingForumStats ? (
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-32 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : (
+            <>
+              {/* Stats Overview */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <div className="p-4 rounded-lg border bg-card">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MessagesSquare className="h-5 w-5 text-muted-foreground" />
+                    <h3 className="text-sm font-medium text-muted-foreground">Posts</h3>
+                  </div>
+                  <p className="text-2xl font-bold">{forumStats.postCount}</p>
+                </div>
+                <div className="p-4 rounded-lg border bg-card">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MessagesSquare className="h-5 w-5 text-muted-foreground" />
+                    <h3 className="text-sm font-medium text-muted-foreground">Replies</h3>
+                  </div>
+                  <p className="text-2xl font-bold">{forumStats.replyCount}</p>
+                </div>
+                <div className="p-4 rounded-lg border bg-card">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Heart className="h-5 w-5 text-muted-foreground" />
+                    <h3 className="text-sm font-medium text-muted-foreground">Reactions</h3>
+                  </div>
+                  <p className="text-2xl font-bold">{forumStats.totalReactions}</p>
+                </div>
+              </div>
+
+              {/* Recent Posts */}
+              {recentPosts.length > 0 && (
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Recent Posts</h3>
+                    <Link href="/forum">
+                      <Button variant="ghost" size="sm" className="cursor-pointer">
+                        View All
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </Link>
+                  </div>
+                  <div className="space-y-3">
+                    {recentPosts.map((post: any) => (
+                      <Link
+                        key={post.id}
+                        href={`/forum/posts/${post.slug}`}
+                        className="block p-4 rounded-lg border bg-card hover:border-primary/50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium truncate">{post.title}</h4>
+                            <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
+                              {post.category && (
+                                <span
+                                  className="px-2 py-0.5 rounded text-xs font-medium"
+                                  style={{ backgroundColor: `${post.category.color}20`, color: post.category.color }}
+                                >
+                                  {post.category.name}
+                                </span>
+                              )}
+                              <span>{post.replyCount} replies</span>
+                              <span>{post.reactionCount} reactions</span>
+                              <span>{post.views} views</span>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recent Replies */}
+              {recentReplies.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Recent Replies</h3>
+                    <Link href="/forum">
+                      <Button variant="ghost" size="sm" className="cursor-pointer">
+                        View All
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </Link>
+                  </div>
+                  <div className="space-y-3">
+                    {recentReplies.map((reply: any) => (
+                      <Link
+                        key={reply.id}
+                        href={`/forum/posts/${reply.postSlug}`}
+                        className="block p-4 rounded-lg border bg-card hover:border-primary/50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium truncate">{reply.postTitle}</h4>
+                            <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
+                              <span>{reply.reactionCount} reactions</span>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {recentPosts.length === 0 && recentReplies.length === 0 && (
+                <div className="text-center py-12">
+                  <MessagesSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No forum activity yet</h3>
+                  <p className="text-muted-foreground mb-4">Start participating in discussions to see your activity here.</p>
+                  <Link href="/forum">
+                    <Button className="cursor-pointer">
+                      Browse Forum
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
+
       {activeTab === "my-list" && (
         <>
           {isLoadingFavorites ? (
@@ -968,6 +1115,7 @@ export default function DashboardProfileContent() {
               followers: followers.length,
               following: following.length,
               reviews: reviewsTotal,
+              discussions: forumStats.postCount + forumStats.replyCount,
             }}
           />
 

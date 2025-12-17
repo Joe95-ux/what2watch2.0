@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-// GET - Get user profile
+// GET - Get user profile (supports both username and userId)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const { userId } = await params;
+    const { userId: identifier } = await params;
 
-    const user = await db.user.findUnique({
-      where: { id: userId },
+    // Try to find user by username first, then by ID
+    let user = await db.user.findFirst({
+      where: {
+        OR: [
+          { username: identifier },
+          { id: identifier },
+        ],
+      },
       select: {
         id: true,
         username: true,
@@ -28,12 +34,12 @@ export async function GET(
       );
     }
 
-    // Get counts
+    // Get counts using the actual user ID
     const [followersCount, followingCount, playlistsCount, listsCount] = await Promise.all([
-      db.follow.count({ where: { followingId: userId } }),
-      db.follow.count({ where: { followerId: userId } }),
-      db.playlist.count({ where: { userId } }),
-      db.list.count({ where: { userId, visibility: "PUBLIC" } }), // Only count public lists
+      db.follow.count({ where: { followingId: user.id } }),
+      db.follow.count({ where: { followerId: user.id } }),
+      db.playlist.count({ where: { userId: user.id } }),
+      db.list.count({ where: { userId: user.id, visibility: "PUBLIC" } }), // Only count public lists
     ]);
 
     return NextResponse.json({

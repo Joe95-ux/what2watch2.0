@@ -933,7 +933,7 @@ export default function PlaylistView({
             <div className="flex-1">
               {playlist.user && (
                 <div className="flex items-center gap-3 mb-4">
-                  <Link href={`/${playlist.user.username || playlist.user.id}`}>
+                  <Link href={`/users/${playlist.user.username || playlist.user.id}`}>
                     <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 ring-primary transition-all">
                       <AvatarImage
                         src={playlist.user.avatarUrl || undefined}
@@ -950,7 +950,7 @@ export default function PlaylistView({
                     <p className="text-sm text-muted-foreground">
                       Created by{" "}
                       <Link
-                        href={`/${playlist.user.username || playlist.user.id}`}
+                        href={`/users/${playlist.user.username || playlist.user.id}`}
                         className="hover:text-primary transition-colors cursor-pointer"
                       >
                         {playlist.user.username || playlist.user.displayName || "Unknown"}
@@ -985,7 +985,7 @@ export default function PlaylistView({
                     <span>
                       Created by{" "}
                       <Link
-                        href={`/${playlist.user.username || playlist.user.id}`}
+                        href={`/users/${playlist.user.username || playlist.user.id}`}
                         className="hover:text-primary transition-colors cursor-pointer"
                       >
                         {playlist.user.username || playlist.user.displayName || "Unknown"}

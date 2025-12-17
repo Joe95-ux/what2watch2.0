@@ -456,13 +456,13 @@ export function ForumPostDetailClient() {
               {/* Action Buttons - Under Tags */}
               <div className="flex items-center gap-2">
                 {/* Vote Buttons - Act like one button */}
-                <div className="flex items-center rounded-[25px] bg-muted dark:bg-muted/80 overflow-hidden">
+                <div className="flex items-center rounded-[25px] bg-[#6B7280]/20 dark:bg-muted/80 overflow-hidden">
                   <button
                     onClick={() => handleVote("upvote")}
                     disabled={toggleReaction.isPending}
                     className={cn(
                       "flex items-center gap-1 px-4 py-2 transition-colors cursor-pointer",
-                      isUpvoted ? "text-primary" : "hover:bg-muted",
+                      isUpvoted ? "text-primary" : "hover:bg-[#6B7280]/30 dark:hover:bg-muted",
                       toggleReaction.isPending && "opacity-50 cursor-not-allowed"
                     )}
                   >
@@ -475,7 +475,7 @@ export function ForumPostDetailClient() {
                     disabled={toggleReaction.isPending}
                     className={cn(
                       "flex items-center gap-1 px-4 py-2 transition-colors cursor-pointer",
-                      isDownvoted ? "text-primary" : "hover:bg-muted",
+                      isDownvoted ? "text-primary" : "hover:bg-[#6B7280]/30 dark:hover:bg-muted",
                       toggleReaction.isPending && "opacity-50 cursor-not-allowed"
                     )}
                   >
@@ -484,7 +484,7 @@ export function ForumPostDetailClient() {
                 </div>
                 
                 {/* Comment Button */}
-                <div className="flex items-center gap-2 px-3 py-2 rounded-[25px] bg-muted dark:bg-muted/80 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-[25px] bg-[#6B7280]/20 dark:bg-muted/80 text-xs text-muted-foreground">
                   <MessageCircle className="h-4 w-4" />
                   {post.replyCount > 0 && <span className="text-sm font-medium">{post.replyCount}</span>}
                 </div>
@@ -496,11 +496,11 @@ export function ForumPostDetailClient() {
                   variant="ghost"
                   size="sm"
                   showLabel={true}
-                  className="rounded-[25px] bg-muted dark:bg-muted/80 hover:bg-muted/90 dark:hover:bg-muted h-auto px-3 py-2"
+                  className="rounded-[25px] bg-[#6B7280]/20 dark:bg-muted/80 hover:bg-[#6B7280]/30 dark:hover:bg-muted h-auto px-3 py-2"
                 />
                 
                 {/* Views */}
-                <div className="hidden md:flex items-center gap-1 px-3 py-2 rounded-[25px] bg-muted dark:bg-muted/80 text-xs text-muted-foreground ml-auto">
+                <div className="hidden md:flex items-center gap-1 px-3 py-2 rounded-[25px] bg-[#6B7280]/20 dark:bg-muted/80 text-xs text-muted-foreground ml-auto">
                   <Eye className="h-4 w-4" />
                   <span>{post.views}</span>
                 </div>

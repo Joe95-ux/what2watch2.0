@@ -9,7 +9,7 @@ export default async function UserProfilePage({
   params: Promise<{ userId: string }>;
 }) {
   const { userId: clerkUserId } = await auth();
-  const { userId } = await params;
+  const { userId: identifier } = await params;
 
   if (!clerkUserId) {
     redirect("/sign-in");
@@ -24,6 +24,21 @@ export default async function UserProfilePage({
     redirect("/onboarding");
   }
 
-  return <UserProfileContent userId={userId} />;
+  // Look up user by username or ID to get the actual userId
+  const targetUser = await db.user.findFirst({
+    where: {
+      OR: [
+        { username: identifier },
+        { id: identifier },
+      ],
+    },
+    select: { id: true },
+  });
+
+  if (!targetUser) {
+    redirect("/forum/users");
+  }
+
+  return <UserProfileContent userId={targetUser.id} />;
 }
 

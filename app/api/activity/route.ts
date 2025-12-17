@@ -46,7 +46,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ activiti
     // Build where clause
     const where: {
       userId: string | { in: string[] };
-      type?: "LOGGED_FILM" | "RATED_FILM" | "REVIEWED_FILM" | "LIKED_FILM" | "CREATED_LIST" | "CREATED_PLAYLIST" | "FOLLOWED_USER";
+      type?: "LOGGED_FILM" | "RATED_FILM" | "REVIEWED_FILM" | "LIKED_FILM" | "CREATED_LIST" | "CREATED_PLAYLIST" | "FOLLOWED_USER" | "CREATED_FORUM_POST" | "CREATED_FORUM_REPLY";
       createdAt?: {
         gte?: Date;
         lte?: Date;

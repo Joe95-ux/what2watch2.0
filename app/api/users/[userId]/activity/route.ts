@@ -130,6 +130,8 @@ export async function GET(
         "CREATED_LIST",
         "CREATED_PLAYLIST",
         "FOLLOWED_USER",
+        "CREATED_FORUM_POST",
+        "CREATED_FORUM_REPLY",
       ];
       if (validTypes.includes(typeParam as ActivityType)) {
         where.type = typeParam as ActivityType;
