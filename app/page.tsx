@@ -21,7 +21,6 @@ import Navbar from "@/components/navbar/navbar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import TrailerModal from "@/components/browse/trailer-modal";
-import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Accordion,
@@ -429,8 +428,6 @@ export default function LandingPage() {
         },
       }));
       
-      // Store trailer duration if available (YouTube API would be needed for actual duration)
-      // For now, we'll leave it empty as TMDB doesn't provide video duration
     } catch (error) {
       console.error("Failed to load trailer", error);
       setTrailers((prev) => ({
@@ -503,10 +500,10 @@ export default function LandingPage() {
             priority
             quality={90}
           />
-          {/* Dark Overlay for Contrast */}
-          <div className="absolute inset-0 bg-black/80" />
-          {/* Glassmorphism Effect - Reduced Intensity */}
-          <div className="absolute inset-0 backdrop-blur-[8px] bg-white/5" />
+          {/* Dark Overlay for Contrast - 60% opacity */}
+          <div className="absolute inset-0 bg-black/95" />
+          {/* Glassmorphism Effect - Less glassy */}
+          <div className="absolute inset-0 backdrop-blur-[2px] bg-white/3" />
           {/* Gradient Fade at Bottom */}
           <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
         </div>
@@ -520,7 +517,7 @@ export default function LandingPage() {
             </div>
             <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
               Your personal{" "}
-              <span className="inline-block bg-gradient-to-r from-primary to-primary/60 bg-clip-text [-webkit-background-clip:text] [background-clip:text] text-transparent [color:transparent] [&::selection]:bg-primary/20 [&::selection]:text-primary">
+              <span className="inline-block bg-gradient-to-r from-primary to-primary/60 bg-clip-text [-webkit-background-clip:text]  text-transparent [&::selection]:bg-primary/20 [&::selection]:text-primary text-4xl font-bold sm:text-5xl lg:text-6xl">
                 watchlist
               </span>
               <br />
@@ -689,7 +686,7 @@ export default function LandingPage() {
               Powerful features designed to help you find, organize, and share your favorite entertainment.
             </p>
           </div>
-          <div className="mx-auto mt-16 grid max-w-7xl gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mx-auto mt-16 grid grid-cols-1   sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 max-w-7xl gap-8">
             {features.map((feature, index) => (
               <div
                 key={index}
@@ -962,38 +959,6 @@ function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrev
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
-  // Convert slide to TMDBMovie or TMDBSeries for AddToPlaylistDropdown
-  const item: TMDBMovie | TMDBSeries = slide.type === "movie"
-    ? {
-        id: slide.id,
-        title: slide.title,
-        overview: slide.overview,
-        poster_path: slide.poster,
-        backdrop_path: slide.backdrop,
-        release_date: slide.year || "",
-        vote_average: slide.rating,
-        vote_count: slide.voteCount,
-        genre_ids: [],
-        popularity: slide.popularity,
-        adult: false,
-        original_language: "en",
-        original_title: slide.title,
-      } as TMDBMovie
-    : {
-        id: slide.id,
-        name: slide.title,
-        overview: slide.overview,
-        poster_path: slide.poster,
-        backdrop_path: slide.backdrop,
-        first_air_date: slide.year || "",
-        vote_average: slide.rating,
-        vote_count: slide.voteCount,
-        genre_ids: [],
-        popularity: slide.popularity,
-        original_language: "en",
-        original_name: slide.title,
-      } as TMDBSeries;
-
   return (
     <div className="relative h-full w-full">
       {/* Wallpaper Background */}
@@ -1010,7 +975,7 @@ function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrev
         <div className="h-full w-full bg-gradient-to-br from-muted to-muted/50" />
       )}
       {/* Dark gradient overlay - more intense as you go down (JustWatch style) */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/90 via-black/60 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
 
       {/* Bottom Section - Poster and Details */}
       <div className="absolute bottom-0 left-0 right-0 z-10 p-4 sm:p-6">
@@ -1046,21 +1011,6 @@ function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrev
                 className="object-cover"
                 sizes="(max-width: 640px) 120px, (max-width: 768px) 150px, 200px"
               />
-              {/* Add to Playlist Button - Top Right */}
-              <div className="absolute right-1.5 sm:right-2 top-1.5 sm:top-2">
-                <AddToPlaylistDropdown
-                  item={item}
-                  type={slide.type}
-                  trigger={
-                    <Button
-                      size="icon"
-                      className="h-8 w-8 sm:h-9 sm:w-9 cursor-pointer rounded-full bg-black/60 backdrop-blur-sm hover:bg-black/80 border border-white/20 transition-all duration-300 ease-in-out"
-                    >
-                      <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white transition-transform duration-300" />
-                    </Button>
-                  }
-                />
-              </div>
             </div>
           )}
 

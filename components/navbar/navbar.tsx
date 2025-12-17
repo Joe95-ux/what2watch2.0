@@ -57,7 +57,7 @@ export default function Navbar() {
   const shouldUseMaxSearchNav = pathname === "/search" || pathname?.startsWith("/search");
 
   // Check if we're on a page with hero section (dark navbar needed)
-  const hasHeroSection = pathname === "/browse" || pathname === "/popular" || pathname === "/lists" || pathname === "/members" || pathname === "/forum" || pathname?.startsWith("/browse/") || pathname?.startsWith("/popular") || pathname?.startsWith("/lists/") || pathname?.startsWith("/forum/");
+  const hasHeroSection = pathname === "/browse" || pathname === "/popular" || pathname === "/lists" || pathname === "/members" || pathname?.startsWith("/browse/") || pathname?.startsWith("/popular") || pathname?.startsWith("/lists/");
 
   return (
     <nav className={cn(
@@ -72,8 +72,14 @@ export default function Navbar() {
         isDashboard ? "grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_auto] gap-2 md:gap-4" : "justify-between",
         isDiscoverPage && "justify-between"
       )}>
-        {/* Left side - Logo */}
+        {/* Left side - Logo and Nav Dropdown */}
         <div className="flex items-center gap-3">
+          {/* Navigation Dropdown - Show between md (768px) and xl (1280px) on desktop, hidden on dashboard */}
+          {!isDashboard && !isDiscoverPage && (
+            <div className="hidden md:block xl:hidden">
+              <NavDropdown navLinks={navLinks} hasHeroSection={hasHeroSection} />
+            </div>
+          )}
           <Logo fontSize="text-xl" iconSize={20} />
         </div>
 
@@ -171,13 +177,6 @@ export default function Navbar() {
                       </Button>
                     </SignInButton>
                   )}
-                </div>
-              )}
-
-              {/* Navigation Dropdown - Show between md (768px) and xl (1280px) on desktop, hidden on dashboard */}
-              {!isDashboard && !isDiscoverPage && (
-                <div className="hidden md:block xl:hidden">
-                  <NavDropdown navLinks={navLinks} hasHeroSection={hasHeroSection} />
                 </div>
               )}
             </div>

@@ -704,6 +704,11 @@ export default function WatchlistView({
                 sizes="100vw"
                 unoptimized
               />
+              {/* Dark overlay - blends with dark theme and stays dark in light theme */}
+              <div className={cn(
+                "absolute inset-0 bg-black/60",
+                isInListsPage && "rounded-lg"
+              )} />
               <div className={cn(
                 "absolute inset-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent",
                 isInListsPage && "rounded-lg"

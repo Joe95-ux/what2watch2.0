@@ -162,7 +162,7 @@ export function CategoryCustomizeModal({ open, onOpenChange }: CategoryCustomize
         onOpenChange(newOpen);
       }
     }}>
-      <DialogContent className="sm:max-w-[40rem] h-[90vh] sm:h-[80vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-[40rem] h-[90vh] flex flex-col p-0">
         {/* Fixed Header */}
         <DialogHeader className="px-4 sm:px-6 py-4 border-b flex-shrink-0">
           <DialogTitle>Customize Categories</DialogTitle>

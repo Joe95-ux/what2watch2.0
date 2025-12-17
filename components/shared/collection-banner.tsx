@@ -21,6 +21,8 @@ export function CollectionBanner({ imageUrl, fallbackGradient = true }: Collecti
             sizes="100vw"
             unoptimized
           />
+          {/* Dark overlay - blends with dark theme and stays dark in light theme */}
+          <div className="absolute inset-0 bg-black/60" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent" />
         </>
       ) : fallbackGradient ? (
