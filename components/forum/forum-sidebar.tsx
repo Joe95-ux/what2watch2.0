@@ -134,6 +134,9 @@ export function ForumSidebar({
   // "All Categories" is active when no category is selected (but Home takes precedence if on exact home)
   const isAllCategoriesActive = !activeCategory && !isForumHome;
 
+  // On mobile, always show expanded sidebar (not collapsed)
+  const shouldShowCollapsed = isCollapsed && !isMobile;
+
   const getCategoryColor = (color?: string | null) => {
     if (!color) return "bg-blue-500/20 text-blue-700 dark:text-blue-400";
     
@@ -176,7 +179,7 @@ export function ForumSidebar({
       {!isMobile && (
         <div className={cn(
           "p-2 border-b flex items-center transition-all flex-shrink-0",
-          isCollapsed ? "justify-center" : "justify-end"
+          shouldShowCollapsed ? "justify-center" : "justify-end"
         )}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -185,11 +188,11 @@ export function ForumSidebar({
                 size="icon"
                 className={cn(
                   "h-8 w-8",
-                  isCollapsed && "mx-auto"
+                  shouldShowCollapsed && "mx-auto"
                 )}
                 onClick={handleCollapseToggle}
               >
-                {isCollapsed ? (
+                {shouldShowCollapsed ? (
                   <ChevronRight className="h-4 w-4" />
                 ) : (
                   <ChevronLeft className="h-4 w-4" />
@@ -197,7 +200,7 @@ export function ForumSidebar({
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right">
-              {isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              {shouldShowCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             </TooltipContent>
           </Tooltip>
         </div>
@@ -208,7 +211,7 @@ export function ForumSidebar({
         {/* Navigation Links */}
         <div className={cn(
           "border-b transition-all",
-          isCollapsed ? "p-2 space-y-1" : "p-4 space-y-2"
+          shouldShowCollapsed ? "p-2 space-y-1" : "p-4 space-y-2"
         )}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -216,7 +219,7 @@ export function ForumSidebar({
                 variant={isForumHome ? "secondary" : "ghost"}
                 className={cn(
                   "w-full transition-all cursor-pointer",
-                  isCollapsed ? "justify-center p-2" : "justify-start gap-3"
+                  shouldShowCollapsed ? "justify-center p-2" : "justify-start gap-3"
                 )}
                 onClick={() => {
                   router.push("/forum");
@@ -224,10 +227,10 @@ export function ForumSidebar({
                 }}
               >
                 <Home className="h-4 w-4" />
-                {!isCollapsed && <span>Home</span>}
+                {!shouldShowCollapsed && <span>Home</span>}
               </Button>
             </TooltipTrigger>
-            {isCollapsed && (
+            {shouldShowCollapsed && (
               <TooltipContent side="right">
                 <span>Home</span>
               </TooltipContent>
@@ -240,7 +243,7 @@ export function ForumSidebar({
                 variant={pathname === "/forum/popular" ? "secondary" : "ghost"}
                 className={cn(
                   "w-full transition-all cursor-pointer",
-                  isCollapsed ? "justify-center p-2" : "justify-start gap-3"
+                  shouldShowCollapsed ? "justify-center p-2" : "justify-start gap-3"
                 )}
                 onClick={() => {
                   router.push("/forum/popular");
@@ -248,10 +251,10 @@ export function ForumSidebar({
                 }}
               >
                 <TrendingUp className="h-4 w-4" />
-                {!isCollapsed && <span>Popular</span>}
+                {!shouldShowCollapsed && <span>Popular</span>}
               </Button>
             </TooltipTrigger>
-            {isCollapsed && (
+            {shouldShowCollapsed && (
               <TooltipContent side="right">
                 <span>Popular</span>
               </TooltipContent>
@@ -264,7 +267,7 @@ export function ForumSidebar({
                 variant={pathname === "/forum/users" ? "secondary" : "ghost"}
                 className={cn(
                   "w-full transition-all cursor-pointer",
-                  isCollapsed ? "justify-center p-2" : "justify-start gap-3"
+                  shouldShowCollapsed ? "justify-center p-2" : "justify-start gap-3"
                 )}
                 onClick={() => {
                   router.push("/forum/users");
@@ -272,10 +275,10 @@ export function ForumSidebar({
                 }}
               >
                 <PiUsersThreeDuotone className="h-4 w-4" />
-                {!isCollapsed && <span>Users</span>}
+                {!shouldShowCollapsed && <span>Users</span>}
               </Button>
             </TooltipTrigger>
-            {isCollapsed && (
+            {shouldShowCollapsed && (
               <TooltipContent side="right">
                 <span>Users</span>
               </TooltipContent>
@@ -288,7 +291,7 @@ export function ForumSidebar({
                 variant="ghost"
                 className={cn(
                   "w-full transition-all cursor-pointer",
-                  isCollapsed ? "justify-center p-2" : "justify-start gap-3"
+                  shouldShowCollapsed ? "justify-center p-2" : "justify-start gap-3"
                 )}
                 onClick={() => {
                   // TODO: Navigate to badges page
@@ -296,10 +299,10 @@ export function ForumSidebar({
                 }}
               >
                 <Award className="h-4 w-4" />
-                {!isCollapsed && <span>Badges</span>}
+                {!shouldShowCollapsed && <span>Badges</span>}
               </Button>
             </TooltipTrigger>
-            {isCollapsed && (
+            {shouldShowCollapsed && (
               <TooltipContent side="right">
                 <span>Badges</span>
               </TooltipContent>
@@ -312,7 +315,7 @@ export function ForumSidebar({
                 variant="ghost"
                 className={cn(
                   "w-full transition-all cursor-pointer",
-                  isCollapsed ? "justify-center p-2" : "justify-start gap-3"
+                  shouldShowCollapsed ? "justify-center p-2" : "justify-start gap-3"
                 )}
                 onClick={() => {
                   // TODO: Navigate to blog page
@@ -320,10 +323,10 @@ export function ForumSidebar({
                 }}
               >
                 <BookOpen className="h-4 w-4" />
-                {!isCollapsed && <span>Blog</span>}
+                {!shouldShowCollapsed && <span>Blog</span>}
               </Button>
             </TooltipTrigger>
-            {isCollapsed && (
+            {shouldShowCollapsed && (
               <TooltipContent side="right">
                 <span>Blog</span>
               </TooltipContent>
@@ -336,7 +339,7 @@ export function ForumSidebar({
                 variant={pathname === "/forum/filter" ? "secondary" : "ghost"}
                 className={cn(
                   "w-full transition-all cursor-pointer",
-                  isCollapsed ? "justify-center p-2" : "justify-start gap-3"
+                  shouldShowCollapsed ? "justify-center p-2" : "justify-start gap-3"
                 )}
                 onClick={() => {
                   router.push("/forum/filter");
@@ -344,10 +347,10 @@ export function ForumSidebar({
                 }}
               >
                 <Filter className="h-4 w-4" />
-                {!isCollapsed && <span>Filter</span>}
+                {!shouldShowCollapsed && <span>Filter</span>}
               </Button>
             </TooltipTrigger>
-            {isCollapsed && (
+            {shouldShowCollapsed && (
               <TooltipContent side="right">
                 <span>Filter</span>
               </TooltipContent>
@@ -356,8 +359,8 @@ export function ForumSidebar({
         </div>
 
         {/* Categories */}
-        <div className={cn("border-b", isCollapsed ? "p-2" : "p-4")}>
-          {!isCollapsed && (
+        <div className={cn("border-b", shouldShowCollapsed ? "p-2" : "p-4")}>
+          {!shouldShowCollapsed && (
             <div className="mb-3 flex flex-row justify-between items-center">
               <h3 className="text-sm font-semibold text-muted-foreground">Categories</h3>
               <Button
@@ -373,12 +376,12 @@ export function ForumSidebar({
           {isLoadingCategories ? (
             <div className="space-y-2">
               {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className={cn("w-full", isCollapsed ? "h-8 w-8 mx-auto" : "h-8")} />
+                <Skeleton key={i} className={cn("w-full", shouldShowCollapsed ? "h-8 w-8 mx-auto" : "h-8")} />
               ))}
             </div>
           ) : categories.length > 0 ? (
             <div className="space-y-2">
-              {isCollapsed ? (
+              {shouldShowCollapsed ? (
                 <>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -387,7 +390,7 @@ export function ForumSidebar({
                         size="icon"
                         className={cn(
                           "w-full transition-all cursor-pointer",
-                          isCollapsed ? "justify-center p-2" : "justify-start gap-3"
+                          shouldShowCollapsed ? "justify-center p-2" : "justify-start gap-3"
                         )}
                         onClick={() => {
                           const params = new URLSearchParams(searchParams.toString());
@@ -411,7 +414,7 @@ export function ForumSidebar({
                           size="icon"
                           className={cn(
                             "w-full transition-all cursor-pointer",
-                            isCollapsed ? "justify-center p-2" : "justify-start gap-3"
+                            shouldShowCollapsed ? "justify-center p-2" : "justify-start gap-3"
                           )}
                           onClick={() => {
                             const params = new URLSearchParams(searchParams.toString());
@@ -495,12 +498,12 @@ export function ForumSidebar({
               )}
             </div>
           ) : (
-            !isCollapsed && <p className="text-sm text-muted-foreground">No categories yet</p>
+            !shouldShowCollapsed && <p className="text-sm text-muted-foreground">No categories yet</p>
           )}
         </div>
 
         {/* Trending Topics */}
-        {!isCollapsed && (
+        {!shouldShowCollapsed && (
           <div className="p-4 border-b">
             <div className="flex items-center gap-2 mb-3">
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -556,7 +559,7 @@ export function ForumSidebar({
       <aside
         className={cn(
           "border-r bg-background transition-all duration-300 flex-shrink-0 h-screen fixed top-0 left-0 z-20",
-          isCollapsed ? "w-16" : "w-64"
+          shouldShowCollapsed ? "w-16" : "w-64"
         )}
         style={{ top: '65px', height: 'calc(100vh - 65px)' }}
       >
