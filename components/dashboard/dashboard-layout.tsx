@@ -74,12 +74,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { data: currentUser } = useCurrentUser();
   const { openUserProfile } = useClerk();
   
-  // Determine default sidebar state based on screen size (< lg = collapsed)
-  const [defaultOpen, setDefaultOpen] = useState(true);
+  // Determine sidebar state based on screen size (< lg = collapsed)
+  // Use controlled state to ensure correct behavior on all screen sizes
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.innerWidth >= 1024; // lg breakpoint
+    }
+    return false; // SSR: default to collapsed
+  });
   
   useEffect(() => {
     const checkScreenSize = () => {
-      setDefaultOpen(window.innerWidth >= 1024); // lg breakpoint
+      setSidebarOpen(window.innerWidth >= 1024); // lg breakpoint
     };
     
     checkScreenSize();
@@ -127,7 +133,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   ] : [];
 
   return (
-    <SidebarProvider defaultOpen={defaultOpen}>
+    <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
       <Sidebar topOffset={65} collapsible="icon">
         <SidebarHeader>
           <SidebarTrigger />
