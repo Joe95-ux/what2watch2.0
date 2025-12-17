@@ -5,7 +5,6 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { 
   Home, 
   MessageCircle, 
-  Users, 
   Award, 
   Filter, 
   TrendingUp, 
@@ -19,6 +18,7 @@ import {
   Pencil
 } from "lucide-react";
 import { BiSolidCategory } from "react-icons/bi";
+import { PiUsersThreeDuotone } from "react-icons/pi";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -261,17 +261,17 @@ export function ForumSidebar({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant="ghost"
+                variant={pathname === "/forum/users" ? "secondary" : "ghost"}
                 className={cn(
                   "w-full transition-all cursor-pointer",
                   isCollapsed ? "justify-center p-2" : "justify-start gap-3"
                 )}
                 onClick={() => {
-                  // TODO: Navigate to users page
+                  router.push("/forum/users");
                   if (isMobile) setIsOpen(false);
                 }}
               >
-                <Users className="h-4 w-4" />
+                <PiUsersThreeDuotone className="h-4 w-4" />
                 {!isCollapsed && <span>Users</span>}
               </Button>
             </TooltipTrigger>

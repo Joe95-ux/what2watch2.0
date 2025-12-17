@@ -164,7 +164,7 @@ export function CategoryCustomizeModal({ open, onOpenChange }: CategoryCustomize
     }}>
       <DialogContent className="sm:max-w-[40rem] h-[90vh] sm:h-[80vh] flex flex-col p-0">
         {/* Fixed Header */}
-        <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
+        <DialogHeader className="px-4 sm:px-6 py-4 border-b flex-shrink-0">
           <DialogTitle>Customize Categories</DialogTitle>
           <DialogDescription>
             Select which categories you want to see in your sidebar. Unselected categories will be hidden from view.
@@ -172,9 +172,9 @@ export function CategoryCustomizeModal({ open, onOpenChange }: CategoryCustomize
         </DialogHeader>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-4">
+        <div className="flex-1 overflow-y-auto scrollbar-thin px-4 sm:px-6 py-4">
           {/* Search and Filter */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
+          <div className="flex flex-row items-stretch sm:items-center gap-3 mb-6">
             {/* Search - takes most space on large screens */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -191,7 +191,7 @@ export function CategoryCustomizeModal({ open, onOpenChange }: CategoryCustomize
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="w-full lg:w-auto cursor-pointer"
+                  className="w-auto cursor-pointer"
                 >
                   {filterType === "all" && "All"}
                   {filterType === "selected" && `Selected (${selectedCategoryIds.length})`}
@@ -200,7 +200,7 @@ export function CategoryCustomizeModal({ open, onOpenChange }: CategoryCustomize
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-1">
                   <DropdownMenuItem
                     onClick={() => setFilterType("all")}
                     className={cn(
@@ -298,7 +298,7 @@ export function CategoryCustomizeModal({ open, onOpenChange }: CategoryCustomize
         </div>
 
         {/* Fixed Footer */}
-        <DialogFooter className="px-6 py-4 border-t flex-shrink-0">
+        <DialogFooter className="px-4 sm:px-6 py-4 border-t flex-shrink-0">
           <div className="flex items-center justify-between w-full">
             <Button
               variant="outline"
