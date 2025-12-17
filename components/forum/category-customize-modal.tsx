@@ -162,7 +162,7 @@ export function CategoryCustomizeModal({ open, onOpenChange }: CategoryCustomize
         onOpenChange(newOpen);
       }
     }}>
-      <DialogContent className="sm:max-w-[40rem] h-[80vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-[40rem] h-[90vh] sm:h-[80vh] flex flex-col p-0">
         {/* Fixed Header */}
         <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
           <DialogTitle>Customize Categories</DialogTitle>
@@ -174,7 +174,7 @@ export function CategoryCustomizeModal({ open, onOpenChange }: CategoryCustomize
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-4">
           {/* Search and Filter */}
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 mb-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
             {/* Search - takes most space on large screens */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -200,33 +200,37 @@ export function CategoryCustomizeModal({ open, onOpenChange }: CategoryCustomize
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem
-                  onClick={() => setFilterType("all")}
-                  className={cn(
-                    "cursor-pointer",
-                    filterType === "all" && "bg-accent"
-                  )}
-                >
-                  All
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setFilterType("selected")}
-                  className={cn(
-                    "cursor-pointer",
-                    filterType === "selected" && "bg-accent"
-                  )}
-                >
-                  Selected ({selectedCategoryIds.length})
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setFilterType("unselected")}
-                  className={cn(
-                    "cursor-pointer",
-                    filterType === "unselected" && "bg-accent"
-                  )}
-                >
-                  Unselected ({categories.length - selectedCategoryIds.length})
-                </DropdownMenuItem>
+                <div className="flex flex-col gap-2">
+                  <DropdownMenuItem
+                    onClick={() => setFilterType("all")}
+                    className={cn(
+                      "cursor-pointer",
+                      filterType === "all" && "bg-accent"
+                    )}
+                  >
+                    All
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setFilterType("selected")}
+                    className={cn(
+                      "cursor-pointer",
+                      filterType === "selected" && "bg-accent"
+                    )}
+                  >
+                    Selected ({selectedCategoryIds.length})
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setFilterType("unselected")}
+                    className={cn(
+                      "cursor-pointer",
+                      filterType === "unselected" && "bg-accent"
+                    )}
+                  >
+                    Unselected ({categories.length - selectedCategoryIds.length})
+                  </DropdownMenuItem>
+
+                </div>
+                
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
