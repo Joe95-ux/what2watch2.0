@@ -30,7 +30,6 @@ import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Link from "next/link";
 import { CategoryCustomizeModal } from "./category-customize-modal";
-import { Button } from "@/components/ui/button";
 
 interface ForumSidebarProps {
   mobileOpen?: boolean;
