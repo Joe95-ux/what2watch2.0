@@ -15,7 +15,8 @@ import {
   ChevronDown,
   ChevronUp,
   X,
-  Hash
+  Hash,
+  Pencil
 } from "lucide-react";
 import { BiSolidCategory } from "react-icons/bi";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Link from "next/link";
+import { CategoryCustomizeModal } from "./category-customize-modal";
+import { Button } from "@/components/ui/button";
 
 interface ForumSidebarProps {
   mobileOpen?: boolean;
@@ -45,7 +48,26 @@ export function ForumSidebar({
   const searchParams = useSearchParams();
   const isMobile = useIsMobile();
   const [internalOpen, setInternalOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    // Initialize collapsed state based on screen size (< lg = collapsed)
+    if (typeof window !== "undefined") {
+      return window.innerWidth < 1024; // lg breakpoint
+    }
+    return false;
+  });
+  const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
+  
+  // Update collapsed state on resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (!isMobile) {
+        setIsCollapsed(window.innerWidth < 1024);
+      }
+    };
+    
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [isMobile]);
 
   // Notify parent of collapse state changes
   const handleCollapseToggle = () => {
@@ -75,6 +97,16 @@ export function ForumSidebar({
     },
   });
 
+  // Fetch user's category preferences
+  const { data: preferencesData } = useQuery({
+    queryKey: ["forum-category-preferences"],
+    queryFn: async () => {
+      const response = await fetch("/api/forum/categories/preferences");
+      if (!response.ok) return { categoryIds: [] };
+      return response.json();
+    },
+  });
+
   // Fetch trending topics (placeholder - will implement later)
   const { data: trendingData } = useQuery({
     queryKey: ["forum-trending"],
@@ -84,7 +116,14 @@ export function ForumSidebar({
     },
   });
 
-  const categories = categoriesData?.categories || [];
+  const allCategories = categoriesData?.categories || [];
+  const selectedCategoryIds = preferencesData?.categoryIds || [];
+  
+  // Filter categories based on user preferences
+  // If no preferences set (empty array), show all categories
+  const categories = selectedCategoryIds.length === 0
+    ? allCategories
+    : allCategories.filter((cat: any) => selectedCategoryIds.includes(cat.id));
   const activeCategory = searchParams.get("category");
   
   // Check if we're on the exact forum home page with no filters
@@ -320,8 +359,16 @@ export function ForumSidebar({
         {/* Categories */}
         <div className={cn("border-b", isCollapsed ? "p-2" : "p-4")}>
           {!isCollapsed && (
-            <div className="mb-3">
+            <div className="mb-3 flex flex-row justify-between items-center">
               <h3 className="text-sm font-semibold text-muted-foreground">Categories</h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => setIsCustomizeModalOpen(true)}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
             </div>
           )}
           {isLoadingCategories ? (
@@ -487,24 +534,36 @@ export function ForumSidebar({
 
   if (isMobile) {
     return (
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent side="left" className="w-[280px] p-0 [&>button]:hidden">
-          {sidebarContent}
-        </SheetContent>
-      </Sheet>
+      <>
+        <CategoryCustomizeModal
+          open={isCustomizeModalOpen}
+          onOpenChange={setIsCustomizeModalOpen}
+        />
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetContent side="left" className="w-[280px] p-0 [&>button]:hidden">
+            {sidebarContent}
+          </SheetContent>
+        </Sheet>
+      </>
     );
   }
 
   return (
-    <aside
-      className={cn(
-        "border-r bg-background transition-all duration-300 flex-shrink-0 h-screen fixed top-0 left-0 z-20",
-        isCollapsed ? "w-16" : "w-64"
-      )}
-      style={{ top: '65px', height: 'calc(100vh - 65px)' }}
-    >
-      {sidebarContent}
-    </aside>
+    <>
+      <CategoryCustomizeModal
+        open={isCustomizeModalOpen}
+        onOpenChange={setIsCustomizeModalOpen}
+      />
+      <aside
+        className={cn(
+          "border-r bg-background transition-all duration-300 flex-shrink-0 h-screen fixed top-0 left-0 z-20",
+          isCollapsed ? "w-16" : "w-64"
+        )}
+        style={{ top: '65px', height: 'calc(100vh - 65px)' }}
+      >
+        {sidebarContent}
+      </aside>
+    </>
   );
 }
 

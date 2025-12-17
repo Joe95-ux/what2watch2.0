@@ -16,8 +16,26 @@ interface ForumLayoutProps {
 export function ForumLayout({ children, mobileHeaderTitle }: ForumLayoutProps) {
   const isMobile = useIsMobile();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    // Initialize collapsed state based on screen size (< lg = collapsed)
+    if (typeof window !== "undefined") {
+      return window.innerWidth < 1024; // lg breakpoint
+    }
+    return false;
+  });
   const pathname = usePathname();
+  
+  // Update collapsed state on resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (!isMobile) {
+        setIsSidebarCollapsed(window.innerWidth < 1024);
+      }
+    };
+    
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [isMobile]);
 
   // Determine mobile header title
   const getMobileTitle = () => {

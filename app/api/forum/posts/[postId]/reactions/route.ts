@@ -165,72 +165,85 @@ export async function POST(
 
     const actualPostId = post.id;
 
-    const existingReaction = await db.forumPostReaction.findUnique({
-      where: {
-        postId_userId: {
-          postId: actualPostId,
-          userId: user.id,
-        },
-      },
-    });
-
-    if (existingReaction) {
-      if (reactionType === null || existingReaction.reactionType === reactionType) {
-        // Remove reaction
-        await db.forumPostReaction.delete({
-          where: { id: existingReaction.id },
-        });
-      } else {
-        // Update reaction type
-        await db.forumPostReaction.update({
-          where: { id: existingReaction.id },
-          data: { reactionType },
-        });
-      }
-    } else if (reactionType !== null) {
-      // Create new reaction
-      await db.forumPostReaction.create({
-        data: {
-          postId: actualPostId,
-          userId: user.id,
-          reactionType,
+    // Wrap all operations in a transaction to ensure atomicity
+    const result = await db.$transaction(async (tx) => {
+      const existingReaction = await tx.forumPostReaction.findUnique({
+        where: {
+          postId_userId: {
+            postId: actualPostId,
+            userId: user.id,
+          },
         },
       });
-    }
 
-    // Calculate and return updated score
-    const [upvotes, downvotes] = await Promise.all([
-      db.forumPostReaction.count({
-        where: {
-          postId: actualPostId,
-          reactionType: "upvote",
-        },
-      }),
-      db.forumPostReaction.count({
-        where: {
-          postId: actualPostId,
-          reactionType: "downvote",
-        },
-      }),
-    ]);
+      if (existingReaction) {
+        if (reactionType === null || existingReaction.reactionType === reactionType) {
+          // Remove reaction
+          await tx.forumPostReaction.delete({
+            where: { id: existingReaction.id },
+          });
+        } else {
+          // Update reaction type
+          await tx.forumPostReaction.update({
+            where: { id: existingReaction.id },
+            data: { reactionType },
+          });
+        }
+      } else if (reactionType !== null) {
+        // Create new reaction
+        await tx.forumPostReaction.create({
+          data: {
+            postId: actualPostId,
+            userId: user.id,
+            reactionType,
+          },
+        });
+      }
 
-    const score = upvotes - downvotes;
+      // Calculate and return updated score within the same transaction
+      const [upvotes, downvotes] = await Promise.all([
+        tx.forumPostReaction.count({
+          where: {
+            postId: actualPostId,
+            reactionType: "upvote",
+          },
+        }),
+        tx.forumPostReaction.count({
+          where: {
+            postId: actualPostId,
+            reactionType: "downvote",
+          },
+        }),
+      ]);
 
-    // Update post score
-    await db.forumPost.update({
-      where: { id: actualPostId },
-      data: { score },
+      const score = upvotes - downvotes;
+
+      // Update post score within the same transaction
+      await tx.forumPost.update({
+        where: { id: actualPostId },
+        data: { score },
+      });
+
+      return { reactionType, score, upvotes, downvotes };
     });
 
     return NextResponse.json({
       success: true,
-      reactionType: reactionType,
-      score,
+      reactionType: result.reactionType,
+      score: result.score,
     });
   } catch (error) {
     console.error("Error toggling forum post reaction:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorDetails = error instanceof Error ? error.stack : String(error);
+    console.error("Error details:", errorDetails);
+    
+    // Return more detailed error information for debugging
     return NextResponse.json(
-      { error: "Failed to toggle forum post reaction" },
+      { 
+        error: "Failed to toggle forum post reaction",
+        details: process.env.NODE_ENV === "development" ? errorMessage : undefined
+      },
       { status: 500 }
     );
   }

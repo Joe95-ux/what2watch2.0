@@ -500,7 +500,7 @@ export function ForumPostDetailClient() {
                 />
                 
                 {/* Views */}
-                <div className="flex items-center gap-1 px-3 py-2 rounded-[25px] bg-muted dark:bg-muted/80 text-xs text-muted-foreground ml-auto">
+                <div className="hidden md:flex items-center gap-1 px-3 py-2 rounded-[25px] bg-muted dark:bg-muted/80 text-xs text-muted-foreground ml-auto">
                   <Eye className="h-4 w-4" />
                   <span>{post.views}</span>
                 </div>

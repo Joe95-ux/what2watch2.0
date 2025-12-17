@@ -110,7 +110,7 @@ export function PopularPosts() {
               )}
               
               {/* Title */}
-              <h4 className="text-base font-medium line-clamp-2 hover:text-primary transition-colors">
+              <h4 className="text-[0.9rem] font-medium line-clamp-2 hover:text-primary transition-colors">
                 {post.title}
               </h4>
               

@@ -130,6 +130,9 @@ model UserPreferences {
   minYear           Int?
   maxYear           Int?
   
+  // Forum category preferences (array of category IDs user wants to see in sidebar)
+  forumCategoryIds  String[] @default([]) // Array of ForumCategory IDs
+  
   // Onboarding completed flag
   onboardingCompleted Boolean @default(false)
   

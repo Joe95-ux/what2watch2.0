@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, forwardRef } from "react";
+import { ReactNode, forwardRef, useState, useEffect } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -73,6 +73,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { data: playlists = [] } = usePlaylists();
   const { data: currentUser } = useCurrentUser();
   const { openUserProfile } = useClerk();
+  
+  // Determine default sidebar state based on screen size (< lg = collapsed)
+  const [defaultOpen, setDefaultOpen] = useState(true);
+  
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setDefaultOpen(window.innerWidth >= 1024); // lg breakpoint
+    };
+    
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
 
   // General navigation items
   const generalNavItems = [
@@ -114,7 +127,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   ] : [];
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={defaultOpen}>
       <Sidebar topOffset={65} collapsible="icon">
         <SidebarHeader>
           <SidebarTrigger />

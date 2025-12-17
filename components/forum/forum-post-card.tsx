@@ -125,7 +125,7 @@ export function ForumPostCard({ post }: ForumPostCardProps) {
               {post.author.displayName}
             </Link>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1">
+              <div className="hidden md:flex items-center gap-1">
                 <Eye className="h-4 w-4" />
                 <span>{post.views}</span>
               </div>

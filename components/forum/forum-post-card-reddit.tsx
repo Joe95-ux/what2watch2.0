@@ -270,14 +270,14 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
 
       {/* Post Title */}
       <Link href={postUrl} className="block mb-2">
-        <h3 className="text-[1.2rem] font-semibold hover:text-primary transition-colors line-clamp-2">
+        <h3 className="text-[1.1rem] font-semibold hover:text-primary transition-colors line-clamp-2">
           {post.title}
         </h3>
       </Link>
 
       {/* Post Content Preview */}
       <Link href={postUrl} className="block mb-3">
-        <div className="text-base text-muted-foreground line-clamp-3">
+        <div className="text-[0.9rem] text-muted-foreground line-clamp-3">
           <SafeHtmlContent 
             content={post.content}
             className="[&_p]:mb-2 [&_p:last-child]:mb-0 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-1"
@@ -364,7 +364,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
         </div>
         
         {/* Views */}
-        <div className="flex items-center gap-1 px-3 py-2 rounded-[25px] bg-muted dark:bg-muted/80 text-xs text-muted-foreground">
+        <div className="hidden md:flex items-center gap-1 px-3 py-2 rounded-[25px] bg-muted dark:bg-muted/80 text-xs text-muted-foreground">
           <Eye className="h-4 w-4" />
           <span>{post.views}</span>
         </div>

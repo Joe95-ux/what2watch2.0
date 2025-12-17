@@ -48,7 +48,7 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
           <span className="sr-only">User menu</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-[18rem]">
         <Link href="/dashboard">
           <DropdownMenuItem 
             className="cursor-pointer"

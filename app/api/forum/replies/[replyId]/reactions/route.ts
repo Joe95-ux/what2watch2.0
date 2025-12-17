@@ -40,16 +40,27 @@ export async function GET(
       }
     }
 
-    const likeCount = await db.forumReplyReaction.count({
-      where: {
-        replyId,
-        reactionType: "like",
-      },
-    });
+    // Calculate score (upvotes - downvotes)
+    const [upvotes, downvotes] = await Promise.all([
+      db.forumReplyReaction.count({
+        where: {
+          replyId,
+          reactionType: "upvote",
+        },
+      }),
+      db.forumReplyReaction.count({
+        where: {
+          replyId,
+          reactionType: "downvote",
+        },
+      }),
+    ]);
+
+    const score = upvotes - downvotes;
 
     return NextResponse.json({
-      isLiked: userReaction?.reactionType === "like",
-      likeCount,
+      reactionType: userReaction?.reactionType || null,
+      score,
     });
   } catch (error) {
     console.error("Error fetching forum reply reaction:", error);
@@ -60,7 +71,7 @@ export async function GET(
   }
 }
 
-// POST - Toggle like reaction on a reply
+// POST - Toggle upvote/downvote reaction on a reply
 export async function POST(
   request: NextRequest,
   { params }: RouteParams
@@ -104,7 +115,15 @@ export async function POST(
 
     const { replyId } = await params;
     const body = await request.json();
-    const { reactionType = "like" } = body;
+    const { reactionType } = body; // "upvote", "downvote", or null
+
+    // Validate reaction type
+    if (reactionType !== null && reactionType !== "upvote" && reactionType !== "downvote") {
+      return NextResponse.json(
+        { error: "Invalid reaction type. Must be 'upvote', 'downvote', or null" },
+        { status: 400 }
+      );
+    }
 
     // Verify reply exists
     const reply = await db.forumReply.findUnique({
@@ -116,45 +135,85 @@ export async function POST(
       return NextResponse.json({ error: "Reply not found" }, { status: 404 });
     }
 
-    const existingReaction = await db.forumReplyReaction.findUnique({
-      where: {
-        replyId_userId: {
-          replyId,
-          userId: user.id,
-        },
-      },
-    });
-
-    if (existingReaction) {
-      // Remove reaction if clicking the same type
-      if (existingReaction.reactionType === reactionType) {
-        await db.forumReplyReaction.delete({
-          where: { id: existingReaction.id },
-        });
-        return NextResponse.json({ success: true, action: "removed" });
-      } else {
-        // Update reaction type
-        await db.forumReplyReaction.update({
-          where: { id: existingReaction.id },
-          data: { reactionType },
-        });
-        return NextResponse.json({ success: true, action: "updated" });
-      }
-    } else {
-      // Create new reaction
-      await db.forumReplyReaction.create({
-        data: {
-          replyId,
-          userId: user.id,
-          reactionType,
+    // Wrap all operations in a transaction to ensure atomicity
+    const result = await db.$transaction(async (tx) => {
+      const existingReaction = await tx.forumReplyReaction.findUnique({
+        where: {
+          replyId_userId: {
+            replyId,
+            userId: user.id,
+          },
         },
       });
-      return NextResponse.json({ success: true, action: "added" });
-    }
+
+      if (existingReaction) {
+        if (reactionType === null || existingReaction.reactionType === reactionType) {
+          // Remove reaction
+          await tx.forumReplyReaction.delete({
+            where: { id: existingReaction.id },
+          });
+        } else {
+          // Update reaction type
+          await tx.forumReplyReaction.update({
+            where: { id: existingReaction.id },
+            data: { reactionType },
+          });
+        }
+      } else if (reactionType !== null) {
+        // Create new reaction
+        await tx.forumReplyReaction.create({
+          data: {
+            replyId,
+            userId: user.id,
+            reactionType,
+          },
+        });
+      }
+
+      // Calculate and return updated score within the same transaction
+      const [upvotes, downvotes] = await Promise.all([
+        tx.forumReplyReaction.count({
+          where: {
+            replyId,
+            reactionType: "upvote",
+          },
+        }),
+        tx.forumReplyReaction.count({
+          where: {
+            replyId,
+            reactionType: "downvote",
+          },
+        }),
+      ]);
+
+      const score = upvotes - downvotes;
+
+      // Update reply score within the same transaction
+      await tx.forumReply.update({
+        where: { id: replyId },
+        data: { score },
+      });
+
+      return { reactionType, score, upvotes, downvotes };
+    });
+
+    return NextResponse.json({
+      success: true,
+      reactionType: result.reactionType,
+      score: result.score,
+    });
   } catch (error) {
     console.error("Error toggling forum reply reaction:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorDetails = error instanceof Error ? error.stack : String(error);
+    console.error("Error details:", errorDetails);
+    
+    // Return more detailed error information for debugging
     return NextResponse.json(
-      { error: "Failed to toggle forum reply reaction" },
+      { 
+        error: "Failed to toggle forum reply reaction",
+        details: process.env.NODE_ENV === "development" ? errorMessage : undefined
+      },
       { status: 500 }
     );
   }
