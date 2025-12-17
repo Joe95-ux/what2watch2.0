@@ -212,142 +212,144 @@ function ForumFilterContentInner({
 
           {/* Search and Filters */}
           <div className="mb-6">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="relative w-full sm:w-80 2xl:w-96">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {/* Search - takes most space on large screens */}
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search posts..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-20"
+                  className="pl-9 pr-10"
                 />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0">
-                  {searchQuery && (
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
+                    onClick={() => setSearchQuery("")}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+
+              {/* Filters Row - Sort and Category Filter Dropdowns */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {/* Sort Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
                     <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => setSearchQuery("")}
+                      variant="outline"
+                      className={cn(
+                        "cursor-pointer",
+                        sortBy !== "updatedAt" && "bg-primary/10 text-primary border-primary/20"
+                      )}
                     >
-                      <X className="h-3 w-3" />
+                      <ArrowUpDown className="h-4 w-4 mr-2" />
+                      Sort
                     </Button>
-                  )}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => handleSortChange("updatedAt", "desc")}
+                      className={cn(
+                        "cursor-pointer",
+                        sortBy === "updatedAt" && sortOrder === "desc" && "bg-accent"
+                      )}
+                    >
+                      Recent Activity
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleSortChange("updatedAt", "asc")}
+                      className={cn(
+                        "cursor-pointer",
+                        sortBy === "updatedAt" && sortOrder === "asc" && "bg-accent"
+                      )}
+                    >
+                      Oldest Activity
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleSortChange("createdAt", "desc")}
+                      className={cn(
+                        "cursor-pointer",
+                        sortBy === "createdAt" && sortOrder === "desc" && "bg-accent"
+                      )}
+                    >
+                      Newest First
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleSortChange("createdAt", "asc")}
+                      className={cn(
+                        "cursor-pointer",
+                        sortBy === "createdAt" && sortOrder === "asc" && "bg-accent"
+                      )}
+                    >
+                      Oldest First
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleSortChange("views", "desc")}
+                      className={cn(
+                        "cursor-pointer",
+                        sortBy === "views" && sortOrder === "desc" && "bg-accent"
+                      )}
+                    >
+                      Most Viewed
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleSortChange("replyCount", "desc")}
+                      className={cn(
+                        "cursor-pointer",
+                        sortBy === "replyCount" && sortOrder === "desc" && "bg-accent"
+                      )}
+                    >
+                      Most Replies
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
-                  {/* Sort Dropdown */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                          "h-7 w-7 cursor-pointer",
-                          sortBy !== "updatedAt" && "bg-primary/10 text-primary"
-                        )}
-                      >
-                        <ArrowUpDown className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuLabel>Sort by</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
+                {/* Filter Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "cursor-pointer",
+                        categoryFilter !== "all" && "bg-primary/10 text-primary border-primary/20"
+                      )}
+                    >
+                      <Filter className="h-4 w-4 mr-2" />
+                      Filter
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48 max-h-[300px] overflow-y-auto">
+                    <DropdownMenuLabel>Filter by category</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => setCategoryFilter("all")}
+                      className={cn(
+                        "cursor-pointer",
+                        categoryFilter === "all" && "bg-accent"
+                      )}
+                    >
+                      All Categories
+                    </DropdownMenuItem>
+                    {categoriesData?.categories?.map((category: any) => (
                       <DropdownMenuItem
-                        onClick={() => handleSortChange("updatedAt", "desc")}
+                        key={category.id}
+                        onClick={() => setCategoryFilter(category.slug)}
                         className={cn(
                           "cursor-pointer",
-                          sortBy === "updatedAt" && sortOrder === "desc" && "bg-accent"
+                          categoryFilter === category.slug && "bg-accent"
                         )}
                       >
-                        Recent Activity
+                        {category.name}
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleSortChange("updatedAt", "asc")}
-                        className={cn(
-                          "cursor-pointer",
-                          sortBy === "updatedAt" && sortOrder === "asc" && "bg-accent"
-                        )}
-                      >
-                        Oldest Activity
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleSortChange("createdAt", "desc")}
-                        className={cn(
-                          "cursor-pointer",
-                          sortBy === "createdAt" && sortOrder === "desc" && "bg-accent"
-                        )}
-                      >
-                        Newest First
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleSortChange("createdAt", "asc")}
-                        className={cn(
-                          "cursor-pointer",
-                          sortBy === "createdAt" && sortOrder === "asc" && "bg-accent"
-                        )}
-                      >
-                        Oldest First
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleSortChange("views", "desc")}
-                        className={cn(
-                          "cursor-pointer",
-                          sortBy === "views" && sortOrder === "desc" && "bg-accent"
-                        )}
-                      >
-                        Most Viewed
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleSortChange("replyCount", "desc")}
-                        className={cn(
-                          "cursor-pointer",
-                          sortBy === "replyCount" && sortOrder === "desc" && "bg-accent"
-                        )}
-                      >
-                        Most Replies
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  {/* Filter Dropdown */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                          "h-7 w-7 cursor-pointer",
-                          categoryFilter !== "all" && "bg-primary/10 text-primary"
-                        )}
-                      >
-                        <Filter className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48 max-h-[300px] overflow-y-auto">
-                      <DropdownMenuLabel>Filter by category</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => setCategoryFilter("all")}
-                        className={cn(
-                          "cursor-pointer",
-                          categoryFilter === "all" && "bg-accent"
-                        )}
-                      >
-                        All Categories
-                      </DropdownMenuItem>
-                      {categoriesData?.categories?.map((category: any) => (
-                        <DropdownMenuItem
-                          key={category.id}
-                          onClick={() => setCategoryFilter(category.slug)}
-                          className={cn(
-                            "cursor-pointer",
-                            categoryFilter === category.slug && "bg-accent"
-                          )}
-                        >
-                          {category.name}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>

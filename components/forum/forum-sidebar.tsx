@@ -363,7 +363,7 @@ export function ForumSidebar({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-6 w-6 cursor-pointer"
                 onClick={() => setIsCustomizeModalOpen(true)}
               >
                 <Pencil className="h-3.5 w-3.5" />

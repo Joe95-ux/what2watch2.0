@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -86,10 +87,12 @@ export function CategoryCustomizeModal({ open, onOpenChange }: CategoryCustomize
       queryClient.invalidateQueries({ queryKey: ["forum-category-preferences"] });
       queryClient.invalidateQueries({ queryKey: ["forum-categories"] });
       toast.success("Category preferences saved");
+      setIsSaving(false);
       onOpenChange(false);
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to save preferences");
+      setIsSaving(false);
     },
   });
 
@@ -134,7 +137,6 @@ export function CategoryCustomizeModal({ open, onOpenChange }: CategoryCustomize
   const handleSave = () => {
     setIsSaving(true);
     savePreferences.mutate(selectedCategoryIds);
-    setIsSaving(false);
   };
 
   const handleReset = () => {
@@ -148,11 +150,18 @@ export function CategoryCustomizeModal({ open, onOpenChange }: CategoryCustomize
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[80vh] flex flex-col p-0">
+    <Dialog open={open} onOpenChange={(newOpen) => {
+      if (!isSaving) {
+        onOpenChange(newOpen);
+      }
+    }}>
+      <DialogContent className="sm:max-w-[40rem] h-[80vh] flex flex-col p-0">
         {/* Fixed Header */}
         <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
           <DialogTitle>Customize Categories</DialogTitle>
+          <DialogDescription>
+            Select which categories you want to see in your sidebar. Unselected categories will be hidden from view.
+          </DialogDescription>
         </DialogHeader>
 
         {/* Scrollable Content */}
@@ -267,14 +276,9 @@ export function CategoryCustomizeModal({ open, onOpenChange }: CategoryCustomize
             >
               Reset to Defaults
             </Button>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSave} disabled={isSaving}>
-                {isSaving ? "Saving..." : "Save"}
-              </Button>
-            </div>
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? "Saving..." : "Save Changes"}
+            </Button>
           </div>
         </DialogFooter>
       </DialogContent>
