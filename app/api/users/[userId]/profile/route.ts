@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { assertObjectId } from "@/lib/assert-objectid";
 import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 
 // GET - Get user profile (supports both username and userId)
+type userProfile = Prisma.UserGetPayload<{
+  select: {
+    id: true,
+    username: true,
+    displayName: true,
+    avatarUrl: true,
+    bio: true,
+    createdAt: true,
+  };
+}>
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
@@ -9,13 +22,20 @@ export async function GET(
   try {
     const { userId: identifier } = await params;
 
-    // Try to find user by username first, then by ID
-    let user = await db.user.findFirst({
+    if (!identifier?.trim()) {
+      return NextResponse.json(
+        { error: "User identifier is required" },
+        { status: 400 }
+      );
+    }
+
+    const cleanIdentifier = identifier.trim();
+    let user: userProfile | null = null;
+
+    // find by username first
+    user = await db.user.findFirst({
       where: {
-        OR: [
-          { username: identifier },
-          { id: identifier },
-        ],
+        username: cleanIdentifier
       },
       select: {
         id: true,
@@ -26,6 +46,22 @@ export async function GET(
         createdAt: true,
       },
     });
+
+    const validObjectId = assertObjectId(cleanIdentifier);
+
+    if(!user && validObjectId){
+      user = await db.user.findUnique({
+        where:{id: validObjectId},
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+          bio: true,
+          createdAt: true,
+        },
+      })
+    }
 
     if (!user) {
       return NextResponse.json(

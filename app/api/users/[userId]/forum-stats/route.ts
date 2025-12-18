@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { assertObjectId } from "@/lib/assert-objectid";
 
 // GET - Get forum statistics for a user
 export async function GET(
@@ -9,16 +10,29 @@ export async function GET(
   try {
     const { userId: identifier } = await params;
 
-    // Look up user by username or ID
-    const targetUser = await db.user.findFirst({
-      where: {
-        OR: [
-          { username: identifier },
-          { id: identifier },
-        ],
-      },
+    if (!identifier?.trim()) {
+      return NextResponse.json(
+        { error: "User identifier is required" },
+        { status: 400 }
+      );
+    }
+
+    const cleanIdentifier = identifier.trim();
+
+    // 1. Try username first (safe)
+    let targetUser = await db.user.findFirst({
+      where: { username: cleanIdentifier },
       select: { id: true },
     });
+
+    // 2. If not found, try ObjectId (safe)
+    const validObjectId = assertObjectId(cleanIdentifier);
+    if (!targetUser && validObjectId) {
+      targetUser = await db.user.findUnique({
+        where: { id: validObjectId },
+        select: { id: true },
+      });
+    }
 
     if (!targetUser) {
       return NextResponse.json(
@@ -28,20 +42,19 @@ export async function GET(
     }
 
     const userId = targetUser.id;
-
-    // Get forum statistics
-    const [postCount, replyCount, totalReactions, recentPosts, recentReplies] = await Promise.all([
+    const [
+      postCount,
+      replyCount,
+      postReactionsCount,
+      replyReactionsCount,
+      recentPosts,
+      recentReplies,
+    ] = await Promise.all([
       db.forumPost.count({
-        where: {
-          userId,
-          isHidden: false,
-        },
+        where: { userId, isHidden: false },
       }),
       db.forumReply.count({
-        where: {
-          userId,
-          isHidden: false,
-        },
+        where: { userId, isHidden: false },
       }),
       db.forumPostReaction.count({
         where: {
@@ -50,7 +63,8 @@ export async function GET(
             isHidden: false,
           },
         },
-      }) + db.forumReplyReaction.count({
+      }),
+      db.forumReplyReaction.count({
         where: {
           reply: {
             userId,
@@ -59,10 +73,7 @@ export async function GET(
         },
       }),
       db.forumPost.findMany({
-        where: {
-          userId,
-          isHidden: false,
-        },
+        where: { userId, isHidden: false },
         orderBy: { createdAt: "desc" },
         take: 5,
         select: {
@@ -88,10 +99,7 @@ export async function GET(
         },
       }),
       db.forumReply.findMany({
-        where: {
-          userId,
-          isHidden: false,
-        },
+        where: { userId, isHidden: false },
         orderBy: { createdAt: "desc" },
         take: 5,
         select: {
@@ -117,7 +125,7 @@ export async function GET(
       stats: {
         postCount,
         replyCount,
-        totalReactions,
+        totalReactions: postReactionsCount + replyReactionsCount,
       },
       recentPosts: recentPosts.map(post => ({
         id: post.id,
@@ -146,4 +154,3 @@ export async function GET(
     );
   }
 }
-
