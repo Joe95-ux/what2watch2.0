@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { assertObjectId } from "@/lib/assert-objectId";
 import UserProfileContent from "@/components/social/user-profile-content";
 
 export default async function UserProfilePage({
@@ -24,21 +25,27 @@ export default async function UserProfilePage({
     redirect("/onboarding");
   }
 
-  // Look up user by username or ID to get the actual userId
-  const targetUser = await db.user.findFirst({
-    where: {
-      OR: [
-        { username: identifier },
-        { id: identifier },
-      ],
-    },
+  if (!identifier?.trim()) redirect("/forum/users");
+
+  // look up by username first
+  let targetUser = await db.user.findFirst({
+    where: { username: identifier },
     select: { id: true },
   });
 
+  // if not found, look up by ObjectId
   if (!targetUser) {
-    redirect("/forum/users");
+    const validObjectId = assertObjectId(identifier);
+    if (validObjectId) {
+      targetUser = await db.user.findUnique({
+        where: { id: validObjectId },
+        select: { id: true },
+      });
+    }
   }
+
+
+  if (!targetUser) redirect("/forum/users");
 
   return <UserProfileContent userId={targetUser.id} />;
 }
-
