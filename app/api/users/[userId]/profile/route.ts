@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { assertObjectId } from "@/lib/assert-objectid";
+import {assertObjectId} from "@/lib/assert-objectid";
 import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 
