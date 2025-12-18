@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { assertObjectId } from "../../../../../lib/assert-objectid";
+import { assertObjectId } from "@/lib/assert-objectId";
 
 // GET - Get forum statistics for a user
 export async function GET(
