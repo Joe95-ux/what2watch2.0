@@ -279,6 +279,93 @@ export async function POST(
       console.error("Failed to create activity for forum reply:", error);
     }
 
+    // Create notifications for reply
+    try {
+      // Get post details
+      const post = await db.forumPost.findUnique({
+        where: { id: actualPostId },
+        select: { userId: true, title: true },
+      });
+
+      if (!post) {
+        throw new Error("Post not found");
+      }
+
+      const actorDisplayName = reply.user.displayName || reply.user.username || "Someone";
+      const notificationsToCreate = [];
+
+      // 1. Notify post author (if not the same user and not a reply to a reply)
+      if (post.userId !== user.id && !parentReplyId) {
+        notificationsToCreate.push({
+          userId: post.userId,
+          type: "NEW_REPLY",
+          postId: actualPostId,
+          replyId: reply.id,
+          actorId: user.id,
+          title: "New reply to your post",
+          message: `${actorDisplayName} replied to "${post.title}"`,
+        });
+      }
+
+      // 2. If replying to a reply, notify the parent reply author
+      let parentReplyUserId: string | null = null;
+      if (parentReplyId) {
+        const parentReply = await db.forumReply.findUnique({
+          where: { id: parentReplyId },
+          select: { userId: true },
+        });
+
+        if (parentReply && parentReply.userId !== user.id) {
+          parentReplyUserId = parentReply.userId;
+          notificationsToCreate.push({
+            userId: parentReply.userId,
+            type: "REPLY_TO_REPLY",
+            postId: actualPostId,
+            replyId: reply.id,
+            actorId: user.id,
+            title: "Reply to your comment",
+            message: `${actorDisplayName} replied to your comment`,
+          });
+        }
+      }
+
+      // 3. Notify all users subscribed to the post (except the author and parent reply author)
+      const subscriptions = await db.forumPostSubscription.findMany({
+        where: { postId: actualPostId },
+        select: { userId: true },
+      });
+
+      const notifiedUserIds = new Set([
+        user.id, // Don't notify the reply author
+        ...(parentReplyUserId ? [parentReplyUserId] : []), // Don't notify parent reply author (already notified above)
+        ...(post.userId !== user.id && !parentReplyId ? [post.userId] : []), // Don't notify post author if already notified
+      ]);
+
+      for (const subscription of subscriptions) {
+        if (!notifiedUserIds.has(subscription.userId)) {
+          notificationsToCreate.push({
+            userId: subscription.userId,
+            type: "POST_SUBSCRIPTION",
+            postId: actualPostId,
+            replyId: reply.id,
+            actorId: user.id,
+            title: "New reply to subscribed post",
+            message: `${actorDisplayName} replied to "${post.title}"`,
+          });
+        }
+      }
+
+      // Create all notifications
+      if (notificationsToCreate.length > 0) {
+        await db.forumNotification.createMany({
+          data: notificationsToCreate,
+        });
+      }
+    } catch (error) {
+      // Silently fail - notification creation is not critical
+      console.error("Failed to create notifications for forum reply:", error);
+    }
+
     return NextResponse.json({
       reply: {
         id: reply.id,

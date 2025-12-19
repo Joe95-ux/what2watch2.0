@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { moderateContent } from "@/lib/moderation";
+import { sanitizeContent } from "@/lib/server-html-sanitizer";
 
 interface RouteParams {
   params: Promise<{ replyId: string }>;
@@ -25,6 +28,27 @@ export async function PATCH(
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Rate limiting - 20 edits per hour
+    const rateLimitResult = checkRateLimit(
+      `edit-reply:${user.id}`,
+      20,
+      60 * 60 * 1000 // 1 hour
+    );
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: rateLimitResult.error || "Rate limit exceeded. Please try again later." },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": "20",
+            "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+            "X-RateLimit-Reset": new Date(rateLimitResult.resetTime).toISOString(),
+          },
+        }
+      );
     }
 
     const { replyId } = await params;
@@ -61,10 +85,28 @@ export async function PATCH(
       );
     }
 
+    // Server-side content moderation and sanitization
+    const contentModeration = moderateContent(content.trim(), {
+      minLength: 1,
+      maxLength: 5000,
+      allowProfanity: false,
+      sanitizeHtml: true,
+    });
+
+    if (!contentModeration.allowed) {
+      return NextResponse.json(
+        { error: contentModeration.error || "Content contains inappropriate content" },
+        { status: 400 }
+      );
+    }
+
+    // Sanitize HTML on server-side
+    const sanitizedContent = sanitizeContent(contentModeration.sanitized || content.trim());
+
     const updatedReply = await db.forumReply.update({
       where: { id: replyId },
       data: {
-        content: content.trim(),
+        content: sanitizedContent,
       },
       include: {
         user: {

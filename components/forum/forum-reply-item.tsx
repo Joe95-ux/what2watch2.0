@@ -25,6 +25,7 @@ import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { ReportDialog } from "./report-dialog";
 import { SafeHtmlContent } from "./safe-html-content";
+import { EditReplyDialog } from "./edit-reply-dialog";
 
 interface ForumReply {
   id: string;
@@ -58,6 +59,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const maxDepth = 5;
 
   const isAuthor = currentUser?.id === reply.author.id;
@@ -143,8 +145,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
   };
 
   const handleEdit = () => {
-    // TODO: Implement edit functionality
-    toast.info("Edit functionality coming soon");
+    setIsEditDialogOpen(true);
   };
 
   const replyUrl = typeof window !== "undefined" 
@@ -366,6 +367,17 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
         onSubmit={handleReport}
         type="reply"
         isPending={isReporting}
+      />
+
+      {/* Edit Dialog */}
+      <EditReplyDialog
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        reply={{
+          id: reply.id,
+          content: reply.content,
+        }}
+        postId={postId}
       />
     </div>
   );

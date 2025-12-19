@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { MessageCircle, Eye, Tag, MoreVertical, Flag, Edit, Trash2, ArrowLeft, Search, ArrowUpDown } from "lucide-react";
+import { MessageCircle, Eye, Tag, MoreVertical, Flag, Edit, Trash2, ArrowLeft, Search, ArrowUpDown, Bell, BellOff } from "lucide-react";
 import { BiSolidUpvote, BiSolidDownvote } from "react-icons/bi";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,6 +24,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useForumPostReaction, useToggleForumPostLike } from "@/hooks/use-forum-reactions";
+import { usePostSubscription, useSubscribeToPost, useUnsubscribeFromPost } from "@/hooks/use-forum-post-subscription";
 import { ShareDropdown } from "@/components/ui/share-dropdown";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -111,6 +112,11 @@ export function ForumPostDetailClient() {
   const post = data?.post;
   const { data: reaction } = useForumPostReaction(post?.id || "");
   const toggleReaction = useToggleForumPostLike(post?.id || "");
+  const { data: subscription } = usePostSubscription(postId);
+  const subscribeToPost = useSubscribeToPost(postId);
+  const unsubscribeFromPost = useUnsubscribeFromPost(postId);
+  
+  const isSubscribed = subscription?.subscribed ?? false;
 
 
   // Filter and sort replies
@@ -402,6 +408,34 @@ export function ForumPostDetailClient() {
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
                           Delete Post
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    {!isAuthor && isSignedIn && (
+                      <>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (isSubscribed) {
+                              unsubscribeFromPost.mutate();
+                            } else {
+                              subscribeToPost.mutate();
+                            }
+                          }}
+                          className="cursor-pointer"
+                          disabled={subscribeToPost.isPending || unsubscribeFromPost.isPending}
+                        >
+                          {isSubscribed ? (
+                            <>
+                              <BellOff className="h-4 w-4 mr-2" />
+                              Unsubscribe
+                            </>
+                          ) : (
+                            <>
+                              <Bell className="h-4 w-4 mr-2" />
+                              Subscribe
+                            </>
+                          )}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                       </>

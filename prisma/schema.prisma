@@ -73,6 +73,9 @@ model User {
   forumReplyReportReviews ForumReplyReport[] @relation("ForumReplyReportReviews")
   forumCategories ForumCategory[]
   moderationActions ForumModerationAction[]
+  forumNotifications ForumNotification[]
+  forumPostSubscriptions ForumPostSubscription[]
+  forumNotificationActors ForumNotification[] @relation("ForumNotificationActors")
   sharedPlaylists SharedPlaylist[]
   recentlyViewed RecentlyViewed[]
   viewingLogs   ViewingLog[]
@@ -451,6 +454,8 @@ model ForumPost {
   replies       ForumReply[]
   reactions     ForumPostReaction[]
   reports       ForumPostReport[]
+  notifications ForumNotification[]
+  subscriptions ForumPostSubscription[]
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -489,6 +494,7 @@ model ForumReply {
   
   reactions     ForumReplyReaction[]
   reports       ForumReplyReport[]
+  notifications ForumNotification[]
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -611,6 +617,58 @@ model ForumModerationAction {
   @@map("forum_moderation_actions")
   @@index([moderatorId])
   @@index([targetType, targetId])
+  @@index([createdAt])
+}
+
+// Forum notifications - notifications for forum activity
+model ForumNotification {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type          String   // "NEW_REPLY", "REPLY_TO_REPLY", "POST_SUBSCRIPTION"
+  postId        String?  @db.ObjectId
+  post          ForumPost? @relation(fields: [postId], references: [id], onDelete: Cascade)
+  replyId       String?  @db.ObjectId
+  reply         ForumReply? @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  
+  // Actor (who performed the action)
+  actorId       String?  @db.ObjectId
+  actor         User?    @relation("ForumNotificationActors", fields: [actorId], references: [id], onDelete: SetNull)
+  
+  // Notification content
+  title         String   // e.g., "New reply to your post"
+  message       String?  // Optional additional message
+  
+  // Notification status
+  isRead        Boolean  @default(false)
+  readAt        DateTime?
+  
+  createdAt     DateTime @default(now())
+
+  @@map("forum_notifications")
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@index([postId])
+  @@index([replyId])
+  @@index([actorId])
+}
+
+// Forum post subscriptions - users following posts for notifications
+model ForumPostSubscription {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  postId        String   @db.ObjectId
+  post          ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, postId])
+  @@map("forum_post_subscriptions")
+  @@index([userId])
+  @@index([postId])
   @@index([createdAt])
 }
 
