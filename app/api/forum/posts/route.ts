@@ -6,6 +6,9 @@ import { moderateContent } from "@/lib/moderation";
 import { sanitizeTitle, sanitizeContent } from "@/lib/server-html-sanitizer";
 import { checkDuplicateContent, checkRapidPosting } from "@/lib/spam-detection";
 import { validateLinksInContent } from "@/lib/link-validation";
+import { extractMentions } from "@/lib/forum-mentions";
+import { sendEmail } from "@/lib/email";
+import { getForumMentionEmail } from "@/lib/email-templates";
 
 // GET - Fetch forum posts with pagination and filters
 export async function GET(request: NextRequest) {
@@ -518,6 +521,99 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       // Silently fail - activity creation is not critical
       console.error("Failed to create activity for forum post:", error);
+    }
+
+    // Create notifications for mentioned users
+    try {
+      const mentionedUsernames = extractMentions(sanitizedContent);
+      if (mentionedUsernames.length > 0) {
+        const mentionedUsers = await db.user.findMany({
+          where: {
+            username: { in: mentionedUsernames },
+          },
+          select: { id: true, username: true },
+        });
+
+        const actorDisplayName = post.user.displayName || post.user.username || "Someone";
+        const notificationsToCreate = [];
+
+        for (const mentionedUser of mentionedUsers) {
+          if (mentionedUser.id !== user.id) {
+            notificationsToCreate.push({
+              userId: mentionedUser.id,
+              type: "POST_MENTION",
+              postId: post.id,
+              actorId: user.id,
+              title: "You were mentioned in a post",
+              message: `${actorDisplayName} mentioned you in "${post.title}"`,
+            });
+          }
+        }
+
+        if (notificationsToCreate.length > 0) {
+          await db.forumNotification.createMany({
+            data: notificationsToCreate,
+          });
+
+          // Send email notifications (async, don't block response)
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+          const postUrl = `${baseUrl}/forum/${post.slug}`;
+          const notificationSettingsUrl = `${baseUrl}/dashboard/settings`;
+          const postPreview = sanitizedContent.replace(/<[^>]*>/g, "").substring(0, 200);
+          const fullPostPreview = postPreview.length < sanitizedContent.replace(/<[^>]*>/g, "").length 
+            ? postPreview + "..." 
+            : postPreview;
+
+          // Fetch user details for email notifications
+          const notificationUsers = await db.user.findMany({
+            where: {
+              id: { in: notificationsToCreate.map(n => n.userId) },
+            },
+            select: {
+              id: true,
+              email: true,
+              emailNotifications: true,
+              displayName: true,
+              username: true,
+            },
+          });
+
+          const userMap = new Map(notificationUsers.map(u => [u.id, u]));
+          const actorDisplayName = post.user.displayName || post.user.username || "Someone";
+
+          // Send emails for each notification
+          for (const notification of notificationsToCreate) {
+            const recipient = userMap.get(notification.userId);
+            if (!recipient || !recipient.email || !recipient.emailNotifications) {
+              continue;
+            }
+
+            try {
+              const emailHtml = getForumMentionEmail({
+                recipientName: recipient.displayName || recipient.username || "User",
+                actorName: actorDisplayName,
+                contentType: "post",
+                contentTitle: post.title,
+                contentPreview: fullPostPreview,
+                viewContentUrl: postUrl,
+                notificationSettingsUrl,
+              });
+
+              await sendEmail({
+                to: recipient.email,
+                subject: `${actorDisplayName} mentioned you in a post: ${post.title}`,
+                html: emailHtml,
+              });
+            } catch (emailError) {
+              // Silently fail - email sending is not critical
+              console.error(`Failed to send email notification to ${recipient.email}:`, emailError);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      // Silently fail - notification creation is not critical
+      console.error("Failed to create mention notifications for forum post:", error);
     }
 
     return NextResponse.json({

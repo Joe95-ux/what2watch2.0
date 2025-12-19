@@ -4,6 +4,9 @@ import { db } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { moderateContent } from "@/lib/moderation";
 import { sanitizeContent } from "@/lib/server-html-sanitizer";
+import { extractMentions } from "@/lib/forum-mentions";
+import { sendEmail } from "@/lib/email";
+import { getForumReplyEmail, getForumMentionEmail, getForumSubscriptionEmail } from "@/lib/email-templates";
 
 interface RouteParams {
   params: Promise<{ postId: string }>;
@@ -284,7 +287,7 @@ export async function POST(
       // Get post details
       const post = await db.forumPost.findUnique({
         where: { id: actualPostId },
-        select: { userId: true, title: true },
+        select: { userId: true, title: true, slug: true },
       });
 
       if (!post) {
@@ -329,7 +332,33 @@ export async function POST(
         }
       }
 
-      // 3. Notify all users subscribed to the post (except the author and parent reply author)
+      // 3. Detect and notify mentioned users
+      const mentionedUsernames = extractMentions(sanitizedContent);
+      let mentionedUsers: Array<{ id: string; username: string }> = [];
+      if (mentionedUsernames.length > 0) {
+        mentionedUsers = await db.user.findMany({
+          where: {
+            username: { in: mentionedUsernames },
+          },
+          select: { id: true, username: true },
+        });
+
+        for (const mentionedUser of mentionedUsers) {
+          if (mentionedUser.id !== user.id) {
+            notificationsToCreate.push({
+              userId: mentionedUser.id,
+              type: "REPLY_MENTION",
+              postId: actualPostId,
+              replyId: reply.id,
+              actorId: user.id,
+              title: "You were mentioned in a comment",
+              message: `${actorDisplayName} mentioned you in a comment on "${post.title}"`,
+            });
+          }
+        }
+      }
+
+      // 4. Notify all users subscribed to the post (except the author and parent reply author)
       const subscriptions = await db.forumPostSubscription.findMany({
         where: { postId: actualPostId },
         select: { userId: true },
@@ -339,6 +368,11 @@ export async function POST(
         user.id, // Don't notify the reply author
         ...(parentReplyUserId ? [parentReplyUserId] : []), // Don't notify parent reply author (already notified above)
         ...(post.userId !== user.id && !parentReplyId ? [post.userId] : []), // Don't notify post author if already notified
+        // Add mentioned users to avoid duplicate notifications
+        ...mentionedUsernames.map((username) => {
+          const mentionedUser = mentionedUsers?.find((u) => u.username.toLowerCase() === username);
+          return mentionedUser?.id;
+        }).filter(Boolean) as string[],
       ]);
 
       for (const subscription of subscriptions) {
@@ -360,6 +394,98 @@ export async function POST(
         await db.forumNotification.createMany({
           data: notificationsToCreate,
         });
+
+        // Send email notifications (async, don't block response)
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        const postUrl = post.slug ? `${baseUrl}/forum/${post.slug}` : `${baseUrl}/forum/${actualPostId}`;
+        const notificationSettingsUrl = `${baseUrl}/dashboard/settings`;
+        const replyPreview = sanitizedContent.replace(/<[^>]*>/g, "").substring(0, 200);
+        const fullReplyPreview = replyPreview.length < sanitizedContent.replace(/<[^>]*>/g, "").length 
+          ? replyPreview + "..." 
+          : replyPreview;
+
+        // Fetch user details for email notifications
+        const notificationUsers = await db.user.findMany({
+          where: {
+            id: { in: notificationsToCreate.map(n => n.userId) },
+          },
+          select: {
+            id: true,
+            email: true,
+            emailNotifications: true,
+            displayName: true,
+            username: true,
+          },
+        });
+
+        const userMap = new Map(notificationUsers.map(u => [u.id, u]));
+
+        // Send emails for each notification
+        for (const notification of notificationsToCreate) {
+          const recipient = userMap.get(notification.userId);
+          if (!recipient || !recipient.email || !recipient.emailNotifications) {
+            continue;
+          }
+
+          try {
+            let emailHtml: string;
+            let subject: string;
+
+            switch (notification.type) {
+              case "NEW_REPLY":
+              case "REPLY_TO_REPLY":
+                emailHtml = getForumReplyEmail({
+                  recipientName: recipient.displayName || recipient.username || "User",
+                  actorName: actorDisplayName,
+                  postTitle: post.title,
+                  replyPreview: fullReplyPreview,
+                  viewPostUrl: postUrl,
+                  notificationSettingsUrl,
+                });
+                subject = notification.type === "NEW_REPLY" 
+                  ? `New reply to your post: ${post.title}`
+                  : `${actorDisplayName} replied to your comment`;
+                break;
+
+              case "REPLY_MENTION":
+                emailHtml = getForumMentionEmail({
+                  recipientName: recipient.displayName || recipient.username || "User",
+                  actorName: actorDisplayName,
+                  contentType: "reply",
+                  contentTitle: post.title,
+                  contentPreview: fullReplyPreview,
+                  viewContentUrl: postUrl,
+                  notificationSettingsUrl,
+                });
+                subject = `${actorDisplayName} mentioned you in a comment`;
+                break;
+
+              case "POST_SUBSCRIPTION":
+                emailHtml = getForumSubscriptionEmail({
+                  recipientName: recipient.displayName || recipient.username || "User",
+                  actorName: actorDisplayName,
+                  postTitle: post.title,
+                  replyPreview: fullReplyPreview,
+                  viewPostUrl: postUrl,
+                  notificationSettingsUrl,
+                });
+                subject = `New reply to followed post: ${post.title}`;
+                break;
+
+              default:
+                continue;
+            }
+
+            await sendEmail({
+              to: recipient.email,
+              subject,
+              html: emailHtml,
+            });
+          } catch (emailError) {
+            // Silently fail - email sending is not critical
+            console.error(`Failed to send email notification to ${recipient.email}:`, emailError);
+          }
+        }
       }
     } catch (error) {
       // Silently fail - notification creation is not critical

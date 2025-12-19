@@ -75,6 +75,7 @@ model User {
   moderationActions ForumModerationAction[]
   forumNotifications ForumNotification[]
   forumPostSubscriptions ForumPostSubscription[]
+  forumBookmarks ForumBookmark[]
   forumNotificationActors ForumNotification[] @relation("ForumNotificationActors")
   sharedPlaylists SharedPlaylist[]
   recentlyViewed RecentlyViewed[]
@@ -456,6 +457,7 @@ model ForumPost {
   reports       ForumPostReport[]
   notifications ForumNotification[]
   subscriptions ForumPostSubscription[]
+  bookmarks ForumBookmark[]
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -667,6 +669,24 @@ model ForumPostSubscription {
 
   @@unique([userId, postId])
   @@map("forum_post_subscriptions")
+  @@index([userId])
+  @@index([postId])
+  @@index([createdAt])
+}
+
+// Forum post bookmarks - users saving/bookmarking posts
+model ForumBookmark {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  postId        String   @db.ObjectId
+  post          ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, postId])
+  @@map("forum_bookmarks")
   @@index([userId])
   @@index([postId])
   @@index([createdAt])

@@ -230,9 +230,142 @@ export function getAppealReviewedEmail({
     content,
     ctaText: "View Content",
     ctaUrl: viewContentUrl,
-    footerText: isApproved 
-      ? "Your content is now visible to the community again." 
-      : "This decision is final. For questions, please contact support.",
+  });
+}
+
+/**
+ * Email template for forum reply notifications
+ */
+export function getForumReplyEmail({
+  recipientName,
+  actorName,
+  postTitle,
+  replyPreview,
+  viewPostUrl,
+  notificationSettingsUrl,
+}: {
+  recipientName: string;
+  actorName: string;
+  postTitle: string;
+  replyPreview: string;
+  viewPostUrl: string;
+  notificationSettingsUrl: string;
+}): string {
+  const content = `
+    <p style="margin: 0 0 20px;">Hi ${recipientName},</p>
+    
+    <p style="margin: 0 0 20px;">
+      <strong>${actorName}</strong> replied to your post "${postTitle}".
+    </p>
+    
+    <div style="background-color: #f9f9f9; padding: 20px; border-radius: 6px; margin: 20px 0;">
+      <p style="margin: 0 0 10px; font-weight: 600; color: #1a1a1a;">Reply:</p>
+      <p style="margin: 0; color: #6a6a6a; font-size: 14px; line-height: 1.5;">${replyPreview}</p>
+    </div>
+    
+    <p style="margin: 20px 0;">
+      You can reply to this comment or view the full discussion on the post.
+    </p>
+  `;
+
+  return getEmailTemplate({
+    title: "New Reply to Your Post",
+    content,
+    ctaText: "View Post",
+    ctaUrl: viewPostUrl,
+    footerText: `You're receiving this because someone replied to your post. <a href="${notificationSettingsUrl}" style="color: #6b7280; text-decoration: underline;">Manage notification preferences</a>`,
+  });
+}
+
+/**
+ * Email template for forum mention notifications
+ */
+export function getForumMentionEmail({
+  recipientName,
+  actorName,
+  contentType,
+  contentTitle,
+  contentPreview,
+  viewContentUrl,
+  notificationSettingsUrl,
+}: {
+  recipientName: string;
+  actorName: string;
+  contentType: "post" | "reply";
+  contentTitle: string;
+  contentPreview: string;
+  viewContentUrl: string;
+  notificationSettingsUrl: string;
+}): string {
+  const contentLabel = contentType === "post" ? "post" : "comment";
+
+  const content = `
+    <p style="margin: 0 0 20px;">Hi ${recipientName},</p>
+    
+    <p style="margin: 0 0 20px;">
+      <strong>${actorName}</strong> mentioned you in a ${contentLabel} on "${contentTitle}".
+    </p>
+    
+    <div style="background-color: #f9f9f9; padding: 20px; border-radius: 6px; margin: 20px 0;">
+      <p style="margin: 0 0 10px; font-weight: 600; color: #1a1a1a;">${contentLabel === "post" ? "Post" : "Comment"}:</p>
+      <p style="margin: 0; color: #6a6a6a; font-size: 14px; line-height: 1.5;">${contentPreview}</p>
+    </div>
+    
+    <p style="margin: 20px 0;">
+      Click below to view the ${contentLabel} and join the conversation.
+    </p>
+  `;
+
+  return getEmailTemplate({
+    title: "You Were Mentioned",
+    content,
+    ctaText: `View ${contentLabel === "post" ? "Post" : "Comment"}`,
+    ctaUrl: viewContentUrl,
+    footerText: `You're receiving this because you were mentioned. <a href="${notificationSettingsUrl}" style="color: #6b7280; text-decoration: underline;">Manage notification preferences</a>`,
+  });
+}
+
+/**
+ * Email template for forum subscription notifications
+ */
+export function getForumSubscriptionEmail({
+  recipientName,
+  actorName,
+  postTitle,
+  replyPreview,
+  viewPostUrl,
+  notificationSettingsUrl,
+}: {
+  recipientName: string;
+  actorName: string;
+  postTitle: string;
+  replyPreview: string;
+  viewPostUrl: string;
+  notificationSettingsUrl: string;
+}): string {
+  const content = `
+    <p style="margin: 0 0 20px;">Hi ${recipientName},</p>
+    
+    <p style="margin: 0 0 20px;">
+      <strong>${actorName}</strong> replied to a post you're following: "${postTitle}".
+    </p>
+    
+    <div style="background-color: #f9f9f9; padding: 20px; border-radius: 6px; margin: 20px 0;">
+      <p style="margin: 0 0 10px; font-weight: 600; color: #1a1a1a;">Reply:</p>
+      <p style="margin: 0; color: #6a6a6a; font-size: 14px; line-height: 1.5;">${replyPreview}</p>
+    </div>
+    
+    <p style="margin: 20px 0;">
+      Click below to view the reply and continue the discussion.
+    </p>
+  `;
+
+  return getEmailTemplate({
+    title: "New Reply to Followed Post",
+    content,
+    ctaText: "View Post",
+    ctaUrl: viewPostUrl,
+    footerText: `You're receiving this because you're following this post. <a href="${notificationSettingsUrl}" style="color: #6b7280; text-decoration: underline;">Manage notification preferences</a>`,
   });
 }
 

@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { MessageCircle, Eye, Tag, MoreVertical, Flag, Edit, Trash2, ArrowLeft, Search, ArrowUpDown, Bell, BellOff } from "lucide-react";
+import { MessageCircle, Eye, Tag, MoreVertical, Flag, Edit, Trash2, ArrowLeft, Search, ArrowUpDown, Bell, BellOff, Bookmark, BookmarkCheck } from "lucide-react";
 import { BiSolidUpvote, BiSolidDownvote } from "react-icons/bi";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useForumPostReaction, useToggleForumPostLike } from "@/hooks/use-forum-reactions";
 import { usePostSubscription, useSubscribeToPost, useUnsubscribeFromPost } from "@/hooks/use-forum-post-subscription";
+import { usePostBookmark, useBookmarkPost, useUnbookmarkPost } from "@/hooks/use-forum-bookmarks";
 import { ShareDropdown } from "@/components/ui/share-dropdown";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -115,8 +116,12 @@ export function ForumPostDetailClient() {
   const { data: subscription } = usePostSubscription(postId);
   const subscribeToPost = useSubscribeToPost(postId);
   const unsubscribeFromPost = useUnsubscribeFromPost(postId);
+  const { data: bookmark } = usePostBookmark(postId);
+  const bookmarkPost = useBookmarkPost(postId);
+  const unbookmarkPost = useUnbookmarkPost(postId);
   
   const isSubscribed = subscription?.subscribed ?? false;
+  const isBookmarked = bookmark?.bookmarked ?? false;
 
 
   // Filter and sort replies
@@ -434,6 +439,29 @@ export function ForumPostDetailClient() {
                             <>
                               <Bell className="h-4 w-4 mr-2" />
                               Subscribe
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (isBookmarked) {
+                              unbookmarkPost.mutate();
+                            } else {
+                              bookmarkPost.mutate();
+                            }
+                          }}
+                          className="cursor-pointer"
+                          disabled={bookmarkPost.isPending || unbookmarkPost.isPending}
+                        >
+                          {isBookmarked ? (
+                            <>
+                              <BookmarkCheck className="h-4 w-4 mr-2" />
+                              Unbookmark
+                            </>
+                          ) : (
+                            <>
+                              <Bookmark className="h-4 w-4 mr-2" />
+                              Bookmark
                             </>
                           )}
                         </DropdownMenuItem>
