@@ -106,13 +106,15 @@ export function ForumSidebar({
     },
   });
 
-  // Fetch trending topics (placeholder - will implement later)
+  // Fetch trending topics
   const { data: trendingData } = useQuery({
     queryKey: ["forum-trending"],
     queryFn: async () => {
-      // TODO: Implement trending topics API
-      return { topics: [] };
+      const response = await fetch("/api/forum/trending?limit=10&days=7");
+      if (!response.ok) return { topics: [] };
+      return response.json();
     },
+    staleTime: 1000 * 60 * 15, // Cache for 15 minutes
   });
 
   const allCategories = categoriesData?.categories || [];

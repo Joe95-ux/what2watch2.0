@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { YouTubeNotificationCenter } from "@/components/youtube/youtube-notification-center";
+import { ForumNotificationCenter } from "@/components/forum/forum-notification-center";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import Logo from "@/components/Logo";
 import Search from "./search";
@@ -150,11 +151,12 @@ export default function Navbar() {
                 <div className="flex items-center gap-2">
                   {isSignedIn ? (
                     <>
-                      {/* YouTube Notification Center */}
+                      {/* Notification Centers */}
                       <div className={cn(
-                        "hidden md:inline-flex",
+                        "hidden md:inline-flex items-center gap-1",
                         hasHeroSection && "[&_button]:hover:bg-black/20 [&_button]:text-white"
                       )}>
+                        <ForumNotificationCenter />
                         <YouTubeNotificationCenter />
                       </div>
                       <UserButton
@@ -196,21 +198,13 @@ export default function Navbar() {
               <div className="flex items-center gap-2">
                 {isSignedIn ? (
                   <>
-                    {/* Notification Icon */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        "relative hidden h-9 w-9 md:inline-flex transition-colors duration-300",
-                        hasHeroSection && "hover:bg-black/20 text-white"
-                      )}
-                      aria-label="Notifications"
-                    >
-                      <Bell className={cn(
-                        "h-5 w-5 transition-colors duration-300",
-                        hasHeroSection && "text-white"
-                      )} />
-                    </Button>
+                    {/* Forum Notification Center */}
+                    <div className={cn(
+                      "hidden md:inline-flex",
+                      hasHeroSection && "[&_button]:hover:bg-black/20 [&_button]:text-white"
+                    )}>
+                      <ForumNotificationCenter />
+                    </div>
                     <UserButton
                       afterSignOutUrl="/"
                       appearance={{
