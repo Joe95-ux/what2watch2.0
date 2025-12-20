@@ -108,35 +108,28 @@ const DEFAULT_BADGES: Omit<BadgeDefinition, "id">[] = [
  */
 async function ensureBadgesAreSeeded() {
   try {
-    // Check if badges already exist
-    const existingBadges = await db.forumBadge.findMany({
-      select: { slug: true },
-    });
+    const existingCount = await db.forumBadge.count();
     
-    const existingSlugs = new Set(existingBadges.map(b => b.slug));
-    
-    // Only create badges that don't exist
-    const badgesToCreate = DEFAULT_BADGES.filter(badge => !existingSlugs.has(badge.slug));
-    
-    if (badgesToCreate.length > 0) {
-      await Promise.all(
-        badgesToCreate.map(async (badge) => {
-          await db.forumBadge.create({
-            data: {
-              slug: badge.slug,
-              name: badge.name,
-              description: badge.description,
-              icon: badge.icon,
-              criteria: badge.criteria,
-            },
-          });
-        })
-      );
-      console.log(`Created ${badgesToCreate.length} forum badges`);
+    // If badges already exist, skip seeding
+    if (existingCount > 0) {
+      return;
     }
+    
+    // Create all badges
+    await db.forumBadge.createMany({
+      data: DEFAULT_BADGES.map((badge) => ({
+        slug: badge.slug,
+        name: badge.name,
+        description: badge.description,
+        icon: badge.icon,
+        criteria: badge.criteria,
+      })),
+      skipDuplicates: true,
+    });
   } catch (error) {
     console.error("Error seeding forum badges:", error);
-    // Don't throw - allow the function to continue even if seeding fails
+    // Don't throw - allow function to continue even if seeding fails
+    // Badges might already exist or there might be a transient error
   }
 }
 
@@ -258,19 +251,25 @@ export async function evaluateUserBadges(userId: string): Promise<UserBadge[]> {
  * Get all badge definitions
  */
 export async function getAllBadgeDefinitions(): Promise<BadgeDefinition[]> {
-  await ensureBadgesAreSeeded();
+  try {
+    await ensureBadgesAreSeeded();
 
-  const badges = await db.forumBadge.findMany({
-    orderBy: { name: "asc" },
-  });
+    const badges = await db.forumBadge.findMany({
+      orderBy: { name: "asc" },
+    });
 
-  return badges.map((badge) => ({
-    id: badge.id,
-    slug: badge.slug,
-    name: badge.name,
-    description: badge.description,
-    icon: badge.icon,
-    criteria: badge.criteria as BadgeDefinition["criteria"],
-  }));
+    return badges.map((badge) => ({
+      id: badge.id,
+      slug: badge.slug,
+      name: badge.name,
+      description: badge.description,
+      icon: badge.icon,
+      criteria: (badge.criteria || {}) as BadgeDefinition["criteria"],
+    }));
+  } catch (error) {
+    console.error("Error getting badge definitions:", error);
+    // Return empty array on error rather than throwing
+    return [];
+  }
 }
 

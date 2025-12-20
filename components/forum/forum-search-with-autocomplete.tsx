@@ -62,17 +62,26 @@ export function ForumSearchWithAutocomplete({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (suggestions.length === 0) return;
-
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setSelectedIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : prev));
+      if (suggestions.length > 0) {
+        setSelectedIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : prev));
+      }
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
-    } else if (e.key === "Enter" && selectedIndex >= 0) {
-      e.preventDefault();
-      handleSuggestionClick(suggestions[selectedIndex]);
+      if (suggestions.length > 0) {
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+      }
+    } else if (e.key === "Enter") {
+      if (selectedIndex >= 0 && suggestions.length > 0) {
+        e.preventDefault();
+        handleSuggestionClick(suggestions[selectedIndex]);
+      } else {
+        // If no suggestion selected, just blur to close dropdown
+        // The search will proceed with the current value
+        setIsFocused(false);
+        inputRef.current?.blur();
+      }
     } else if (e.key === "Escape") {
       setIsFocused(false);
       inputRef.current?.blur();

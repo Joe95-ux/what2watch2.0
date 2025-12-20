@@ -1,34 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-import { evaluateUserBadges, getAllBadgeDefinitions } from "@/lib/services/forum-badges.service";
+import { getAllBadgeDefinitions } from "@/lib/services/forum-badges.service";
 
 /**
  * GET - Get all badge definitions and user badges (if authenticated)
  */
 export async function GET(request: NextRequest) {
   try {
-    const { userId: clerkUserId } = await auth();
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId"); // Optional: get badges for specific user
-
+    // Get all badge definitions (this will seed them if needed)
     const badges = await getAllBadgeDefinitions();
 
-    if (!clerkUserId && !userId) {
-      return NextResponse.json({ badges, userBadges: [] });
-    }
+    // Get user ID if authenticated
+    const { userId: clerkUserId } = await auth();
+    const { searchParams } = new URL(request.url);
+    const userIdParam = searchParams.get("userId");
 
-    // Get user ID
     let targetUserId: string | null = null;
-    if (userId) {
-      // If userId param provided, use that (for viewing other users' badges)
+
+    if (userIdParam) {
+      // Viewing specific user's badges
       const user = await db.user.findUnique({
-        where: { id: userId },
+        where: { id: userIdParam },
         select: { id: true },
       });
       targetUserId = user?.id || null;
     } else if (clerkUserId) {
-      // Otherwise use current user
+      // Current user's badges
       const user = await db.user.findUnique({
         where: { clerkId: clerkUserId },
         select: { id: true },
@@ -36,23 +34,16 @@ export async function GET(request: NextRequest) {
       targetUserId = user?.id || null;
     }
 
-    if (!targetUserId) {
-      return NextResponse.json({ badges, userBadges: [] });
-    }
+    // Get user badges if we have a target user
+    let userBadges: any[] = [];
+    if (targetUserId) {
+      const userBadgeRecords = await db.userForumBadge.findMany({
+        where: { userId: targetUserId },
+        include: { badge: true },
+        orderBy: { awardedAt: "desc" },
+      });
 
-    // Evaluate and award new badges
-    await evaluateUserBadges(targetUserId);
-
-    // Get user badges
-    const userBadges = await db.userForumBadge.findMany({
-      where: { userId: targetUserId },
-      include: { badge: true },
-      orderBy: { awardedAt: "desc" },
-    });
-
-    return NextResponse.json({
-      badges,
-      userBadges: userBadges.map((ub) => ({
+      userBadges = userBadgeRecords.map((ub) => ({
         id: ub.id,
         badgeId: ub.badgeId,
         userId: ub.userId,
@@ -63,15 +54,14 @@ export async function GET(request: NextRequest) {
           name: ub.badge.name,
           description: ub.badge.description,
           icon: ub.badge.icon,
-          criteria: ub.badge.criteria as {
-            minPosts?: number;
-            minReplies?: number;
-            minUpvotes?: number;
-            minReputation?: number;
-            minFollowers?: number;
-          },
+          criteria: ub.badge.criteria,
         },
-      })),
+      }));
+    }
+
+    return NextResponse.json({
+      badges,
+      userBadges,
     });
   } catch (error) {
     console.error("Error fetching badges:", error);

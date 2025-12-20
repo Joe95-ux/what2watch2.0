@@ -1,7 +1,16 @@
 "use client";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { usePostHistory } from "@/hooks/use-forum-post-history";
 import { useRevertPost } from "@/hooks/use-forum-post-revert";
 import { formatDistanceToNow } from "date-fns";
@@ -23,19 +32,24 @@ export function PostHistoryDialog({ postId, isOpen, onClose, postAuthorId }: Pos
   const { data, isLoading, refetch } = usePostHistory(postId, 50);
   const revertPost = useRevertPost();
   const [expandedRevision, setExpandedRevision] = useState<string | null>(null);
+  const [revertDialogOpen, setRevertDialogOpen] = useState(false);
+  const [revisionToRevert, setRevisionToRevert] = useState<string | null>(null);
 
-  const handleRevert = async (revisionId: string) => {
-    if (!postId) return;
-    
-    if (!confirm("Are you sure you want to revert to this revision? This will create a new revision with the current content.")) {
-      return;
-    }
+  const handleRevertClick = (revisionId: string) => {
+    setRevisionToRevert(revisionId);
+    setRevertDialogOpen(true);
+  };
+
+  const handleRevertConfirm = () => {
+    if (!postId || !revisionToRevert) return;
 
     revertPost.mutate(
-      { postId, revisionId },
+      { postId, revisionId: revisionToRevert },
       {
         onSuccess: () => {
           refetch();
+          setRevertDialogOpen(false);
+          setRevisionToRevert(null);
           onClose();
         },
       }
@@ -50,8 +64,8 @@ export function PostHistoryDialog({ postId, isOpen, onClose, postAuthorId }: Pos
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[800px] max-h-[85vh]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 border-b">
           <DialogTitle className="flex items-center gap-2">
             <History className="h-5 w-5" />
             Edit History
@@ -60,7 +74,7 @@ export function PostHistoryDialog({ postId, isOpen, onClose, postAuthorId }: Pos
             View and restore previous revisions of this post
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className="max-h-[65vh] pr-4">
+        <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-4">
           {isLoading ? (
             <div className="space-y-6">
               {[1, 2, 3].map((i) => (
@@ -148,7 +162,7 @@ export function PostHistoryDialog({ postId, isOpen, onClose, postAuthorId }: Pos
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleRevert(revision.id)}
+                                onClick={() => handleRevertClick(revision.id)}
                                 disabled={revertPost.isPending}
                                 className="h-7 text-xs"
                               >
@@ -210,8 +224,32 @@ export function PostHistoryDialog({ postId, isOpen, onClose, postAuthorId }: Pos
               </div>
             </div>
           )}
-        </ScrollArea>
+        </div>
       </DialogContent>
+
+      {/* Revert Confirmation Dialog */}
+      <AlertDialog open={revertDialogOpen} onOpenChange={setRevertDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revert to this revision?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to revert to this revision? This will create a new revision with the current content, and the post will be restored to this version.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setRevisionToRevert(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRevertConfirm}
+              disabled={revertPost.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {revertPost.isPending ? "Reverting..." : "Revert"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
