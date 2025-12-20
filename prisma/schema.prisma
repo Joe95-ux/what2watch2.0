@@ -81,6 +81,8 @@ model User {
   forumNotifications ForumNotification[]
   forumPostSubscriptions ForumPostSubscription[]
   forumBookmarks ForumBookmark[]
+  forumPostRevisions ForumPostRevision[]
+  forumBadges UserForumBadge[]
   forumNotificationActors ForumNotification[] @relation("ForumNotificationActors")
   sharedPlaylists SharedPlaylist[]
   recentlyViewed RecentlyViewed[]
@@ -463,6 +465,7 @@ model ForumPost {
   notifications ForumNotification[]
   subscriptions ForumPostSubscription[]
   bookmarks ForumBookmark[]
+  revisions ForumPostRevision[]
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -695,6 +698,63 @@ model ForumBookmark {
   @@index([userId])
   @@index([postId])
   @@index([createdAt])
+}
+
+// Forum post revisions - edit history tracking
+model ForumPostRevision {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  postId        String   @db.ObjectId
+  post          ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  title         String
+  content       String
+  tags          String[] @default([])
+  categoryId    String?  @db.ObjectId
+  metadata      Json?
+  
+  editedBy      String   @db.ObjectId
+  editor        User     @relation(fields: [editedBy], references: [id], onDelete: Cascade)
+  
+  editedAt      DateTime @default(now())
+
+  @@map("forum_post_revisions")
+  @@index([postId])
+  @@index([editedBy])
+  @@index([editedAt])
+}
+
+// Forum badges - achievement definitions
+model ForumBadge {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  slug          String   @unique
+  name          String
+  description   String
+  icon          String?
+  criteria      Json     // { minPosts, minReplies, minUpvotes, minReputation, minFollowers }
+  
+  awardedTo     UserForumBadge[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("forum_badges")
+}
+
+// User forum badges - badges awarded to users
+model UserForumBadge {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  badgeId       String   @db.ObjectId
+  badge         ForumBadge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  awardedAt     DateTime @default(now())
+
+  @@map("user_forum_badges")
+  @@unique([badgeId, userId])
+  @@index([userId])
+  @@index([badgeId])
+  @@index([awardedAt])
 }
 
 // Shared playlists - tracking who shared playlists with whom

@@ -42,6 +42,7 @@ interface ForumPost {
     icon?: string | null;
   } | null;
   views: number;
+  score: number;
   replyCount: number;
   contributors?: Array<{
     id: string;
@@ -65,7 +66,7 @@ interface ForumPostsResponse {
 
 interface ForumFilterContentProps {
   initialSearch?: string;
-  initialSortBy?: "createdAt" | "views" | "replyCount" | "updatedAt";
+  initialSortBy?: "createdAt" | "views" | "replyCount" | "score" | "updatedAt";
   initialSortOrder?: "asc" | "desc";
   initialCategory?: string;
 }
@@ -79,7 +80,7 @@ function ForumFilterContentInner({
   const router = useRouter();
   const observerTarget = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
-  const [sortBy, setSortBy] = useState<"createdAt" | "views" | "replyCount" | "updatedAt">(initialSortBy);
+  const [sortBy, setSortBy] = useState<"createdAt" | "views" | "replyCount" | "score" | "updatedAt">(initialSortBy);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">(initialSortOrder);
   const [categoryFilter, setCategoryFilter] = useState<string>(initialCategory);
 
@@ -307,6 +308,24 @@ function ForumFilterContentInner({
                     >
                       Most Replies
                     </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleSortChange("score", "desc")}
+                      className={cn(
+                        "cursor-pointer",
+                        sortBy === "score" && sortOrder === "desc" && "bg-accent"
+                      )}
+                    >
+                      Most Votes
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleSortChange("score", "asc")}
+                      className={cn(
+                        "cursor-pointer",
+                        sortBy === "score" && sortOrder === "asc" && "bg-accent"
+                      )}
+                    >
+                      Least Votes
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
 
@@ -324,30 +343,32 @@ function ForumFilterContentInner({
                       Filter
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48 max-h-[300px] overflow-y-auto">
-                    <DropdownMenuLabel>Filter by category</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => setCategoryFilter("all")}
-                      className={cn(
-                        "cursor-pointer",
-                        categoryFilter === "all" && "bg-accent"
-                      )}
-                    >
-                      All Categories
-                    </DropdownMenuItem>
-                    {categoriesData?.categories?.map((category: any) => (
+                  <DropdownMenuContent align="end" className="w-48">
+                    <div className="max-h-[300px] overflow-y-auto scrollbar-thin">
+                      <DropdownMenuLabel>Filter by category</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem
-                        key={category.id}
-                        onClick={() => setCategoryFilter(category.slug)}
+                        onClick={() => setCategoryFilter("all")}
                         className={cn(
                           "cursor-pointer",
-                          categoryFilter === category.slug && "bg-accent"
+                          categoryFilter === "all" && "bg-accent"
                         )}
                       >
-                        {category.name}
+                        All Categories
                       </DropdownMenuItem>
-                    ))}
+                      {categoriesData?.categories?.map((category: any) => (
+                        <DropdownMenuItem
+                          key={category.id}
+                          onClick={() => setCategoryFilter(category.slug)}
+                          className={cn(
+                            "cursor-pointer",
+                            categoryFilter === category.slug && "bg-accent"
+                          )}
+                        >
+                          {category.name}
+                        </DropdownMenuItem>
+                      ))}
+                    </div>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -375,9 +396,10 @@ function ForumFilterContentInner({
                 <Table>
                   <TableHeader>
                     <TableRow className="border-b hover:bg-transparent">
-                      <TableHead className="w-[40%] font-semibold">Topic</TableHead>
-                      <TableHead className="w-[20%] font-semibold">Contributors</TableHead>
+                      <TableHead className="w-[35%] font-semibold">Topic</TableHead>
+                      <TableHead className="w-[15%] font-semibold">Contributors</TableHead>
                       <TableHead className="w-[10%] text-right font-semibold">Replies</TableHead>
+                      <TableHead className="w-[10%] text-right font-semibold">Votes</TableHead>
                       <TableHead className="w-[10%] text-right font-semibold">Views</TableHead>
                       <TableHead className="w-[20%] text-right font-semibold">Activity</TableHead>
                     </TableRow>
@@ -443,6 +465,9 @@ function ForumFilterContentInner({
                         </TableCell>
                         <TableCell className="text-right">
                           <span className="text-sm">{post.replyCount}</span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="text-sm">{post.score}</span>
                         </TableCell>
                         <TableCell className="text-right">
                           <span className="text-sm">{post.views}</span>

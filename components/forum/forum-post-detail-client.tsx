@@ -26,6 +26,7 @@ import { useState } from "react";
 import { useForumPostReaction, useToggleForumPostLike } from "@/hooks/use-forum-reactions";
 import { usePostSubscription, useSubscribeToPost, useUnsubscribeFromPost } from "@/hooks/use-forum-post-subscription";
 import { usePostBookmark, useBookmarkPost, useUnbookmarkPost } from "@/hooks/use-forum-bookmarks";
+import { useForumRealtimeUpdates } from "@/hooks/use-forum-realtime";
 import { ShareDropdown } from "@/components/ui/share-dropdown";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -98,6 +99,9 @@ export function ForumPostDetailClient() {
   const [replySearch, setReplySearch] = useState("");
   const [adsClosed, setAdsClosed] = useState(false);
   const postId = params.postId as string;
+
+  // Enable real-time updates
+  useForumRealtimeUpdates(postId || null, !!postId);
 
   const { data, isLoading, error } = useQuery<{ post: ForumPost }>({
     queryKey: ["forum-post", postId],

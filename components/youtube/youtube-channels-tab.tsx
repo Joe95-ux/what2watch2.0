@@ -107,13 +107,15 @@ export function YouTubeChannelsTab() {
             <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="All categories" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All categories</SelectItem>
-              {availableCategories.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
+            <SelectContent className="max-h-[300px] overflow-hidden">
+              <div className="max-h-[300px] overflow-y-auto scrollbar-thin">
+                <SelectItem value="all">All categories</SelectItem>
+                {availableCategories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </div>
             </SelectContent>
           </Select>
         )}

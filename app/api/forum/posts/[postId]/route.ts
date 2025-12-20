@@ -327,6 +327,33 @@ export async function PATCH(
       );
     }
 
+    // Save revision before updating
+    const { savePostRevision } = await import("@/lib/services/forum-post-history.service");
+    const currentPost = await db.forumPost.findUnique({
+      where: { id: post.id },
+      select: {
+        title: true,
+        content: true,
+        tags: true,
+        categoryId: true,
+        metadata: true,
+      },
+    });
+
+    if (currentPost) {
+      await savePostRevision(
+        post.id,
+        {
+          title: currentPost.title,
+          content: currentPost.content,
+          tags: currentPost.tags,
+          categoryId: currentPost.categoryId,
+          metadata: currentPost.metadata as Record<string, any> | null,
+        },
+        user.id
+      );
+    }
+
     const updateData: any = {
       title: sanitizedTitle,
       content: sanitizedContent,

@@ -314,7 +314,7 @@ export function ForumSidebar({
                   shouldShowCollapsed ? "justify-center p-2" : "justify-start gap-3"
                 )}
                 onClick={() => {
-                  // TODO: Navigate to badges page
+                  router.push("/forum/badges");
                   if (isMobile) setIsOpen(false);
                 }}
               >

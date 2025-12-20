@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { MessageCircle, Eye, Hash, MoreVertical, Flag, Edit, Trash2, Bookmark, BookmarkCheck } from "lucide-react";
+import { MessageCircle, Eye, Hash, MoreVertical, Flag, Edit, Trash2, Bookmark, BookmarkCheck, History as HistoryIcon } from "lucide-react";
 import { BiSolidUpvote, BiSolidDownvote } from "react-icons/bi";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { EditPostDialog } from "./edit-post-dialog";
+import { PostHistoryDialog } from "./post-history-dialog";
 import { ReportDialog } from "./report-dialog";
 import { SafeHtmlContent } from "./safe-html-content";
 import { extractAllLinks } from "@/lib/forum-link-extractor";
@@ -73,6 +74,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
 
   // Extract links from post content and metadata
   const extractedLinks = useMemo(() => {
@@ -285,6 +287,16 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();
+                    setIsHistoryDialogOpen(true);
+                  }}
+                  className="cursor-pointer"
+                >
+                  <HistoryIcon className="h-4 w-4 mr-2" />
+                  View History
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
                     handleDelete();
                   }}
                   className="cursor-pointer text-destructive"
@@ -488,6 +500,13 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
         links={extractedLinks}
         open={isLinkModalOpen}
         onOpenChange={setIsLinkModalOpen}
+      />
+      
+      {/* Post History Dialog */}
+      <PostHistoryDialog
+        postId={post.id}
+        isOpen={isHistoryDialogOpen}
+        onClose={() => setIsHistoryDialogOpen(false)}
       />
     </div>
   );
