@@ -63,6 +63,13 @@ export async function GET(request: NextRequest) {
           name: ub.badge.name,
           description: ub.badge.description,
           icon: ub.badge.icon,
+          criteria: ub.badge.criteria as {
+            minPosts?: number;
+            minReplies?: number;
+            minUpvotes?: number;
+            minReputation?: number;
+            minFollowers?: number;
+          },
         },
       })),
     });

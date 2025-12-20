@@ -507,6 +507,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
         postId={post.id}
         isOpen={isHistoryDialogOpen}
         onClose={() => setIsHistoryDialogOpen(false)}
+        postAuthorId={post.author.id}
       />
     </div>
   );

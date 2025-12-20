@@ -102,25 +102,42 @@ const DEFAULT_BADGES: Omit<BadgeDefinition, "id">[] = [
   },
 ];
 
-let badgesSynced = false;
-
 /**
  * Ensure badges are seeded in the database
+ * This function is idempotent and safe to call multiple times
  */
 async function ensureBadgesAreSeeded() {
-  if (badgesSynced) return;
-
-  await Promise.all(
-    DEFAULT_BADGES.map(async (badge) => {
-      await db.forumBadge.upsert({
-        where: { slug: badge.slug },
-        update: {},
-        create: badge,
-      });
-    })
-  );
-
-  badgesSynced = true;
+  try {
+    // Check if badges already exist
+    const existingBadges = await db.forumBadge.findMany({
+      select: { slug: true },
+    });
+    
+    const existingSlugs = new Set(existingBadges.map(b => b.slug));
+    
+    // Only create badges that don't exist
+    const badgesToCreate = DEFAULT_BADGES.filter(badge => !existingSlugs.has(badge.slug));
+    
+    if (badgesToCreate.length > 0) {
+      await Promise.all(
+        badgesToCreate.map(async (badge) => {
+          await db.forumBadge.create({
+            data: {
+              slug: badge.slug,
+              name: badge.name,
+              description: badge.description,
+              icon: badge.icon,
+              criteria: badge.criteria,
+            },
+          });
+        })
+      );
+      console.log(`Created ${badgesToCreate.length} forum badges`);
+    }
+  } catch (error) {
+    console.error("Error seeding forum badges:", error);
+    // Don't throw - allow the function to continue even if seeding fails
+  }
 }
 
 /**
