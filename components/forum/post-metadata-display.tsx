@@ -125,45 +125,37 @@ export function PostMetadataDisplay({ metadata, categorySlug }: PostMetadataDisp
     const playlistId = metadata.playlistLink ? extractPlaylistId(metadata.playlistLink) : null;
     
     return (
-      <Card className="border-l-4 border-l-purple-500">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Music className="h-4 w-4 text-purple-500" />
-            Playlist Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          {playlistId ? (
-            <div className="space-y-3">
-              <ForumPostEmbeddedCard urlOrId={playlistId} type="playlist" />
-              {metadata.whyRecommend && (
-                <div>
-                  <span className="font-medium text-muted-foreground">Why Recommend:</span>
-                  <div className="mt-1 whitespace-pre-wrap text-foreground">{metadata.whyRecommend}</div>
-                </div>
-              )}
-            </div>
-          ) : metadata.playlistLink ? (
-            <div>
-              <span className="font-medium text-muted-foreground">Playlist: </span>
-              <a
-                href={metadata.playlistLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                View Playlist
-              </a>
-            </div>
-          ) : null}
-          {metadata.whyRecommend && !playlistId && (
-            <div>
-              <span className="font-medium text-muted-foreground">Why Recommend:</span>
-              <div className="mt-1 whitespace-pre-wrap text-foreground">{metadata.whyRecommend}</div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="space-y-3">
+        {playlistId ? (
+          <>
+            <ForumPostEmbeddedCard urlOrId={playlistId} type="playlist" />
+            {metadata.whyRecommend && (
+              <div className="text-sm">
+                <span className="font-medium text-muted-foreground">Why Recommend:</span>
+                <div className="mt-1 whitespace-pre-wrap text-foreground">{metadata.whyRecommend}</div>
+              </div>
+            )}
+          </>
+        ) : metadata.playlistLink ? (
+          <div className="text-sm">
+            <span className="font-medium text-muted-foreground">Playlist: </span>
+            <a
+              href={metadata.playlistLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              View Playlist
+            </a>
+          </div>
+        ) : null}
+        {metadata.whyRecommend && !playlistId && (
+          <div className="text-sm">
+            <span className="font-medium text-muted-foreground">Why Recommend:</span>
+            <div className="mt-1 whitespace-pre-wrap text-foreground">{metadata.whyRecommend}</div>
+          </div>
+        )}
+      </div>
     );
   }
 
@@ -172,61 +164,53 @@ export function PostMetadataDisplay({ metadata, categorySlug }: PostMetadataDisp
     const listId = metadata.listLink ? extractListId(metadata.listLink) : null;
     
     return (
-      <Card className="border-l-4 border-l-green-500">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <List className="h-4 w-4 text-green-500" />
-            List Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          {listId ? (
-            <div className="space-y-3">
-              <ForumPostEmbeddedCard urlOrId={listId} type="list" />
-              {metadata.listType && (
-                <div>
-                  <span className="font-medium text-muted-foreground">Type: </span>
-                  <Badge variant="outline" className="ml-2">
-                    {metadata.listType.charAt(0).toUpperCase() + metadata.listType.slice(1)}
-                  </Badge>
-                </div>
-              )}
-              {metadata.whyRecommend && (
-                <div>
-                  <span className="font-medium text-muted-foreground">Why Recommend:</span>
-                  <div className="mt-1 whitespace-pre-wrap text-foreground">{metadata.whyRecommend}</div>
-                </div>
-              )}
-            </div>
-          ) : metadata.listLink ? (
-            <div>
-              <span className="font-medium text-muted-foreground">List: </span>
-              <a
-                href={metadata.listLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                View List
-              </a>
-            </div>
-          ) : null}
-          {metadata.listType && !listId && (
-            <div>
-              <span className="font-medium text-muted-foreground">Type: </span>
-              <Badge variant="outline" className="ml-2">
-                {metadata.listType.charAt(0).toUpperCase() + metadata.listType.slice(1)}
-              </Badge>
-            </div>
-          )}
-          {metadata.whyRecommend && !listId && (
-            <div>
-              <span className="font-medium text-muted-foreground">Why Recommend:</span>
-              <div className="mt-1 whitespace-pre-wrap text-foreground">{metadata.whyRecommend}</div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="space-y-3">
+        {listId ? (
+          <>
+            <ForumPostEmbeddedCard urlOrId={listId} type="list" />
+            {metadata.listType && (
+              <div className="text-sm">
+                <span className="font-medium text-muted-foreground">Type: </span>
+                <Badge variant="outline" className="ml-2">
+                  {metadata.listType.charAt(0).toUpperCase() + metadata.listType.slice(1)}
+                </Badge>
+              </div>
+            )}
+            {metadata.whyRecommend && (
+              <div className="text-sm">
+                <span className="font-medium text-muted-foreground">Why Recommend:</span>
+                <div className="mt-1 whitespace-pre-wrap text-foreground">{metadata.whyRecommend}</div>
+              </div>
+            )}
+          </>
+        ) : metadata.listLink ? (
+          <div className="text-sm">
+            <span className="font-medium text-muted-foreground">List: </span>
+            <a
+              href={metadata.listLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              View List
+            </a>
+          </div>
+        ) : null}
+        {metadata.listType && !listId && (
+          <div className="text-sm">
+            <span className="font-medium text-muted-foreground">Type: </span>
+            <Badge variant="outline" className="ml-2">
+              {metadata.listType.charAt(0).toUpperCase() + metadata.listType.slice(1)}
+            </Badge>
+          </div>
+        )}
+        {metadata.whyRecommend && !listId && (
+          <div className="text-sm">
+            <span className="font-medium text-muted-foreground">Why Recommend:</span>
+            <div className="mt-1 whitespace-pre-wrap text-foreground">{metadata.whyRecommend}</div>
+          </div>
+        )}
+      </div>
     );
   }
 

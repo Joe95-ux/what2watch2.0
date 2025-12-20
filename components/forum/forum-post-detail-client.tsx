@@ -544,7 +544,7 @@ export function ForumPostDetailClient() {
                     isUpvoted && "text-orange-500",
                     isDownvoted && "text-blue-500"
                   )}>
-                    {displayScore}
+                    {displayScore === 0 ? "Vote" : displayScore}
                   </span>
                   <button
                     onClick={() => handleVote("downvote")}

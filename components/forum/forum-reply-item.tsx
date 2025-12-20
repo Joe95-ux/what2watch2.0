@@ -220,32 +220,52 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
           className="text-base mb-2 [&_p]:mb-2 [&_p:last-child]:mb-0 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-2"
         />
 
-        {/* Action Buttons - Same design as posts but bg only on hover */}
+        {/* Action Buttons - Reddit style: upvote | count | downvote */}
         <div className="flex items-center gap-0">
-          {/* Vote Buttons - No bg or separation */}
-          <button
-            onClick={() => handleVote("upvote")}
-            disabled={toggleReaction.isPending}
-            className={cn(
-              "flex items-center gap-1 px-3 py-2 rounded-[25px] transition-colors cursor-pointer hover:bg-muted/50",
-              isUpvoted && "text-primary",
-              toggleReaction.isPending && "opacity-50 cursor-not-allowed"
-            )}
-          >
-            <BiSolidUpvote className={cn("h-4 w-4 [stroke-width:2px] stroke-current", isUpvoted ? "fill-white" : "fill-transparent")} />
-            {displayScore > 0 && <span className="text-sm">{displayScore}</span>}
-          </button>
-          <button
-            onClick={() => handleVote("downvote")}
-            disabled={toggleReaction.isPending}
-            className={cn(
-              "flex items-center gap-1 px-3 py-2 rounded-[25px] transition-colors cursor-pointer hover:bg-muted/50",
-              isDownvoted && "text-primary",
-              toggleReaction.isPending && "opacity-50 cursor-not-allowed"
-            )}
-          >
-            <BiSolidDownvote className={cn("h-4 w-4 [stroke-width:2px] stroke-current", isDownvoted ? "fill-white" : "fill-transparent")} />
-          </button>
+          <div className={cn(
+            "flex items-center rounded-[25px] overflow-hidden transition-colors",
+            isUpvoted && "bg-orange-500/10",
+            isDownvoted && "bg-blue-500/10",
+            !isUpvoted && !isDownvoted && "bg-[#6B7280]/20 dark:bg-muted/80"
+          )}>
+            <button
+              onClick={() => handleVote("upvote")}
+              disabled={toggleReaction.isPending}
+              className={cn(
+                "flex items-center justify-center px-2 py-2 transition-colors cursor-pointer",
+                "hover:bg-[#6B7280]/30 dark:hover:bg-muted",
+                isUpvoted && "text-orange-500 hover:bg-orange-500/20",
+                toggleReaction.isPending && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              <BiSolidUpvote className={cn(
+                "h-4 w-4 [stroke-width:2px] stroke-current",
+                isUpvoted ? "fill-orange-500 dark:fill-orange-500" : "fill-transparent dark:fill-transparent"
+              )} />
+            </button>
+            <span className={cn(
+              "text-sm font-medium min-w-[2rem] text-center px-1",
+              isUpvoted && "text-orange-500",
+              isDownvoted && "text-blue-500"
+            )}>
+              {displayScore === 0 ? "Vote" : displayScore}
+            </span>
+            <button
+              onClick={() => handleVote("downvote")}
+              disabled={toggleReaction.isPending}
+              className={cn(
+                "flex items-center justify-center px-2 py-2 transition-colors cursor-pointer",
+                "hover:bg-[#6B7280]/30 dark:hover:bg-muted",
+                isDownvoted && "text-blue-500 hover:bg-blue-500/20",
+                toggleReaction.isPending && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              <BiSolidDownvote className={cn(
+                "h-4 w-4 [stroke-width:2px] stroke-current",
+                isDownvoted ? "fill-blue-500 dark:fill-blue-500" : "fill-transparent dark:fill-transparent"
+              )} />
+            </button>
+          </div>
           
           {/* Reply Button */}
           {isSignedIn && depth < maxDepth && (

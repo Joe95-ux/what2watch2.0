@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { MessageCircle, Eye, Hash, MoreVertical, Flag, Edit, Trash2 } from "lucide-react";
+import { MessageCircle, Eye, Hash, MoreVertical, Flag, Edit, Trash2, Bookmark, BookmarkCheck } from "lucide-react";
 import { BiSolidUpvote, BiSolidDownvote } from "react-icons/bi";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useForumPostReaction, useToggleForumPostLike } from "@/hooks/use-forum-reactions";
+import { usePostBookmark, useBookmarkPost, useUnbookmarkPost } from "@/hooks/use-forum-bookmarks";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -107,6 +108,25 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
   const isUpvoted = userReaction === "upvote";
   const isDownvoted = userReaction === "downvote";
   const displayScore = reaction?.score ?? post.score;
+
+  // Bookmark functionality
+  const { data: bookmarkData } = usePostBookmark(post.id);
+  const isBookmarked = bookmarkData?.bookmarked || false;
+  const bookmarkPost = useBookmarkPost(post.id);
+  const unbookmarkPost = useUnbookmarkPost(post.id);
+
+  const handleBookmarkToggle = async () => {
+    if (!isSignedIn) {
+      toast.error("Sign in to bookmark posts");
+      return;
+    }
+
+    if (isBookmarked) {
+      unbookmarkPost.mutate();
+    } else {
+      bookmarkPost.mutate();
+    }
+  };
 
   const handleVote = async (type: "upvote" | "downvote") => {
     if (!isSignedIn) {
@@ -276,6 +296,29 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
                 <DropdownMenuSeparator />
               </>
             )}
+            {isSignedIn && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleBookmarkToggle();
+                }}
+                className="cursor-pointer"
+                disabled={bookmarkPost.isPending || unbookmarkPost.isPending}
+              >
+                {isBookmarked ? (
+                  <>
+                    <BookmarkCheck className="h-4 w-4 mr-2" />
+                    Remove from Bookmarks
+                  </>
+                ) : (
+                  <>
+                    <Bookmark className="h-4 w-4 mr-2" />
+                    Add to Bookmarks
+                  </>
+                )}
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={(e) => {
                 e.stopPropagation();
@@ -371,7 +414,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
             isUpvoted && "text-orange-500",
             isDownvoted && "text-blue-500"
           )}>
-            {displayScore}
+            {displayScore === 0 ? "Vote" : displayScore}
           </span>
           <button
             onClick={(e) => {
@@ -416,7 +459,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
         </div>
         
         {/* Views */}
-        <div className="hidden md:flex items-center gap-1 px-3 py-2 rounded-[25px] bg-[#6B7280]/20 dark:bg-muted/80 text-xs text-muted-foreground">
+        <div className="hidden md:flex items-center gap-1 px-3 py-2 rounded-[25px] bg-[#6B7280]/20 dark:bg-muted/80 text-xs text-muted-foreground ml-auto">
           <Eye className="h-4 w-4" />
           <span>{post.views}</span>
         </div>
