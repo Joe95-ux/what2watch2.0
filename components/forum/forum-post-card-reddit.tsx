@@ -307,8 +307,13 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
 
       {/* Action Buttons - Under Tags */}
       <div className="flex items-center gap-2">
-        {/* Vote Buttons - Act like one button */}
-        <div className="flex items-center rounded-[25px] bg-[#6B7280]/20 dark:bg-muted/80 overflow-hidden">
+        {/* Vote Buttons - Reddit style: upvote | count | downvote */}
+        <div className={cn(
+          "flex items-center rounded-[25px] overflow-hidden transition-colors",
+          isUpvoted && "bg-orange-500/10",
+          isDownvoted && "bg-blue-500/10",
+          !isUpvoted && !isDownvoted && "bg-[#6B7280]/20 dark:bg-muted/80"
+        )}>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -316,15 +321,24 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
             }}
             disabled={toggleReaction.isPending}
             className={cn(
-              "flex items-center gap-1 px-4 py-2 transition-colors cursor-pointer",
-              isUpvoted ? "text-primary" : "hover:bg-[#6B7280]/30 dark:hover:bg-muted",
+              "flex items-center justify-center px-2 py-2 transition-colors cursor-pointer",
+              "hover:bg-[#6B7280]/30 dark:hover:bg-muted",
+              isUpvoted && "text-orange-500 hover:bg-orange-500/20",
               toggleReaction.isPending && "opacity-50 cursor-not-allowed"
             )}
           >
-            <BiSolidUpvote className={cn("h-4 w-4 [stroke-width:2px] stroke-current", isUpvoted ? "fill-white" : "fill-transparent")} />
-            {displayScore > 0 && <span className="text-sm">{displayScore}</span>}
+            <BiSolidUpvote className={cn(
+              "h-4 w-4 [stroke-width:2px] stroke-current",
+              isUpvoted ? "fill-orange-500 dark:fill-orange-500" : "fill-transparent dark:fill-transparent"
+            )} />
           </button>
-          <div className="h-6 w-px bg-border" />
+          <span className={cn(
+            "text-sm font-medium min-w-[2rem] text-center px-1",
+            isUpvoted && "text-orange-500",
+            isDownvoted && "text-blue-500"
+          )}>
+            {displayScore}
+          </span>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -332,12 +346,16 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
             }}
             disabled={toggleReaction.isPending}
             className={cn(
-              "flex items-center gap-1 px-4 py-2 transition-colors cursor-pointer",
-              isDownvoted ? "text-primary" : "hover:bg-[#6B7280]/30 dark:hover:bg-muted",
+              "flex items-center justify-center px-2 py-2 transition-colors cursor-pointer",
+              "hover:bg-[#6B7280]/30 dark:hover:bg-muted",
+              isDownvoted && "text-blue-500 hover:bg-blue-500/20",
               toggleReaction.isPending && "opacity-50 cursor-not-allowed"
             )}
           >
-            <BiSolidDownvote className={cn("h-4 w-4 [stroke-width:2px] stroke-current", isDownvoted ? "fill-white" : "fill-transparent")} />
+            <BiSolidDownvote className={cn(
+              "h-4 w-4 [stroke-width:2px] stroke-current",
+              isDownvoted ? "fill-blue-500 dark:fill-blue-500" : "fill-transparent dark:fill-transparent"
+            )} />
           </button>
         </div>
         
@@ -348,7 +366,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
           className="flex items-center gap-2 px-3 py-2 rounded-[25px] bg-[#6B7280]/20 dark:bg-muted/80 hover:bg-[#6B7280]/30 dark:hover:bg-muted transition-colors cursor-pointer"
         >
           <MessageCircle className="h-4 w-4" />
-          {post.replyCount > 0 && <span className="text-sm font-medium">{post.replyCount}</span>}
+          <span className="text-sm font-medium">{post.replyCount || 0}</span>
         </Link>
         
         {/* Share Button */}

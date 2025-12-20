@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -66,6 +66,9 @@ interface SettingsContentProps {
     notifyOnPlaylistUpdates: boolean;
     notifyOnActivityLikes: boolean;
     notifyOnMentions: boolean;
+    notifyOnForumReplies: boolean;
+    notifyOnForumMentions: boolean;
+    notifyOnForumSubscriptions: boolean;
   };
 }
 
@@ -78,9 +81,18 @@ export default function SettingsContent({
   notificationSettings: initialNotificationSettings 
 }: SettingsContentProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { theme, setTheme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [activeSection, setActiveSection] = useState<SettingsSection>("account");
+
+  // Check for section query parameter on mount
+  useEffect(() => {
+    const sectionParam = searchParams.get("section");
+    if (sectionParam && ["account", "preferences", "activity", "theme", "notifications"].includes(sectionParam)) {
+      setActiveSection(sectionParam as SettingsSection);
+    }
+  }, [searchParams]);
   const [activitySettings, setActivitySettings] = useState(initialActivitySettings);
   const [notificationSettings, setNotificationSettings] = useState(initialNotificationSettings);
   const [isSavingActivity, setIsSavingActivity] = useState(false);
@@ -467,6 +479,45 @@ export default function SettingsContent({
                         { key: "notifyOnPlaylistUpdates", label: "Playlist Updates", icon: Music, desc: "When playlists you follow are updated" },
                         { key: "notifyOnActivityLikes", label: "Activity Likes", icon: ThumbsUp, desc: "When someone likes your activity" },
                         { key: "notifyOnMentions", label: "Mentions", icon: AtSign, desc: "When someone mentions you" },
+                      ].map(({ key, label, icon: Icon, desc }) => (
+                        <div key={key} className="flex items-center justify-between py-3 border-b last:border-b-0">
+                          <div className="flex items-center gap-3 flex-1">
+                            <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <Label htmlFor={key} className="cursor-pointer text-sm font-medium">
+                                {label}
+                              </Label>
+                              <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+                            </div>
+                          </div>
+                          <Switch
+                            id={key}
+                            checked={notificationSettings[key as keyof typeof notificationSettings] as boolean}
+                            onCheckedChange={(checked) =>
+                              handleNotificationSettingsChange({ [key]: checked } as Partial<typeof notificationSettings>)
+                            }
+                            disabled={isSavingNotifications || !notificationSettings.emailNotifications && !notificationSettings.pushNotifications}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Forum Notification Types */}
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Forum Notifications</Label>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Control notifications for forum activity
+                      </p>
+                    </div>
+                    <div className="space-y-4">
+                      {[
+                        { key: "notifyOnForumReplies", label: "Forum Replies", icon: MessageSquare, desc: "When someone replies to your posts or comments" },
+                        { key: "notifyOnForumMentions", label: "Forum Mentions", icon: AtSign, desc: "When someone mentions you in a forum post or comment" },
+                        { key: "notifyOnForumSubscriptions", label: "Subscribed Posts", icon: Bell, desc: "When subscribed posts receive new activity" },
                       ].map(({ key, label, icon: Icon, desc }) => (
                         <div key={key} className="flex items-center justify-between py-3 border-b last:border-b-0">
                           <div className="flex items-center gap-3 flex-1">

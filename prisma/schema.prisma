@@ -43,6 +43,11 @@ model User {
   notifyOnActivityLikes Boolean @default(true)
   notifyOnMentions Boolean @default(true)
   
+  // Forum notification preferences
+  notifyOnForumReplies Boolean @default(true) // NEW_REPLY, REPLY_TO_REPLY
+  notifyOnForumMentions Boolean @default(true) // POST_MENTION, REPLY_MENTION
+  notifyOnForumSubscriptions Boolean @default(true) // POST_SUBSCRIPTION
+  
   // Admin & Moderation
   role            String   @default("USER") // "USER", "MODERATOR", "ADMIN", "SUPER_ADMIN"
   isForumModerator Boolean @default(false)

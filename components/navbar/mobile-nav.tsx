@@ -7,9 +7,14 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
 import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass } from "lucide-react";
 import { Youtube } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useForumNotifications } from "@/hooks/use-forum-notifications";
+import { useYouTubeNotifications } from "@/hooks/use-youtube-notifications";
+import { UnifiedNotificationCenterMobile } from "@/components/notifications/unified-notification-center-mobile";
 
 interface MobileNavProps {
   navLinks: Array<{ href: string; label: string }>;
@@ -23,6 +28,14 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
   const router = useRouter();
   const { setTheme, theme } = useTheme();
   const [isThemeOpen, setIsThemeOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  // Get unread notification counts
+  const { data: forumData } = useForumNotifications(false);
+  const { data: youtubeData } = useYouTubeNotifications(false);
+  const forumUnreadCount = forumData?.unreadCount || 0;
+  const youtubeUnreadCount = youtubeData?.unreadCount || 0;
+  const totalUnreadCount = forumUnreadCount + youtubeUnreadCount;
 
   const handleSignOut = async () => {
     await signOut();
@@ -58,21 +71,32 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
           );
         })}
         {isSignedIn && (
-          <Link
-            href="/notifications"
-            onClick={onLinkClick}
-            className={cn(
-              "relative mt-1 flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
-              "focus:bg-accent focus:text-accent-foreground",
-              "hover:bg-accent hover:text-accent-foreground",
-              pathname === "/notifications"
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground"
-            )}
-          >
-            <Bell className="mr-2 h-4 w-4" />
-            <span>Notifications</span>
-          </Link>
+          <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+            <SheetTrigger asChild>
+              <button
+                className={cn(
+                  "relative mt-1 flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
+                  "focus:bg-accent focus:text-accent-foreground",
+                  "hover:bg-accent hover:text-accent-foreground",
+                  "text-muted-foreground"
+                )}
+              >
+                <Bell className="mr-2 h-4 w-4" />
+                <span>Notifications</span>
+                {totalUnreadCount > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="ml-auto h-5 min-w-5 px-1.5 flex items-center justify-center text-xs"
+                  >
+                    {totalUnreadCount > 99 ? "99+" : totalUnreadCount}
+                  </Badge>
+                )}
+              </button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full sm:w-[400px] p-0 flex flex-col">
+              <UnifiedNotificationCenterMobile onClose={() => setNotificationsOpen(false)} />
+            </SheetContent>
+          </Sheet>
         )}
       </div>
 

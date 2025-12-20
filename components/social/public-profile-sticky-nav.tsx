@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { List, Star, Heart, Users, UserCheck, ClipboardList, MessageSquare } from "lucide-react";
 import { useRef, useEffect } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface PublicProfileStickyNavProps {
   activeTab: string;
@@ -17,6 +18,7 @@ interface PublicProfileStickyNavProps {
     discussions?: number;
   };
   isOwnProfile?: boolean;
+  isLoading?: boolean;
 }
 
 const tabs = [
@@ -34,7 +36,8 @@ export default function PublicProfileStickyNav({
   onTabChange,
   isScrolled,
   counts = {},
-  isOwnProfile = false
+  isOwnProfile = false,
+  isLoading = false
 }: PublicProfileStickyNavProps) {
   const navRef = useRef<HTMLDivElement>(null);
   const activeTabRef = useRef<HTMLButtonElement>(null);
@@ -87,31 +90,39 @@ export default function PublicProfileStickyNav({
           : "bg-transparent"
       )}
     >
-      <div className="max-w-[70rem] mx-auto px-4 sm:px-6">
+      <div className="max-w-[70rem] mx-auto">
         <div className="flex items-center gap-8 overflow-x-auto scrollbar-hide scroll-smooth">
-          {visibleTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                ref={isActive ? activeTabRef : null}
-                onClick={() => onTabChange(tab.id)}
-                className={cn(
-                  "relative py-4 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2 flex-shrink-0",
-                  isActive
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {getTabLabel(tab)}
-                {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                )}
-              </button>
-            );
-          })}
+          {isLoading ? (
+            <>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-20 flex-shrink-0" />
+              ))}
+            </>
+          ) : (
+            visibleTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  ref={isActive ? activeTabRef : null}
+                  onClick={() => onTabChange(tab.id)}
+                  className={cn(
+                    "relative py-4 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2 flex-shrink-0",
+                    isActive
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {getTabLabel(tab)}
+                  {isActive && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                  )}
+                </button>
+              );
+            })
+          )}
         </div>
       </div>
     </div>

@@ -33,6 +33,9 @@ export default async function SettingsPage() {
       notifyOnPlaylistUpdates: true,
       notifyOnActivityLikes: true,
       notifyOnMentions: true,
+      notifyOnForumReplies: true,
+      notifyOnForumMentions: true,
+      notifyOnForumSubscriptions: true,
       preferences: {
         select: {
           favoriteGenres: true,
@@ -68,6 +71,9 @@ export default async function SettingsPage() {
       notifyOnPlaylistUpdates: user.notifyOnPlaylistUpdates ?? true,
       notifyOnActivityLikes: user.notifyOnActivityLikes ?? true,
       notifyOnMentions: user.notifyOnMentions ?? true,
+      notifyOnForumReplies: user.notifyOnForumReplies ?? true,
+      notifyOnForumMentions: user.notifyOnForumMentions ?? true,
+      notifyOnForumSubscriptions: user.notifyOnForumSubscriptions ?? true,
     }}
   />;
 }

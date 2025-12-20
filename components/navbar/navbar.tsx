@@ -6,8 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { YouTubeNotificationCenter } from "@/components/youtube/youtube-notification-center";
-import { ForumNotificationCenter } from "@/components/forum/forum-notification-center";
+import { UnifiedNotificationCenter } from "@/components/notifications/unified-notification-center";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import Logo from "@/components/Logo";
 import Search from "./search";
@@ -151,13 +150,12 @@ export default function Navbar() {
                 <div className="flex items-center gap-2">
                   {isSignedIn ? (
                     <>
-                      {/* Notification Centers */}
+                      {/* Unified Notification Center */}
                       <div className={cn(
-                        "hidden md:inline-flex items-center gap-1",
+                        "hidden md:inline-flex",
                         hasHeroSection && "[&_button]:hover:bg-black/20 [&_button]:text-white"
                       )}>
-                        <ForumNotificationCenter />
-                        <YouTubeNotificationCenter />
+                        <UnifiedNotificationCenter />
                       </div>
                       <UserButton
                         afterSignOutUrl="/"
@@ -198,12 +196,12 @@ export default function Navbar() {
               <div className="flex items-center gap-2">
                 {isSignedIn ? (
                   <>
-                    {/* Forum Notification Center */}
+                    {/* Unified Notification Center */}
                     <div className={cn(
                       "hidden md:inline-flex",
                       hasHeroSection && "[&_button]:hover:bg-black/20 [&_button]:text-white"
                     )}>
-                      <ForumNotificationCenter />
+                      <UnifiedNotificationCenter />
                     </div>
                     <UserButton
                       afterSignOutUrl="/"

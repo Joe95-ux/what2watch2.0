@@ -26,6 +26,9 @@ export async function GET(): Promise<NextResponse<{ settings: unknown } | { erro
         notifyOnPlaylistUpdates: true,
         notifyOnActivityLikes: true,
         notifyOnMentions: true,
+        notifyOnForumReplies: true,
+        notifyOnForumMentions: true,
+        notifyOnForumSubscriptions: true,
       },
     });
 
@@ -46,6 +49,9 @@ export async function GET(): Promise<NextResponse<{ settings: unknown } | { erro
         notifyOnPlaylistUpdates: user.notifyOnPlaylistUpdates ?? true,
         notifyOnActivityLikes: user.notifyOnActivityLikes ?? true,
         notifyOnMentions: user.notifyOnMentions ?? true,
+        notifyOnForumReplies: user.notifyOnForumReplies ?? true,
+        notifyOnForumMentions: user.notifyOnForumMentions ?? true,
+        notifyOnForumSubscriptions: user.notifyOnForumSubscriptions ?? true,
       },
     });
   } catch (error) {
@@ -79,6 +85,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
       notifyOnPlaylistUpdates,
       notifyOnActivityLikes,
       notifyOnMentions,
+      notifyOnForumReplies,
+      notifyOnForumMentions,
+      notifyOnForumSubscriptions,
     } = body;
 
     const user = await db.user.findUnique({
@@ -105,6 +114,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
         ...(notifyOnPlaylistUpdates !== undefined && { notifyOnPlaylistUpdates }),
         ...(notifyOnActivityLikes !== undefined && { notifyOnActivityLikes }),
         ...(notifyOnMentions !== undefined && { notifyOnMentions }),
+        ...(notifyOnForumReplies !== undefined && { notifyOnForumReplies }),
+        ...(notifyOnForumMentions !== undefined && { notifyOnForumMentions }),
+        ...(notifyOnForumSubscriptions !== undefined && { notifyOnForumSubscriptions }),
       },
     });
 

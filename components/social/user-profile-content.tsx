@@ -70,8 +70,8 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
     enabled: !!userId,
   });
 
-  const { data: followersData } = useUserFollowers(userId);
-  const { data: followingData } = useUserFollowing(userId);
+  const { data: followersData, isLoading: isLoadingFollowers } = useUserFollowers(userId);
+  const { data: followingData, isLoading: isLoadingFollowing } = useUserFollowing(userId);
   const { data: playlistsData, isLoading: isLoadingPlaylists } = useQuery({
     queryKey: ["user", userId, "playlists"],
     queryFn: async () => {
@@ -217,13 +217,55 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   if (isLoadingUser) {
     return (
       <div className="min-h-screen bg-background">
+        {/* Banner Skeleton */}
         <div className="relative h-[200px] sm:h-[250px] overflow-hidden">
           <Skeleton className="w-full h-full" />
         </div>
-        <div className="container max-w-4xl mx-auto px-4 sm:px-6">
-          <Skeleton className="h-32 w-32 rounded-full -mt-16 mb-4" />
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-32 mb-4" />
+        
+        {/* Profile Info Skeleton */}
+        <div className="container max-w-[70rem] mx-auto px-4 sm:px-6">
+          {/* Avatar Skeleton */}
+          <div className="relative -mt-16 sm:-mt-20 mb-4">
+            <Skeleton className="h-24 w-24 sm:h-32 sm:w-32 rounded-full" />
+          </div>
+
+          {/* Profile Info Skeleton */}
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4">
+            <div className="flex-1 min-w-0">
+              <Skeleton className="h-8 w-48 mb-2" />
+              <Skeleton className="h-5 w-32 mb-3" />
+              <Skeleton className="h-4 w-full max-w-md mb-2" />
+              <Skeleton className="h-4 w-3/4 max-w-sm mb-3" />
+              {/* Stats Skeleton */}
+              <div className="flex items-center gap-4 flex-wrap">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+            </div>
+            <div className="flex-shrink-0">
+              <Skeleton className="h-10 w-24" />
+            </div>
+          </div>
+
+          {/* Tabs Skeleton */}
+          <div className="sticky top-[65px] z-40 bg-transparent mb-6">
+            <div className="flex items-center gap-8 overflow-x-auto">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-20 flex-shrink-0" />
+              ))}
+            </div>
+          </div>
+
+          {/* Tab Content Skeleton */}
+          <div className="py-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="aspect-[3/4] w-full rounded-lg" />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -470,11 +512,45 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
       {activeTab === "discussions" && (
         <>
           {isLoadingForumStats ? (
-            <div className="space-y-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-32 w-full rounded-lg" />
-              ))}
-            </div>
+            <>
+              {/* Stats Skeleton */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="p-4 rounded-lg border bg-card">
+                    <Skeleton className="h-5 w-16 mb-2" />
+                    <Skeleton className="h-8 w-12" />
+                  </div>
+                ))}
+              </div>
+              {/* Recent Posts Skeleton */}
+              <div className="mb-6">
+                <Skeleton className="h-6 w-32 mb-4" />
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="p-4 rounded-lg border bg-card">
+                      <Skeleton className="h-5 w-full mb-2" />
+                      <div className="flex items-center gap-3 mt-2">
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-4 w-16" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Recent Replies Skeleton */}
+              <div>
+                <Skeleton className="h-6 w-32 mb-4" />
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="p-4 rounded-lg border bg-card">
+                      <Skeleton className="h-5 w-full mb-2" />
+                      <Skeleton className="h-4 w-24 mt-2" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
           ) : (
             <>
               {/* Stats Overview */}
@@ -514,12 +590,12 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
                       </Button>
                     </Link>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {recentPosts.map((post: any) => (
                       <Link
                         key={post.id}
                         href={`/forum/posts/${post.slug}`}
-                        className="block p-4 rounded-lg border bg-card hover:border-primary/50 transition-colors"
+                        className="block pb-4 border-b hover:bg-muted/30 transition-colors"
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
@@ -557,12 +633,12 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
                       </Button>
                     </Link>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {recentReplies.map((reply: any) => (
                       <Link
                         key={reply.id}
                         href={`/forum/posts/${reply.postSlug}`}
-                        className="block p-4 rounded-lg border bg-card hover:border-primary/50 transition-colors"
+                        className="block pb-4 border-b hover:bg-muted/30 transition-colors"
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
@@ -697,7 +773,20 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
 
       {activeTab === "followers" && (
         <div>
-          {followers.length === 0 ? (
+          {isLoadingFollowers ? (
+            <div className="space-y-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 p-4 rounded-lg border bg-card">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  <Skeleton className="h-9 w-20" />
+                </div>
+              ))}
+            </div>
+          ) : followers.length === 0 ? (
             <div className="text-center py-12">
               <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No followers yet</h3>
@@ -736,7 +825,20 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
 
       {activeTab === "following" && (
         <div>
-          {following.length === 0 ? (
+          {isLoadingFollowing ? (
+            <div className="space-y-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 p-4 rounded-lg border bg-card">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  <Skeleton className="h-9 w-20" />
+                </div>
+              ))}
+            </div>
+          ) : following.length === 0 ? (
             <div className="text-center py-12">
               <UserCheck className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">Not following anyone</h3>
@@ -863,6 +965,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
               discussions: forumStats.postCount + forumStats.replyCount,
             }}
             isOwnProfile={isOwnProfile}
+            isLoading={isLoadingUser}
           />
 
           {/* Tab Content */}

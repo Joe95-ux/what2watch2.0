@@ -124,15 +124,14 @@ export function RecentPosts({ excludePostId, limit = 5 }: RecentPostsProps) {
               </h4>
               
               {/* Stats */}
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <BiSolidUpvote className="h-4 w-4 [stroke-width:2px] stroke-current fill-transparent" />
-                  <span>{post.score > 0 ? post.score : 0}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <MessageCircle className="size-4" />
-                  <span>{post.replyCount || 0}</span>
-                </div>
+              <div className="text-xs text-muted-foreground">
+                <span>
+                  {post.score || 0} {(post.score || 0) === 1 ? "upvote" : "upvotes"}
+                </span>
+                {(post.score || 0) > 0 || (post.replyCount || 0) > 0 ? <span className="mx-1">•</span> : null}
+                <span>
+                  {post.replyCount || 0} {(post.replyCount || 0) === 1 ? "comment" : "comments"}
+                </span>
               </div>
             </div>
           </Link>
