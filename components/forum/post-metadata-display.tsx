@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bug, Lightbulb, Music, List, Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ForumPostEmbeddedCard } from "./forum-post-embedded-card";
+import { extractPlaylistId, extractListId } from "@/lib/forum-url-parser";
 
 interface PostMetadataDisplayProps {
   metadata: Record<string, any> | null | undefined;
@@ -120,6 +122,8 @@ export function PostMetadataDisplay({ metadata, categorySlug }: PostMetadataDisp
 
   // Playlist Display
   if (slug === "playlists" || slug === "playlists-lists" || slug === "playlists-&-lists") {
+    const playlistId = metadata.playlistLink ? extractPlaylistId(metadata.playlistLink) : null;
+    
     return (
       <Card className="border-l-4 border-l-purple-500">
         <CardHeader className="pb-3">
@@ -129,7 +133,17 @@ export function PostMetadataDisplay({ metadata, categorySlug }: PostMetadataDisp
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
-          {metadata.playlistLink && (
+          {playlistId ? (
+            <div className="space-y-3">
+              <ForumPostEmbeddedCard urlOrId={playlistId} type="playlist" />
+              {metadata.whyRecommend && (
+                <div>
+                  <span className="font-medium text-muted-foreground">Why Recommend:</span>
+                  <div className="mt-1 whitespace-pre-wrap text-foreground">{metadata.whyRecommend}</div>
+                </div>
+              )}
+            </div>
+          ) : metadata.playlistLink ? (
             <div>
               <span className="font-medium text-muted-foreground">Playlist: </span>
               <a
@@ -141,8 +155,8 @@ export function PostMetadataDisplay({ metadata, categorySlug }: PostMetadataDisp
                 View Playlist
               </a>
             </div>
-          )}
-          {metadata.whyRecommend && (
+          ) : null}
+          {metadata.whyRecommend && !playlistId && (
             <div>
               <span className="font-medium text-muted-foreground">Why Recommend:</span>
               <div className="mt-1 whitespace-pre-wrap text-foreground">{metadata.whyRecommend}</div>
@@ -155,6 +169,8 @@ export function PostMetadataDisplay({ metadata, categorySlug }: PostMetadataDisp
 
   // List Display
   if (slug === "lists" || slug === "curated-lists") {
+    const listId = metadata.listLink ? extractListId(metadata.listLink) : null;
+    
     return (
       <Card className="border-l-4 border-l-green-500">
         <CardHeader className="pb-3">
@@ -164,7 +180,25 @@ export function PostMetadataDisplay({ metadata, categorySlug }: PostMetadataDisp
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
-          {metadata.listLink && (
+          {listId ? (
+            <div className="space-y-3">
+              <ForumPostEmbeddedCard urlOrId={listId} type="list" />
+              {metadata.listType && (
+                <div>
+                  <span className="font-medium text-muted-foreground">Type: </span>
+                  <Badge variant="outline" className="ml-2">
+                    {metadata.listType.charAt(0).toUpperCase() + metadata.listType.slice(1)}
+                  </Badge>
+                </div>
+              )}
+              {metadata.whyRecommend && (
+                <div>
+                  <span className="font-medium text-muted-foreground">Why Recommend:</span>
+                  <div className="mt-1 whitespace-pre-wrap text-foreground">{metadata.whyRecommend}</div>
+                </div>
+              )}
+            </div>
+          ) : metadata.listLink ? (
             <div>
               <span className="font-medium text-muted-foreground">List: </span>
               <a
@@ -176,8 +210,8 @@ export function PostMetadataDisplay({ metadata, categorySlug }: PostMetadataDisp
                 View List
               </a>
             </div>
-          )}
-          {metadata.listType && (
+          ) : null}
+          {metadata.listType && !listId && (
             <div>
               <span className="font-medium text-muted-foreground">Type: </span>
               <Badge variant="outline" className="ml-2">
@@ -185,7 +219,7 @@ export function PostMetadataDisplay({ metadata, categorySlug }: PostMetadataDisp
               </Badge>
             </div>
           )}
-          {metadata.whyRecommend && (
+          {metadata.whyRecommend && !listId && (
             <div>
               <span className="font-medium text-muted-foreground">Why Recommend:</span>
               <div className="mt-1 whitespace-pre-wrap text-foreground">{metadata.whyRecommend}</div>

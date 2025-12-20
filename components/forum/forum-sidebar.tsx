@@ -9,6 +9,7 @@ import {
   Filter, 
   TrendingUp, 
   BookOpen,
+  Bookmark,
   ChevronLeft, 
   ChevronRight,
   ChevronDown,
@@ -30,6 +31,7 @@ import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Link from "next/link";
 import { CategoryCustomizeModal } from "./category-customize-modal";
+import { useUser } from "@clerk/nextjs";
 
 interface ForumSidebarProps {
   mobileOpen?: boolean;
@@ -95,6 +97,22 @@ export function ForumSidebar({
       return response.json();
     },
   });
+
+  const { isSignedIn } = useUser();
+
+  // Check if user has bookmarks
+  const { data: bookmarksData } = useQuery({
+    queryKey: ["forum-bookmarks-count"],
+    queryFn: async () => {
+      const response = await fetch("/api/forum/bookmarks?page=1&limit=1");
+      if (!response.ok) return { pagination: { total: 0 } };
+      return response.json();
+    },
+    enabled: isSignedIn,
+    staleTime: 60 * 1000, // 1 minute
+  });
+
+  const hasBookmarks = (bookmarksData?.pagination?.total || 0) > 0;
 
   // Fetch user's category preferences
   const { data: preferencesData } = useQuery({
@@ -310,6 +328,33 @@ export function ForumSidebar({
               </TooltipContent>
             )}
           </Tooltip>
+
+          {/* Bookmarks - Only show if user has bookmarks */}
+          {hasBookmarks && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={pathname === "/forum/bookmarks" ? "secondary" : "ghost"}
+                  className={cn(
+                    "w-full transition-all cursor-pointer",
+                    shouldShowCollapsed ? "justify-center p-2" : "justify-start gap-3"
+                  )}
+                  onClick={() => {
+                    router.push("/forum/bookmarks");
+                    if (isMobile) setIsOpen(false);
+                  }}
+                >
+                  <Bookmark className="h-4 w-4" />
+                  {!shouldShowCollapsed && <span>Bookmarks</span>}
+                </Button>
+              </TooltipTrigger>
+              {shouldShowCollapsed && (
+                <TooltipContent side="right">
+                  <span>Bookmarks</span>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          )}
 
           <Tooltip>
             <TooltipTrigger asChild>

@@ -21,11 +21,14 @@ import { useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { EditPostDialog } from "./edit-post-dialog";
 import { ReportDialog } from "./report-dialog";
 import { SafeHtmlContent } from "./safe-html-content";
+import { extractAllLinks } from "@/lib/forum-link-extractor";
+import { LinkSelectorModal } from "./link-selector-modal";
+import { Link as LinkIcon } from "lucide-react";
 
 interface ForumPost {
   id: string;
@@ -35,6 +38,7 @@ interface ForumPost {
   tags: string[];
   tmdbId?: number;
   mediaType?: string;
+  metadata?: Record<string, any> | null;
   category?: {
     id: string;
     name: string;
@@ -67,6 +71,24 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+
+  // Extract links from post content and metadata
+  const extractedLinks = useMemo(() => {
+    return extractAllLinks(post.content, post.metadata as Record<string, any> | null);
+  }, [post.content, post.metadata]);
+
+  const handleLinkClick = () => {
+    if (extractedLinks.length === 0) return;
+    
+    if (extractedLinks.length === 1) {
+      // Single link - open directly
+      window.open(extractedLinks[0].url, "_blank", "noopener,noreferrer");
+    } else {
+      // Multiple links - show modal
+      setIsLinkModalOpen(true);
+    }
+  };
   
   const isAuthor = currentUser?.id === post.author.id;
   const getInitials = (name: string) => {
@@ -285,8 +307,8 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
         </div>
       </Link>
 
-      {/* Tags */}
-      {post.tags.length > 0 && (
+      {/* Tags and Links */}
+      {(post.tags.length > 0 || extractedLinks.length > 0) && (
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           {post.tags.slice(0, 3).map((tag) => (
             <Link
@@ -301,6 +323,18 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
           ))}
           {post.tags.length > 3 && (
             <span className="text-xs text-muted-foreground">+{post.tags.length - 3} more</span>
+          )}
+          {extractedLinks.length > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLinkClick();
+              }}
+              className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted hover:bg-muted/80 text-xs rounded-full transition-colors cursor-pointer"
+            >
+              <LinkIcon className="h-3 w-3" />
+              {extractedLinks.length} {extractedLinks.length === 1 ? "link" : "links"}
+            </button>
           )}
         </div>
       )}
@@ -404,6 +438,13 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
         onSubmit={handleReport}
         type="post"
         isPending={isReporting}
+      />
+
+      {/* Link Selector Modal */}
+      <LinkSelectorModal
+        links={extractedLinks}
+        open={isLinkModalOpen}
+        onOpenChange={setIsLinkModalOpen}
       />
     </div>
   );
