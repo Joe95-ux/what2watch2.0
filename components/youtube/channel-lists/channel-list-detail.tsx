@@ -270,7 +270,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
     }
   };
 
-  const ownerName = list.user?.displayName || list.user?.username || "Curator";
+  const ownerName = list.user?.username || list.user?.displayName || "Curator";
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
 
   const handleSocialShare = (platform: "facebook" | "twitter" | "whatsapp" | "email" | "link") => {

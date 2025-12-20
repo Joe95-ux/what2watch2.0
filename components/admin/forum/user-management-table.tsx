@@ -253,7 +253,7 @@ export function UserManagementTable() {
               users.map((user: any) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.username || "N/A"}</TableCell>
-                  <TableCell>{user.displayName || user.username || "N/A"}</TableCell>
+                  <TableCell>{user.username || user.displayName || "N/A"}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Select

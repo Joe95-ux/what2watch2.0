@@ -732,7 +732,7 @@ export default function WatchlistView({
                     <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 ring-primary transition-all">
                       <AvatarImage
                         src={user.avatarUrl || undefined}
-                        alt={user.displayName || user.username || "User"}
+                        alt={user.username || user.displayName || "User"}
                       />
                       <AvatarFallback>
                         {(user.displayName ||
@@ -764,7 +764,7 @@ export default function WatchlistView({
               <p className="text-base sm:text-lg text-muted-foreground mb-4 max-w-2xl">
                 {user && !isOwner
                   ? `A collection of movies and TV shows ${
-                      user.displayName || user.username || "this user"
+                      user.username || user.displayName || "this user"
                     } wants to watch.`
                   : "Your personal collection of movies and TV shows you want to watch. Save titles as you discover them, organize your viewing queue, and never lose track of what to watch next."}
               </p>

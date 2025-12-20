@@ -74,7 +74,7 @@ export async function POST(
       // Send email to content owner
       if (report.post.user.emailNotifications && report.post.user.email) {
         const emailHtml = getAppealSubmittedEmail({
-          contentOwnerName: report.post.user.displayName || report.post.user.username || "User",
+          contentOwnerName: report.post.user.username || report.post.user.displayName || "User",
           contentType: "post",
           contentTitle: report.post.title,
           appealUrl: `${baseUrl}/dashboard/reports`,
@@ -153,7 +153,7 @@ export async function POST(
       // Send email to content owner
       if (report.reply.user.emailNotifications && report.reply.user.email) {
         const emailHtml = getAppealSubmittedEmail({
-          contentOwnerName: report.reply.user.displayName || report.reply.user.username || "User",
+          contentOwnerName: report.reply.user.username || report.reply.user.displayName || "User",
           contentType: "reply",
           appealUrl: `${baseUrl}/dashboard/reports`,
         });

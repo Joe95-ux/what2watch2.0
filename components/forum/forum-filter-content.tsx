@@ -443,7 +443,7 @@ function ForumFilterContentInner({
                                   >
                                     <AvatarImage src={contributor.avatarUrl} />
                                     <AvatarFallback className="text-xs">
-                                      {getInitials(contributor.displayName || contributor.username)}
+                                      {getInitials(contributor.username || contributor.displayName)}
                                     </AvatarFallback>
                                   </Avatar>
                                 ))}

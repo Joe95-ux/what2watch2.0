@@ -33,7 +33,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
         data: {
           clerkId: userId,
           email: clerkUser.email_addresses[0]?.email_address || "",
-          displayName: clerkUser.first_name || clerkUser.username || null,
+          displayName: clerkUser.username || clerkUser.first_name || null,
           username: clerkUser.username || null,
           avatarUrl: clerkUser.image_url || null,
         },

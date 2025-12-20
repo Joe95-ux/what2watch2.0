@@ -442,7 +442,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={currentUser?.avatarUrl || undefined} alt={currentUser?.displayName || ""} />
                   <AvatarFallback>
-                    {(currentUser?.displayName || currentUser?.username || "U")[0].toUpperCase()}
+                    {(currentUser?.username || currentUser?.displayName || "U")[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 {/* Online Status Indicator */}
@@ -450,7 +450,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
               <div className="flex flex-col min-w-0 flex-1">
                 <p className="text-sm font-medium truncate">
-                  {currentUser?.displayName || currentUser?.username || "User"}
+                  {currentUser?.username || currentUser?.displayName || "User"}
                 </p>
                 <p className="text-xs text-muted-foreground">Online</p>
               </div>

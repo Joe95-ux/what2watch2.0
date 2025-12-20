@@ -139,7 +139,7 @@ export default function DashboardContent() {
     };
   }, [favorites, playlists, recentlyViewed, playlistAnalytics]);
 
-  const displayName = user?.fullName || user?.firstName || "User";
+  const displayName = user?.username || user?.fullName || user?.firstName || "User";
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good morning";

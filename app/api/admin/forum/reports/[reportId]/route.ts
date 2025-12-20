@@ -87,7 +87,7 @@ export async function PATCH(
       // Send email notification to post owner
       if (report.post.user.emailNotifications && report.post.user.email) {
         const emailHtml = getReportReviewedEmail({
-          contentOwnerName: report.post.user.displayName || report.post.user.username || "User",
+          contentOwnerName: report.post.user.username || report.post.user.displayName || "User",
           contentType: "post",
           contentTitle: report.post.title,
           action: action === "approve" ? "approved" : "rejected",
@@ -139,7 +139,7 @@ export async function PATCH(
       // Send email notification to reply owner
       if (report.reply.user.emailNotifications && report.reply.user.email) {
         const emailHtml = getReportReviewedEmail({
-          contentOwnerName: report.reply.user.displayName || report.reply.user.username || "User",
+          contentOwnerName: report.reply.user.username || report.reply.user.displayName || "User",
           contentType: "reply",
           action: action === "approve" ? "approved" : "rejected",
           reviewNotes: reviewNotes || undefined,

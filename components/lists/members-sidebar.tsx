@@ -79,7 +79,7 @@ export function MembersSidebar() {
           ) : (
             <div className="space-y-3">
               {users.map((user) => {
-                const displayName = user.displayName || user.username || "Unknown";
+                const displayName = user.username || user.displayName || "Unknown";
                 const username = user.username || user.id.slice(0, 8);
                 const initials = displayName
                   .split(" ")

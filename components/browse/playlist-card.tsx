@@ -93,7 +93,7 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
 
   const posters = getPlaylistPosters();
   const itemCount = (playlist._count?.items || playlist.items?.length || 0) + (playlist._count?.youtubeItems || playlist.youtubeItems?.length || 0);
-  const displayName = playlist.user?.displayName || playlist.user?.username || "Unknown";
+  const displayName = playlist.user?.username || playlist.user?.displayName || "Unknown";
 
   return (
     <div

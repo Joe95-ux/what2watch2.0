@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://what2watch2-0.vercel.app";
     const url = `${siteUrl}/playlists/${playlistId}/public`;
     const title = playlist.name;
-    const description = playlist.description || `A playlist with ${playlist._count.items} items by ${playlist.user?.displayName || playlist.user?.username || "a user"}`;
+    const description = playlist.description || `A playlist with ${playlist._count.items} items by ${playlist.user?.username || playlist.user?.displayName || "a user"}`;
     
     // Get first item's poster for OG image if available
     const firstItem = await db.playlistItem.findFirst({

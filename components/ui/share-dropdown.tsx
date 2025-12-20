@@ -93,7 +93,7 @@ export function ShareDropdown({
       <DropdownMenuTrigger asChild>
         <Button variant={variant} size={size} className={className}>
           <FaShare className="h-4 w-4" />
-          {showLabel && "Share"}
+          {showLabel && <span className="hidden md:inline">Share</span>}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">

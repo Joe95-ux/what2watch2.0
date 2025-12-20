@@ -109,9 +109,9 @@ export function ForumBookmarksPageClient() {
             {/* Header with Create Post Button */}
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h1 className="text-2xl font-bold">Bookmarked Posts</h1>
+                <h1 className="text-2xl font-bold">Saved Posts</h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {pagination ? `${pagination.total} bookmarked ${pagination.total === 1 ? "post" : "posts"}` : "Your saved posts"}
+                  {pagination ? `${pagination.total} saved ${pagination.total === 1 ? "post" : "posts"}` : "Your saved posts"}
                 </p>
               </div>
               {isSignedIn && (

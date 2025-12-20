@@ -118,7 +118,7 @@ export async function GET(
           author: {
             id: reply.user.id,
             username: reply.user.username,
-            displayName: reply.user.displayName || reply.user.username,
+            displayName: reply.user.username || reply.user.displayName,
             avatarUrl: reply.user.avatarUrl,
           },
           parentReplyId: reply.parentReplyId,
@@ -152,7 +152,7 @@ export async function GET(
         author: {
           id: post.user.id,
           username: post.user.username,
-          displayName: post.user.displayName || post.user.username,
+          displayName: post.user.username || post.user.displayName,
           avatarUrl: post.user.avatarUrl,
         },
         replies: formatReplies(topLevelReplies),

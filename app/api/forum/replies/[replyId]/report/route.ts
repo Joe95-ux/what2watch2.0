@@ -107,7 +107,7 @@ export async function POST(
       const contentPreview = reply.content.length > 200 ? reply.content.substring(0, 200) + "..." : reply.content;
       
       const emailHtml = getContentReportedEmail({
-        contentOwnerName: reply.user.displayName || reply.user.username || "User",
+        contentOwnerName: reply.user.username || reply.user.displayName || "User",
         contentType: "reply",
         contentPreview,
         reportReason: reason.trim(),

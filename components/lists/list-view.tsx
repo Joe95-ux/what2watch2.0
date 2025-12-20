@@ -676,7 +676,7 @@ export default function ListView({
                     <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 ring-primary transition-all">
                       <AvatarImage
                         src={list.user.avatarUrl || undefined}
-                        alt={list.user.displayName || list.user.username || "User"}
+                        alt={list.user.username || list.user.displayName || "User"}
                       />
                       <AvatarFallback>
                         {(list.user.displayName ||

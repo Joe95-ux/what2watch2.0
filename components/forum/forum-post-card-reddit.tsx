@@ -252,7 +252,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
               onClick={(e) => e.stopPropagation()}
               className="hover:underline font-medium text-foreground"
             >
-              {post.author.displayName}
+              {post.author.username || post.author.displayName}
             </Link>
             <span>•</span>
             <span>{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>

@@ -283,7 +283,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
     );
   }
 
-  const displayName = user.displayName || user.username || "Unknown User";
+  const displayName = user.username || user.displayName || "Unknown User";
   const initials = displayName
     .split(" ")
     .map((n: string) => n[0])
@@ -799,13 +799,13 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
                 return (
                   <div key={follower.id} className="flex items-center gap-4 p-4 rounded-lg border bg-card">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src={follower.avatarUrl || undefined} alt={follower.displayName || ""} />
+                      <AvatarImage src={follower.avatarUrl || undefined} alt={follower.username || follower.displayName || ""} />
                       <AvatarFallback>
-                        {(follower.displayName || follower.username || "U")[0].toUpperCase()}
+                        {(follower.username || follower.displayName || "U")[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{follower.displayName || follower.username || "Unknown"}</p>
+                      <p className="font-semibold truncate">{follower.username || follower.displayName || "Unknown"}</p>
                       {follower.username && (
                         <p className="text-sm text-muted-foreground truncate">@{follower.username}</p>
                       )}
@@ -851,13 +851,13 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
                 return (
                   <div key={user.id} className="flex items-center gap-4 p-4 rounded-lg border bg-card">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src={user.avatarUrl || undefined} alt={user.displayName || ""} />
+                      <AvatarImage src={user.avatarUrl || undefined} alt={user.username || user.displayName || ""} />
                       <AvatarFallback>
-                        {(user.displayName || user.username || "U")[0].toUpperCase()}
+                        {(user.username || user.displayName || "U")[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{user.displayName || user.username || "Unknown"}</p>
+                      <p className="font-semibold truncate">{user.username || user.displayName || "Unknown"}</p>
                       {user.username && (
                         <p className="text-sm text-muted-foreground truncate">@{user.username}</p>
                       )}

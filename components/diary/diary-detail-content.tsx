@@ -271,7 +271,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                   <div className="relative w-10 h-10 rounded-full overflow-hidden">
                     <Image
                       src={user.avatarUrl}
-                      alt={user.displayName || user.username}
+                      alt={user.username || user.displayName}
                       fill
                       className="object-cover"
                       unoptimized
@@ -280,12 +280,12 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
                     <span className="text-sm font-medium">
-                      {(user.displayName || user.username)[0].toUpperCase()}
+                      {(user.username || user.displayName)[0].toUpperCase()}
                     </span>
                   </div>
                 )}
                 <div>
-                  <p className="font-semibold">Review by {user.displayName || user.username}</p>
+                  <p className="font-semibold">Review by {user.username || user.displayName}</p>
                   <p className="text-sm text-muted-foreground">@{user.username}</p>
                 </div>
               </div>
@@ -1396,7 +1396,7 @@ function CommentItem({
           <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
             <Image
               src={comment.user.avatarUrl}
-              alt={comment.user.displayName || comment.user.username}
+              alt={comment.user.username || comment.user.displayName}
               fill
               className="object-cover"
               unoptimized
@@ -1405,7 +1405,7 @@ function CommentItem({
         ) : (
           <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
             <span className="text-xs font-medium">
-              {(comment.user.displayName || comment.user.username)[0].toUpperCase()}
+              {(comment.user.username || comment.user.displayName)[0].toUpperCase()}
             </span>
           </div>
         )}
@@ -1415,7 +1415,7 @@ function CommentItem({
           <div className="flex items-start justify-between gap-2 mb-1">
             <div>
               <span className="font-semibold text-sm">
-                {comment.user.displayName || comment.user.username}
+                {comment.user.username || comment.user.displayName}
               </span>
               <span className="text-xs text-muted-foreground ml-2">
                 {formatTimeAgo(comment.createdAt)}
@@ -1584,7 +1584,7 @@ function CommentItem({
                 )}
                 <div className="flex-1">
                   <Textarea
-                    placeholder={`Reply to ${comment.user.displayName || comment.user.username}...`}
+                    placeholder={`Reply to ${comment.user.username || comment.user.displayName}...`}
                     rows={2}
                     className="resize-none text-sm"
                     value={replyContent}

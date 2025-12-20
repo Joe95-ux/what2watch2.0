@@ -165,7 +165,7 @@ export default function PublicListsContent() {
                       </td>
                       <td className="p-4">
                         <span className="text-sm">
-                          {list.user?.displayName || list.user?.username || "Unknown"}
+                          {list.user?.username || list.user?.displayName || "Unknown"}
                         </span>
                       </td>
                       <td className="p-4">

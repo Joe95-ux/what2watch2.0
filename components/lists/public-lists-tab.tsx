@@ -281,7 +281,7 @@ export default function PublicListsTab() {
                       </td>
                       <td className="p-4">
                         <span className="text-sm">
-                          {item.user?.displayName || item.user?.username || "Unknown"}
+                          {item.user?.username || item.user?.displayName || "Unknown"}
                         </span>
                       </td>
                       <td className="p-4">

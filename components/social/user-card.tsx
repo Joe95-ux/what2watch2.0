@@ -13,7 +13,7 @@ interface UserCardProps {
 }
 
 export function UserCard({ user, showFollowButton = true, showFollowedAt = false }: UserCardProps) {
-  const displayName = user.displayName || user.username || "Unknown User";
+  const displayName = user.username || user.displayName || "Unknown User";
   const initials = displayName
     .split(" ")
     .map((n) => n[0])

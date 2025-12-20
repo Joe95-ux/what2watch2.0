@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 
 /**
- * GET - Get user's bookmarked posts
+ * GET - Get user's bookmarked replies
  */
 export async function GET(request: NextRequest) {
   try {
@@ -28,10 +28,10 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     const [bookmarks, total] = await Promise.all([
-      db.forumBookmark.findMany({
+      db.forumReplyBookmark.findMany({
         where: { userId: user.id },
         include: {
-          post: {
+          reply: {
             include: {
               user: {
                 select: {
@@ -41,17 +41,12 @@ export async function GET(request: NextRequest) {
                   avatarUrl: true,
                 },
               },
-              category: {
+              post: {
                 select: {
                   id: true,
-                  name: true,
                   slug: true,
-                  color: true,
-                  icon: true,
+                  title: true,
                 },
-              },
-              replies: {
-                select: { id: true },
               },
               reactions: {
                 select: {
@@ -66,46 +61,43 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit,
       }),
-      db.forumBookmark.count({
+      db.forumReplyBookmark.count({
         where: { userId: user.id },
       }),
     ]);
 
-    // Format posts similar to the main posts API
-    const posts = bookmarks.map((bookmark) => {
-      const post = bookmark.post;
-      const reactions = post.reactions || [];
+    // Format replies
+    const replies = bookmarks.map((bookmark) => {
+      const reply = bookmark.reply;
+      const reactions = reply.reactions || [];
       const upvotes = reactions.filter((r) => r.reactionType === "upvote").length;
       const downvotes = reactions.filter((r) => r.reactionType === "downvote").length;
       const score = upvotes - downvotes;
 
       return {
-        id: post.id,
-        slug: post.slug,
-        title: post.title,
-        content: post.content,
-        tags: post.tags,
-        metadata: post.metadata,
-        tmdbId: post.tmdbId,
-        mediaType: post.mediaType,
-        views: post.views,
+        id: reply.id,
+        content: reply.content,
         score,
-        replyCount: post.replies?.length || 0,
-        category: post.category,
+        likes: score,
         author: {
-          id: post.user.id,
-          username: post.user.username,
-          displayName: post.user.username || post.user.displayName,
-          avatarUrl: post.user.avatarUrl,
+          id: reply.user.id,
+          username: reply.user.username,
+          displayName: reply.user.username || reply.user.displayName,
+          avatarUrl: reply.user.avatarUrl,
         },
-        createdAt: post.createdAt,
-        updatedAt: post.updatedAt,
+        post: {
+          id: reply.post.id,
+          slug: reply.post.slug,
+          title: reply.post.title,
+        },
+        createdAt: reply.createdAt,
+        updatedAt: reply.updatedAt,
         bookmarkedAt: bookmark.createdAt,
       };
     });
 
     return NextResponse.json({
-      posts,
+      replies,
       pagination: {
         page,
         limit,
@@ -114,9 +106,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error fetching bookmarks:", error);
+    console.error("Error fetching reply bookmarks:", error);
     return NextResponse.json(
-      { error: "Failed to fetch bookmarks" },
+      { error: "Failed to fetch saved comments" },
       { status: 500 }
     );
   }

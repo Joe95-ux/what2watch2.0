@@ -81,6 +81,8 @@ model User {
   forumNotifications ForumNotification[]
   forumPostSubscriptions ForumPostSubscription[]
   forumBookmarks ForumBookmark[]
+  forumReplySubscriptions ForumReplySubscription[]
+  forumReplyBookmarks ForumReplyBookmark[]
   forumPostRevisions ForumPostRevision[]
   forumBadges UserForumBadge[]
   forumNotificationActors ForumNotification[] @relation("ForumNotificationActors")
@@ -505,7 +507,9 @@ model ForumReply {
   reactions     ForumReplyReaction[]
   reports       ForumReplyReport[]
   notifications ForumNotification[]
-  
+  subscriptions ForumReplySubscription[]
+  bookmarks     ForumReplyBookmark[]
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -697,6 +701,42 @@ model ForumBookmark {
   @@map("forum_bookmarks")
   @@index([userId])
   @@index([postId])
+  @@index([createdAt])
+}
+
+// Forum reply subscriptions - users following replies for notifications
+model ForumReplySubscription {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  replyId       String   @db.ObjectId
+  reply         ForumReply @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, replyId])
+  @@map("forum_reply_subscriptions")
+  @@index([userId])
+  @@index([replyId])
+  @@index([createdAt])
+}
+
+// Forum reply bookmarks - users saving/bookmarking replies
+model ForumReplyBookmark {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  replyId       String   @db.ObjectId
+  reply         ForumReply @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, replyId])
+  @@map("forum_reply_bookmarks")
+  @@index([userId])
+  @@index([replyId])
   @@index([createdAt])
 }
 

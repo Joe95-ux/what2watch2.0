@@ -31,7 +31,7 @@ function NotificationSkeleton() {
 }
 
 function getNotificationMessage(notification: ForumNotification): string {
-  const actorName = notification.actor?.displayName || "Someone";
+  const actorName = notification.actor?.username || notification.actor?.displayName || "Someone";
   
   switch (notification.type) {
     case "NEW_REPLY":
@@ -161,11 +161,11 @@ export function ForumNotificationsPageClient() {
                 <Avatar className="h-12 w-12 flex-shrink-0">
                   <AvatarImage 
                     src={notification.actor?.avatarUrl || undefined} 
-                    alt={notification.actor?.displayName || "User"} 
+                    alt={notification.actor?.username || notification.actor?.displayName || "User"} 
                   />
                   <AvatarFallback>
-                    {notification.actor?.displayName
-                      ? notification.actor.displayName[0].toUpperCase()
+                    {(notification.actor?.username || notification.actor?.displayName)
+                      ? (notification.actor.username || notification.actor.displayName)[0].toUpperCase()
                       : "?"}
                   </AvatarFallback>
                 </Avatar>

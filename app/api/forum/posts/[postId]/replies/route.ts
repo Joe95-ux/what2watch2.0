@@ -87,7 +87,7 @@ export async function GET(
           author: {
             id: reply.user.id,
             username: reply.user.username,
-            displayName: reply.user.displayName || reply.user.username,
+            displayName: reply.user.username || reply.user.displayName,
             avatarUrl: reply.user.avatarUrl,
           },
           parentReplyId: reply.parentReplyId,
@@ -294,7 +294,7 @@ export async function POST(
         throw new Error("Post not found");
       }
 
-      const actorDisplayName = reply.user.displayName || reply.user.username || "Someone";
+      const actorDisplayName = reply.user.username || reply.user.displayName || "Someone";
       const notificationsToCreate = [];
 
       // 1. Notify post author (if not the same user and not a reply to a reply)
@@ -435,7 +435,7 @@ export async function POST(
               case "NEW_REPLY":
               case "REPLY_TO_REPLY":
                 emailHtml = getForumReplyEmail({
-                  recipientName: recipient.displayName || recipient.username || "User",
+                  recipientName: recipient.username || recipient.displayName || "User",
                   actorName: actorDisplayName,
                   postTitle: post.title,
                   replyPreview: fullReplyPreview,
@@ -449,7 +449,7 @@ export async function POST(
 
               case "REPLY_MENTION":
                 emailHtml = getForumMentionEmail({
-                  recipientName: recipient.displayName || recipient.username || "User",
+                  recipientName: recipient.username || recipient.displayName || "User",
                   actorName: actorDisplayName,
                   contentType: "reply",
                   contentTitle: post.title,
@@ -462,7 +462,7 @@ export async function POST(
 
               case "POST_SUBSCRIPTION":
                 emailHtml = getForumSubscriptionEmail({
-                  recipientName: recipient.displayName || recipient.username || "User",
+                  recipientName: recipient.username || recipient.displayName || "User",
                   actorName: actorDisplayName,
                   postTitle: post.title,
                   replyPreview: fullReplyPreview,

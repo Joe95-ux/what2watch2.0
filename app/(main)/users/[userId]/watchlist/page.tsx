@@ -32,8 +32,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://what2watch2-0.vercel.app";
     const url = `${siteUrl}/users/${userId}/watchlist`;
-    const title = `${user.displayName || user.username || "User"}'s Watchlist`;
-    const description = `A collection of ${watchlistCount} movies and TV shows ${user.displayName || user.username || "this user"} wants to watch.`;
+    const title = `${user.username || user.displayName || "User"}'s Watchlist`;
+    const description = `A collection of ${watchlistCount} movies and TV shows ${user.username || user.displayName || "this user"} wants to watch.`;
 
     return {
       title,

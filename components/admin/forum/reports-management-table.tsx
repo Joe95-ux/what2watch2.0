@@ -297,7 +297,7 @@ export function ReportsManagementTable() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {report.reporter?.displayName || report.reporter?.username || "Unknown"}
+                    {report.reporter?.username || report.reporter?.displayName || "Unknown"}
                   </TableCell>
                   <TableCell>
                     <div className="max-w-xs">

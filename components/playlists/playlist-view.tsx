@@ -937,7 +937,7 @@ export default function PlaylistView({
                     <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 ring-primary transition-all">
                       <AvatarImage
                         src={playlist.user.avatarUrl || undefined}
-                        alt={playlist.user.displayName || playlist.user.username || "User"}
+                        alt={playlist.user.username || playlist.user.displayName || "User"}
                       />
                       <AvatarFallback>
                         {(playlist.user.displayName ||

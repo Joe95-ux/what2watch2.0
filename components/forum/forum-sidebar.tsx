@@ -25,6 +25,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
@@ -57,6 +58,7 @@ export function ForumSidebar({
     return false;
   });
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
+  const [savedExpanded, setSavedExpanded] = useState(true);
   
   // Update collapsed state on resize
   useEffect(() => {
@@ -100,7 +102,7 @@ export function ForumSidebar({
 
   const { isSignedIn } = useUser();
 
-  // Check if user has bookmarks
+  // Check if user has saved posts or comments
   const { data: bookmarksData } = useQuery({
     queryKey: ["forum-bookmarks-count"],
     queryFn: async () => {
@@ -112,7 +114,20 @@ export function ForumSidebar({
     staleTime: 60 * 1000, // 1 minute
   });
 
-  const hasBookmarks = (bookmarksData?.pagination?.total || 0) > 0;
+  const { data: replyBookmarksData } = useQuery({
+    queryKey: ["forum-reply-bookmarks-count"],
+    queryFn: async () => {
+      const response = await fetch("/api/forum/replies/bookmarks?page=1&limit=1");
+      if (!response.ok) return { pagination: { total: 0 } };
+      return response.json();
+    },
+    enabled: isSignedIn,
+    staleTime: 60 * 1000, // 1 minute
+  });
+
+  const hasSavedPosts = (bookmarksData?.pagination?.total || 0) > 0;
+  const hasSavedComments = (replyBookmarksData?.pagination?.total || 0) > 0;
+  const hasSaved = hasSavedPosts || hasSavedComments;
 
   // Fetch user's category preferences
   const { data: preferencesData } = useQuery({
@@ -329,31 +344,76 @@ export function ForumSidebar({
             )}
           </Tooltip>
 
-          {/* Bookmarks - Only show if user has bookmarks */}
-          {hasBookmarks && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={pathname === "/forum/bookmarks" ? "secondary" : "ghost"}
-                  className={cn(
-                    "w-full transition-all cursor-pointer",
-                    shouldShowCollapsed ? "justify-center p-2" : "justify-start gap-3"
-                  )}
-                  onClick={() => {
-                    router.push("/forum/bookmarks");
-                    if (isMobile) setIsOpen(false);
-                  }}
-                >
-                  <Bookmark className="h-4 w-4" />
-                  {!shouldShowCollapsed && <span>Bookmarks</span>}
-                </Button>
-              </TooltipTrigger>
-              {shouldShowCollapsed && (
-                <TooltipContent side="right">
-                  <span>Bookmarks</span>
-                </TooltipContent>
+          {/* Saved - Collapsible section with Saved Posts and Saved Comments */}
+          {isSignedIn && hasSaved && (
+            <Collapsible open={savedExpanded} onOpenChange={setSavedExpanded}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "w-full transition-all cursor-pointer",
+                        shouldShowCollapsed ? "justify-center p-2" : "justify-start gap-3"
+                      )}
+                    >
+                      <Bookmark className="h-4 w-4" />
+                      {!shouldShowCollapsed && (
+                        <>
+                          <span>Saved</span>
+                          {savedExpanded ? (
+                            <ChevronUp className="h-4 w-4 ml-auto" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 ml-auto" />
+                          )}
+                        </>
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
+                </TooltipTrigger>
+                {shouldShowCollapsed && (
+                  <TooltipContent side="right">
+                    <span>Saved</span>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+              {!shouldShowCollapsed && (
+                <CollapsibleContent>
+                  <div className="pl-7 space-y-1 mt-1">
+                    {hasSavedPosts && (
+                      <Button
+                        variant={pathname === "/forum/saved-posts" ? "secondary" : "ghost"}
+                        className={cn(
+                          "w-full justify-start gap-3 text-sm",
+                          pathname === "/forum/saved-posts" && "bg-accent"
+                        )}
+                        onClick={() => {
+                          router.push("/forum/saved-posts");
+                          if (isMobile) setIsOpen(false);
+                        }}
+                      >
+                        <span>Saved Posts</span>
+                      </Button>
+                    )}
+                    {hasSavedComments && (
+                      <Button
+                        variant={pathname === "/forum/saved-comments" ? "secondary" : "ghost"}
+                        className={cn(
+                          "w-full justify-start gap-3 text-sm",
+                          pathname === "/forum/saved-comments" && "bg-accent"
+                        )}
+                        onClick={() => {
+                          router.push("/forum/saved-comments");
+                          if (isMobile) setIsOpen(false);
+                        }}
+                      >
+                        <span>Saved Comments</span>
+                      </Button>
+                    )}
+                  </div>
+                </CollapsibleContent>
               )}
-            </Tooltip>
+            </Collapsible>
           )}
 
           <Tooltip>

@@ -128,7 +128,7 @@ export default function MembersPage() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             {users.map((user) => {
-              const displayName = user.displayName || user.username || "Unknown";
+              const displayName = user.username || user.displayName || "Unknown";
               const username = user.username || user.id.slice(0, 8);
               const initials = displayName
                 .split(" ")

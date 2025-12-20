@@ -313,14 +313,14 @@ function ForumUsersContentInner({
                           <Avatar className="h-10 w-10">
                             <AvatarImage src={user.avatarUrl || undefined} />
                             <AvatarFallback>
-                              {getInitials(user.displayName || user.username || "U")}
+                              {getInitials(user.username || user.displayName || "U")}
                             </AvatarFallback>
                           </Avatar>
                           <div>
                             <div className="font-medium">
-                              {user.displayName || user.username || "Anonymous"}
+                              {user.username || user.displayName || "Anonymous"}
                             </div>
-                            {user.username && user.displayName && (
+                            {user.displayName && user.username && (
                               <div className="text-sm text-muted-foreground">@{user.username}</div>
                             )}
                           </div>

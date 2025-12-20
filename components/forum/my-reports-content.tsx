@@ -553,7 +553,7 @@ export function MyReportsContent() {
                   <div className="flex-1 min-w-[200px]">
                     <Label className="text-sm font-medium mb-2 block">Reported By</Label>
                     <p className="text-sm text-muted-foreground">
-                      {selectedReport.reporter?.displayName || selectedReport.reporter?.username || "Unknown"}
+                      {selectedReport.reporter?.username || selectedReport.reporter?.displayName || "Unknown"}
                     </p>
                   </div>
                   <div className="flex-1 min-w-[200px]">

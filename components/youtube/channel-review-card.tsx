@@ -56,7 +56,7 @@ export function ChannelReviewCard({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const displayName = review.user.displayName || review.user.username || "Anonymous";
+  const displayName = review.user.username || review.user.displayName || "Anonymous";
   const canEdit = review.canEdit;
   
   // Show more/less logic

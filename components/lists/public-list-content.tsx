@@ -435,7 +435,7 @@ export function ListCommentsSection({
             <Avatar className="h-8 w-8">
               <AvatarImage src={currentUser.avatarUrl || undefined} />
               <AvatarFallback>
-                {(currentUser.displayName || currentUser.username || "U").charAt(0).toUpperCase()}
+                {(currentUser.username || currentUser.displayName || "U").charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
@@ -581,7 +581,7 @@ function CommentItem({
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [isSaving, setIsSaving] = useState(false);
-  const displayName = comment.user.displayName || comment.user.username || "Unknown";
+  const displayName = comment.user.username || comment.user.displayName || "Unknown";
   const isUserBlocked = blockedUsers.includes(comment.userId);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);

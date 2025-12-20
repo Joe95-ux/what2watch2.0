@@ -840,7 +840,7 @@ export default function DiscoverContent() {
                             {user?.imageUrl ? (
                               <Image
                                 src={user.imageUrl}
-                                alt={user.firstName || "User"}
+                                alt={user.username || user.firstName || "User"}
                                 width={32}
                                 height={32}
                                 className="w-full h-full object-cover"
@@ -849,7 +849,7 @@ export default function DiscoverContent() {
                             ) : (
                               <div className="w-full h-full bg-primary/10 flex items-center justify-center">
                                 <span className="text-xs font-medium text-primary">
-                                  {user?.firstName?.[0] || user?.emailAddresses?.[0]?.emailAddress?.[0]?.toUpperCase() || "U"}
+                                  {user?.username?.[0] || user?.firstName?.[0] || user?.emailAddresses?.[0]?.emailAddress?.[0]?.toUpperCase() || "U"}
                                 </span>
                               </div>
                             )}

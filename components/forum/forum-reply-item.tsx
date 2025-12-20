@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { MessageCircle, MoreVertical, Flag, Edit, Trash2, ChevronDown, ChevronUp, Eye } from "lucide-react";
+import { MessageCircle, MoreVertical, Flag, Edit, Trash2, ChevronDown, ChevronUp, Eye, Bell, BellOff, Bookmark, BookmarkCheck } from "lucide-react";
 import { BiSolidUpvote, BiSolidDownvote } from "react-icons/bi";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { CreateReplyForm } from "./create-reply-form";
 import { useUser } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 import { useForumReplyReaction, useToggleForumReplyLike } from "@/hooks/use-forum-reactions";
+import { useReplySubscription, useSubscribeToReply, useUnsubscribeFromReply } from "@/hooks/use-forum-reply-subscription";
+import { useReplyBookmark, useBookmarkReply, useUnbookmarkReply } from "@/hooks/use-forum-reply-bookmarks";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,11 +68,19 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
 
   const { data: reaction } = useForumReplyReaction(reply.id);
   const toggleReaction = useToggleForumReplyLike(reply.id);
+  const { data: subscription } = useReplySubscription(reply.id);
+  const subscribeToReply = useSubscribeToReply(reply.id);
+  const unsubscribeFromReply = useUnsubscribeFromReply(reply.id);
+  const { data: bookmarkData } = useReplyBookmark(reply.id);
+  const isBookmarked = bookmarkData?.bookmarked || false;
+  const bookmarkReply = useBookmarkReply(reply.id);
+  const unbookmarkReply = useUnbookmarkReply(reply.id);
 
   const userReaction = reaction?.reactionType || null;
   const isUpvoted = userReaction === "upvote";
   const isDownvoted = userReaction === "downvote";
   const displayScore = reaction?.score ?? reply.score ?? reply.likes ?? 0;
+  const isSubscribed = subscription?.subscribed || false;
 
   const handleVote = async (type: "upvote" | "downvote") => {
     if (!isSignedIn) {
@@ -156,19 +166,22 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
 
   if (isCollapsed) {
     return (
-      <div className={cn("flex gap-2", depth > 0 && "ml-8")}>
-        {/* Connection line */}
+      <div className={cn("relative", depth > 0 && "ml-8")}>
+        {/* Reddit-style connection lines */}
         {depth > 0 && (
-          <div className="flex flex-col items-center flex-shrink-0">
-            <div className="w-0.5 h-4 bg-border" />
-          </div>
+          <>
+            {/* Vertical line going down */}
+            <div className="absolute left-0 top-0 bottom-0 w-[1px] bg-border" />
+            {/* Horizontal line connecting to avatar */}
+            <div className="absolute left-0 top-[12px] w-4 h-[1px] bg-border" />
+          </>
         )}
         
-        <div className="flex items-center gap-2 flex-1">
+        <div className="flex items-center gap-2 flex-1 pl-5">
           <Avatar className="h-6 w-6">
             <AvatarImage src={reply.author.avatarUrl} />
             <AvatarFallback className="text-xs">
-              {getInitials(reply.author.displayName || reply.author.username)}
+              {getInitials(reply.author.username || reply.author.displayName)}
             </AvatarFallback>
           </Avatar>
           <button
@@ -176,7 +189,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
             className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
           >
             <ChevronDown className="h-3 w-3" />
-            <span>{reply.author.displayName}</span>
+            <span>{reply.author.username || reply.author.displayName}</span>
             <span className="text-muted-foreground">({reply.replies?.length || 0} replies)</span>
           </button>
         </div>
@@ -185,30 +198,34 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
   }
 
   return (
-    <div id={`reply-${reply.id}`} className={cn("flex gap-2", depth > 0 && "ml-8")}>
-      {/* Connection line */}
+    <div id={`reply-${reply.id}`} className={cn("relative", depth > 0 && "ml-8")}>
+      {/* Reddit-style connection lines */}
       {depth > 0 && (
-        <div className="flex flex-col items-center flex-shrink-0">
-          <div className="w-0.5 h-full bg-border" />
-        </div>
+        <>
+          {/* Vertical line going down from parent */}
+          <div className="absolute left-0 top-0 bottom-0 w-[1px] bg-border" />
+          {/* Horizontal line connecting to avatar (bend) */}
+          <div className="absolute left-0 top-[16px] w-4 h-[1px] bg-border" />
+        </>
       )}
 
       {/* Avatar */}
-      <Avatar className="h-8 w-8 flex-shrink-0">
-        <AvatarImage src={reply.author.avatarUrl} />
-        <AvatarFallback className="text-xs">
-          {getInitials(reply.author.displayName || reply.author.username)}
-        </AvatarFallback>
-      </Avatar>
+      <div className="pl-5 flex gap-2">
+        <Avatar className="h-8 w-8 flex-shrink-0">
+          <AvatarImage src={reply.author.avatarUrl} />
+          <AvatarFallback className="text-xs">
+            {getInitials(reply.author.username || reply.author.displayName)}
+          </AvatarFallback>
+        </Avatar>
 
-      {/* Reply Content */}
-      <div className="flex-1 min-w-0">
+        {/* Reply Content */}
+        <div className="flex-1 min-w-0">
         <div className="flex items-start gap-2 mb-1">
           <Link
             href={`/users/${reply.author.username || reply.author.id}`}
             className="text-xs font-semibold hover:underline"
           >
-            {reply.author.displayName}
+            {reply.author.username || reply.author.displayName}
           </Link>
           <span className="text-xs text-muted-foreground">
             {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
@@ -217,24 +234,18 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
 
         <SafeHtmlContent 
           content={reply.content}
-          className="text-base mb-2 [&_p]:mb-2 [&_p:last-child]:mb-0 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-2"
+          className="text-[0.9rem] mb-2 [&_p]:mb-2 [&_p:last-child]:mb-0 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-2"
         />
 
         {/* Action Buttons - Reddit style: upvote | count | downvote */}
         <div className="flex items-center gap-0">
-          <div className={cn(
-            "flex items-center rounded-[25px] overflow-hidden transition-colors",
-            isUpvoted && "bg-orange-500/10",
-            isDownvoted && "bg-blue-500/10",
-            !isUpvoted && !isDownvoted && "bg-[#6B7280]/20 dark:bg-muted/80"
-          )}>
+          <div className="flex items-center rounded-[25px] overflow-hidden">
             <button
               onClick={() => handleVote("upvote")}
               disabled={toggleReaction.isPending}
               className={cn(
                 "flex items-center justify-center px-2 py-2 transition-colors cursor-pointer",
                 "hover:bg-[#6B7280]/30 dark:hover:bg-muted",
-                isUpvoted && "text-orange-500 hover:bg-orange-500/20",
                 toggleReaction.isPending && "opacity-50 cursor-not-allowed"
               )}
             >
@@ -244,7 +255,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
               )} />
             </button>
             <span className={cn(
-              "text-sm font-medium min-w-[2rem] text-center px-1",
+              "text-sm font-medium min-w-[1rem] text-center px-1",
               isUpvoted && "text-orange-500",
               isDownvoted && "text-blue-500"
             )}>
@@ -256,7 +267,6 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
               className={cn(
                 "flex items-center justify-center px-2 py-2 transition-colors cursor-pointer",
                 "hover:bg-[#6B7280]/30 dark:hover:bg-muted",
-                isDownvoted && "text-blue-500 hover:bg-blue-500/20",
                 toggleReaction.isPending && "opacity-50 cursor-not-allowed"
               )}
             >
@@ -282,10 +292,10 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
           <div onClick={(e) => e.stopPropagation()}>
             <ShareDropdown
               shareUrl={replyUrl}
-              title={`Reply by ${reply.author.displayName}`}
+              title={`Reply by ${reply.author.username || reply.author.displayName}`}
               variant="ghost"
               size="sm"
-              showLabel={false}
+              showLabel={true}
               className="rounded-[25px] hover:bg-muted/50 h-auto px-3 py-2"
             />
           </div>
@@ -303,6 +313,59 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              {isSignedIn && (
+                <>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isSubscribed) {
+                        unsubscribeFromReply.mutate();
+                      } else {
+                        subscribeToReply.mutate();
+                      }
+                    }}
+                    className="cursor-pointer"
+                    disabled={subscribeToReply.isPending || unsubscribeFromReply.isPending}
+                  >
+                    {isSubscribed ? (
+                      <>
+                        <BellOff className="h-4 w-4 mr-2" />
+                        Unfollow Comment
+                      </>
+                    ) : (
+                      <>
+                        <Bell className="h-4 w-4 mr-2" />
+                        Follow Comment
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isBookmarked) {
+                        unbookmarkReply.mutate();
+                      } else {
+                        bookmarkReply.mutate();
+                      }
+                    }}
+                    className="cursor-pointer"
+                    disabled={bookmarkReply.isPending || unbookmarkReply.isPending}
+                  >
+                    {isBookmarked ? (
+                      <>
+                        <BookmarkCheck className="h-4 w-4 mr-2" />
+                        Unsave Comment
+                      </>
+                    ) : (
+                      <>
+                        <Bookmark className="h-4 w-4 mr-2" />
+                        Save Comment
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               {isAuthor && (
                 <>
                   <DropdownMenuItem
@@ -378,6 +441,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
             ))}
           </div>
         )}
+        </div>
       </div>
 
       {/* Report Dialog */}

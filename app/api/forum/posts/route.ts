@@ -191,7 +191,7 @@ export async function GET(request: NextRequest) {
           contributorMap.set(reply.userId, {
             id: reply.user.id,
             username: reply.user.username,
-            displayName: reply.user.displayName || reply.user.username,
+            displayName: reply.user.username || reply.user.displayName,
             avatarUrl: reply.user.avatarUrl,
           });
         }
@@ -247,7 +247,7 @@ export async function GET(request: NextRequest) {
         author: {
           id: post.user.id,
           username: post.user.username,
-          displayName: post.user.displayName || post.user.username,
+          displayName: post.user.username || post.user.displayName,
           avatarUrl: post.user.avatarUrl,
         },
         createdAt: post.createdAt,
@@ -534,7 +534,7 @@ export async function POST(request: NextRequest) {
           select: { id: true, username: true },
         });
 
-        const actorDisplayName = post.user.displayName || post.user.username || "Someone";
+        const actorDisplayName = post.user.username || post.user.displayName || "Someone";
         const notificationsToCreate = [];
 
         for (const mentionedUser of mentionedUsers) {
@@ -579,7 +579,7 @@ export async function POST(request: NextRequest) {
           });
 
           const userMap = new Map(notificationUsers.map(u => [u.id, u]));
-          const actorDisplayName = post.user.displayName || post.user.username || "Someone";
+          const actorDisplayName = post.user.username || post.user.displayName || "Someone";
 
           // Send emails for each notification
           for (const notification of notificationsToCreate) {
@@ -590,7 +590,7 @@ export async function POST(request: NextRequest) {
 
             try {
               const emailHtml = getForumMentionEmail({
-                recipientName: recipient.displayName || recipient.username || "User",
+                recipientName: recipient.username || recipient.displayName || "User",
                 actorName: actorDisplayName,
                 contentType: "post",
                 contentTitle: post.title,
@@ -637,7 +637,7 @@ export async function POST(request: NextRequest) {
         author: {
           id: post.user.id,
           username: post.user.username,
-          displayName: post.user.displayName || post.user.username,
+          displayName: post.user.username || post.user.displayName,
           avatarUrl: post.user.avatarUrl,
         },
         createdAt: post.createdAt,

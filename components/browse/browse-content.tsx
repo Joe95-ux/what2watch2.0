@@ -51,7 +51,7 @@ interface BrowseContentProps {
 
 export default function BrowseContent({ favoriteGenres, preferredTypes }: BrowseContentProps) {
   const { user } = useUser();
-  const displayName = user?.fullName || user?.firstName || "You";
+  const displayName = user?.username || user?.fullName || user?.firstName || "You";
   
   // Load filters from localStorage on mount
   const loadFiltersFromStorage = (): {

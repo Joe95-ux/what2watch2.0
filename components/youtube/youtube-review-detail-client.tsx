@@ -120,7 +120,7 @@ export function YouTubeReviewDetailClient({ reviewId }: YouTubeReviewDetailClien
     );
   }
 
-  const displayName = review.user.displayName || review.user.username || "Anonymous";
+  const displayName = review.user.username || review.user.displayName || "Anonymous";
   const channelPath = getChannelProfilePath(review.channelId, review.channelSlug);
 
   return (

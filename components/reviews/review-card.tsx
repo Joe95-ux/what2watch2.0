@@ -56,7 +56,7 @@ export default function ReviewCard({
   const isAuthor = currentUser?.id && review.userId === currentUser.id;
 
   const displayName =
-    review.user.displayName || review.user.username || "Anonymous";
+    review.user.username || review.user.displayName || "Anonymous";
   const avatarUrl = review.user.avatarUrl;
   const initials = displayName[0].toUpperCase();
 

@@ -55,8 +55,8 @@ export function ForumPostCard({ post }: ForumPostCardProps) {
       <div className="flex items-start gap-4">
         {/* Author Avatar */}
         <Avatar className="h-10 w-10 flex-shrink-0">
-          <AvatarImage src={post.author.avatarUrl} alt={post.author.displayName} />
-          <AvatarFallback>{getInitials(post.author.displayName)}</AvatarFallback>
+          <AvatarImage src={post.author.avatarUrl} alt={post.author.username || post.author.displayName} />
+          <AvatarFallback>{getInitials(post.author.username || post.author.displayName)}</AvatarFallback>
         </Avatar>
 
         {/* Content */}
@@ -122,7 +122,7 @@ export function ForumPostCard({ post }: ForumPostCardProps) {
               onClick={(e) => e.stopPropagation()}
               className="hover:text-primary transition-colors"
             >
-              {post.author.displayName}
+              {post.author.username || post.author.displayName}
             </Link>
             <div className="flex items-center gap-4">
               <div className="hidden md:flex items-center gap-1">

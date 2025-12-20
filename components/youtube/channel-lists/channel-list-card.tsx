@@ -13,7 +13,7 @@ interface ChannelListCardProps {
 
 export function ChannelListCard({ list, className }: ChannelListCardProps) {
   const router = useRouter();
-  const ownerName = list.user?.displayName || list.user?.username || "Unknown curator";
+  const ownerName = list.user?.username || list.user?.displayName || "Unknown curator";
   // Get first few channels for avatar stack (need at least 3-4 for the effect)
   const channelAvatars = list.items.slice(0, 4);
 

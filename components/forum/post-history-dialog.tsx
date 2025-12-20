@@ -149,11 +149,11 @@ export function PostHistoryDialog({ postId, isOpen, onClose, postAuthorId }: Pos
                                 <Avatar className="h-6 w-6 flex-shrink-0">
                                   <AvatarImage src={revision.editor.avatarUrl || undefined} />
                                   <AvatarFallback className="text-xs">
-                                    {revision.editor.displayName?.[0] || revision.editor.username?.[0] || "?"}
+                                    {revision.editor.username?.[0] || revision.editor.displayName?.[0] || "?"}
                                   </AvatarFallback>
                                 </Avatar>
                                 <span className="text-sm font-medium truncate">
-                                  {revision.editor.displayName || revision.editor.username || "Unknown"}
+                                  {revision.editor.username || revision.editor.displayName || "Unknown"}
                                 </span>
                               </>
                             )}

@@ -4,13 +4,13 @@ import { ForumBookmarksPageClient } from "@/components/forum/forum-bookmarks-pag
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
 
-function ForumBookmarksPageFallback() {
+function ForumSavedPostsPageFallback() {
   return null;
 }
 
-export default function ForumBookmarksPage() {
+export default function ForumSavedPostsPage() {
   return (
-    <Suspense fallback={<ForumBookmarksPageFallback />}>
+    <Suspense fallback={<ForumSavedPostsPageFallback />}>
       <ForumBookmarksPageClient />
     </Suspense>
   );

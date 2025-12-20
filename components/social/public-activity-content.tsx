@@ -48,7 +48,7 @@ const ACTIVITY_TYPES: { value: ActivityType | "all"; label: string; icon: React.
 ];
 
 function ActivityItem({ activity }: { activity: Activity }) {
-  const displayName = activity.user.displayName || activity.user.username || "Unknown";
+  const displayName = activity.user.username || activity.user.displayName || "Unknown";
 
   const getActivityMessage = () => {
     switch (activity.type) {
@@ -113,7 +113,7 @@ function ActivityItem({ activity }: { activity: Activity }) {
             <span className="font-semibold">{displayName}</span> followed{" "}
             {activity.followedUser && (
               <span className="font-semibold">
-                {activity.followedUser.displayName || activity.followedUser.username}
+                {activity.followedUser.username || activity.followedUser.displayName}
               </span>
             )}
           </>
@@ -188,7 +188,7 @@ function ActivityItem({ activity }: { activity: Activity }) {
         <Avatar className="h-10 w-10">
           <AvatarImage
             src={activity.user.avatarUrl || undefined}
-            alt={activity.user.displayName || activity.user.username || "Unknown"}
+            alt={activity.user.username || activity.user.displayName || "Unknown"}
           />
           <AvatarFallback>{displayName[0]?.toUpperCase() || "U"}</AvatarFallback>
         </Avatar>
@@ -358,7 +358,7 @@ export default function PublicActivityContent({ userId }: PublicActivityContentP
   }, [grouped, currentPage]);
 
   const displayName =
-    userData?.user?.displayName || userData?.user?.username || "User";
+    userData?.user?.username || userData?.user?.displayName || "User";
 
   return (
     <div className="flex-1 space-y-6 p-6">

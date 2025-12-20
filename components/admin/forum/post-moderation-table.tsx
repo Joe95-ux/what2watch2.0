@@ -266,7 +266,7 @@ export function PostModerationTable() {
                       {post.title}
                     </Link>
                   </TableCell>
-                  <TableCell>{post.user?.displayName || post.user?.username || "N/A"}</TableCell>
+                  <TableCell>{post.user?.username || post.user?.displayName || "N/A"}</TableCell>
                   <TableCell>{post.views}</TableCell>
                   <TableCell>{post.score}</TableCell>
                   <TableCell>{post._count?.replies || 0}</TableCell>

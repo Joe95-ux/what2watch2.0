@@ -66,7 +66,7 @@ export function YouTubeLeaderboardTab() {
         </TableHeader>
         <TableBody>
           {sortedLeaderboard.map((entry) => {
-            const displayName = entry.user?.displayName || entry.user?.username || "Anonymous";
+            const displayName = entry.user?.username || entry.user?.displayName || "Anonymous";
             const initials = displayName.slice(0, 2).toUpperCase();
             const rankIcon = getRankIcon(entry.rank);
 

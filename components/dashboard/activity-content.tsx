@@ -63,7 +63,7 @@ const ACTIVITY_TYPES: { value: ActivityType | "all"; label: string; icon: React.
 ];
 
 function ActivityItem({ activity }: { activity: Activity }) {
-  const displayName = activity.user.displayName || activity.user.username || "Unknown";
+  const displayName = activity.user.username || activity.user.displayName || "Unknown";
   const username = activity.user.username || "unknown";
 
   const getActivityMessage = () => {
@@ -129,7 +129,7 @@ function ActivityItem({ activity }: { activity: Activity }) {
             <span className="font-semibold">{displayName}</span> followed{" "}
             {activity.followedUser && (
               <span className="font-semibold">
-                {activity.followedUser.displayName || activity.followedUser.username}
+                {activity.followedUser.username || activity.followedUser.displayName}
               </span>
             )}
           </>
@@ -197,7 +197,7 @@ function ActivityItem({ activity }: { activity: Activity }) {
       {/* Avatar */}
       <Link href={`/${username}`} className="flex-shrink-0">
         <Avatar className="h-10 w-10">
-          <AvatarImage src={activity.user.avatarUrl || undefined} alt={activity.user.displayName || activity.user.username || "Unknown"} />
+          <AvatarImage src={activity.user.avatarUrl || undefined} alt={activity.user.username || activity.user.displayName || "Unknown"} />
           <AvatarFallback>
             {displayName[0]?.toUpperCase() || "U"}
           </AvatarFallback>
@@ -634,10 +634,10 @@ export default function ActivityContent() {
                       <Avatar className="h-4 w-4">
                         <AvatarImage src={user.avatarUrl || undefined} />
                         <AvatarFallback className="text-[10px]">
-                          {(user.displayName || user.username || "U")[0]?.toUpperCase()}
+                          {(user.username || user.displayName || "U")[0]?.toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      {user.displayName || user.username || "Unknown"}
+                      {user.username || user.displayName || "Unknown"}
                     </span>
                   </SelectItem>
                 ))}

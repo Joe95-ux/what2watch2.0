@@ -370,7 +370,7 @@ export function ForumPostDetailClient() {
                     <Avatar className="h-6 w-6">
                       <AvatarImage src={post.author.avatarUrl} />
                       <AvatarFallback className="text-xs">
-                        {post.author.displayName
+                        {(post.author.username || post.author.displayName || "")
                           .split(" ")
                           .map((n) => n[0])
                           .join("")
@@ -382,7 +382,7 @@ export function ForumPostDetailClient() {
                       href={`/users/${post.author.username || post.author.id}`}
                       className="hover:underline font-medium text-foreground"
                     >
-                      {post.author.displayName}
+                      {post.author.username || post.author.displayName}
                     </Link>
                     <span>•</span>
                     <span>{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>

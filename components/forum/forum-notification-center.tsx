@@ -137,8 +137,8 @@ export function ForumNotificationCenter() {
                       <Avatar className="h-10 w-10 flex-shrink-0">
                         <AvatarImage src={notification.actor?.avatarUrl || undefined} />
                         <AvatarFallback>
-                          {notification.actor?.displayName
-                            ? notification.actor.displayName[0].toUpperCase()
+                          {(notification.actor?.username || notification.actor?.displayName)
+                            ? (notification.actor.username || notification.actor.displayName)[0].toUpperCase()
                             : "?"}
                         </AvatarFallback>
                       </Avatar>

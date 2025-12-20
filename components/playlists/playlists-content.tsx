@@ -289,7 +289,7 @@ export default function PlaylistsContent() {
                 {paginatedPlaylists.map((playlist) => {
                   const coverImage = getPlaylistCover(playlist);
                   const itemCount = (playlist._count?.items || playlist.items?.length || 0) + (playlist._count?.youtubeItems || playlist.youtubeItems?.length || 0);
-                  const authorName = playlist.user?.displayName || playlist.user?.username || "Unknown";
+                  const authorName = playlist.user?.username || playlist.user?.displayName || "Unknown";
                   const isYouTubeThumbnail = coverImage?.includes("i.ytimg.com") || coverImage?.includes("img.youtube.com");
                   return (
                     <TableRow
