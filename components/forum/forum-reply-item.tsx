@@ -167,14 +167,12 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
   if (isCollapsed) {
     return (
       <div className={cn("relative", depth > 0 && "ml-8")}>
-        {/* Reddit-style connection lines */}
+        {/* Horizontal bend line connecting to avatar */}
         {depth > 0 && (
-          <>
-            {/* Vertical line going down */}
-            <div className="absolute left-0 top-0 bottom-0 w-[1px] bg-border" />
-            {/* Horizontal line connecting to avatar */}
-            <div className="absolute left-0 top-[12px] w-4 h-[1px] bg-border" />
-          </>
+          <div 
+            className="absolute left-0 top-[12px] w-4 h-[1px] bg-border"
+            style={{ borderTop: '1px solid hsl(var(--border))' }}
+          />
         )}
         
         <div className="flex items-center gap-2 flex-1 pl-5">
@@ -199,18 +197,22 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
 
   return (
     <div id={`reply-${reply.id}`} className={cn("relative", depth > 0 && "ml-8")}>
-      {/* Reddit-style connection lines */}
+      {/* Horizontal bend line connecting to avatar - only for nested comments */}
       {depth > 0 && (
-        <>
-          {/* Vertical line going down from parent */}
-          <div className="absolute left-0 top-0 bottom-0 w-[1px] bg-border" />
-          {/* Horizontal line connecting to avatar (bend) */}
-          <div className="absolute left-0 top-[16px] w-4 h-[1px] bg-border" />
-        </>
+        <div 
+          className="absolute top-[16px] h-[1px] bg-border z-0"
+          aria-hidden="true"
+          style={{
+            left: '-1.25rem',
+            width: '1.25rem',
+            height: '1px',
+            backgroundColor: 'hsl(var(--border))',
+          }}
+        />
       )}
 
-      {/* Avatar */}
-      <div className="pl-5 flex gap-2">
+      {/* Avatar and Content */}
+      <div className="pl-5 flex gap-2 relative z-10 bg-background">
         <Avatar className="h-8 w-8 flex-shrink-0">
           <AvatarImage src={reply.author.avatarUrl} />
           <AvatarFallback className="text-xs">
@@ -250,8 +252,10 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
               )}
             >
               <BiSolidUpvote className={cn(
-                "h-4 w-4 [stroke-width:2px] stroke-current",
-                isUpvoted ? "fill-orange-500 dark:fill-orange-500" : "fill-transparent dark:fill-transparent"
+                "h-4 w-4 [stroke-width:2px]",
+                isUpvoted 
+                  ? "stroke-orange-500 dark:stroke-orange-500 fill-orange-500 dark:fill-orange-500" 
+                  : "stroke-current fill-transparent dark:fill-transparent"
               )} />
             </button>
             <span className={cn(
@@ -271,8 +275,10 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
               )}
             >
               <BiSolidDownvote className={cn(
-                "h-4 w-4 [stroke-width:2px] stroke-current",
-                isDownvoted ? "fill-blue-500 dark:fill-blue-500" : "fill-transparent dark:fill-transparent"
+                "h-4 w-4 [stroke-width:2px]",
+                isDownvoted 
+                  ? "stroke-blue-500 dark:stroke-blue-500 fill-blue-500 dark:fill-blue-500" 
+                  : "stroke-current fill-transparent dark:fill-transparent"
               )} />
             </button>
           </div>
@@ -430,7 +436,14 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
 
         {/* Nested Replies - With connection lines */}
         {hasReplies && (
-          <div className={cn("mt-2 space-y-2")}>
+          <div 
+            className={cn("mt-2 space-y-2 relative")}
+            style={{
+              borderLeft: '1px solid hsl(var(--border))',
+              marginLeft: '-1.25rem',
+              paddingLeft: '1.25rem',
+            }}
+          >
             {reply.replies.map((nestedReply) => (
               <ForumReplyItem
                 key={nestedReply.id}

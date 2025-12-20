@@ -539,8 +539,10 @@ export function ForumPostDetailClient() {
                     )}
                   >
                     <BiSolidUpvote className={cn(
-                      "h-4 w-4 [stroke-width:2px] stroke-current",
-                      isUpvoted ? "fill-orange-500 dark:fill-orange-500" : "fill-transparent dark:fill-transparent"
+                      "h-4 w-4 [stroke-width:2px]",
+                      isUpvoted 
+                        ? "stroke-orange-500 dark:stroke-orange-500 fill-orange-500 dark:fill-orange-500" 
+                        : "stroke-current fill-transparent dark:fill-transparent"
                     )} />
                   </button>
                   <span className={cn(
@@ -561,8 +563,10 @@ export function ForumPostDetailClient() {
                     )}
                   >
                     <BiSolidDownvote className={cn(
-                      "h-4 w-4 [stroke-width:2px] stroke-current",
-                      isDownvoted ? "fill-blue-500 dark:fill-blue-500" : "fill-transparent dark:fill-transparent"
+                      "h-4 w-4 [stroke-width:2px]",
+                      isDownvoted 
+                        ? "stroke-blue-500 dark:stroke-blue-500 fill-blue-500 dark:fill-blue-500" 
+                        : "stroke-current fill-transparent dark:fill-transparent"
                     )} />
                   </button>
                 </div>
