@@ -29,14 +29,20 @@ export function useRevertPost() {
 
       return response.json();
     },
-    onSuccess: (_, variables) => {
-      // Invalidate post data to refetch
-      queryClient.invalidateQueries({
-        queryKey: ["forum-post", variables.postId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["forum-post-history", variables.postId],
-      });
+    onSuccess: async (_, variables) => {
+      // Invalidate and refetch post data
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["forum-post", variables.postId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["forum-post-history", variables.postId],
+        }),
+        // Also invalidate post list queries to refresh post cards
+        queryClient.invalidateQueries({
+          queryKey: ["forum-posts"],
+        }),
+      ]);
       toast.success("Post reverted successfully");
     },
     onError: (error: Error) => {

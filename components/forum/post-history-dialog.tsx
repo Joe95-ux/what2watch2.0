@@ -35,6 +35,16 @@ export function PostHistoryDialog({ postId, isOpen, onClose, postAuthorId }: Pos
   const [revertDialogOpen, setRevertDialogOpen] = useState(false);
   const [revisionToRevert, setRevisionToRevert] = useState<string | null>(null);
 
+  // Prevent dialog from closing while revert is in progress
+  const handleRevertDialogChange = (open: boolean) => {
+    if (!revertPost.isPending) {
+      setRevertDialogOpen(open);
+      if (!open) {
+        setRevisionToRevert(null);
+      }
+    }
+  };
+
   const handleRevertClick = (revisionId: string) => {
     setRevisionToRevert(revisionId);
     setRevertDialogOpen(true);
@@ -47,7 +57,9 @@ export function PostHistoryDialog({ postId, isOpen, onClose, postAuthorId }: Pos
       { postId, revisionId: revisionToRevert },
       {
         onSuccess: () => {
+          // Refetch post history
           refetch();
+          // Close dialogs after successful revert
           setRevertDialogOpen(false);
           setRevisionToRevert(null);
           onClose();
@@ -228,7 +240,7 @@ export function PostHistoryDialog({ postId, isOpen, onClose, postAuthorId }: Pos
       </DialogContent>
 
       {/* Revert Confirmation Dialog */}
-      <AlertDialog open={revertDialogOpen} onOpenChange={setRevertDialogOpen}>
+      <AlertDialog open={revertDialogOpen} onOpenChange={handleRevertDialogChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Revert to this revision?</AlertDialogTitle>
@@ -237,7 +249,13 @@ export function PostHistoryDialog({ postId, isOpen, onClose, postAuthorId }: Pos
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setRevisionToRevert(null)}>
+            <AlertDialogCancel 
+              onClick={() => {
+                setRevertDialogOpen(false);
+                setRevisionToRevert(null);
+              }}
+              disabled={revertPost.isPending}
+            >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
@@ -245,7 +263,14 @@ export function PostHistoryDialog({ postId, isOpen, onClose, postAuthorId }: Pos
               disabled={revertPost.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {revertPost.isPending ? "Reverting..." : "Revert"}
+              {revertPost.isPending ? (
+                <>
+                  <span className="inline-block animate-spin mr-2">⏳</span>
+                  Reverting...
+                </>
+              ) : (
+                "Revert"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
