@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { useForumNotifications } from "@/hooks/use-forum-notifications";
 import { useYouTubeNotifications } from "@/hooks/use-youtube-notifications";
 import { UnifiedNotificationCenterMobile } from "@/components/notifications/unified-notification-center-mobile";
-import { AvatarEditorDialog } from "@/components/avatar/avatar-editor-dialog";
+import { AvatarPickerDialog } from "@/components/avatar/avatar-picker-dialog";
 
 interface MobileNavProps {
   navLinks: Array<{ href: string; label: string }>;
@@ -280,9 +280,9 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
         </>
       )}
 
-      {/* Avatar Editor Dialog */}
+      {/* Avatar Picker Dialog */}
       {isSignedIn && (
-        <AvatarEditorDialog
+        <AvatarPickerDialog
           isOpen={isAvatarEditorOpen}
           onClose={() => setIsAvatarEditorOpen(false)}
           currentAvatarUrl={user?.imageUrl}

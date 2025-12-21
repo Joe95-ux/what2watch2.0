@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { AvatarEditorDialog } from "@/components/avatar/avatar-editor-dialog";
+import { AvatarPickerDialog } from "@/components/avatar/avatar-picker-dialog";
 
 interface UserMenuProps {
   hasHeroSection?: boolean;
@@ -275,7 +275,7 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
           <span>Logout</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
-      <AvatarEditorDialog
+      <AvatarPickerDialog
         isOpen={isAvatarEditorOpen}
         onClose={() => setIsAvatarEditorOpen(false)}
         currentAvatarUrl={user?.imageUrl}

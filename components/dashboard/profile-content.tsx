@@ -41,7 +41,7 @@ import { FollowButton } from "@/components/social/follow-button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { AvatarEditorDialog } from "@/components/avatar/avatar-editor-dialog";
+import { AvatarPickerDialog } from "@/components/avatar/avatar-picker-dialog";
 
 export default function DashboardProfileContent() {
   const { data: currentUser, isLoading: isLoadingCurrentUser } = useCurrentUser();
@@ -1163,7 +1163,7 @@ export default function DashboardProfileContent() {
         />
       )}
 
-      <AvatarEditorDialog
+      <AvatarPickerDialog
         isOpen={isAvatarEditorOpen}
         onClose={() => setIsAvatarEditorOpen(false)}
         currentAvatarUrl={currentUser?.avatarUrl}
