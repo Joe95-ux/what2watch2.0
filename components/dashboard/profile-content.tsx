@@ -750,7 +750,7 @@ export default function DashboardProfileContent() {
                     {recentPosts.map((post: any) => (
                       <Link
                         key={post.id}
-                        href={`/forum/posts/${post.slug}`}
+                        href={`/forum/${post.slug || post.id}`}
                         className="block p-4 rounded-lg border bg-card hover:border-primary/50 transition-colors"
                       >
                         <div className="flex items-start justify-between gap-4">
@@ -793,7 +793,7 @@ export default function DashboardProfileContent() {
                     {recentReplies.map((reply: any) => (
                       <Link
                         key={reply.id}
-                        href={`/forum/posts/${reply.postSlug}`}
+                        href={`/forum/${reply.postSlug || reply.postId || ""}`}
                         className="block p-4 rounded-lg border bg-card hover:border-primary/50 transition-colors"
                       >
                         <div className="flex items-start justify-between gap-4">

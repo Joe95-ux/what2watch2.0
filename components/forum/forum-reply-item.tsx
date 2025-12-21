@@ -168,7 +168,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
     return (
       <div className={cn("flex gap-2", depth > 0 && "ml-8 border-l-2 border-border pl-4")}>
         <div className="flex items-center gap-2 flex-1">
-          <Avatar className="h-6 w-6">
+          <Avatar className="h-9 w-9">
             <AvatarImage src={reply.author.avatarUrl} />
             <AvatarFallback className="text-xs">
               {getInitials(reply.author.username || reply.author.displayName)}
@@ -189,7 +189,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
 
   return (
     <div id={`reply-${reply.id}`} className={cn("flex gap-2", depth > 0 && "ml-8 border-l-2 border-border pl-4")}>
-      <Avatar className="h-8 w-8 flex-shrink-0">
+      <Avatar className="h-9 w-9 flex-shrink-0">
         <AvatarImage src={reply.author.avatarUrl} />
         <AvatarFallback className="text-xs">
           {getInitials(reply.author.username || reply.author.displayName)}

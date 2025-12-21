@@ -15,6 +15,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/lists(.*)', // List API endpoints (handles auth internally)
   '/api/analytics/playlist-events', // Allow unauthenticated visit tracking
   '/api/analytics/list-events', // Allow unauthenticated visit tracking
+  '/api/users/:userId/profile', // Public user profile endpoint
+  '/api/users/:userId/forum-stats', // Public forum stats endpoint
 ]);
 
 // Routes that require auth but have special handling
@@ -22,6 +24,8 @@ const isOnboardingRoute = createRouteMatcher(['/onboarding(.*)']);
 
 export default clerkMiddleware(async (auth, req) => {
   // Protect all routes except public ones
+  // Note: clerkMiddleware automatically initializes auth context for all matched routes
+  // This allows auth() to work in API routes even if they're public
   if (!isPublicRoute(req)) {
     await auth.protect();
   }

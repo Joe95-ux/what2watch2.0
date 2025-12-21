@@ -367,7 +367,7 @@ export function ForumPostDetailClient() {
                   
                   {/* Author and Time - Below category on mobile, inline on desktop */}
                   <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-                    <Avatar className="h-6 w-6">
+                    <Avatar className="h-9 w-9">
                       <AvatarImage src={post.author.avatarUrl} />
                       <AvatarFallback className="text-xs">
                         {(post.author.username || post.author.displayName || "")
@@ -609,7 +609,7 @@ export function ForumPostDetailClient() {
                   placeholder="Search comments..."
                   value={replySearch}
                   onChange={(e) => setReplySearch(e.target.value)}
-                  className="pl-8 h-9 w-48"
+                  className="pl-8 h-9 w-full sm:w-[20rem]"
                 />
               </div>
               

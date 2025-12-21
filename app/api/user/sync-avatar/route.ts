@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
@@ -36,19 +36,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update Clerk user's image
+    // Update Clerk user's image using REST API
+    // Note: Clerk SDK's updateUser may not support imageUrl in TypeScript types
+    // Using REST API directly to ensure compatibility
     // Note: Clerk may not always send webhooks for programmatic updates via API
     // The webhook is primarily for user-initiated changes through Clerk's UI
     try {
-      const client = await clerkClient();
-      const updatedUser = await client.users.updateUser(userId, {
-        imageUrl: avatarUrl,
-      });
-      
-      // Verify the update was successful
-      if (updatedUser.imageUrl !== avatarUrl) {
-        console.warn(`[Avatar Sync] Clerk update may have failed - expected ${avatarUrl}, got ${updatedUser.imageUrl}`);
+      const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+      if (!clerkSecretKey) {
+        console.warn("[Avatar Sync] CLERK_SECRET_KEY not set, skipping Clerk update");
       } else {
+        const response = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
+          method: "PATCH",
+          headers: {
+            "Authorization": `Bearer ${clerkSecretKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            image_url: avatarUrl,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`Clerk API error: ${response.status} - ${error}`);
+        }
+
+        const updatedUser = await response.json();
         console.log(`[Avatar Sync] Clerk updated successfully for user ${userId}`);
       }
     } catch (error) {
