@@ -108,13 +108,21 @@ export default function DashboardProfileContent() {
   const { data: forumStatsData, isLoading: isLoadingForumStats } = useQuery({
     queryKey: ["user", userId, "forum-stats"],
     queryFn: async () => {
+      if (!userId || userId.trim() === "") {
+        throw new Error("User ID is required");
+      }
       const response = await fetch(`/api/users/${userId}/forum-stats`);
       if (!response.ok) {
+        // Don't throw error for 404, just return empty stats
+        if (response.status === 404) {
+          return { stats: { postCount: 0, replyCount: 0, totalReactions: 0 }, recentPosts: [], recentReplies: [] };
+        }
         throw new Error("Failed to fetch forum stats");
       }
       return response.json();
     },
-    enabled: !!userId,
+    enabled: !!userId && userId.trim() !== "",
+    retry: false, // Don't retry on failure to avoid unnecessary requests
   });
 
   const forumStats = forumStatsData?.stats || { postCount: 0, replyCount: 0, totalReactions: 0 };

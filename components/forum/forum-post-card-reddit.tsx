@@ -247,6 +247,12 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
           
           {/* Author and Time - Below category on mobile, inline on desktop */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+            <Avatar className="h-5 w-5">
+              <AvatarImage src={post.author.avatarUrl} alt={post.author.username || post.author.displayName} />
+              <AvatarFallback className="text-[10px]">
+                {getInitials(post.author.username || post.author.displayName)}
+              </AvatarFallback>
+            </Avatar>
             <Link
               href={`/users/${post.author.username || post.author.id}`}
               onClick={(e) => e.stopPropagation()}
