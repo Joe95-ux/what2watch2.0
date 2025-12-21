@@ -170,12 +170,12 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
         {/* Horizontal bend line connecting to avatar */}
         {depth > 0 && (
           <div 
-            className="absolute h-[1px] bg-border"
+            className="absolute bg-border"
             style={{
-              left: '-1.25rem',
+              left: '-2rem',
               top: '12px',
-              width: '1.25rem',
-              height: '1px',
+              width: '2.5rem',
+              height: '2px',
             }}
             aria-hidden="true"
           />
@@ -206,12 +206,12 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
       {/* Horizontal bend line connecting to avatar - only for nested comments */}
       {depth > 0 && (
         <div 
-          className="absolute h-[1px] bg-border"
+          className="absolute bg-border"
           style={{
-            left: '-1.25rem',
+            left: '-2rem',
             top: '16px',
-            width: '1.25rem',
-            height: '1px',
+            width: '2.5rem',
+            height: '2px',
           }}
           aria-hidden="true"
         />
@@ -443,10 +443,11 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
         {/* Nested Replies - With connection lines */}
         {hasReplies && (
           <div 
-            className={cn("mt-2 space-y-2 relative border-l border-border")}
+            className={cn("mt-2 space-y-2 relative")}
             style={{
-              marginLeft: '-1.25rem',
-              paddingLeft: '1.25rem',
+              borderLeft: '2px solid hsl(var(--border))',
+              marginLeft: '-2rem',
+              paddingLeft: '2rem',
             }}
           >
             {reply.replies.map((nestedReply) => (
