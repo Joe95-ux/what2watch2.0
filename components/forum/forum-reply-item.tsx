@@ -166,22 +166,8 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
 
   if (isCollapsed) {
     return (
-      <div className={cn("relative", depth > 0 && "ml-8")}>
-        {/* Horizontal bend line connecting to avatar */}
-        {depth > 0 && (
-          <div 
-            className="absolute bg-border"
-            style={{
-              left: '-2rem',
-              top: '12px',
-              width: '2.5rem',
-              height: '2px',
-            }}
-            aria-hidden="true"
-          />
-        )}
-        
-        <div className="flex items-center gap-2 flex-1 pl-5">
+      <div className={cn("flex gap-2", depth > 0 && "ml-8 border-l-2 border-border pl-4")}>
+        <div className="flex items-center gap-2 flex-1">
           <Avatar className="h-6 w-6">
             <AvatarImage src={reply.author.avatarUrl} />
             <AvatarFallback className="text-xs">
@@ -202,32 +188,16 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
   }
 
   return (
-    <div id={`reply-${reply.id}`} className={cn("relative", depth > 0 && "ml-8")}>
-      {/* Horizontal bend line connecting to avatar - only for nested comments */}
-      {depth > 0 && (
-        <div 
-          className="absolute bg-border"
-          style={{
-            left: '-2rem',
-            top: '16px',
-            width: '2.5rem',
-            height: '2px',
-          }}
-          aria-hidden="true"
-        />
-      )}
+    <div id={`reply-${reply.id}`} className={cn("flex gap-2", depth > 0 && "ml-8 border-l-2 border-border pl-4")}>
+      <Avatar className="h-8 w-8 flex-shrink-0">
+        <AvatarImage src={reply.author.avatarUrl} />
+        <AvatarFallback className="text-xs">
+          {getInitials(reply.author.username || reply.author.displayName)}
+        </AvatarFallback>
+      </Avatar>
 
-      {/* Avatar and Content */}
-      <div className="pl-5 flex gap-2 relative">
-        <Avatar className="h-8 w-8 flex-shrink-0">
-          <AvatarImage src={reply.author.avatarUrl} />
-          <AvatarFallback className="text-xs">
-            {getInitials(reply.author.username || reply.author.displayName)}
-          </AvatarFallback>
-        </Avatar>
-
-        {/* Reply Content */}
-        <div className="flex-1 min-w-0">
+      {/* Reply Content */}
+      <div className="flex-1 min-w-0">
         <div className="flex items-start gap-2 mb-1">
           <Link
             href={`/users/${reply.author.username || reply.author.id}`}
@@ -440,16 +410,9 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
           </div>
         )}
 
-        {/* Nested Replies - With connection lines */}
+        {/* Nested Replies */}
         {hasReplies && (
-          <div 
-            className={cn("mt-2 space-y-2 relative")}
-            style={{
-              borderLeft: '2px solid hsl(var(--border))',
-              marginLeft: '-2rem',
-              paddingLeft: '2rem',
-            }}
-          >
+          <div className="mt-2 space-y-2">
             {reply.replies.map((nestedReply) => (
               <ForumReplyItem
                 key={nestedReply.id}
@@ -460,7 +423,6 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
             ))}
           </div>
         )}
-        </div>
       </div>
 
       {/* Report Dialog */}
