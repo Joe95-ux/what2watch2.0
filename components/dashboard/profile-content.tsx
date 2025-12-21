@@ -47,14 +47,21 @@ import { AvatarPickerDialog } from "@/components/avatar/avatar-picker-dialog";
 
 export default function DashboardProfileContent() {
   const { data: currentUser, isLoading: isLoadingCurrentUser } = useCurrentUser();
-  const { openUserProfile } = useClerk();
+  const { openUserProfile, user: clerkUser } = useClerk();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"playlists" | "lists" | "watchlist" | "reviews" | "my-list" | "discussions" | "followers" | "following">("playlists");
   const [isEditBannerOpen, setIsEditBannerOpen] = useState(false);
   const [isAvatarEditorOpen, setIsAvatarEditorOpen] = useState(false);
-  const [selectedBannerGradient, setSelectedBannerGradient] = useState<string>(currentUser?.bannerGradientId || "gradient-1");
+  const [selectedBannerGradient, setSelectedBannerGradient] = useState<string>("gradient-1");
   const [isScrolled, setIsScrolled] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
+
+  // Initialize selectedBannerGradient after mount to avoid hydration issues
+  useEffect(() => {
+    if (currentUser?.bannerGradientId) {
+      setSelectedBannerGradient(currentUser.bannerGradientId);
+    }
+  }, [currentUser?.bannerGradientId]);
 
   // Fetch user data (current user's own profile)
   const userId = currentUser?.id || "";
@@ -1066,6 +1073,7 @@ export default function DashboardProfileContent() {
           {bannerDisplay.type === "image" ? (
             <>
               <Image
+                key={bannerDisplay.url}
                 src={bannerDisplay.url}
                 alt="Banner"
                 fill
@@ -1089,7 +1097,7 @@ export default function DashboardProfileContent() {
         {/* Profile Info Section */}
         <div className="container max-w-[70rem] mx-auto px-4 sm:px-6">
           <div className="relative -mt-16 sm:-mt-20 mb-4">
-            <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-background">
+            <Avatar key={currentUser.avatarUrl || "default"} className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-background">
               <AvatarImage src={currentUser.avatarUrl || undefined} alt={displayName} />
               <AvatarFallback className="text-3xl sm:text-4xl">{initials}</AvatarFallback>
             </Avatar>
@@ -1193,7 +1201,8 @@ export default function DashboardProfileContent() {
                   }
 
                   // Invalidate user queries to refresh banner
-                  queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+                  await queryClient.invalidateQueries({ queryKey: ["current-user", clerkUser?.id] });
+                  await queryClient.refetchQueries({ queryKey: ["current-user", clerkUser?.id] });
 
                   toast.success("Banner updated!");
                   setIsEditBannerOpen(false);

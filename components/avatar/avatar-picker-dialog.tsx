@@ -135,12 +135,15 @@ export function AvatarPickerDialog({
         throw new Error(error.error || "Failed to sync avatar to Clerk");
       }
 
-      // Invalidate user queries to refresh avatar
-      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      // Invalidate and refetch user queries to refresh avatar
+      await queryClient.invalidateQueries({ queryKey: ["current-user", user?.id] });
+      await queryClient.refetchQueries({ queryKey: ["current-user", user?.id] });
       
-      // Update Clerk user object
+      // Update Clerk user object - reload and wait a bit for Clerk to sync
       if (user) {
         await user.reload();
+        // Small delay to ensure Clerk UI updates
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
       toast.success("Avatar updated", {
