@@ -18,6 +18,8 @@ model User {
   username      String?  @unique
   displayName   String?
   avatarUrl     String?
+  bannerUrl     String?
+  bannerGradientId String? // ID of selected gradient (e.g., "gradient-1")
   bio           String?
   
   // Activity visibility settings

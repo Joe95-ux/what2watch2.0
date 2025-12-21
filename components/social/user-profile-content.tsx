@@ -24,6 +24,8 @@ import ProfileLayout from "./profile-layout";
 import PublicProfileStickyNav from "./public-profile-sticky-nav";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import Link from "next/link";
+import Image from "next/image";
+import { BANNER_GRADIENTS } from "@/components/social/banner-gradient-selector";
 
 interface UserProfileContentProps {
   userId?: string;
@@ -290,6 +292,15 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
     .join("")
     .toUpperCase()
     .slice(0, 2);
+
+  // Get banner - use bannerUrl if available, otherwise use gradient
+  const bannerDisplay = useMemo(() => {
+    if (user.bannerUrl) {
+      return { type: "image" as const, url: user.bannerUrl };
+    }
+    const gradient = BANNER_GRADIENTS.find((g) => g.id === (user.bannerGradientId || "gradient-1"));
+    return { type: "gradient" as const, gradient: gradient?.gradient || "#061E1C" };
+  }, [user.bannerUrl, user.bannerGradientId]);
 
   // Action buttons
   const actionButtons = (
@@ -882,11 +893,27 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
       <div className="min-h-screen bg-background">
         {/* Banner/Cover Section */}
         <div ref={heroRef} className="relative h-[200px] sm:h-[250px] overflow-hidden">
-          <div 
-            className="w-full h-full" 
-            style={{ background: "#061E1C" }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/40 to-transparent" />
+          {bannerDisplay.type === "image" ? (
+            <>
+              <Image
+                src={bannerDisplay.url}
+                alt="Banner"
+                fill
+                className="object-cover"
+                sizes="100vw"
+                unoptimized
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/40 to-transparent" />
+            </>
+          ) : (
+            <>
+              <div 
+                className="w-full h-full" 
+                style={{ background: bannerDisplay.gradient }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/40 to-transparent" />
+            </>
+          )}
           
           {/* Back Button */}
           <Button

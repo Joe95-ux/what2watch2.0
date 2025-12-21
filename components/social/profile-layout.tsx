@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 interface ProfileLayoutProps {
   // Banner/Cover
   bannerGradient?: string; // CSS gradient or color
+  bannerUrl?: string | null; // Custom banner image URL
   
   // User Info
   displayName: string;
@@ -38,6 +40,7 @@ interface ProfileLayoutProps {
 
 export default function ProfileLayout({
   bannerGradient = "#061E1C",
+  bannerUrl,
   displayName,
   username,
   bio,
@@ -59,13 +62,29 @@ export default function ProfileLayout({
     <div className="min-h-screen bg-background">
       {/* Banner/Cover Section - Full width, edge-to-edge */}
       <div className="relative h-[200px] sm:h-[250px] overflow-hidden">
-        {/* Gradient background */}
-        <div 
-          className="w-full h-full" 
-          style={{ background: bannerGradient }}
-        />
-        {/* Dark overlay - reduced opacity */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/40 to-transparent" />
+        {bannerUrl ? (
+          <>
+            <Image
+              src={bannerUrl}
+              alt="Banner"
+              fill
+              className="object-cover"
+              sizes="100vw"
+              unoptimized
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/40 to-transparent" />
+          </>
+        ) : (
+          <>
+            {/* Gradient background */}
+            <div 
+              className="w-full h-full" 
+              style={{ background: bannerGradient }}
+            />
+            {/* Dark overlay - reduced opacity */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/40 to-transparent" />
+          </>
+        )}
         
         {/* Back Button - Positioned on cover */}
         {showBackButton && (

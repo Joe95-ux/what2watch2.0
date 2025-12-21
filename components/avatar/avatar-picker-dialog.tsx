@@ -55,9 +55,57 @@ export function AvatarPickerDialog({
         const response = await fetch(selectedAvatarUrl);
         const blob = await response.blob();
 
+        // Convert SVG to PNG if needed
+        let finalBlob = blob;
+        if (blob.type === "image/svg+xml" || selectedAvatarUrl.endsWith(".svg")) {
+          // Convert SVG to PNG using canvas
+          const img = new Image();
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          
+          if (!ctx) {
+            throw new Error("Failed to create canvas context");
+          }
+
+          // Set canvas size
+          canvas.width = 400;
+          canvas.height = 400;
+
+          // Create object URL from blob
+          const objectUrl = URL.createObjectURL(blob);
+          
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => {
+              try {
+                // Draw image to canvas
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                // Convert canvas to blob (PNG)
+                canvas.toBlob((pngBlob) => {
+                  if (pngBlob) {
+                    finalBlob = pngBlob;
+                    URL.revokeObjectURL(objectUrl);
+                    resolve();
+                  } else {
+                    URL.revokeObjectURL(objectUrl);
+                    reject(new Error("Failed to convert SVG to PNG"));
+                  }
+                }, "image/png", 0.95);
+              } catch (error) {
+                URL.revokeObjectURL(objectUrl);
+                reject(error);
+              }
+            };
+            img.onerror = () => {
+              URL.revokeObjectURL(objectUrl);
+              reject(new Error("Failed to load SVG image"));
+            };
+            img.src = objectUrl;
+          });
+        }
+
         // Upload to Cloudinary
         const formData = new FormData();
-        formData.append("file", blob, "avatar.png");
+        formData.append("file", finalBlob, "avatar.png");
 
         const uploadResponse = await fetch("/api/user/upload-avatar", {
           method: "POST",

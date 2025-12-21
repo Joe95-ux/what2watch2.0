@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useClerk } from "@clerk/nextjs";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -34,7 +35,8 @@ import { useWatchlist } from "@/hooks/use-watchlist";
 import { useUserReviews } from "@/hooks/use-reviews";
 import ReviewCard from "@/components/reviews/review-card";
 import ProfileStickyNav from "@/components/dashboard/profile-sticky-nav";
-import BannerGradientSelector, { BANNER_GRADIENTS } from "@/components/social/banner-gradient-selector";
+import BannerSelector from "@/components/social/banner-selector";
+import { BANNER_GRADIENTS } from "@/components/social/banner-gradient-selector";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FollowButton } from "@/components/social/follow-button";
@@ -46,10 +48,11 @@ import { AvatarPickerDialog } from "@/components/avatar/avatar-picker-dialog";
 export default function DashboardProfileContent() {
   const { data: currentUser, isLoading: isLoadingCurrentUser } = useCurrentUser();
   const { openUserProfile } = useClerk();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"playlists" | "lists" | "watchlist" | "reviews" | "my-list" | "discussions" | "followers" | "following">("playlists");
   const [isEditBannerOpen, setIsEditBannerOpen] = useState(false);
   const [isAvatarEditorOpen, setIsAvatarEditorOpen] = useState(false);
-  const [selectedBannerGradient, setSelectedBannerGradient] = useState<string>("gradient-1");
+  const [selectedBannerGradient, setSelectedBannerGradient] = useState<string>(currentUser?.bannerGradientId || "gradient-1");
   const [isScrolled, setIsScrolled] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
 
@@ -258,11 +261,14 @@ export default function DashboardProfileContent() {
     setCurrentPage(1);
   }, [activeTab, playlists.length, lists.length, watchlist.length, favorites.length, followers.length, following.length, reviews.length]);
 
-  // Get banner gradient
-  const bannerGradient = useMemo(() => {
-    const gradient = BANNER_GRADIENTS.find((g) => g.id === selectedBannerGradient);
-    return gradient?.gradient || "#061E1C";
-  }, [selectedBannerGradient]);
+  // Get banner - use bannerUrl if available, otherwise use gradient
+  const bannerDisplay = useMemo(() => {
+    if (currentUser?.bannerUrl) {
+      return { type: "image" as const, url: currentUser.bannerUrl };
+    }
+    const gradient = BANNER_GRADIENTS.find((g) => g.id === (currentUser?.bannerGradientId || selectedBannerGradient));
+    return { type: "gradient" as const, gradient: gradient?.gradient || "#061E1C" };
+  }, [currentUser?.bannerUrl, currentUser?.bannerGradientId, selectedBannerGradient]);
 
   if (isLoadingCurrentUser || !currentUser) {
     return (
@@ -1057,11 +1063,27 @@ export default function DashboardProfileContent() {
       <div className="min-h-screen bg-background">
         {/* Banner/Cover Section */}
         <div ref={heroRef} className="relative h-[200px] sm:h-[250px] overflow-hidden">
-          <div 
-            className="w-full h-full" 
-            style={{ background: bannerGradient }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/40 to-transparent" />
+          {bannerDisplay.type === "image" ? (
+            <>
+              <Image
+                src={bannerDisplay.url}
+                alt="Banner"
+                fill
+                className="object-cover"
+                sizes="100vw"
+                unoptimized
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/40 to-transparent" />
+            </>
+          ) : (
+            <>
+              <div 
+                className="w-full h-full" 
+                style={{ background: bannerDisplay.gradient }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/40 to-transparent" />
+            </>
+          )}
         </div>
 
         {/* Profile Info Section */}
@@ -1135,22 +1157,55 @@ export default function DashboardProfileContent() {
 
       {/* Edit Banner Dialog */}
       <Dialog open={isEditBannerOpen} onOpenChange={setIsEditBannerOpen}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
             <DialogTitle>Change Banner</DialogTitle>
             <DialogDescription>
-              Choose a gradient for your profile banner
+              Choose a gradient or upload your own banner image
             </DialogDescription>
           </DialogHeader>
-          <BannerGradientSelector
-            selectedGradient={selectedBannerGradient}
-            onSelect={(gradientId) => {
-              setSelectedBannerGradient(gradientId);
-              // TODO: Save to database
-              toast.success("Banner updated!");
-              setIsEditBannerOpen(false);
-            }}
-          />
+          <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-4 min-h-0">
+            <BannerSelector
+              selectedGradient={currentUser?.bannerGradientId || selectedBannerGradient}
+              selectedBannerUrl={currentUser?.bannerUrl}
+              onSelect={async (data) => {
+                try {
+                  // Save to database
+                  const response = await fetch("/api/user/banner", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      bannerUrl: data.bannerUrl,
+                      bannerGradientId: data.gradientId,
+                    }),
+                  });
+
+                  if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || "Failed to save banner");
+                  }
+
+                  // Update local state
+                  if (data.gradientId) {
+                    setSelectedBannerGradient(data.gradientId);
+                  }
+
+                  // Invalidate user queries to refresh banner
+                  queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+
+                  toast.success("Banner updated!");
+                  setIsEditBannerOpen(false);
+                } catch (error) {
+                  console.error("Error saving banner:", error);
+                  toast.error("Error", {
+                    description: error instanceof Error ? error.message : "Failed to save banner.",
+                  });
+                }
+              }}
+            />
+          </div>
         </DialogContent>
       </Dialog>
 

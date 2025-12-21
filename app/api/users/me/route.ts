@@ -18,6 +18,8 @@ export async function GET(request: NextRequest) {
         username: true,
         displayName: true,
         avatarUrl: true,
+        bannerUrl: true,
+        bannerGradientId: true,
         role: true,
         isForumAdmin: true,
         isForumModerator: true,
