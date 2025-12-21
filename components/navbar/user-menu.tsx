@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { MoreVertical, Settings, LogOut, Moon, Sun, Monitor, LayoutDashboard, Youtube, Bookmark, List, BookOpen, Activity, User, ClipboardList, Compass } from "lucide-react";
+import { MoreVertical, Settings, LogOut, Moon, Sun, Monitor, LayoutDashboard, Youtube, Bookmark, List, BookOpen, Activity, User, ClipboardList, Compass, UserCircle } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
-import { useClerk } from "@clerk/nextjs";
+import { useClerk, useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { AvatarEditorDialog } from "@/components/avatar/avatar-editor-dialog";
 
 interface UserMenuProps {
   hasHeroSection?: boolean;
@@ -27,7 +28,9 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
   const { setTheme, theme } = useTheme();
   const router = useRouter();
   const { signOut } = useClerk();
+  const { user } = useUser();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isAvatarEditorOpen, setIsAvatarEditorOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -152,6 +155,18 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
 
         <DropdownMenuSeparator />
 
+        <DropdownMenuItem 
+          className="cursor-pointer"
+          onSelect={(e) => {
+            e.preventDefault();
+            setIsAvatarEditorOpen(true);
+            setTimeout(() => setIsDropdownOpen(false), 100);
+          }}
+        >
+          <UserCircle className="mr-2 h-4 w-4" />
+          <span>Edit Avatar</span>
+        </DropdownMenuItem>
+
         <Link href="/dashboard/youtube/management">
           <DropdownMenuItem 
             className="cursor-pointer"
@@ -260,6 +275,11 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
           <span>Logout</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
+      <AvatarEditorDialog
+        isOpen={isAvatarEditorOpen}
+        onClose={() => setIsAvatarEditorOpen(false)}
+        currentAvatarUrl={user?.imageUrl}
+      />
     </DropdownMenu>
   );
 }

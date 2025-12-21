@@ -24,7 +24,7 @@ import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { MovieCardSkeleton } from "@/components/skeletons/movie-card-skeleton";
 import { Playlist } from "@/hooks/use-playlists";
-import { Users, UserCheck, List, Star, Heart, Edit, Image as ImageIcon, KeyRound, User as UserIcon, ChevronLeft, ChevronRight, MessagesSquare, ArrowRight } from "lucide-react";
+import { Users, UserCheck, List, Star, Heart, Edit, Image as ImageIcon, KeyRound, User as UserIcon, ChevronLeft, ChevronRight, MessagesSquare, ArrowRight, UserCircle } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useUserFollowers, useUserFollowing, type User } from "@/hooks/use-follow";
 import { useFavorites } from "@/hooks/use-favorites";
@@ -41,12 +41,14 @@ import { FollowButton } from "@/components/social/follow-button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { AvatarEditorDialog } from "@/components/avatar/avatar-editor-dialog";
 
 export default function DashboardProfileContent() {
   const { data: currentUser, isLoading: isLoadingCurrentUser } = useCurrentUser();
   const { openUserProfile } = useClerk();
   const [activeTab, setActiveTab] = useState<"playlists" | "lists" | "watchlist" | "reviews" | "my-list" | "discussions" | "followers" | "following">("playlists");
   const [isEditBannerOpen, setIsEditBannerOpen] = useState(false);
+  const [isAvatarEditorOpen, setIsAvatarEditorOpen] = useState(false);
   const [selectedBannerGradient, setSelectedBannerGradient] = useState<string>("gradient-1");
   const [isScrolled, setIsScrolled] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
@@ -303,8 +305,13 @@ export default function DashboardProfileContent() {
           <UserIcon className="h-4 w-4 mr-2" />
           Edit Username
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => openUserProfile()} className="cursor-pointer">
-          <ImageIcon className="h-4 w-4 mr-2" />
+        <DropdownMenuItem 
+          onClick={() => {
+            setIsAvatarEditorOpen(true);
+          }} 
+          className="cursor-pointer"
+        >
+          <UserCircle className="h-4 w-4 mr-2" />
           Edit Profile Picture
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => openUserProfile()} className="cursor-pointer">
@@ -1155,6 +1162,12 @@ export default function DashboardProfileContent() {
           onClose={() => setSelectedItem(null)}
         />
       )}
+
+      <AvatarEditorDialog
+        isOpen={isAvatarEditorOpen}
+        onClose={() => setIsAvatarEditorOpen(false)}
+        currentAvatarUrl={currentUser?.avatarUrl}
+      />
       
     </>
   );

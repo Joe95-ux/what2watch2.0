@@ -9,12 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass } from "lucide-react";
+import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserCircle } from "lucide-react";
 import { Youtube } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useForumNotifications } from "@/hooks/use-forum-notifications";
 import { useYouTubeNotifications } from "@/hooks/use-youtube-notifications";
 import { UnifiedNotificationCenterMobile } from "@/components/notifications/unified-notification-center-mobile";
+import { AvatarEditorDialog } from "@/components/avatar/avatar-editor-dialog";
 
 interface MobileNavProps {
   navLinks: Array<{ href: string; label: string }>;
@@ -23,12 +24,13 @@ interface MobileNavProps {
 }
 
 export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNavProps) {
-  const { isSignedIn } = useUser();
+  const { isSignedIn, user } = useUser();
   const { signOut } = useClerk();
   const router = useRouter();
   const { setTheme, theme } = useTheme();
   const [isThemeOpen, setIsThemeOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [isAvatarEditorOpen, setIsAvatarEditorOpen] = useState(false);
 
   // Get unread notification counts
   const { data: forumData } = useForumNotifications(false);
@@ -150,6 +152,21 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               <Settings className="mr-2 h-4 w-4" />
               <span>Settings</span>
             </Link>
+            <button
+              onClick={() => {
+                setIsAvatarEditorOpen(true);
+                onLinkClick();
+              }}
+              className={cn(
+                "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
+                "focus:bg-accent focus:text-accent-foreground",
+                "hover:bg-accent hover:text-accent-foreground",
+                "text-muted-foreground"
+              )}
+            >
+              <UserCircle className="mr-2 h-4 w-4" />
+              <span>Edit Avatar</span>
+            </button>
 
             {/* Theme Toggle - Collapsible */}
             <div className="relative">
@@ -261,6 +278,15 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
             </button>
           </div>
         </>
+      )}
+
+      {/* Avatar Editor Dialog */}
+      {isSignedIn && (
+        <AvatarEditorDialog
+          isOpen={isAvatarEditorOpen}
+          onClose={() => setIsAvatarEditorOpen(false)}
+          currentAvatarUrl={user?.imageUrl}
+        />
       )}
 
       {/* Auth Section */}
