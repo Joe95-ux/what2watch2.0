@@ -170,8 +170,14 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
         {/* Horizontal bend line connecting to avatar */}
         {depth > 0 && (
           <div 
-            className="absolute left-0 top-[12px] w-4 h-[1px] bg-border"
-            style={{ borderTop: '1px solid hsl(var(--border))' }}
+            className="absolute h-[1px] bg-border"
+            style={{
+              left: '-1.25rem',
+              top: '12px',
+              width: '1.25rem',
+              height: '1px',
+            }}
+            aria-hidden="true"
           />
         )}
         
@@ -200,19 +206,19 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
       {/* Horizontal bend line connecting to avatar - only for nested comments */}
       {depth > 0 && (
         <div 
-          className="absolute top-[16px] h-[1px] bg-border z-0"
-          aria-hidden="true"
+          className="absolute h-[1px] bg-border"
           style={{
             left: '-1.25rem',
+            top: '16px',
             width: '1.25rem',
             height: '1px',
-            backgroundColor: 'hsl(var(--border))',
           }}
+          aria-hidden="true"
         />
       )}
 
       {/* Avatar and Content */}
-      <div className="pl-5 flex gap-2 relative z-10 bg-background">
+      <div className="pl-5 flex gap-2 relative">
         <Avatar className="h-8 w-8 flex-shrink-0">
           <AvatarImage src={reply.author.avatarUrl} />
           <AvatarFallback className="text-xs">
@@ -437,9 +443,8 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
         {/* Nested Replies - With connection lines */}
         {hasReplies && (
           <div 
-            className={cn("mt-2 space-y-2 relative")}
+            className={cn("mt-2 space-y-2 relative border-l border-border")}
             style={{
-              borderLeft: '1px solid hsl(var(--border))',
               marginLeft: '-1.25rem',
               paddingLeft: '1.25rem',
             }}
