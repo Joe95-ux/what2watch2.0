@@ -272,6 +272,7 @@ export function useUserReviews(
   options?: {
     page?: number;
     limit?: number;
+    enabled?: boolean;
   }
 ) {
   return useQuery({
@@ -292,7 +293,7 @@ export function useUserReviews(
       const data = await response.json();
       return data as ReviewsResponse;
     },
-    enabled: !!userId,
+    enabled: options?.enabled !== undefined ? options.enabled : !!userId,
     retry: 1,
     refetchOnWindowFocus: false,
   });

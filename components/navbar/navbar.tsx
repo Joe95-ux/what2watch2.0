@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useUser, SignInButton, UserButton } from "@clerk/nextjs";
+import { useUser, SignInButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell } from "lucide-react";
@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import Logo from "@/components/Logo";
 import Search from "./search";
 import { UserMenu } from "./user-menu";
+import { UserProfileButton } from "./user-profile-button";
 import { NavDropdown } from "./nav-dropdown";
 import MobileNav from "./mobile-nav";
 import { HamburgerButton } from "./hamburger-button";
@@ -157,14 +158,7 @@ export default function Navbar() {
                       )}>
                         <UnifiedNotificationCenter />
                       </div>
-                      <UserButton
-                        afterSignOutUrl="/"
-                        appearance={{
-                          elements: {
-                            avatarBox: "h-8 w-8",
-                          },
-                        }}
-                      />
+                      <UserProfileButton hasHeroSection={hasHeroSection} />
                       {/* User Menu - Hidden on mobile, shown in mobile menu */}
                       <div className="hidden md:block">
                         <UserMenu hasHeroSection={hasHeroSection} />
@@ -203,14 +197,7 @@ export default function Navbar() {
                     )}>
                       <UnifiedNotificationCenter />
                     </div>
-                    <UserButton
-                      afterSignOutUrl="/"
-                      appearance={{
-                        elements: {
-                          avatarBox: "h-8 w-8",
-                        },
-                      }}
-                    />
+                    <UserProfileButton hasHeroSection={hasHeroSection} />
                     {/* User Menu - Hidden on mobile, shown in mobile menu */}
                     <div className="hidden md:block">
                       <UserMenu hasHeroSection={hasHeroSection} />

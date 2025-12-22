@@ -15,7 +15,7 @@ import { Slider } from "@/components/ui/slider";
 import { Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useUser } from "@clerk/nextjs";
-import { useQueryClient } from "@tanstack/react-query";
+import { useAvatar } from "@/contexts/avatar-context";
 
 interface AvatarEditorDialogProps {
   isOpen: boolean;
@@ -35,7 +35,7 @@ export function AvatarEditorDialog({
   const editorRef = useRef<AvatarEditor>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useUser();
-  const queryClient = useQueryClient();
+  const { updateAvatar } = useAvatar();
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -127,11 +127,7 @@ export function AvatarEditorDialog({
             throw new Error(error.error || "Failed to update database");
           }
 
-          queryClient.setQueryData(["current-user", user.id], (old: any) => {
-            if (!old) return old;
-            return { ...old, avatarUrl: url };
-          });
-          queryClient.invalidateQueries({ queryKey: ["current-user", user.id] });
+          updateAvatar(url);
 
           toast.success("Avatar updated", {
             description: "Your profile picture has been updated successfully.",

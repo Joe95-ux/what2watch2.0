@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sparkles, Image as ImageIcon, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useUser } from "@clerk/nextjs";
-import { useQueryClient } from "@tanstack/react-query";
+import { useAvatar } from "@/contexts/avatar-context";
 import { AvatarGeneratorTab } from "./avatar-generator-tab";
 import { AvatarLibraryTab } from "./avatar-library-tab";
 import { AvatarUploadTab } from "./avatar-upload-tab";
@@ -34,7 +34,7 @@ export function AvatarPickerDialog({
   const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const { user } = useUser();
-  const queryClient = useQueryClient();
+  const { updateAvatar } = useAvatar();
 
   const handleSave = async () => {
     if (!selectedAvatarUrl) {
@@ -151,11 +151,7 @@ export function AvatarPickerDialog({
         throw new Error(error.error || "Failed to update database");
       }
 
-      queryClient.setQueryData(["current-user", user.id], (old: any) => {
-        if (!old) return old;
-        return { ...old, avatarUrl };
-      });
-      queryClient.invalidateQueries({ queryKey: ["current-user", user.id] });
+      updateAvatar(avatarUrl);
 
       toast.success("Avatar updated", {
         description: "Your profile picture has been updated successfully.",
@@ -184,7 +180,7 @@ export function AvatarPickerDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="lg:max-w-[800px] max-h-[95vh] flex flex-col p-0 overflow-hidden">
         {/* Fixed Header */}
         <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
           <DialogTitle>Choose Your Avatar</DialogTitle>

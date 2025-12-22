@@ -27,6 +27,7 @@ import { MovieCardSkeleton } from "@/components/skeletons/movie-card-skeleton";
 import { Playlist } from "@/hooks/use-playlists";
 import { Users, UserCheck, List, Star, Heart, Edit, Image as ImageIcon, KeyRound, User as UserIcon, ChevronLeft, ChevronRight, MessagesSquare, ArrowRight, UserCircle } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useAvatar } from "@/contexts/avatar-context";
 import { useUserFollowers, useUserFollowing, type User } from "@/hooks/use-follow";
 import { useFavorites } from "@/hooks/use-favorites";
 import { usePlaylists } from "@/hooks/use-playlists";
@@ -45,8 +46,13 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { AvatarPickerDialog } from "@/components/avatar/avatar-picker-dialog";
 
-export default function DashboardProfileContent() {
+interface DashboardProfileContentProps {
+  userId: string;
+}
+
+export default function DashboardProfileContent({ userId: serverUserId }: DashboardProfileContentProps) {
   const { data: currentUser, isLoading: isLoadingCurrentUser } = useCurrentUser();
+  const { avatarUrl: contextAvatarUrl } = useAvatar();
   const { openUserProfile, user: clerkUser } = useClerk();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"playlists" | "lists" | "watchlist" | "reviews" | "my-list" | "discussions" | "followers" | "following">("playlists");
@@ -55,19 +61,22 @@ export default function DashboardProfileContent() {
   const [selectedBannerGradient, setSelectedBannerGradient] = useState<string>("gradient-1");
   const [isScrolled, setIsScrolled] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Initialize selectedBannerGradient after mount to avoid hydration issues
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   useEffect(() => {
     if (currentUser?.bannerGradientId) {
       setSelectedBannerGradient(currentUser.bannerGradientId);
     }
   }, [currentUser?.bannerGradientId]);
 
-  // Fetch user data (current user's own profile)
-  const userId = currentUser?.id || "";
+  const userId = serverUserId || currentUser?.id || "";
 
-  const { data: followersData } = useUserFollowers(userId);
-  const { data: followingData } = useUserFollowing(userId);
+  const { data: followersData } = useUserFollowers(userId && isMounted ? userId : null);
+  const { data: followingData } = useUserFollowing(userId && isMounted ? userId : null);
   const { data: playlists = [], isLoading: isLoadingPlaylists } = usePlaylists();
   const { data: lists = [], isLoading: isLoadingLists } = useLists();
   const { data: watchlist = [], isLoading: isLoadingWatchlist } = useWatchlist();
@@ -95,10 +104,10 @@ export default function DashboardProfileContent() {
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
   const itemsPerPage = 24;
 
-  // Fetch reviews (after pagination state is defined)
   const { data: reviewsData, isLoading: isLoadingReviews } = useUserReviews(userId, {
     page: activeTab === "reviews" ? currentPage : 1,
     limit: itemsPerPage,
+    enabled: !!userId && isMounted,
   });
 
   const reviews = reviewsData?.reviews || [];
@@ -113,7 +122,6 @@ export default function DashboardProfileContent() {
       }
       const response = await fetch(`/api/users/${userId}/forum-stats`);
       if (!response.ok) {
-        // Don't throw error for 404, just return empty stats
         if (response.status === 404) {
           return { stats: { postCount: 0, replyCount: 0, totalReactions: 0 }, recentPosts: [], recentReplies: [] };
         }
@@ -121,8 +129,8 @@ export default function DashboardProfileContent() {
       }
       return response.json();
     },
-    enabled: !!userId && userId.trim() !== "",
-    retry: false, // Don't retry on failure to avoid unnecessary requests
+    enabled: !!userId && userId.trim() !== "" && isMounted,
+    retry: false,
   });
 
   const forumStats = forumStatsData?.stats || { postCount: 0, replyCount: 0, totalReactions: 0 };
@@ -285,7 +293,7 @@ export default function DashboardProfileContent() {
     return { type: "gradient" as const, gradient: gradient?.gradient || "#061E1C" };
   }, [currentUser?.bannerUrl, currentUser?.bannerGradientId, selectedBannerGradient]);
 
-  if (isLoadingCurrentUser || !currentUser) {
+  if (!isMounted || (isLoadingCurrentUser && !currentUser)) {
     return (
       <div className="min-h-screen bg-background">
         <div className="relative h-[200px] sm:h-[250px] overflow-hidden">
@@ -300,7 +308,7 @@ export default function DashboardProfileContent() {
     );
   }
 
-  const displayName = currentUser.username || currentUser.displayName || "User";
+  const displayName = currentUser?.username || currentUser?.displayName || "User";
   const initials = displayName
     .split(" ")
     .map((n: string) => n[0])
@@ -1105,8 +1113,8 @@ export default function DashboardProfileContent() {
         {/* Profile Info Section */}
         <div className="container max-w-[70rem] mx-auto px-4 sm:px-6">
           <div className="relative -mt-16 sm:-mt-20 mb-4">
-            <Avatar key={currentUser.avatarUrl || "default"} className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-background">
-              <AvatarImage src={currentUser.avatarUrl || undefined} alt={displayName} />
+            <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-background">
+              <AvatarImage src={contextAvatarUrl || currentUser?.avatarUrl || undefined} alt={displayName} />
               <AvatarFallback className="text-3xl sm:text-4xl">{initials}</AvatarFallback>
             </Avatar>
           </div>
@@ -1114,10 +1122,10 @@ export default function DashboardProfileContent() {
           <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4">
             <div className="flex-1 min-w-0">
               <h1 className="text-2xl sm:text-3xl font-bold mb-1">{displayName}</h1>
-              {currentUser.username && (
+              {currentUser?.username && (
                 <p className="text-base sm:text-lg text-muted-foreground mb-3">@{currentUser.username}</p>
               )}
-              {currentUser.bio && (
+              {currentUser?.bio && (
                 <p className="text-sm sm:text-base text-foreground mb-3 whitespace-pre-wrap break-words">
                   {currentUser.bio}
                 </p>

@@ -24,6 +24,6 @@ export default async function DashboardProfilePage() {
     redirect("/onboarding");
   }
 
-  return <DashboardProfileContent />;
+  return <DashboardProfileContent userId={user.id} />;
 }
 
