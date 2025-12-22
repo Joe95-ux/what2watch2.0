@@ -57,6 +57,7 @@ import { useWatchlist } from "@/hooks/use-watchlist";
 import { usePlaylists } from "@/hooks/use-playlists";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useAvatar } from "@/contexts/avatar-context";
 import { useClerk } from "@clerk/nextjs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DashboardSubnav } from "./dashboard-subnav";
@@ -72,6 +73,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { data: watchlist = [] } = useWatchlist();
   const { data: playlists = [] } = usePlaylists();
   const { data: currentUser } = useCurrentUser();
+  const { avatarUrl: contextAvatarUrl } = useAvatar();
   const { openUserProfile } = useClerk();
   
   // Determine sidebar state based on screen size (< lg = collapsed)
