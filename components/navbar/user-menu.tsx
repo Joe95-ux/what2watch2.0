@@ -48,6 +48,8 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
             <span>Dashboard</span>
           </DropdownMenuItem>
         </Link>
+        <DropdownMenuSeparator />
+
         <Link href="/browse/personalized">
           <DropdownMenuItem 
             className="cursor-pointer"
@@ -60,7 +62,6 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
             <span>Guide</span>
           </DropdownMenuItem>
         </Link>
-
         <DropdownMenuSeparator />
 
         <Link href="/dashboard/watchlist">
@@ -75,6 +76,8 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
             <span>Watchlist</span>
           </DropdownMenuItem>
         </Link>
+        <DropdownMenuSeparator />
+
         <Link href="/dashboard/playlists">
           <DropdownMenuItem 
             className="cursor-pointer"
@@ -87,6 +90,8 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
             <span>Playlists</span>
           </DropdownMenuItem>
         </Link>
+        <DropdownMenuSeparator />
+
         <Link href="/dashboard/lists">
           <DropdownMenuItem 
             className="cursor-pointer"
@@ -99,6 +104,8 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
             <span>Lists</span>
           </DropdownMenuItem>
         </Link>
+        <DropdownMenuSeparator />
+
         <Link href="/dashboard/diary">
           <DropdownMenuItem 
             className="cursor-pointer"
@@ -111,6 +118,8 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
             <span>Diary</span>
           </DropdownMenuItem>
         </Link>
+        <DropdownMenuSeparator />
+
         <Link href="/dashboard/activity">
           <DropdownMenuItem 
             className="cursor-pointer"
@@ -123,6 +132,8 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
             <span>Activity</span>
           </DropdownMenuItem>
         </Link>
+        <DropdownMenuSeparator />
+
         <Link href="/dashboard/profile">
           <DropdownMenuItem 
             className="cursor-pointer"
@@ -135,6 +146,7 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
             <span>Profile</span>
           </DropdownMenuItem>
         </Link>
+        <DropdownMenuSeparator />
 
         <Link href="/dashboard/youtube/management">
           <DropdownMenuItem 

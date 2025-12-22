@@ -33,9 +33,42 @@ interface UserProfileContentProps {
 
 export default function UserProfileContent({ userId: propUserId }: UserProfileContentProps = {}) {
   const router = useRouter();
+  // Ensure userId is always a string, never undefined/null
   const userId = propUserId || "";
+  
+  console.log("[Frontend user-profile-content] Component initialized with:", {
+    propUserId,
+    userId,
+    type: typeof userId,
+    isNull: userId === null,
+    isUndefined: userId === undefined,
+    isEmpty: userId === "",
+    length: userId?.length,
+    isValid: !!userId && userId.trim() !== "",
+  });
+  
+  // Early return if userId is invalid
+  if (!userId || userId.trim() === "") {
+    console.warn("[Frontend user-profile-content] Invalid userId, returning early");
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Invalid User</h2>
+          <p className="text-muted-foreground mb-4">User identifier is missing.</p>
+        </div>
+      </div>
+    );
+  }
+  
   const { data: currentUser } = useCurrentUser();
   const isOwnProfile = currentUser?.id === userId;
+  
+  console.log("[Frontend user-profile-content] Current user comparison:", {
+    currentUserId: currentUser?.id,
+    propUserId,
+    isOwnProfile,
+    match: currentUser?.id === userId,
+  });
   const [activeTab, setActiveTab] = useState<"playlists" | "lists" | "reviews" | "my-list" | "discussions" | "followers" | "following">("lists");
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -85,10 +118,11 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
         userId: data?.user?.id,
         username: data?.user?.username,
         displayName: data?.user?.displayName,
+        fullUserData: data?.user,
       });
       return data;
     },
-    enabled: !!userId && isMounted,
+    enabled: !!userId && userId.trim() !== "" && isMounted,
   });
 
   const { data: followersData, isLoading: isLoadingFollowers } = useUserFollowers(userId && isMounted ? userId : null);
@@ -102,7 +136,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
       }
       return response.json();
     },
-    enabled: !!userId && isMounted,
+    enabled: !!userId && userId.trim() !== "" && isMounted,
   });
 
   const { data: listsData, isLoading: isLoadingLists } = useQuery({
@@ -114,7 +148,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
       }
       return response.json();
     },
-    enabled: !!userId && isMounted,
+    enabled: !!userId && userId.trim() !== "" && isMounted,
   });
 
   const user = userData?.user;
@@ -130,7 +164,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   const { data: reviewsData, isLoading: isLoadingReviews } = useUserReviews(userId, {
     page: activeTab === "reviews" ? currentPage : 1,
     limit: itemsPerPage,
-    enabled: !!userId && isMounted,
+    enabled: !!userId && userId.trim() !== "" && isMounted,
   });
 
   const reviews = reviewsData?.reviews || [];
@@ -156,7 +190,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
       console.log("[Frontend user-profile-content] Forum-stats fetch success");
       return data;
     },
-    enabled: !!userId && isMounted,
+    enabled: !!userId && userId.trim() !== "" && isMounted,
   });
 
   const forumStats = forumStatsData?.stats || { postCount: 0, replyCount: 0, totalReactions: 0 };

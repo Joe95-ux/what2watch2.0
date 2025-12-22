@@ -75,7 +75,7 @@ export function UserProfileButton({ hasHeroSection = false }: UserProfileButtonP
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-[280px]">
-          <div className="flex items-center gap-3 px-2 py-3 border-b">
+          <div className="flex items-center gap-3 px-2 py-3">
             <Avatar className="h-12 w-12">
               <AvatarImage src={avatarUrl} alt={displayName} />
               <AvatarFallback className="text-base">
