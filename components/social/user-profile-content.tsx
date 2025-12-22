@@ -93,8 +93,9 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
     enabled: !!userId && userId.trim() !== "" && isMounted,
   });
 
-  const { data: followersData, isLoading: isLoadingFollowers } = useUserFollowers(userId && isMounted ? userId : null);
-  const { data: followingData, isLoading: isLoadingFollowing } = useUserFollowing(userId && isMounted ? userId : null);
+  // Always pass userId (hooks use enabled internally, so they handle null/undefined safely)
+  const { data: followersData, isLoading: isLoadingFollowers } = useUserFollowers(userId || null);
+  const { data: followingData, isLoading: isLoadingFollowing } = useUserFollowing(userId || null);
   const { data: playlistsData, isLoading: isLoadingPlaylists } = useQuery({
     queryKey: ["user", userId, "playlists"],
     queryFn: async () => {
