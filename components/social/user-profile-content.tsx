@@ -152,8 +152,14 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   });
 
   const user = userData?.user;
-  const playlists = useMemo(() => (playlistsData?.playlists || []) as Playlist[], [playlistsData?.playlists]);
-  const lists = useMemo(() => (listsData?.lists || []) as ListType[], [listsData?.lists]);
+  const playlists = useMemo(() => {
+    if (!playlistsData?.playlists || !Array.isArray(playlistsData.playlists)) return [];
+    return playlistsData.playlists as Playlist[];
+  }, [playlistsData?.playlists]);
+  const lists = useMemo(() => {
+    if (!listsData?.lists || !Array.isArray(listsData.lists)) return [];
+    return listsData.lists as ListType[];
+  }, [listsData?.lists]);
   const followers = followersData?.followers || [];
   const following = followingData?.following || [];
 
@@ -213,19 +219,20 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   }, [playlists.length, lists.length, favorites.length, reviewsData?.pagination?.totalPages, activeTab, itemsPerPage, isOwnProfile]);
 
   const paginatedPlaylists = useMemo(() => {
-    if (activeTab !== "playlists") return [];
-    const startIndex = (currentPage - 1) * itemsPerPage;
+    if (activeTab !== "playlists" || !Array.isArray(playlists)) return [];
+    const startIndex = Math.max(0, (currentPage - 1) * itemsPerPage);
     return playlists.slice(startIndex, startIndex + itemsPerPage);
   }, [playlists, currentPage, itemsPerPage, activeTab]);
 
   const paginatedLists = useMemo(() => {
-    if (activeTab !== "lists") return [];
-    const startIndex = (currentPage - 1) * itemsPerPage;
+    if (activeTab !== "lists" || !Array.isArray(lists)) return [];
+    const startIndex = Math.max(0, (currentPage - 1) * itemsPerPage);
     return lists.slice(startIndex, startIndex + itemsPerPage);
   }, [lists, currentPage, itemsPerPage, activeTab]);
 
   // Convert favorites to TMDB format for My List tab
   const favoritesAsTMDB = useMemo(() => {
+    if (!Array.isArray(favorites)) return [];
     return favorites.map((fav) => {
       if (fav.mediaType === "movie") {
         const movie: TMDBMovie = {
@@ -265,8 +272,8 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   }, [favorites]);
 
   const paginatedFavorites = useMemo(() => {
-    if (activeTab !== "my-list") return [];
-    const startIndex = (currentPage - 1) * itemsPerPage;
+    if (activeTab !== "my-list" || !Array.isArray(favoritesAsTMDB)) return [];
+    const startIndex = Math.max(0, (currentPage - 1) * itemsPerPage);
     return favoritesAsTMDB.slice(startIndex, startIndex + itemsPerPage);
   }, [favoritesAsTMDB, currentPage, itemsPerPage, activeTab]);
 
@@ -317,12 +324,15 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
 
   // Get banner - use bannerUrl if available, otherwise use gradient
   const bannerDisplay = useMemo(() => {
+    if (!user) {
+      return { type: "gradient" as const, gradient: "#061E1C" };
+    }
     if (user.bannerUrl) {
       return { type: "image" as const, url: user.bannerUrl };
     }
     const gradient = BANNER_GRADIENTS.find((g) => g.id === (user.bannerGradientId || "gradient-1"));
     return { type: "gradient" as const, gradient: gradient?.gradient || "#061E1C" };
-  }, [user.bannerUrl, user.bannerGradientId]);
+  }, [user?.bannerUrl, user?.bannerGradientId, user]);
 
   // Action buttons
   const actionButtons = (
