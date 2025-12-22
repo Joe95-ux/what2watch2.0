@@ -1,10 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreVertical, Settings, LogOut, Moon, Sun, Monitor, LayoutDashboard, Youtube, Bookmark, List, BookOpen, Activity, User, ClipboardList, Compass, UserCircle } from "lucide-react";
-import { useTheme } from "next-themes";
-import { useRouter } from "next/navigation";
-import { useClerk, useUser } from "@clerk/nextjs";
+import { MoreVertical, LayoutDashboard, Youtube, Bookmark, List, BookOpen, Activity, User, ClipboardList, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,30 +9,16 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { AvatarPickerDialog } from "@/components/avatar/avatar-picker-dialog";
 
 interface UserMenuProps {
   hasHeroSection?: boolean;
 }
 
 export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
-  const { setTheme, theme } = useTheme();
-  const router = useRouter();
-  const { signOut } = useClerk();
-  const { user } = useUser();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isAvatarEditorOpen, setIsAvatarEditorOpen] = useState(false);
-
-  const handleSignOut = async () => {
-    await signOut();
-    router.push("/");
-  };
 
   return (
     <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
@@ -153,20 +136,6 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
           </DropdownMenuItem>
         </Link>
 
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem 
-          className="cursor-pointer"
-          onSelect={(e) => {
-            e.preventDefault();
-            setIsAvatarEditorOpen(true);
-            setTimeout(() => setIsDropdownOpen(false), 100);
-          }}
-        >
-          <UserCircle className="mr-2 h-4 w-4" />
-          <span>Edit Avatar</span>
-        </DropdownMenuItem>
-
         <Link href="/dashboard/youtube/management">
           <DropdownMenuItem 
             className="cursor-pointer"
@@ -179,107 +148,7 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
             <span>YouTube Management</span>
           </DropdownMenuItem>
         </Link>
-
-        <DropdownMenuSeparator />
-
-        <Link href="/settings">
-          <DropdownMenuItem 
-            className="cursor-pointer"
-            onSelect={(e) => {
-              // Prevent default closing behavior - close manually after navigation
-              e.preventDefault();
-              setTimeout(() => setIsDropdownOpen(false), 100);
-            }}
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
-          </DropdownMenuItem>
-        </Link>
-
-        {/* Theme Toggle */}
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger className="cursor-pointer">
-            {theme === "light" ? (
-              <Sun className="mr-2 h-4 w-4" />
-            ) : theme === "dark" ? (
-              <Moon className="mr-2 h-4 w-4" />
-            ) : (
-              <Monitor className="mr-2 h-4 w-4" />
-            )}
-            <span>Theme</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            <DropdownMenuItem
-              onClick={() => {
-                setTheme("light");
-                // Close menu after theme change
-                setTimeout(() => setIsDropdownOpen(false), 100);
-              }}
-              className="cursor-pointer"
-              onSelect={(e) => {
-                // Prevent default closing behavior - close manually
-                e.preventDefault();
-              }}
-            >
-              <Sun className="mr-2 h-4 w-4" />
-              <span>Light</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                setTheme("dark");
-                // Close menu after theme change
-                setTimeout(() => setIsDropdownOpen(false), 100);
-              }}
-              className="cursor-pointer"
-              onSelect={(e) => {
-                // Prevent default closing behavior - close manually
-                e.preventDefault();
-              }}
-            >
-              <Moon className="mr-2 h-4 w-4" />
-              <span>Dark</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                setTheme("system");
-                // Close menu after theme change
-                setTimeout(() => setIsDropdownOpen(false), 100);
-              }}
-              className="cursor-pointer"
-              onSelect={(e) => {
-                // Prevent default closing behavior - close manually
-                e.preventDefault();
-              }}
-            >
-              <Monitor className="mr-2 h-4 w-4" />
-              <span>System</span>
-            </DropdownMenuItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem
-          onClick={() => {
-            handleSignOut();
-            // Close menu after sign out
-            setTimeout(() => setIsDropdownOpen(false), 100);
-          }}
-          className="cursor-pointer text-destructive focus:text-destructive"
-          onSelect={(e) => {
-            // Prevent default closing behavior - close manually
-            e.preventDefault();
-          }}
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Logout</span>
-        </DropdownMenuItem>
       </DropdownMenuContent>
-      <AvatarPickerDialog
-        isOpen={isAvatarEditorOpen}
-        onClose={() => setIsAvatarEditorOpen(false)}
-        currentAvatarUrl={user?.imageUrl}
-      />
     </DropdownMenu>
   );
 }

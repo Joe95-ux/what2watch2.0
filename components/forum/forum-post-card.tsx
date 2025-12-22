@@ -5,6 +5,8 @@ import { formatDistanceToNow } from "date-fns";
 import { MessageCircle, Eye, Tag } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ForumLikeButton } from "./forum-like-button";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { useAvatar } from "@/contexts/avatar-context";
 import { cn } from "@/lib/utils";
 
 interface ForumPost {
@@ -38,6 +40,10 @@ interface ForumPostCardProps {
 }
 
 export function ForumPostCard({ post }: ForumPostCardProps) {
+  const { data: currentUser } = useCurrentUser();
+  const { avatarUrl: contextAvatarUrl } = useAvatar();
+  const isAuthor = currentUser?.id === post.author.id;
+
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -55,7 +61,10 @@ export function ForumPostCard({ post }: ForumPostCardProps) {
       <div className="flex items-start gap-4">
         {/* Author Avatar */}
         <Avatar className="h-10 w-10 flex-shrink-0">
-          <AvatarImage src={post.author.avatarUrl} alt={post.author.username || post.author.displayName} />
+          <AvatarImage 
+            src={isAuthor && contextAvatarUrl ? contextAvatarUrl : post.author.avatarUrl} 
+            alt={post.author.username || post.author.displayName} 
+          />
           <AvatarFallback>{getInitials(post.author.username || post.author.displayName)}</AvatarFallback>
         </Avatar>
 

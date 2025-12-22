@@ -21,6 +21,7 @@ import {
 import { useListComments, useCreateListComment, useDeleteListComment, useUpdateListComment, type ListComment, useAddListCommentReaction, useRemoveListCommentReaction } from "@/hooks/use-list-comments";
 import { Ban, UserX, Filter, Heart, Users } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useAvatar } from "@/contexts/avatar-context";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { format, formatDistanceToNow } from "date-fns";
@@ -576,6 +577,7 @@ function CommentItem({
   replySubmittingId,
   depth = 0,
 }: CommentItemProps) {
+  const { avatarUrl: contextAvatarUrl } = useAvatar();
   const isOwner = currentUser?.id === comment.userId;
   const isReplying = replyingTo === comment.id;
   const [isEditing, setIsEditing] = useState(false);
@@ -583,6 +585,7 @@ function CommentItem({
   const [isSaving, setIsSaving] = useState(false);
   const displayName = comment.user.username || comment.user.displayName || "Unknown";
   const isUserBlocked = blockedUsers.includes(comment.userId);
+  const isCurrentUser = currentUser?.id === comment.user.id;
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const addReaction = useAddListCommentReaction();
@@ -707,7 +710,9 @@ function CommentItem({
       <div className="flex gap-3">
         <Link href={`/users/${comment.user.id}`}>
           <Avatar className="h-8 w-8 cursor-pointer hover:opacity-80 transition-opacity">
-            <AvatarImage src={comment.user.avatarUrl || undefined} />
+            <AvatarImage 
+              src={isCurrentUser && contextAvatarUrl ? contextAvatarUrl : comment.user.avatarUrl || undefined} 
+            />
             <AvatarFallback>{displayName.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
         </Link>

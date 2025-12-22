@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useAvatar } from "@/contexts/avatar-context";
 
 interface User {
   id: string;
@@ -42,6 +43,7 @@ const fetchUsers = async (): Promise<UsersResponse> => {
 export function MembersSidebar() {
   const { isSignedIn } = useUser();
   const { data: currentUser } = useCurrentUser();
+  const { avatarUrl: contextAvatarUrl } = useAvatar();
 
   const { data, isLoading } = useQuery<UsersResponse>({
     queryKey: ["users", "sidebar"],
@@ -95,7 +97,14 @@ export function MembersSidebar() {
                   >
                     <Link href={`/users/${user.id}`} className="flex-shrink-0">
                       <Avatar className="h-10 w-10 cursor-pointer">
-                        <AvatarImage src={user.avatarUrl || undefined} alt={displayName} />
+                        <AvatarImage 
+                          src={
+                            currentUser?.id === user.id && contextAvatarUrl
+                              ? contextAvatarUrl
+                              : user.avatarUrl || undefined
+                          } 
+                          alt={displayName} 
+                        />
                         <AvatarFallback className="text-xs">{initials}</AvatarFallback>
                       </Avatar>
                     </Link>

@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     // Handle the webhook
     const eventType = evt.type;
-    const { id, username, first_name, image_url, email_addresses } = evt.data;
+    const { id, username, first_name, last_name, image_url, email_addresses } = evt.data;
 
     if (eventType === "user.updated") {
       try {
@@ -109,8 +109,16 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Update displayName (prioritize username over first_name)
-        const newDisplayName = username || first_name || null;
+        // Update displayName (use first_name + last_name, not username)
+        let newDisplayName: string | null = null;
+        if (first_name && last_name) {
+          newDisplayName = `${first_name} ${last_name}`;
+        } else if (first_name) {
+          newDisplayName = first_name;
+        } else if (last_name) {
+          newDisplayName = last_name;
+        }
+        
         if (newDisplayName !== user.displayName) {
           updateData.displayName = newDisplayName;
         }
@@ -157,11 +165,21 @@ export async function POST(request: NextRequest) {
 
         if (!existingUser) {
           // User doesn't exist, create them
+          // Construct displayName from first_name and last_name
+          let displayName: string | null = null;
+          if (first_name && last_name) {
+            displayName = `${first_name} ${last_name}`;
+          } else if (first_name) {
+            displayName = first_name;
+          } else if (last_name) {
+            displayName = last_name;
+          }
+
           await db.user.create({
             data: {
               clerkId: id,
               email: email_addresses?.[0]?.email_address || "",
-              displayName: username || first_name || null,
+              displayName: displayName,
               username: username || null,
               avatarUrl: image_url || null,
             },

@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { useToggleReviewReaction, useDeleteReview } from "@/hooks/use-reviews";
 import type { Review } from "@/hooks/use-reviews";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useAvatar } from "@/contexts/avatar-context";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import ReportReviewDialog from "./report-review-dialog";
@@ -41,6 +42,7 @@ export default function ReviewCard({
   showFullContent = false,
 }: ReviewCardProps) {
   const { data: currentUser } = useCurrentUser();
+  const { avatarUrl: contextAvatarUrl } = useAvatar();
   const toggleReaction = useToggleReviewReaction();
   const deleteReview = useDeleteReview();
   const [isExpanded, setIsExpanded] = useState(showFullContent);
@@ -57,7 +59,7 @@ export default function ReviewCard({
 
   const displayName =
     review.user.username || review.user.displayName || "Anonymous";
-  const avatarUrl = review.user.avatarUrl;
+  const avatarUrl = isAuthor && contextAvatarUrl ? contextAvatarUrl : review.user.avatarUrl;
   const initials = displayName[0].toUpperCase();
 
   const hasUserReacted = (type: string) => {

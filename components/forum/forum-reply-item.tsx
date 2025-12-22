@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useAvatar } from "@/contexts/avatar-context";
 import { ReportDialog } from "./report-dialog";
 import { SafeHtmlContent } from "./safe-html-content";
 import { EditReplyDialog } from "./edit-reply-dialog";
@@ -55,6 +56,7 @@ interface ForumReplyItemProps {
 export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps) {
   const { isSignedIn } = useUser();
   const { data: currentUser } = useCurrentUser();
+  const { avatarUrl: contextAvatarUrl } = useAvatar();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [showReplyForm, setShowReplyForm] = useState(false);
@@ -169,7 +171,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
       <div className={cn("flex gap-2", depth > 0 && "ml-8 border-l-2 border-border pl-4")}>
         <div className="flex items-center gap-2 flex-1">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={reply.author.avatarUrl} />
+            <AvatarImage src={isAuthor && contextAvatarUrl ? contextAvatarUrl : reply.author.avatarUrl} />
             <AvatarFallback className="text-xs">
               {getInitials(reply.author.username || reply.author.displayName)}
             </AvatarFallback>
@@ -190,7 +192,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
   return (
     <div id={`reply-${reply.id}`} className={cn("flex gap-2", depth > 0 && "ml-8 border-l-2 border-border pl-4")}>
       <Avatar className="h-9 w-9 flex-shrink-0">
-        <AvatarImage src={reply.author.avatarUrl} />
+        <AvatarImage src={isAuthor && contextAvatarUrl ? contextAvatarUrl : reply.author.avatarUrl} />
         <AvatarFallback className="text-xs">
           {getInitials(reply.author.username || reply.author.displayName)}
         </AvatarFallback>

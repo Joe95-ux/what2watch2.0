@@ -15,6 +15,8 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { SafeHtmlContent } from "./safe-html-content";
 import { useUnbookmarkReply } from "@/hooks/use-forum-reply-bookmarks";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { useAvatar } from "@/contexts/avatar-context";
 import { BookmarkCheck } from "lucide-react";
 import {
   DropdownMenu,
@@ -58,6 +60,9 @@ interface SavedCommentsResponse {
 function SavedCommentCard({ reply }: { reply: SavedReply }) {
   const unbookmarkReply = useUnbookmarkReply(reply.id);
   const router = useRouter();
+  const { data: currentUser } = useCurrentUser();
+  const { avatarUrl: contextAvatarUrl } = useAvatar();
+  const isAuthor = currentUser?.id === reply.author.id;
 
   const handleUnsave = () => {
     unbookmarkReply.mutate();
@@ -67,7 +72,7 @@ function SavedCommentCard({ reply }: { reply: SavedReply }) {
     <div className="p-4 rounded-lg border bg-card hover:border-primary/50 transition-colors">
       <div className="flex items-start gap-3">
         <Avatar className="h-8 w-8 flex-shrink-0">
-          <AvatarImage src={reply.author.avatarUrl} />
+          <AvatarImage src={isAuthor && contextAvatarUrl ? contextAvatarUrl : reply.author.avatarUrl} />
           <AvatarFallback className="text-xs">
             {reply.author.username?.[0] || reply.author.displayName?.[0] || "U"}
           </AvatarFallback>

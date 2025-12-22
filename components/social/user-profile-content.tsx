@@ -67,11 +67,26 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   const { data: userData, isLoading: isLoadingUser } = useQuery({
     queryKey: ["user", userId, "profile"],
     queryFn: async () => {
+      console.log("[Frontend user-profile-content] Fetching profile with userId:", {
+        userId,
+        type: typeof userId,
+        isNull: userId === null,
+        isUndefined: userId === undefined,
+        isEmpty: userId === "",
+        url: `/api/users/${userId}/profile`,
+      });
       const response = await fetch(`/api/users/${userId}/profile`);
       if (!response.ok) {
+        console.error("[Frontend user-profile-content] Profile fetch failed:", response.status, response.statusText);
         throw new Error("Failed to fetch user profile");
       }
-      return response.json();
+      const data = await response.json();
+      console.log("[Frontend user-profile-content] Profile fetch success:", {
+        userId: data?.user?.id,
+        username: data?.user?.username,
+        displayName: data?.user?.displayName,
+      });
+      return data;
     },
     enabled: !!userId && isMounted,
   });
@@ -124,11 +139,22 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   const { data: forumStatsData, isLoading: isLoadingForumStats } = useQuery({
     queryKey: ["user", userId, "forum-stats"],
     queryFn: async () => {
+      console.log("[Frontend user-profile-content] Fetching forum-stats with userId:", {
+        userId,
+        type: typeof userId,
+        isNull: userId === null,
+        isUndefined: userId === undefined,
+        isEmpty: userId === "",
+        url: `/api/users/${userId}/forum-stats`,
+      });
       const response = await fetch(`/api/users/${userId}/forum-stats`);
       if (!response.ok) {
+        console.error("[Frontend user-profile-content] Forum-stats fetch failed:", response.status, response.statusText);
         throw new Error("Failed to fetch forum stats");
       }
-      return response.json();
+      const data = await response.json();
+      console.log("[Frontend user-profile-content] Forum-stats fetch success");
+      return data;
     },
     enabled: !!userId && isMounted,
   });
@@ -139,16 +165,17 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
 
   // Pagination calculations
   const totalPages = useMemo(() => {
+    let pages = 1;
     if (activeTab === "playlists") {
-      return Math.ceil(playlists.length / itemsPerPage);
+      pages = Math.ceil(playlists.length / itemsPerPage);
     } else if (activeTab === "lists") {
-      return Math.ceil(lists.length / itemsPerPage);
+      pages = Math.ceil(lists.length / itemsPerPage);
     } else if (activeTab === "my-list" && isOwnProfile) {
-      return Math.ceil(favorites.length / itemsPerPage);
+      pages = Math.ceil(favorites.length / itemsPerPage);
     } else if (activeTab === "reviews") {
-      return reviewsData?.pagination?.totalPages || 1;
+      pages = reviewsData?.pagination?.totalPages || 1;
     }
-    return 1;
+    return Math.max(1, pages || 1);
   }, [playlists.length, lists.length, favorites.length, reviewsData?.pagination?.totalPages, activeTab, itemsPerPage, isOwnProfile]);
 
   const paginatedPlaylists = useMemo(() => {

@@ -24,6 +24,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useAvatar } from "@/contexts/avatar-context";
 import { EditPostDialog } from "./edit-post-dialog";
 import { PostHistoryDialog } from "./post-history-dialog";
 import { ReportDialog } from "./report-dialog";
@@ -68,6 +69,7 @@ interface ForumPostCardProps {
 export function ForumPostCardReddit({ post }: ForumPostCardProps) {
   const { isSignedIn } = useUser();
   const { data: currentUser } = useCurrentUser();
+  const { avatarUrl: contextAvatarUrl } = useAvatar();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -248,7 +250,10 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
           {/* Author and Time - Below category on mobile, inline on desktop */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
             <Avatar className="h-9 w-9">
-              <AvatarImage src={post.author.avatarUrl} alt={post.author.username || post.author.displayName} />
+              <AvatarImage 
+                src={isAuthor && contextAvatarUrl ? contextAvatarUrl : post.author.avatarUrl} 
+                alt={post.author.username || post.author.displayName} 
+              />
               <AvatarFallback className="text-xs">
                 {getInitials(post.author.username || post.author.displayName)}
               </AvatarFallback>

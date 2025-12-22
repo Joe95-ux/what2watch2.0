@@ -30,6 +30,7 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useAvatar } from "@/contexts/avatar-context";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,7 +49,10 @@ const ACTIVITY_TYPES: { value: ActivityType | "all"; label: string; icon: React.
 ];
 
 function ActivityItem({ activity }: { activity: Activity }) {
+  const { data: currentUser } = useCurrentUser();
+  const { avatarUrl: contextAvatarUrl } = useAvatar();
   const displayName = activity.user.username || activity.user.displayName || "Unknown";
+  const isCurrentUser = currentUser?.id === activity.user.id;
 
   const getActivityMessage = () => {
     switch (activity.type) {
@@ -187,7 +191,7 @@ function ActivityItem({ activity }: { activity: Activity }) {
       <Link href={`/users/${activity.user.id}`} className="flex-shrink-0">
         <Avatar className="h-10 w-10">
           <AvatarImage
-            src={activity.user.avatarUrl || undefined}
+            src={isCurrentUser && contextAvatarUrl ? contextAvatarUrl : activity.user.avatarUrl || undefined}
             alt={activity.user.username || activity.user.displayName || "Unknown"}
           />
           <AvatarFallback>{displayName[0]?.toUpperCase() || "U"}</AvatarFallback>

@@ -15,6 +15,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useForumNotifications, useMarkForumNotificationsAsRead, ForumNotification } from "@/hooks/use-forum-notifications";
 import { useYouTubeNotifications, useMarkNotificationsAsRead, YouTubeNotification } from "@/hooks/use-youtube-notifications";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { useAvatar } from "@/contexts/avatar-context";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -65,6 +67,8 @@ function getForumNotificationLink(notification: ForumNotification): string {
 export function UnifiedNotificationCenter() {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<NotificationTab>("youtube");
+  const { data: currentUser } = useCurrentUser();
+  const { avatarUrl: contextAvatarUrl } = useAvatar();
   
   const { data: forumData, isLoading: isLoadingForum } = useForumNotifications(false);
   const { data: youtubeData, isLoading: isLoadingYoutube } = useYouTubeNotifications(false);
@@ -320,7 +324,13 @@ export function UnifiedNotificationCenter() {
                       >
                         <div className="flex gap-3">
                           <Avatar className="h-10 w-10 flex-shrink-0">
-                            <AvatarImage src={notification.actor?.avatarUrl || undefined} />
+                            <AvatarImage 
+                              src={
+                                notification.actor?.id && currentUser?.id === notification.actor.id && contextAvatarUrl
+                                  ? contextAvatarUrl
+                                  : notification.actor?.avatarUrl || undefined
+                              } 
+                            />
                             <AvatarFallback>
                               {notification.actor?.displayName
                                 ? notification.actor.displayName[0].toUpperCase()

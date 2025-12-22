@@ -23,6 +23,8 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import Image from "next/image";
 import { getPosterUrl } from "@/lib/tmdb";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { useAvatar } from "@/contexts/avatar-context";
 import { 
   Film, 
   Star, 
@@ -63,8 +65,11 @@ const ACTIVITY_TYPES: { value: ActivityType | "all"; label: string; icon: React.
 ];
 
 function ActivityItem({ activity }: { activity: Activity }) {
+  const { data: currentUser } = useCurrentUser();
+  const { avatarUrl: contextAvatarUrl } = useAvatar();
   const displayName = activity.user.username || activity.user.displayName || "Unknown";
   const username = activity.user.username || "unknown";
+  const isCurrentUser = currentUser?.id === activity.user.id;
 
   const getActivityMessage = () => {
     switch (activity.type) {
@@ -197,7 +202,10 @@ function ActivityItem({ activity }: { activity: Activity }) {
       {/* Avatar */}
       <Link href={`/${username}`} className="flex-shrink-0">
         <Avatar className="h-10 w-10">
-          <AvatarImage src={activity.user.avatarUrl || undefined} alt={activity.user.username || activity.user.displayName || "Unknown"} />
+          <AvatarImage 
+            src={isCurrentUser && contextAvatarUrl ? contextAvatarUrl : activity.user.avatarUrl || undefined} 
+            alt={activity.user.username || activity.user.displayName || "Unknown"} 
+          />
           <AvatarFallback>
             {displayName[0]?.toUpperCase() || "U"}
           </AvatarFallback>

@@ -105,6 +105,8 @@ import { DetailedYouTubePlaylistItem } from "./detailed-youtube-playlist-item";
 import { CopyToPlaylistModal } from "./copy-to-playlist-modal";
 import { MoveToPlaylistModal } from "./move-to-playlist-modal";
 import { FollowButton } from "@/components/social/follow-button";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { useAvatar } from "@/contexts/avatar-context";
 
 interface PlaylistViewProps {
   playlist: Playlist | null;
@@ -161,6 +163,8 @@ export default function PlaylistView({
   showLikeFollow = false,
 }: PlaylistViewProps) {
   const router = useRouter();
+  const { data: currentUser } = useCurrentUser();
+  const { avatarUrl: contextAvatarUrl } = useAvatar();
   
   // Use playlist prop directly (no complex caching)
   const playlist = playlistProp;
@@ -936,7 +940,11 @@ export default function PlaylistView({
                   <Link href={`/users/${playlist.user.username || playlist.user.id}`}>
                     <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 ring-primary transition-all">
                       <AvatarImage
-                        src={playlist.user.avatarUrl || undefined}
+                        src={
+                          currentUser?.id === playlist.user.id && contextAvatarUrl
+                            ? contextAvatarUrl
+                            : playlist.user.avatarUrl || undefined
+                        }
                         alt={playlist.user.username || playlist.user.displayName || "User"}
                       />
                       <AvatarFallback>

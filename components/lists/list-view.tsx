@@ -101,6 +101,8 @@ import {
   useUnwatch,
 } from "@/hooks/use-viewing-logs";
 import { useUser } from "@clerk/nextjs";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { useAvatar } from "@/contexts/avatar-context";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { createPersonSlug } from "@/lib/person-utils";
 import { Textarea } from "@/components/ui/textarea";
@@ -161,6 +163,8 @@ export default function ListView({
   showLikeFollow = false,
 }: ListViewProps) {
   const router = useRouter();
+  const { data: currentUser } = useCurrentUser();
+  const { avatarUrl: contextAvatarUrl } = useAvatar();
 
   // Persist viewMode and isEditMode in localStorage
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -675,7 +679,11 @@ export default function ListView({
                   <Link href={`/users/${list.user.username || list.user.id}`}>
                     <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 ring-primary transition-all">
                       <AvatarImage
-                        src={list.user.avatarUrl || undefined}
+                        src={
+                          currentUser?.id === list.user.id && contextAvatarUrl
+                            ? contextAvatarUrl
+                            : list.user.avatarUrl || undefined
+                        }
                         alt={list.user.username || list.user.displayName || "User"}
                       />
                       <AvatarFallback>

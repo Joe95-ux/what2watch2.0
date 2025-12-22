@@ -22,7 +22,17 @@ export async function GET(
   try {
     const { userId: identifier } = await params;
 
+    console.log("[API /users/[userId]/profile] Backend received params:", {
+      identifier,
+      type: typeof identifier,
+      isNull: identifier === null,
+      isUndefined: identifier === undefined,
+      isEmpty: identifier === "",
+      trimmed: identifier?.trim(),
+    });
+
     if (!identifier?.trim()) {
+      console.log("[API /users/[userId]/profile] Error: identifier is empty or invalid");
       return NextResponse.json(
         { error: "User identifier is required" },
         { status: 400 }
@@ -30,9 +40,11 @@ export async function GET(
     }
 
     const cleanIdentifier = identifier.trim();
+    console.log("[API /users/[userId]/profile] Clean identifier:", cleanIdentifier);
     let user: userProfile | null = null;
 
     // find by username first
+    console.log("[API /users/[userId]/profile] Attempting username lookup:", cleanIdentifier);
     user = await db.user.findFirst({
       where: {
         username: cleanIdentifier
@@ -49,9 +61,13 @@ export async function GET(
       },
     });
 
+    console.log("[API /users/[userId]/profile] Username lookup result:", user ? { id: user.id, username: user.username, displayName: user.displayName } : "not found");
+
     const validObjectId = assertObjectId(cleanIdentifier);
+    console.log("[API /users/[userId]/profile] Valid ObjectId?", validObjectId);
 
     if(!user && validObjectId){
+      console.log("[API /users/[userId]/profile] Attempting ObjectId lookup:", validObjectId);
       user = await db.user.findUnique({
         where:{id: validObjectId},
         select: {
@@ -63,6 +79,7 @@ export async function GET(
           createdAt: true,
         },
       })
+      console.log("[API /users/[userId]/profile] ObjectId lookup result:", user ? { id: user.id, username: user.username, displayName: user.displayName } : "not found");
     }
 
     if (!user) {

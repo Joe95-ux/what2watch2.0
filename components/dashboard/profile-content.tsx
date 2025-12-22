@@ -117,17 +117,32 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
   const { data: forumStatsData, isLoading: isLoadingForumStats } = useQuery({
     queryKey: ["user", userId, "forum-stats"],
     queryFn: async () => {
+      console.log("[Frontend dashboard/profile-content] Fetching forum-stats with userId:", {
+        userId,
+        serverUserId,
+        currentUserId: currentUser?.id,
+        type: typeof userId,
+        isNull: userId === null,
+        isUndefined: userId === undefined,
+        isEmpty: userId === "",
+        url: `/api/users/${userId}/forum-stats`,
+      });
       if (!userId || userId.trim() === "") {
+        console.error("[Frontend dashboard/profile-content] Error: userId is empty");
         throw new Error("User ID is required");
       }
       const response = await fetch(`/api/users/${userId}/forum-stats`);
       if (!response.ok) {
         if (response.status === 404) {
+          console.log("[Frontend dashboard/profile-content] Forum-stats 404, returning empty stats");
           return { stats: { postCount: 0, replyCount: 0, totalReactions: 0 }, recentPosts: [], recentReplies: [] };
         }
+        console.error("[Frontend dashboard/profile-content] Forum-stats fetch failed:", response.status, response.statusText);
         throw new Error("Failed to fetch forum stats");
       }
-      return response.json();
+      const data = await response.json();
+      console.log("[Frontend dashboard/profile-content] Forum-stats fetch success");
+      return data;
     },
     enabled: !!userId && userId.trim() !== "" && isMounted,
     retry: false,
@@ -139,56 +154,58 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
 
   // Pagination calculations
   const totalPages = useMemo(() => {
+    let pages = 1;
     if (activeTab === "playlists") {
-      return Math.ceil(playlists.length / itemsPerPage);
+      pages = Math.ceil(playlists.length / itemsPerPage);
     } else if (activeTab === "lists") {
-      return Math.ceil(lists.length / itemsPerPage);
+      pages = Math.ceil(lists.length / itemsPerPage);
     } else if (activeTab === "watchlist") {
-      return Math.ceil(watchlist.length / itemsPerPage);
+      pages = Math.ceil(watchlist.length / itemsPerPage);
     } else if (activeTab === "my-list") {
-      return Math.ceil(favorites.length / itemsPerPage);
+      pages = Math.ceil(favorites.length / itemsPerPage);
     } else if (activeTab === "followers") {
-      return Math.ceil(followers.length / itemsPerPage);
+      pages = Math.ceil(followers.length / itemsPerPage);
     } else if (activeTab === "following") {
-      return Math.ceil(following.length / itemsPerPage);
+      pages = Math.ceil(following.length / itemsPerPage);
     } else if (activeTab === "reviews") {
-      return reviewsData?.pagination?.totalPages || 1;
+      pages = reviewsData?.pagination?.totalPages || 1;
     }
-    return 1;
+    return Math.max(1, pages || 1);
   }, [playlists.length, lists.length, watchlist.length, favorites.length, followers.length, following.length, reviewsData?.pagination?.totalPages, activeTab, itemsPerPage]);
 
   const paginatedPlaylists = useMemo(() => {
-    if (activeTab !== "playlists") return [];
-    const startIndex = (currentPage - 1) * itemsPerPage;
+    if (activeTab !== "playlists" || !Array.isArray(playlists)) return [];
+    const startIndex = Math.max(0, (currentPage - 1) * itemsPerPage);
     return playlists.slice(startIndex, startIndex + itemsPerPage);
   }, [playlists, currentPage, itemsPerPage, activeTab]);
 
   const paginatedLists = useMemo(() => {
-    if (activeTab !== "lists") return [];
-    const startIndex = (currentPage - 1) * itemsPerPage;
+    if (activeTab !== "lists" || !Array.isArray(lists)) return [];
+    const startIndex = Math.max(0, (currentPage - 1) * itemsPerPage);
     return lists.slice(startIndex, startIndex + itemsPerPage);
   }, [lists, currentPage, itemsPerPage, activeTab]);
 
   const paginatedWatchlist = useMemo(() => {
-    if (activeTab !== "watchlist") return [];
-    const startIndex = (currentPage - 1) * itemsPerPage;
+    if (activeTab !== "watchlist" || !Array.isArray(watchlist)) return [];
+    const startIndex = Math.max(0, (currentPage - 1) * itemsPerPage);
     return watchlist.slice(startIndex, startIndex + itemsPerPage);
   }, [watchlist, currentPage, itemsPerPage, activeTab]);
 
   const paginatedFollowers = useMemo(() => {
-    if (activeTab !== "followers") return [];
-    const startIndex = (currentPage - 1) * itemsPerPage;
+    if (activeTab !== "followers" || !Array.isArray(followers)) return [];
+    const startIndex = Math.max(0, (currentPage - 1) * itemsPerPage);
     return followers.slice(startIndex, startIndex + itemsPerPage);
   }, [followers, currentPage, itemsPerPage, activeTab]);
 
   const paginatedFollowing = useMemo(() => {
-    if (activeTab !== "following") return [];
-    const startIndex = (currentPage - 1) * itemsPerPage;
+    if (activeTab !== "following" || !Array.isArray(following)) return [];
+    const startIndex = Math.max(0, (currentPage - 1) * itemsPerPage);
     return following.slice(startIndex, startIndex + itemsPerPage);
   }, [following, currentPage, itemsPerPage, activeTab]);
 
   // Convert watchlist to TMDB format
   const watchlistAsTMDB = useMemo(() => {
+    if (!Array.isArray(watchlist)) return [];
     return watchlist.map((item) => {
       if (item.mediaType === "movie") {
         const movie: TMDBMovie = {
@@ -228,13 +245,14 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
   }, [watchlist]);
 
   const paginatedWatchlistAsTMDB = useMemo(() => {
-    if (activeTab !== "watchlist") return [];
-    const startIndex = (currentPage - 1) * itemsPerPage;
+    if (activeTab !== "watchlist" || !Array.isArray(watchlistAsTMDB)) return [];
+    const startIndex = Math.max(0, (currentPage - 1) * itemsPerPage);
     return watchlistAsTMDB.slice(startIndex, startIndex + itemsPerPage);
   }, [watchlistAsTMDB, currentPage, itemsPerPage, activeTab]);
 
   // Convert favorites to TMDB format for My List tab
   const favoritesAsTMDB = useMemo(() => {
+    if (!Array.isArray(favorites)) return [];
     return favorites.map((fav) => {
       if (fav.mediaType === "movie") {
         const movie: TMDBMovie = {
@@ -274,8 +292,8 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
   }, [favorites]);
 
   const paginatedFavorites = useMemo(() => {
-    if (activeTab !== "my-list") return [];
-    const startIndex = (currentPage - 1) * itemsPerPage;
+    if (activeTab !== "my-list" || !Array.isArray(favoritesAsTMDB)) return [];
+    const startIndex = Math.max(0, (currentPage - 1) * itemsPerPage);
     return favoritesAsTMDB.slice(startIndex, startIndex + itemsPerPage);
   }, [favoritesAsTMDB, currentPage, itemsPerPage, activeTab]);
 
@@ -354,27 +372,29 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
   // Generate page numbers with ellipsis for pagination
   const pageNumbers = useMemo(() => {
     const pages: (number | "ellipsis")[] = [];
+    const safeTotalPages = Math.max(1, totalPages || 1);
+    const safeCurrentPage = Math.max(1, Math.min(currentPage || 1, safeTotalPages));
     
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) {
+    if (safeTotalPages <= 7) {
+      for (let i = 1; i <= safeTotalPages; i++) {
         pages.push(i);
       }
     } else {
       pages.push(1);
-      if (currentPage > 3) {
+      if (safeCurrentPage > 3) {
         pages.push("ellipsis");
       }
-      const start = Math.max(2, currentPage - 1);
-      const end = Math.min(totalPages - 1, currentPage + 1);
+      const start = Math.max(2, safeCurrentPage - 1);
+      const end = Math.min(safeTotalPages - 1, safeCurrentPage + 1);
       for (let i = start; i <= end; i++) {
-        if (i !== 1 && i !== totalPages) {
+        if (i !== 1 && i !== safeTotalPages) {
           pages.push(i);
         }
       }
-      if (currentPage < totalPages - 2) {
+      if (safeCurrentPage < safeTotalPages - 2) {
         pages.push("ellipsis");
       }
-      pages.push(totalPages);
+      pages.push(safeTotalPages);
     }
     
     return pages;

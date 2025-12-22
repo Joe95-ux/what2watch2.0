@@ -10,7 +10,17 @@ export async function GET(
   try {
     const { userId: identifier } = await params;
 
+    console.log("[API /users/[userId]/forum-stats] Backend received params:", {
+      identifier,
+      type: typeof identifier,
+      isNull: identifier === null,
+      isUndefined: identifier === undefined,
+      isEmpty: identifier === "",
+      trimmed: identifier?.trim(),
+    });
+
     if (!identifier?.trim()) {
+      console.log("[API /users/[userId]/forum-stats] Error: identifier is empty or invalid");
       return NextResponse.json(
         { error: "User identifier is required" },
         { status: 400 }
@@ -18,20 +28,27 @@ export async function GET(
     }
 
     const cleanIdentifier = identifier.trim();
+    console.log("[API /users/[userId]/forum-stats] Clean identifier:", cleanIdentifier);
 
     // 1. Try username first (safe)
+    console.log("[API /users/[userId]/forum-stats] Attempting username lookup:", cleanIdentifier);
     let targetUser = await db.user.findFirst({
       where: { username: cleanIdentifier },
       select: { id: true },
     });
 
+    console.log("[API /users/[userId]/forum-stats] Username lookup result:", targetUser ? { id: targetUser.id } : "not found");
+
     // 2. If not found, try ObjectId (safe)
     const validObjectId = assertObjectId(cleanIdentifier);
+    console.log("[API /users/[userId]/forum-stats] Valid ObjectId?", validObjectId);
     if (!targetUser && validObjectId) {
+      console.log("[API /users/[userId]/forum-stats] Attempting ObjectId lookup:", validObjectId);
       targetUser = await db.user.findUnique({
         where: { id: validObjectId },
         select: { id: true },
       });
+      console.log("[API /users/[userId]/forum-stats] ObjectId lookup result:", targetUser ? { id: targetUser.id } : "not found");
     }
 
     if (!targetUser) {
