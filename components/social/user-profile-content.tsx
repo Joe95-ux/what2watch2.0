@@ -36,43 +36,13 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   // Ensure userId is always a string, never undefined/null
   const userId = propUserId || "";
   
-  console.log("[Frontend user-profile-content] Component initialized with:", {
-    propUserId,
-    userId,
-    type: typeof userId,
-    isNull: userId === null,
-    isUndefined: userId === undefined,
-    isEmpty: userId === "",
-    length: userId?.length,
-    isValid: !!userId && userId.trim() !== "",
-  });
-  
-  // Early return if userId is invalid
-  if (!userId || userId.trim() === "") {
-    console.warn("[Frontend user-profile-content] Invalid userId, returning early");
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Invalid User</h2>
-          <p className="text-muted-foreground mb-4">User identifier is missing.</p>
-        </div>
-      </div>
-    );
-  }
-  
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const { data: currentUser } = useCurrentUser();
-  const isOwnProfile = currentUser?.id === userId;
-  
-  console.log("[Frontend user-profile-content] Current user comparison:", {
-    currentUserId: currentUser?.id,
-    propUserId,
-    isOwnProfile,
-    match: currentUser?.id === userId,
-  });
   const [activeTab, setActiveTab] = useState<"playlists" | "lists" | "reviews" | "my-list" | "discussions" | "followers" | "following">("lists");
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
+  const [isMounted, setIsMounted] = useState(false);
   
   // Fetch favorites for My List tab (only if viewing own profile)
   const { data: favorites = [], isLoading: isLoadingFavorites } = useFavorites();
@@ -90,8 +60,6 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
     handleScroll(); // Initial check
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -151,14 +119,58 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
     enabled: !!userId && userId.trim() !== "" && isMounted,
   });
 
+  // Early return check AFTER all hooks are called
+  if (!userId || userId.trim() === "") {
+    console.warn("[Frontend user-profile-content] Invalid userId, returning early");
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Invalid User</h2>
+          <p className="text-muted-foreground mb-4">User identifier is missing.</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Calculate isOwnProfile before it's used in console.log and useMemo hooks
+  const isOwnProfile = currentUser?.id === userId;
+  
+  console.log("[Frontend user-profile-content] Component initialized with:", {
+    propUserId,
+    userId,
+    type: typeof userId,
+    isNull: userId === null,
+    isUndefined: userId === undefined,
+    isEmpty: userId === "",
+    length: userId?.length,
+    isValid: !!userId && userId.trim() !== "",
+  });
+  
+  console.log("[Frontend user-profile-content] Current user comparison:", {
+    currentUserId: currentUser?.id,
+    propUserId,
+    isOwnProfile,
+    match: currentUser?.id === userId,
+  });
+
   const user = userData?.user;
   const playlists = useMemo(() => {
-    if (!playlistsData?.playlists || !Array.isArray(playlistsData.playlists)) return [];
-    return playlistsData.playlists as Playlist[];
+    try {
+      if (!playlistsData?.playlists || !Array.isArray(playlistsData.playlists)) return [];
+      return playlistsData.playlists as Playlist[];
+    } catch (error) {
+      console.error("Error processing playlists:", error);
+      return [];
+    }
   }, [playlistsData?.playlists]);
   const lists = useMemo(() => {
-    if (!listsData?.lists || !Array.isArray(listsData.lists)) return [];
-    return listsData.lists as ListType[];
+    try {
+      if (!listsData?.lists || !Array.isArray(listsData.lists)) return [];
+      return listsData.lists as ListType[];
+    } catch (error) {
+      console.error("Error processing lists:", error);
+      return [];
+    }
   }, [listsData?.lists]);
   const followers = followersData?.followers || [];
   const following = followingData?.following || [];
@@ -208,21 +220,26 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
 
   // Pagination calculations
   const totalPages = useMemo(() => {
-    let pages = 1;
-    if (activeTab === "playlists") {
-      const playlistsLength = Array.isArray(playlists) ? playlists.length : 0;
-      pages = Math.ceil(playlistsLength / safeItemsPerPage);
-    } else if (activeTab === "lists") {
-      const listsLength = Array.isArray(lists) ? lists.length : 0;
-      pages = Math.ceil(listsLength / safeItemsPerPage);
-    } else if (activeTab === "my-list" && isOwnProfile) {
-      const favoritesLength = Array.isArray(favorites) ? favorites.length : 0;
-      pages = Math.ceil(favoritesLength / safeItemsPerPage);
-    } else if (activeTab === "reviews") {
-      pages = reviewsData?.pagination?.totalPages || 1;
+    try {
+      let pages = 1;
+      if (activeTab === "playlists") {
+        const playlistsLength = Array.isArray(playlists) ? playlists.length : 0;
+        pages = Math.ceil(playlistsLength / safeItemsPerPage);
+      } else if (activeTab === "lists") {
+        const listsLength = Array.isArray(lists) ? lists.length : 0;
+        pages = Math.ceil(listsLength / safeItemsPerPage);
+      } else if (activeTab === "my-list" && isOwnProfile) {
+        const favoritesLength = Array.isArray(favorites) ? favorites.length : 0;
+        pages = Math.ceil(favoritesLength / safeItemsPerPage);
+      } else if (activeTab === "reviews") {
+        pages = reviewsData?.pagination?.totalPages || 1;
+      }
+      const result = Math.max(1, isNaN(pages) || !isFinite(pages) ? 1 : pages);
+      return result;
+    } catch (error) {
+      console.error("Error calculating totalPages:", error);
+      return 1;
     }
-    const result = Math.max(1, isNaN(pages) || !isFinite(pages) ? 1 : pages);
-    return result;
   }, [
     Array.isArray(playlists) ? playlists.length : 0,
     Array.isArray(lists) ? lists.length : 0,
@@ -234,62 +251,84 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   ]);
 
   const paginatedPlaylists = useMemo(() => {
-    if (activeTab !== "playlists" || !Array.isArray(playlists)) return [];
-    const startIndex = Math.max(0, (currentPage - 1) * safeItemsPerPage);
-    return playlists.slice(startIndex, startIndex + safeItemsPerPage);
+    try {
+      if (activeTab !== "playlists" || !Array.isArray(playlists)) return [];
+      const startIndex = Math.max(0, (currentPage - 1) * safeItemsPerPage);
+      return playlists.slice(startIndex, startIndex + safeItemsPerPage);
+    } catch (error) {
+      console.error("Error paginating playlists:", error);
+      return [];
+    }
   }, [playlists, currentPage, safeItemsPerPage, activeTab]);
 
   const paginatedLists = useMemo(() => {
-    if (activeTab !== "lists" || !Array.isArray(lists)) return [];
-    const startIndex = Math.max(0, (currentPage - 1) * safeItemsPerPage);
-    return lists.slice(startIndex, startIndex + safeItemsPerPage);
+    try {
+      if (activeTab !== "lists" || !Array.isArray(lists)) return [];
+      const startIndex = Math.max(0, (currentPage - 1) * safeItemsPerPage);
+      return lists.slice(startIndex, startIndex + safeItemsPerPage);
+    } catch (error) {
+      console.error("Error paginating lists:", error);
+      return [];
+    }
   }, [lists, currentPage, safeItemsPerPage, activeTab]);
 
   // Convert favorites to TMDB format for My List tab
   const favoritesAsTMDB = useMemo(() => {
     if (!Array.isArray(favorites)) return [];
-    return favorites.map((fav) => {
-      if (fav.mediaType === "movie") {
-        const movie: TMDBMovie = {
-          id: fav.tmdbId,
-          title: fav.title,
-          overview: "",
-          poster_path: fav.posterPath,
-          backdrop_path: fav.backdropPath,
-          release_date: fav.releaseDate || "",
-          vote_average: 0,
-          vote_count: 0,
-          genre_ids: [],
-          popularity: 0,
-          adult: false,
-          original_language: "",
-          original_title: fav.title,
-        };
-        return { item: movie, type: "movie" as const };
-      } else {
-        const tv: TMDBSeries = {
-          id: fav.tmdbId,
-          name: fav.title,
-          overview: "",
-          poster_path: fav.posterPath,
-          backdrop_path: fav.backdropPath,
-          first_air_date: fav.firstAirDate || "",
-          vote_average: 0,
-          vote_count: 0,
-          genre_ids: [],
-          popularity: 0,
-          original_language: "",
-          original_name: fav.title,
-        };
-        return { item: tv, type: "tv" as const };
-      }
-    });
+    try {
+      return favorites
+        .filter((fav) => fav && fav.tmdbId && fav.title)
+        .map((fav) => {
+          if (fav.mediaType === "movie") {
+            const movie: TMDBMovie = {
+              id: fav.tmdbId,
+              title: fav.title,
+              overview: "",
+              poster_path: fav.posterPath || null,
+              backdrop_path: fav.backdropPath || null,
+              release_date: fav.releaseDate || "",
+              vote_average: 0,
+              vote_count: 0,
+              genre_ids: [],
+              popularity: 0,
+              adult: false,
+              original_language: "",
+              original_title: fav.title,
+            };
+            return { item: movie, type: "movie" as const };
+          } else {
+            const tv: TMDBSeries = {
+              id: fav.tmdbId,
+              name: fav.title,
+              overview: "",
+              poster_path: fav.posterPath || null,
+              backdrop_path: fav.backdropPath || null,
+              first_air_date: fav.firstAirDate || "",
+              vote_average: 0,
+              vote_count: 0,
+              genre_ids: [],
+              popularity: 0,
+              original_language: "",
+              original_name: fav.title,
+            };
+            return { item: tv, type: "tv" as const };
+          }
+        });
+    } catch (error) {
+      console.error("Error converting favorites to TMDB format:", error);
+      return [];
+    }
   }, [favorites]);
 
   const paginatedFavorites = useMemo(() => {
-    if (activeTab !== "my-list" || !Array.isArray(favoritesAsTMDB)) return [];
-    const startIndex = Math.max(0, (currentPage - 1) * safeItemsPerPage);
-    return favoritesAsTMDB.slice(startIndex, startIndex + safeItemsPerPage);
+    try {
+      if (activeTab !== "my-list" || !Array.isArray(favoritesAsTMDB)) return [];
+      const startIndex = Math.max(0, (currentPage - 1) * safeItemsPerPage);
+      return favoritesAsTMDB.slice(startIndex, startIndex + safeItemsPerPage);
+    } catch (error) {
+      console.error("Error paginating favorites:", error);
+      return [];
+    }
   }, [favoritesAsTMDB, currentPage, safeItemsPerPage, activeTab]);
 
   // Reset to page 1 when tab or data changes
@@ -340,14 +379,19 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
 
   // Get banner - use bannerUrl if available, otherwise use gradient
   const bannerDisplay = useMemo(() => {
-    if (!user) {
+    try {
+      if (!user) {
+        return { type: "gradient" as const, gradient: "#061E1C" };
+      }
+      if (user.bannerUrl) {
+        return { type: "image" as const, url: user.bannerUrl };
+      }
+      const gradient = BANNER_GRADIENTS.find((g) => g.id === (user.bannerGradientId || "gradient-1"));
+      return { type: "gradient" as const, gradient: gradient?.gradient || "#061E1C" };
+    } catch (error) {
+      console.error("Error calculating bannerDisplay:", error);
       return { type: "gradient" as const, gradient: "#061E1C" };
     }
-    if (user.bannerUrl) {
-      return { type: "image" as const, url: user.bannerUrl };
-    }
-    const gradient = BANNER_GRADIENTS.find((g) => g.id === (user.bannerGradientId || "gradient-1"));
-    return { type: "gradient" as const, gradient: gradient?.gradient || "#061E1C" };
   }, [user?.bannerUrl, user?.bannerGradientId, user]);
 
   // Action buttons
