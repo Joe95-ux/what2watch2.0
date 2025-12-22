@@ -166,6 +166,9 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 24;
+  
+  // Ensure itemsPerPage is always a valid positive number
+  const safeItemsPerPage = Math.max(1, itemsPerPage || 24);
 
   const { data: reviewsData, isLoading: isLoadingReviews } = useUserReviews(userId, {
     page: activeTab === "reviews" ? currentPage : 1,
@@ -207,28 +210,40 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   const totalPages = useMemo(() => {
     let pages = 1;
     if (activeTab === "playlists") {
-      pages = Math.ceil(playlists.length / itemsPerPage);
+      const playlistsLength = Array.isArray(playlists) ? playlists.length : 0;
+      pages = Math.ceil(playlistsLength / safeItemsPerPage);
     } else if (activeTab === "lists") {
-      pages = Math.ceil(lists.length / itemsPerPage);
+      const listsLength = Array.isArray(lists) ? lists.length : 0;
+      pages = Math.ceil(listsLength / safeItemsPerPage);
     } else if (activeTab === "my-list" && isOwnProfile) {
-      pages = Math.ceil(favorites.length / itemsPerPage);
+      const favoritesLength = Array.isArray(favorites) ? favorites.length : 0;
+      pages = Math.ceil(favoritesLength / safeItemsPerPage);
     } else if (activeTab === "reviews") {
       pages = reviewsData?.pagination?.totalPages || 1;
     }
-    return Math.max(1, pages || 1);
-  }, [playlists.length, lists.length, favorites.length, reviewsData?.pagination?.totalPages, activeTab, itemsPerPage, isOwnProfile]);
+    const result = Math.max(1, isNaN(pages) || !isFinite(pages) ? 1 : pages);
+    return result;
+  }, [
+    Array.isArray(playlists) ? playlists.length : 0,
+    Array.isArray(lists) ? lists.length : 0,
+    Array.isArray(favorites) ? favorites.length : 0,
+    reviewsData?.pagination?.totalPages,
+    activeTab,
+    safeItemsPerPage,
+    isOwnProfile
+  ]);
 
   const paginatedPlaylists = useMemo(() => {
     if (activeTab !== "playlists" || !Array.isArray(playlists)) return [];
-    const startIndex = Math.max(0, (currentPage - 1) * itemsPerPage);
-    return playlists.slice(startIndex, startIndex + itemsPerPage);
-  }, [playlists, currentPage, itemsPerPage, activeTab]);
+    const startIndex = Math.max(0, (currentPage - 1) * safeItemsPerPage);
+    return playlists.slice(startIndex, startIndex + safeItemsPerPage);
+  }, [playlists, currentPage, safeItemsPerPage, activeTab]);
 
   const paginatedLists = useMemo(() => {
     if (activeTab !== "lists" || !Array.isArray(lists)) return [];
-    const startIndex = Math.max(0, (currentPage - 1) * itemsPerPage);
-    return lists.slice(startIndex, startIndex + itemsPerPage);
-  }, [lists, currentPage, itemsPerPage, activeTab]);
+    const startIndex = Math.max(0, (currentPage - 1) * safeItemsPerPage);
+    return lists.slice(startIndex, startIndex + safeItemsPerPage);
+  }, [lists, currentPage, safeItemsPerPage, activeTab]);
 
   // Convert favorites to TMDB format for My List tab
   const favoritesAsTMDB = useMemo(() => {
@@ -273,19 +288,20 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
 
   const paginatedFavorites = useMemo(() => {
     if (activeTab !== "my-list" || !Array.isArray(favoritesAsTMDB)) return [];
-    const startIndex = Math.max(0, (currentPage - 1) * itemsPerPage);
-    return favoritesAsTMDB.slice(startIndex, startIndex + itemsPerPage);
-  }, [favoritesAsTMDB, currentPage, itemsPerPage, activeTab]);
+    const startIndex = Math.max(0, (currentPage - 1) * safeItemsPerPage);
+    return favoritesAsTMDB.slice(startIndex, startIndex + safeItemsPerPage);
+  }, [favoritesAsTMDB, currentPage, safeItemsPerPage, activeTab]);
 
   // Reset to page 1 when tab or data changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab, playlists.length, lists.length, favorites.length, reviews.length]);
-
-  // Reset to page 1 when tab or data changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [activeTab, playlists.length, favorites.length]);
+  }, [
+    activeTab,
+    Array.isArray(playlists) ? playlists.length : 0,
+    Array.isArray(lists) ? lists.length : 0,
+    Array.isArray(favorites) ? favorites.length : 0,
+    Array.isArray(reviews) ? reviews.length : 0
+  ]);
 
   if (!isMounted || (isLoadingUser && !user)) {
     return (
