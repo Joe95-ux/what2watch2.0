@@ -64,6 +64,17 @@ export function CreateReplyForm({
     });
   };
 
+  // Calculate plain text length (without HTML tags)
+  const plainTextLength = content.replace(/<[^>]*>/g, "").trim().length;
+  const hasMinimumContent = plainTextLength >= 3; // Require at least 3 characters
+
+  const handleCancel = () => {
+    setContent("");
+    // Force editor to clear by using a key that changes
+    // The TiptapEditor will re-initialize when content becomes empty
+    onSuccess?.();
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <TiptapEditor
@@ -73,23 +84,25 @@ export function CreateReplyForm({
       />
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">
-          {content.replace(/<[^>]*>/g, "").length}/5,000 characters
+          {plainTextLength}/5,000 characters
         </p>
         <div className="flex items-center gap-2">
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => {
-              setContent("");
-              onSuccess?.();
-            }}
+            onClick={handleCancel}
             disabled={createReply.isPending}
             className="cursor-pointer"
           >
             Cancel
           </Button>
-          <Button type="submit" size="sm" disabled={createReply.isPending} className="cursor-pointer">
+          <Button 
+            type="submit" 
+            size="sm" 
+            disabled={createReply.isPending || !hasMinimumContent} 
+            className="cursor-pointer"
+          >
             {createReply.isPending && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}

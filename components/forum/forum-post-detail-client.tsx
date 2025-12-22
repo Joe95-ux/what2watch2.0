@@ -112,6 +112,17 @@ export function ForumPostDetailClient() {
       }
       return response.json();
     },
+    retry: (failureCount, error) => {
+      // Don't retry if offline or if it's a network error
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        return false;
+      }
+      // Only retry up to 2 times for non-network errors
+      return failureCount < 2;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff, max 30s
+    staleTime: 30000, // Consider data fresh for 30 seconds
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
   });
 
   const post = data?.post;

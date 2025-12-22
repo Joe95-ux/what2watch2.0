@@ -26,7 +26,7 @@ import {
   AlignRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { toast } from "sonner";
 
 interface TiptapEditorProps {
@@ -96,6 +96,13 @@ export function TiptapEditor({
       },
     },
   });
+
+  // Sync content prop changes with editor
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content);
+    }
+  }, [content, editor]);
 
   const handleImageUpload = async (file: File) => {
     if (!file.type.startsWith("image/")) {

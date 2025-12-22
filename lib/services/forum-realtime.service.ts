@@ -27,17 +27,37 @@ export async function checkForUpdates(
   postId: string,
   since: Date
 ): Promise<RealtimeUpdate[]> {
+  // Check if we're online before attempting fetch
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    return [];
+  }
+
   try {
+    // Create abort controller for timeout (fallback for browsers that don't support AbortSignal.timeout)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
     const response = await fetch(
-      `/api/forum/posts/${postId}/updates?since=${since.toISOString()}`
+      `/api/forum/posts/${postId}/updates?since=${since.toISOString()}`,
+      {
+        signal: controller.signal,
+      }
     );
+    
+    clearTimeout(timeoutId);
     if (!response.ok) {
       return [];
     }
     const data = await response.json();
     return data.updates || [];
   } catch (error) {
-    console.error("Error checking for updates:", error);
+    // Only log non-network errors to reduce console spam
+    const isNetworkError = error instanceof TypeError && 
+      (error.message.includes("fetch") || error.message.includes("NetworkError") || error.name === "AbortError");
+    
+    if (!isNetworkError) {
+      console.error("Error checking for updates:", error);
+    }
     return [];
   }
 }

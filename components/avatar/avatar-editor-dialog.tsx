@@ -73,6 +73,13 @@ export function AvatarEditorDialog({
       return;
     }
 
+    if (!user) {
+      toast.error("Error", {
+        description: "User not authenticated.",
+      });
+      return;
+    }
+
     setIsUploading(true);
 
     try {
@@ -90,11 +97,10 @@ export function AvatarEditorDialog({
         }
 
         try {
-          // Create FormData
+          // Upload to Cloudinary and update database
           const formData = new FormData();
           formData.append("file", blob, "avatar.png");
 
-          // Upload to Cloudinary
           const uploadResponse = await fetch("/api/user/upload-avatar", {
             method: "POST",
             body: formData,
@@ -107,30 +113,25 @@ export function AvatarEditorDialog({
 
           const { url } = await uploadResponse.json();
 
-          // Sync to Clerk
+          const file = new File([blob], "avatar.png", { type: "image/png" });
+          await user.setProfileImage({ file });
+
           const syncResponse = await fetch("/api/user/sync-avatar", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ avatarUrl: url }),
           });
 
           if (!syncResponse.ok) {
             const error = await syncResponse.json();
-            throw new Error(error.error || "Failed to sync avatar to Clerk");
+            throw new Error(error.error || "Failed to update database");
           }
 
-          // Invalidate and refetch user queries to refresh avatar
-          await queryClient.invalidateQueries({ queryKey: ["current-user", user?.id] });
-          await queryClient.refetchQueries({ queryKey: ["current-user", user?.id] });
-          
-          // Update Clerk user object - reload and wait a bit for Clerk to sync
-          if (user) {
-            await user.reload();
-            // Small delay to ensure Clerk UI updates
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
+          queryClient.setQueryData(["current-user", user.id], (old: any) => {
+            if (!old) return old;
+            return { ...old, avatarUrl: url };
+          });
+          queryClient.invalidateQueries({ queryKey: ["current-user", user.id] });
 
           toast.success("Avatar updated", {
             description: "Your profile picture has been updated successfully.",
@@ -176,7 +177,7 @@ export function AvatarEditorDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="lg:max-w-[800px] max-h-[95vh] flex flex-col p-0 overflow-hidden">
         {/* Fixed Header */}
         <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
           <DialogTitle>Edit Profile Picture</DialogTitle>

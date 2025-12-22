@@ -44,10 +44,18 @@ export function AvatarPickerDialog({
       return;
     }
 
+    if (!user) {
+      toast.error("Error", {
+        description: "User not authenticated.",
+      });
+      return;
+    }
+
     setIsSaving(true);
 
     try {
-      // If it's a DiceBear URL or a blob URL, we need to download and upload to Cloudinary
+      // If it's a DiceBear URL or a blob URL, we need to download and convert
+      let avatarBlob: Blob | null = null;
       let avatarUrl = selectedAvatarUrl;
 
       if (selectedAvatarUrl.startsWith("https://api.dicebear.com") || selectedAvatarUrl.startsWith("blob:")) {
@@ -103,7 +111,9 @@ export function AvatarPickerDialog({
           });
         }
 
-        // Upload to Cloudinary
+        avatarBlob = finalBlob;
+
+        // Upload to Cloudinary and update database
         const formData = new FormData();
         formData.append("file", finalBlob, "avatar.png");
 
@@ -119,32 +129,33 @@ export function AvatarPickerDialog({
 
         const { url } = await uploadResponse.json();
         avatarUrl = url;
+      } else {
+        // If it's already a Cloudinary URL, we need to fetch it as a blob for Clerk
+        const response = await fetch(selectedAvatarUrl);
+        avatarBlob = await response.blob();
       }
 
-      // Sync to Clerk
+      if (avatarBlob) {
+        const file = new File([avatarBlob], "avatar.png", { type: avatarBlob.type || "image/png" });
+        await user.setProfileImage({ file });
+      }
+
       const syncResponse = await fetch("/api/user/sync-avatar", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ avatarUrl }),
       });
 
       if (!syncResponse.ok) {
         const error = await syncResponse.json();
-        throw new Error(error.error || "Failed to sync avatar to Clerk");
+        throw new Error(error.error || "Failed to update database");
       }
 
-      // Invalidate and refetch user queries to refresh avatar
-      await queryClient.invalidateQueries({ queryKey: ["current-user", user?.id] });
-      await queryClient.refetchQueries({ queryKey: ["current-user", user?.id] });
-      
-      // Update Clerk user object - reload and wait a bit for Clerk to sync
-      if (user) {
-        await user.reload();
-        // Small delay to ensure Clerk UI updates
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
+      queryClient.setQueryData(["current-user", user.id], (old: any) => {
+        if (!old) return old;
+        return { ...old, avatarUrl };
+      });
+      queryClient.invalidateQueries({ queryKey: ["current-user", user.id] });
 
       toast.success("Avatar updated", {
         description: "Your profile picture has been updated successfully.",

@@ -439,7 +439,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             {/* Left: User Avatar | Username and Online Status */}
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <div className="relative flex-shrink-0">
-                <Avatar className="h-8 w-8">
+                <Avatar key={currentUser?.avatarUrl || "default"} className="h-8 w-8">
                   <AvatarImage src={currentUser?.avatarUrl || undefined} alt={currentUser?.displayName || ""} />
                   <AvatarFallback>
                     {(currentUser?.username || currentUser?.displayName || "U")[0].toUpperCase()}
@@ -470,7 +470,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* User Profile Footer - Collapsed (Avatar Only) */}
           <div className="hidden group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2">
             <div className="relative">
-              <Avatar className="h-8 w-8 cursor-pointer" onClick={() => openUserProfile()}>
+              <Avatar key={currentUser?.avatarUrl || "default"} className="h-8 w-8 cursor-pointer" onClick={() => openUserProfile()}>
                 <AvatarImage src={currentUser?.avatarUrl || undefined} alt={currentUser?.displayName || ""} />
                 <AvatarFallback>
                   {(currentUser?.displayName || currentUser?.username || "U")[0].toUpperCase()}
