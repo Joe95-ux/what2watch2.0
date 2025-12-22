@@ -42,7 +42,6 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
-  const [isMounted, setIsMounted] = useState(false);
   
   // Fetch favorites for My List tab (only if viewing own profile)
   const { data: favorites = [], isLoading: isLoadingFavorites } = useFavorites();
@@ -59,10 +58,6 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
     window.addEventListener("scroll", handleScroll);
     handleScroll(); // Initial check
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
-    setIsMounted(true);
   }, []);
 
   const { data: userData, isLoading: isLoadingUser } = useQuery({
@@ -90,7 +85,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
       });
       return data;
     },
-    enabled: !!userId && userId.trim() !== "" && isMounted,
+    enabled: !!userId && userId.trim() !== "",
   });
 
   // Always pass userId (hooks use enabled internally, so they handle null/undefined safely)
@@ -105,7 +100,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
       }
       return response.json();
     },
-    enabled: !!userId && userId.trim() !== "" && isMounted,
+    enabled: !!userId && userId.trim() !== "",
   });
 
   const { data: listsData, isLoading: isLoadingLists } = useQuery({
@@ -117,7 +112,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
       }
       return response.json();
     },
-    enabled: !!userId && userId.trim() !== "" && isMounted,
+    enabled: !!userId && userId.trim() !== "",
   });
 
   // Early return check AFTER all hooks are called
@@ -186,7 +181,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   const { data: reviewsData, isLoading: isLoadingReviews } = useUserReviews(userId, {
     page: activeTab === "reviews" ? currentPage : 1,
     limit: itemsPerPage,
-    enabled: !!userId && userId.trim() !== "" && isMounted,
+    enabled: !!userId && userId.trim() !== "",
   });
 
   const reviews = reviewsData?.reviews || [];
@@ -212,7 +207,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
       console.log("[Frontend user-profile-content] Forum-stats fetch success");
       return data;
     },
-    enabled: !!userId && userId.trim() !== "" && isMounted,
+    enabled: !!userId && userId.trim() !== "",
   });
 
   const forumStats = forumStatsData?.stats || { postCount: 0, replyCount: 0, totalReactions: 0 };
@@ -343,7 +338,8 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
     Array.isArray(reviews) ? reviews.length : 0
   ]);
 
-  if (!isMounted || (isLoadingUser && !user)) {
+  // Defensive early return: show skeleton if critical data is loading or missing
+  if (isLoadingUser || !user || isLoadingPlaylists || isLoadingLists) {
     return (
       <div className="min-h-screen bg-background">
         <div className="relative h-[200px] sm:h-[250px] overflow-hidden">
@@ -353,6 +349,18 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
           <Skeleton className="h-32 w-32 rounded-full -mt-16 mb-4" />
           <Skeleton className="h-8 w-48 mb-2" />
           <Skeleton className="h-4 w-32 mb-4" />
+          <div className="mt-8">
+            <div className="flex gap-2 mb-4">
+              <Skeleton className="h-10 w-24" />
+              <Skeleton className="h-10 w-24" />
+              <Skeleton className="h-10 w-24" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="aspect-[3/4] w-full rounded-lg" />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
