@@ -31,7 +31,7 @@ function NotificationSkeleton() {
   );
 }
 
-export default function YouTubeNotificationsPage() {
+export function YouTubeNotificationsTab() {
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const { data, isLoading } = useYouTubeNotifications(filter === "unread");
   const markAsRead = useMarkNotificationsAsRead();
@@ -59,43 +59,9 @@ export default function YouTubeNotificationsPage() {
   };
 
   return (
-    <div className="container max-w-3xl mx-auto px-4 py-6">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-semibold">Notifications</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              New videos from your favorite channels
-            </p>
-          </div>
-          <div className="flex gap-2">
-            {unreadCount > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleMarkAsRead()}
-                disabled={markAsRead.isPending}
-                className="text-sm"
-              >
-                <CheckCheck className="h-4 w-4 mr-2" />
-                Mark all as read
-              </Button>
-            )}
-            {notifications.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleDeleteAll}
-                disabled={deleteNotifications.isPending}
-                className="text-sm text-destructive hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete all
-              </Button>
-            )}
-          </div>
-        </div>
+    <div>
+      {/* Header Actions */}
+      <div className="flex items-center justify-between mb-4">
         <div className="flex gap-2">
           <Button
             variant={filter === "all" ? "default" : "ghost"}
@@ -118,6 +84,32 @@ export default function YouTubeNotificationsPage() {
               </Badge>
             )}
           </Button>
+        </div>
+        <div className="flex gap-2">
+          {unreadCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleMarkAsRead()}
+              disabled={markAsRead.isPending}
+              className="text-sm"
+            >
+              <CheckCheck className="h-4 w-4 mr-2" />
+              Mark all as read
+            </Button>
+          )}
+          {notifications.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDeleteAll}
+              disabled={deleteNotifications.isPending}
+              className="text-sm text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete all
+            </Button>
+          )}
         </div>
       </div>
 

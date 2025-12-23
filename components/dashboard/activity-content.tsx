@@ -141,14 +141,17 @@ function ActivityItem({ activity }: { activity: Activity }) {
         );
       case "CREATED_FORUM_POST":
         const postMetadata = activity.metadata as { postId?: string; postSlug?: string; categoryName?: string } | null;
+        const postLink = postMetadata?.postSlug || postMetadata?.postId;
         return (
           <>
             <span className="font-semibold">{displayName}</span> created a post{" "}
-            {activity.title && (
-              <Link href={`/forum/posts/${postMetadata?.postSlug || postMetadata?.postId || ""}`} className="font-semibold hover:underline">
+            {activity.title && postLink ? (
+              <Link href={`/forum/${postLink}`} className="font-semibold hover:underline">
                 {activity.title}
               </Link>
-            )}
+            ) : activity.title ? (
+              <span className="font-semibold">{activity.title}</span>
+            ) : null}
             {postMetadata?.categoryName && (
               <> in <span className="font-semibold">{postMetadata.categoryName}</span></>
             )}
@@ -156,13 +159,19 @@ function ActivityItem({ activity }: { activity: Activity }) {
         );
       case "CREATED_FORUM_REPLY":
         const replyMetadata = activity.metadata as { postId?: string; postSlug?: string; postTitle?: string } | null;
+        const replyPostTitle = activity.title || replyMetadata?.postTitle;
+        const replyPostLink = replyMetadata?.postSlug || replyMetadata?.postId;
         return (
           <>
             <span className="font-semibold">{displayName}</span> replied to{" "}
-            {replyMetadata?.postTitle && (
-              <Link href={`/forum/posts/${replyMetadata.postSlug || replyMetadata.postId || ""}`} className="font-semibold hover:underline">
-                {replyMetadata.postTitle}
+            {replyPostTitle && replyPostLink ? (
+              <Link href={`/forum/${replyPostLink}`} className="font-semibold hover:underline">
+                {replyPostTitle}
               </Link>
+            ) : replyPostTitle ? (
+              <span className="font-semibold">{replyPostTitle}</span>
+            ) : (
+              <span className="font-semibold">a post</span>
             )}
           </>
         );

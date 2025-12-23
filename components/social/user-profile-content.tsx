@@ -63,26 +63,11 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   const { data: userData, isLoading: isLoadingUser } = useQuery({
     queryKey: ["user", userId, "profile"],
     queryFn: async () => {
-      console.log("[Frontend user-profile-content] Fetching profile with userId:", {
-        userId,
-        type: typeof userId,
-        isNull: userId === null,
-        isUndefined: userId === undefined,
-        isEmpty: userId === "",
-        url: `/api/users/${userId}/profile`,
-      });
       const response = await fetch(`/api/users/${userId}/profile`);
       if (!response.ok) {
-        console.error("[Frontend user-profile-content] Profile fetch failed:", response.status, response.statusText);
         throw new Error("Failed to fetch user profile");
       }
       const data = await response.json();
-      console.log("[Frontend user-profile-content] Profile fetch success:", {
-        userId: data?.user?.id,
-        username: data?.user?.username,
-        displayName: data?.user?.displayName,
-        fullUserData: data?.user,
-      });
       return data;
     },
     enabled: !!userId && userId.trim() !== "",
@@ -117,7 +102,6 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
 
   // Early return check AFTER all hooks are called
   if (!userId || userId.trim() === "") {
-    console.warn("[Frontend user-profile-content] Invalid userId, returning early");
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -128,26 +112,8 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
     );
   }
   
-  // Calculate isOwnProfile before it's used in console.log and useMemo hooks
+  // Calculate isOwnProfile before it's used in useMemo hooks
   const isOwnProfile = currentUser?.id === userId;
-  
-  console.log("[Frontend user-profile-content] Component initialized with:", {
-    propUserId,
-    userId,
-    type: typeof userId,
-    isNull: userId === null,
-    isUndefined: userId === undefined,
-    isEmpty: userId === "",
-    length: userId?.length,
-    isValid: !!userId && userId.trim() !== "",
-  });
-  
-  console.log("[Frontend user-profile-content] Current user comparison:", {
-    currentUserId: currentUser?.id,
-    propUserId,
-    isOwnProfile,
-    match: currentUser?.id === userId,
-  });
 
   const user = userData?.user;
   const playlists = useMemo(() => {
@@ -190,21 +156,11 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   const { data: forumStatsData, isLoading: isLoadingForumStats } = useQuery({
     queryKey: ["user", userId, "forum-stats"],
     queryFn: async () => {
-      console.log("[Frontend user-profile-content] Fetching forum-stats with userId:", {
-        userId,
-        type: typeof userId,
-        isNull: userId === null,
-        isUndefined: userId === undefined,
-        isEmpty: userId === "",
-        url: `/api/users/${userId}/forum-stats`,
-      });
       const response = await fetch(`/api/users/${userId}/forum-stats`);
       if (!response.ok) {
-        console.error("[Frontend user-profile-content] Forum-stats fetch failed:", response.status, response.statusText);
         throw new Error("Failed to fetch forum stats");
       }
       const data = await response.json();
-      console.log("[Frontend user-profile-content] Forum-stats fetch success");
       return data;
     },
     enabled: !!userId && userId.trim() !== "",
@@ -327,6 +283,24 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
     }
   }, [favoritesAsTMDB, currentPage, safeItemsPerPage, activeTab]);
 
+  // Get banner - use bannerUrl if available, otherwise use gradient
+  // MUST be called before any early returns to maintain hook order
+  const bannerDisplay = useMemo(() => {
+    try {
+      if (!user) {
+        return { type: "gradient" as const, gradient: "#061E1C" };
+      }
+      if (user.bannerUrl) {
+        return { type: "image" as const, url: user.bannerUrl };
+      }
+      const gradient = BANNER_GRADIENTS.find((g) => g.id === (user.bannerGradientId || "gradient-1"));
+      return { type: "gradient" as const, gradient: gradient?.gradient || "#061E1C" };
+    } catch (error) {
+      console.error("Error calculating bannerDisplay:", error);
+      return { type: "gradient" as const, gradient: "#061E1C" };
+    }
+  }, [user?.bannerUrl, user?.bannerGradientId, user]);
+
   // Reset to page 1 when tab or data changes
   useEffect(() => {
     setCurrentPage(1);
@@ -385,23 +359,6 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
     .join("")
     .toUpperCase()
     .slice(0, 2);
-
-  // Get banner - use bannerUrl if available, otherwise use gradient
-  const bannerDisplay = useMemo(() => {
-    try {
-      if (!user) {
-        return { type: "gradient" as const, gradient: "#061E1C" };
-      }
-      if (user.bannerUrl) {
-        return { type: "image" as const, url: user.bannerUrl };
-      }
-      const gradient = BANNER_GRADIENTS.find((g) => g.id === (user.bannerGradientId || "gradient-1"));
-      return { type: "gradient" as const, gradient: gradient?.gradient || "#061E1C" };
-    } catch (error) {
-      console.error("Error calculating bannerDisplay:", error);
-      return { type: "gradient" as const, gradient: "#061E1C" };
-    }
-  }, [user?.bannerUrl, user?.bannerGradientId, user]);
 
   // Action buttons
   const actionButtons = (

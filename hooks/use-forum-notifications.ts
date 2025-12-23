@@ -80,3 +80,34 @@ export function useMarkForumNotificationsAsRead() {
   });
 }
 
+interface DeleteNotificationsParams {
+  notificationIds?: string[];
+  deleteAll?: boolean;
+}
+
+async function deleteNotifications(params: DeleteNotificationsParams) {
+  const { notificationIds, deleteAll = false } = params;
+  const response = await fetch("/api/forum/notifications", {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ notificationIds, deleteAll }),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to delete notifications");
+  }
+  return response.json();
+}
+
+export function useDeleteForumNotifications() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteNotifications,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["forum-notifications"] });
+    },
+  });
+}
+

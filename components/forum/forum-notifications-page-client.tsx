@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCheck, MessageCircle, Reply, MoreVertical } from "lucide-react";
+import { CheckCheck, MessageCircle, Reply, MoreVertical, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,9 +9,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useForumNotifications, useMarkForumNotificationsAsRead, ForumNotification } from "@/hooks/use-forum-notifications";
+import { useForumNotifications, useMarkForumNotificationsAsRead, useDeleteForumNotifications, ForumNotification } from "@/hooks/use-forum-notifications";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -74,6 +75,7 @@ export function ForumNotificationsPageClient() {
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const { data, isLoading } = useForumNotifications(filter === "unread");
   const markAsRead = useMarkForumNotificationsAsRead();
+  const deleteNotifications = useDeleteForumNotifications();
 
   const notifications = data?.notifications || [];
   const unreadCount = data?.unreadCount || 0;
@@ -83,6 +85,16 @@ export function ForumNotificationsPageClient() {
       markAsRead.mutate({ notificationIds: [notificationId] });
     } else {
       markAsRead.mutate({ markAllAsRead: true });
+    }
+  };
+
+  const handleDelete = (notificationId: string) => {
+    deleteNotifications.mutate({ notificationIds: [notificationId] });
+  };
+
+  const handleDeleteAll = () => {
+    if (confirm("Are you sure you want to delete all notifications? This action cannot be undone.")) {
+      deleteNotifications.mutate({ deleteAll: true });
     }
   };
 
@@ -97,18 +109,32 @@ export function ForumNotificationsPageClient() {
               Activity on your posts and comments
             </p>
           </div>
-          {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleMarkAsRead()}
-              disabled={markAsRead.isPending}
-              className="text-sm"
-            >
-              <CheckCheck className="h-4 w-4 mr-2" />
-              Mark all as read
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleMarkAsRead()}
+                disabled={markAsRead.isPending}
+                className="text-sm"
+              >
+                <CheckCheck className="h-4 w-4 mr-2" />
+                Mark all as read
+              </Button>
+            )}
+            {notifications.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDeleteAll}
+                disabled={deleteNotifications.isPending}
+                className="text-sm text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete all
+              </Button>
+            )}
+          </div>
         </div>
         <div className="flex gap-2">
           <Button
@@ -224,6 +250,14 @@ export function ForumNotificationsPageClient() {
                             <MessageCircle className="h-4 w-4 mr-2" />
                             View post
                           </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(notification.id)}
+                          className="cursor-pointer text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
