@@ -301,6 +301,40 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
     }
   }, [currentUser?.bannerUrl, currentUser?.bannerGradientId, currentUser, selectedBannerGradient]);
 
+  // Generate page numbers with ellipsis for pagination
+  // MUST be called before any early returns to maintain hook order
+  const pageNumbers = useMemo(() => {
+    try {
+      const pages: (number | "ellipsis")[] = [];
+      const safeTotalPages = Math.max(1, totalPages || 1);
+      const safeCurrentPage = Math.max(1, Math.min(currentPage || 1, safeTotalPages));
+      
+      if (safeTotalPages <= 7) {
+        for (let i = 1; i <= safeTotalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        if (safeCurrentPage > 3) {
+          pages.push("ellipsis");
+        }
+        const start = Math.max(2, safeCurrentPage - 1);
+        const end = Math.min(safeTotalPages - 1, safeCurrentPage + 1);
+        for (let i = start; i <= end; i++) {
+          pages.push(i);
+        }
+        if (safeCurrentPage < safeTotalPages - 2) {
+          pages.push("ellipsis");
+        }
+        pages.push(safeTotalPages);
+      }
+      return pages;
+    } catch (error) {
+      console.error("Error calculating pageNumbers:", error);
+      return [1];
+    }
+  }, [totalPages, currentPage]);
+
   // Defensive early return: show skeleton if critical data is loading or missing
   if (isLoadingCurrentUser || !currentUser || isLoadingPlaylists || isLoadingLists) {
     return (
@@ -359,37 +393,6 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
       </DropdownMenuContent>
     </DropdownMenu>
   );
-
-  // Generate page numbers with ellipsis for pagination
-  const pageNumbers = useMemo(() => {
-    const pages: (number | "ellipsis")[] = [];
-    const safeTotalPages = Math.max(1, totalPages || 1);
-    const safeCurrentPage = Math.max(1, Math.min(currentPage || 1, safeTotalPages));
-    
-    if (safeTotalPages <= 7) {
-      for (let i = 1; i <= safeTotalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      pages.push(1);
-      if (safeCurrentPage > 3) {
-        pages.push("ellipsis");
-      }
-      const start = Math.max(2, safeCurrentPage - 1);
-      const end = Math.min(safeTotalPages - 1, safeCurrentPage + 1);
-      for (let i = start; i <= end; i++) {
-        if (i !== 1 && i !== safeTotalPages) {
-          pages.push(i);
-        }
-      }
-      if (safeCurrentPage < safeTotalPages - 2) {
-        pages.push("ellipsis");
-      }
-      pages.push(safeTotalPages);
-    }
-    
-    return pages;
-  }, [currentPage, totalPages]);
 
   // Tab content
   const tabContent = (

@@ -84,31 +84,89 @@ export default function AdminYouTubeManagementContent() {
     },
   });
 
-  const channels = useMemo(() => data?.channels || [], [data?.channels]);
+  const channels = useMemo(() => {
+    try {
+      return Array.isArray(data?.channels) ? data.channels : [];
+    } catch (error) {
+      console.error("Error processing channels:", error);
+      return [];
+    }
+  }, [data?.channels]);
   
   // Filter channels
   const filteredChannels = useMemo(() => {
-    if (filterNollywood === "all") return channels;
-    if (filterNollywood === "nollywood") return channels.filter((ch) => ch.isNollywood);
-    return channels.filter((ch) => !ch.isNollywood);
+    try {
+      if (!Array.isArray(channels)) return [];
+      if (filterNollywood === "all") return channels;
+      if (filterNollywood === "nollywood") return channels.filter((ch) => ch.isNollywood);
+      return channels.filter((ch) => !ch.isNollywood);
+    } catch (error) {
+      console.error("Error filtering channels:", error);
+      return [];
+    }
   }, [channels, filterNollywood]);
 
-  const activeChannels = useMemo(() => filteredChannels.filter((ch) => ch.isActive), [filteredChannels]);
-  const inactiveChannels = useMemo(() => filteredChannels.filter((ch) => !ch.isActive), [filteredChannels]);
+  const activeChannels = useMemo(() => {
+    try {
+      return Array.isArray(filteredChannels) ? filteredChannels.filter((ch) => ch.isActive) : [];
+    } catch (error) {
+      console.error("Error filtering active channels:", error);
+      return [];
+    }
+  }, [filteredChannels]);
+
+  const inactiveChannels = useMemo(() => {
+    try {
+      return Array.isArray(filteredChannels) ? filteredChannels.filter((ch) => !ch.isActive) : [];
+    } catch (error) {
+      console.error("Error filtering inactive channels:", error);
+      return [];
+    }
+  }, [filteredChannels]);
 
   // Pagination calculations for active channels
-  const activeTotalPages = Math.ceil(activeChannels.length / ITEMS_PER_PAGE);
+  const activeTotalPages = useMemo(() => {
+    try {
+      return Math.max(1, Math.ceil((Array.isArray(activeChannels) ? activeChannels.length : 0) / ITEMS_PER_PAGE));
+    } catch (error) {
+      console.error("Error calculating active total pages:", error);
+      return 1;
+    }
+  }, [activeChannels]);
+
   const paginatedActiveChannels = useMemo(() => {
-    const startIndex = (activePage - 1) * ITEMS_PER_PAGE;
-    return activeChannels.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [activeChannels, activePage]);
+    try {
+      if (!Array.isArray(activeChannels)) return [];
+      const safePage = Math.max(1, Math.min(activePage, activeTotalPages));
+      const startIndex = Math.max(0, (safePage - 1) * ITEMS_PER_PAGE);
+      return activeChannels.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    } catch (error) {
+      console.error("Error paginating active channels:", error);
+      return [];
+    }
+  }, [activeChannels, activePage, activeTotalPages]);
 
   // Pagination calculations for inactive channels
-  const inactiveTotalPages = Math.ceil(inactiveChannels.length / ITEMS_PER_PAGE);
+  const inactiveTotalPages = useMemo(() => {
+    try {
+      return Math.max(1, Math.ceil((Array.isArray(inactiveChannels) ? inactiveChannels.length : 0) / ITEMS_PER_PAGE));
+    } catch (error) {
+      console.error("Error calculating inactive total pages:", error);
+      return 1;
+    }
+  }, [inactiveChannels]);
+
   const paginatedInactiveChannels = useMemo(() => {
-    const startIndex = (inactivePage - 1) * ITEMS_PER_PAGE;
-    return inactiveChannels.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [inactiveChannels, inactivePage]);
+    try {
+      if (!Array.isArray(inactiveChannels)) return [];
+      const safePage = Math.max(1, Math.min(inactivePage, inactiveTotalPages));
+      const startIndex = Math.max(0, (safePage - 1) * ITEMS_PER_PAGE);
+      return inactiveChannels.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    } catch (error) {
+      console.error("Error paginating inactive channels:", error);
+      return [];
+    }
+  }, [inactiveChannels, inactivePage, inactiveTotalPages]);
 
   const handleToggleNollywood = (channelId: string, currentValue: boolean) => {
     toggleNollywoodMutation.mutate({ channelId, isNollywood: !currentValue });

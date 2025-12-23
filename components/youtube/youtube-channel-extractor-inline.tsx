@@ -284,7 +284,7 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
               onClick={handleExtract}
               disabled={isLoading || !input.trim()}
               size="lg"
-              className="px-6"
+              className="px-6 h-11 cursor-pointer"
             >
               {isLoading ? (
                 <>

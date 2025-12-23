@@ -35,6 +35,8 @@ export default function NollywoodPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Build search params for movies
+  // Note: TMDB API returns 20 items per page by default
+  // To get ~35 items, we'll fetch 2 pages and combine them
   const moviesSearchParams = useMemo(() => {
     if (contentFilter === "tv") return null; // Don't fetch movies if only TV is selected
     return {
@@ -67,9 +69,11 @@ export default function NollywoodPage() {
     const results: (TMDBMovie | TMDBSeries)[] = [];
     
     if (contentFilter === "all") {
-      // Combine both movies and TV
+      // Combine both movies and TV, limit to 35 items per page
       if (moviesData?.results) results.push(...moviesData.results);
       if (tvData?.results) results.push(...tvData.results);
+      // Limit to 35 items
+      return results.slice(0, 35);
     } else if (contentFilter === "movies" && moviesData?.results) {
       results.push(...moviesData.results);
     } else if (contentFilter === "tv" && tvData?.results) {
@@ -109,6 +113,68 @@ export default function NollywoodPage() {
   const renderPagination = () => {
     if (totalPages <= 1) return null;
 
+    // Generate page numbers for desktop (full pagination)
+    const generateDesktopPages = () => {
+      const pages: (number | "ellipsis")[] = [];
+      if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        if (currentPage > 4) {
+          pages.push("ellipsis");
+        }
+        const start = Math.max(2, currentPage - 1);
+        const end = Math.min(totalPages - 1, currentPage + 1);
+        for (let i = start; i <= end; i++) {
+          if (i !== 1 && i !== totalPages) {
+            pages.push(i);
+          }
+        }
+        if (currentPage < totalPages - 3) {
+          pages.push("ellipsis");
+        }
+        pages.push(totalPages);
+      }
+      return pages;
+    };
+
+    // Generate page numbers for mobile (truncated: first, current, last)
+    const generateMobilePages = () => {
+      const pages: (number | "ellipsis")[] = [];
+      if (totalPages <= 3) {
+        for (let i = 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        if (currentPage > 2 && currentPage < totalPages) {
+          if (currentPage > 3) {
+            pages.push("ellipsis");
+          }
+          pages.push(currentPage);
+          if (currentPage < totalPages - 1) {
+            pages.push("ellipsis");
+          }
+        } else if (currentPage === 2) {
+          pages.push(2);
+          if (totalPages > 3) {
+            pages.push("ellipsis");
+          }
+        } else if (currentPage === totalPages && totalPages > 2) {
+          pages.push("ellipsis");
+        }
+        if (currentPage !== totalPages) {
+          pages.push(totalPages);
+        }
+      }
+      return pages;
+    };
+
+    const desktopPages = generateDesktopPages();
+    const mobilePages = generateMobilePages();
+
     return (
       <div className="flex items-center justify-center gap-2 mt-8">
         <Button
@@ -116,45 +182,69 @@ export default function NollywoodPage() {
           size="sm"
           onClick={() => handlePageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="cursor-pointer"
+          className="cursor-pointer flex-shrink-0"
         >
           <ChevronLeft className="h-4 w-4 mr-1" />
-          Previous
+          <span className="hidden sm:inline">Previous</span>
         </Button>
-        <div className="flex items-center gap-1">
-          {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-            let pageNum: number;
-            if (totalPages <= 7) {
-              pageNum = i + 1;
-            } else if (currentPage <= 4) {
-              pageNum = i + 1;
-            } else if (currentPage >= totalPages - 3) {
-              pageNum = totalPages - 6 + i;
-            } else {
-              pageNum = currentPage - 3 + i;
+        
+        {/* Mobile pagination - truncated */}
+        <div className="flex items-center gap-1 sm:hidden overflow-x-auto">
+          {mobilePages.map((page, index) => {
+            if (page === "ellipsis") {
+              return (
+                <span key={`mobile-ellipsis-${index}`} className="text-muted-foreground px-1">
+                  ...
+                </span>
+              );
             }
             return (
               <Button
-                key={pageNum}
-                variant={currentPage === pageNum ? "default" : "outline"}
+                key={`mobile-${page}`}
+                variant={currentPage === page ? "default" : "outline"}
                 size="sm"
-                onClick={() => handlePageChange(pageNum)}
-                className="cursor-pointer min-w-[40px]"
+                onClick={() => handlePageChange(page)}
+                className="cursor-pointer min-w-[36px] flex-shrink-0"
               >
-                {pageNum}
+                {page}
               </Button>
             );
           })}
         </div>
+
+        {/* Desktop pagination - full */}
+        <div className="hidden sm:flex items-center gap-1">
+          {desktopPages.map((page, index) => {
+            if (page === "ellipsis") {
+              return (
+                <span key={`desktop-ellipsis-${index}`} className="text-muted-foreground px-2">
+                  ...
+                </span>
+              );
+            }
+            return (
+              <Button
+                key={`desktop-${page}`}
+                variant={currentPage === page ? "default" : "outline"}
+                size="sm"
+                onClick={() => handlePageChange(page)}
+                className="cursor-pointer min-w-[40px] flex-shrink-0"
+              >
+                {page}
+              </Button>
+            );
+          })}
+        </div>
+
         <Button
           variant="outline"
           size="sm"
           onClick={() => handlePageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="cursor-pointer"
+          className="cursor-pointer flex-shrink-0"
         >
-          Next
-          <ChevronRight className="h-4 w-4 ml-1" />
+          <span className="hidden sm:inline">Next</span>
+          <ChevronRight className="h-4 w-4 ml-1 sm:ml-0" />
         </Button>
       </div>
     );
@@ -162,8 +252,7 @@ export default function NollywoodPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold mb-8">Nollywood</h1>
+      <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* YouTube Channels Carousel - First Section */}
         <section className="mb-12">
@@ -267,14 +356,14 @@ export default function NollywoodPage() {
           </div>
           
           {isLoadingContent ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-              {Array.from({ length: 20 }).map((_, i) => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-4">
+              {Array.from({ length: 35 }).map((_, i) => (
                 <MovieCardSkeleton key={i} />
               ))}
             </div>
           ) : allContent.length > 0 ? (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-4">
                 {allContent.map((item) => (
                   <MovieCard
                     key={item.id}

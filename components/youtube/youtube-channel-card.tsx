@@ -60,14 +60,16 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
       if (!response.ok) return null;
       const data = await response.json();
       return {
-        subscriberCount: data.channel?.statistics?.subscriberCount || "0",
+        subscriberCount: data.channel?.subscriberCount || "0",
       };
     },
-    enabled: !isAdmin && !channel.subscriberCount,
+    enabled: !isAdmin && (!channel.subscriberCount || channel.subscriberCount === "0" || channel.subscriberCount === ""),
     staleTime: 1000 * 60 * 15, // 15 minutes
   });
 
-  const subscriberCount = channel.subscriberCount || channelStats?.subscriberCount || "0";
+  const subscriberCount = (channel.subscriberCount && channel.subscriberCount !== "0" && channel.subscriberCount !== "") 
+    ? channel.subscriberCount 
+    : (channelStats?.subscriberCount || "0");
 
   const copyChannelId = async () => {
     try {

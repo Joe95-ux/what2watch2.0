@@ -133,6 +133,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const adminLinks = isAdmin ? [
     { href: "/dashboard/admin/forum", label: "Forum Admin", icon: MessageSquare },
     { href: "/dashboard/admin/moderation", label: "General Moderation", icon: Shield },
+    { href: "/dashboard/admin/youtube", label: "YouTube Management", icon: Youtube },
   ] : [];
 
   return (
