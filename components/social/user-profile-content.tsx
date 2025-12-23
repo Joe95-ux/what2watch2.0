@@ -382,9 +382,12 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
       {activeTab === "lists" && (
         <>
           {isLoadingLists ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-8">
               {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="aspect-[3/4] w-full rounded-lg" />
+                <div key={i} className="space-y-2">
+                  <Skeleton className="w-full h-[225px] rounded-lg" />
+                  <Skeleton className="h-5 w-3/4 rounded" />
+                </div>
               ))}
             </div>
           ) : lists.length === 0 ? (

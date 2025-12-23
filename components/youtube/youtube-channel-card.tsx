@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Lock, Eye, EyeOff, ExternalLink, Youtube, RefreshCw } from "lucide-react";
+import { Lock, Eye, EyeOff, ExternalLink, Youtube, RefreshCw, Copy, Check, Users } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getChannelProfilePath } from "@/lib/channel-path";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 interface YouTubeChannelCardProps {
   channel: {
@@ -27,16 +28,57 @@ interface YouTubeChannelCardProps {
     order: number;
     createdAt: string;
     updatedAt: string;
+    subscriberCount?: string;
   };
+}
+
+function formatCount(count: string | number): string {
+  const num = typeof count === "string" ? parseInt(count, 10) : count;
+  if (isNaN(num)) return "0";
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+  return num.toString();
 }
 
 export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { data: currentUser } = useCurrentUser();
   const [isUpdatingActive, setIsUpdatingActive] = useState(false);
   const [isUpdatingPrivacy, setIsUpdatingPrivacy] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [copiedId, setCopiedId] = useState(false);
   const canManage = Boolean(channel.canManage);
+  
+  const isAdmin = currentUser?.role === "ADMIN" || currentUser?.role === "SUPER_ADMIN" || currentUser?.isForumAdmin === true;
+  
+  // Fetch subscriber count if not provided and user is not admin
+  const { data: channelStats } = useQuery({
+    queryKey: ["channel-stats", channel.channelId],
+    queryFn: async () => {
+      const response = await fetch(`/api/youtube/channels/${channel.channelId}`);
+      if (!response.ok) return null;
+      const data = await response.json();
+      return {
+        subscriberCount: data.channel?.statistics?.subscriberCount || "0",
+      };
+    },
+    enabled: !isAdmin && !channel.subscriberCount,
+    staleTime: 1000 * 60 * 15, // 15 minutes
+  });
+
+  const subscriberCount = channel.subscriberCount || channelStats?.subscriberCount || "0";
+
+  const copyChannelId = async () => {
+    try {
+      await navigator.clipboard.writeText(channel.channelId);
+      setCopiedId(true);
+      toast.success("Channel ID copied to clipboard!");
+      setTimeout(() => setCopiedId(false), 2000);
+    } catch (err) {
+      toast.error("Failed to copy channel ID");
+    }
+  };
 
   const handleToggleActive = async (isActive: boolean) => {
     setIsUpdatingActive(true);
@@ -203,9 +245,34 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
                   {displayName}
                 </h3>
               </Link>
-              <p className="text-sm text-muted-foreground truncate font-mono mt-0.5">
-                {channel.channelId}
-              </p>
+              {isAdmin ? (
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-sm text-muted-foreground truncate font-mono">
+                    {channel.channelId}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyChannelId();
+                    }}
+                    className="h-6 w-6 p-0"
+                    title="Copy channel ID"
+                  >
+                    {copiedId ? (
+                      <Check className="h-3 w-3" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
+                  <Users className="h-3 w-3" />
+                  <span>{formatCount(subscriberCount)} subscribers</span>
+                </div>
+              )}
               <Link
                 href={channelUrl}
                 target="_blank"

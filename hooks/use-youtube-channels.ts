@@ -19,8 +19,11 @@ interface YouTubeChannelsResponse {
 /**
  * Fetch YouTube channel IDs from database
  */
-async function fetchChannelIds(): Promise<string[]> {
-  const response = await fetch("/api/youtube/channels/list");
+async function fetchChannelIds(nollywoodOnly: boolean = false): Promise<string[]> {
+  const url = nollywoodOnly 
+    ? "/api/youtube/channels/list?nollywood=true"
+    : "/api/youtube/channels/list";
+  const response = await fetch(url);
   if (!response.ok) {
     return [];
   }
@@ -53,12 +56,12 @@ async function fetchChannelsByIds(channelIds: string[]): Promise<YouTubeChannel[
  * Hook to fetch YouTube channels
  * First fetches channel IDs from database, then fetches channel details
  */
-export function useYouTubeChannels() {
+export function useYouTubeChannels(nollywoodOnly: boolean = false) {
   return useQuery({
-    queryKey: ["youtube-channels"],
+    queryKey: ["youtube-channels", nollywoodOnly ? "nollywood" : "all"],
     queryFn: async () => {
       // First, get channel IDs from database
-      const channelIds = await fetchChannelIds();
+      const channelIds = await fetchChannelIds(nollywoodOnly);
       
       // If no channel IDs, return empty array
       if (channelIds.length === 0) {

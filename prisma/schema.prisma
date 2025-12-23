@@ -1251,6 +1251,7 @@ model YouTubeChannel {
   channelUrl    String?  // Full YouTube channel URL (optional)
   isActive      Boolean  @default(true) // Whether channel is active/visible
   isPrivate     Boolean  @default(false) // Whether channel is private (only visible to user who added it)
+  isNollywood   Boolean  @default(false) // Whether channel is part of Nollywood collection
   addedByUserId String?  @db.ObjectId // User who added this channel (null for public channels)
   order         Int      @default(0) // Display order
   
@@ -1260,6 +1261,7 @@ model YouTubeChannel {
   @@map("youtube_channels")
   @@index([isActive])
   @@index([isPrivate])
+  @@index([isNollywood])
   @@index([addedByUserId])
   @@index([order])
 }

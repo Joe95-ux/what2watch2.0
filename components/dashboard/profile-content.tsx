@@ -61,11 +61,6 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
   const [selectedBannerGradient, setSelectedBannerGradient] = useState<string>("gradient-1");
   const [isScrolled, setIsScrolled] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   useEffect(() => {
     if (currentUser?.bannerGradientId) {
@@ -75,8 +70,8 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
 
   const userId = serverUserId || currentUser?.id || "";
 
-  const { data: followersData } = useUserFollowers(userId && isMounted ? userId : null);
-  const { data: followingData } = useUserFollowing(userId && isMounted ? userId : null);
+  const { data: followersData } = useUserFollowers(userId || null);
+  const { data: followingData } = useUserFollowing(userId || null);
   const { data: playlists = [], isLoading: isLoadingPlaylists } = usePlaylists();
   const { data: lists = [], isLoading: isLoadingLists } = useLists();
   const { data: watchlist = [], isLoading: isLoadingWatchlist } = useWatchlist();
@@ -107,7 +102,7 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
   const { data: reviewsData, isLoading: isLoadingReviews } = useUserReviews(userId, {
     page: activeTab === "reviews" ? currentPage : 1,
     limit: itemsPerPage,
-    enabled: !!userId && isMounted,
+    enabled: !!userId && userId.trim() !== "",
   });
 
   const reviews = reviewsData?.reviews || [];
@@ -117,34 +112,20 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
   const { data: forumStatsData, isLoading: isLoadingForumStats } = useQuery({
     queryKey: ["user", userId, "forum-stats"],
     queryFn: async () => {
-      console.log("[Frontend dashboard/profile-content] Fetching forum-stats with userId:", {
-        userId,
-        serverUserId,
-        currentUserId: currentUser?.id,
-        type: typeof userId,
-        isNull: userId === null,
-        isUndefined: userId === undefined,
-        isEmpty: userId === "",
-        url: `/api/users/${userId}/forum-stats`,
-      });
       if (!userId || userId.trim() === "") {
-        console.error("[Frontend dashboard/profile-content] Error: userId is empty");
         throw new Error("User ID is required");
       }
       const response = await fetch(`/api/users/${userId}/forum-stats`);
       if (!response.ok) {
         if (response.status === 404) {
-          console.log("[Frontend dashboard/profile-content] Forum-stats 404, returning empty stats");
           return { stats: { postCount: 0, replyCount: 0, totalReactions: 0 }, recentPosts: [], recentReplies: [] };
         }
-        console.error("[Frontend dashboard/profile-content] Forum-stats fetch failed:", response.status, response.statusText);
         throw new Error("Failed to fetch forum stats");
       }
       const data = await response.json();
-      console.log("[Frontend dashboard/profile-content] Forum-stats fetch success");
       return data;
     },
-    enabled: !!userId && userId.trim() !== "" && isMounted,
+    enabled: !!userId && userId.trim() !== "",
     retry: false,
   });
 
@@ -303,15 +284,25 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
   }, [activeTab, playlists.length, lists.length, watchlist.length, favorites.length, followers.length, following.length, reviews.length]);
 
   // Get banner - use bannerUrl if available, otherwise use gradient
+  // MUST be called before any early returns to maintain hook order
   const bannerDisplay = useMemo(() => {
-    if (currentUser?.bannerUrl) {
-      return { type: "image" as const, url: currentUser.bannerUrl };
+    try {
+      if (!currentUser) {
+        return { type: "gradient" as const, gradient: "#061E1C" };
+      }
+      if (currentUser.bannerUrl) {
+        return { type: "image" as const, url: currentUser.bannerUrl };
+      }
+      const gradient = BANNER_GRADIENTS.find((g) => g.id === (currentUser.bannerGradientId || selectedBannerGradient));
+      return { type: "gradient" as const, gradient: gradient?.gradient || "#061E1C" };
+    } catch (error) {
+      console.error("Error calculating bannerDisplay:", error);
+      return { type: "gradient" as const, gradient: "#061E1C" };
     }
-    const gradient = BANNER_GRADIENTS.find((g) => g.id === (currentUser?.bannerGradientId || selectedBannerGradient));
-    return { type: "gradient" as const, gradient: gradient?.gradient || "#061E1C" };
-  }, [currentUser?.bannerUrl, currentUser?.bannerGradientId, selectedBannerGradient]);
+  }, [currentUser?.bannerUrl, currentUser?.bannerGradientId, currentUser, selectedBannerGradient]);
 
-  if (!isMounted || (isLoadingCurrentUser && !currentUser)) {
+  // Defensive early return: show skeleton if critical data is loading or missing
+  if (isLoadingCurrentUser || !currentUser || isLoadingPlaylists || isLoadingLists) {
     return (
       <div className="min-h-screen bg-background">
         <div className="relative h-[200px] sm:h-[250px] overflow-hidden">

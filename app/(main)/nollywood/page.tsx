@@ -29,7 +29,7 @@ import { useSearch } from "@/hooks/use-search";
 type ContentFilter = "all" | "movies" | "tv";
 
 export default function NollywoodPage() {
-  const { data: channels = [], isLoading: isLoadingChannels } = useYouTubeChannels();
+  const { data: channels = [], isLoading: isLoadingChannels } = useYouTubeChannels(true); // Only Nollywood channels
   
   const [contentFilter, setContentFilter] = useState<ContentFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);

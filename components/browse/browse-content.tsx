@@ -556,7 +556,7 @@ function NollywoodYouTubeSection({ onContentTypeChange, viewAllHref }: { onConte
 
 // YouTube Channels Grid Component
 function YouTubeChannelsGrid() {
-  const { data: channels = [], isLoading } = useYouTubeChannels();
+  const { data: channels = [], isLoading } = useYouTubeChannels(true); // Only Nollywood channels
 
   if (isLoading) {
     return (

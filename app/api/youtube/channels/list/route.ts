@@ -14,9 +14,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const searchParams = request.nextUrl.searchParams;
+    const nollywoodOnly = searchParams.get("nollywood") === "true";
+
     // Query all channels first (since some may not have isPrivate field)
     // Then filter in memory to handle missing fields as public (default)
     const allChannels = await db.youTubeChannel.findMany({
+      where: nollywoodOnly ? { isNollywood: true } : undefined,
       orderBy: {
         order: "asc",
       },
@@ -24,6 +28,7 @@ export async function GET(request: NextRequest) {
         channelId: true,
         isPrivate: true,
         isActive: true,
+        isNollywood: true,
         addedByUserId: true,
       },
     });

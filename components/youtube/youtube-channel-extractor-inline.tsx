@@ -34,6 +34,7 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [addToUserPoolChannels, setAddToUserPoolChannels] = useState<Set<string>>(new Set());
   const [existingChannels, setExistingChannels] = useState<Set<string>>(new Set());
+  const [addingChannelId, setAddingChannelId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleExtract = async () => {
@@ -152,6 +153,7 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
   };
 
   const addChannelId = async (channelId: string) => {
+    setAddingChannelId(channelId);
     try {
       const addToUserPool = addToUserPoolChannels.has(channelId);
       const response = await fetch("/api/youtube/channels/add", {
@@ -194,6 +196,8 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
       console.error("[YT CID Extractor] Error adding channel ID:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to add channel ID. Please try again.";
       toast.error(errorMessage);
+    } finally {
+      setAddingChannelId(null);
     }
   };
 
@@ -399,10 +403,15 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
                           e.stopPropagation();
                           addChannelId(channel.id);
                         }}
-                        disabled={addedIds.has(channel.id)}
-                        className="gap-2"
+                        disabled={addedIds.has(channel.id) || addingChannelId === channel.id}
+                        className="gap-2 cursor-pointer"
                       >
-                        {addedIds.has(channel.id) ? (
+                        {addingChannelId === channel.id ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            Adding...
+                          </>
+                        ) : addedIds.has(channel.id) ? (
                           <>
                             <Check className="h-3.5 w-3.5" />
                             Added

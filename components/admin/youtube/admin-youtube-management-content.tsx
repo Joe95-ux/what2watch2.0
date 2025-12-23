@@ -1,13 +1,17 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Youtube, ChevronLeft, ChevronRight } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Youtube, ChevronLeft, ChevronRight, Film } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { YouTubeChannelExtractorInline } from "@/components/youtube/youtube-channel-extractor-inline";
 import { YouTubeChannelCard } from "@/components/youtube/youtube-channel-card";
 import { YouTubeChannelCardSkeleton } from "@/components/youtube/youtube-channel-card-skeleton";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 interface Channel {
   id: string;
@@ -18,8 +22,8 @@ interface Channel {
   channelUrl: string | null;
   isActive: boolean;
   isPrivate: boolean;
+  isNollywood: boolean;
   addedByUserId: string | null;
-  canManage?: boolean;
   order: number;
   createdAt: string;
   updatedAt: string;
@@ -31,7 +35,7 @@ interface ChannelsResponse {
 }
 
 const fetchChannels = async (): Promise<ChannelsResponse> => {
-  const response = await fetch("/api/youtube/channels/manage");
+  const response = await fetch("/api/admin/youtube/channels");
   if (!response.ok) {
     throw new Error("Failed to fetch channels");
   }
@@ -40,18 +44,57 @@ const fetchChannels = async (): Promise<ChannelsResponse> => {
 
 const ITEMS_PER_PAGE = 12;
 
-export default function YouTubeManagementContent() {
+export default function AdminYouTubeManagementContent() {
   const [activePage, setActivePage] = useState(1);
   const [inactivePage, setInactivePage] = useState(1);
+  const [filterNollywood, setFilterNollywood] = useState<"all" | "nollywood" | "notNollywood">("all");
+
+  const queryClient = useQueryClient();
 
   const { data, isLoading, isError, refetch } = useQuery<ChannelsResponse>({
-    queryKey: ["youtube-channels-manage"],
+    queryKey: ["admin-youtube-channels"],
     queryFn: fetchChannels,
   });
 
+  const toggleNollywoodMutation = useMutation({
+    mutationFn: async ({ channelId, isNollywood }: { channelId: string; isNollywood: boolean }) => {
+      const response = await fetch(`/api/admin/youtube/channels/${channelId}/nollywood`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ isNollywood }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to update channel");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success("Channel updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["admin-youtube-channels"] });
+      queryClient.invalidateQueries({ queryKey: ["youtube-channels"] });
+      queryClient.invalidateQueries({ queryKey: ["youtube-channels-manage"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to update channel");
+    },
+  });
+
   const channels = useMemo(() => data?.channels || [], [data?.channels]);
-  const activeChannels = useMemo(() => channels.filter((ch) => ch.isActive), [channels]);
-  const inactiveChannels = useMemo(() => channels.filter((ch) => !ch.isActive), [channels]);
+  
+  // Filter channels
+  const filteredChannels = useMemo(() => {
+    if (filterNollywood === "all") return channels;
+    if (filterNollywood === "nollywood") return channels.filter((ch) => ch.isNollywood);
+    return channels.filter((ch) => !ch.isNollywood);
+  }, [channels, filterNollywood]);
+
+  const activeChannels = useMemo(() => filteredChannels.filter((ch) => ch.isActive), [filteredChannels]);
+  const inactiveChannels = useMemo(() => filteredChannels.filter((ch) => !ch.isActive), [filteredChannels]);
 
   // Pagination calculations for active channels
   const activeTotalPages = Math.ceil(activeChannels.length / ITEMS_PER_PAGE);
@@ -67,20 +110,54 @@ export default function YouTubeManagementContent() {
     return inactiveChannels.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [inactiveChannels, inactivePage]);
 
+  const handleToggleNollywood = (channelId: string, currentValue: boolean) => {
+    toggleNollywoodMutation.mutate({ channelId, isNollywood: !currentValue });
+  };
+
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
       <div className="mb-8">
         <div className="mb-4">
-          <h1 className="text-3xl font-bold tracking-tight">YouTube Channel Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Admin YouTube Channel Management</h1>
         </div>
         <p className="text-muted-foreground">
-          Manage your YouTube channels. Add new channels, control visibility, and set privacy settings.
+          Manage all YouTube channels. Control which channels appear in the general pool and Nollywood collection.
         </p>
       </div>
 
       {/* Channel Extractor */}
       <div className="mb-8">
         <YouTubeChannelExtractorInline onChannelAdded={() => refetch()} />
+      </div>
+
+      {/* Filters */}
+      <div className="mb-6 flex items-center gap-4">
+        <Label className="text-sm font-medium">Filter:</Label>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={filterNollywood === "all" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterNollywood("all")}
+          >
+            All ({channels.length})
+          </Button>
+          <Button
+            variant={filterNollywood === "nollywood" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterNollywood("nollywood")}
+            className="gap-2"
+          >
+            <Film className="h-4 w-4" />
+            Nollywood ({channels.filter((ch) => ch.isNollywood).length})
+          </Button>
+          <Button
+            variant={filterNollywood === "notNollywood" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterNollywood("notNollywood")}
+          >
+            Not Nollywood ({channels.filter((ch) => !ch.isNollywood).length})
+          </Button>
+        </div>
       </div>
 
       {/* Active Channels */}
@@ -114,7 +191,29 @@ export default function YouTubeManagementContent() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {paginatedActiveChannels.map((channel) => (
-                  <YouTubeChannelCard key={channel.id} channel={channel} />
+                  <div key={channel.id} className="relative">
+                    <YouTubeChannelCard channel={channel} />
+                    <div className="mt-2 p-3 border rounded-lg bg-muted/30">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor={`nollywood-${channel.id}`} className="text-sm font-medium flex items-center gap-2 cursor-pointer">
+                          <Film className="h-4 w-4" />
+                          Nollywood Collection
+                        </Label>
+                        <Switch
+                          id={`nollywood-${channel.id}`}
+                          checked={channel.isNollywood}
+                          onCheckedChange={() => handleToggleNollywood(channel.channelId, channel.isNollywood)}
+                          disabled={toggleNollywoodMutation.isPending}
+                        />
+                      </div>
+                      {channel.isNollywood && (
+                        <Badge variant="default" className="mt-2">
+                          <Film className="h-3 w-3 mr-1" />
+                          In Nollywood
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
                 ))}
               </div>
               
@@ -188,7 +287,29 @@ export default function YouTubeManagementContent() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {paginatedInactiveChannels.map((channel) => (
-                  <YouTubeChannelCard key={channel.id} channel={channel} />
+                  <div key={channel.id} className="relative">
+                    <YouTubeChannelCard channel={channel} />
+                    <div className="mt-2 p-3 border rounded-lg bg-muted/30">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor={`nollywood-inactive-${channel.id}`} className="text-sm font-medium flex items-center gap-2 cursor-pointer">
+                          <Film className="h-4 w-4" />
+                          Nollywood Collection
+                        </Label>
+                        <Switch
+                          id={`nollywood-inactive-${channel.id}`}
+                          checked={channel.isNollywood}
+                          onCheckedChange={() => handleToggleNollywood(channel.channelId, channel.isNollywood)}
+                          disabled={toggleNollywoodMutation.isPending}
+                        />
+                      </div>
+                      {channel.isNollywood && (
+                        <Badge variant="default" className="mt-2">
+                          <Film className="h-3 w-3 mr-1" />
+                          In Nollywood
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
                 ))}
               </div>
               
@@ -248,10 +369,16 @@ export default function YouTubeManagementContent() {
             </div>
           )}
 
-          {channels.length === 0 && (
+          {filteredChannels.length === 0 && (
             <div className="text-center py-12 border rounded-lg">
               <Youtube className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground">No channels added yet. Use the form above to add your first channel.</p>
+              <p className="text-muted-foreground">
+                {filterNollywood === "all"
+                  ? "No channels added yet. Use the form above to add your first channel."
+                  : filterNollywood === "nollywood"
+                  ? "No Nollywood channels found."
+                  : "No non-Nollywood channels found."}
+              </p>
             </div>
           )}
         </>
