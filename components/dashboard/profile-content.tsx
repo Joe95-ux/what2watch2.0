@@ -336,16 +336,61 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
   }, [totalPages, currentPage]);
 
   // Defensive early return: show skeleton if critical data is loading or missing
-  // Only show minimal skeleton (avatar and username) for dashboard profile
-  if (isLoadingCurrentUser || !currentUser) {
+  if (isLoadingCurrentUser || !currentUser || isLoadingPlaylists || isLoadingLists) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="relative h-[200px] sm:h-[250px] overflow-hidden">
+        <div className="relative h-[150px] max-w-[70rem] mx-0 sm:mx-auto sm:mt-[1rem] sm:mb-0 sm:rounded-[25px] overflow-hidden">
           <Skeleton className="w-full h-full" />
         </div>
         <div className="container max-w-4xl mx-auto px-4 sm:px-6">
           <Skeleton className="h-32 w-32 rounded-full -mt-16 mb-4" />
           <Skeleton className="h-8 w-48 mb-2" />
+          <Skeleton className="h-4 w-32 mb-4" />
+          <div className="mt-8">
+            <div className="flex gap-2 mb-4">
+              <Skeleton className="h-10 w-24" />
+              <Skeleton className="h-10 w-24" />
+              <Skeleton className="h-10 w-24" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 md:gap-6 mb-8">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="group relative">
+                  <div className="relative w-full h-[225px] rounded-lg overflow-hidden bg-muted border border-border">
+                    {/* Grid of 3 Poster Skeletons */}
+                    <div className="relative w-full h-[225px] grid grid-cols-3 gap-1">
+                      {Array.from({ length: 3 }).map((_, posterIndex) => {
+                        const borderRadiusClass = 
+                          posterIndex === 0 ? "rounded-tl-lg rounded-bl-lg" :
+                          posterIndex === 2 ? "rounded-tr-lg rounded-br-lg" :
+                          "";
+                        return (
+                          <Skeleton
+                            key={posterIndex}
+                            className={`w-full h-full ${borderRadiusClass}`}
+                          />
+                        );
+                      })}
+                    </div>
+                    {/* Dark Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent rounded-lg" />
+                    {/* Icon and Text Skeleton - Bottom Left */}
+                    <div className="absolute bottom-2 left-2 flex items-center gap-1.5 z-10">
+                      <Skeleton className="h-6 w-6 rounded" />
+                      <Skeleton className="h-4 w-12" />
+                    </div>
+                    {/* Item Count Badge Skeleton - Top Right */}
+                    <div className="absolute top-2 right-2 z-10">
+                      <Skeleton className="h-6 w-8 rounded-full" />
+                    </div>
+                  </div>
+                  {/* Title Skeleton */}
+                  <div className="mt-2">
+                    <Skeleton className="h-5 w-3/4" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -1133,9 +1178,9 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
 
   return (
     <>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen sm:mx-4 bg-background">
         {/* Banner/Cover Section */}
-        <div ref={heroRef} className="relative h-[200px] sm:h-[250px] overflow-hidden">
+        <div ref={heroRef} className="relative h-[150px] max-w-[70rem] mx-0 sm:mx-auto sm:mt-[1rem] sm:mb-0 sm:rounded-[25px] overflow-hidden">
           {bannerDisplay.type === "image" ? (
             <>
               <Image
@@ -1162,8 +1207,8 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
 
         {/* Profile Info Section */}
         <div className="container max-w-[70rem] mx-auto px-4 sm:px-6">
-          <div className="relative -mt-16 sm:-mt-20 mb-4">
-            <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-background">
+          <div className="relative -mt-16 sm:-mt-10 mb-4">
+            <Avatar className="h-24 w-24 border-4 border-background">
               <AvatarImage src={contextAvatarUrl || currentUser?.avatarUrl || undefined} alt={displayName} />
               <AvatarFallback className="text-3xl sm:text-4xl">{initials}</AvatarFallback>
             </Avatar>

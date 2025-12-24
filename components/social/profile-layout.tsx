@@ -59,9 +59,9 @@ export default function ProfileLayout({
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background sm:mx-4">
       {/* Banner/Cover Section - Full width, edge-to-edge */}
-      <div className="relative h-[200px] sm:h-[250px] overflow-hidden">
+      <div className="relative h-[150px] max-w-[70rem] mx-0 sm:mx-auto sm:mt-[1rem] sm:mb-0 sm:rounded-[25px] overflow-hidden">
         {bannerUrl ? (
           <>
             <Image
@@ -102,8 +102,8 @@ export default function ProfileLayout({
       {/* Profile Info Section - Constrained width, centered */}
       <div className="container max-w-[70rem] mx-auto px-4 sm:px-6">
         {/* Avatar - Overlapping banner, positioned to the left */}
-        <div className="relative -mt-16 sm:-mt-20 mb-4">
-          <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-background">
+        <div className="relative -mt-16 sm:-mt-10 mb-4">
+          <Avatar className="h-24 w-24 border-4 border-background">
             <AvatarImage src={avatarUrl || undefined} alt={displayName} />
             <AvatarFallback className="text-3xl sm:text-4xl">{initials}</AvatarFallback>
           </Avatar>
