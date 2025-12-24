@@ -267,6 +267,7 @@ export async function GET(request: NextRequest) {
         replyCount: post.replies.length,
         contributors,
         lastActivity: lastActivity.toISOString(),
+        status: post.status,
         author: {
           id: post.user.id,
           username: post.user.username,

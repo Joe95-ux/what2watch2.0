@@ -24,6 +24,7 @@ interface ForumPost {
   score: number;
   replyCount: number;
   slug?: string;
+  status?: string;
   author: {
     id: string;
     username: string;

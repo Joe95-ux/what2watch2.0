@@ -94,7 +94,7 @@ export function FilterSearchBar({
   return (
     <div className={cn(!renderFilterRowOutside && "space-y-3")}>
       {/* Top Row: Search + Sort + Filter Button */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2">
         {/* Search - Takes most width on small screens, custom max-width on sm+ */}
         <div className={cn("relative min-w-0 flex-1", searchMaxWidth && searchMaxWidth)}>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />

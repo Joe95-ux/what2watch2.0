@@ -26,6 +26,8 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  MoreVertical,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FilterSearchBar, FilterRow } from "@/components/ui/filter-search-bar";
@@ -41,13 +43,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import ActivityContent from "@/components/dashboard/activity-content";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ForumActivityContent } from "@/components/forum/forum-activity-content";
 import { ForumNotificationsTab } from "@/components/notifications/forum-notifications-tab";
+import { ForumSummaryContent } from "@/components/forum/forum-summary-content";
+import { CreatePostDialog } from "@/components/forum/create-post-dialog";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useAvatar } from "@/contexts/avatar-context";
 import { BANNER_GRADIENTS } from "@/components/social/banner-gradient-selector";
 
-type TabType = "posts" | "activity" | "notifications";
+type TabType = "posts" | "activity" | "notifications" | "summary";
 type StatusFilter = "all" | "published" | "scheduled" | "archived" | "private";
 type SortField = "createdAt" | "views" | "replies" | "score";
 
@@ -111,6 +121,7 @@ function MyPostsStickyNav({
     { id: "posts" as TabType, label: "Posts", icon: MessageSquare, count: postCount },
     { id: "activity" as TabType, label: "Activity", icon: Activity },
     { id: "notifications" as TabType, label: "Notifications", icon: Bell },
+    { id: "summary" as TabType, label: "Summary", icon: BarChart3 },
   ];
 
   return (
@@ -123,7 +134,7 @@ function MyPostsStickyNav({
           : "bg-background border-border"
       )}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[70rem] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-8 overflow-x-auto scrollbar-hide scroll-smooth">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -181,6 +192,7 @@ export default function MyPostsContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [postToDelete, setPostToDelete] = useState<Post | null>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   // Calculate display name and initials
   const displayName = currentUser?.displayName || currentUser?.username || "User";
@@ -315,7 +327,7 @@ export default function MyPostsContent() {
   const getStatusBadge = (status: string, scheduledAt?: string) => {
     if (scheduledAt && new Date(scheduledAt) > new Date()) {
       return (
-        <Badge variant="outline" className="gap-1">
+        <Badge variant="outline" className="gap-1 bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/30">
           <Clock className="h-3 w-3" />
           Scheduled
         </Badge>
@@ -324,21 +336,21 @@ export default function MyPostsContent() {
     switch (status) {
       case "PUBLIC":
         return (
-          <Badge variant="outline" className="gap-1">
+          <Badge variant="outline" className="gap-1 bg-green-500/20 text-green-700 dark:text-green-400 border-green-500/30">
             <Globe className="h-3 w-3" />
             Published
           </Badge>
         );
       case "PRIVATE":
         return (
-          <Badge variant="outline" className="gap-1">
+          <Badge variant="outline" className="gap-1 bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/30">
             <Lock className="h-3 w-3" />
             Private
           </Badge>
         );
       case "ARCHIVED":
         return (
-          <Badge variant="outline" className="gap-1">
+          <Badge variant="outline" className="gap-1 bg-gray-500/20 text-gray-700 dark:text-gray-400 border-gray-500/30">
             <Archive className="h-3 w-3" />
             Archived
           </Badge>
@@ -373,7 +385,7 @@ export default function MyPostsContent() {
 
         {/* Sticky Nav Skeleton */}
         <div className="sticky top-[65px] z-40 border-b bg-background/95 backdrop-blur-md">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-[70rem] mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-8">
               {Array.from({ length: 3 }).map((_, i) => (
                 <Skeleton key={i} className="h-10 w-24" />
@@ -383,7 +395,7 @@ export default function MyPostsContent() {
         </div>
 
         {/* Content Skeleton */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-[70rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="space-y-4">
             {Array.from({ length: 5 }).map((_, i) => (
               <Skeleton key={i} className="h-32 w-full rounded-lg" />
@@ -440,7 +452,7 @@ export default function MyPostsContent() {
             )}
           </div>
           <div className="flex-shrink-0">
-            <Button onClick={() => router.push("/forum?create=true")} className="cursor-pointer">
+            <Button onClick={() => setIsCreateDialogOpen(true)} className="cursor-pointer">
               <Plus className="h-4 w-4 mr-2" />
               Create Post
             </Button>
@@ -455,7 +467,7 @@ export default function MyPostsContent() {
         postCount={totalPosts}
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-[70rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === "posts" && (
           <>
             {/* Post Count */}
@@ -647,7 +659,7 @@ export default function MyPostsContent() {
                   {posts.map((post: Post) => (
                     <div
                       key={post.id}
-                      className="pb-4 border-b hover:bg-muted/30 transition-colors rounded-lg p-4"
+                      className="pb-4 border-b hover:bg-muted/30 transition-colors p-4"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
@@ -658,7 +670,10 @@ export default function MyPostsContent() {
                             >
                               <h4 className="truncate">{post.title}</h4>
                             </Link>
-                            {getStatusBadge(post.status, post.scheduledAt)}
+                            {/* Status badge - visible on sm+ screens */}
+                            <div className="hidden sm:block flex-shrink-0">
+                              {getStatusBadge(post.status, post.scheduledAt)}
+                            </div>
                           </div>
                           <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground flex-wrap">
                             {post.category && (
@@ -675,20 +690,37 @@ export default function MyPostsContent() {
                             <span>{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>
                           </div>
                           {post.tags && post.tags.length > 0 && (
-                            <div className="flex items-center gap-2 mt-2 flex-wrap">
-                              {post.tags.slice(0, 5).map((tag) => (
-                                <Badge key={tag} variant="secondary" className="text-xs">
-                                  {tag}
-                                </Badge>
-                              ))}
+                            <div className="flex items-center justify-between gap-2 mt-2 flex-wrap">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {post.tags.slice(0, 5).map((tag) => (
+                                  <Badge key={tag} variant="secondary" className="text-xs">
+                                    {tag}
+                                  </Badge>
+                                ))}
+                              </div>
+                              {/* Status badge - visible on < sm screens, on same row as tags */}
+                              <div className="sm:hidden flex-shrink-0">
+                                {getStatusBadge(post.status, post.scheduledAt)}
+                              </div>
+                            </div>
+                          )}
+                          {/* If no tags, show status badge on its own row on small screens */}
+                          {(!post.tags || post.tags.length === 0) && (
+                            <div className="sm:hidden mt-2">
+                              {getStatusBadge(post.status, post.scheduledAt)}
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
+                        {/* Action buttons - visible on sm+ screens */}
+                        <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => router.push(`/forum/${post.slug}`)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              router.push(`/forum/${post.slug}`);
+                            }}
                             className="h-8 w-8 cursor-pointer"
                           >
                             <Eye className="h-4 w-4" />
@@ -696,7 +728,11 @@ export default function MyPostsContent() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => router.push(`/forum/${post.slug}?edit=true`)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              router.push(`/forum/${post.slug}?edit=true`);
+                            }}
                             className="h-8 w-8 cursor-pointer"
                           >
                             <Edit className="h-4 w-4" />
@@ -704,11 +740,64 @@ export default function MyPostsContent() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleDeleteClick(post)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleDeleteClick(post);
+                            }}
                             className="h-8 w-8 cursor-pointer text-destructive hover:text-destructive"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
+                        </div>
+                        {/* Dropdown menu - visible on < sm screens */}
+                        <div className="sm:hidden flex-shrink-0">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 cursor-pointer"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  router.push(`/forum/${post.slug}`);
+                                }}
+                                className="cursor-pointer"
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                View
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  router.push(`/forum/${post.slug}?edit=true`);
+                                }}
+                                className="cursor-pointer"
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleDeleteClick(post);
+                                }}
+                                className="cursor-pointer text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                     </div>
@@ -749,15 +838,15 @@ export default function MyPostsContent() {
         )}
 
         {activeTab === "activity" && (
-          <div className="mt-6">
-            <ActivityContent />
-          </div>
+          <ForumActivityContent />
         )}
 
         {activeTab === "notifications" && (
-          <div className="mt-6">
-            <ForumNotificationsTab />
-          </div>
+          <ForumNotificationsTab />
+        )}
+
+        {activeTab === "summary" && (
+          <ForumSummaryContent />
         )}
       </div>
 
@@ -784,6 +873,12 @@ export default function MyPostsContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Create Post Dialog */}
+      <CreatePostDialog
+        isOpen={isCreateDialogOpen}
+        onClose={() => setIsCreateDialogOpen(false)}
+      />
     </div>
   );
 }
