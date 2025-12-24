@@ -49,6 +49,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { EditPostDialog } from "@/components/forum/edit-post-dialog";
 import { ForumActivityContent } from "@/components/forum/forum-activity-content";
 import { ForumNotificationsTab } from "@/components/notifications/forum-notifications-tab";
 import { ForumSummaryContent } from "@/components/forum/forum-summary-content";
@@ -193,6 +199,7 @@ export default function MyPostsContent() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [postToDelete, setPostToDelete] = useState<Post | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
 
   // Calculate display name and initials
   const displayName = currentUser?.displayName || currentUser?.username || "User";
@@ -713,42 +720,63 @@ export default function MyPostsContent() {
                         </div>
                         {/* Action buttons - visible on sm+ screens */}
                         <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              router.push(`/forum/${post.slug}`);
-                            }}
-                            className="h-8 w-8 cursor-pointer"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              router.push(`/forum/${post.slug}?edit=true`);
-                            }}
-                            className="h-8 w-8 cursor-pointer"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleDeleteClick(post);
-                            }}
-                            className="h-8 w-8 cursor-pointer text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  window.open(`/forum/${post.slug}`, "_blank");
+                                }}
+                                className="h-8 w-8 cursor-pointer"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>View post</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setEditingPost(post);
+                                }}
+                                className="h-8 w-8 cursor-pointer"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Edit post</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleDeleteClick(post);
+                                }}
+                                className="h-8 w-8 cursor-pointer text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Delete post</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         {/* Dropdown menu - visible on < sm screens */}
                         <div className="sm:hidden flex-shrink-0">
@@ -879,6 +907,26 @@ export default function MyPostsContent() {
         isOpen={isCreateDialogOpen}
         onClose={() => setIsCreateDialogOpen(false)}
       />
+
+      {/* Edit Post Dialog */}
+      {editingPost && (
+        <EditPostDialog
+          isOpen={!!editingPost}
+          onClose={() => {
+            setEditingPost(null);
+            // Refresh posts after editing
+            queryClient.invalidateQueries({ queryKey: ["my-posts"] });
+          }}
+          post={{
+            id: editingPost.id,
+            slug: editingPost.slug,
+            title: editingPost.title,
+            content: editingPost.content,
+            tags: editingPost.tags,
+            category: editingPost.category,
+          }}
+        />
+      )}
     </div>
   );
 }

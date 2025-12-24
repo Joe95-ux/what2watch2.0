@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface ForumStats {
   postCount: number;
@@ -62,12 +63,18 @@ export function ForumSummaryContent() {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 divide-x divide-y divide-border">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="p-4">
-              <Skeleton className="h-4 w-24 mb-2" />
-              <Skeleton className="h-8 w-16" />
-            </div>
-          ))}
+          {Array.from({ length: 12 }).map((_, i) => {
+            const columnsPerRow = 4;
+            const totalRows = Math.ceil(12 / columnsPerRow);
+            const currentRow = Math.floor(i / columnsPerRow) + 1;
+            const isLastRow = currentRow === totalRows;
+            return (
+              <div key={i} className={cn("p-4 sm:p-8", isLastRow && "border-b-0")}>
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-8 w-16" />
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -166,18 +173,32 @@ export function ForumSummaryContent() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 divide-x divide-y divide-border">
-        {statCards.map((stat) => (
-          <div key={stat.label} className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-muted-foreground">
-                {stat.label}
-              </span>
-              {stat.icon}
+        {statCards.map((stat, index) => {
+          // Calculate if this item is in the last row (4 columns on xl screens)
+          const columnsPerRow = 4; // xl:grid-cols-4
+          const totalRows = Math.ceil(statCards.length / columnsPerRow);
+          const currentRow = Math.floor(index / columnsPerRow) + 1;
+          const isLastRow = currentRow === totalRows;
+          
+          return (
+            <div 
+              key={stat.label} 
+              className={cn(
+                "p-4 sm:p-8",
+                isLastRow && "border-b-0"
+              )}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-muted-foreground">
+                  {stat.label}
+                </span>
+                {stat.icon}
+              </div>
+              <div className="text-2xl font-bold mb-1">{stat.value.toLocaleString()}</div>
+              <p className="text-[15px] text-muted-foreground">{stat.helper}</p>
             </div>
-            <div className="text-2xl font-bold mb-1">{stat.value.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">{stat.helper}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

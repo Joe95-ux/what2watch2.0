@@ -40,25 +40,16 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    // Build where clause - show all public posts, plus private/archived if user is author
+    // Build where clause - show all public posts only
     const whereConditions: any[] = [
       { isHidden: false },
+      { status: "PUBLIC" },
       // Only show published posts (not scheduled for future)
       {
         OR: [
           { scheduledAt: null },
           { scheduledAt: { lte: new Date() } },
         ],
-      },
-      // Show public posts, or private/archived if user is the author
-      {
-        OR: currentUserId
-          ? [
-              { status: "PUBLIC" },
-              { status: "PRIVATE", userId: currentUserId },
-              { status: "ARCHIVED", userId: currentUserId },
-            ]
-          : [{ status: "PUBLIC" }],
       },
     ];
 
