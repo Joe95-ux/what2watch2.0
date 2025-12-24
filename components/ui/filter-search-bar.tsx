@@ -35,6 +35,7 @@ interface FilterSearchBarProps {
   searchMaxWidth?: string; // e.g., "sm:max-w-[25rem]"
   renderFilterRowOutside?: boolean; // If true, filter row is not rendered inside
   onFilterRowStateChange?: (isOpen: boolean) => void; // Callback for filter row state
+  justifyEnd?: boolean; // If true, justify the search/filter/sort row to the end
 }
 
 export function FilterSearchBar({
@@ -49,6 +50,7 @@ export function FilterSearchBar({
   searchMaxWidth,
   renderFilterRowOutside = false,
   onFilterRowStateChange,
+  justifyEnd = false,
 }: FilterSearchBarProps) {
   const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const filterRowRef = useRef<HTMLDivElement>(null);
@@ -94,7 +96,7 @@ export function FilterSearchBar({
   return (
     <div className={cn(!renderFilterRowOutside && "space-y-3")}>
       {/* Top Row: Search + Sort + Filter Button */}
-      <div className="flex items-center gap-2">
+      <div className={cn("flex items-center gap-2", justifyEnd && "justify-end")}>
         {/* Search - Takes most width on small screens, custom max-width on sm+ */}
         <div className={cn("relative min-w-0 flex-1", searchMaxWidth && searchMaxWidth)}>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />

@@ -69,15 +69,19 @@ export async function GET(request: NextRequest) {
           reactionType: "downvote",
         },
       }),
-      // Published posts
+      // Published posts (PUBLIC status and not scheduled for future)
       db.forumPost.count({
         where: {
-          userId,
-          isHidden: false,
-          status: "PUBLIC",
-          OR: [
-            { scheduledAt: null },
-            { scheduledAt: { lte: new Date() } },
+          AND: [
+            { userId },
+            { isHidden: false },
+            { status: "PUBLIC" },
+            {
+              OR: [
+                { scheduledAt: null },
+                { scheduledAt: { lte: new Date() } },
+              ],
+            },
           ],
         },
       }),

@@ -40,8 +40,9 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    // Build where clause
+    // Build where clause - show all public posts, plus private/archived if user is author
     const whereConditions: any[] = [
+      { isHidden: false },
       // Only show published posts (not scheduled for future)
       {
         OR: [
@@ -49,22 +50,19 @@ export async function GET(request: NextRequest) {
           { scheduledAt: { lte: new Date() } },
         ],
       },
-      // Only show non-hidden posts
-      { isHidden: false },
-      // Only show public posts, or private/archived posts if user is the author
+      // Show public posts, or private/archived if user is the author
       {
-        OR: [
-          { status: "PUBLIC" },
-          ...(currentUserId ? [
-            { status: "PRIVATE", userId: currentUserId },
-            { status: "ARCHIVED", userId: currentUserId },
-          ] : []),
-        ],
+        OR: currentUserId
+          ? [
+              { status: "PUBLIC" },
+              { status: "PRIVATE", userId: currentUserId },
+              { status: "ARCHIVED", userId: currentUserId },
+            ]
+          : [{ status: "PUBLIC" }],
       },
     ];
 
     if (search && search.trim()) {
-      // Search in title and content
       whereConditions.push({
         OR: [
           { title: { contains: search.trim(), mode: "insensitive" } },

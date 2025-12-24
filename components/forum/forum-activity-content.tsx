@@ -447,6 +447,7 @@ export function ForumActivityContent() {
               searchMaxWidth="sm:max-w-[25rem]"
               sortOrder={sortOrder}
               onSortChange={setSortOrder}
+              justifyEnd={true}
               filters={[
                 {
                   label: "Type",
