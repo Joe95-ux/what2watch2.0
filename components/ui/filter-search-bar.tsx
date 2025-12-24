@@ -180,7 +180,7 @@ export function FilterSearchBar({
                     <button
                       type="button"
                       onClick={() => toggleDropdown(filter.label)}
-                      className="flex items-center gap-1.5 text-sm text-foreground hover:text-primary transition-colors cursor-pointer whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-sm px-2 py-1"
+                      className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground dark:hover:text-foreground transition-colors cursor-pointer whitespace-nowrap focus:outline-none focus-visible:outline-none rounded-sm px-2 py-1"
                     >
                       <span>{filter.label}:</span>
                       <span className="font-medium">{getFilterDisplayValue(filter)}</span>
@@ -191,7 +191,7 @@ export function FilterSearchBar({
                       )}
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuContent align="start" className="w-56 max-h-[300px] overflow-y-auto scrollbar-thin">
                     {filter.options.map((option) => (
                       <DropdownMenuItem
                         key={option.value}

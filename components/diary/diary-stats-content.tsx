@@ -441,7 +441,7 @@ export default function DiaryStatsContent() {
             <CardDescription>Release years of films you watched in {selectedYear}</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={{}} className="h-[300px]">
+            <ChartContainer config={{}} className="h-[300px] w-full">
               <BarChart data={filmsByReleaseYear}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="year" />

@@ -223,7 +223,7 @@ export function YouTubeAnalyticsDashboard() {
         </Card>
       </div>
 
-      {/* Views Over Time Chart */}
+      {/* Views Over Time Chart - Full Width */}
       {viewsOverTimeData.length > 0 && (
         <Card>
           <CardHeader>
@@ -234,7 +234,7 @@ export function YouTubeAnalyticsDashboard() {
             <CardDescription>Daily view count for the selected period</CardDescription>
           </CardHeader>
           <CardContent className="pl-2 sm:pl-4">
-            <ChartContainer config={chartConfig} className="h-[300px]">
+            <ChartContainer config={chartConfig} className="h-[400px] w-full">
               <AreaChart data={viewsOverTimeData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis
@@ -268,9 +268,9 @@ export function YouTubeAnalyticsDashboard() {
         </Card>
       )}
 
-      {/* Engagement Breakdown */}
+      {/* Engagement Breakdown & Completion Rate */}
       {engagementData.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -279,8 +279,8 @@ export function YouTubeAnalyticsDashboard() {
               </CardTitle>
               <CardDescription>How you interact with videos</CardDescription>
             </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[250px]">
+            <CardContent className="pl-2 sm:pl-4">
+              <ChartContainer config={chartConfig} className="h-[320px] w-full">
                 <BarChart data={engagementData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis
@@ -317,31 +317,31 @@ export function YouTubeAnalyticsDashboard() {
               <CardDescription>Percentage of videos watched to completion</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center justify-center h-[250px]">
-                <div className="relative w-32 h-32 mb-4">
-                  <svg className="w-32 h-32 transform -rotate-90">
+              <div className="flex flex-col items-center justify-center h-[320px]">
+                <div className="relative w-40 h-40 mb-6">
+                  <svg className="w-40 h-40 transform -rotate-90">
                     <circle
-                      cx="64"
-                      cy="64"
-                      r="56"
+                      cx="80"
+                      cy="80"
+                      r="70"
                       stroke="hsl(var(--muted))"
-                      strokeWidth="12"
+                      strokeWidth="14"
                       fill="none"
                     />
                     <circle
-                      cx="64"
-                      cy="64"
-                      r="56"
+                      cx="80"
+                      cy="80"
+                      r="70"
                       stroke="hsl(142 72% 45%)"
-                      strokeWidth="12"
+                      strokeWidth="14"
                       fill="none"
-                      strokeDasharray={`${2 * Math.PI * 56}`}
-                      strokeDashoffset={`${2 * Math.PI * 56 * (1 - stats.completionRate / 100)}`}
+                      strokeDasharray={`${2 * Math.PI * 70}`}
+                      strokeDashoffset={`${2 * Math.PI * 70 * (1 - stats.completionRate / 100)}`}
                       strokeLinecap="round"
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-2xl font-bold">{stats.completionRate.toFixed(1)}%</span>
+                    <span className="text-3xl font-bold">{stats.completionRate.toFixed(1)}%</span>
                   </div>
                 </div>
                 <div className="text-center space-y-1">
@@ -357,7 +357,7 @@ export function YouTubeAnalyticsDashboard() {
 
       {/* Top Videos and Channels */}
       {data && (data.topVideos.length > 0 || data.topChannels.length > 0) && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
           {data.topVideos.length > 0 && (
             <Card>
               <CardHeader>
@@ -430,7 +430,7 @@ export function YouTubeAnalyticsDashboard() {
 
       {/* Peak Watching Times */}
       {data?.peakWatchingTimes && data.stats.totalViews > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -440,7 +440,7 @@ export function YouTubeAnalyticsDashboard() {
               <CardDescription>When you watch videos most (by hour of day)</CardDescription>
             </CardHeader>
             <CardContent className="pl-2 sm:pl-4">
-              <ChartContainer config={chartConfig} className="h-[250px]">
+              <ChartContainer config={chartConfig} className="h-[320px] w-full">
                 <BarChart data={data.peakWatchingTimes.byHour}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis
@@ -477,7 +477,7 @@ export function YouTubeAnalyticsDashboard() {
               <CardDescription>When you watch videos most (by day of week)</CardDescription>
             </CardHeader>
             <CardContent className="pl-2 sm:pl-4">
-              <ChartContainer config={chartConfig} className="h-[250px]">
+              <ChartContainer config={chartConfig} className="h-[320px] w-full">
                 <BarChart data={data.peakWatchingTimes.byDayOfWeek}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis
@@ -508,7 +508,7 @@ export function YouTubeAnalyticsDashboard() {
 
       {/* Source and Category Breakdown */}
       {data && (data.sourceBreakdown.length > 0 || data.categoryBreakdown.length > 0) && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
           {data.sourceBreakdown.length > 0 && (
             <Card>
               <CardHeader>
@@ -586,37 +586,49 @@ export function YouTubeAnalyticsDashboard() {
             <CardDescription>How often you engage with videos you view</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">Like Rate</div>
-                <div className="text-2xl font-bold">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="space-y-3 p-4 rounded-lg border bg-card">
+                <div className="flex items-center gap-2">
+                  <Heart className="h-4 w-4 text-muted-foreground" />
+                  <div className="text-sm font-medium text-muted-foreground">Like Rate</div>
+                </div>
+                <div className="text-3xl font-bold">
                   {data.engagementRates.likeRate.toFixed(1)}%
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {data.stats.engagement.liked} of {data.stats.totalViews} videos
                 </div>
               </div>
-              <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">Watchlist Rate</div>
-                <div className="text-2xl font-bold">
+              <div className="space-y-3 p-4 rounded-lg border bg-card">
+                <div className="flex items-center gap-2">
+                  <Bookmark className="h-4 w-4 text-muted-foreground" />
+                  <div className="text-sm font-medium text-muted-foreground">Watchlist Rate</div>
+                </div>
+                <div className="text-3xl font-bold">
                   {data.engagementRates.watchlistRate.toFixed(1)}%
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {data.stats.engagement.addedToWatchlist} of {data.stats.totalViews} videos
                 </div>
               </div>
-              <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">Playlist Rate</div>
-                <div className="text-2xl font-bold">
+              <div className="space-y-3 p-4 rounded-lg border bg-card">
+                <div className="flex items-center gap-2">
+                  <List className="h-4 w-4 text-muted-foreground" />
+                  <div className="text-sm font-medium text-muted-foreground">Playlist Rate</div>
+                </div>
+                <div className="text-3xl font-bold">
                   {data.engagementRates.playlistRate.toFixed(1)}%
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {data.stats.engagement.addedToPlaylist} of {data.stats.totalViews} videos
                 </div>
               </div>
-              <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">Overall Engagement</div>
-                <div className="text-2xl font-bold">
+              <div className="space-y-3 p-4 rounded-lg border bg-card">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  <div className="text-sm font-medium text-muted-foreground">Overall Engagement</div>
+                </div>
+                <div className="text-3xl font-bold">
                   {data.engagementRates.overallEngagementRate.toFixed(1)}%
                 </div>
                 <div className="text-xs text-muted-foreground">

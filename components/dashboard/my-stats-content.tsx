@@ -379,7 +379,7 @@ function PlaylistsTab({
             {trendData.length ? (
               <ChartContainer
                 config={trendChartConfig}
-                className="h-[320px]"
+                className="h-[320px] w-full"
               >
                 <AreaChart data={trendData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -469,11 +469,11 @@ function PlaylistsTab({
             {leaderboardBarData.length ? (
               <ChartContainer
                 config={trendChartConfig}
-                className="h-[320px]"
+                className="h-[320px] w-full"
               >
                 <BarChart
                   data={leaderboardBarData}
-                  margin={{ top: 8, right: 16, left: 8, bottom: 0 }}
+                  margin={{ top: 8, right: 16, left: 8, bottom: 60 }}
                   barCategoryGap={24}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
@@ -482,7 +482,10 @@ function PlaylistsTab({
                     tickLine={false}
                     axisLine={false}
                     interval={0}
-                    height={50}
+                    height={80}
+                    angle={-45}
+                    textAnchor="end"
+                    tick={{ fontSize: 12 }}
                   />
                   <YAxis tickLine={false} axisLine={false} />
                   <ChartTooltip
@@ -604,7 +607,7 @@ function ListsTab({
             {trendData.length ? (
               <ChartContainer
                 config={trendChartConfig}
-                className="h-[320px]"
+                className="h-[320px] w-full"
               >
                 <AreaChart data={trendData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -694,11 +697,11 @@ function ListsTab({
             {leaderboardBarData.length ? (
               <ChartContainer
                 config={trendChartConfig}
-                className="h-[320px]"
+                className="h-[320px] w-full"
               >
                 <BarChart
                   data={leaderboardBarData}
-                  margin={{ top: 8, right: 16, left: 8, bottom: 0 }}
+                  margin={{ top: 8, right: 16, left: 8, bottom: 60 }}
                   barCategoryGap={24}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
@@ -707,7 +710,10 @@ function ListsTab({
                     tickLine={false}
                     axisLine={false}
                     interval={0}
-                    height={50}
+                    height={80}
+                    angle={-45}
+                    textAnchor="end"
+                    tick={{ fontSize: 12 }}
                   />
                   <YAxis tickLine={false} axisLine={false} />
                   <ChartTooltip
