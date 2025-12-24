@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { MessageCircle, Eye, Hash, MoreVertical, Flag, Edit, Trash2, Bookmark, BookmarkCheck, History as HistoryIcon } from "lucide-react";
+import { MessageCircle, Eye, Hash, MoreVertical, Flag, Edit, Trash2, Bookmark, BookmarkCheck, History as HistoryIcon, Archive, ArchiveRestore } from "lucide-react";
 import { BiSolidUpvote, BiSolidDownvote } from "react-icons/bi";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,7 @@ interface ForumPost {
   views: number;
   score: number;
   replyCount: number;
+  status?: string; // "PUBLIC" or "PRIVATE"
   author: {
     id: string;
     username: string;
@@ -198,6 +199,38 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
     deletePost.mutate();
   };
 
+  const archivePost = useMutation({
+    mutationFn: async (archive: boolean) => {
+      const postId = post.slug || post.id;
+      const response = await fetch(`/api/forum/posts/${postId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: archive ? "ARCHIVED" : "PUBLIC",
+        }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to archive post");
+      }
+      return response.json();
+    },
+    onSuccess: (_, archive) => {
+      queryClient.invalidateQueries({ queryKey: ["forum-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["forum-post", post.id] });
+      queryClient.invalidateQueries({ queryKey: ["forum-post", post.slug] });
+      toast.success(archive ? "Post archived successfully" : "Post unarchived successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to archive post");
+    },
+  });
+
+  const handleArchive = () => {
+    const isArchived = post.status === "ARCHIVED";
+    archivePost.mutate(!isArchived);
+  };
+
   const postUrl = post.slug ? `/forum/${post.slug}` : `/forum/${post.id}`;
   const fullPostUrl = typeof window !== "undefined" ? `${window.location.origin}${postUrl}` : postUrl;
 
@@ -226,9 +259,9 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
       {/* Post Header with Dot Menu */}
       <div className="flex items-start justify-between mb-2 gap-2">
         <div className="flex-1 min-w-0">
-          {/* Category - Always on top */}
-          {post.category && (
-            <div className="mb-1.5">
+          {/* Category and Status - Always on top */}
+          <div className="mb-1.5 flex items-center gap-2 flex-wrap">
+            {post.category && (
               <Link
                 href={`/forum?category=${post.category.slug}`}
                 onClick={(e) => e.stopPropagation()}
@@ -244,8 +277,19 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
                 {post.category.icon && <span className="mr-1">{post.category.icon}</span>}
                 {post.category.name}
               </Link>
-            </div>
-          )}
+            )}
+            {/* Status tags */}
+            {post.status === "PRIVATE" && (
+              <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/30">
+                In Draft
+              </Badge>
+            )}
+            {post.status === "ARCHIVED" && (
+              <Badge className="bg-gray-500/20 text-gray-700 dark:text-gray-400 border-gray-500/30">
+                Archived
+              </Badge>
+            )}
+          </div>
           
           {/* Author and Time - Below category on mobile, inline on desktop */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
@@ -304,6 +348,26 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
                 >
                   <HistoryIcon className="h-4 w-4 mr-2" />
                   View History
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleArchive();
+                  }}
+                  className="cursor-pointer"
+                  disabled={archivePost.isPending}
+                >
+                  {post.status === "ARCHIVED" ? (
+                    <>
+                      <ArchiveRestore className="h-4 w-4 mr-2" />
+                      Unarchive Post
+                    </>
+                  ) : (
+                    <>
+                      <Archive className="h-4 w-4 mr-2" />
+                      Archive Post
+                    </>
+                  )}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={(e) => {

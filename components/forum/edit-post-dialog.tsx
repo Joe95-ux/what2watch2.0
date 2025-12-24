@@ -19,6 +19,7 @@ import { CategorySelect } from "./category-select";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Calendar, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -65,6 +66,7 @@ export function EditPostDialog({
   const [metadata, setMetadata] = useState<Record<string, any>>(post.metadata || {});
   const [scheduledAt, setScheduledAt] = useState<Date | undefined>(undefined);
   const [scheduledTime, setScheduledTime] = useState<string>("");
+  const [isPublic, setIsPublic] = useState((post as any).status === "PUBLIC");
 
   // Load persisted values or post data when dialog opens
   useEffect(() => {
@@ -79,6 +81,7 @@ export function EditPostDialog({
           setCategoryId(draft.categoryId || post.category?.id || "");
           setMetadata(draft.metadata || post.metadata || {});
           setStep(draft.step || 1);
+          setIsPublic(draft.isPublic !== undefined ? draft.isPublic : ((post as any).status === "PUBLIC"));
           if (draft.scheduledAt) {
             const date = new Date(draft.scheduledAt);
             setScheduledAt(date);
@@ -122,6 +125,7 @@ export function EditPostDialog({
         categoryId,
         metadata,
         step,
+        isPublic,
         scheduledAt: scheduledAt?.toISOString(),
         scheduledTime,
       };
@@ -167,6 +171,7 @@ export function EditPostDialog({
           categoryId: categoryId || null,
           metadata: metadataToSend,
           scheduledAt: scheduledAt ? scheduledAt.toISOString() : null,
+          status: isPublic ? "PUBLIC" : (post as any).status === "ARCHIVED" ? "ARCHIVED" : "PRIVATE",
         }),
       });
 
@@ -316,32 +321,45 @@ export function EditPostDialog({
           </DialogDescription>
           {/* Step Indicator */}
           <div className="mt-4">
-            <div className="flex items-center gap-8 mb-4">
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className={cn(
-                  "text-sm font-medium transition-colors cursor-pointer",
-                  step === 1 ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Basic Info
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (title.trim() && (isBugReport || content.trim())) {
-                    handleNext();
-                  }
-                }}
-                className={cn(
-                  "text-sm font-medium transition-colors cursor-pointer",
-                  step === 2 ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-                  (!title.trim() || (!isBugReport && !content.trim())) && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                Additional Details
-              </button>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-8">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className={cn(
+                    "text-sm font-medium transition-colors cursor-pointer",
+                    step === 1 ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Basic Info
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (title.trim() && (isBugReport || content.trim())) {
+                      handleNext();
+                    }
+                  }}
+                  className={cn(
+                    "text-sm font-medium transition-colors cursor-pointer",
+                    step === 2 ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                    (!title.trim() || (!isBugReport && !content.trim())) && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  Additional Details
+                </button>
+              </div>
+              {/* Post Status Toggle */}
+              <div className="flex items-center gap-2">
+                <Label htmlFor="post-status-edit" className="text-sm text-muted-foreground cursor-pointer">
+                  {isPublic ? "Public" : "Private"}
+                </Label>
+                <Switch
+                  id="post-status-edit"
+                  checked={isPublic}
+                  onCheckedChange={setIsPublic}
+                />
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <div className={cn(

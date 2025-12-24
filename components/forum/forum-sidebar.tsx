@@ -296,6 +296,32 @@ export function ForumSidebar({
             )}
           </Tooltip>
 
+          {isSignedIn && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={pathname === "/forum/my-posts" ? "secondary" : "ghost"}
+                  className={cn(
+                    "w-full transition-all cursor-pointer",
+                    shouldShowCollapsed ? "justify-center p-2" : "justify-start gap-3"
+                  )}
+                  onClick={() => {
+                    router.push("/forum/my-posts");
+                    if (isMobile) setIsOpen(false);
+                  }}
+                >
+                  <Pencil className="h-4 w-4" />
+                  {!shouldShowCollapsed && <span>My Posts</span>}
+                </Button>
+              </TooltipTrigger>
+              {shouldShowCollapsed && (
+                <TooltipContent side="right">
+                  <span>My Posts</span>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          )}
+
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

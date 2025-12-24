@@ -391,7 +391,7 @@ export default function DiaryContent() {
       </div>
 
       {/* View Toggle Buttons and Search/Filter/Sort - Wrapper */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-5">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-5">
         {/* View Mode Buttons */}
         <div className="flex items-center gap-2">
           <Button

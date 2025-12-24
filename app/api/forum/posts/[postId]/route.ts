@@ -192,7 +192,7 @@ export async function PATCH(
 
     const { postId } = await params;
     const body = await request.json();
-    const { title, content, tags, categoryId, metadata, scheduledAt } = body;
+    const { title, content, tags, categoryId, metadata, scheduledAt, status } = body;
 
     // Check if postId is an ObjectId or slug
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(postId);
@@ -365,6 +365,10 @@ export async function PATCH(
 
     if (slug) {
       updateData.slug = slug;
+    }
+
+    if (status) {
+      updateData.status = status === "PRIVATE" ? "PRIVATE" : status === "ARCHIVED" ? "ARCHIVED" : "PUBLIC";
     }
 
     const updatedPost = await db.forumPost.update({

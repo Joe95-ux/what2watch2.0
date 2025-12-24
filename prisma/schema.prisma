@@ -455,6 +455,9 @@ model ForumPost {
   // Post scheduling
   scheduledAt   DateTime? // If set, post will be published at this time
   
+  // Post status
+  status        String   @default("PUBLIC") // "PUBLIC" or "PRIVATE" (draft)
+  
   // Moderation
   isHidden      Boolean  @default(false)
   isLocked      Boolean  @default(false)
@@ -481,6 +484,7 @@ model ForumPost {
   @@index([createdAt])
   @@index([title]) // For search
   @@index([scheduledAt])
+  @@index([status])
 }
 
 // Forum replies - comments on forum posts

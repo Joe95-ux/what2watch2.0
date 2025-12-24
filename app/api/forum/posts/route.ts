@@ -13,6 +13,19 @@ import { getForumMentionEmail } from "@/lib/email-templates";
 // GET - Fetch forum posts with pagination and filters
 export async function GET(request: NextRequest) {
   try {
+    const { userId: clerkUserId } = await auth();
+    let currentUserId: string | null = null;
+    
+    if (clerkUserId) {
+      const user = await db.user.findUnique({
+        where: { clerkId: clerkUserId },
+        select: { id: true },
+      });
+      if (user) {
+        currentUserId = user.id;
+      }
+    }
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "20", 10);
@@ -38,6 +51,16 @@ export async function GET(request: NextRequest) {
       },
       // Only show non-hidden posts
       { isHidden: false },
+      // Only show public posts, or private/archived posts if user is the author
+      {
+        OR: [
+          { status: "PUBLIC" },
+          ...(currentUserId ? [
+            { status: "PRIVATE", userId: currentUserId },
+            { status: "ARCHIVED", userId: currentUserId },
+          ] : []),
+        ],
+      },
     ];
 
     if (search && search.trim()) {
@@ -313,7 +336,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, content, tags, tmdbId, mediaType, categoryId, metadata, scheduledAt } = body;
+    const { title, content, tags, tmdbId, mediaType, categoryId, metadata, scheduledAt, status } = body;
 
     if (!title || !title.trim()) {
       return NextResponse.json(
@@ -463,6 +486,7 @@ export async function POST(request: NextRequest) {
         views: 0,
         score: 0,
         scheduledAt: scheduledDate,
+        status: status === "PRIVATE" ? "PRIVATE" : status === "ARCHIVED" ? "ARCHIVED" : "PUBLIC",
       },
       include: {
         user: {
