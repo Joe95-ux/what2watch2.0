@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function YouTubeAnalyticsPage() {
   return (
-    <div className="container max-w-7xl mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
       <YouTubeAnalyticsDashboard />
     </div>
   );

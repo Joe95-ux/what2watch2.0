@@ -388,36 +388,39 @@ export default function DiaryContent() {
         </p>
       </div>
 
-      {/* View Mode Buttons - Right under header */}
-      <div className="flex items-center gap-2 mb-6">
-        <Button
-          variant={viewMode === "grid" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setViewMode("grid")}
-          className="cursor-pointer"
-        >
-          <Grid3x3 className="h-4 w-4 mr-2" />
-          Grid
-        </Button>
-        <Button
-          variant={viewMode === "table" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setViewMode("table")}
-          className="cursor-pointer"
-        >
-          <Table2 className="h-4 w-4 mr-2" />
-          Table
-        </Button>
-      </div>
+      {/* View Toggle Buttons and Search/Filter/Sort - Wrapper */}
+      <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
+        {/* View Mode Buttons */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant={viewMode === "grid" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("grid")}
+            className="cursor-pointer"
+          >
+            <Grid3x3 className="h-4 w-4 mr-2" />
+            Grid
+          </Button>
+          <Button
+            variant={viewMode === "table" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("table")}
+            className="cursor-pointer"
+          >
+            <Table2 className="h-4 w-4 mr-2" />
+            Table
+          </Button>
+        </div>
 
-      {/* Filters */}
-      <div className="mb-6">
-        <FilterSearchBar
-          searchValue={searchQuery}
-          onSearchChange={setSearchQuery}
-          searchPlaceholder="Search by title or notes..."
-          sortOrder={sortOrder}
-          onSortChange={setSortOrder}
+        {/* Search, Filter, and Sort */}
+        <div className="flex-1 sm:flex-initial">
+          <FilterSearchBar
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder="Search by title or notes..."
+            searchMaxWidth="sm:max-w-[25rem]"
+            sortOrder={sortOrder}
+            onSortChange={setSortOrder}
           filters={[
             {
               label: "Type",
@@ -512,9 +515,10 @@ export default function DiaryContent() {
               },
             },
           ]}
-          hasActiveFilters={activeFilterCount > 0}
-          onClearAll={clearFilters}
-        />
+            hasActiveFilters={activeFilterCount > 0}
+            onClearAll={clearFilters}
+          />
+        </div>
       </div>
 
       {filteredAndSortedLogs.length === 0 && logs.length > 0 ? (

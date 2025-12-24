@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from "react";
 import { useUserActivity, type ActivityType, type Activity } from "@/hooks/use-activity";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDistanceToNow } from "date-fns";
 import Image from "next/image";
 import { getPosterUrl } from "@/lib/tmdb";
@@ -17,11 +16,7 @@ import {
   Music,
   UserPlus,
   Calendar,
-  ArrowUp,
-  ArrowDown,
   Lock,
-  Search,
-  Filter,
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
@@ -36,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { format, subDays } from "date-fns";
 import { Button } from "@/components/ui/button";
+import { FilterSearchBar } from "@/components/ui/filter-search-bar";
 
 const ACTIVITY_TYPES: { value: ActivityType | "all"; label: string; icon: React.ReactNode }[] = [
   { value: "all", label: "All Activity", icon: <Calendar className="h-4 w-4" /> },
@@ -400,130 +396,62 @@ export default function PublicActivityContent({ userId }: PublicActivityContentP
         {/* Search and Filters */}
         {privacy && privacy.canViewAll && (
           <div className="mb-6">
-            <div className="flex flex-wrap gap-3">
-              {/* Search Container - min-width 230px */}
-              <div className="relative min-w-[230px]">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Search activities..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-full"
-                />
-              </div>
-
-              {/* Filter Container - contains 4 dropdowns */}
-              <div className="flex flex-wrap gap-3 min-w-0">
-                {/* Activity Type Filter */}
-                <Select
-                  value={selectedType}
-                  onValueChange={(v) => setSelectedType(v as ActivityType | "all")}
-                >
-                  <SelectTrigger className={cn("w-full sm:w-auto text-[0.85rem]")}>
-                    <SelectValue>
-                      <span className="flex items-center gap-2">
-                        {ACTIVITY_TYPES.find((t) => t.value === selectedType)?.icon}
-                        {ACTIVITY_TYPES.find((t) => t.value === selectedType)?.label}
-                      </span>
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ACTIVITY_TYPES.map((type) => (
-                      <SelectItem key={type.value} value={type.value} className="text-[0.85rem]">
-                        <span className="flex items-center gap-2">
-                          {type.icon}
-                          {type.label}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {/* Date Range Filter */}
-                <Select
-                  value={dateRange}
-                  onValueChange={(v) => setDateRange(v as typeof dateRange)}
-                >
-                  <SelectTrigger className={cn("w-full sm:w-auto text-[0.85rem]")}>
-                    <SelectValue>
-                      <span className="flex items-center gap-2">
-                        <CalendarIcon className="h-4 w-4" />
-                        {dateRange === "all" && "All Time"}
-                        {dateRange === "today" && "Today"}
-                        {dateRange === "week" && "Last 7 Days"}
-                        {dateRange === "month" && "Last 30 Days"}
-                        {dateRange === "custom" && "Custom Range"}
-                      </span>
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all" className="text-[0.85rem]">All Time</SelectItem>
-                    <SelectItem value="today" className="text-[0.85rem]">Today</SelectItem>
-                    <SelectItem value="week" className="text-[0.85rem]">Last 7 Days</SelectItem>
-                    <SelectItem value="month" className="text-[0.85rem]">Last 30 Days</SelectItem>
-                    <SelectItem value="custom" className="text-[0.85rem]">Custom Range</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {/* Group By */}
-                <Select
-                  value={groupBy}
-                  onValueChange={(v) => setGroupBy(v as typeof groupBy)}
-                >
-                  <SelectTrigger className={cn("w-full sm:w-auto text-[0.85rem]")}>
-                    <SelectValue>
-                      <span className="flex items-center gap-2">
-                        <Filter className="h-4 w-4" />
-                        {groupBy === "none" && "No Grouping"}
-                        {groupBy === "day" && "Group by Day"}
-                        {groupBy === "week" && "Group by Week"}
-                        {groupBy === "month" && "Group by Month"}
-                      </span>
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none" className="text-[0.85rem]">No Grouping</SelectItem>
-                    <SelectItem value="day" className="text-[0.85rem]">Group by Day</SelectItem>
-                    <SelectItem value="week" className="text-[0.85rem]">Group by Week</SelectItem>
-                    <SelectItem value="month" className="text-[0.85rem]">Group by Month</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {/* Sort Order */}
-                <Select
-                  value={sortOrder}
-                  onValueChange={(v) => setSortOrder(v as "asc" | "desc")}
-                >
-                  <SelectTrigger className={cn("w-full sm:w-auto text-[0.85rem]")}>
-                    <SelectValue>
-                      <span className="flex items-center gap-2">
-                        {sortOrder === "desc" ? (
-                          <ArrowDown className="h-4 w-4" />
-                        ) : (
-                          <ArrowUp className="h-4 w-4" />
-                        )}
-                        {sortOrder === "desc" ? "Newest First" : "Oldest First"}
-                      </span>
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="desc" className="text-[0.85rem]">
-                      <span className="flex items-center gap-2">
-                        <ArrowDown className="h-4 w-4" />
-                        Newest First
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="asc" className="text-[0.85rem]">
-                      <span className="flex items-center gap-2">
-                        <ArrowUp className="h-4 w-4" />
-                        Oldest First
-                      </span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            <FilterSearchBar
+              searchValue={searchQuery}
+              onSearchChange={setSearchQuery}
+              searchPlaceholder="Search activities..."
+              sortOrder={sortOrder}
+              onSortChange={setSortOrder}
+              filters={[
+                {
+                  label: "Type",
+                  value: selectedType,
+                  options: ACTIVITY_TYPES.map((type) => ({
+                    value: type.value,
+                    label: type.label,
+                    icon: type.icon,
+                  })),
+                  onValueChange: (value) => setSelectedType(value as ActivityType | "all"),
+                },
+                {
+                  label: "Date",
+                  value: dateRange,
+                  options: [
+                    { value: "all", label: "All Time", icon: <CalendarIcon className="h-4 w-4" /> },
+                    { value: "today", label: "Today", icon: <CalendarIcon className="h-4 w-4" /> },
+                    { value: "week", label: "Last 7 Days", icon: <CalendarIcon className="h-4 w-4" /> },
+                    { value: "month", label: "Last 30 Days", icon: <CalendarIcon className="h-4 w-4" /> },
+                    { value: "custom", label: "Custom Range", icon: <CalendarIcon className="h-4 w-4" /> },
+                  ],
+                  onValueChange: (value) => setDateRange(value as typeof dateRange),
+                },
+                {
+                  label: "Group By",
+                  value: groupBy,
+                  options: [
+                    { value: "none", label: "No Grouping" },
+                    { value: "day", label: "Group by Day" },
+                    { value: "week", label: "Group by Week" },
+                    { value: "month", label: "Group by Month" },
+                  ],
+                  onValueChange: (value) => setGroupBy(value as typeof groupBy),
+                },
+              ]}
+              hasActiveFilters={
+                selectedType !== "all" ||
+                dateRange !== "all" ||
+                groupBy !== "none" ||
+                !!searchQuery
+              }
+              onClearAll={() => {
+                setSelectedType("all");
+                setDateRange("all");
+                setGroupBy("none");
+                setSearchQuery("");
+                setCustomStartDate("");
+                setCustomEndDate("");
+              }}
+            />
 
             {/* Custom Date Range Inputs */}
             {dateRange === "custom" && (

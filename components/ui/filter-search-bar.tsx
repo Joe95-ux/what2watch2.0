@@ -32,6 +32,7 @@ interface FilterSearchBarProps {
   }[];
   onClearAll?: () => void;
   hasActiveFilters?: boolean;
+  searchMaxWidth?: string; // e.g., "sm:max-w-[25rem]"
 }
 
 export function FilterSearchBar({
@@ -43,6 +44,7 @@ export function FilterSearchBar({
   filters,
   onClearAll,
   hasActiveFilters = false,
+  searchMaxWidth,
 }: FilterSearchBarProps) {
   const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const filterRowRef = useRef<HTMLDivElement>(null);
@@ -81,9 +83,9 @@ export function FilterSearchBar({
   return (
     <div className="space-y-3">
       {/* Top Row: Search + Sort + Filter Button */}
-      <div className="flex items-center gap-2">
-        {/* Search - Takes most width */}
-        <div className="relative flex-1 min-w-0">
+      <div className="flex items-center gap-4">
+        {/* Search - Takes most width on small screens, custom max-width on sm+ */}
+        <div className={cn("relative min-w-0 flex-1", searchMaxWidth && searchMaxWidth)}>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             type="text"
@@ -191,22 +193,24 @@ export function FilterSearchBar({
                       )}
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56 max-h-[300px] overflow-y-auto scrollbar-thin">
-                    {filter.options.map((option) => (
-                      <DropdownMenuItem
-                        key={option.value}
-                        onClick={() => handleFilterValueChange(filter.label, option.value, filter.onValueChange)}
-                        className={cn(
-                          "cursor-pointer",
-                          filter.value === option.value && "bg-accent"
-                        )}
-                      >
-                        <span className="flex items-center gap-2">
-                          {option.icon}
-                          {option.label}
-                        </span>
-                      </DropdownMenuItem>
-                    ))}
+                  <DropdownMenuContent align="start" className="w-56 overflow-hidden p-0">
+                    <div className="max-h-[300px] overflow-y-auto scrollbar-thin p-1">
+                      {filter.options.map((option) => (
+                        <DropdownMenuItem
+                          key={option.value}
+                          onClick={() => handleFilterValueChange(filter.label, option.value, filter.onValueChange)}
+                          className={cn(
+                            "cursor-pointer",
+                            filter.value === option.value && "bg-accent"
+                          )}
+                        >
+                          <span className="flex items-center gap-2">
+                            {option.icon}
+                            {option.label}
+                          </span>
+                        </DropdownMenuItem>
+                      ))}
+                    </div>
                   </DropdownMenuContent>
                 </DropdownMenu>
               );
