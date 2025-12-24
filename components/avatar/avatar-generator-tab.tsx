@@ -116,7 +116,7 @@ export function AvatarGeneratorTab({ onSelect, selectedUrl }: AvatarGeneratorTab
   return (
     <div className="space-y-6">
       {/* Preview - Sticky on small screens */}
-      <div className="sticky top-0 z-10 bg-background pb-4 -mx-6 px-6 border-b sm:border-b-0 sm:static sm:bg-transparent sm:pb-0 sm:-mx-0 sm:px-0">
+      <div className="sticky top-0 z-10 bg-background pb-4 -mx-6 px-6 border-b">
         <div className="flex flex-col items-center space-y-4 pt-4 sm:pt-0">
           <div
             className="relative border-2 rounded-full overflow-hidden transition-all"

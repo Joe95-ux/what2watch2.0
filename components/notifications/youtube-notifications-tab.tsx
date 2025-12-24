@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCheck, ExternalLink, MoreVertical, Trash2 } from "lucide-react";
+import { CheckCheck, ExternalLink, MoreVertical, Trash2, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -85,14 +85,15 @@ export function YouTubeNotificationsTab() {
             )}
           </Button>
         </div>
-        <div className="flex gap-2">
+        {/* Desktop: Show buttons */}
+        <div className="hidden sm:flex gap-2">
           {unreadCount > 0 && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => handleMarkAsRead()}
               disabled={markAsRead.isPending}
-              className="text-sm"
+              className="text-sm cursor-pointer"
             >
               <CheckCheck className="h-4 w-4 mr-2" />
               Mark all as read
@@ -104,13 +105,53 @@ export function YouTubeNotificationsTab() {
               size="sm"
               onClick={handleDeleteAll}
               disabled={deleteNotifications.isPending}
-              className="text-sm text-destructive hover:text-destructive"
+              className="text-sm text-destructive hover:text-destructive cursor-pointer"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete all
             </Button>
           )}
         </div>
+
+        {/* Mobile: Show dropdown menu */}
+        {(unreadCount > 0 || notifications.length > 0) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="sm:hidden cursor-pointer"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {unreadCount > 0 && (
+                <DropdownMenuItem
+                  onClick={() => handleMarkAsRead()}
+                  disabled={markAsRead.isPending}
+                  className="cursor-pointer"
+                >
+                  <CheckCheck className="h-4 w-4 mr-2" />
+                  Mark all as read
+                </DropdownMenuItem>
+              )}
+              {notifications.length > 0 && (
+                <>
+                  {unreadCount > 0 && <DropdownMenuSeparator />}
+                  <DropdownMenuItem
+                    onClick={handleDeleteAll}
+                    disabled={deleteNotifications.isPending}
+                    className="cursor-pointer text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete all
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       {/* Notifications List */}

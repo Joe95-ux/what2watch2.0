@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { 
   Settings, 
-  User, 
+  UserRound, 
   Palette, 
   Sparkles, 
   Lock, 
@@ -22,7 +22,7 @@ import {
   Music, 
   Film, 
   Heart, 
-  UserPlus,
+  UserRoundPlus,
   Bell,
   Moon,
   Sun,
@@ -171,7 +171,7 @@ export default function SettingsContent({
   };
 
   const settingsSections: Array<{ id: SettingsSection; label: string; icon: React.ReactNode }> = [
-    { id: "account", label: "Account", icon: <User className="h-4 w-4" /> },
+    { id: "account", label: "Account", icon: <UserRound className="h-4 w-4" /> },
     { id: "preferences", label: "Preferences", icon: <Palette className="h-4 w-4" /> },
     { id: "activity", label: "Activity Privacy", icon: <Lock className="h-4 w-4" /> },
     { id: "theme", label: "Theme", icon: <Sun className="h-4 w-4" /> },
@@ -346,7 +346,7 @@ export default function SettingsContent({
                         { key: "showLikedInActivity", label: "Liked Films", icon: Heart, desc: "When you like films" },
                         { key: "showListsInActivity", label: "Lists", icon: List, desc: "When you create lists" },
                         { key: "showPlaylistsInActivity", label: "Playlists", icon: Music, desc: "When you create playlists" },
-                        { key: "showFollowedInActivity", label: "Follows", icon: UserPlus, desc: "When you follow users" },
+                        { key: "showFollowedInActivity", label: "Follows", icon: UserRoundPlus, desc: "When you follow users" },
                       ].map(({ key, label, icon: Icon, desc }) => (
                         <div key={key} className="flex items-center justify-between py-3 border-b last:border-b-0">
                           <div className="flex items-center gap-3 flex-1">
@@ -473,7 +473,7 @@ export default function SettingsContent({
                     </div>
                     <div className="space-y-4">
                       {[
-                        { key: "notifyOnNewFollowers", label: "New Followers", icon: UserPlus, desc: "When someone follows you" },
+                        { key: "notifyOnNewFollowers", label: "New Followers", icon: UserRoundPlus, desc: "When someone follows you" },
                         { key: "notifyOnNewReviews", label: "New Reviews", icon: FileText, desc: "When someone reviews content you follow" },
                         { key: "notifyOnListUpdates", label: "List Updates", icon: List, desc: "When lists you follow are updated" },
                         { key: "notifyOnPlaylistUpdates", label: "Playlist Updates", icon: Music, desc: "When playlists you follow are updated" },

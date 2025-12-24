@@ -59,6 +59,8 @@ export async function GET(
           username: true,
           displayName: true,
           avatarUrl: true,
+          bannerUrl: true,
+          bannerGradientId: true,
           bio: true,
           createdAt: true,
         },
