@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useViewingLogs, useDeleteViewingLog, useUpdateViewingLog, type ViewingLog } from "@/hooks/use-viewing-logs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Trash2, Film, Tv, Edit, Table2, Grid3x3, CalendarIcon, Heart, Star, FileText, Search, X, ArrowUpDown, ArrowUp, ArrowDown, Filter, ChevronLeft, ChevronRight, Bookmark } from "lucide-react";
+import { Trash2, Film, Tv, Edit, Table2, Grid3x3, CalendarIcon, Heart, Star, FileText, X, Filter, ChevronLeft, ChevronRight, Bookmark, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "@/components/ui/carousel";
 import Image from "next/image";
 import { getPosterUrl, TMDBMovie, TMDBSeries } from "@/lib/tmdb";
@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { FilterSearchBar } from "@/components/ui/filter-search-bar";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useToggleFavorite, useAddFavorite, useRemoveFavorite } from "@/hooks/use-favorites";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
@@ -410,140 +411,110 @@ export default function DiaryContent() {
       </div>
 
       {/* Filters */}
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        {/* Search */}
-        <div className="relative w-56 lg:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by title or notes..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-
-        {/* Media Type */}
-        <Select value={mediaTypeFilter} onValueChange={(v) => setMediaTypeFilter(v as "all" | "movie" | "tv")}>
-          <SelectTrigger className="w-[120px] text-[13px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all" className="text-[13px]">All Types</SelectItem>
-            <SelectItem value="movie" className="text-[13px]">Movies</SelectItem>
-            <SelectItem value="tv" className="text-[13px]">TV Shows</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Release Year */}
-        <Select value={yearFilter} onValueChange={setYearFilter}>
-          <SelectTrigger className="w-[130px] text-[13px]">
-            <SelectValue placeholder="Release Year" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all" className="text-[13px]">All Years</SelectItem>
-            {availableYears.map((year) => (
-              <SelectItem key={year} value={year.toString()} className="text-[13px]">
-                {year}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Watched Year */}
-        <Select value={watchedYearFilter} onValueChange={setWatchedYearFilter}>
-          <SelectTrigger className="w-[140px] text-[13px]">
-            <SelectValue placeholder="Watched Year" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all" className="text-[13px]">All Watched</SelectItem>
-            {availableWatchedYears.map((year) => (
-              <SelectItem key={year} value={year.toString()} className="text-[13px]">
-                {year}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Rating */}
-        <Select value={ratingFilter} onValueChange={setRatingFilter}>
-          <SelectTrigger className="w-[120px] text-[13px]">
-            <SelectValue placeholder="Rating" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all" className="text-[13px]">All Ratings</SelectItem>
-            {[5, 4, 3, 2, 1].map((rating) => (
-              <SelectItem key={rating} value={rating.toString()} className="text-[13px]">
-                {rating} {rating === 1 ? "star" : "stars"}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Tag Filter */}
-        {availableTags.length > 0 && (
-          <Select value={tagFilter} onValueChange={setTagFilter}>
-            <SelectTrigger className="w-[130px] text-[13px]">
-              <SelectValue placeholder="Tag" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" className="text-[13px]">All Tags</SelectItem>
-              {availableTags.map((tag) => (
-                <SelectItem key={tag} value={tag} className="text-[13px]">
-                  {tag}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-
-        {/* Liked Filter */}
-        <Select value={likedFilter} onValueChange={(v) => setLikedFilter(v as "all" | "liked" | "not-liked")}>
-          <SelectTrigger className="w-[120px] text-[13px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all" className="text-[13px]">All</SelectItem>
-            <SelectItem value="liked" className="text-[13px]">Liked</SelectItem>
-            <SelectItem value="not-liked" className="text-[13px]">Not Liked</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Sort */}
-        <Select 
-          value={`${sortField}-${sortOrder}`} 
-          onValueChange={(v) => {
-            const [field, order] = v.split("-");
-            setSortField(field as SortField);
-            setSortOrder(order as SortOrder);
-          }}
-        >
-          <SelectTrigger className="w-[160px] text-[13px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="watchedAt-desc" className="text-[13px]">Date Watched (Newest)</SelectItem>
-            <SelectItem value="watchedAt-asc" className="text-[13px]">Date Watched (Oldest)</SelectItem>
-            <SelectItem value="rating-desc" className="text-[13px]">Rating (High to Low)</SelectItem>
-            <SelectItem value="rating-asc" className="text-[13px]">Rating (Low to High)</SelectItem>
-            <SelectItem value="title-asc" className="text-[13px]">Title (A-Z)</SelectItem>
-            <SelectItem value="title-desc" className="text-[13px]">Title (Z-A)</SelectItem>
-            <SelectItem value="releaseYear-desc" className="text-[13px]">Release Year (Newest)</SelectItem>
-            <SelectItem value="releaseYear-asc" className="text-[13px]">Release Year (Oldest)</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Clear Filters */}
-        {activeFilterCount > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={clearFilters}
-            className="cursor-pointer"
-          >
-            <X className="h-4 w-4 mr-2" />
-            Clear
-          </Button>
-        )}
+      <div className="mb-6">
+        <FilterSearchBar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="Search by title or notes..."
+          sortOrder={sortOrder}
+          onSortChange={setSortOrder}
+          filters={[
+            {
+              label: "Type",
+              value: mediaTypeFilter,
+              options: [
+                { value: "all", label: "All Types" },
+                { value: "movie", label: "Movies", icon: <Film className="h-4 w-4" /> },
+                { value: "tv", label: "TV Shows", icon: <Tv className="h-4 w-4" /> },
+              ],
+              onValueChange: (value) => setMediaTypeFilter(value as "all" | "movie" | "tv"),
+            },
+            {
+              label: "Release Year",
+              value: yearFilter,
+              options: [
+                { value: "all", label: "All Years" },
+                ...availableYears.map((year) => ({
+                  value: year.toString(),
+                  label: year.toString(),
+                })),
+              ],
+              onValueChange: setYearFilter,
+            },
+            {
+              label: "Watched Year",
+              value: watchedYearFilter,
+              options: [
+                { value: "all", label: "All Watched" },
+                ...availableWatchedYears.map((year) => ({
+                  value: year.toString(),
+                  label: year.toString(),
+                })),
+              ],
+              onValueChange: setWatchedYearFilter,
+            },
+            {
+              label: "Rating",
+              value: ratingFilter,
+              options: [
+                { value: "all", label: "All Ratings" },
+                ...([5, 4, 3, 2, 1].map((rating) => ({
+                  value: rating.toString(),
+                  label: `${rating} ${rating === 1 ? "star" : "stars"}`,
+                  icon: <Star className="h-4 w-4" />,
+                }))),
+              ],
+              onValueChange: setRatingFilter,
+            },
+            ...(availableTags.length > 0
+              ? [
+                  {
+                    label: "Tag",
+                    value: tagFilter,
+                    options: [
+                      { value: "all", label: "All Tags" },
+                      ...availableTags.map((tag) => ({
+                        value: tag,
+                        label: tag,
+                      })),
+                    ],
+                    onValueChange: setTagFilter,
+                  },
+                ]
+              : []),
+            {
+              label: "Liked",
+              value: likedFilter,
+              options: [
+                { value: "all", label: "All" },
+                { value: "liked", label: "Liked", icon: <Heart className="h-4 w-4" /> },
+                { value: "not-liked", label: "Not Liked" },
+              ],
+              onValueChange: (value) => setLikedFilter(value as "all" | "liked" | "not-liked"),
+            },
+            {
+              label: "Sort By",
+              value: `${sortField}-${sortOrder}`,
+              options: [
+                { value: "watchedAt-desc", label: "Date Watched (Newest)" },
+                { value: "watchedAt-asc", label: "Date Watched (Oldest)" },
+                { value: "rating-desc", label: "Rating (High to Low)" },
+                { value: "rating-asc", label: "Rating (Low to High)" },
+                { value: "title-asc", label: "Title (A-Z)" },
+                { value: "title-desc", label: "Title (Z-A)" },
+                { value: "releaseYear-desc", label: "Release Year (Newest)" },
+                { value: "releaseYear-asc", label: "Release Year (Oldest)" },
+              ],
+              onValueChange: (value) => {
+                const [field, order] = value.split("-");
+                setSortField(field as SortField);
+                setSortOrder(order as SortOrder);
+              },
+            },
+          ]}
+          hasActiveFilters={activeFilterCount > 0}
+          onClearAll={clearFilters}
+        />
       </div>
 
       {filteredAndSortedLogs.length === 0 && logs.length > 0 ? (

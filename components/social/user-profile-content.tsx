@@ -26,6 +26,7 @@ import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import Link from "next/link";
 import Image from "next/image";
 import { BANNER_GRADIENTS } from "@/components/social/banner-gradient-selector";
+import { useAvatar } from "@/contexts/avatar-context";
 
 interface UserProfileContentProps {
   userId?: string;
@@ -38,6 +39,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
   
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const { data: currentUser } = useCurrentUser();
+  const { avatarUrl: contextAvatarUrl } = useAvatar();
   const [activeTab, setActiveTab] = useState<"playlists" | "lists" | "reviews" | "my-list" | "discussions" | "followers" | "following">("lists");
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -1058,7 +1060,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
           {/* Avatar */}
           <div className="relative -mt-16 sm:-mt-10 mb-4">
             <Avatar className="h-24 w-24 border-4 border-background">
-              <AvatarImage src={user.avatarUrl || undefined} alt={displayName} />
+              <AvatarImage src={isOwnProfile ? (contextAvatarUrl || user.avatarUrl || undefined) : (user.avatarUrl || undefined)} alt={displayName} />
               <AvatarFallback className="text-3xl sm:text-4xl">{initials}</AvatarFallback>
             </Avatar>
           </div>

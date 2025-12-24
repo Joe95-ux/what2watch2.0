@@ -6,20 +6,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { formatDistanceToNow } from "date-fns";
 import Image from "next/image";
 import { getPosterUrl } from "@/lib/tmdb";
@@ -34,15 +20,10 @@ import {
   Music, 
   UserPlus,
   Calendar,
-  ArrowUp,
-  ArrowDown,
-  Search,
-  Filter,
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
   X,
-  ArrowUpDown,
   MessageSquare
 } from "lucide-react";
 import Link from "next/link";
@@ -50,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { format, subDays } from "date-fns";
+import { FilterSearchBar } from "@/components/ui/filter-search-bar";
 
 const ACTIVITY_TYPES: { value: ActivityType | "all"; label: string; icon: React.ReactNode }[] = [
   { value: "all", label: "All Activity", icon: <Calendar className="h-4 w-4" /> },
@@ -427,277 +409,88 @@ export default function ActivityContent() {
 
         {/* Search and Filters */}
         <div className="mb-6">
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Search Bar with integrated controls */}
-            <div className="relative w-full sm:w-80 2xl:w-96">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search activities..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-20"
-              />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0">
-                {searchQuery && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => setSearchQuery("")}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
-
-                {/* Sort Dropdown */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className={cn(
-                              "h-7 w-7 cursor-pointer",
-                              sortOrder !== "desc" &&
-                                "bg-primary/10 text-primary"
-                            )}
-                          >
-                            <ArrowUpDown className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuLabel>Sort by</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => setSortOrder("desc")}
-                            className={cn(
-                              "cursor-pointer",
-                              sortOrder === "desc" &&
-                                "bg-accent"
-                            )}
-                          >
-                            <span className="flex items-center gap-2">
-                              <ArrowDown className="h-4 w-4" />
-                              Newest First
-                            </span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setSortOrder("asc")}
-                            className={cn(
-                              "cursor-pointer",
-                              sortOrder === "asc" &&
-                                "bg-accent"
-                            )}
-                          >
-                            <span className="flex items-center gap-2">
-                              <ArrowUp className="h-4 w-4" />
-                              Oldest First
-                            </span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Sort by</p>
-                  </TooltipContent>
-                </Tooltip>
-
-                {/* Filter Dropdown */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className={cn(
-                              "h-7 w-7 cursor-pointer",
-                              (selectedType !== "all" || dateRange !== "all") &&
-                                "bg-primary/10 text-primary"
-                            )}
-                          >
-                            <Filter className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-64">
-                          <DropdownMenuLabel>Activity Type</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          {ACTIVITY_TYPES.map((type) => (
-                            <DropdownMenuItem
-                              key={type.value}
-                              onClick={() => setSelectedType(type.value as ActivityType | "all")}
-                              className={cn(
-                                "cursor-pointer",
-                                selectedType === type.value && "bg-accent"
-                              )}
-                            >
-                              <span className="flex items-center gap-2">
-                                {type.icon}
-                                {type.label}
-                              </span>
-                            </DropdownMenuItem>
-                          ))}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuLabel>Date Range</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => setDateRange("all")}
-                            className={cn(
-                              "cursor-pointer",
-                              dateRange === "all" && "bg-accent"
-                            )}
-                          >
-                            <span className="flex items-center gap-2">
-                              <CalendarIcon className="h-4 w-4" />
-                              All Time
-                            </span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setDateRange("today")}
-                            className={cn(
-                              "cursor-pointer",
-                              dateRange === "today" && "bg-accent"
-                            )}
-                          >
-                            <span className="flex items-center gap-2">
-                              <CalendarIcon className="h-4 w-4" />
-                              Today
-                            </span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setDateRange("week")}
-                            className={cn(
-                              "cursor-pointer",
-                              dateRange === "week" && "bg-accent"
-                            )}
-                          >
-                            <span className="flex items-center gap-2">
-                              <CalendarIcon className="h-4 w-4" />
-                              Last 7 Days
-                            </span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setDateRange("month")}
-                            className={cn(
-                              "cursor-pointer",
-                              dateRange === "month" && "bg-accent"
-                            )}
-                          >
-                            <span className="flex items-center gap-2">
-                              <CalendarIcon className="h-4 w-4" />
-                              Last 30 Days
-                            </span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setDateRange("custom")}
-                            className={cn(
-                              "cursor-pointer",
-                              dateRange === "custom" && "bg-accent"
-                            )}
-                          >
-                            <span className="flex items-center gap-2">
-                              <CalendarIcon className="h-4 w-4" />
-                              Custom Range
-                            </span>
-                          </DropdownMenuItem>
-                          {(selectedType !== "all" || dateRange !== "all") && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedType("all");
-                                  setDateRange("all");
-                                }}
-                                className="cursor-pointer text-muted-foreground"
-                              >
-                                Clear Type & Date Filters
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Filters</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            </div>
-
-            {/* User Filter - After search bar */}
-            <Select 
-              value={selectedUserId} 
-              onValueChange={(value) => setSelectedUserId(value)}
-            >
-              <SelectTrigger className="w-[180px] h-9">
-                <SelectValue placeholder="All Users" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">
-                  <span className="flex items-center gap-2">
-                    <UserPlus className="h-4 w-4" />
-                    All Users
-                  </span>
-                </SelectItem>
-                {availableUsers.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    <span className="flex items-center gap-2">
+          <FilterSearchBar
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder="Search activities..."
+            sortOrder={sortOrder}
+            onSortChange={setSortOrder}
+            filters={[
+              {
+                label: "Type",
+                value: selectedType,
+                options: ACTIVITY_TYPES.map((type) => ({
+                  value: type.value,
+                  label: type.label,
+                  icon: type.icon,
+                })),
+                onValueChange: (value) => setSelectedType(value as ActivityType | "all"),
+              },
+              {
+                label: "Date",
+                value: dateRange,
+                options: [
+                  { value: "all", label: "All Time", icon: <CalendarIcon className="h-4 w-4" /> },
+                  { value: "today", label: "Today", icon: <CalendarIcon className="h-4 w-4" /> },
+                  { value: "week", label: "Last 7 Days", icon: <CalendarIcon className="h-4 w-4" /> },
+                  { value: "month", label: "Last 30 Days", icon: <CalendarIcon className="h-4 w-4" /> },
+                  { value: "custom", label: "Custom Range", icon: <CalendarIcon className="h-4 w-4" /> },
+                ],
+                onValueChange: (value) => setDateRange(value as typeof dateRange),
+              },
+              {
+                label: "User",
+                value: selectedUserId,
+                options: [
+                  {
+                    value: "all",
+                    label: "All Users",
+                    icon: <UserPlus className="h-4 w-4" />,
+                  },
+                  ...availableUsers.map((user) => ({
+                    value: user.id,
+                    label: user.username || user.displayName || "Unknown",
+                    icon: (
                       <Avatar className="h-4 w-4">
                         <AvatarImage src={user.avatarUrl || undefined} />
                         <AvatarFallback className="text-[10px]">
                           {(user.username || user.displayName || "U")[0]?.toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      {user.username || user.displayName || "Unknown"}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Group By - Dropdown */}
-            <div className="flex items-center gap-2">
-              <Label htmlFor="group-by" className="text-sm text-muted-foreground whitespace-nowrap">
-                Group by:
-              </Label>
-              <Select value={groupBy} onValueChange={(value) => setGroupBy(value as typeof groupBy)}>
-                <SelectTrigger id="group-by" className="w-[140px] h-9">
-                  <SelectValue placeholder="Select..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="day">Day</SelectItem>
-                  <SelectItem value="week">Week</SelectItem>
-                  <SelectItem value="month">Month</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Clear All Filters Button */}
-            {(selectedType !== "all" || selectedUserId !== "all" || dateRange !== "all" || groupBy !== "none" || searchQuery) && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setSelectedType("all");
-                  setSelectedUserId("all");
-                  setDateRange("all");
-                  setGroupBy("none");
-                  setSearchQuery("");
-                }}
-                className="h-9"
-              >
-                <X className="h-4 w-4 mr-2" />
-                Clear All
-              </Button>
-            )}
-          </div>
+                    ),
+                  })),
+                ],
+                onValueChange: (value) => setSelectedUserId(value),
+              },
+              {
+                label: "Group By",
+                value: groupBy,
+                options: [
+                  { value: "none", label: "None" },
+                  { value: "day", label: "Day" },
+                  { value: "week", label: "Week" },
+                  { value: "month", label: "Month" },
+                ],
+                onValueChange: (value) => setGroupBy(value as typeof groupBy),
+              },
+            ]}
+            hasActiveFilters={
+              selectedType !== "all" ||
+              selectedUserId !== "all" ||
+              dateRange !== "all" ||
+              groupBy !== "none" ||
+              !!searchQuery
+            }
+            onClearAll={() => {
+              setSelectedType("all");
+              setSelectedUserId("all");
+              setDateRange("all");
+              setGroupBy("none");
+              setSearchQuery("");
+              setCustomStartDate("");
+              setCustomEndDate("");
+            }}
+          />
 
           {/* Custom Date Range Inputs */}
           {dateRange === "custom" && (
