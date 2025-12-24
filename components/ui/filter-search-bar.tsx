@@ -33,6 +33,8 @@ interface FilterSearchBarProps {
   onClearAll?: () => void;
   hasActiveFilters?: boolean;
   searchMaxWidth?: string; // e.g., "sm:max-w-[25rem]"
+  renderFilterRowOutside?: boolean; // If true, filter row is not rendered inside
+  onFilterRowStateChange?: (isOpen: boolean) => void; // Callback for filter row state
 }
 
 export function FilterSearchBar({
@@ -45,10 +47,19 @@ export function FilterSearchBar({
   onClearAll,
   hasActiveFilters = false,
   searchMaxWidth,
+  renderFilterRowOutside = false,
+  onFilterRowStateChange,
 }: FilterSearchBarProps) {
   const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const filterRowRef = useRef<HTMLDivElement>(null);
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
+
+  // Notify parent of filter row state changes
+  useEffect(() => {
+    if (onFilterRowStateChange) {
+      onFilterRowStateChange(isFilterRowOpen);
+    }
+  }, [isFilterRowOpen, onFilterRowStateChange]);
 
   // Focus on filter row when opened
   useEffect(() => {
@@ -81,7 +92,7 @@ export function FilterSearchBar({
   };
 
   return (
-    <div className="space-y-3">
+    <div className={cn(!renderFilterRowOutside && "space-y-3")}>
       {/* Top Row: Search + Sort + Filter Button */}
       <div className="flex items-center gap-4">
         {/* Search - Takes most width on small screens, custom max-width on sm+ */}
@@ -161,74 +172,174 @@ export function FilterSearchBar({
       </div>
 
       {/* Filter Row - Collapsible with smooth transition */}
-      <div
-        ref={filterRowRef}
-        className={cn(
-          "overflow-hidden transition-all duration-300 ease-in-out",
-          isFilterRowOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-        )}
-      >
-        <div className="overflow-x-auto scrollbar-hide pb-2">
-          <div className="flex items-center gap-4 min-w-max px-1">
-            {filters.map((filter) => {
-              const isOpen = openDropdowns[filter.label] || false;
-              return (
-                <DropdownMenu
-                  key={filter.label}
-                  open={isOpen}
-                  onOpenChange={(open) => setOpenDropdowns((prev) => ({ ...prev, [filter.label]: open }))}
-                >
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={() => toggleDropdown(filter.label)}
-                      className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground dark:hover:text-foreground transition-colors cursor-pointer whitespace-nowrap focus:outline-none focus-visible:outline-none rounded-sm px-2 py-1"
-                    >
-                      <span>{filter.label}:</span>
-                      <span className="font-medium">{getFilterDisplayValue(filter)}</span>
-                      {isOpen ? (
-                        <ChevronUp className="h-3.5 w-3.5" />
-                      ) : (
-                        <ChevronDown className="h-3.5 w-3.5" />
-                      )}
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56 overflow-hidden p-0">
-                    <div className="max-h-[300px] overflow-y-auto scrollbar-thin p-1">
-                      {filter.options.map((option) => (
-                        <DropdownMenuItem
-                          key={option.value}
-                          onClick={() => handleFilterValueChange(filter.label, option.value, filter.onValueChange)}
-                          className={cn(
-                            "cursor-pointer",
-                            filter.value === option.value && "bg-accent"
-                          )}
-                        >
-                          <span className="flex items-center gap-2">
-                            {option.icon}
-                            {option.label}
-                          </span>
-                        </DropdownMenuItem>
-                      ))}
-                    </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              );
-            })}
+      {!renderFilterRowOutside && (
+        <div
+          ref={filterRowRef}
+          className={cn(
+            "overflow-hidden transition-all duration-300 ease-in-out",
+            isFilterRowOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          )}
+        >
+          <div className="overflow-x-auto scrollbar-hide pb-2">
+            <div className="flex items-center gap-4 min-w-max px-1">
+              {filters.map((filter) => {
+                const isOpen = openDropdowns[filter.label] || false;
+                return (
+                  <DropdownMenu
+                    key={filter.label}
+                    open={isOpen}
+                    onOpenChange={(open) => setOpenDropdowns((prev) => ({ ...prev, [filter.label]: open }))}
+                  >
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => toggleDropdown(filter.label)}
+                        className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground dark:hover:text-foreground transition-colors cursor-pointer whitespace-nowrap focus:outline-none focus-visible:outline-none rounded-sm px-2 py-1"
+                      >
+                        <span>{filter.label}:</span>
+                        <span className="font-medium">{getFilterDisplayValue(filter)}</span>
+                        {isOpen ? (
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        ) : (
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56 overflow-hidden p-0">
+                      <div className="max-h-[300px] overflow-y-auto scrollbar-thin p-1">
+                        {filter.options.map((option) => (
+                          <DropdownMenuItem
+                            key={option.value}
+                            onClick={() => handleFilterValueChange(filter.label, option.value, filter.onValueChange)}
+                            className={cn(
+                              "cursor-pointer",
+                              filter.value === option.value && "bg-accent"
+                            )}
+                          >
+                            <span className="flex items-center gap-2">
+                              {option.icon}
+                              {option.label}
+                            </span>
+                          </DropdownMenuItem>
+                        ))}
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                );
+              })}
 
-            {/* Clear All Button */}
-            {onClearAll && hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClearAll}
-                className="h-8 px-3 text-sm text-muted-foreground hover:text-foreground cursor-pointer whitespace-nowrap"
-              >
-                <X className="h-3.5 w-3.5 mr-1.5" />
-                Clear All
-              </Button>
-            )}
+              {/* Clear All Button */}
+              {onClearAll && hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClearAll}
+                  className="h-8 px-3 text-sm text-muted-foreground hover:text-foreground cursor-pointer whitespace-nowrap"
+                >
+                  <X className="h-3.5 w-3.5 mr-1.5" />
+                  Clear All
+                </Button>
+              )}
+            </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Export filter row component for external rendering
+export function FilterRow({
+  filters,
+  openDropdowns,
+  setOpenDropdowns,
+  toggleDropdown,
+  getFilterDisplayValue,
+  handleFilterValueChange,
+  onClearAll,
+  hasActiveFilters,
+  isOpen,
+}: {
+  filters: FilterSearchBarProps["filters"];
+  openDropdowns: Record<string, boolean>;
+  setOpenDropdowns: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  toggleDropdown: (label: string) => void;
+  getFilterDisplayValue: (filter: { value: string; options: FilterOption[] }) => string;
+  handleFilterValueChange: (label: string, value: string, onValueChange: (value: string) => void) => void;
+  onClearAll?: () => void;
+  hasActiveFilters: boolean;
+  isOpen: boolean;
+}) {
+  const filterRowRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <div
+      ref={filterRowRef}
+      className={cn(
+        "overflow-hidden transition-all duration-300 ease-in-out",
+        isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+      )}
+    >
+      <div className="overflow-x-auto scrollbar-hide pb-2">
+        <div className="flex items-center gap-4 min-w-max px-1">
+          {filters.map((filter) => {
+            const isOpen = openDropdowns[filter.label] || false;
+            return (
+              <DropdownMenu
+                key={filter.label}
+                open={isOpen}
+                onOpenChange={(open) => setOpenDropdowns((prev) => ({ ...prev, [filter.label]: open }))}
+              >
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => toggleDropdown(filter.label)}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground dark:hover:text-foreground transition-colors cursor-pointer whitespace-nowrap focus:outline-none focus-visible:outline-none rounded-sm px-2 py-1"
+                  >
+                    <span>{filter.label}:</span>
+                    <span className="font-medium">{getFilterDisplayValue(filter)}</span>
+                    {isOpen ? (
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56 overflow-hidden p-0">
+                  <div className="max-h-[300px] overflow-y-auto scrollbar-thin p-1">
+                    {filter.options.map((option) => (
+                      <DropdownMenuItem
+                        key={option.value}
+                        onClick={() => handleFilterValueChange(filter.label, option.value, filter.onValueChange)}
+                        className={cn(
+                          "cursor-pointer",
+                          filter.value === option.value && "bg-accent"
+                        )}
+                      >
+                        <span className="flex items-center gap-2">
+                          {option.icon}
+                          {option.label}
+                        </span>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            );
+          })}
+
+          {/* Clear All Button */}
+          {onClearAll && hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClearAll}
+              className="h-8 px-3 text-sm text-muted-foreground hover:text-foreground cursor-pointer whitespace-nowrap"
+            >
+              <X className="h-3.5 w-3.5 mr-1.5" />
+              Clear All
+            </Button>
+          )}
         </div>
       </div>
     </div>

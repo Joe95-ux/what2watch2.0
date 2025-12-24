@@ -27,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { FilterSearchBar } from "@/components/ui/filter-search-bar";
+import { FilterSearchBar, FilterRow } from "@/components/ui/filter-search-bar";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useToggleFavorite, useAddFavorite, useRemoveFavorite } from "@/hooks/use-favorites";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
@@ -62,6 +62,8 @@ export default function DiaryContent() {
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [likedFilter, setLikedFilter] = useState<"all" | "liked" | "not-liked">("all");
   const [watchedYearFilter, setWatchedYearFilter] = useState<string>("all");
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
+  const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
   const [sortField, setSortField] = useState<SortField>("watchedAt");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
@@ -389,7 +391,7 @@ export default function DiaryContent() {
       </div>
 
       {/* View Toggle Buttons and Search/Filter/Sort - Wrapper */}
-      <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-5">
         {/* View Mode Buttons */}
         <div className="flex items-center gap-2">
           <Button
@@ -517,9 +519,131 @@ export default function DiaryContent() {
           ]}
             hasActiveFilters={activeFilterCount > 0}
             onClearAll={clearFilters}
+            renderFilterRowOutside={true}
+            onFilterRowStateChange={setIsFilterRowOpen}
           />
         </div>
       </div>
+
+      {/* Filter Row - Rendered outside under main wrapper */}
+      <FilterRow
+        filters={[
+          {
+            label: "Type",
+            value: mediaTypeFilter,
+            options: [
+              { value: "all", label: "All Types" },
+              { value: "movie", label: "Movies", icon: <Film className="h-4 w-4" /> },
+              { value: "tv", label: "TV Shows", icon: <Tv className="h-4 w-4" /> },
+            ],
+            onValueChange: (value) => setMediaTypeFilter(value as "all" | "movie" | "tv"),
+          },
+          {
+            label: "Release Year",
+            value: yearFilter,
+            options: [
+              { value: "all", label: "All Years" },
+              ...availableYears.map((year) => ({
+                value: year.toString(),
+                label: year.toString(),
+              })),
+            ],
+            onValueChange: setYearFilter,
+          },
+          {
+            label: "Watched Year",
+            value: watchedYearFilter,
+            options: [
+              { value: "all", label: "All Watched" },
+              ...availableWatchedYears.map((year) => ({
+                value: year.toString(),
+                label: year.toString(),
+              })),
+            ],
+            onValueChange: setWatchedYearFilter,
+          },
+          {
+            label: "Rating",
+            value: ratingFilter,
+            options: [
+              { value: "all", label: "All Ratings" },
+              ...([5, 4, 3, 2, 1].map((rating) => ({
+                value: rating.toString(),
+                label: `${rating} ${rating === 1 ? "star" : "stars"}`,
+                icon: <Star className="h-4 w-4" />,
+              }))),
+            ],
+            onValueChange: setRatingFilter,
+          },
+          ...(availableTags.length > 0
+            ? [
+                {
+                  label: "Tag",
+                  value: tagFilter,
+                  options: [
+                    { value: "all", label: "All Tags" },
+                    ...availableTags.map((tag) => ({
+                      value: tag,
+                      label: tag,
+                    })),
+                  ],
+                  onValueChange: setTagFilter,
+                },
+              ]
+            : []),
+          {
+            label: "Liked",
+            value: likedFilter,
+            options: [
+              { value: "all", label: "All" },
+              { value: "liked", label: "Liked", icon: <Heart className="h-4 w-4" /> },
+              { value: "not-liked", label: "Not Liked" },
+            ],
+            onValueChange: (value) => setLikedFilter(value as "all" | "liked" | "not-liked"),
+          },
+          {
+            label: "Sort By",
+            value: `${sortField}-${sortOrder}`,
+            options: [
+              { value: "watchedAt-desc", label: "Date Watched (Newest)" },
+              { value: "watchedAt-asc", label: "Date Watched (Oldest)" },
+              { value: "rating-desc", label: "Rating (High to Low)" },
+              { value: "rating-asc", label: "Rating (Low to High)" },
+              { value: "title-asc", label: "Title (A-Z)" },
+              { value: "title-desc", label: "Title (Z-A)" },
+              { value: "releaseYear-desc", label: "Release Year (Newest)" },
+              { value: "releaseYear-asc", label: "Release Year (Oldest)" },
+            ],
+            onValueChange: (value) => {
+              const [field, order] = value.split("-");
+              setSortField(field as SortField);
+              setSortOrder(order as SortOrder);
+            },
+          },
+        ]}
+        openDropdowns={openDropdowns}
+        setOpenDropdowns={setOpenDropdowns}
+        toggleDropdown={(label) => {
+          setOpenDropdowns((prev) => ({
+            ...prev,
+            [label]: !prev[label],
+          }));
+        }}
+        getFilterDisplayValue={(filter) => {
+          const option = filter.options.find((opt) => opt.value === filter.value);
+          return option?.label || filter.value;
+        }}
+        handleFilterValueChange={(label, value, onValueChange) => {
+          onValueChange(value);
+          setOpenDropdowns((prev) => ({
+            ...prev,
+            [label]: false,
+          }));
+        }}
+        onClearAll={clearFilters}
+        hasActiveFilters={activeFilterCount > 0}
+        isOpen={isFilterRowOpen}
+      />
 
       {filteredAndSortedLogs.length === 0 && logs.length > 0 ? (
         <div className="text-center py-12">

@@ -271,117 +271,120 @@ export function YouTubeAnalyticsDashboard() {
         </Card>
       )}
 
-      {/* Engagement Breakdown */}
-      {engagementData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Heart className="h-5 w-5" />
-              Engagement Breakdown
-            </CardTitle>
-            <CardDescription>How you interact with videos</CardDescription>
-          </CardHeader>
-          <CardContent className="pl-2 sm:pl-4">
-            <ChartContainer config={chartConfig} className="h-[320px] w-full">
-              <BarChart data={engagementData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis
-                  dataKey="name"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  className="text-xs"
-                />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  className="text-xs"
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar
-                  dataKey="value"
-                  fill="var(--color-engagement)"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      )}
+      {/* Engagement Breakdown and Top Content - Same row on lg */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+        {/* Engagement Breakdown */}
+        {engagementData.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Heart className="h-5 w-5" />
+                Engagement Breakdown
+              </CardTitle>
+              <CardDescription>How you interact with videos</CardDescription>
+            </CardHeader>
+            <CardContent className="pl-2 sm:pl-4">
+              <ChartContainer config={chartConfig} className="h-[320px] w-full">
+                <BarChart data={engagementData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis
+                    dataKey="name"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    className="text-xs"
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    className="text-xs"
+                  />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar
+                    dataKey="value"
+                    fill="var(--color-engagement)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        )}
 
-      {/* Top Videos and Channels - Combined with Tabs */}
-      {data && (data.topVideos.length > 0 || data.topChannels.length > 0) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Top Content
-            </CardTitle>
-            <CardDescription>Most viewed videos and channels</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs value={topContentTab} onValueChange={(v) => setTopContentTab(v as "videos" | "channels")}>
-              <TabsList className="mb-4">
-                <TabsTrigger value="videos">Top Videos</TabsTrigger>
-                <TabsTrigger value="channels">Top Channels</TabsTrigger>
-              </TabsList>
-              <TabsContent value="videos" className="mt-0">
-                {data.topVideos.length > 0 ? (
-                  <div className="space-y-3">
-                    {data.topVideos.slice(0, 10).map((video, index) => (
-                      <div
-                        key={video.videoId}
-                        className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
-                            {index + 1}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">
-                              {video.videoTitle || `Video ${video.videoId.slice(0, 12)}...`}
-                            </p>
-                            <p className="text-xs text-muted-foreground">{video.viewCount} view{video.viewCount !== 1 ? "s" : ""}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">No videos found</p>
-                )}
-              </TabsContent>
-              <TabsContent value="channels" className="mt-0">
-                {data.topChannels.length > 0 ? (
-                  <div className="space-y-3">
-                    {data.topChannels.slice(0, 10).map((channel, index) => (
-                      <div
-                        key={channel.channelId}
-                        className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
-                            {index + 1}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">
-                              {channel.channelTitle || `Channel ${channel.channelId.slice(0, 12)}...`}
-                            </p>
-                            <p className="text-xs text-muted-foreground">{channel.viewCount} view{channel.viewCount !== 1 ? "s" : ""}</p>
+        {/* Top Videos and Channels - Combined with Tabs */}
+        {data && (data.topVideos.length > 0 || data.topChannels.length > 0) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Top Content
+              </CardTitle>
+              <CardDescription>Most viewed videos and channels</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs value={topContentTab} onValueChange={(v) => setTopContentTab(v as "videos" | "channels")}>
+                <TabsList className="mb-4">
+                  <TabsTrigger value="videos">Top Videos</TabsTrigger>
+                  <TabsTrigger value="channels">Top Channels</TabsTrigger>
+                </TabsList>
+                <TabsContent value="videos" className="mt-0">
+                  {data.topVideos.length > 0 ? (
+                    <div className="space-y-3">
+                      {data.topVideos.slice(0, 10).map((video, index) => (
+                        <div
+                          key={video.videoId}
+                          className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
+                              {index + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">
+                                {video.videoTitle || `Video ${video.videoId.slice(0, 12)}...`}
+                              </p>
+                              <p className="text-xs text-muted-foreground">{video.viewCount} view{video.viewCount !== 1 ? "s" : ""}</p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">No channels found</p>
-                )}
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      )}
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-8">No videos found</p>
+                  )}
+                </TabsContent>
+                <TabsContent value="channels" className="mt-0">
+                  {data.topChannels.length > 0 ? (
+                    <div className="space-y-3">
+                      {data.topChannels.slice(0, 10).map((channel, index) => (
+                        <div
+                          key={channel.channelId}
+                          className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
+                              {index + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">
+                                {channel.channelTitle || `Channel ${channel.channelId.slice(0, 12)}...`}
+                              </p>
+                              <p className="text-xs text-muted-foreground">{channel.viewCount} view{channel.viewCount !== 1 ? "s" : ""}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-8">No channels found</p>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Peak Watching Times - Combined with Tabs */}
       {data?.peakWatchingTimes && data.stats.totalViews > 0 && (
