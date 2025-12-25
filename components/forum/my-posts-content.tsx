@@ -67,7 +67,7 @@ import { useAvatar } from "@/contexts/avatar-context";
 import { BANNER_GRADIENTS } from "@/components/social/banner-gradient-selector";
 import { useForumBadges } from "@/hooks/use-forum-badges";
 import BannerSelector from "@/components/social/banner-selector";
-import { Camera, Users, Trophy } from "lucide-react";
+import { Camera, UsersRound, Trophy } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 type TabType = "posts" | "activity" | "notifications" | "summary";
@@ -143,13 +143,13 @@ function MyPostsStickyNav({
     <div
       ref={navRef}
       className={cn(
-        "sticky top-[65px] z-40 transition-all duration-300 border-b",
+        "sticky top-[65px] z-40 transition-all duration-300 border-b mx-4 sm:mx-6 lg:mx-8",
         isScrolled
           ? "bg-background/95 backdrop-blur-md border-border shadow-sm"
           : "bg-background border-border"
       )}
     >
-      <div className="px-4 sm:px-6 lg:px-8">
+      <div>
         <div className="flex items-center gap-8 overflow-x-auto scrollbar-hide scroll-smooth">
           {isLoading ? (
             <>
@@ -179,6 +179,9 @@ function MyPostsStickyNav({
                     <Badge variant="secondary" className="ml-1 text-xs">
                       {tab.count}
                     </Badge>
+                  )}
+                  {isActive && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
                   )}
                 </button>
               );
@@ -426,7 +429,7 @@ export default function MyPostsContent() {
             <div className="flex-1 min-w-0">
               <div className="px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center gap-3 py-4">
-                  <Skeleton className="h-8 w-8 rounded-full" />
+                  <Skeleton className="h-10 w-10 rounded-full" />
                   <div className="flex-1">
                     <Skeleton className="h-4 w-32 mb-2" />
                     <Skeleton className="h-3 w-24" />
@@ -452,7 +455,7 @@ export default function MyPostsContent() {
             {/* Right Sidebar */}
             <aside className="w-full lg:w-80 flex-shrink-0">
               <div className="rounded-lg border border-border bg-background">
-                <Skeleton className="h-[97px] w-full rounded-t-lg" />
+                <Skeleton className="h-[77px] w-full rounded-t-lg" />
                 <div className="p-4 border-b">
                   <Skeleton className="h-5 w-32 mx-auto mb-2" />
                   <Skeleton className="h-4 w-24 mx-auto mb-2" />
@@ -491,7 +494,7 @@ export default function MyPostsContent() {
             {/* Header with Avatar, Username, Display Name aligned with sticky nav */}
             <div className="px-4 sm:px-6 lg:px-8">
               <div className="flex items-center gap-3 py-4">
-                <Avatar className="h-8 w-8 border-2 border-background">
+                <Avatar className="h-10 w-10 border-2 border-background">
                   <AvatarImage src={avatarUrl || undefined} alt={displayName} />
                   <AvatarFallback className="text-sm">{initials}</AvatarFallback>
                 </Avatar>
@@ -782,7 +785,7 @@ export default function MyPostsContent() {
           <aside className="w-full lg:w-80 flex-shrink-0 lg:sticky lg:top-[85px] self-start">
             <div className="rounded-lg border border-border bg-background">
               {/* Banner Section */}
-              <div className="relative h-[97px] rounded-t-lg overflow-hidden">
+              <div className="relative h-[77px] rounded-t-lg overflow-hidden">
                 {bannerDisplay.type === "image" ? (
                   <Image
                     src={bannerDisplay.url}
@@ -816,7 +819,7 @@ export default function MyPostsContent() {
                   )}
                   <div className="flex items-center justify-center gap-4 mt-2 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4" />
+                      <UsersRound className="h-4 w-4" />
                       <span>{followersCount} {followersCount === 1 ? "follower" : "followers"}</span>
                     </div>
                   </div>
@@ -847,7 +850,7 @@ export default function MyPostsContent() {
                               </span>
                               {stat.icon}
                             </div>
-                            <div className="text-2xl font-bold">{stat.value.toLocaleString()}</div>
+                            <div className="text-xl font-bold">{stat.value.toLocaleString()}</div>
                           </div>
                         );
                       })}
