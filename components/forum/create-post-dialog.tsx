@@ -18,7 +18,7 @@ import { CategoryFields } from "./category-fields";
 import { CategorySelect } from "./category-select";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Calendar, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Calendar, Clock, ChevronLeft, ChevronRight, Eye, Lock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -372,15 +372,34 @@ export function CreatePostDialog({
                 </button>
               </div>
               {/* Post Status Toggle */}
-              <div className="flex items-center gap-2">
-                <Label htmlFor="post-status" className="text-sm text-muted-foreground cursor-pointer">
-                  {isPublic ? "Public" : "Private"}
-                </Label>
+              <div
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer",
+                  isPublic
+                    ? "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
+                    : "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
+                )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsPublic(!isPublic);
+                }}
+              >
                 <Switch
                   id="post-status"
                   checked={isPublic}
                   onCheckedChange={setIsPublic}
                 />
+                <Label
+                  htmlFor="post-status"
+                  className="text-sm cursor-pointer flex items-center gap-1.5"
+                >
+                  {isPublic ? (
+                    <Eye className="h-4 w-4" />
+                  ) : (
+                    <Lock className="h-4 w-4" />
+                  )}
+                  <span>{isPublic ? "Public" : "Private"}</span>
+                </Label>
               </div>
             </div>
             <div className="flex items-center gap-2">
