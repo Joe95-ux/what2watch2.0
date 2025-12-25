@@ -208,23 +208,31 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
   // Get channels to display based on search source
   // Normalize channel format: YouTube results have `id`, app pool has `channelId`
   const availableChannels = useMemo(() => {
-    if (searchSource === "youtube") {
-      if (!Array.isArray(searchResults)) return [];
-      return searchResults.map((ch) => ({
-        ...ch,
-        channelId: ch.id || ch.channelId, // Normalize: use `id` if present, otherwise `channelId`
-      }));
-    } else {
-      if (!Array.isArray(appChannels)) return [];
-      return appChannels.map((ch: any) => ({
-        ...ch,
-        channelId: ch.channelId, // App pool already has channelId
-      }));
+    try {
+      if (searchSource === "youtube") {
+        if (!Array.isArray(searchResults)) return [];
+        return searchResults.map((ch) => ({
+          ...ch,
+          channelId: ch.id || ch.channelId, // Normalize: use `id` if present, otherwise `channelId`
+        }));
+      } else {
+        if (!Array.isArray(appChannels)) return [];
+        return appChannels.map((ch: any) => ({
+          ...ch,
+          channelId: ch.channelId, // App pool already has channelId
+        }));
+      }
+    } catch (error) {
+      console.error("Error processing available channels:", error);
+      return [];
     }
   }, [searchSource, searchResults, appChannels]);
 
   // Filter channels based on search and filter type
   const filteredChannels = useMemo(() => {
+    // Ensure availableChannels is always an array
+    if (!Array.isArray(availableChannels)) return [];
+    
     let filtered = availableChannels;
 
     // Apply search filter (only for app pool, YouTube search is handled separately)
@@ -247,7 +255,7 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
       );
     }
 
-    return filtered;
+    return Array.isArray(filtered) ? filtered : [];
   }, [availableChannels, searchQuery, filterType, selectedChannelIds, searchSource]);
 
   const handleToggleChannel = (channelId: string) => {
@@ -399,7 +407,7 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
                 <Skeleton key={i} className="h-16 w-full rounded-lg" />
               ))}
             </div>
-          ) : filteredChannels.length === 0 ? (
+          ) : !Array.isArray(filteredChannels) || filteredChannels.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <p>No channels found</p>
             </div>

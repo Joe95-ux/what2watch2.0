@@ -26,7 +26,8 @@ async function fetchFeedChannels(): Promise<FeedChannel[]> {
     throw new Error("Failed to fetch feed channels");
   }
   const data: FeedChannelsResponse = await response.json();
-  return data.channels || [];
+  // Ensure we always return an array
+  return Array.isArray(data.channels) ? data.channels : [];
 }
 
 /**

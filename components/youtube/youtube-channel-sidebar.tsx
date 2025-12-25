@@ -81,14 +81,18 @@ export function YouTubeChannelSidebar({
 
   // Use feed channels and filter/search
   const filteredChannels = useMemo(() => {
+    // Ensure feedChannels is always an array
+    const safeFeedChannels = Array.isArray(feedChannels) ? feedChannels : [];
+    const safeFavoriteChannels = Array.isArray(favoriteChannels) ? favoriteChannels : [];
+    
     // Convert feed channels to the format expected by the component
-    let channels = feedChannels.map((fc) => ({
+    let channels = safeFeedChannels.map((fc) => ({
       id: fc.channelId,
       title: fc.title || "Channel",
       thumbnail: fc.thumbnail || undefined,
       slug: fc.slug || undefined,
     }));
-    const favoriteIds = new Set(favoriteChannels.map((fc) => fc.channelId));
+    const favoriteIds = new Set(safeFavoriteChannels.map((fc) => fc.channelId));
 
     // Filter by favorites
     if (filterBy === "favorites") {
@@ -140,7 +144,7 @@ export function YouTubeChannelSidebar({
       });
     }
 
-    return channels;
+    return Array.isArray(channels) ? channels : [];
   }, [feedChannels, searchQuery, filterBy, categoryFilter, sortBy, favoriteChannels, channelCategoriesData]);
 
   const handleChannelClick = (channelId: string, slug?: string | null) => {
@@ -443,7 +447,7 @@ export function YouTubeChannelSidebar({
       {!isCollapsed && !isLoadingFeedChannels && (
         <div className="px-4 py-2 border-b flex items-center justify-between">
           <h3 className="text-sm font-semibold">Your Feed</h3>
-          {feedChannels.length > 0 ? (
+          {Array.isArray(feedChannels) && feedChannels.length > 0 ? (
             <Button
               variant="ghost"
               size="sm"
@@ -466,7 +470,7 @@ export function YouTubeChannelSidebar({
                 <Skeleton key={i} className="h-12 w-full rounded-md" />
               ))}
             </div>
-          ) : filteredChannels.length === 0 && feedChannels.length === 0 ? (
+          ) : (!Array.isArray(filteredChannels) || filteredChannels.length === 0) && (!Array.isArray(feedChannels) || feedChannels.length === 0) ? (
             <div className="p-4 text-center space-y-3">
               <p className="text-sm text-muted-foreground">
                 No channels in your feed yet
@@ -481,7 +485,7 @@ export function YouTubeChannelSidebar({
                 Add Channels
               </Button>
             </div>
-          ) : filteredChannels.length === 0 ? (
+          ) : !Array.isArray(filteredChannels) || filteredChannels.length === 0 ? (
             <div className="p-4 text-center text-sm text-muted-foreground">
               {searchQuery ? "No channels found" : "No channels match your filters"}
             </div>
