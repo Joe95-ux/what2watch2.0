@@ -430,7 +430,7 @@ export function ForumActivityContent() {
     <div>
       {/* Search and Filters */}
       <div className="mb-6">
-        <div className="flex justify-end">
+        <div className="flex justify-start">
           <div className="w-full sm:w-auto sm:flex-shrink-0">
             <FilterSearchBar
               searchValue={searchQuery}
@@ -439,7 +439,7 @@ export function ForumActivityContent() {
               searchMaxWidth="sm:max-w-[25rem]"
               sortOrder={sortOrder}
               onSortChange={setSortOrder}
-              justifyEnd={true}
+              justifyEnd={false}
               filters={[
                 {
                   label: "Type",

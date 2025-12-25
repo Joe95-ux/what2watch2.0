@@ -81,8 +81,16 @@ export async function GET(request: NextRequest) {
     // Build orderBy
     let orderBy: any = {};
     if (sortBy === "replies" || sortBy === "score") {
-      orderBy = { createdAt: order === "desc" ? "desc" : "asc" };
-    } else if (sortBy === "createdAt" || sortBy === "updatedAt" || sortBy === "views") {
+      // For replies/score, use createdAt as secondary sort since multiple posts can have same value
+      orderBy = [
+        { [sortBy]: order === "desc" ? "desc" : "asc" },
+        { createdAt: "desc" },
+      ];
+    } else if (sortBy === "createdAt" || sortBy === "updatedAt") {
+      // For createdAt/updatedAt, no secondary sort needed (each post has unique timestamp)
+      orderBy = { [sortBy]: order === "desc" ? "desc" : "asc" };
+    } else if (sortBy === "views") {
+      // For views, use createdAt as secondary sort since multiple posts can have same view count
       orderBy = [
         { [sortBy]: order === "desc" ? "desc" : "asc" },
         { createdAt: "desc" },

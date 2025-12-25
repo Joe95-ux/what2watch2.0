@@ -260,7 +260,7 @@ export default function MyPostsContent() {
   const userBadges = badgesData?.userBadges || [];
 
   // Fetch stats for sidebar
-  const { data: statsData } = useQuery<{ stats: any }>({
+  const { data: statsData, isLoading: isLoadingStats } = useQuery<{ stats: any }>({
     queryKey: ["forum-my-stats"],
     queryFn: async () => {
       if (!currentUser?.id) {
@@ -456,18 +456,62 @@ export default function MyPostsContent() {
               </div>
             </div>
             {/* Right Sidebar */}
-            <aside className="w-full lg:w-80 flex-shrink-0">
+            <aside className="w-full lg:w-80 flex-shrink-0 lg:sticky lg:top-[85px] self-start">
               <div className="rounded-lg border border-border bg-background">
-                <Skeleton className="h-[77px] w-full rounded-t-lg" />
-                <div className="p-4 border-b">
-                  <Skeleton className="h-5 w-32 mx-auto mb-2" />
-                  <Skeleton className="h-4 w-24 mx-auto mb-2" />
-                  <Skeleton className="h-4 w-28 mx-auto" />
+                {/* Banner Section */}
+                <div className="relative h-[77px] rounded-t-lg overflow-hidden">
+                  <Skeleton className="h-full w-full" />
+                  {/* Banner Modal Trigger Skeleton */}
+                  <Skeleton className="absolute bottom-2 right-2 h-8 w-8 rounded-full" />
                 </div>
+
+                {/* User Info */}
+                <div className="p-4 border-b">
+                  <div className="text-center">
+                    <Skeleton className="h-5 w-32 mx-auto mb-2" />
+                    <Skeleton className="h-4 w-24 mx-auto mb-2" />
+                    <div className="flex items-center justify-center gap-4 mt-2">
+                      <Skeleton className="h-4 w-28" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="p-4 border-b">
+                  <div className="grid grid-cols-2 divide-y divide-border">
+                    {Array.from({ length: 4 }).map((_, i) => {
+                      const columnsPerRow = 2;
+                      const totalRows = Math.ceil(4 / columnsPerRow);
+                      const currentRow = Math.floor(i / columnsPerRow) + 1;
+                      const isLastRow = currentRow === totalRows;
+                      return (
+                        <div 
+                          key={i} 
+                          className={cn(
+                            "p-4",
+                            isLastRow && "border-b-0"
+                          )}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <Skeleton className="h-[15px] w-20" />
+                            <Skeleton className="h-5 w-5 rounded" />
+                          </div>
+                          <Skeleton className="h-6 w-16" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Achievements Section */}
                 <div className="p-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    {Array.from({ length: 4 }).map((_, i) => (
-                      <Skeleton key={i} className="h-20 w-full" />
+                  <div className="flex items-center gap-2 mb-3">
+                    <Skeleton className="h-4 w-4 rounded" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <Skeleton key={i} className="h-7 w-20 rounded-md" />
                     ))}
                   </div>
                 </div>
@@ -828,7 +872,48 @@ export default function MyPostsContent() {
               </div>
 
               {/* Stats Grid */}
-              {stats && topStats.length > 0 && (
+              {isLoadingStats || isLoadingUser ? (
+                <>
+                  <div className="p-4 border-b">
+                    <div className="grid grid-cols-2 divide-y divide-border">
+                      {Array.from({ length: 4 }).map((_, i) => {
+                        const columnsPerRow = 2;
+                        const totalRows = Math.ceil(4 / columnsPerRow);
+                        const currentRow = Math.floor(i / columnsPerRow) + 1;
+                        const isLastRow = currentRow === totalRows;
+                        return (
+                          <div 
+                            key={i} 
+                            className={cn(
+                              "p-4",
+                              isLastRow && "border-b-0"
+                            )}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <Skeleton className="h-[15px] w-20" />
+                              <Skeleton className="h-5 w-5 rounded" />
+                            </div>
+                            <Skeleton className="h-6 w-16" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Achievements Section Skeleton */}
+                  <div className="p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Skeleton className="h-4 w-4 rounded" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <Skeleton key={i} className="h-7 w-20 rounded-md" />
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : stats && topStats.length > 0 ? (
                 <>
                   <div className="p-4 border-b">
                     <div className="grid grid-cols-2 divide-y divide-border">
@@ -890,7 +975,7 @@ export default function MyPostsContent() {
                     )}
                   </div>
                 </>
-              )}
+              ) : null}
             </div>
           </aside>
         </div>

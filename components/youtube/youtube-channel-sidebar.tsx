@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Heart, Bookmark, Sparkles, Youtube, X, ChevronLeft, ChevronRight, ArrowUpDown, SlidersHorizontal } from "lucide-react";
+import { Search, Heart, Bookmark, Sparkles, Youtube, X, ChevronLeft, ChevronRight, ArrowUpDown, SlidersHorizontal, Edit, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -22,12 +22,13 @@ import { useFavoriteChannels } from "@/hooks/use-favorite-channels";
 import { useFavoriteYouTubeVideos } from "@/hooks/use-favorite-youtube-videos";
 import { useYouTubeVideoWatchlist } from "@/hooks/use-youtube-video-watchlist";
 import { useYouTubeRecommendations } from "@/hooks/use-youtube-recommendations";
-import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
+import { useFeedChannels } from "@/hooks/use-feed-channels";
 import { getChannelProfilePath } from "@/lib/channel-path";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { FeedCustomizeModal } from "@/components/youtube/feed-customize-modal";
 
 interface YouTubeChannelSidebarProps {
   currentChannelId?: string;
@@ -75,11 +76,18 @@ export function YouTubeChannelSidebar({
   const { data: favoriteVideos = [] } = useFavoriteYouTubeVideos();
   const { data: watchlistVideos = [] } = useYouTubeVideoWatchlist();
   const { data: recommendations } = useYouTubeRecommendations();
-  const { data: allChannels = [], isLoading: isLoadingChannels } = useYouTubeChannels();
+  const { data: feedChannels = [], isLoading: isLoadingFeedChannels } = useFeedChannels();
+  const [isCustomizeFeedOpen, setIsCustomizeFeedOpen] = useState(false);
 
-  // Combine all channels and filter/search
+  // Use feed channels and filter/search
   const filteredChannels = useMemo(() => {
-    let channels = allChannels;
+    // Convert feed channels to the format expected by the component
+    let channels = feedChannels.map((fc) => ({
+      id: fc.channelId,
+      title: fc.title || "Channel",
+      thumbnail: fc.thumbnail || undefined,
+      slug: fc.slug || undefined,
+    }));
     const favoriteIds = new Set(favoriteChannels.map((fc) => fc.channelId));
 
     // Filter by favorites
@@ -133,7 +141,7 @@ export function YouTubeChannelSidebar({
     }
 
     return channels;
-  }, [allChannels, searchQuery, filterBy, categoryFilter, sortBy, favoriteChannels, channelCategoriesData]);
+  }, [feedChannels, searchQuery, filterBy, categoryFilter, sortBy, favoriteChannels, channelCategoriesData]);
 
   const handleChannelClick = (channelId: string, slug?: string | null) => {
     router.push(getChannelProfilePath(channelId, slug));
@@ -431,18 +439,51 @@ export function YouTubeChannelSidebar({
         </div>
       )}
 
+      {/* Channels List Header with Edit Button */}
+      {!isCollapsed && !isLoadingFeedChannels && (
+        <div className="px-4 py-2 border-b flex items-center justify-between">
+          <h3 className="text-sm font-semibold">Your Feed</h3>
+          {feedChannels.length > 0 ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsCustomizeFeedOpen(true)}
+              className="h-7 px-2 text-xs cursor-pointer"
+            >
+              <Edit className="h-3 w-3 mr-1" />
+              Customize
+            </Button>
+          ) : null}
+        </div>
+      )}
+
       {/* Channels List */}
       <ScrollArea className="min-h-0">
         <div className={cn("space-y-1", isCollapsed ? "p-1" : "p-2")}>
-          {isLoadingChannels || isLoadingFavorites ? (
+          {isLoadingFeedChannels || isLoadingFavorites ? (
             <div className="space-y-2">
               {Array.from({ length: 8 }).map((_, i) => (
                 <Skeleton key={i} className="h-12 w-full rounded-md" />
               ))}
             </div>
+          ) : filteredChannels.length === 0 && feedChannels.length === 0 ? (
+            <div className="p-4 text-center space-y-3">
+              <p className="text-sm text-muted-foreground">
+                No channels in your feed yet
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsCustomizeFeedOpen(true)}
+                className="cursor-pointer"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Channels
+              </Button>
+            </div>
           ) : filteredChannels.length === 0 ? (
             <div className="p-4 text-center text-sm text-muted-foreground">
-              {searchQuery ? "No channels found" : "No channels available"}
+              {searchQuery ? "No channels found" : "No channels match your filters"}
             </div>
           ) : (
             filteredChannels.map((channel) => {
@@ -524,25 +565,26 @@ export function YouTubeChannelSidebar({
     </div>
   );
 
-  if (isMobile) {
-    return (
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0 [&>button]:hidden">
-          {sidebarContent}
-        </SheetContent>
-      </Sheet>
-    );
-  }
-
   return (
-    <aside 
-      className={cn(
-        "border-r bg-card flex-shrink-0 hidden lg:flex flex-col fixed top-16 bottom-0 z-40 transition-all duration-200 ease-in-out",
-        isCollapsed ? "w-12" : "w-64"
+    <>
+      <FeedCustomizeModal open={isCustomizeFeedOpen} onOpenChange={setIsCustomizeFeedOpen} />
+      {isMobile ? (
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0 [&>button]:hidden">
+            {sidebarContent}
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <aside 
+          className={cn(
+            "border-r bg-card flex-shrink-0 hidden lg:flex flex-col fixed top-16 bottom-0 z-40 transition-all duration-200 ease-in-out",
+            isCollapsed ? "w-12" : "w-64"
+          )}
+        >
+          {sidebarContent}
+        </aside>
       )}
-    >
-      {sidebarContent}
-    </aside>
+    </>
   );
 }
 
