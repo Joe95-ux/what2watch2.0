@@ -38,8 +38,9 @@ export function useFeedChannels() {
   return useQuery({
     queryKey: ["feed-channels"],
     queryFn: fetchFeedChannels,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 0, // Always refetch when invalidated
     gcTime: 1000 * 60 * 60, // 1 hour
+    refetchOnMount: true, // Refetch when component mounts
   });
 }
 

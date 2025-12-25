@@ -83,32 +83,53 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
     enabled: open && searchSource === "app",
   });
 
-  // Fetch user's feed channels (use existing data from cache if available)
-  const { data: feedChannelsData, isLoading: isLoadingFeedChannels } = useQuery({
+  // Fetch user's feed channels (use same format as useFeedChannels hook - array directly)
+  const { data: feedChannelsArray, isLoading: isLoadingFeedChannels } = useQuery({
     queryKey: ["feed-channels"],
     queryFn: async () => {
       const response = await fetch("/api/youtube/channels/pool");
-      if (!response.ok) return { channels: [] };
+      if (!response.ok) return [];
       const data = await response.json();
-      // Ensure channels is always an array
-      const channels = Array.isArray(data.channels) ? data.channels : [];
-      return { channels };
+      // Ensure channels is always an array (match useFeedChannels hook format)
+      return Array.isArray(data.channels) ? data.channels : [];
     },
     enabled: open,
     staleTime: 1000 * 60 * 5, // 5 minutes - use cached data if available
     gcTime: 1000 * 60 * 60, // 1 hour
-    refetchOnMount: false, // Don't refetch when modal opens if data exists
+    refetchOnMount: "always", // Always check for fresh data when modal opens
     refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
-  // Initialize selected channels when feed channels load
+  // Initialize selected channels when modal opens or feed channels load
   useEffect(() => {
-    if (feedChannelsData?.channels && Array.isArray(feedChannelsData.channels)) {
-      setSelectedChannelIds(feedChannelsData.channels.map((c: any) => c.channelId));
-    } else {
+    if (!open) {
+      // Reset when modal closes
+      setSelectedChannelIds([]);
+      return;
+    }
+
+    // When modal opens, try to get data from query cache first, then from feedChannelsArray
+    // The cache might have array format (from useFeedChannels) or object format (from previous modal query)
+    const cachedData = queryClient.getQueryData<any>(["feed-channels"]);
+    let channelsToUse: any[] = [];
+
+    // Handle different cache formats
+    if (Array.isArray(cachedData)) {
+      channelsToUse = cachedData;
+    } else if (cachedData?.channels && Array.isArray(cachedData.channels)) {
+      channelsToUse = cachedData.channels;
+    } else if (Array.isArray(feedChannelsArray)) {
+      channelsToUse = feedChannelsArray;
+    }
+
+    if (channelsToUse.length > 0) {
+      const channelIds = channelsToUse.map((c: any) => c.channelId || c.id).filter(Boolean);
+      setSelectedChannelIds(channelIds);
+    } else if (!isLoadingFeedChannels) {
+      // Only set to empty if we're not loading (to avoid clearing while loading)
       setSelectedChannelIds([]);
     }
-  }, [feedChannelsData]);
+  }, [open, feedChannelsArray, isLoadingFeedChannels, queryClient]);
 
   // Search channels from YouTube
   const searchYouTubeChannels = async (query: string) => {
@@ -153,9 +174,9 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
   const saveFeedPreferences = useMutation({
     mutationFn: async (channelIds: string[]) => {
       // Get current feed channel IDs
-      const feedChannelsArray = Array.isArray(feedChannelsData?.channels) ? feedChannelsData.channels : [];
+      const currentFeedChannels = Array.isArray(feedChannelsArray) ? feedChannelsArray : [];
       const currentFeedChannelIds = new Set<string>(
-        feedChannelsArray.map((c: any) => c.channelId)
+        currentFeedChannels.map((c: any) => c.channelId)
       );
       
       // Determine which channels to add and remove
@@ -208,8 +229,10 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
 
       return { success: true };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["feed-channels"] });
+    onSuccess: async () => {
+      // Invalidate and refetch queries to update sidebar immediately
+      await queryClient.invalidateQueries({ queryKey: ["feed-channels"] });
+      await queryClient.refetchQueries({ queryKey: ["feed-channels"] });
       queryClient.invalidateQueries({ queryKey: ["youtube-channels-all"] });
       queryClient.invalidateQueries({ queryKey: ["youtube-channels-all-infinite"] });
       toast.success("Feed preferences saved");
@@ -228,7 +251,7 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
     return appChannelsData.pages.flatMap((page) => page.channels || []);
   }, [appChannelsData]);
 
-  const feedChannels = Array.isArray(feedChannelsData?.channels) ? feedChannelsData.channels : [];
+  const feedChannels = Array.isArray(feedChannelsArray) ? feedChannelsArray : [];
   const isLoading = isLoadingAppChannels || isLoadingFeedChannels;
 
   // Format subscriber count helper

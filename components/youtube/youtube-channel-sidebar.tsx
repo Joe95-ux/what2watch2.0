@@ -77,7 +77,7 @@ export function YouTubeChannelSidebar({
   const { data: favoriteVideos = [] } = useFavoriteYouTubeVideos();
   const { data: watchlistVideos = [] } = useYouTubeVideoWatchlist();
   const { data: recommendations } = useYouTubeRecommendations();
-  const { data: feedChannels = [], isLoading: isLoadingFeedChannels } = useFeedChannels();
+  const { data: feedChannels = [], isLoading: isLoadingFeedChannels, refetch: refetchFeedChannels } = useFeedChannels();
   const [isCustomizeFeedOpen, setIsCustomizeFeedOpen] = useState(false);
 
   // Use feed channels and filter/search
@@ -579,6 +579,8 @@ export function YouTubeChannelSidebar({
           // Refetch feed channels when modal closes to update sidebar
           if (!newOpen) {
             queryClient.invalidateQueries({ queryKey: ["feed-channels"] });
+            // Explicitly refetch to ensure sidebar updates immediately
+            refetchFeedChannels();
           }
         }} 
       />
