@@ -67,13 +67,6 @@ import { useForumBadges } from "@/hooks/use-forum-badges";
 import BannerSelector from "@/components/social/banner-selector";
 import { Camera, Users, Trophy } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 type TabType = "posts" | "activity" | "notifications" | "summary";
 type StatusFilter = "all" | "published" | "scheduled" | "archived" | "private";
@@ -106,11 +99,13 @@ function MyPostsStickyNav({
   onTabChange,
   isScrolled,
   postCount,
+  isLoading,
 }: {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
   isScrolled: boolean;
   postCount: number;
+  isLoading?: boolean;
 }) {
   const navRef = useRef<HTMLDivElement>(null);
   const activeTabRef = useRef<HTMLButtonElement>(null);
@@ -154,34 +149,42 @@ function MyPostsStickyNav({
     >
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-8 overflow-x-auto scrollbar-hide scroll-smooth">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                ref={isActive ? activeTabRef : null}
-                onClick={() => onTabChange(tab.id)}
-                className={cn(
-                  "relative py-4 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2 flex-shrink-0",
-                  isActive
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {tab.label}
-                {tab.count !== undefined && tab.count > 0 && (
-                  <Badge variant="secondary" className="ml-1 text-xs">
-                    {tab.count}
-                  </Badge>
-                )}
-                {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                )}
-              </button>
-            );
-          })}
+          {isLoading ? (
+            <>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-5 w-16 flex-shrink-0" />
+              ))}
+            </>
+          ) : (
+            tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  ref={isActive ? activeTabRef : null}
+                  onClick={() => onTabChange(tab.id)}
+                  className={cn(
+                    "relative py-4 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2 flex-shrink-0",
+                    isActive
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {tab.label}
+                  {tab.count !== undefined && tab.count > 0 && (
+                    <Badge variant="secondary" className="ml-1 text-xs">
+                      {tab.count}
+                    </Badge>
+                  )}
+                  {isActive && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                  )}
+                </button>
+              );
+            })
+          )}
         </div>
       </div>
     </div>
@@ -429,7 +432,13 @@ export default function MyPostsContent() {
                   <Skeleton className="h-4 w-24" />
                 </div>
               </div>
-              <Skeleton className="h-10 w-full mb-4" />
+              <MyPostsStickyNav
+                activeTab="posts"
+                onTabChange={() => {}}
+                isScrolled={false}
+                postCount={0}
+                isLoading={true}
+              />
               <div className="space-y-4">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Skeleton key={i} className="h-32 w-full rounded-lg" />
@@ -486,6 +495,7 @@ export default function MyPostsContent() {
               onTabChange={setActiveTab}
               isScrolled={isScrolled}
               postCount={totalPosts}
+              isLoading={isLoadingUser}
             />
 
             <div className="px-4 sm:px-6 lg:px-8 py-8">
