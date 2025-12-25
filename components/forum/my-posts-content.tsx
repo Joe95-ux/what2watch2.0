@@ -29,6 +29,7 @@ import {
   MoreVertical,
   BarChart3,
   TrendingUp,
+  Image as ImageIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FilterSearchBar, FilterRow } from "@/components/ui/filter-search-bar";
@@ -60,6 +61,7 @@ import { ForumActivityContent } from "@/components/forum/forum-activity-content"
 import { ForumNotificationsTab } from "@/components/notifications/forum-notifications-tab";
 import { ForumSummaryContent } from "@/components/forum/forum-summary-content";
 import { CreatePostDialog } from "@/components/forum/create-post-dialog";
+import { ForumPostCardReddit } from "@/components/forum/forum-post-card-reddit";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useAvatar } from "@/contexts/avatar-context";
 import { BANNER_GRADIENTS } from "@/components/social/banner-gradient-selector";
@@ -177,9 +179,6 @@ function MyPostsStickyNav({
                     <Badge variant="secondary" className="ml-1 text-xs">
                       {tab.count}
                     </Badge>
-                  )}
-                  {isActive && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
                   )}
                 </button>
               );
@@ -425,11 +424,14 @@ export default function MyPostsContent() {
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Left Column */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-4">
-                <Skeleton className="h-10 w-10 rounded-full" />
-                <div>
-                  <Skeleton className="h-5 w-32 mb-2" />
-                  <Skeleton className="h-4 w-24" />
+              <div className="px-4 sm:px-6 lg:px-8">
+                <div className="flex items-center gap-3 py-4">
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                  <div className="flex-1">
+                    <Skeleton className="h-4 w-32 mb-2" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  <Skeleton className="h-9 w-28" />
                 </div>
               </div>
               <MyPostsStickyNav
@@ -439,17 +441,31 @@ export default function MyPostsContent() {
                 postCount={0}
                 isLoading={true}
               />
-              <div className="space-y-4">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Skeleton key={i} className="h-32 w-full rounded-lg" />
-                ))}
+              <div className="px-4 sm:px-6 lg:px-8 py-8">
+                <div className="space-y-6">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-48 w-full rounded-lg" />
+                  ))}
+                </div>
               </div>
             </div>
             {/* Right Sidebar */}
             <aside className="w-full lg:w-80 flex-shrink-0">
-              <Skeleton className="h-[97px] w-full rounded-lg mb-4" />
-              <Skeleton className="h-20 w-full rounded-lg mb-4" />
-              <Skeleton className="h-32 w-full rounded-lg" />
+              <div className="rounded-lg border border-border bg-background">
+                <Skeleton className="h-[97px] w-full rounded-t-lg" />
+                <div className="p-4 border-b">
+                  <Skeleton className="h-5 w-32 mx-auto mb-2" />
+                  <Skeleton className="h-4 w-24 mx-auto mb-2" />
+                  <Skeleton className="h-4 w-28 mx-auto" />
+                </div>
+                <div className="p-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <Skeleton key={i} className="h-20 w-full" />
+                    ))}
+                  </div>
+                </div>
+              </div>
             </aside>
           </div>
         </div>
@@ -472,22 +488,24 @@ export default function MyPostsContent() {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Main Content Column */}
           <div className="flex-1 min-w-0">
-            {/* Compact Header with Avatar, Username, Display Name */}
-            <div className="flex items-center gap-3 mb-4">
-              <Avatar className="h-10 w-10 border-2 border-background">
-                <AvatarImage src={avatarUrl || undefined} alt={displayName} />
-                <AvatarFallback className="text-lg">{initials}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <h1 className="text-lg font-semibold truncate">{displayName}</h1>
-                {username && (
-                  <p className="text-sm text-muted-foreground truncate">@{username}</p>
-                )}
+            {/* Header with Avatar, Username, Display Name aligned with sticky nav */}
+            <div className="px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center gap-3 py-4">
+                <Avatar className="h-8 w-8 border-2 border-background">
+                  <AvatarImage src={avatarUrl || undefined} alt={displayName} />
+                  <AvatarFallback className="text-sm">{initials}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-base font-semibold truncate">{displayName}</h1>
+                  {username && (
+                    <p className="text-xs text-muted-foreground truncate">@{username}</p>
+                  )}
+                </div>
+                <Button onClick={() => setIsCreateDialogOpen(true)} className="cursor-pointer" size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Post
+                </Button>
               </div>
-              <Button onClick={() => setIsCreateDialogOpen(true)} className="cursor-pointer" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Post
-              </Button>
             </div>
 
             <MyPostsStickyNav
@@ -686,174 +704,31 @@ export default function MyPostsContent() {
               </div>
             ) : (
               <>
-                <div className="mt-6">
-                  {posts.map((post: Post) => (
-                    <div
-                      key={post.id}
-                      className="pb-4 border-b hover:bg-muted/30 transition-colors p-4"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start gap-3 mb-2">
-                            <Link
-                              href={`/forum/${post.slug}`}
-                              className="font-medium hover:text-primary transition-colors flex-1 min-w-0"
-                            >
-                              <h4 className="truncate">{post.title}</h4>
-                            </Link>
-                            {/* Status badge - visible on sm+ screens */}
-                            <div className="hidden sm:block flex-shrink-0">
-                              {getStatusBadge(post.status, post.scheduledAt)}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground flex-wrap">
-                            {post.category && (
-                              <span
-                                className="px-2 py-0.5 rounded text-xs font-medium"
-                                style={{ backgroundColor: `${post.category.color}20`, color: post.category.color }}
-                              >
-                                {post.category.name}
-                              </span>
-                            )}
-                            <span>{post.replyCount} replies</span>
-                            <span>{post.score} score</span>
-                            <span>{post.views} views</span>
-                            <span>{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>
-                          </div>
-                          {post.tags && post.tags.length > 0 && (
-                            <div className="flex items-center justify-between gap-2 mt-2 flex-wrap">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                {post.tags.slice(0, 5).map((tag) => (
-                                  <Badge key={tag} variant="secondary" className="text-xs">
-                                    {tag}
-                                  </Badge>
-                                ))}
-                              </div>
-                              {/* Status badge - visible on < sm screens, on same row as tags */}
-                              <div className="sm:hidden flex-shrink-0">
-                                {getStatusBadge(post.status, post.scheduledAt)}
-                              </div>
-                            </div>
-                          )}
-                          {/* If no tags, show status badge on its own row on small screens */}
-                          {(!post.tags || post.tags.length === 0) && (
-                            <div className="sm:hidden mt-2">
-                              {getStatusBadge(post.status, post.scheduledAt)}
-                            </div>
-                          )}
-                        </div>
-                        {/* Action buttons - visible on sm+ screens */}
-                        <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  window.open(`/forum/${post.slug}`, "_blank");
-                                }}
-                                className="h-8 w-8 cursor-pointer"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>View post</p>
-                            </TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setEditingPost(post);
-                                }}
-                                className="h-8 w-8 cursor-pointer"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Edit post</p>
-                            </TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  handleDeleteClick(post);
-                                }}
-                                className="h-8 w-8 cursor-pointer text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Delete post</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        {/* Dropdown menu - visible on < sm screens */}
-                        <div className="sm:hidden flex-shrink-0">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 cursor-pointer"
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  router.push(`/forum/${post.slug}`);
-                                }}
-                                className="cursor-pointer"
-                              >
-                                <Eye className="h-4 w-4 mr-2" />
-                                View
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  router.push(`/forum/${post.slug}?edit=true`);
-                                }}
-                                className="cursor-pointer"
-                              >
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  handleDeleteClick(post);
-                                }}
-                                className="cursor-pointer text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="mt-6 space-y-6">
+                  {posts.map((post: Post) => {
+                    // Convert Post to ForumPost format for ForumPostCardReddit
+                    const forumPost = {
+                      id: post.id,
+                      slug: post.slug,
+                      title: post.title,
+                      content: post.content,
+                      tags: post.tags,
+                      category: post.category,
+                      views: post.views,
+                      score: post.score,
+                      replyCount: post.replyCount,
+                      status: post.status,
+                      author: {
+                        id: currentUser?.id || "",
+                        username: username || "",
+                        displayName: displayName,
+                        avatarUrl: avatarUrl || undefined,
+                      },
+                      createdAt: post.createdAt,
+                      updatedAt: post.updatedAt,
+                    };
+                    return <ForumPostCardReddit key={post.id} post={forumPost} />;
+                  })}
                 </div>
 
                 {/* Pagination */}
@@ -905,9 +780,9 @@ export default function MyPostsContent() {
 
           {/* Right Sidebar - Sticky */}
           <aside className="w-full lg:w-80 flex-shrink-0 lg:sticky lg:top-[85px] self-start">
-            <div className="space-y-4">
+            <div className="rounded-lg border border-border bg-background">
               {/* Banner Section */}
-              <div className="relative h-[97px] rounded-lg overflow-hidden">
+              <div className="relative h-[97px] rounded-t-lg overflow-hidden">
                 {bannerDisplay.type === "image" ? (
                   <Image
                     src={bannerDisplay.url}
@@ -923,25 +798,17 @@ export default function MyPostsContent() {
                     style={{ background: bannerDisplay.gradient }}
                   />
                 )}
-                {/* Avatar Icon Overlay */}
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2">
-                  <button
-                    onClick={() => setIsEditBannerOpen(true)}
-                    className="relative cursor-pointer group"
-                  >
-                    <Avatar className="h-16 w-16 border-4 border-background">
-                      <AvatarImage src={avatarUrl || undefined} alt={displayName} />
-                      <AvatarFallback className="text-xl">{initials}</AvatarFallback>
-                    </Avatar>
-                    <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Camera className="h-5 w-5 text-white" />
-                    </div>
-                  </button>
-                </div>
+                {/* Banner Modal Trigger - Small circular icon at bottom right */}
+                <button
+                  onClick={() => setIsEditBannerOpen(true)}
+                  className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-background/90 hover:bg-background border border-border flex items-center justify-center cursor-pointer transition-colors shadow-sm"
+                >
+                  <ImageIcon className="h-4 w-4 text-foreground" />
+                </button>
               </div>
 
               {/* User Info */}
-              <div className="pt-8 space-y-3">
+              <div className="p-4 border-b">
                 <div className="text-center">
                   <h2 className="font-semibold text-lg">{displayName}</h2>
                   {username && (
@@ -954,13 +821,15 @@ export default function MyPostsContent() {
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Stats Grid */}
-                {stats && topStats.length > 0 && (
-                  <>
-                    <div className="grid grid-cols-4 divide-x divide-y divide-border">
+              {/* Stats Grid */}
+              {stats && topStats.length > 0 && (
+                <>
+                  <div className="p-4 border-b">
+                    <div className="grid grid-cols-2 divide-y divide-border">
                       {topStats.map((stat, index) => {
-                        const columnsPerRow = 4;
+                        const columnsPerRow = 2;
                         const totalRows = Math.ceil(topStats.length / columnsPerRow);
                         const currentRow = Math.floor(index / columnsPerRow) + 1;
                         const isLastRow = currentRow === totalRows;
@@ -968,7 +837,7 @@ export default function MyPostsContent() {
                           <div 
                             key={stat.label} 
                             className={cn(
-                              "p-4 sm:p-8",
+                              "p-4",
                               isLastRow && "border-b-0"
                             )}
                           >
@@ -983,43 +852,41 @@ export default function MyPostsContent() {
                         );
                       })}
                     </div>
+                  </div>
 
-                    <Separator />
-
-                    {/* Achievements/Badges */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-3">
-                        <Trophy className="h-4 w-4 text-muted-foreground" />
-                        <h3 className="text-sm font-semibold">Achievements</h3>
-                      </div>
-                      {userBadges.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {userBadges.slice(0, 6).map((userBadge) => (
-                            <Tooltip key={userBadge.id}>
-                              <TooltipTrigger asChild>
-                                <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted border border-border">
-                                  <span className="text-sm">{userBadge.badge.icon || "🏆"}</span>
-                                  <span className="text-xs font-medium">{userBadge.badge.name}</span>
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{userBadge.badge.description}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          ))}
-                          {userBadges.length > 6 && (
-                            <div className="flex items-center justify-center px-2 py-1 rounded-md bg-muted border border-border">
-                              <span className="text-xs font-medium">+{userBadges.length - 6}</span>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">No achievements yet</p>
-                      )}
+                  {/* Achievements/Badges */}
+                  <div className="p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Trophy className="h-4 w-4 text-muted-foreground" />
+                      <h3 className="text-sm font-semibold">Achievements</h3>
                     </div>
-                  </>
-                )}
-              </div>
+                    {userBadges.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {userBadges.slice(0, 6).map((userBadge) => (
+                          <Tooltip key={userBadge.id}>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted border border-border">
+                                <span className="text-sm">{userBadge.badge.icon || "🏆"}</span>
+                                <span className="text-xs font-medium">{userBadge.badge.name}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{userBadge.badge.description}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ))}
+                        {userBadges.length > 6 && (
+                          <div className="flex items-center justify-center px-2 py-1 rounded-md bg-muted border border-border">
+                            <span className="text-xs font-medium">+{userBadges.length - 6}</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">No achievements yet</p>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </aside>
         </div>
