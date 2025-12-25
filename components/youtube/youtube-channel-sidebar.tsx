@@ -24,7 +24,7 @@ import { useYouTubeVideoWatchlist } from "@/hooks/use-youtube-video-watchlist";
 import { useYouTubeRecommendations } from "@/hooks/use-youtube-recommendations";
 import { useFeedChannels } from "@/hooks/use-feed-channels";
 import { getChannelProfilePath } from "@/lib/channel-path";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -47,6 +47,7 @@ export function YouTubeChannelSidebar({
 }: YouTubeChannelSidebarProps) {
   const router = useRouter();
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterBy, setFilterBy] = useState<"all" | "favorites">("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -470,7 +471,7 @@ export function YouTubeChannelSidebar({
                 <Skeleton key={i} className="h-12 w-full rounded-md" />
               ))}
             </div>
-          ) : (!Array.isArray(filteredChannels) || filteredChannels.length === 0) && (!Array.isArray(feedChannels) || feedChannels.length === 0) ? (
+          ) : !isLoadingFeedChannels && (!Array.isArray(filteredChannels) || filteredChannels.length === 0) && (!Array.isArray(feedChannels) || feedChannels.length === 0) ? (
             <div className="p-4 text-center space-y-3">
               <p className="text-sm text-muted-foreground">
                 No channels in your feed yet
@@ -571,7 +572,16 @@ export function YouTubeChannelSidebar({
 
   return (
     <>
-      <FeedCustomizeModal open={isCustomizeFeedOpen} onOpenChange={setIsCustomizeFeedOpen} />
+      <FeedCustomizeModal 
+        open={isCustomizeFeedOpen} 
+        onOpenChange={(newOpen) => {
+          setIsCustomizeFeedOpen(newOpen);
+          // Refetch feed channels when modal closes to update sidebar
+          if (!newOpen) {
+            queryClient.invalidateQueries({ queryKey: ["feed-channels"] });
+          }
+        }} 
+      />
       {isMobile ? (
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0 [&>button]:hidden">

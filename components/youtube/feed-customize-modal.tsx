@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Search, X, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,9 +20,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -33,6 +33,8 @@ interface Channel {
   thumbnail?: string;
   channelUrl?: string;
   slug?: string | null;
+  subscriberCount?: string;
+  videoCount?: string;
 }
 
 interface FeedCustomizeModalProps {
@@ -53,21 +55,35 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<Channel[]>([]);
 
-  // Fetch all channels from app pool
-  const { data: appChannelsData, isLoading: isLoadingAppChannels } = useQuery({
-    queryKey: ["youtube-channels-all"],
-    queryFn: async () => {
-      const response = await fetch("/api/youtube/channels/all?limit=1000");
-      if (!response.ok) return { channels: [] };
+  // Fetch channels from app pool with infinite loading
+  const {
+    data: appChannelsData,
+    isLoading: isLoadingAppChannels,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["youtube-channels-all-infinite"],
+    queryFn: async ({ pageParam = 1 }) => {
+      const response = await fetch(`/api/youtube/channels/all?page=${pageParam}&limit=30`);
+      if (!response.ok) return { channels: [], pagination: { page: 1, totalPages: 1 } };
       const data = await response.json();
-      // Ensure channels is always an array
-      const channels = Array.isArray(data.channels) ? data.channels : [];
-      return { channels };
+      return {
+        channels: Array.isArray(data.channels) ? data.channels : [],
+        pagination: data.pagination || { page: 1, totalPages: 1 },
+      };
     },
+    getNextPageParam: (lastPage) => {
+      if (lastPage.pagination.page < lastPage.pagination.totalPages) {
+        return lastPage.pagination.page + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
     enabled: open && searchSource === "app",
   });
 
-  // Fetch user's feed channels
+  // Fetch user's feed channels (use existing data from cache if available)
   const { data: feedChannelsData, isLoading: isLoadingFeedChannels } = useQuery({
     queryKey: ["feed-channels"],
     queryFn: async () => {
@@ -79,6 +95,10 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
       return { channels };
     },
     enabled: open,
+    staleTime: 1000 * 60 * 5, // 5 minutes - use cached data if available
+    gcTime: 1000 * 60 * 60, // 1 hour
+    refetchOnMount: false, // Don't refetch when modal opens if data exists
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
   // Initialize selected channels when feed channels load
@@ -191,6 +211,7 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feed-channels"] });
       queryClient.invalidateQueries({ queryKey: ["youtube-channels-all"] });
+      queryClient.invalidateQueries({ queryKey: ["youtube-channels-all-infinite"] });
       toast.success("Feed preferences saved");
       setIsSaving(false);
       onOpenChange(false);
@@ -201,9 +222,24 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
     },
   });
 
-  const appChannels = Array.isArray(appChannelsData?.channels) ? appChannelsData.channels : [];
+  // Flatten all pages of channels from infinite query
+  const appChannels = useMemo(() => {
+    if (!appChannelsData?.pages) return [];
+    return appChannelsData.pages.flatMap((page) => page.channels || []);
+  }, [appChannelsData]);
+
   const feedChannels = Array.isArray(feedChannelsData?.channels) ? feedChannelsData.channels : [];
   const isLoading = isLoadingAppChannels || isLoadingFeedChannels;
+
+  // Format subscriber count helper
+  const formatSubscriberCount = (count: string | number): string => {
+    if (!count) return "0";
+    const num = typeof count === "string" ? parseInt(count, 10) : count;
+    if (isNaN(num)) return "0";
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return num.toString();
+  };
 
   // Get channels to display based on search source
   // Normalize channel format: YouTube results have `id`, app pool has `channelId`
@@ -275,6 +311,33 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
     // Reset to empty feed
     setSelectedChannelIds([]);
   };
+
+  // Intersection Observer for infinite scroll
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open || searchSource !== "app" || !hasNextPage || isFetchingNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [open, searchSource, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return (
     <Dialog open={open} onOpenChange={(newOpen) => {
@@ -445,7 +508,9 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
                     <div className="flex-1 min-w-0">
                       <div className="font-medium line-clamp-1">{channel.title || "Channel"}</div>
                       <p className="text-sm text-muted-foreground line-clamp-1">
-                        {channel.channelId}
+                        {channel.subscriberCount 
+                          ? `${formatSubscriberCount(channel.subscriberCount)} subscribers`
+                          : channel.channelId}
                       </p>
                     </div>
 
@@ -458,6 +523,27 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Infinite scroll trigger */}
+          {searchSource === "app" && hasNextPage && (
+            <div ref={loadMoreRef} className="py-4 text-center">
+              {isFetchingNextPage ? (
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Loading more channels...</span>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchNextPage()}
+                  className="cursor-pointer"
+                >
+                  Load More
+                </Button>
+              )}
             </div>
           )}
         </div>
