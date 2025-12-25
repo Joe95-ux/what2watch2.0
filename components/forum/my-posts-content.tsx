@@ -80,6 +80,9 @@ interface Post {
   title: string;
   content: string;
   tags: string[];
+  metadata?: Record<string, any> | null;
+  tmdbId?: number;
+  mediaType?: string;
   category: {
     id: string;
     name: string;
@@ -522,19 +525,14 @@ export default function MyPostsContent() {
             <div className="px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === "posts" && (
           <>
-            {/* Post Count */}
-            <div className="mb-6">
-              <p className="text-muted-foreground">
-                {totalPosts} {totalPosts === 1 ? "post" : "posts"}
-                {activeFilterCount > 0 && (
-                  <span className="ml-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {activeFilterCount} {activeFilterCount === 1 ? "filter" : "filters"} active
-                    </Badge>
-                  </span>
-                )}
-              </p>
-            </div>
+            {/* Active Filters Badge */}
+            {activeFilterCount > 0 && (
+              <div className="mb-6">
+                <Badge variant="secondary" className="text-xs">
+                  {activeFilterCount} {activeFilterCount === 1 ? "filter" : "filters"} active
+                </Badge>
+              </div>
+            )}
 
             {/* Search and Filters */}
             <div className="mb-5">
@@ -716,6 +714,9 @@ export default function MyPostsContent() {
                       title: post.title,
                       content: post.content,
                       tags: post.tags,
+                      metadata: post.metadata || null,
+                      tmdbId: post.tmdbId,
+                      mediaType: post.mediaType,
                       category: post.category,
                       views: post.views,
                       score: post.score,
@@ -940,6 +941,7 @@ export default function MyPostsContent() {
             title: editingPost.title,
             content: editingPost.content,
             tags: editingPost.tags,
+            metadata: editingPost.metadata || null,
             category: editingPost.category,
           }}
         />

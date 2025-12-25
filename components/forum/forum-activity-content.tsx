@@ -428,14 +428,6 @@ export function ForumActivityContent() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold">Forum Activity</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Track your forum posts and replies
-        </p>
-      </div>
-
       {/* Search and Filters */}
       <div className="mb-6">
         <div className="flex justify-end">
