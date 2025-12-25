@@ -134,8 +134,9 @@ export function EditPostDialog({
           setContent(draft.content || post.content);
           setTags(draft.tags || post.tags.join(", "));
           setCategoryId(draft.categoryId || post.category?.id || "");
-          // Only normalize if draft metadata exists, otherwise normalize post metadata (for legacy data)
-          const finalMetadata = draft.metadata ? normalizeMetadata(draft.metadata) : normalizeMetadata(post.metadata);
+          // Use draft metadata only if it has actual values, otherwise use post metadata
+          const hasDraftMetadata = draft.metadata && typeof draft.metadata === "object" && Object.keys(draft.metadata).length > 0;
+          const finalMetadata = hasDraftMetadata ? normalizeMetadata(draft.metadata) : normalizeMetadata(post.metadata);
           console.log("[EditPostDialog] Final metadata after normalization:", finalMetadata);
           setMetadata(finalMetadata);
           setStep(draft.step || 1);
