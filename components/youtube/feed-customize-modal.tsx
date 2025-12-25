@@ -60,7 +60,9 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
       const response = await fetch("/api/youtube/channels/all?limit=1000");
       if (!response.ok) return { channels: [] };
       const data = await response.json();
-      return { channels: data.channels || [] };
+      // Ensure channels is always an array
+      const channels = Array.isArray(data.channels) ? data.channels : [];
+      return { channels };
     },
     enabled: open && searchSource === "app",
   });
@@ -72,15 +74,19 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
       const response = await fetch("/api/youtube/channels/pool");
       if (!response.ok) return { channels: [] };
       const data = await response.json();
-      return { channels: data.channels || [] };
+      // Ensure channels is always an array
+      const channels = Array.isArray(data.channels) ? data.channels : [];
+      return { channels };
     },
     enabled: open,
   });
 
   // Initialize selected channels when feed channels load
   useEffect(() => {
-    if (feedChannelsData?.channels) {
+    if (feedChannelsData?.channels && Array.isArray(feedChannelsData.channels)) {
       setSelectedChannelIds(feedChannelsData.channels.map((c: any) => c.channelId));
+    } else {
+      setSelectedChannelIds([]);
     }
   }, [feedChannelsData]);
 
@@ -96,7 +102,7 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
       const response = await fetch(`/api/youtube/channels/search?q=${encodeURIComponent(query)}&maxResults=20`);
       if (response.ok) {
         const data = await response.json();
-        setSearchResults(data.channels || []);
+        setSearchResults(Array.isArray(data.channels) ? data.channels : []);
       } else {
         const errorData = await response.json().catch(() => ({}));
         toast.error(errorData.error || "Failed to search channels");
@@ -127,8 +133,9 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
   const saveFeedPreferences = useMutation({
     mutationFn: async (channelIds: string[]) => {
       // Get current feed channel IDs
+      const feedChannelsArray = Array.isArray(feedChannelsData?.channels) ? feedChannelsData.channels : [];
       const currentFeedChannelIds = new Set<string>(
-        (feedChannelsData?.channels || []).map((c: any) => c.channelId)
+        feedChannelsArray.map((c: any) => c.channelId)
       );
       
       // Determine which channels to add and remove
@@ -194,19 +201,21 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
     },
   });
 
-  const appChannels = appChannelsData?.channels || [];
-  const feedChannels = feedChannelsData?.channels || [];
+  const appChannels = Array.isArray(appChannelsData?.channels) ? appChannelsData.channels : [];
+  const feedChannels = Array.isArray(feedChannelsData?.channels) ? feedChannelsData.channels : [];
   const isLoading = isLoadingAppChannels || isLoadingFeedChannels;
 
   // Get channels to display based on search source
   // Normalize channel format: YouTube results have `id`, app pool has `channelId`
   const availableChannels = useMemo(() => {
     if (searchSource === "youtube") {
+      if (!Array.isArray(searchResults)) return [];
       return searchResults.map((ch) => ({
         ...ch,
         channelId: ch.id || ch.channelId, // Normalize: use `id` if present, otherwise `channelId`
       }));
     } else {
+      if (!Array.isArray(appChannels)) return [];
       return appChannels.map((ch: any) => ({
         ...ch,
         channelId: ch.channelId, // App pool already has channelId
