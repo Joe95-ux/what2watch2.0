@@ -28,6 +28,7 @@ import {
   ArrowDown,
   MoreVertical,
   BarChart3,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FilterSearchBar, FilterRow } from "@/components/ui/filter-search-bar";
@@ -62,6 +63,17 @@ import { CreatePostDialog } from "@/components/forum/create-post-dialog";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useAvatar } from "@/contexts/avatar-context";
 import { BANNER_GRADIENTS } from "@/components/social/banner-gradient-selector";
+import { useForumBadges } from "@/hooks/use-forum-badges";
+import BannerSelector from "@/components/social/banner-selector";
+import { Camera, Users, Trophy } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type TabType = "posts" | "activity" | "notifications" | "summary";
 type StatusFilter = "all" | "published" | "scheduled" | "archived" | "private";
@@ -140,7 +152,7 @@ function MyPostsStickyNav({
           : "bg-background border-border"
       )}
     >
-      <div className="max-w-[70rem] mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-8 overflow-x-auto scrollbar-hide scroll-smooth">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -200,6 +212,7 @@ export default function MyPostsContent() {
   const [postToDelete, setPostToDelete] = useState<Post | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [isEditBannerOpen, setIsEditBannerOpen] = useState(false);
 
   // Calculate display name and initials
   const displayName = currentUser?.displayName || currentUser?.username || "User";
@@ -219,13 +232,47 @@ export default function MyPostsContent() {
     return { type: "gradient" as const, gradient: gradient?.gradient || "#061E1C" };
   }, [currentUser?.bannerUrl, currentUser?.bannerGradientId, currentUser]);
 
+  // Fetch follower count
+  const { data: followersData } = useQuery<{ followersCount: number }>({
+    queryKey: ["user", currentUser?.id, "followers-count"],
+    queryFn: async () => {
+      if (!currentUser?.id) return { followersCount: 0 };
+      const response = await fetch(`/api/users/${currentUser.id}/profile`);
+      if (!response.ok) return { followersCount: 0 };
+      const data = await response.json();
+      return { followersCount: data.user?.followersCount || 0 };
+    },
+    enabled: !!currentUser?.id,
+    staleTime: 60 * 1000, // 1 minute
+  });
+  const followersCount = followersData?.followersCount || 0;
+
+  // Fetch badges
+  const { data: badgesData } = useForumBadges(currentUser?.id || null);
+  const userBadges = badgesData?.userBadges || [];
+
+  // Fetch stats for sidebar
+  const { data: statsData } = useQuery<{ stats: any }>({
+    queryKey: ["forum-my-stats"],
+    queryFn: async () => {
+      if (!currentUser?.id) {
+        throw new Error("User not found");
+      }
+      const response = await fetch(`/api/forum/stats/my-stats`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch forum stats");
+      }
+      return response.json();
+    },
+    enabled: !!currentUser?.id,
+  });
+
+  const stats = statsData?.stats;
+
   // Scroll detection
   useEffect(() => {
     const handleScroll = () => {
-      if (heroRef.current) {
-        const rect = heroRef.current.getBoundingClientRect();
-        setIsScrolled(rect.bottom < 100);
-      }
+      setIsScrolled(window.scrollY > 50);
     };
 
     window.addEventListener("scroll", handleScroll);
@@ -371,110 +418,77 @@ export default function MyPostsContent() {
   if (isLoadingUser) {
     return (
       <div className="min-h-screen">
-        {/* Banner Skeleton */}
-        <div className="relative h-[150px] max-w-[70rem] mx-auto sm:mt-[1rem] sm:mb-0 sm:rounded-[25px] overflow-hidden bg-muted">
-          <Skeleton className="w-full h-full" />
-        </div>
-
-        {/* Profile Info Skeleton */}
-        <div className="max-w-[70rem] mx-auto px-4 sm:px-6">
-          <div className="relative -mt-16 sm:-mt-10 mb-4">
-            <Skeleton className="h-24 w-24 rounded-full" />
-          </div>
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4 flex-wrap">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Left Column */}
             <div className="flex-1 min-w-0">
-              <Skeleton className="h-8 w-48 mb-2" />
-              <Skeleton className="h-5 w-32" />
+              <div className="flex items-center gap-3 mb-4">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div>
+                  <Skeleton className="h-5 w-32 mb-2" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              </div>
+              <Skeleton className="h-10 w-full mb-4" />
+              <div className="space-y-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-32 w-full rounded-lg" />
+                ))}
+              </div>
             </div>
-            <Skeleton className="h-10 w-32" />
-          </div>
-        </div>
-
-        {/* Sticky Nav Skeleton */}
-        <div className="sticky top-[65px] z-40 border-b bg-background/95 backdrop-blur-md">
-          <div className="max-w-[70rem] mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-8">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-24" />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Content Skeleton */}
-        <div className="max-w-[70rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="space-y-4">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-32 w-full rounded-lg" />
-            ))}
+            {/* Right Sidebar */}
+            <aside className="w-full lg:w-80 flex-shrink-0">
+              <Skeleton className="h-[97px] w-full rounded-lg mb-4" />
+              <Skeleton className="h-20 w-full rounded-lg mb-4" />
+              <Skeleton className="h-32 w-full rounded-lg" />
+            </aside>
           </div>
         </div>
       </div>
     );
   }
 
+  // Top 4 stats for sidebar
+  const topStats = stats ? [
+    { label: "Total Posts", value: stats.postCount, icon: <MessageSquare className="h-5 w-5 text-blue-500" /> },
+    { label: "Total Views", value: stats.totalViews, icon: <Eye className="h-5 w-5 text-purple-500" /> },
+    { label: "Total Score", value: stats.totalScore, icon: <TrendingUp className="h-5 w-5 text-amber-500" /> },
+    { label: "Upvotes", value: stats.totalUpvotes, icon: <ArrowUp className="h-5 w-5 text-emerald-500" /> },
+  ] : [];
+
   return (
     <div className="min-h-screen">
-      {/* Banner/Cover Section */}
-      <div ref={heroRef} className="relative h-[150px] max-w-[70rem] mx-auto sm:mt-[1rem] sm:mb-0 sm:rounded-[25px] overflow-hidden">
-        {bannerDisplay.type === "image" ? (
-          <>
-            <Image
-              src={bannerDisplay.url}
-              alt="Banner"
-              fill
-              className="object-cover"
-              sizes="100vw"
-              unoptimized
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/40 to-transparent" />
-          </>
-        ) : (
-          <>
-            <div 
-              className="w-full h-full" 
-              style={{ background: bannerDisplay.gradient }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/40 to-transparent" />
-          </>
-        )}
-      </div>
-
-      {/* Profile Info Section */}
-      <div className="max-w-[70rem] mx-auto px-4 sm:px-6">
-        {/* Avatar */}
-        <div className="relative -mt-16 sm:-mt-10 mb-4">
-          <Avatar className="h-24 w-24 border-4 border-background">
-            <AvatarImage src={avatarUrl || undefined} alt={displayName} />
-            <AvatarFallback className="text-3xl sm:text-4xl">{initials}</AvatarFallback>
-          </Avatar>
-        </div>
-
-        {/* Profile Info and Create Post Button */}
-        <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4 flex-wrap">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Two Column Layout */}
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Main Content Column */}
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold mb-1">{displayName}</h1>
-            {username && (
-              <p className="text-base sm:text-lg text-muted-foreground">@{username}</p>
-            )}
-          </div>
-          <div className="flex-shrink-0">
-            <Button onClick={() => setIsCreateDialogOpen(true)} className="cursor-pointer">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Post
-            </Button>
-          </div>
-        </div>
-      </div>
-      
-      <MyPostsStickyNav
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        isScrolled={isScrolled}
-        postCount={totalPosts}
-      />
+            {/* Compact Header with Avatar, Username, Display Name */}
+            <div className="flex items-center gap-3 mb-4">
+              <Avatar className="h-10 w-10 border-2 border-background">
+                <AvatarImage src={avatarUrl || undefined} alt={displayName} />
+                <AvatarFallback className="text-lg">{initials}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-lg font-semibold truncate">{displayName}</h1>
+                {username && (
+                  <p className="text-sm text-muted-foreground truncate">@{username}</p>
+                )}
+              </div>
+              <Button onClick={() => setIsCreateDialogOpen(true)} className="cursor-pointer" size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Post
+              </Button>
+            </div>
 
-      <div className="max-w-[70rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <MyPostsStickyNav
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              isScrolled={isScrolled}
+              postCount={totalPosts}
+            />
+
+            <div className="px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === "posts" && (
           <>
             {/* Post Count */}
@@ -662,7 +676,7 @@ export default function MyPostsContent() {
               </div>
             ) : (
               <>
-                <div className="space-y-4 mt-6">
+                <div className="mt-6">
                   {posts.map((post: Post) => (
                     <div
                       key={post.id}
@@ -876,6 +890,129 @@ export default function MyPostsContent() {
         {activeTab === "summary" && (
           <ForumSummaryContent />
         )}
+            </div>
+          </div>
+
+          {/* Right Sidebar - Sticky */}
+          <aside className="w-full lg:w-80 flex-shrink-0 lg:sticky lg:top-[85px] self-start">
+            <div className="space-y-4">
+              {/* Banner Section */}
+              <div className="relative h-[97px] rounded-lg overflow-hidden">
+                {bannerDisplay.type === "image" ? (
+                  <Image
+                    src={bannerDisplay.url}
+                    alt="Banner"
+                    fill
+                    className="object-cover"
+                    sizes="320px"
+                    unoptimized
+                  />
+                ) : (
+                  <div 
+                    className="w-full h-full" 
+                    style={{ background: bannerDisplay.gradient }}
+                  />
+                )}
+                {/* Avatar Icon Overlay */}
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2">
+                  <button
+                    onClick={() => setIsEditBannerOpen(true)}
+                    className="relative cursor-pointer group"
+                  >
+                    <Avatar className="h-16 w-16 border-4 border-background">
+                      <AvatarImage src={avatarUrl || undefined} alt={displayName} />
+                      <AvatarFallback className="text-xl">{initials}</AvatarFallback>
+                    </Avatar>
+                    <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Camera className="h-5 w-5 text-white" />
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* User Info */}
+              <div className="pt-8 space-y-3">
+                <div className="text-center">
+                  <h2 className="font-semibold text-lg">{displayName}</h2>
+                  {username && (
+                    <p className="text-sm text-muted-foreground">@{username}</p>
+                  )}
+                  <div className="flex items-center justify-center gap-4 mt-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      <span>{followersCount} {followersCount === 1 ? "follower" : "followers"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stats Grid */}
+                {stats && topStats.length > 0 && (
+                  <>
+                    <div className="grid grid-cols-4 divide-x divide-y divide-border">
+                      {topStats.map((stat, index) => {
+                        const columnsPerRow = 4;
+                        const totalRows = Math.ceil(topStats.length / columnsPerRow);
+                        const currentRow = Math.floor(index / columnsPerRow) + 1;
+                        const isLastRow = currentRow === totalRows;
+                        return (
+                          <div 
+                            key={stat.label} 
+                            className={cn(
+                              "p-4 sm:p-8",
+                              isLastRow && "border-b-0"
+                            )}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-[15px] font-medium text-muted-foreground">
+                                {stat.label}
+                              </span>
+                              {stat.icon}
+                            </div>
+                            <div className="text-2xl font-bold">{stat.value.toLocaleString()}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <Separator />
+
+                    {/* Achievements/Badges */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Trophy className="h-4 w-4 text-muted-foreground" />
+                        <h3 className="text-sm font-semibold">Achievements</h3>
+                      </div>
+                      {userBadges.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {userBadges.slice(0, 6).map((userBadge) => (
+                            <Tooltip key={userBadge.id}>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted border border-border">
+                                  <span className="text-sm">{userBadge.badge.icon || "🏆"}</span>
+                                  <span className="text-xs font-medium">{userBadge.badge.name}</span>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{userBadge.badge.description}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                          {userBadges.length > 6 && (
+                            <div className="flex items-center justify-center px-2 py-1 rounded-md bg-muted border border-border">
+                              <span className="text-xs font-medium">+{userBadges.length - 6}</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">No achievements yet</p>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </aside>
+        </div>
       </div>
 
       {/* Delete Confirmation Dialog */}
@@ -927,6 +1064,50 @@ export default function MyPostsContent() {
           }}
         />
       )}
+
+      {/* Edit Banner Dialog */}
+      <Dialog open={isEditBannerOpen} onOpenChange={setIsEditBannerOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
+            <DialogTitle>Change Banner</DialogTitle>
+            <DialogDescription>
+              Choose a gradient or upload your own banner image
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-4 min-h-0">
+            <BannerSelector
+              selectedGradient={currentUser?.bannerGradientId || undefined}
+              selectedBannerUrl={currentUser?.bannerUrl}
+              onSelect={async (data) => {
+                try {
+                  const response = await fetch("/api/user/banner", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      bannerUrl: data.bannerUrl,
+                      bannerGradientId: data.gradientId,
+                    }),
+                  });
+
+                  if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || "Failed to save banner");
+                  }
+
+                  await queryClient.invalidateQueries({ queryKey: ["current-user"] });
+                  toast.success("Banner updated!");
+                  setIsEditBannerOpen(false);
+                } catch (error) {
+                  console.error("Error updating banner:", error);
+                  toast.error(error instanceof Error ? error.message : "Failed to update banner");
+                }
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

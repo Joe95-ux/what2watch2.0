@@ -730,7 +730,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
                       </Button>
                     </Link>
                   </div>
-                  <div className="space-y-4">
+                  <div>
                     {recentPosts.map((post: any) => (
                       <Link
                         key={post.id}
@@ -773,7 +773,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
                       </Button>
                     </Link>
                   </div>
-                  <div className="space-y-4">
+                  <div>
                     {recentReplies.map((reply: any) => (
                       <Link
                         key={reply.id}

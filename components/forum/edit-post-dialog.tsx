@@ -49,6 +49,54 @@ interface EditPostDialogProps {
   post: ForumPost;
 }
 
+/**
+ * Normalize metadata from old format (linkId + linkType) to new format (playlistLink, listLink, watchlistLink)
+ * Also handles cases where playlistLink might be stored as just an ID or in different formats
+ */
+function normalizeMetadata(metadata: Record<string, any> | null | undefined): Record<string, any> {
+  if (!metadata || typeof metadata !== "object") {
+    return {};
+  }
+
+  const normalized = { ...metadata };
+
+  // Convert old format (linkId + linkType) to new format
+  if (metadata.linkId && metadata.linkType && !metadata.playlistLink && !metadata.listLink && !metadata.watchlistLink) {
+    const linkId = metadata.linkId;
+    const linkType = metadata.linkType;
+
+    // Build the URL based on linkType
+    if (linkType === "playlist") {
+      // If linkId is already a URL, use it; otherwise construct it
+      normalized.playlistLink = linkId.startsWith("/") || linkId.startsWith("http") 
+        ? linkId 
+        : `/playlists/${linkId}`;
+    } else if (linkType === "list") {
+      normalized.listLink = linkId.startsWith("/") || linkId.startsWith("http")
+        ? linkId
+        : `/lists/${linkId}`;
+    } else if (linkType === "watchlist") {
+      normalized.watchlistLink = linkId.startsWith("/") || linkId.startsWith("http")
+        ? linkId
+        : `/watchlist/${linkId}`;
+    }
+  }
+
+  // Also handle cases where playlistLink/listLink/watchlistLink might be just an ID
+  if (metadata.playlistLink && !metadata.playlistLink.includes("/") && !metadata.playlistLink.startsWith("http")) {
+    // If it's just an ID, construct the full URL
+    normalized.playlistLink = `/playlists/${metadata.playlistLink}`;
+  }
+  if (metadata.listLink && !metadata.listLink.includes("/") && !metadata.listLink.startsWith("http")) {
+    normalized.listLink = `/lists/${metadata.listLink}`;
+  }
+  if (metadata.watchlistLink && !metadata.watchlistLink.includes("/") && !metadata.watchlistLink.startsWith("http")) {
+    normalized.watchlistLink = `/watchlist/${metadata.watchlistLink}`;
+  }
+
+  return normalized;
+}
+
 export function EditPostDialog({
   isOpen,
   onClose,
@@ -58,12 +106,15 @@ export function EditPostDialog({
   const queryClient = useQueryClient();
   const STORAGE_KEY = `forum-edit-post-draft-${post.id}`;
   
+  // Normalize metadata when initializing
+  const normalizedMetadata = normalizeMetadata(post.metadata);
+  
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState(post.title);
   const [content, setContent] = useState(post.content);
   const [tags, setTags] = useState(post.tags.join(", "));
   const [categoryId, setCategoryId] = useState<string>(post.category?.id || "");
-  const [metadata, setMetadata] = useState<Record<string, any>>(post.metadata || {});
+  const [metadata, setMetadata] = useState<Record<string, any>>(normalizedMetadata);
   const [scheduledAt, setScheduledAt] = useState<Date | undefined>(undefined);
   const [scheduledTime, setScheduledTime] = useState<string>("");
   const [isPublic, setIsPublic] = useState((post as any).status === "PUBLIC");
@@ -79,7 +130,7 @@ export function EditPostDialog({
           setContent(draft.content || post.content);
           setTags(draft.tags || post.tags.join(", "));
           setCategoryId(draft.categoryId || post.category?.id || "");
-          setMetadata(draft.metadata || post.metadata || {});
+          setMetadata(draft.metadata ? normalizeMetadata(draft.metadata) : normalizedMetadata);
           setStep(draft.step || 1);
           setIsPublic(draft.isPublic !== undefined ? draft.isPublic : ((post as any).status === "PUBLIC"));
           if (draft.scheduledAt) {
@@ -96,7 +147,7 @@ export function EditPostDialog({
           setContent(post.content);
           setTags(post.tags.join(", "));
           setCategoryId(post.category?.id || "");
-          setMetadata(post.metadata || {});
+          setMetadata(normalizedMetadata);
           setStep(1);
           setScheduledAt(undefined);
           setScheduledTime("");
@@ -107,7 +158,7 @@ export function EditPostDialog({
         setContent(post.content);
         setTags(post.tags.join(", "));
         setCategoryId(post.category?.id || "");
-        setMetadata(post.metadata || {});
+        setMetadata(normalizedMetadata);
         setStep(1);
         setScheduledAt(undefined);
         setScheduledTime("");

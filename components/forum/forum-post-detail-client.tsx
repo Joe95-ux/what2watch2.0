@@ -475,12 +475,12 @@ export function ForumPostDetailClient() {
                           {isBookmarked ? (
                             <>
                               <BookmarkCheck className="h-4 w-4 mr-2" />
-                              Unbookmark
+                              Remove from Saved Posts
                             </>
                           ) : (
                             <>
                               <Bookmark className="h-4 w-4 mr-2" />
-                              Bookmark
+                              Save Post
                             </>
                           )}
                         </DropdownMenuItem>

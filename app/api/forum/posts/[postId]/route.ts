@@ -201,12 +201,12 @@ export async function PATCH(
     if (isObjectId) {
       post = await db.forumPost.findUnique({
         where: { id: postId },
-        select: { id: true, userId: true, title: true },
+        select: { id: true, userId: true, title: true, content: true },
       });
     } else {
       post = await db.forumPost.findFirst({
         where: { slug: postId },
-        select: { id: true, userId: true, title: true },
+        select: { id: true, userId: true, title: true, content: true },
       });
     }
 
@@ -221,53 +221,63 @@ export async function PATCH(
       );
     }
 
-    // Validate required fields
-    if (!title || typeof title !== "string" || title.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Title is required" },
-        { status: 400 }
-      );
+    // Determine if this is a partial update (e.g., only status change)
+    const isPartialUpdate = title === undefined && content === undefined;
+
+    // Validate and process title/content only if provided
+    let sanitizedTitle: string | undefined = undefined;
+    let sanitizedContent: string | undefined = undefined;
+
+    if (title !== undefined) {
+      if (!title || typeof title !== "string" || title.trim().length === 0) {
+        return NextResponse.json(
+          { error: "Title is required" },
+          { status: 400 }
+        );
+      }
+
+      // Server-side content moderation and sanitization
+      const titleModeration = moderateContent(title.trim(), {
+        minLength: 1,
+        maxLength: 200,
+        allowProfanity: false,
+        sanitizeHtml: true,
+      });
+
+      if (!titleModeration.allowed) {
+        return NextResponse.json(
+          { error: titleModeration.error || "Title contains inappropriate content" },
+          { status: 400 }
+        );
+      }
+
+      sanitizedTitle = sanitizeTitle(titleModeration.sanitized || title.trim());
     }
 
-    if (!content || typeof content !== "string" || content.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Content is required" },
-        { status: 400 }
-      );
+    if (content !== undefined) {
+      if (!content || typeof content !== "string" || content.trim().length === 0) {
+        return NextResponse.json(
+          { error: "Content is required" },
+          { status: 400 }
+        );
+      }
+
+      const contentModeration = moderateContent(content.trim(), {
+        minLength: 1,
+        maxLength: 10000,
+        allowProfanity: false,
+        sanitizeHtml: true,
+      });
+
+      if (!contentModeration.allowed) {
+        return NextResponse.json(
+          { error: contentModeration.error || "Content contains inappropriate content" },
+          { status: 400 }
+        );
+      }
+
+      sanitizedContent = sanitizeContent(contentModeration.sanitized || content.trim());
     }
-
-    // Server-side content moderation and sanitization
-    const titleModeration = moderateContent(title.trim(), {
-      minLength: 1,
-      maxLength: 200,
-      allowProfanity: false,
-      sanitizeHtml: true,
-    });
-
-    if (!titleModeration.allowed) {
-      return NextResponse.json(
-        { error: titleModeration.error || "Title contains inappropriate content" },
-        { status: 400 }
-      );
-    }
-
-    const contentModeration = moderateContent(content.trim(), {
-      minLength: 1,
-      maxLength: 10000,
-      allowProfanity: false,
-      sanitizeHtml: true,
-    });
-
-    if (!contentModeration.allowed) {
-      return NextResponse.json(
-        { error: contentModeration.error || "Content contains inappropriate content" },
-        { status: 400 }
-      );
-    }
-
-    // Sanitize HTML on server-side
-    const sanitizedTitle = sanitizeTitle(titleModeration.sanitized || title.trim());
-    const sanitizedContent = sanitizeContent(contentModeration.sanitized || content.trim());
 
     // Process tags
     const validTags = tags
@@ -313,55 +323,77 @@ export async function PATCH(
 
     // Generate new slug if title changed
     let slug: string | undefined = undefined;
-    if (post.title !== title.trim()) {
+    if (sanitizedTitle && post.title !== sanitizedTitle) {
       const { generateUniqueForumPostSlug } = await import("@/lib/forum-slug");
-      slug = await generateUniqueForumPostSlug(title.trim(), post.id);
+      slug = await generateUniqueForumPostSlug(sanitizedTitle, post.id);
     }
 
     // Parse scheduledAt if provided
-    const scheduledDate = scheduledAt ? new Date(scheduledAt) : null;
-    if (scheduledDate && scheduledDate < new Date()) {
-      return NextResponse.json(
-        { error: "Scheduled date must be in the future" },
-        { status: 400 }
-      );
+    let scheduledDate: Date | null | undefined = undefined;
+    if (scheduledAt !== undefined) {
+      if (scheduledAt === null) {
+        scheduledDate = null; // Explicitly clear scheduled date
+      } else {
+        scheduledDate = new Date(scheduledAt);
+        if (scheduledDate < new Date()) {
+          return NextResponse.json(
+            { error: "Scheduled date must be in the future" },
+            { status: 400 }
+          );
+        }
+      }
     }
 
-    // Save revision before updating
-    const { savePostRevision } = await import("@/lib/services/forum-post-history.service");
-    const currentPost = await db.forumPost.findUnique({
-      where: { id: post.id },
-      select: {
-        title: true,
-        content: true,
-        tags: true,
-        categoryId: true,
-        metadata: true,
-      },
-    });
-
-    if (currentPost) {
-      await savePostRevision(
-        post.id,
-        {
-          title: currentPost.title,
-          content: currentPost.content,
-          tags: currentPost.tags,
-          categoryId: currentPost.categoryId,
-          metadata: currentPost.metadata as Record<string, any> | null,
+    // Save revision before updating (only if content/title is being changed, not just status)
+    if (!isPartialUpdate) {
+      const { savePostRevision } = await import("@/lib/services/forum-post-history.service");
+      const currentPost = await db.forumPost.findUnique({
+        where: { id: post.id },
+        select: {
+          title: true,
+          content: true,
+          tags: true,
+          categoryId: true,
+          metadata: true,
         },
-        user.id
-      );
+      });
+
+      if (currentPost) {
+        await savePostRevision(
+          post.id,
+          {
+            title: currentPost.title,
+            content: currentPost.content,
+            tags: currentPost.tags,
+            categoryId: currentPost.categoryId,
+            metadata: currentPost.metadata as Record<string, any> | null,
+          },
+          user.id
+        );
+      }
     }
 
-    const updateData: any = {
-      title: sanitizedTitle,
-      content: sanitizedContent,
-      tags: validTags,
-      categoryId: categoryId || null,
-      ...(sanitizedMetadata !== undefined && { metadata: sanitizedMetadata }),
-      ...(scheduledDate && { scheduledAt: scheduledDate }),
-    };
+    const updateData: any = {};
+
+    // Only include fields that are being updated
+    if (sanitizedTitle !== undefined) {
+      updateData.title = sanitizedTitle;
+    }
+    if (sanitizedContent !== undefined) {
+      updateData.content = sanitizedContent;
+    }
+    if (tags !== undefined) {
+      updateData.tags = validTags;
+    }
+    if (categoryId !== undefined) {
+      updateData.categoryId = categoryId || null;
+    }
+    if (sanitizedMetadata !== undefined) {
+      updateData.metadata = sanitizedMetadata;
+    }
+    if (scheduledDate !== undefined) {
+      updateData.scheduledAt = scheduledDate;
+    }
 
     if (slug) {
       updateData.slug = slug;

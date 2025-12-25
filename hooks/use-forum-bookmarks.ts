@@ -41,7 +41,7 @@ export function useBookmarkPost(postId: string) {
             afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
           });
         } else {
-          toast.error("Please sign in to bookmark posts");
+          toast.error("Please sign in to save posts");
         }
         throw new Error("Not signed in");
       }
@@ -51,7 +51,7 @@ export function useBookmarkPost(postId: string) {
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to bookmark post");
+        throw new Error(error.error || "Failed to save post");
       }
       return response.json();
     },
@@ -62,11 +62,11 @@ export function useBookmarkPost(postId: string) {
       queryClient.invalidateQueries({
         queryKey: ["forum-bookmarks"],
       });
-      toast.success("Post bookmarked");
+      toast.success("Post saved");
     },
     onError: (error: Error) => {
       if (!error.message.includes("Not signed in")) {
-        toast.error(error.message || "Failed to bookmark post");
+        toast.error(error.message || "Failed to save post");
       }
     },
   });
@@ -86,7 +86,7 @@ export function useUnbookmarkPost(postId: string) {
             afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
           });
         } else {
-          toast.error("Please sign in to unbookmark posts");
+          toast.error("Please sign in to remove posts from saved");
         }
         throw new Error("Not signed in");
       }
@@ -96,7 +96,7 @@ export function useUnbookmarkPost(postId: string) {
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to unbookmark post");
+        throw new Error(error.error || "Failed to remove post from saved posts");
       }
       return response.json();
     },
@@ -107,11 +107,11 @@ export function useUnbookmarkPost(postId: string) {
       queryClient.invalidateQueries({
         queryKey: ["forum-bookmarks"],
       });
-      toast.success("Post unbookmarked");
+      toast.success("Post removed from saved posts");
     },
     onError: (error: Error) => {
       if (!error.message.includes("Not signed in")) {
-        toast.error(error.message || "Failed to unbookmark post");
+        toast.error(error.message || "Failed to remove post from saved posts");
       }
     },
   });

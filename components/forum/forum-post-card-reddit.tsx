@@ -122,7 +122,7 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
 
   const handleBookmarkToggle = async () => {
     if (!isSignedIn) {
-      toast.error("Sign in to bookmark posts");
+      toast.error("Sign in to save posts");
       return;
     }
 
@@ -395,12 +395,12 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
                 {isBookmarked ? (
                   <>
                     <BookmarkCheck className="h-4 w-4 mr-2" />
-                    Remove from Bookmarks
+                    Remove from Saved Posts
                   </>
                 ) : (
                   <>
                     <Bookmark className="h-4 w-4 mr-2" />
-                    Add to Bookmarks
+                    Save Post
                   </>
                 )}
               </DropdownMenuItem>
