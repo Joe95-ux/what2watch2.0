@@ -9,6 +9,9 @@ interface PlaylistFieldsProps {
 }
 
 export function PlaylistFields({ metadata, onChange }: PlaylistFieldsProps) {
+  console.log("[PlaylistFields] Received metadata:", metadata);
+  console.log("[PlaylistFields] metadata.playlistLink:", metadata.playlistLink);
+  
   const updateField = (field: string, value: any) => {
     onChange({
       ...metadata,

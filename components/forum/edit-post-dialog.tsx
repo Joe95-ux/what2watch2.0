@@ -54,17 +54,22 @@ interface EditPostDialogProps {
  * For new posts, metadata is already in the correct format and doesn't need normalization
  */
 function normalizeMetadata(metadata: Record<string, any> | null | undefined): Record<string, any> {
+  console.log("[normalizeMetadata] Input:", metadata);
+  
   if (!metadata || typeof metadata !== "object") {
+    console.log("[normalizeMetadata] No metadata or not an object, returning empty object");
     return {};
   }
 
   // If metadata is already in new format, use it directly (no normalization needed)
   if (metadata.playlistLink || metadata.listLink || metadata.watchlistLink) {
+    console.log("[normalizeMetadata] Already in new format, returning as-is:", metadata);
     return { ...metadata };
   }
 
   // Only normalize if it's in the old format (linkId + linkType)
   if (metadata.linkId && metadata.linkType) {
+    console.log("[normalizeMetadata] Found old format, converting:", { linkId: metadata.linkId, linkType: metadata.linkType });
     const normalized = { ...metadata };
     const linkId = metadata.linkId;
     const linkType = metadata.linkType;
@@ -88,10 +93,12 @@ function normalizeMetadata(metadata: Record<string, any> | null | undefined): Re
     delete normalized.linkId;
     delete normalized.linkType;
     
+    console.log("[normalizeMetadata] Converted to new format:", normalized);
     return normalized;
   }
 
   // Return metadata as-is if it doesn't match old format
+  console.log("[normalizeMetadata] No conversion needed, returning as-is:", metadata);
   return { ...metadata };
 }
 
@@ -117,16 +124,20 @@ export function EditPostDialog({
   // Load persisted values or post data when dialog opens
   useEffect(() => {
     if (isOpen) {
+      console.log("[EditPostDialog] Dialog opened, post.metadata:", post.metadata);
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const draft = JSON.parse(saved);
+          console.log("[EditPostDialog] Found saved draft, draft.metadata:", draft.metadata);
           setTitle(draft.title || post.title);
           setContent(draft.content || post.content);
           setTags(draft.tags || post.tags.join(", "));
           setCategoryId(draft.categoryId || post.category?.id || "");
           // Only normalize if draft metadata exists, otherwise normalize post metadata (for legacy data)
-          setMetadata(draft.metadata ? normalizeMetadata(draft.metadata) : normalizeMetadata(post.metadata));
+          const finalMetadata = draft.metadata ? normalizeMetadata(draft.metadata) : normalizeMetadata(post.metadata);
+          console.log("[EditPostDialog] Final metadata after normalization:", finalMetadata);
+          setMetadata(finalMetadata);
           setStep(draft.step || 1);
           setIsPublic(draft.isPublic !== undefined ? draft.isPublic : ((post as any).status === "PUBLIC"));
           if (draft.scheduledAt) {
@@ -139,22 +150,28 @@ export function EditPostDialog({
           }
         } else {
           // No saved draft, use post data directly (normalize only for legacy format)
+          console.log("[EditPostDialog] No saved draft, using post.metadata:", post.metadata);
           setTitle(post.title);
           setContent(post.content);
           setTags(post.tags.join(", "));
           setCategoryId(post.category?.id || "");
-          setMetadata(normalizeMetadata(post.metadata));
+          const normalized = normalizeMetadata(post.metadata);
+          console.log("[EditPostDialog] Normalized metadata:", normalized);
+          setMetadata(normalized);
           setStep(1);
           setScheduledAt(undefined);
           setScheduledTime("");
         }
       } catch (error) {
+        console.error("[EditPostDialog] Error loading data:", error);
         // On error, use post data directly
         setTitle(post.title);
         setContent(post.content);
         setTags(post.tags.join(", "));
         setCategoryId(post.category?.id || "");
-        setMetadata(normalizeMetadata(post.metadata));
+        const normalized = normalizeMetadata(post.metadata);
+        console.log("[EditPostDialog] Error fallback - normalized metadata:", normalized);
+        setMetadata(normalized);
         setStep(1);
         setScheduledAt(undefined);
         setScheduledTime("");
