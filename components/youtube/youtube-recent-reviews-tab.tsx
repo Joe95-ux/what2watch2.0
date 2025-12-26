@@ -142,6 +142,7 @@ export function YouTubeRecentReviewsTab() {
                   channelId={review.channelId}
                   review={review}
                   onEdit={handleEdit}
+                  channelTitle={review.channelTitle}
                 />
               </div>
             ))}

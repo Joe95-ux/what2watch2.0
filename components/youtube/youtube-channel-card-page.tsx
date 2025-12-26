@@ -176,20 +176,6 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
                   <span>{formatCount(channel.videoCount || "0")}</span>
                 </div>
               </div>
-              {/* Channel Summary */}
-              {channelSummary?.summary && (
-                <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                  {channelSummary.summary.split(" ").map((word, index) => (
-                    <Badge
-                      key={index}
-                      variant="outline"
-                      className="text-[10px] font-medium bg-primary/10 text-primary border-primary/20 px-1.5 py-0.5"
-                    >
-                      {word}
-                    </Badge>
-                  ))}
-                </div>
-              )}
               <Link
                 href={channelUrl}
                 target="_blank"
@@ -209,6 +195,14 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
       {channel.note && (
         <div className="mb-3">
           <p className="text-sm text-muted-foreground line-clamp-2">{channel.note}</p>
+        </div>
+      )}
+
+      {/* Channel Summary - before category tags */}
+      {channelSummary?.summary && (
+        <div className="text-xs text-muted-foreground mb-2">
+          <span className="font-medium">Users found Channel: </span>
+          <span>{channelSummary.summary.split(" ").join(" • ")}</span>
         </div>
       )}
 

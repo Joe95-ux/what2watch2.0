@@ -192,6 +192,7 @@ export function YouTubeChannelReviews({
             channelId={channelId}
             review={review}
             onEdit={handleEditReview}
+            channelTitle={channelTitle}
           />
         ))}
       </div>

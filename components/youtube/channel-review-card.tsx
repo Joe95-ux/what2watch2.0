@@ -39,6 +39,7 @@ interface ChannelReviewCardProps {
   review: ChannelReview;
   onEdit: (review: ChannelReview) => void;
   onTagClick?: (tag: string) => void;
+  channelTitle?: string | null;
 }
 
 const MAX_REVIEW_LENGTH = 300; // Characters to show before truncating
@@ -48,6 +49,7 @@ export function ChannelReviewCard({
   review,
   onEdit,
   onTagClick,
+  channelTitle,
 }: ChannelReviewCardProps) {
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
@@ -119,19 +121,27 @@ export function ChannelReviewCard({
 
         <div className="space-y-3">
           {/* Rating - aligned with content */}
-          <div className="flex items-center gap-2">
-            {Array.from({ length: 5 }).map((_, index) => (
-              <Star
-                key={index}
-                className={cn(
-                  "h-4 w-4",
-                  index < review.rating
-                    ? "fill-yellow-500 text-yellow-500"
-                    : "text-muted-foreground"
-                )}
-              />
-            ))}
-            <span className="text-sm font-medium text-muted-foreground">{review.rating}/5</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <Star
+                  key={index}
+                  className={cn(
+                    "h-4 w-4",
+                    index < review.rating
+                      ? "fill-yellow-500 text-yellow-500"
+                      : "text-muted-foreground"
+                  )}
+                />
+              ))}
+              <span className="text-sm font-medium text-muted-foreground">{review.rating}/5</span>
+            </div>
+            {channelTitle && (
+              <>
+                <span className="text-muted-foreground">•</span>
+                <span className="text-sm text-muted-foreground">Review for {channelTitle}</span>
+              </>
+            )}
           </div>
 
           {/* Title - aligned with content */}
