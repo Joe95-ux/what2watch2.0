@@ -22,33 +22,38 @@ const VALID_TABS = new Set(tabs.map((tab) => tab.id));
 export function YouTubePageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tabFromUrl = searchParams.get("tab");
-  const initialTab = tabFromUrl && VALID_TABS.has(tabFromUrl) ? tabFromUrl : "channels";
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get("tab");
+    return tab && VALID_TABS.has(tab) ? tab : "channels";
+  });
 
-  // Sync URL with tab changes
+  // Update URL when tab changes
   useEffect(() => {
     const currentTab = searchParams.get("tab");
-    if (currentTab !== activeTab) {
+    const expectedTab = activeTab === "channels" ? null : activeTab;
+    
+    // Only update if URL doesn't match current state
+    if (currentTab !== expectedTab) {
       const params = new URLSearchParams(searchParams.toString());
       if (activeTab === "channels") {
         params.delete("tab");
       } else {
         params.set("tab", activeTab);
       }
-      router.replace(`?${params.toString()}`, { scroll: false });
+      const newUrl = params.toString() ? `/youtube?${params.toString()}` : "/youtube";
+      router.push(newUrl);
     }
   }, [activeTab, router, searchParams]);
 
-  // Sync tab with URL changes (e.g., browser back/forward)
+  // Sync with URL changes (browser back/forward)
   useEffect(() => {
-    const tabFromUrl = searchParams.get("tab");
-    if (tabFromUrl && VALID_TABS.has(tabFromUrl) && tabFromUrl !== activeTab) {
-      setActiveTab(tabFromUrl);
-    } else if (!tabFromUrl && activeTab !== "channels") {
+    const tab = searchParams.get("tab");
+    if (tab && VALID_TABS.has(tab)) {
+      setActiveTab(tab);
+    } else if (!tab) {
       setActiveTab("channels");
     }
-  }, [searchParams, activeTab]);
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-background">
