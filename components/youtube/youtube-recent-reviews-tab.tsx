@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { ChannelReviewCard } from "./channel-review-card";
+import { ChannelReviewFormSheet } from "./channel-review-form-sheet";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -61,7 +62,10 @@ interface RecentReview extends ChannelReview {
 
 export function YouTubeRecentReviewsTab() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
+  const [editingReview, setEditingReview] = useState<RecentReview | null>(null);
+  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
 
   const { data, isLoading } = useQuery<{
     reviews: RecentReview[];
@@ -88,6 +92,18 @@ export function YouTubeRecentReviewsTab() {
     router.push(`/youtube/reviews/${review.id}`);
   };
 
+  const handleEdit = (review: RecentReview) => {
+    setEditingReview(review);
+    setIsEditSheetOpen(true);
+  };
+
+  const handleCloseEditSheet = () => {
+    setIsEditSheetOpen(false);
+    setEditingReview(null);
+    // Invalidate queries to refresh the list
+    queryClient.invalidateQueries({ queryKey: ["youtube-recent-reviews"] });
+  };
+
   return (
     <div className="space-y-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
       {isLoading ? (
@@ -107,12 +123,14 @@ export function YouTubeRecentReviewsTab() {
               <div
                 key={review.id}
                 onClick={(e) => {
-                  // Don't navigate if clicking on buttons or interactive elements
+                  // Don't navigate if clicking on buttons, dropdown menus, or interactive elements
                   const target = e.target as HTMLElement;
                   if (
                     target.closest("button") ||
                     target.closest('[role="button"]') ||
-                    target.closest("a")
+                    target.closest("a") ||
+                    target.closest('[role="menuitem"]') ||
+                    target.closest('[data-radix-popper-content-wrapper]')
                   ) {
                     return;
                   }
@@ -123,7 +141,7 @@ export function YouTubeRecentReviewsTab() {
                 <ChannelReviewCard
                   channelId={review.channelId}
                   review={review}
-                  onEdit={() => {}}
+                  onEdit={handleEdit}
                 />
               </div>
             ))}
@@ -156,6 +174,35 @@ export function YouTubeRecentReviewsTab() {
             </div>
           )}
         </>
+      )}
+
+      {/* Edit Review Sheet */}
+      {editingReview && (
+        <ChannelReviewFormSheet
+          channelId={editingReview.channelId}
+          channelTitle={editingReview.channelTitle || "Channel"}
+          channelThumbnail={editingReview.channelThumbnail}
+          isOpen={isEditSheetOpen}
+          onClose={handleCloseEditSheet}
+          initialReview={{
+            id: editingReview.id,
+            channelId: editingReview.channelId,
+            userId: editingReview.userId,
+            rating: editingReview.rating,
+            title: editingReview.title,
+            content: editingReview.content,
+            tags: editingReview.tags,
+            summaryTags: editingReview.summaryTags,
+            helpfulCount: editingReview.helpfulCount,
+            notHelpfulCount: editingReview.notHelpfulCount,
+            isEdited: editingReview.isEdited,
+            status: editingReview.status,
+            createdAt: editingReview.createdAt,
+            updatedAt: editingReview.updatedAt,
+            user: editingReview.user,
+            canEdit: editingReview.canEdit,
+          }}
+        />
       )}
     </div>
   );

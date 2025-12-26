@@ -204,6 +204,19 @@ export async function PUT(
       },
     });
 
+    // Regenerate summary tags if content changed (non-blocking)
+    if (content !== undefined) {
+      fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/youtube/channel-reviews/${reviewId}/summarize`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.INTERNAL_API_SECRET || "internal-secret"}`,
+        },
+      }).catch((error) => {
+        console.error("[ChannelReviewUpdate] Failed to generate summary tags:", error);
+      });
+    }
+
     return NextResponse.json({
       review: {
         ...updatedReview,
@@ -214,5 +227,40 @@ export async function PUT(
   } catch (error) {
     console.error("[ChannelReviewUpdate] PUT error", error);
     return NextResponse.json({ error: "Failed to update review" }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ reviewId: string }> }
+) {
+  try {
+    const { reviewId } = await params;
+    const currentUserId = await resolveCurrentUserId();
+
+    if (!currentUserId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const review = await db.channelReview.findUnique({
+      where: { id: reviewId },
+    });
+
+    if (!review) {
+      return NextResponse.json({ error: "Review not found" }, { status: 404 });
+    }
+
+    if (review.userId !== currentUserId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    await db.channelReview.delete({
+      where: { id: reviewId },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("[ChannelReviewDelete] DELETE error", error);
+    return NextResponse.json({ error: "Failed to delete review" }, { status: 500 });
   }
 }

@@ -15,6 +15,7 @@ export interface ChannelReview {
   title: string | null;
   content: string;
   tags: string[];
+  summaryTags?: string[];
   helpfulCount: number;
   notHelpfulCount?: number;
   isEdited: boolean;

@@ -155,6 +155,21 @@ export function ChannelReviewCard({
             )}
           </div>
 
+          {/* Summary Tags */}
+          {review.summaryTags && review.summaryTags.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              {review.summaryTags.map((tag, index) => (
+                <Badge
+                  key={index}
+                  variant="outline"
+                  className="text-xs font-medium bg-primary/10 text-primary border-primary/20"
+                >
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
+
           {/* Tags */}
           {review.tags.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -224,20 +239,42 @@ export function ChannelReviewCard({
             {canEdit && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 cursor-pointer"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                  >
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuContent
+                  align="end"
+                  className="w-40"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                >
                   <DropdownMenuItem
-                    onClick={() => onEdit(review)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onEdit(review);
+                    }}
                     className="cursor-pointer gap-2"
                   >
                     <Edit className="h-4 w-4" />
                     Edit review
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setIsDeleteDialogOpen(true)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsDeleteDialogOpen(true);
+                    }}
                     className="cursor-pointer gap-2 text-destructive focus:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />

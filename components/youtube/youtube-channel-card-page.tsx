@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useChannelPool } from "@/hooks/use-channel-pool";
 import { useUser } from "@clerk/nextjs";
+import { useQuery } from "@tanstack/react-query";
 
 function formatCount(count: string | number): string {
   const num = typeof count === "string" ? parseInt(count, 10) : count;
@@ -51,6 +52,19 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
   const profilePath = getChannelProfilePath(channel.channelId, channel.slug);
   const isInDb = Boolean(channel.slug);
   const inUserPool = channel.inUserPool ?? false;
+
+  // Fetch channel summary
+  const { data: channelSummary } = useQuery<{ summary: string | null }>({
+    queryKey: ["channel-summary", channel.channelId],
+    queryFn: async () => {
+      const response = await fetch(`/api/youtube/channels/${channel.channelId}/summary`);
+      if (!response.ok) return { summary: null };
+      return response.json();
+    },
+    enabled: isInDb, // Only fetch if channel is in database
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
+    gcTime: 1000 * 60 * 60 * 24, // Keep in cache for 24 hours
+  });
 
   const handlePoolAction = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -162,6 +176,20 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
                   <span>{formatCount(channel.videoCount || "0")}</span>
                 </div>
               </div>
+              {/* Channel Summary */}
+              {channelSummary?.summary && (
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  {channelSummary.summary.split(" ").map((word, index) => (
+                    <Badge
+                      key={index}
+                      variant="outline"
+                      className="text-[10px] font-medium bg-primary/10 text-primary border-primary/20 px-1.5 py-0.5"
+                    >
+                      {word}
+                    </Badge>
+                  ))}
+                </div>
+              )}
               <Link
                 href={channelUrl}
                 target="_blank"

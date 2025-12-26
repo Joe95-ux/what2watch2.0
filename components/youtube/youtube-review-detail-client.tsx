@@ -1,19 +1,37 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Star, ThumbsUp, ThumbsDown, Tag } from "lucide-react";
+import { ArrowLeft, Star, ThumbsUp, ThumbsDown, Tag, MoreVertical, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { formatDistanceToNow } from "date-fns";
 import { ChannelReviewCard } from "./channel-review-card";
-import { useToggleChannelReviewVote } from "@/hooks/use-youtube-channel-reviews";
+import { useToggleChannelReviewVote, useDeleteChannelReview } from "@/hooks/use-youtube-channel-reviews";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { getChannelProfilePath } from "@/lib/channel-path";
 import Link from "next/link";
+import { ChannelReviewFormSheet } from "./channel-review-form-sheet";
 
 interface ReviewDetail {
   id: string;
@@ -25,6 +43,7 @@ interface ReviewDetail {
   title: string | null;
   content: string;
   tags: string[];
+  summaryTags?: string[];
   helpfulCount: number;
   notHelpfulCount?: number;
   isEdited: boolean;
@@ -48,8 +67,11 @@ interface YouTubeReviewDetailClientProps {
 
 export function YouTubeReviewDetailClient({ reviewId }: YouTubeReviewDetailClientProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
 
   const { data: review, isLoading } = useQuery<ReviewDetail>({
     queryKey: ["youtube-review-detail", reviewId],
@@ -61,6 +83,7 @@ export function YouTubeReviewDetailClient({ reviewId }: YouTubeReviewDetailClien
   });
 
   const toggleVote = useToggleChannelReviewVote(review?.channelId || "");
+  const deleteReview = useDeleteChannelReview(review?.channelId || "");
 
   const handleVote = async (voteType: "UP" | "DOWN") => {
     if (!isSignedIn) {
@@ -91,6 +114,25 @@ export function YouTubeReviewDetailClient({ reviewId }: YouTubeReviewDetailClien
         toast.error("Unable to update vote");
       }
     }
+  };
+
+  const handleDelete = async () => {
+    if (!review) return;
+
+    try {
+      await deleteReview.mutateAsync(review.id);
+      toast.success("Review deleted");
+      setIsDeleteDialogOpen(false);
+      // Navigate back after deletion
+      router.back();
+    } catch (error) {
+      console.error("[ReviewDetail] delete error", error);
+      toast.error("Unable to delete review");
+    }
+  };
+
+  const handleEdit = () => {
+    setIsEditSheetOpen(true);
   };
 
   if (isLoading) {
@@ -133,7 +175,7 @@ export function YouTubeReviewDetailClient({ reviewId }: YouTubeReviewDetailClien
         </Button>
 
         {/* Review Card */}
-        <div className="rounded-2xl border border-border bg-card/60 p-6 shadow-sm backdrop-blur">
+        <div className="rounded-2xl border border-border bg-card/60 p-6 shadow-sm backdrop-blur relative">
           <div className="flex items-start gap-4 mb-6">
             <Avatar className="h-12 w-12">
               {review.user.avatarUrl ? (
@@ -152,6 +194,33 @@ export function YouTubeReviewDetailClient({ reviewId }: YouTubeReviewDetailClien
                   <span className="text-xs text-muted-foreground">(edited)</span>
                 )}
               </div>
+              {review.canEdit && (
+                <div className="absolute top-6 right-6">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuItem
+                        onClick={handleEdit}
+                        className="cursor-pointer gap-2"
+                      >
+                        <Edit className="h-4 w-4" />
+                        Edit review
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setIsDeleteDialogOpen(true)}
+                        className="cursor-pointer gap-2 text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
 
               {/* Channel Link */}
               <Link
@@ -187,6 +256,21 @@ export function YouTubeReviewDetailClient({ reviewId }: YouTubeReviewDetailClien
           <p className="text-base leading-relaxed text-foreground whitespace-pre-wrap mb-4">
             {review.content}
           </p>
+
+          {/* Summary Tags */}
+          {review.summaryTags && review.summaryTags.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              {review.summaryTags.map((tag, index) => (
+                <Badge
+                  key={index}
+                  variant="outline"
+                  className="text-xs font-medium bg-primary/10 text-primary border-primary/20"
+                >
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
 
           {review.tags.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 mb-6">
@@ -233,6 +317,59 @@ export function YouTubeReviewDetailClient({ reviewId }: YouTubeReviewDetailClien
           </div>
         </div>
       </div>
+
+      {/* Edit Sheet */}
+      {review && (
+        <ChannelReviewFormSheet
+          channelId={review.channelId}
+          channelTitle={review.channelTitle || "Channel"}
+          channelThumbnail={review.channelThumbnail}
+          isOpen={isEditSheetOpen}
+          onClose={() => {
+            setIsEditSheetOpen(false);
+            queryClient.invalidateQueries({ queryKey: ["youtube-review-detail", reviewId] });
+          }}
+          initialReview={{
+            id: review.id,
+            channelId: review.channelId,
+            userId: review.userId,
+            rating: review.rating,
+            title: review.title,
+            content: review.content,
+            tags: review.tags,
+            helpfulCount: review.helpfulCount,
+            notHelpfulCount: review.notHelpfulCount,
+            isEdited: review.isEdited,
+            status: "published",
+            createdAt: review.createdAt,
+            updatedAt: review.updatedAt,
+            user: review.user,
+            canEdit: review.canEdit,
+          }}
+        />
+      )}
+
+      {/* Delete Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete review?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone and will permanently remove your review.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteReview.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteReview.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

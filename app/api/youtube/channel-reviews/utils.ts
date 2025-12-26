@@ -13,9 +13,6 @@ export function sanitizeReviewTags(input: unknown): string[] {
 
 export function clampChannelReviewRating(value: unknown) {
   const rating = Number(value);
-  if (Number.isNaN(rating)) return null;
-  if (rating < 1 || rating > 5) return null;
-  return rating;
+  if (isNaN(rating)) return null;
+  return Math.max(1, Math.min(5, Math.round(rating)));
 }
-
-

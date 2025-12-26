@@ -1280,6 +1280,7 @@ model ChannelReview {
   title         String?
   content       String
   tags          String[] @default([])
+  summaryTags   String[] @default([])
   helpfulCount  Int      @default(0)
   notHelpfulCount Int    @default(0)
   isEdited      Boolean  @default(false)

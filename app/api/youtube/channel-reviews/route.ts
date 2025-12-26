@@ -127,6 +127,7 @@ async function buildResponse(params: {
       title: review.title,
       content: review.content,
       tags: review.tags,
+      summaryTags: review.summaryTags || [],
       helpfulCount: review.helpfulCount,
       notHelpfulCount: review.notHelpfulCount ?? 0,
       isEdited: review.isEdited,
@@ -340,6 +341,18 @@ export async function POST(request: NextRequest) {
     });
 
     await evaluateReviewerBadges(user.id);
+
+    // Generate summary tags asynchronously (non-blocking)
+    // Call the summarize endpoint in the background
+    fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/youtube/channel-reviews/${review.id}/summarize`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.INTERNAL_API_SECRET || "internal-secret"}`,
+      },
+    }).catch((error) => {
+      console.error("[ChannelReviews] Failed to generate summary tags:", error);
+    });
 
     return NextResponse.json({
       review: {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { YouTubeChannelsTab } from "./youtube-channels-tab";
 import { YouTubeListsTab } from "./youtube-lists-tab";
@@ -16,8 +17,38 @@ const tabs = [
   { id: "leaderboard", label: "Leaderboard", icon: Trophy },
 ];
 
+const VALID_TABS = new Set(tabs.map((tab) => tab.id));
+
 export function YouTubePageClient() {
-  const [activeTab, setActiveTab] = useState("channels");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabFromUrl = searchParams.get("tab");
+  const initialTab = tabFromUrl && VALID_TABS.has(tabFromUrl) ? tabFromUrl : "channels";
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Sync URL with tab changes
+  useEffect(() => {
+    const currentTab = searchParams.get("tab");
+    if (currentTab !== activeTab) {
+      const params = new URLSearchParams(searchParams.toString());
+      if (activeTab === "channels") {
+        params.delete("tab");
+      } else {
+        params.set("tab", activeTab);
+      }
+      router.replace(`?${params.toString()}`, { scroll: false });
+    }
+  }, [activeTab, router, searchParams]);
+
+  // Sync tab with URL changes (e.g., browser back/forward)
+  useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl && VALID_TABS.has(tabFromUrl) && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    } else if (!tabFromUrl && activeTab !== "channels") {
+      setActiveTab("channels");
+    }
+  }, [searchParams, activeTab]);
 
   return (
     <div className="min-h-screen bg-background">
