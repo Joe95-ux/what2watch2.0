@@ -70,7 +70,11 @@ async function buildResponse(params: {
     }),
     currentUserId
       ? db.channelReview.findFirst({
-          where: { channelId, userId: currentUserId },
+          where: { 
+            channelId, 
+            userId: currentUserId,
+            status: "published",
+          },
           select: { id: true, rating: true, title: true, content: true, tags: true },
         })
       : Promise.resolve(null),
@@ -327,6 +331,7 @@ export async function POST(request: NextRequest) {
         title: sanitizedTitle || null,
         content: sanitizedContent,
         tags: sanitizedTags,
+        status: "published",
       },
       include: {
         user: {

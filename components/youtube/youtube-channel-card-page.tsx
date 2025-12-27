@@ -200,9 +200,9 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
 
       {/* Channel Summary - before category tags */}
       {channelSummary?.summary && (
-        <div className="text-xs text-muted-foreground mb-2">
-          <span className="font-medium">Users found Channel: </span>
-          <span>{channelSummary.summary.split(" ").join(" • ")}</span>
+        <div className="text-[0.85rem] mb-2">
+          <div className="text-muted-foreground">Users found Channel:</div>
+          <div className="text-foreground/70">{channelSummary.summary.split(" ").join(" • ")}</div>
         </div>
       )}
 

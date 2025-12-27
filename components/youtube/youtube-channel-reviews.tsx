@@ -81,7 +81,7 @@ export function YouTubeChannelReviews({
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingReview, setEditingReview] = useState<ChannelReview | null>(null);
 
-  const { data, isLoading, isFetching, isError } = useChannelReviews(channelId, {
+  const { data, isLoading, isFetching, isError, refetch } = useChannelReviews(channelId, {
     page,
     limit: PAGE_SIZE,
     sort,
@@ -145,6 +145,16 @@ export function YouTubeChannelReviews({
   const handleEditReview = (review: ChannelReview) => {
     setEditingReview(review);
     setIsSheetOpen(true);
+  };
+
+  const handleCloseSheet = () => {
+    setIsSheetOpen(false);
+    setEditingReview(null);
+    // Refetch reviews to ensure the list is up to date after creating/editing
+    // The cache invalidation should handle this, but we'll also trigger a refetch to be safe
+    setTimeout(() => {
+      void refetch();
+    }, 100);
   };
 
   const renderReviews = () => {
@@ -261,7 +271,7 @@ export function YouTubeChannelReviews({
         channelTitle={channelTitle}
         channelThumbnail={channelThumbnail}
         isOpen={isSheetOpen}
-        onClose={() => setIsSheetOpen(false)}
+        onClose={handleCloseSheet}
         initialReview={editingReview}
       />
     </section>
