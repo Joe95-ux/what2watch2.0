@@ -46,6 +46,13 @@ async function buildResponse(params: {
 }) {
   const { where, orderBy, skip, take, channelId, currentUserId } = params;
 
+  console.log("[ChannelReviews API] buildResponse - Querying database with:", {
+    where: JSON.stringify(where, null, 2),
+    skip,
+    take,
+    channelId,
+  });
+
   const [reviews, total, statsSource, viewerReviewRecord] = await Promise.all([
     db.channelReview.findMany({
       where,
@@ -146,7 +153,7 @@ async function buildResponse(params: {
     };
   });
 
-  return {
+  const result = {
     reviews: reviewsWithViewerState,
     stats: {
       totalReviews,
@@ -171,12 +178,28 @@ async function buildResponse(params: {
       totalPages: Math.ceil(total / take) || 1,
     },
   };
+
+  console.log("[ChannelReviews API] buildResponse - Database query results:", {
+    reviewsFound: reviews.length,
+    totalCount: total,
+    statsSourceCount: statsSource.length,
+    viewerReviewExists: Boolean(viewerReviewRecord),
+    resultSummary: {
+      reviewsCount: result.reviews.length,
+      totalReviews: result.stats.totalReviews,
+      paginationTotal: result.pagination.total,
+    },
+  });
+
+  return result;
 }
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const channelId = searchParams.get("channelId");
+
+    console.log("[ChannelReviews API] GET request - channelId:", channelId);
 
     if (!channelId) {
       return NextResponse.json({ error: "channelId is required" }, { status: 400 });
@@ -205,6 +228,8 @@ export async function GET(request: NextRequest) {
       where.tags = { has: tagParam };
     }
 
+    console.log("[ChannelReviews API] Query where clause:", JSON.stringify(where, null, 2));
+
     const currentUserId = await resolveCurrentUserId();
     const orderBy = SORT_MAP[sortParam] || SORT_MAP.helpful;
 
@@ -215,6 +240,13 @@ export async function GET(request: NextRequest) {
       take: limit,
       channelId,
       currentUserId,
+    });
+
+    console.log("[ChannelReviews API] Response:", {
+      reviewsCount: response.reviews.length,
+      totalReviews: response.pagination.total,
+      pagination: response.pagination,
+      viewerState: response.viewerState,
     });
 
     return NextResponse.json(response satisfies ChannelReviewResponse);

@@ -86,7 +86,12 @@ export function useChannelReviews(channelId: string | null, options?: ChannelRev
   return useQuery({
     queryKey: ["channel-reviews", channelId, options],
     queryFn: async () => {
-      if (!channelId) return null;
+      if (!channelId) {
+        console.log("[useChannelReviews] No channelId provided");
+        return null;
+      }
+
+      console.log("[useChannelReviews] Fetching reviews for channelId:", channelId, "options:", options);
 
       const params = new URLSearchParams({
         channelId,
@@ -112,14 +117,26 @@ export function useChannelReviews(channelId: string | null, options?: ChannelRev
         params.set("limit", options.limit.toString());
       }
 
-      const response = await fetch(`/api/youtube/channel-reviews?${params.toString()}`);
+      const url = `/api/youtube/channel-reviews?${params.toString()}`;
+      console.log("[useChannelReviews] Fetching from URL:", url);
+
+      const response = await fetch(url);
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({ error: "Failed to fetch reviews" }));
+        console.error("[useChannelReviews] Error response:", error);
         throw new Error(error.error || "Failed to fetch reviews");
       }
 
-      return (await response.json()) as ChannelReviewsResponse;
+      const data = (await response.json()) as ChannelReviewsResponse;
+      console.log("[useChannelReviews] Response received:", {
+        reviewsCount: data.reviews.length,
+        totalReviews: data.pagination.total,
+        pagination: data.pagination,
+        viewerState: data.viewerState,
+      });
+
+      return data;
     },
     enabled: Boolean(channelId),
     retry: 1,

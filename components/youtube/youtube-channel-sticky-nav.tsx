@@ -16,6 +16,7 @@ const tabs = [
   { id: "shorts", label: "Shorts" },
   { id: "playlists", label: "Playlists" },
   { id: "posts", label: "Posts" },
+  { id: "reviews", label: "Reviews" },
 ];
 
 export default function YouTubeChannelStickyNav({ 

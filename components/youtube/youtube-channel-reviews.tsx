@@ -81,6 +81,12 @@ export function YouTubeChannelReviews({
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingReview, setEditingReview] = useState<ChannelReview | null>(null);
 
+  console.log("[YouTubeChannelReviews] Component rendered with props:", {
+    channelId,
+    channelTitle,
+    channelThumbnail,
+  });
+
   const { data, isLoading, isFetching, isError, refetch } = useChannelReviews(channelId, {
     page,
     limit: PAGE_SIZE,
@@ -90,6 +96,17 @@ export function YouTubeChannelReviews({
   const viewerState = data?.viewerState;
   const reviews = data?.reviews ?? [];
   const pagination = data?.pagination;
+
+  console.log("[YouTubeChannelReviews] Query state:", {
+    isLoading,
+    isFetching,
+    isError,
+    reviewsCount: reviews.length,
+    paginationTotal: pagination?.total,
+    pagination,
+    viewerState,
+    dataExists: !!data,
+  });
 
   const handleRequireAuth = (action: () => void) => {
     if (!isSignedIn) {

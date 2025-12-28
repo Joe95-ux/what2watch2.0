@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Heart, Bookmark, Sparkles, Youtube, X, ChevronLeft, ChevronRight, ArrowUpDown, SlidersHorizontal, Edit, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,7 @@ interface YouTubeChannelSidebarProps {
   onTabChange?: (tab: "channel" | "favorites" | "watchlater" | "recommendations") => void;
   mobileOpen?: boolean;
   onMobileOpenChange?: (open: boolean) => void;
+  onCollapsedChange?: (collapsed: boolean) => void;
 }
 
 export function YouTubeChannelSidebar({ 
@@ -43,7 +44,8 @@ export function YouTubeChannelSidebar({
   activeTab = "channel",
   onTabChange,
   mobileOpen,
-  onMobileOpenChange
+  onMobileOpenChange,
+  onCollapsedChange
 }: YouTubeChannelSidebarProps) {
   const router = useRouter();
   const isMobile = useIsMobile();
@@ -54,6 +56,13 @@ export function YouTubeChannelSidebar({
   const [sortBy, setSortBy] = useState<"default" | "alphabetical-az" | "alphabetical-za">("default");
   const [internalOpen, setInternalOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Notify parent of collapse state changes
+  useEffect(() => {
+    if (!isMobile) {
+      onCollapsedChange?.(isCollapsed);
+    }
+  }, [isCollapsed, isMobile, onCollapsedChange]);
 
   // Fetch channel categories
   const { data: channelCategoriesData } = useQuery({
@@ -184,7 +193,13 @@ export function YouTubeChannelSidebar({
                 "h-8 w-8",
                 isCollapsed && "mx-auto"
               )}
-              onClick={() => setIsCollapsed(!isCollapsed)}
+              onClick={() => {
+                const newCollapsed = !isCollapsed;
+                setIsCollapsed(newCollapsed);
+                if (!isMobile) {
+                  onCollapsedChange?.(newCollapsed);
+                }
+              }}
             >
               {isCollapsed ? (
                 <ChevronRight className="h-4 w-4" />

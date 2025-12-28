@@ -61,6 +61,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
   const [postsPageToken, setPostsPageToken] = useState<string | undefined>();
   const [accumulatedPosts, setAccumulatedPosts] = useState<YouTubePost[]>([]);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [recommendationsPage, setRecommendationsPage] = useState(1);
   const heroRef = useRef<HTMLDivElement>(null);
   const hasLoggedEmptyVideosRef = useRef(false);
@@ -515,10 +516,14 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
         onTabChange={setSidebarTab}
         mobileOpen={mobileSidebarOpen}
         onMobileOpenChange={setMobileSidebarOpen}
+        onCollapsedChange={setIsSidebarCollapsed}
       />
 
       {/* Main Content */}
-      <div className="flex-1 min-w-0 transition-all duration-300 lg:pl-64">
+      <div className={cn(
+        "flex-1 min-w-0 transition-all duration-300",
+        isSidebarCollapsed ? "lg:pl-12" : "lg:pl-64"
+      )}>
         {renderMobileSidebarTriggerNav()}
         {sidebarTab === "channel" && channel ? (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -774,13 +779,15 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
               )}
             </>
           )}
-        </div>
 
-        <YouTubeChannelReviews
-          channelId={channelId}
-          channelTitle={channel.title}
-          channelThumbnail={channel.thumbnail}
-        />
+          {activeTab === "reviews" && (
+            <YouTubeChannelReviews
+              channelId={channelId}
+              channelTitle={channel.title}
+              channelThumbnail={channel.thumbnail}
+            />
+          )}
+        </div>
           </div>
         ) : sidebarTab !== "channel" ? (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
