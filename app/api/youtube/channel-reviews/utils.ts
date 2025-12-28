@@ -12,7 +12,9 @@ export function sanitizeReviewTags(input: unknown): string[] {
 }
 
 export function clampChannelReviewRating(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
   const rating = Number(value);
   if (isNaN(rating)) return null;
-  return Math.max(1, Math.min(5, Math.round(rating)));
+  const clamped = Math.max(1, Math.min(5, Math.round(rating)));
+  return clamped === 0 ? null : clamped;
 }
