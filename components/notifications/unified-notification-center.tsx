@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, X, CheckCheck, MessageCircle, Reply, ExternalLink, Settings } from "lucide-react";
+import { Bell, X, CheckCheck, MessageCircle, Reply, ExternalLink, Settings, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -15,12 +15,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useForumNotifications, useMarkForumNotificationsAsRead, ForumNotification } from "@/hooks/use-forum-notifications";
 import { useYouTubeNotifications, useMarkNotificationsAsRead, YouTubeNotification } from "@/hooks/use-youtube-notifications";
+import { useGeneralNotifications, useMarkGeneralNotificationsAsRead, GeneralNotification } from "@/hooks/use-general-notifications";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useAvatar } from "@/contexts/avatar-context";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 type NotificationTab = "youtube" | "general" | "forum";
 
@@ -64,7 +66,26 @@ function getForumNotificationLink(notification: ForumNotification): string {
   return "/forum";
 }
 
+function getGeneralNotificationIcon(type: string) {
+  switch (type) {
+    case "FEEDBACK_SUBMITTED":
+      return <Megaphone className="h-4 w-4" />;
+    default:
+      return <Bell className="h-4 w-4" />;
+  }
+}
+
+function getGeneralNotificationTypeLabel(type: string): string {
+  switch (type) {
+    case "FEEDBACK_SUBMITTED":
+      return "Feedback";
+    default:
+      return "General";
+  }
+}
+
 export function UnifiedNotificationCenter() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<NotificationTab>("youtube");
   const { data: currentUser } = useCurrentUser();
@@ -72,14 +93,18 @@ export function UnifiedNotificationCenter() {
   
   const { data: forumData, isLoading: isLoadingForum } = useForumNotifications(false);
   const { data: youtubeData, isLoading: isLoadingYoutube } = useYouTubeNotifications(false);
+  const { data: generalData, isLoading: isLoadingGeneral } = useGeneralNotifications(false);
   const markForumAsRead = useMarkForumNotificationsAsRead();
   const markYouTubeAsRead = useMarkNotificationsAsRead();
+  const markGeneralAsRead = useMarkGeneralNotificationsAsRead();
 
   const forumNotifications = forumData?.notifications || [];
   const youtubeNotifications = youtubeData?.notifications || [];
+  const generalNotifications = generalData?.notifications || [];
   const forumUnreadCount = forumData?.unreadCount || 0;
   const youtubeUnreadCount = youtubeData?.unreadCount || 0;
-  const totalUnreadCount = forumUnreadCount + youtubeUnreadCount;
+  const generalUnreadCount = generalData?.unreadCount || 0;
+  const totalUnreadCount = forumUnreadCount + youtubeUnreadCount + generalUnreadCount;
 
   const handleMarkForumAsRead = (notificationId?: string) => {
     if (notificationId) {
@@ -97,11 +122,21 @@ export function UnifiedNotificationCenter() {
     }
   };
 
+  const handleMarkGeneralAsRead = (notificationId?: string) => {
+    if (notificationId) {
+      markGeneralAsRead.mutate({ notificationIds: [notificationId] });
+    } else {
+      markGeneralAsRead.mutate({ markAllAsRead: true });
+    }
+  };
+
   const handleMarkAllAsRead = () => {
     if (activeTab === "forum") {
       handleMarkForumAsRead();
     } else if (activeTab === "youtube") {
       handleMarkYouTubeAsRead();
+    } else if (activeTab === "general") {
+      handleMarkGeneralAsRead();
     }
   };
 
@@ -111,8 +146,20 @@ export function UnifiedNotificationCenter() {
         return forumUnreadCount;
       case "youtube":
         return youtubeUnreadCount;
+      case "general":
+        return generalUnreadCount;
       default:
         return 0;
+    }
+  };
+
+  const handleGeneralNotificationClick = (notification: GeneralNotification) => {
+    if (!notification.isRead) {
+      handleMarkGeneralAsRead(notification.id);
+    }
+    if (notification.linkUrl) {
+      router.push(notification.linkUrl);
+      setOpen(false);
     }
   };
 
@@ -150,7 +197,7 @@ export function UnifiedNotificationCenter() {
                 variant="ghost"
                 size="sm"
                 onClick={handleMarkAllAsRead}
-                disabled={markForumAsRead.isPending || markYouTubeAsRead.isPending}
+                disabled={markForumAsRead.isPending || markYouTubeAsRead.isPending || markGeneralAsRead.isPending}
               >
                 <CheckCheck className="h-4 w-4 mr-2" />
                 Mark all read
@@ -177,6 +224,11 @@ export function UnifiedNotificationCenter() {
               className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
             >
               General
+              {generalUnreadCount > 0 && (
+                <Badge variant="secondary" className="ml-2 h-4 px-1.5 text-xs">
+                  {generalUnreadCount}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger 
               value="forum" 
@@ -285,10 +337,81 @@ export function UnifiedNotificationCenter() {
 
           <TabsContent value="general" className="m-0">
             <ScrollArea className="h-[400px]">
-              <div className="p-8 text-center text-sm text-muted-foreground">
-                No general notifications yet
-              </div>
+              {isLoadingGeneral ? (
+                <div className="p-4 space-y-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-20 w-full" />
+                  ))}
+                </div>
+              ) : generalNotifications.length === 0 ? (
+                <div className="p-8 text-center text-sm text-muted-foreground">
+                  No general notifications yet
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {generalNotifications.map((notification) => (
+                    <div
+                      key={notification.id}
+                      onClick={() => handleGeneralNotificationClick(notification)}
+                      className={cn(
+                        "p-4 hover:bg-muted/50 transition-colors cursor-pointer",
+                        !notification.isRead && "bg-muted/30"
+                      )}
+                    >
+                      <div className="flex gap-3">
+                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                          {getGeneralNotificationIcon(notification.type)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="outline" className="text-xs">
+                                  {getGeneralNotificationTypeLabel(notification.type)}
+                                </Badge>
+                                <p className="text-sm font-medium line-clamp-1">
+                                  {notification.title}
+                                </p>
+                              </div>
+                              {notification.message && (
+                                <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                                  {notification.message}
+                                </p>
+                              )}
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatDistanceToNow(new Date(notification.createdAt), {
+                                  addSuffix: true,
+                                })}
+                              </p>
+                            </div>
+                            {!notification.isRead && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMarkGeneralAsRead(notification.id);
+                                }}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </ScrollArea>
+            {generalNotifications.length > 0 && (
+              <div className="p-4 border-t">
+                <Button variant="outline" className="w-full" asChild>
+                  <Link href="/dashboard/notifications">View all</Link>
+                </Button>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="forum" className="m-0">

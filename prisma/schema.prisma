@@ -116,6 +116,9 @@ model User {
   youtubeChannelLists YouTubeChannelList[]
   youtubeChannelListFollows YouTubeChannelListFollow[]
   youtubeBadges UserYouTubeBadge[]
+  feedback Feedback[]
+  feedbackReplies Feedback[] @relation("FeedbackReplies")
+  generalNotifications GeneralNotification[]
   activities Activity[]
   followedActivities Activity[] @relation("UserFollowedActivities")
   lists List[]
@@ -1585,4 +1588,62 @@ model UserYouTubeBadge {
   @@map("user_youtube_badges")
   @@unique([badgeId, userId])
   @@index([userId])
+}
+
+// Feedback - User feedback submissions
+model Feedback {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String   @db.ObjectId
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  reason         String   // Feedback reason (Bug Report, Feature Request, etc.)
+  priority       String   // Priority level (Low, Medium, High, Urgent)
+  message        String   // Feedback message/content
+  
+  // User info at time of submission (for email replies)
+  userEmail      String   // User's email at submission time
+  username       String?  // Username at submission time
+  
+  // Admin response
+  adminReply     String?  // Admin's reply message
+  repliedAt      DateTime? // When admin replied
+  repliedById    String?  @db.ObjectId // Admin who replied
+  repliedBy      User?    @relation("FeedbackReplies", fields: [repliedById], references: [id], onDelete: SetNull)
+  
+  status         String   @default("OPEN") // "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("feedback")
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([repliedById])
+}
+
+// General Notifications - for system-wide notifications (feedback, admin alerts, etc.)
+model GeneralNotification {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type          String   // "FEEDBACK_SUBMITTED", "ADMIN_ALERT", etc.
+  title         String   // Notification title
+  message       String?  // Optional message
+  
+  // Link/action data
+  linkUrl       String?  // URL to navigate to when clicked
+  metadata      Json?   // Additional data (e.g., feedbackId, etc.)
+  
+  // Notification status
+  isRead        Boolean  @default(false)
+  readAt        DateTime?
+  
+  createdAt     DateTime @default(now())
+
+  @@map("general_notifications")
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@index([type])
 }

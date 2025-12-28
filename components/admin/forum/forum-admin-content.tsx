@@ -1,25 +1,64 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { UserManagementTable } from "./user-management-table";
 import { PostModerationTable } from "./post-moderation-table";
 import { CategoryManagement } from "./category-management";
 import { ReportsManagementTable } from "./reports-management-table";
-import { Users, MessageSquare, Hash, Flag } from "lucide-react";
+import { Users, MessageSquare, Hash, Flag, Megaphone } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FeedbackManagementTable } from "./feedback-management-table";
 
 const tabs = [
   { id: "users", label: "Users", icon: Users },
   { id: "posts", label: "Posts", icon: MessageSquare },
   { id: "categories", label: "Categories", icon: Hash },
   { id: "reports", label: "Reports", icon: Flag },
+  { id: "feedback", label: "Feedback", icon: Megaphone },
 ];
 
+const VALID_TABS = new Set(tabs.map((tab) => tab.id));
+
 export function ForumAdminContent() {
-  const [activeTab, setActiveTab] = useState("users");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Lazy state initialization from URL
+  const [activeTab, setActiveTab] = useState(() => {
+    const tabFromUrl = searchParams.get("tab");
+    return tabFromUrl && VALID_TABS.has(tabFromUrl) ? tabFromUrl : "users";
+  });
   const navRef = useRef<HTMLDivElement>(null);
   const activeTabRef = useRef<HTMLButtonElement | null>(null);
+
+  // Sync URL with tab changes
+  useEffect(() => {
+    const currentTab = searchParams.get("tab");
+    const expectedTab = activeTab === "users" ? null : activeTab;
+    
+    if (currentTab !== expectedTab) {
+      const params = new URLSearchParams(searchParams.toString());
+      if (activeTab === "users") {
+        params.delete("tab");
+      } else {
+        params.set("tab", activeTab);
+      }
+      const newUrl = params.toString() ? `/dashboard/admin/forum?${params.toString()}` : "/dashboard/admin/forum";
+      router.push(newUrl);
+    }
+  }, [activeTab, router, searchParams]);
+
+  // Sync tab with URL changes (e.g., browser back/forward)
+  useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl && VALID_TABS.has(tabFromUrl) && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    } else if (!tabFromUrl && activeTab !== "users") {
+      setActiveTab("users");
+    }
+  }, [searchParams]);
 
   // Scroll active tab into view when it changes
   useEffect(() => {
@@ -105,6 +144,10 @@ export function ForumAdminContent() {
 
           <TabsContent value="reports" className="mt-0">
             <ReportsManagementTable />
+          </TabsContent>
+
+          <TabsContent value="feedback" className="mt-0">
+            <FeedbackManagementTable />
           </TabsContent>
         </Tabs>
       </div>

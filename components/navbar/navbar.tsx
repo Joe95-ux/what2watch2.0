@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UnifiedNotificationCenter } from "@/components/notifications/unified-notification-center";
+import { FeedbackDropdown } from "./feedback-dropdown";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import Logo from "@/components/Logo";
 import Search from "./search";
@@ -158,6 +159,13 @@ export default function Navbar() {
                       )}>
                         <UnifiedNotificationCenter />
                       </div>
+                      {/* Feedback Dropdown */}
+                      <div className={cn(
+                        "hidden md:inline-flex",
+                        hasHeroSection && "[&_button]:hover:bg-black/20 [&_button]:text-white"
+                      )}>
+                        <FeedbackDropdown hasHeroSection={hasHeroSection} />
+                      </div>
                       <UserProfileButton hasHeroSection={hasHeroSection} />
                       {/* User Menu - Hidden on mobile, shown in mobile menu */}
                       <div className="hidden md:block">
@@ -196,6 +204,13 @@ export default function Navbar() {
                       hasHeroSection && "[&_button]:hover:bg-black/20 [&_button]:text-white"
                     )}>
                       <UnifiedNotificationCenter />
+                    </div>
+                    {/* Feedback Dropdown */}
+                    <div className={cn(
+                      "hidden md:inline-flex",
+                      hasHeroSection && "[&_button]:hover:bg-black/20 [&_button]:text-white"
+                    )}>
+                      <FeedbackDropdown hasHeroSection={hasHeroSection} />
                     </div>
                     <UserProfileButton hasHeroSection={hasHeroSection} />
                     {/* User Menu - Hidden on mobile, shown in mobile menu */}

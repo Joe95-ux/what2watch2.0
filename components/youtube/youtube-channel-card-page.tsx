@@ -101,148 +101,159 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
     }
   };
 
+  // Determine if summary is negative based on rating
+  const isNegativeSummary = channel.rating && channel.rating.average < 3;
+  const summaryWords = channelSummary?.summary ? channelSummary.summary.split(" ") : [];
+
   return (
     <div
       className="border rounded-lg p-4 hover:border-primary/50 transition-colors cursor-pointer relative pb-14"
       onClick={handleCardClick}
     >
-      <div className="flex items-start gap-3 mb-3">
-        <div className="relative group flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+      {/* YouTube Link - Top Right */}
+      <Link
+        href={channelUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="absolute top-4 right-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary z-10"
+      >
+        <ExternalLink className="h-3 w-3" />
+        YouTube
+      </Link>
+
+      {/* First Section: Circular Avatar in Center */}
+      <div className="flex justify-center mb-4" onClick={(e) => e.stopPropagation()}>
+        {isInDb ? (
+          <Link href={profilePath} className="relative group">
+            {channel.thumbnail ? (
+              <Avatar className="h-16 w-16 cursor-pointer ring-2 ring-border group-hover:ring-primary transition-all">
+                <AvatarImage src={channel.thumbnail} alt={channelTitle} />
+                <AvatarFallback>
+                  <Youtube className="h-8 w-8" />
+                </AvatarFallback>
+              </Avatar>
+            ) : (
+              <Avatar className="h-16 w-16 cursor-pointer ring-2 ring-border group-hover:ring-primary transition-all">
+                <AvatarFallback>
+                  <Youtube className="h-8 w-8" />
+                </AvatarFallback>
+              </Avatar>
+            )}
+          </Link>
+        ) : (
+          <div
+            className="relative group cursor-pointer"
+            onClick={handleNameClick}
+          >
+            {channel.thumbnail ? (
+              <Avatar className="h-16 w-16 ring-2 ring-border group-hover:ring-primary transition-all">
+                <AvatarImage src={channel.thumbnail} alt={channelTitle} />
+                <AvatarFallback>
+                  <Youtube className="h-8 w-8" />
+                </AvatarFallback>
+              </Avatar>
+            ) : (
+              <Avatar className="h-16 w-16 ring-2 ring-border group-hover:ring-primary transition-all">
+                <AvatarFallback>
+                  <Youtube className="h-8 w-8" />
+                </AvatarFallback>
+              </Avatar>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Second Section: Profile Name and Metadata */}
+      <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
+        {/* First Line: Profile Name - Left Aligned */}
+        <div className="text-left">
           {isInDb ? (
-            <Link href={profilePath} className="relative group">
-              {channel.thumbnail ? (
-                <Avatar className="h-12 w-12 cursor-pointer ring-2 ring-border group-hover:ring-primary transition-all">
-                  <AvatarImage src={channel.thumbnail} alt={channelTitle} />
-                  <AvatarFallback>
-                    <Youtube className="h-6 w-6" />
-                  </AvatarFallback>
-                </Avatar>
-              ) : (
-                <Avatar className="h-12 w-12 cursor-pointer ring-2 ring-border group-hover:ring-primary transition-all">
-                  <AvatarFallback>
-                    <Youtube className="h-6 w-6" />
-                  </AvatarFallback>
-                </Avatar>
-              )}
+            <Link href={profilePath} className="block">
+              <h3 className="font-semibold hover:underline truncate">
+                {channelTitle}
+              </h3>
             </Link>
           ) : (
-            <div
-              className="relative group cursor-pointer"
+            <h3
+              className="font-semibold hover:underline truncate cursor-pointer"
               onClick={handleNameClick}
             >
-              {channel.thumbnail ? (
-                <Avatar className="h-12 w-12 ring-2 ring-border group-hover:ring-primary transition-all">
-                  <AvatarImage src={channel.thumbnail} alt={channelTitle} />
-                  <AvatarFallback>
-                    <Youtube className="h-6 w-6" />
-                  </AvatarFallback>
-                </Avatar>
-              ) : (
-                <Avatar className="h-12 w-12 ring-2 ring-border group-hover:ring-primary transition-all">
-                  <AvatarFallback>
-                    <Youtube className="h-6 w-6" />
-                  </AvatarFallback>
-                </Avatar>
-              )}
-            </div>
+              {channelTitle}
+            </h3>
           )}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center gap-2">
-                {isInDb ? (
-                  <Link href={profilePath} className="block">
-                    <h3 className="font-semibold hover:underline truncate flex items-center gap-2">
-                      {displayName}
-                    </h3>
-                  </Link>
-                ) : (
-                  <h3
-                    className="font-semibold hover:underline truncate flex items-center gap-2 cursor-pointer"
-                    onClick={handleNameClick}
-                  >
-                    {displayName}
-                  </h3>
-                )}
-              </div>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                <div className="flex items-center gap-1">
-                  <Users className="h-3 w-3" />
-                  <span>{formatCount(channel.subscriberCount || "0")}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Video className="h-3 w-3" />
-                  <span>{formatCount(channel.videoCount || "0")}</span>
-                </div>
-              </div>
-              <Link
-                href={channelUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary mt-1"
-              >
-                <ExternalLink className="h-3 w-3" />
-                YouTube
-              </Link>
+
+        {/* Second Line: Users found channel with summary tags - Left Aligned */}
+        {channelSummary?.summary && (
+          <div className="text-left">
+            <span className="text-sm text-muted-foreground">Users found channel: </span>
+            <div className="inline-flex flex-wrap items-center gap-1.5 mt-1">
+              {summaryWords.map((word, index) => (
+                <span
+                  key={index}
+                  className={cn(
+                    "px-2 py-0.5 rounded-md border text-xs font-medium",
+                    isNegativeSummary
+                      ? "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
+                      : "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
+                  )}
+                >
+                  {word}
+                </span>
+              ))}
             </div>
           </div>
+        )}
+
+        {/* Separator */}
+        <div className="border-t border-border" />
+
+        {/* Next Line: Subscriber count | Video count | Review count - Center Aligned */}
+        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground flex-wrap">
+          <div className="flex items-center gap-1">
+            <Users className="h-3 w-3" />
+            <span>{formatCount(channel.subscriberCount || "0")}</span>
+          </div>
+          <span>|</span>
+          <div className="flex items-center gap-1">
+            <Video className="h-3 w-3" />
+            <span>{formatCount(channel.videoCount || "0")}</span>
+          </div>
+          {channel.rating && (
+            <>
+              <span>|</span>
+              <div className="flex items-center gap-1">
+                <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                <span>({channel.rating.count})</span>
+              </div>
+            </>
+          )}
         </div>
+
+        {/* Another Separator */}
+        {channel.categories.length > 0 && <div className="border-t border-border" />}
+
+        {/* Channel Categories - Left Aligned */}
+        {channel.categories.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 justify-start">
+            {channel.categories.slice(0, 6).map((category) => (
+              <Badge
+                key={category}
+                variant="secondary"
+                className="text-xs font-medium bg-muted/70"
+              >
+                {category}
+              </Badge>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Note */}
       {channel.note && (
-        <div className="mb-3">
-          <p className="text-sm text-muted-foreground line-clamp-2">{channel.note}</p>
-        </div>
-      )}
-
-      {/* Channel Summary - before category tags */}
-      {channelSummary?.summary && (
-        <div className="text-[0.85rem] mb-2">
-          <div className="text-muted-foreground">Users found Channel:</div>
-          <div className="text-foreground/70">{channelSummary.summary.split(" ").join(" • ")}</div>
-        </div>
-      )}
-
-      {/* Category Badges */}
-      {channel.categories.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 mb-3">
-          {channel.categories.slice(0, 6).map((category) => (
-            <Badge
-              key={category}
-              variant="secondary"
-              className="text-xs font-medium bg-muted/70"
-            >
-              {category}
-            </Badge>
-          ))}
-        </div>
-      )}
-
-      {/* Rating */}
-      {channel.rating && (
-        <div className="flex items-center gap-2 mb-3">
-          <div className="flex items-center gap-0.5">
-            {Array.from({ length: 5 }).map((_, index) => {
-              const rating = Math.round(channel.rating?.average ?? 0);
-              const isFilled = index < rating;
-              return (
-                <Star
-                  key={index}
-                  className={cn(
-                    "h-4 w-4",
-                    isFilled
-                      ? "fill-yellow-500 text-yellow-500"
-                      : "fill-none text-muted-foreground/30"
-                  )}
-                />
-              );
-            })}
-          </div>
-          <span className="text-sm font-medium">{channel.rating.average}</span>
-          <span className="text-xs text-muted-foreground">({channel.rating.count})</span>
+        <div className="mt-3 mb-3">
+          <p className="text-sm text-muted-foreground line-clamp-2 text-center">{channel.note}</p>
         </div>
       )}
 
