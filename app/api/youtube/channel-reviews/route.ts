@@ -53,6 +53,22 @@ async function buildResponse(params: {
     channelId,
   });
 
+  // Debug: Check what channelIds actually exist in the database
+  const allChannelIds = await db.channelReview.findMany({
+    select: { channelId: true },
+    distinct: ["channelId"],
+  });
+  console.log("[ChannelReviews API] All unique channelIds in database:", allChannelIds.map(r => r.channelId));
+  console.log("[ChannelReviews API] Looking for channelId:", channelId);
+  console.log("[ChannelReviews API] ChannelId match check:", allChannelIds.some(r => r.channelId === channelId));
+
+  // Debug: Check reviews for this specific channelId without status filter
+  const reviewsWithoutStatus = await db.channelReview.findMany({
+    where: { channelId },
+    select: { id: true, channelId: true, status: true },
+  });
+  console.log("[ChannelReviews API] Reviews found for channelId (any status):", reviewsWithoutStatus.length, reviewsWithoutStatus);
+
   const [reviews, total, statsSource, viewerReviewRecord] = await Promise.all([
     db.channelReview.findMany({
       where,
