@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Star, Users, Video, ExternalLink, Youtube, Plus, X } from "lucide-react";
+import { Star, UsersRound, Video, ExternalLink, Youtube, Plus, X } from "lucide-react";
 import { getChannelProfilePath } from "@/lib/channel-path";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -166,8 +166,8 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
 
       {/* Second Section: Profile Name and Metadata */}
       <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
-        {/* First Line: Profile Name - Left Aligned */}
-        <div className="text-left">
+        {/* First Line: Profile Name - Center Aligned */}
+        <div className="text-center">
           {isInDb ? (
             <Link href={profilePath} className="block">
               <h3 className="font-semibold hover:underline truncate">
@@ -184,9 +184,9 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
           )}
         </div>
 
-        {/* Second Line: Users found channel with summary tags - Left Aligned */}
+        {/* Second Line: Users found channel with summary tags - Center Aligned */}
         {channelSummary?.summary && (
-          <div className="text-left">
+          <div className="text-center">
             <span className="text-sm text-muted-foreground">Users found channel: </span>
             <div className="inline-flex flex-wrap items-center gap-1.5 mt-1">
               {summaryWords.map((word, index) => (
@@ -212,31 +212,41 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
         {/* Next Line: Subscriber count | Video count | Review count - Center Aligned */}
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground flex-wrap">
           <div className="flex items-center gap-1">
-            <Users className="h-3 w-3" />
+            <UsersRound className="h-4 w-4" />
             <span>{formatCount(channel.subscriberCount || "0")}</span>
           </div>
           <span>|</span>
           <div className="flex items-center gap-1">
-            <Video className="h-3 w-3" />
+            <Video className="h-4 w-4" />
             <span>{formatCount(channel.videoCount || "0")}</span>
           </div>
-          {channel.rating && (
-            <>
-              <span>|</span>
-              <div className="flex items-center gap-1">
-                <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                <span>({channel.rating.count})</span>
-              </div>
-            </>
+          <span>|</span>
+          {channel.rating ? (
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={cn(
+                    "h-3 w-3",
+                    star <= Math.round(channel.rating!.average)
+                      ? "fill-yellow-500 text-yellow-500"
+                      : "fill-none text-muted-foreground"
+                  )}
+                />
+              ))}
+              <span>({channel.rating.count})</span>
+            </div>
+          ) : (
+            <span className="text-muted-foreground">review channel</span>
           )}
         </div>
 
         {/* Another Separator */}
         {channel.categories.length > 0 && <div className="border-t border-border" />}
 
-        {/* Channel Categories - Left Aligned */}
+        {/* Channel Categories - Center Aligned */}
         {channel.categories.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 justify-start">
+          <div className="flex flex-wrap items-center gap-2 justify-center mb-2">
             {channel.categories.slice(0, 6).map((category) => (
               <Badge
                 key={category}

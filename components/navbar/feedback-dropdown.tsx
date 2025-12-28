@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Megaphone, Send } from "lucide-react";
+import { Megaphone, Command, CornerDownLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -51,6 +51,12 @@ export function FeedbackDropdown({ hasHeroSection }: { hasHeroSection?: boolean 
   const [priority, setPriority] = useState<string>("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMac, setIsMac] = useState(false);
+
+  // Detect if user is on Mac
+  useEffect(() => {
+    setIsMac(/Mac|iPhone|iPod|iPad/i.test(navigator.platform));
+  }, []);
 
   const handleSubmit = useCallback(async () => {
     if (!user) {
@@ -141,7 +147,7 @@ export function FeedbackDropdown({ hasHeroSection }: { hasHeroSection?: boolean 
               <div className="space-y-2">
                 <Label htmlFor="reason" className="text-xs">Reason</Label>
                 <Select value={reason} onValueChange={setReason}>
-                  <SelectTrigger id="reason" className="h-9">
+                  <SelectTrigger id="reason" className="h-9 w-full">
                     <SelectValue placeholder="Select reason" />
                   </SelectTrigger>
                   <SelectContent>
@@ -156,7 +162,7 @@ export function FeedbackDropdown({ hasHeroSection }: { hasHeroSection?: boolean 
               <div className="space-y-2">
                 <Label htmlFor="priority" className="text-xs">Priority</Label>
                 <Select value={priority} onValueChange={setPriority}>
-                  <SelectTrigger id="priority" className="h-9">
+                  <SelectTrigger id="priority" className="h-9 w-full">
                     <SelectValue placeholder="Select priority" />
                   </SelectTrigger>
                   <SelectContent>
@@ -195,22 +201,27 @@ export function FeedbackDropdown({ hasHeroSection }: { hasHeroSection?: boolean 
               >
                 Need help? Contact us
               </Link>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">Ctrl</kbd>
-                  <span>+</span>
-                  <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">Enter</kbd>
+              <Button
+                onClick={handleSubmit}
+                disabled={isSubmitting || !reason || !priority || !message.trim()}
+                size="sm"
+                className="gap-2"
+              >
+                <span>Send</span>
+                <div className="flex items-center gap-1">
+                  {isMac ? (
+                    <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] flex items-center justify-center">
+                      <Command className="h-3 w-3" />
+                    </kbd>
+                  ) : (
+                    <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">Ctrl</kbd>
+                  )}
+                  <span className="text-muted-foreground">+</span>
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] flex items-center justify-center">
+                    <CornerDownLeft className="h-3 w-3" />
+                  </kbd>
                 </div>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting || !reason || !priority || !message.trim()}
-                  size="sm"
-                  className="gap-2"
-                >
-                  <Send className="h-4 w-4" />
-                  Send
-                </Button>
-              </div>
+              </Button>
             </div>
           </div>
         </div>
