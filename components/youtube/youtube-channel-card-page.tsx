@@ -13,6 +13,8 @@ import Link from "next/link";
 import { useChannelPool } from "@/hooks/use-channel-pool";
 import { useUser } from "@clerk/nextjs";
 import { useQuery } from "@tanstack/react-query";
+import { ChannelReviewFormSheet } from "./channel-review-form-sheet";
+import { useState } from "react";
 
 function formatCount(count: string | number): string {
   const num = typeof count === "string" ? parseInt(count, 10) : count;
@@ -46,6 +48,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
   const router = useRouter();
   const { isSignedIn } = useUser();
   const { addToPool, removeFromPool } = useChannelPool();
+  const [isReviewSheetOpen, setIsReviewSheetOpen] = useState(false);
   const channelTitle = channel.title || "Unknown Channel";
   const channelUrl = channel.channelUrl || `https://www.youtube.com/channel/${channel.channelId}`;
   const displayName = channelTitle.length > 30 ? channelTitle.slice(0, 30) + "..." : channelTitle;
@@ -222,22 +225,42 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
           </div>
           <span>|</span>
           {channel.rating ? (
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  className={cn(
-                    "h-3 w-3",
-                    star <= Math.round(channel.rating!.average)
-                      ? "fill-yellow-500 text-yellow-500"
-                      : "fill-none text-muted-foreground"
-                  )}
-                />
-              ))}
-              <span>({channel.rating.count})</span>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsReviewSheetOpen(true);
+              }}
+              className="h-auto p-1.5 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={cn(
+                      "h-3 w-3",
+                      star <= Math.round(channel.rating!.average)
+                        ? "fill-yellow-500 text-yellow-500"
+                        : "fill-none text-muted-foreground"
+                    )}
+                  />
+                ))}
+                <span>({channel.rating.count})</span>
+              </div>
+            </Button>
           ) : (
-            <span className="text-muted-foreground">review channel</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsReviewSheetOpen(true);
+              }}
+              className="h-auto p-1.5 text-xs text-muted-foreground hover:text-foreground"
+            >
+              review channel
+            </Button>
           )}
         </div>
 
@@ -293,29 +316,62 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
           </button>
         </div>
       )}
+
+      {/* Review Sheet */}
+      <ChannelReviewFormSheet
+        channelId={channel.channelId}
+        channelTitle={channelTitle}
+        channelThumbnail={channel.thumbnail}
+        isOpen={isReviewSheetOpen}
+        onClose={() => setIsReviewSheetOpen(false)}
+        initialReview={null}
+      />
     </div>
   );
 }
 
 export function YouTubeChannelCardPageSkeleton() {
   return (
-    <div className="border rounded-lg p-4">
-      <div className="flex items-start gap-3 mb-3">
-        <Skeleton className="h-12 w-12 rounded-full flex-shrink-0" />
-        <div className="flex-1 min-w-0">
-          <Skeleton className="h-5 w-32 mb-2" />
-          <div className="flex items-center gap-3 mb-1">
-            <Skeleton className="h-3 w-16" />
-            <Skeleton className="h-3 w-16" />
-          </div>
-          <Skeleton className="h-3 w-20" />
+    <div className="border rounded-lg p-4 relative pb-14">
+      {/* Avatar - Centered */}
+      <div className="flex justify-center mb-4">
+        <Skeleton className="h-16 w-16 rounded-full" />
+      </div>
+
+      {/* Content - Centered */}
+      <div className="space-y-3">
+        {/* Title - Centered */}
+        <div className="text-center">
+          <Skeleton className="h-5 w-32 mx-auto" />
+        </div>
+
+        {/* Separator */}
+        <div className="border-t border-border" />
+
+        {/* Stats - Centered */}
+        <div className="flex items-center justify-center gap-2 text-xs flex-wrap">
+          <Skeleton className="h-3 w-12" />
+          <span className="text-muted-foreground">|</span>
+          <Skeleton className="h-3 w-12" />
+          <span className="text-muted-foreground">|</span>
+          <Skeleton className="h-3 w-16" />
+        </div>
+
+        {/* Separator */}
+        <div className="border-t border-border" />
+
+        {/* Categories - Centered */}
+        <div className="flex flex-wrap items-center gap-2 justify-center mb-2">
+          <Skeleton className="h-5 w-16 rounded" />
+          <Skeleton className="h-5 w-20 rounded" />
+          <Skeleton className="h-5 w-14 rounded" />
         </div>
       </div>
-      <div className="flex items-center gap-2 mb-3">
-        <Skeleton className="h-5 w-16 rounded" />
-        <Skeleton className="h-5 w-16 rounded" />
+
+      {/* Footer Button Skeleton */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border/50">
+        <Skeleton className="h-4 w-32 mx-auto" />
       </div>
-      <Skeleton className="h-4 w-20" />
     </div>
   );
 }

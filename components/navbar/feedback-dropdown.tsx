@@ -208,16 +208,15 @@ export function FeedbackDropdown({ hasHeroSection }: { hasHeroSection?: boolean 
                 className="gap-2"
               >
                 <span>Send</span>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5">
                   {isMac ? (
-                    <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] flex items-center justify-center">
+                    <kbd className="px-1.5 py-0.5 bg-muted/20 rounded-xl text-[10px] flex items-center justify-center">
                       <Command className="h-3 w-3" />
                     </kbd>
                   ) : (
-                    <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">Ctrl</kbd>
+                    <kbd className="px-1.5 py-0.5 bg-muted/20 rounded-xl text-[10px] font-mono">Ctrl</kbd>
                   )}
-                  <span className="text-muted-foreground">+</span>
-                  <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] flex items-center justify-center">
+                  <kbd className="px-1.5 py-0.5 bg-muted/20 rounded-xl text-[10px] flex items-center justify-center">
                     <CornerDownLeft className="h-3 w-3" />
                   </kbd>
                 </div>

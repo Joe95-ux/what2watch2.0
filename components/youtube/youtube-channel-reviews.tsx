@@ -105,11 +105,101 @@ export function YouTubeChannelReviews({
     return true;
   };
 
-  const handleWriteReview = () => {
+  const handleWriteReview = async () => {
     const proceed = handleRequireAuth(() => {
       if (viewerState?.hasReview && viewerState.reviewId) {
+        // First try to find the review in the current page
         const existing = reviews.find((review) => review.id === viewerState.reviewId);
-        setEditingReview(existing ?? null);
+        if (existing) {
+          setEditingReview(existing);
+          setIsSheetOpen(true);
+        } else {
+          // If not found on current page, fetch it from the API
+          fetch(`/api/youtube/channel-reviews/${viewerState.reviewId}`)
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.id) {
+                setEditingReview({
+                  id: data.id,
+                  channelId: data.channelId,
+                  userId: data.userId,
+                  rating: data.rating,
+                  title: data.title,
+                  content: data.content,
+                  tags: data.tags,
+                  helpfulCount: data.helpfulCount,
+                  notHelpfulCount: data.notHelpfulCount,
+                  isEdited: data.isEdited,
+                  status: "published",
+                  createdAt: data.createdAt,
+                  updatedAt: data.updatedAt,
+                  user: data.user,
+                  viewerHasVoted: data.viewerHasVoted,
+                  canEdit: data.canEdit,
+                } as ChannelReview);
+                setIsSheetOpen(true);
+              } else {
+                // Fallback to reviewDraft if API fails
+                if (viewerState.reviewDraft) {
+                  setEditingReview({
+                    id: viewerState.reviewDraft.id,
+                    channelId,
+                    userId: viewerState.userId ?? "",
+                    rating: viewerState.reviewDraft.rating,
+                    title: viewerState.reviewDraft.title,
+                    content: viewerState.reviewDraft.content,
+                    tags: viewerState.reviewDraft.tags,
+                    helpfulCount: 0,
+                    isEdited: false,
+                    status: "published",
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    user: {
+                      id: viewerState.userId ?? "",
+                      username: null,
+                      displayName: null,
+                      avatarUrl: null,
+                    },
+                    viewerHasVoted: false,
+                    canEdit: true,
+                  } as ChannelReview);
+                  setIsSheetOpen(true);
+                } else {
+                  setEditingReview(null);
+                  setIsSheetOpen(true);
+                }
+              }
+            })
+            .catch((error) => {
+              console.error("[YouTubeChannelReviews] Failed to fetch review:", error);
+              // Fallback to reviewDraft
+              if (viewerState.reviewDraft) {
+                setEditingReview({
+                  id: viewerState.reviewDraft.id,
+                  channelId,
+                  userId: viewerState.userId ?? "",
+                  rating: viewerState.reviewDraft.rating,
+                  title: viewerState.reviewDraft.title,
+                  content: viewerState.reviewDraft.content,
+                  tags: viewerState.reviewDraft.tags,
+                  helpfulCount: 0,
+                  isEdited: false,
+                  status: "published",
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                  user: {
+                    id: viewerState.userId ?? "",
+                    username: null,
+                    displayName: null,
+                    avatarUrl: null,
+                  },
+                  viewerHasVoted: false,
+                  canEdit: true,
+                } as ChannelReview);
+              }
+              setIsSheetOpen(true);
+            });
+        }
       } else if (viewerState?.reviewDraft) {
         setEditingReview({
           id: viewerState.reviewDraft.id,
@@ -133,10 +223,11 @@ export function YouTubeChannelReviews({
           viewerHasVoted: false,
           canEdit: true,
         } as ChannelReview);
+        setIsSheetOpen(true);
       } else {
         setEditingReview(null);
+        setIsSheetOpen(true);
       }
-      setIsSheetOpen(true);
     });
 
     return proceed;
@@ -176,7 +267,7 @@ export function YouTubeChannelReviews({
       );
     }
 
-    if (reviews.length === 0) {
+    if (!pagination || pagination.total === 0) {
       return (
         <div className="text-center text-muted-foreground py-12 border border-border rounded-lg">
           <MessageCircle className="h-10 w-10 mx-auto mb-4 opacity-50" />
