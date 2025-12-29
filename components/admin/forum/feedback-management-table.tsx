@@ -521,12 +521,11 @@ export function FeedbackManagementTable() {
                   />
                   <div className="mt-2">
                     <Label htmlFor="reply-status" className="text-sm font-medium">Update Status (Optional)</Label>
-                    <Select value={replyStatus} onValueChange={setReplyStatus}>
+                    <Select value={replyStatus || undefined} onValueChange={setReplyStatus}>
                       <SelectTrigger id="reply-status" className="w-full mt-1">
                         <SelectValue placeholder="Keep current status" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Keep current status</SelectItem>
                         <SelectItem value="OPEN">Open</SelectItem>
                         <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
                         <SelectItem value="RESOLVED">Resolved</SelectItem>
