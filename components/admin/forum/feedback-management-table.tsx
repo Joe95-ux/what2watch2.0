@@ -166,6 +166,17 @@ export function FeedbackManagementTable() {
     };
   }, [dateFilter, customDateRange]);
 
+  // Calculate calendar selected range for display
+  const calendarSelectedRange = useMemo(() => {
+    if (dateFilter === "custom") {
+      return customDateRange?.from && customDateRange?.to 
+        ? { from: customDateRange.from, to: customDateRange.to }
+        : undefined;
+    }
+    if (dateFilter === "all") return undefined;
+    return dateRange ? { from: dateRange.from, to: dateRange.to } : undefined;
+  }, [dateFilter, customDateRange, dateRange]);
+
   const { data, isLoading } = useQuery({
     queryKey: ["admin-feedback", page, statusFilter, priorityFilter, reasonFilter, dateRange, searchQuery],
     queryFn: async () => {
@@ -548,7 +559,7 @@ export function FeedbackManagementTable() {
                 <DropdownMenuContent align="start" className="w-auto p-0">
                   <div className="flex flex-col sm:flex-row">
                     {/* Left Column - Days List */}
-                    <div className="border-b sm:border-b-0 sm:border-r p-1 min-w-[180px]">
+                    <div className="border-b sm:border-b-0 p-1 min-w-[180px]">
                       {[
                         { value: "all", label: "All Time" },
                         { value: "today", label: "Today" },
@@ -562,11 +573,42 @@ export function FeedbackManagementTable() {
                         <DropdownMenuItem
                           key={option.value}
                           onClick={() => {
-                            if (option.value !== "custom") {
-                              handleFilterValueChange("Date", option.value, (val) => setDateFilter(val as typeof dateFilter));
+                            if (option.value === "custom") {
+                              setDateFilter("custom");
+                            } else if (option.value === "all") {
+                              handleFilterValueChange("Date", option.value, (val) => {
+                                setDateFilter(val as typeof dateFilter);
+                                setCustomDateRange(undefined);
+                              });
                               setPage(1);
                             } else {
-                              setDateFilter("custom");
+                              const now = new Date();
+                              let from: Date;
+                              switch (option.value) {
+                                case "today":
+                                  from = startOfDay(now);
+                                  break;
+                                case "yesterday":
+                                  from = startOfDay(subDays(now, 1));
+                                  break;
+                                case "3days":
+                                  from = startOfDay(subDays(now, 3));
+                                  break;
+                                case "7days":
+                                  from = startOfDay(subDays(now, 7));
+                                  break;
+                                case "15days":
+                                  from = startOfDay(subDays(now, 15));
+                                  break;
+                                case "30days":
+                                  from = startOfDay(subDays(now, 30));
+                                  break;
+                                default:
+                                  from = startOfDay(now);
+                              }
+                              setCustomDateRange({ from, to: endOfDay(now) });
+                              handleFilterValueChange("Date", option.value, (val) => setDateFilter(val as typeof dateFilter));
+                              setPage(1);
                             }
                           }}
                           className={cn(
@@ -580,27 +622,22 @@ export function FeedbackManagementTable() {
                     </div>
                     {/* Right Column - Date Picker */}
                     <div className="p-3">
-                      {dateFilter === "custom" ? (
-                        <div className="space-y-2">
-                          <Calendar
-                            mode="range"
-                            selected={customDateRange?.from && customDateRange?.to ? { from: customDateRange.from, to: customDateRange.to } : undefined}
-                            onSelect={(range) => {
-                              setCustomDateRange(range);
-                              if (range?.from && range?.to) {
-                                setPage(1);
-                                setOpenDropdowns((prev) => ({ ...prev, Date: false }));
-                              }
-                            }}
-                            numberOfMonths={1}
-                            className="rounded-md border"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-[280px] h-[280px] flex items-center justify-center text-sm text-muted-foreground">
-                          Select a date range option
-                        </div>
-                      )}
+                      <Calendar
+                        mode="range"
+                        selected={calendarSelectedRange}
+                        onSelect={(range) => {
+                          if (range) {
+                            setCustomDateRange(range);
+                            setDateFilter("custom");
+                            if (range.from && range.to) {
+                              setPage(1);
+                              setOpenDropdowns((prev) => ({ ...prev, Date: false }));
+                            }
+                          }
+                        }}
+                        numberOfMonths={1}
+                        className="rounded-md border"
+                      />
                     </div>
                   </div>
                 </DropdownMenuContent>
