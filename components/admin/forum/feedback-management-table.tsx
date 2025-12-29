@@ -556,7 +556,7 @@ export function FeedbackManagementTable() {
                     )}
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-auto p-0">
+                <DropdownMenuContent align="start" className="w-auto p-0 rounded-[25px] dark:bg-[#000000]">
                   <div className="flex flex-col sm:flex-row">
                     {/* Left Column - Days List */}
                     <div className="border-b sm:border-b-0 p-1 min-w-[180px]">
@@ -636,7 +636,7 @@ export function FeedbackManagementTable() {
                           }
                         }}
                         numberOfMonths={1}
-                        className="rounded-md border"
+                        className="rounded-[15px] border-none"
                       />
                     </div>
                   </div>
