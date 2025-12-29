@@ -30,13 +30,19 @@ if (!resend) {
 // Get the from email address
 function getFromEmail() {
   if (resendDomain) {
-    const fromEmail = `noreply@${resendDomain}`;
-    console.log("[Email] Using custom domain:", fromEmail);
+    // If RESEND_DOMAIN contains @, use it directly as full email
+    // Otherwise, prepend noreply@
+    const fromEmail = resendDomain.includes("@") 
+      ? resendDomain 
+      : `noreply@${resendDomain}`;
+    console.log("[Email] Using custom domain/resend domain:", fromEmail);
+    console.log("[Email] RESEND_DOMAIN env var value:", resendDomain);
     return fromEmail;
   }
   // Use Resend's default domain (onboarding.resend.dev)
   const defaultEmail = "onboarding@resend.dev";
-  console.log("[Email] Using default domain:", defaultEmail);
+  console.log("[Email] Using default domain (RESEND_DOMAIN not set):", defaultEmail);
+  console.log("[Email] RESEND_DOMAIN env var:", process.env.RESEND_DOMAIN || "not set");
   return defaultEmail;
 }
 

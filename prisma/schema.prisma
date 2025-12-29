@@ -118,6 +118,7 @@ model User {
   youtubeBadges UserYouTubeBadge[]
   feedback Feedback[]
   feedbackReplies Feedback[] @relation("FeedbackReplies")
+  feedbackReplyHistory FeedbackReply[]
   generalNotifications GeneralNotification[]
   activities Activity[]
   followedActivities Activity[] @relation("UserFollowedActivities")
@@ -1604,11 +1605,14 @@ model Feedback {
   userEmail      String   // User's email at submission time
   username       String?  // Username at submission time
   
-  // Admin response
-  adminReply     String?  // Admin's reply message
-  repliedAt      DateTime? // When admin replied
-  repliedById    String?  @db.ObjectId // Admin who replied
+  // Admin response (deprecated - use FeedbackReply model instead)
+  adminReply     String?  // Admin's reply message (legacy field)
+  repliedAt      DateTime? // When admin replied (legacy field)
+  repliedById    String?  @db.ObjectId // Admin who replied (legacy field)
   repliedBy      User?    @relation("FeedbackReplies", fields: [repliedById], references: [id], onDelete: SetNull)
+  
+  // Reply history
+  replies        FeedbackReply[]
   
   status         String   @default("OPEN") // "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"
   
@@ -1620,6 +1624,26 @@ model Feedback {
   @@index([status])
   @@index([createdAt])
   @@index([repliedById])
+}
+
+// Feedback Reply - Multiple replies per feedback
+model FeedbackReply {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  feedbackId    String   @db.ObjectId
+  feedback      Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  
+  message       String   // Reply message
+  status        String?  // Status at time of reply (optional - can be set separately)
+  
+  repliedById   String   @db.ObjectId
+  repliedBy     User     @relation(fields: [repliedById], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+
+  @@map("feedback_replies")
+  @@index([feedbackId])
+  @@index([repliedById])
+  @@index([createdAt])
 }
 
 // General Notifications - for system-wide notifications (feedback, admin alerts, etc.)

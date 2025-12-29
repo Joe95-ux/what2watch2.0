@@ -309,11 +309,11 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
   return (
     <div className="mx-auto max-w-[90rem] px-4 py-10 space-y-8">
       <button
-        onClick={() => router.push("/youtube-channel/lists")}
+        onClick={() => router.back()}
         className="flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
       >
         <ArrowLeftCircle className="h-4 w-4" />
-        Back to lists
+        Back
       </button>
 
       {/* Header */}

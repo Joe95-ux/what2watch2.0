@@ -43,6 +43,11 @@ export async function GET(request: NextRequest) {
               displayName: true,
             },
           },
+          replies: {
+            select: {
+              id: true,
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
         skip,
@@ -51,8 +56,14 @@ export async function GET(request: NextRequest) {
       db.feedback.count({ where }),
     ]);
 
+    // Add reply count to each feedback
+    const feedbacksWithCount = feedbacks.map((feedback) => ({
+      ...feedback,
+      replyCount: feedback.replies.length,
+    }));
+
     return NextResponse.json({
-      feedbacks,
+      feedbacks: feedbacksWithCount,
       pagination: {
         page,
         limit,

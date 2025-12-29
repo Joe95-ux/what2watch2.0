@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Table,
@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Eye, Mail, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, Mail, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -28,6 +28,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface FeedbackReply {
+  id: string;
+  message: string;
+  status: string | null;
+  createdAt: string;
+  repliedBy: {
+    username: string | null;
+    displayName: string | null;
+  };
+}
 
 interface Feedback {
   id: string;
@@ -39,6 +51,8 @@ interface Feedback {
   status: string;
   adminReply: string | null;
   repliedAt: string | null;
+  replyCount?: number;
+  replies?: FeedbackReply[];
   createdAt: string;
   user: {
     username: string | null;
@@ -52,6 +66,8 @@ export function FeedbackManagementTable() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [viewingFeedback, setViewingFeedback] = useState<Feedback | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
+  const [replyStatus, setReplyStatus] = useState<string>("");
+  const [isLoadingFeedbackDetail, setIsLoadingFeedbackDetail] = useState(false);
 
   const updateStatus = useMutation({
     mutationFn: async ({
@@ -72,11 +88,11 @@ export function FeedbackManagementTable() {
       }
       return res.json();
     },
-    onSuccess: (_, variables) => {
+    onSuccess: async (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
-      // Update local state
+      // Reload feedback detail if viewing
       if (viewingFeedback) {
-        setViewingFeedback({ ...viewingFeedback, status: variables.status });
+        await loadFeedbackDetail(viewingFeedback.id);
       }
       toast.success("Status updated successfully");
     },
@@ -100,18 +116,35 @@ export function FeedbackManagementTable() {
     },
   });
 
+  const loadFeedbackDetail = async (feedbackId: string) => {
+    setIsLoadingFeedbackDetail(true);
+    try {
+      const res = await fetch(`/api/admin/feedback/${feedbackId}`);
+      if (!res.ok) throw new Error("Failed to fetch feedback detail");
+      const data = await res.json();
+      setViewingFeedback(data.feedback);
+    } catch (error) {
+      console.error("Failed to load feedback detail:", error);
+      toast.error("Failed to load feedback details");
+    } finally {
+      setIsLoadingFeedbackDetail(false);
+    }
+  };
+
   const replyToFeedback = useMutation({
     mutationFn: async ({
       feedbackId,
       message,
+      status,
     }: {
       feedbackId: string;
       message: string;
+      status?: string;
     }) => {
       const res = await fetch(`/api/admin/feedback/${feedbackId}/reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, status }),
       });
       if (!res.ok) {
         const error = await res.json();
@@ -119,11 +152,15 @@ export function FeedbackManagementTable() {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
+      // Reload feedback detail to get updated replies
+      if (viewingFeedback) {
+        await loadFeedbackDetail(viewingFeedback.id);
+      }
       toast.success("Reply sent successfully");
-      setViewingFeedback(null);
       setReplyMessage("");
+      setReplyStatus("");
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -148,13 +185,13 @@ export function FeedbackManagementTable() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "OPEN":
-        return "destructive"; // Red for open/urgent
+        return "destructive";
       case "IN_PROGRESS":
-        return "default"; // Blue for in progress
+        return "default";
       case "RESOLVED":
-        return "secondary"; // Green-like for resolved
+        return "secondary";
       case "CLOSED":
-        return "outline"; // Gray for closed
+        return "outline";
       default:
         return "secondary";
     }
@@ -193,6 +230,7 @@ export function FeedbackManagementTable() {
                 <TableHead>Reason</TableHead>
                 <TableHead>Priority</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Replies</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -204,6 +242,7 @@ export function FeedbackManagementTable() {
                   <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-8 w-16" /></TableCell>
                 </TableRow>
@@ -242,6 +281,7 @@ export function FeedbackManagementTable() {
               <TableHead>Reason</TableHead>
               <TableHead>Priority</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Replies</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -249,7 +289,7 @@ export function FeedbackManagementTable() {
           <TableBody>
             {feedbacks.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   No feedback found
                 </TableCell>
               </TableRow>
@@ -279,6 +319,9 @@ export function FeedbackManagementTable() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
+                    {feedback.replyCount || 0}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
                     {formatDistanceToNow(new Date(feedback.createdAt), { addSuffix: true })}
                   </TableCell>
                   <TableCell>
@@ -286,8 +329,11 @@ export function FeedbackManagementTable() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setViewingFeedback(feedback)}
-                        className="gap-2"
+                        onClick={() => {
+                          setViewingFeedback(feedback);
+                          loadFeedbackDetail(feedback.id);
+                        }}
+                        className="gap-2 cursor-pointer"
                       >
                         <Eye className="h-4 w-4" />
                         View
@@ -298,9 +344,10 @@ export function FeedbackManagementTable() {
                         onClick={() => {
                           setViewingFeedback(feedback);
                           setReplyMessage("");
+                          setReplyStatus("");
+                          loadFeedbackDetail(feedback.id);
                         }}
-                        className="gap-2"
-                        disabled={!!feedback.adminReply}
+                        className="gap-2 cursor-pointer"
                       >
                         <Mail className="h-4 w-4" />
                         Reply
@@ -343,13 +390,15 @@ export function FeedbackManagementTable() {
         </div>
       )}
 
-      {/* View/Reply Dialog */}
+      {/* View/Reply Dialog with Fixed Header/Footer */}
       <Dialog open={!!viewingFeedback} onOpenChange={() => {
         setViewingFeedback(null);
         setReplyMessage("");
+        setReplyStatus("");
       }}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl flex flex-col max-h-[80vh] p-0">
+          {/* Fixed Header */}
+          <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
             <DialogTitle>Feedback Details</DialogTitle>
             <DialogDescription>
               {viewingFeedback && (
@@ -373,6 +422,12 @@ export function FeedbackManagementTable() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Status:</span>
+                    <Badge 
+                      variant={getStatusColor(viewingFeedback.status) as any}
+                      className={getStatusClassName(viewingFeedback.status)}
+                    >
+                      {viewingFeedback.status.replace("_", " ")}
+                    </Badge>
                     <Select
                       value={viewingFeedback.status}
                       onValueChange={(newStatus) => {
@@ -385,7 +440,7 @@ export function FeedbackManagementTable() {
                       }}
                       disabled={updateStatus.isPending}
                     >
-                      <SelectTrigger className="w-[140px] h-7">
+                      <SelectTrigger className="w-[140px] h-7 ml-2">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -407,69 +462,121 @@ export function FeedbackManagementTable() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div>
-              <Label className="text-sm font-medium">Message</Label>
-              <div className="mt-2 p-4 bg-muted rounded-lg whitespace-pre-wrap text-sm">
-                {viewingFeedback?.message}
+          {/* Scrollable Content */}
+          <ScrollArea className="flex-1 px-6 py-4 scrollbar-thin">
+            {isLoadingFeedbackDetail ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
               </div>
-            </div>
-
-            {viewingFeedback?.adminReply && (
-              <div>
-                <Label className="text-sm font-medium">Admin Reply</Label>
-                <div className="mt-2 p-4 bg-primary/10 rounded-lg whitespace-pre-wrap text-sm">
-                  {viewingFeedback.adminReply}
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium">Original Message</Label>
+                  <div className="mt-2 p-4 bg-muted rounded-lg whitespace-pre-wrap text-sm">
+                    {viewingFeedback?.message}
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Replied {viewingFeedback.repliedAt && formatDistanceToNow(new Date(viewingFeedback.repliedAt), { addSuffix: true })}
+
+                {/* Reply History */}
+                {viewingFeedback?.replies && viewingFeedback.replies.length > 0 && (
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">Reply History ({viewingFeedback.replies.length})</Label>
+                    <div className="space-y-3">
+                      {viewingFeedback.replies.map((reply) => (
+                        <div key={reply.id} className="border rounded-lg p-4 bg-primary/5">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium">
+                                {reply.repliedBy?.displayName || reply.repliedBy?.username || "Admin"}
+                              </span>
+                              {reply.status && (
+                                <Badge 
+                                  variant={getStatusColor(reply.status) as any}
+                                  className={cn("text-xs", getStatusClassName(reply.status))}
+                                >
+                                  {reply.status.replace("_", " ")}
+                                </Badge>
+                              )}
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
+                            </span>
+                          </div>
+                          <div className="text-sm whitespace-pre-wrap">{reply.message}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Reply Form */}
+                <div>
+                  <Label htmlFor="reply-message" className="text-sm font-medium">Reply Message</Label>
+                  <Textarea
+                    id="reply-message"
+                    className="mt-2 min-h-[120px]"
+                    placeholder="Enter your reply message. This will be sent to the user via email."
+                    value={replyMessage}
+                    onChange={(e) => setReplyMessage(e.target.value)}
+                  />
+                  <div className="mt-2">
+                    <Label htmlFor="reply-status" className="text-sm font-medium">Update Status (Optional)</Label>
+                    <Select value={replyStatus} onValueChange={setReplyStatus}>
+                      <SelectTrigger id="reply-status" className="w-full mt-1">
+                        <SelectValue placeholder="Keep current status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Keep current status</SelectItem>
+                        <SelectItem value="OPEN">Open</SelectItem>
+                        <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                        <SelectItem value="RESOLVED">Resolved</SelectItem>
+                        <SelectItem value="CLOSED">Closed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
             )}
+          </ScrollArea>
 
-            {!viewingFeedback?.adminReply && (
-              <div>
-                <Label htmlFor="reply-message" className="text-sm font-medium">Reply Message</Label>
-                <Textarea
-                  id="reply-message"
-                  className="mt-2 min-h-[120px]"
-                  placeholder="Enter your reply message. This will be sent to the user via email."
-                  value={replyMessage}
-                  onChange={(e) => setReplyMessage(e.target.value)}
-                />
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
+          {/* Fixed Footer */}
+          <DialogFooter className="px-6 py-4 border-t flex-shrink-0">
             <Button
               variant="outline"
               onClick={() => {
                 setViewingFeedback(null);
                 setReplyMessage("");
+                setReplyStatus("");
               }}
+              className="cursor-pointer"
             >
               Close
             </Button>
-            {!viewingFeedback?.adminReply && (
-              <Button
-                onClick={() => {
-                  if (viewingFeedback && replyMessage.trim()) {
-                    replyToFeedback.mutate({
-                      feedbackId: viewingFeedback.id,
-                      message: replyMessage.trim(),
-                    });
-                  }
-                }}
-                disabled={!replyMessage.trim() || replyToFeedback.isPending}
-              >
-                {replyToFeedback.isPending ? "Sending..." : "Send Reply"}
-              </Button>
-            )}
+            <Button
+              onClick={() => {
+                if (viewingFeedback && replyMessage.trim()) {
+                  replyToFeedback.mutate({
+                    feedbackId: viewingFeedback.id,
+                    message: replyMessage.trim(),
+                    status: replyStatus || undefined,
+                  });
+                }
+              }}
+              disabled={!replyMessage.trim() || replyToFeedback.isPending}
+              className="cursor-pointer"
+            >
+              {replyToFeedback.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                "Send Reply"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
-
