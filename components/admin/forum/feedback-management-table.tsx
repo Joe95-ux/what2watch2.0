@@ -28,7 +28,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface FeedbackReply {
   id: string;
@@ -66,7 +65,6 @@ export function FeedbackManagementTable() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [viewingFeedback, setViewingFeedback] = useState<Feedback | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
-  const [replyStatus, setReplyStatus] = useState<string>("");
   const [isLoadingFeedbackDetail, setIsLoadingFeedbackDetail] = useState(false);
 
   const updateStatus = useMutation({
@@ -160,7 +158,6 @@ export function FeedbackManagementTable() {
       }
       toast.success("Reply sent successfully");
       setReplyMessage("");
-      setReplyStatus("");
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -344,7 +341,6 @@ export function FeedbackManagementTable() {
                         onClick={() => {
                           setViewingFeedback(feedback);
                           setReplyMessage("");
-                          setReplyStatus("");
                           loadFeedbackDetail(feedback.id);
                         }}
                         className="gap-2 cursor-pointer"
@@ -394,9 +390,8 @@ export function FeedbackManagementTable() {
       <Dialog open={!!viewingFeedback} onOpenChange={() => {
         setViewingFeedback(null);
         setReplyMessage("");
-        setReplyStatus("");
       }}>
-        <DialogContent className="max-w-2xl flex flex-col max-h-[80vh] p-0">
+        <DialogContent className="flex flex-col max-h-[90vh] p-0 sm:max-w-[38rem] lg:max-w-[40rem]">
           {/* Fixed Header */}
           <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
             <DialogTitle>Feedback Details</DialogTitle>
@@ -463,7 +458,7 @@ export function FeedbackManagementTable() {
           </DialogHeader>
 
           {/* Scrollable Content */}
-          <ScrollArea className="flex-1 px-6 py-4 scrollbar-thin">
+          <div className="flex-1 px-6 py-4 overflow-y-auto scrollbar-thin min-h-0">
             {isLoadingFeedbackDetail ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin" />
@@ -519,24 +514,10 @@ export function FeedbackManagementTable() {
                     value={replyMessage}
                     onChange={(e) => setReplyMessage(e.target.value)}
                   />
-                  <div className="mt-2">
-                    <Label htmlFor="reply-status" className="text-sm font-medium">Update Status (Optional)</Label>
-                    <Select value={replyStatus || undefined} onValueChange={setReplyStatus}>
-                      <SelectTrigger id="reply-status" className="w-full mt-1">
-                        <SelectValue placeholder="Keep current status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="OPEN">Open</SelectItem>
-                        <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                        <SelectItem value="RESOLVED">Resolved</SelectItem>
-                        <SelectItem value="CLOSED">Closed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
               </div>
             )}
-          </ScrollArea>
+          </div>
 
           {/* Fixed Footer */}
           <DialogFooter className="px-6 py-4 border-t flex-shrink-0">
@@ -545,7 +526,6 @@ export function FeedbackManagementTable() {
               onClick={() => {
                 setViewingFeedback(null);
                 setReplyMessage("");
-                setReplyStatus("");
               }}
               className="cursor-pointer"
             >
@@ -557,7 +537,6 @@ export function FeedbackManagementTable() {
                   replyToFeedback.mutate({
                     feedbackId: viewingFeedback.id,
                     message: replyMessage.trim(),
-                    status: replyStatus || undefined,
                   });
                 }
               }}

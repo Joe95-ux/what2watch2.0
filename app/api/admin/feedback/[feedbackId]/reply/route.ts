@@ -82,16 +82,6 @@ export async function POST(
 
     // Send email to user with the reply
     const userName = feedback.user?.displayName || feedback.user?.username || "User";
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    
-    console.log("[AdminFeedbackReply] Preparing to send email reply");
-    console.log("[AdminFeedbackReply] Feedback ID:", feedbackId);
-    console.log("[AdminFeedbackReply] Recipient email:", feedback.userEmail);
-    console.log("[AdminFeedbackReply] User name:", userName);
-    console.log("[AdminFeedbackReply] Resend domain config:", {
-      RESEND_DOMAIN: process.env.RESEND_DOMAIN || "not set",
-      expectedDefault: "onboarding@resend.dev",
-    });
     
     // Build status message if status changed
     const statusMessage = status && status !== feedback.status
@@ -117,30 +107,14 @@ export async function POST(
       footerText: "This is an automated message from what2watch. Please do not reply to this email.",
     });
 
-    console.log("[AdminFeedbackReply] Email content generated, length:", emailContent.length);
-    console.log("[AdminFeedbackReply] Calling sendEmail function...");
-
     // Send email asynchronously (don't block response)
     sendEmail({
       to: feedback.userEmail,
       subject: "Re: Your Feedback on what2watch",
       html: emailContent,
-    })
-      .then((success) => {
-        if (success) {
-          console.log("[AdminFeedbackReply] ✓ Email sent successfully to:", feedback.userEmail);
-        } else {
-          console.error("[AdminFeedbackReply] ✗ Email send returned false for:", feedback.userEmail);
-        }
-      })
-      .catch((error) => {
-        console.error("[AdminFeedbackReply] ✗ Failed to send email:", error);
-        console.error("[AdminFeedbackReply] Error details:", {
-          message: error?.message,
-          stack: error?.stack,
-          name: error?.name,
-        });
-      });
+    }).catch(() => {
+      // Email sending failed silently
+    });
 
     return NextResponse.json({ success: true, reply });
   } catch (error) {
