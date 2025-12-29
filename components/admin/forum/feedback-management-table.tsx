@@ -36,6 +36,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 interface FeedbackReply {
@@ -453,28 +458,42 @@ export function FeedbackManagementTable() {
           </div>
 
           {/* Filter Button */}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setIsFilterRowOpen(!isFilterRowOpen)}
-            className={cn(
-              "h-9 w-9 rounded-full cursor-pointer",
-              hasActiveFilters && "bg-primary/10 text-primary"
-            )}
-          >
-            <Filter className="h-4 w-4" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsFilterRowOpen(!isFilterRowOpen)}
+                className={cn(
+                  "h-9 w-9 rounded-full cursor-pointer",
+                  hasActiveFilters && "bg-primary/10 text-primary"
+                )}
+              >
+                <Filter className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Filter feedback</p>
+            </TooltipContent>
+          </Tooltip>
 
           {/* Export Button */}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleExportCSV}
-            className="h-9 w-9 rounded-full cursor-pointer"
-            disabled={isLoading}
-          >
-            <Download className="h-4 w-4" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleExportCSV}
+                className="h-9 w-9 rounded-full cursor-pointer"
+                disabled={isLoading}
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Export to CSV</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
 
         {/* Filter Row - Collapsible */}
@@ -559,7 +578,7 @@ export function FeedbackManagementTable() {
                 <DropdownMenuContent align="start" className="w-auto p-0 rounded-[25px] dark:bg-[#000000]">
                   <div className="flex flex-col sm:flex-row">
                     {/* Left Column - Days List */}
-                    <div className="border-b sm:border-b-0 p-1 min-w-[180px]">
+                    <div className="border-b sm:border-b-0 p-[10px] min-w-[180px]">
                       {[
                         { value: "all", label: "All Time" },
                         { value: "today", label: "Today" },
@@ -612,7 +631,7 @@ export function FeedbackManagementTable() {
                             }
                           }}
                           className={cn(
-                            "cursor-pointer",
+                            "cursor-pointer rounded-[12px]",
                             dateFilter === option.value && "bg-accent"
                           )}
                         >
