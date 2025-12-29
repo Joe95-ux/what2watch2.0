@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Table,
@@ -13,9 +13,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Eye, Mail, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Eye, Mail, ChevronLeft, ChevronRight, Loader2, Search, Filter, Download, X, ChevronDown, ChevronUp, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format, subDays, startOfDay, endOfDay } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +27,15 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 interface FeedbackReply {
@@ -59,10 +68,29 @@ interface Feedback {
   };
 }
 
+const FEEDBACK_REASONS = [
+  "Bug Report",
+  "Feature Request",
+  "UI/UX Issue",
+  "Performance Issue",
+  "Content Issue",
+  "Account Issue",
+  "Other",
+];
+
+const FEEDBACK_PRIORITIES = ["Low", "Medium", "High", "Urgent"];
+
 export function FeedbackManagementTable() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [reasonFilter, setReasonFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState<"all" | "today" | "yesterday" | "3days" | "7days" | "15days" | "30days" | "custom">("all");
+  const [customDateRange, setCustomDateRange] = useState<{ from?: Date; to?: Date } | undefined>(undefined);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
+  const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
   const [viewingFeedback, setViewingFeedback] = useState<Feedback | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
   const [isLoadingFeedbackDetail, setIsLoadingFeedbackDetail] = useState(false);
@@ -99,14 +127,62 @@ export function FeedbackManagementTable() {
     },
   });
 
+  // Calculate date range based on filter
+  const dateRange = useMemo(() => {
+    if (dateFilter === "all") return undefined;
+    if (dateFilter === "custom" && customDateRange?.from && customDateRange?.to) {
+      return {
+        from: startOfDay(customDateRange.from),
+        to: endOfDay(customDateRange.to),
+      };
+    }
+    const now = new Date();
+    let from: Date;
+    switch (dateFilter) {
+      case "today":
+        from = startOfDay(now);
+        break;
+      case "yesterday":
+        from = startOfDay(subDays(now, 1));
+        break;
+      case "3days":
+        from = startOfDay(subDays(now, 3));
+        break;
+      case "7days":
+        from = startOfDay(subDays(now, 7));
+        break;
+      case "15days":
+        from = startOfDay(subDays(now, 15));
+        break;
+      case "30days":
+        from = startOfDay(subDays(now, 30));
+        break;
+      default:
+        return undefined;
+    }
+    return {
+      from,
+      to: endOfDay(now),
+    };
+  }, [dateFilter, customDateRange]);
+
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-feedback", page, statusFilter],
+    queryKey: ["admin-feedback", page, statusFilter, priorityFilter, reasonFilter, dateRange, searchQuery],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: "20",
         status: statusFilter,
+        priority: priorityFilter,
+        reason: reasonFilter,
+        search: searchQuery,
       });
+      if (dateRange?.from) {
+        params.append("dateFrom", dateRange.from.toISOString());
+      }
+      if (dateRange?.to) {
+        params.append("dateTo", dateRange.to.toISOString());
+      }
 
       const res = await fetch(`/api/admin/feedback?${params}`);
       if (!res.ok) throw new Error("Failed to fetch feedback");
@@ -209,6 +285,87 @@ export function FeedbackManagementTable() {
     }
   };
 
+  const toggleDropdown = (filterLabel: string) => {
+    setOpenDropdowns((prev) => ({
+      ...prev,
+      [filterLabel]: !prev[filterLabel],
+    }));
+  };
+
+  const handleFilterValueChange = (filterLabel: string, value: string, onValueChange: (value: string) => void) => {
+    onValueChange(value);
+    setOpenDropdowns((prev) => ({
+      ...prev,
+      [filterLabel]: false,
+    }));
+  };
+
+  const getFilterDisplayValue = (value: string, options: { value: string; label: string }[]) => {
+    const option = options.find((opt) => opt.value === value);
+    return option?.label || value;
+  };
+
+  const hasActiveFilters = statusFilter !== "all" || priorityFilter !== "all" || reasonFilter !== "all" || dateFilter !== "all" || searchQuery.trim() !== "";
+
+  const clearFilters = () => {
+    setStatusFilter("all");
+    setPriorityFilter("all");
+    setReasonFilter("all");
+    setDateFilter("all");
+    setCustomDateRange(undefined);
+    setSearchQuery("");
+    setPage(1);
+  };
+
+  const getDateFilterDisplay = () => {
+    if (dateFilter === "all") return "All Time";
+    if (dateFilter === "custom" && customDateRange?.from && customDateRange?.to) {
+      return `${format(customDateRange.from, "MMM d")} - ${format(customDateRange.to, "MMM d")}`;
+    }
+    const labels: Record<string, string> = {
+      today: "Today",
+      yesterday: "Yesterday",
+      "3days": "Last 3 Days",
+      "7days": "Last 7 Days",
+      "15days": "Last 15 Days",
+      "30days": "Last 30 Days",
+    };
+    return labels[dateFilter] || "All Time";
+  };
+
+  const handleExportCSV = async () => {
+    try {
+      const params = new URLSearchParams({
+        status: statusFilter,
+        priority: priorityFilter,
+        reason: reasonFilter,
+        search: searchQuery,
+        export: "csv",
+      });
+      if (dateRange?.from) {
+        params.append("dateFrom", dateRange.from.toISOString());
+      }
+      if (dateRange?.to) {
+        params.append("dateTo", dateRange.to.toISOString());
+      }
+
+      const res = await fetch(`/api/admin/feedback?${params}`);
+      if (!res.ok) throw new Error("Failed to export feedback");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `feedback-export-${format(new Date(), "yyyy-MM-dd")}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success("Feedback exported successfully");
+    } catch (error) {
+      toast.error("Failed to export feedback");
+    }
+  };
+
   const feedbacks = data?.feedbacks ?? [];
   const pagination = data?.pagination;
 
@@ -253,20 +410,305 @@ export function FeedbackManagementTable() {
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
-      <div className="flex items-center gap-4">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="OPEN">Open</SelectItem>
-            <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-            <SelectItem value="RESOLVED">Resolved</SelectItem>
-            <SelectItem value="CLOSED">Closed</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* Filter Row */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          {/* Search Bar */}
+          <div className="relative min-w-0 flex-1 sm:max-w-[20rem]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="Search feedback..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
+              className="pl-9 pr-3 h-9"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 cursor-pointer"
+                onClick={() => {
+                  setSearchQuery("");
+                  setPage(1);
+                }}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
+
+          {/* Filter Button */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setIsFilterRowOpen(!isFilterRowOpen)}
+            className={cn(
+              "h-9 w-9 rounded-full cursor-pointer",
+              hasActiveFilters && "bg-primary/10 text-primary"
+            )}
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
+
+          {/* Export Button */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleExportCSV}
+            className="h-9 w-9 rounded-full cursor-pointer"
+            disabled={isLoading}
+          >
+            <Download className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Filter Row - Collapsible */}
+        <div
+          className={cn(
+            "overflow-hidden transition-all duration-300 ease-in-out",
+            isFilterRowOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          )}
+        >
+          <div className="overflow-x-auto scrollbar-hide pb-2">
+            <div className="flex items-center gap-4 min-w-max px-1">
+              {/* Status Filter */}
+              <DropdownMenu
+                open={openDropdowns["Status"] || false}
+                onOpenChange={(open) => setOpenDropdowns((prev) => ({ ...prev, Status: open }))}
+              >
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => toggleDropdown("Status")}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground dark:hover:text-foreground transition-colors cursor-pointer whitespace-nowrap focus:outline-none focus-visible:outline-none rounded-sm px-2 py-1"
+                  >
+                    <span>Status:</span>
+                    <span className="font-medium">
+                      {getFilterDisplayValue(statusFilter, [
+                        { value: "all", label: "All Status" },
+                        { value: "OPEN", label: "Open" },
+                        { value: "IN_PROGRESS", label: "In Progress" },
+                        { value: "RESOLVED", label: "Resolved" },
+                        { value: "CLOSED", label: "Closed" },
+                      ])}
+                    </span>
+                    {openDropdowns["Status"] ? (
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  {[
+                    { value: "all", label: "All Status" },
+                    { value: "OPEN", label: "Open" },
+                    { value: "IN_PROGRESS", label: "In Progress" },
+                    { value: "RESOLVED", label: "Resolved" },
+                    { value: "CLOSED", label: "Closed" },
+                  ].map((option) => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      onClick={() => {
+                        handleFilterValueChange("Status", option.value, setStatusFilter);
+                        setPage(1);
+                      }}
+                      className={cn("cursor-pointer", statusFilter === option.value && "bg-accent")}
+                    >
+                      {option.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Date Filter */}
+              <DropdownMenu
+                open={openDropdowns["Date"] || false}
+                onOpenChange={(open) => setOpenDropdowns((prev) => ({ ...prev, Date: open }))}
+              >
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => toggleDropdown("Date")}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground dark:hover:text-foreground transition-colors cursor-pointer whitespace-nowrap focus:outline-none focus-visible:outline-none rounded-sm px-2 py-1"
+                  >
+                    <span>Date:</span>
+                    <span className="font-medium">{getDateFilterDisplay()}</span>
+                    {openDropdowns["Date"] ? (
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-auto p-0">
+                  <div className="flex flex-col sm:flex-row">
+                    {/* Left Column - Days List */}
+                    <div className="border-b sm:border-b-0 sm:border-r p-1 min-w-[180px]">
+                      {[
+                        { value: "all", label: "All Time" },
+                        { value: "today", label: "Today" },
+                        { value: "yesterday", label: "Yesterday" },
+                        { value: "3days", label: "Last 3 Days" },
+                        { value: "7days", label: "Last 7 Days" },
+                        { value: "15days", label: "Last 15 Days" },
+                        { value: "30days", label: "Last 30 Days" },
+                        { value: "custom", label: "Custom Range" },
+                      ].map((option) => (
+                        <DropdownMenuItem
+                          key={option.value}
+                          onClick={() => {
+                            if (option.value !== "custom") {
+                              handleFilterValueChange("Date", option.value, (val) => setDateFilter(val as typeof dateFilter));
+                              setPage(1);
+                            } else {
+                              setDateFilter("custom");
+                            }
+                          }}
+                          className={cn(
+                            "cursor-pointer",
+                            dateFilter === option.value && "bg-accent"
+                          )}
+                        >
+                          {option.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </div>
+                    {/* Right Column - Date Picker */}
+                    <div className="p-3">
+                      {dateFilter === "custom" ? (
+                        <div className="space-y-2">
+                          <Calendar
+                            mode="range"
+                            selected={customDateRange?.from && customDateRange?.to ? { from: customDateRange.from, to: customDateRange.to } : undefined}
+                            onSelect={(range) => {
+                              setCustomDateRange(range);
+                              if (range?.from && range?.to) {
+                                setPage(1);
+                                setOpenDropdowns((prev) => ({ ...prev, Date: false }));
+                              }
+                            }}
+                            numberOfMonths={1}
+                            className="rounded-md border"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-[280px] h-[280px] flex items-center justify-center text-sm text-muted-foreground">
+                          Select a date range option
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Priority Filter */}
+              <DropdownMenu
+                open={openDropdowns["Priority"] || false}
+                onOpenChange={(open) => setOpenDropdowns((prev) => ({ ...prev, Priority: open }))}
+              >
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => toggleDropdown("Priority")}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground dark:hover:text-foreground transition-colors cursor-pointer whitespace-nowrap focus:outline-none focus-visible:outline-none rounded-sm px-2 py-1"
+                  >
+                    <span>Priority:</span>
+                    <span className="font-medium">
+                      {getFilterDisplayValue(priorityFilter, [
+                        { value: "all", label: "All Priorities" },
+                        ...FEEDBACK_PRIORITIES.map((p) => ({ value: p, label: p })),
+                      ])}
+                    </span>
+                    {openDropdowns["Priority"] ? (
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  {[
+                    { value: "all", label: "All Priorities" },
+                    ...FEEDBACK_PRIORITIES.map((p) => ({ value: p, label: p })),
+                  ].map((option) => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      onClick={() => {
+                        handleFilterValueChange("Priority", option.value, setPriorityFilter);
+                        setPage(1);
+                      }}
+                      className={cn("cursor-pointer", priorityFilter === option.value && "bg-accent")}
+                    >
+                      {option.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Reason Filter */}
+              <DropdownMenu
+                open={openDropdowns["Reason"] || false}
+                onOpenChange={(open) => setOpenDropdowns((prev) => ({ ...prev, Reason: open }))}
+              >
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => toggleDropdown("Reason")}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground dark:hover:text-foreground transition-colors cursor-pointer whitespace-nowrap focus:outline-none focus-visible:outline-none rounded-sm px-2 py-1"
+                  >
+                    <span>Reason:</span>
+                    <span className="font-medium">
+                      {getFilterDisplayValue(reasonFilter, [
+                        { value: "all", label: "All Reasons" },
+                        ...FEEDBACK_REASONS.map((r) => ({ value: r, label: r })),
+                      ])}
+                    </span>
+                    {openDropdowns["Reason"] ? (
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56 max-h-[300px] overflow-y-auto">
+                  {[
+                    { value: "all", label: "All Reasons" },
+                    ...FEEDBACK_REASONS.map((r) => ({ value: r, label: r })),
+                  ].map((option) => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      onClick={() => {
+                        handleFilterValueChange("Reason", option.value, setReasonFilter);
+                        setPage(1);
+                      }}
+                      className={cn("cursor-pointer", reasonFilter === option.value && "bg-accent")}
+                    >
+                      {option.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Clear All Button */}
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="h-8 px-3 text-sm text-muted-foreground hover:text-foreground cursor-pointer whitespace-nowrap"
+                >
+                  <X className="h-3.5 w-3.5 mr-1.5" />
+                  Clear All
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Table */}
