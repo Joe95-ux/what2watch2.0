@@ -232,7 +232,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
                 e.stopPropagation();
                 setIsReviewSheetOpen(true);
               }}
-              className="h-auto p-1.5 text-xs text-muted-foreground hover:text-foreground"
+              className="h-auto p-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
             >
               <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -257,7 +257,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
                 e.stopPropagation();
                 setIsReviewSheetOpen(true);
               }}
-              className="h-auto p-1.5 text-xs text-muted-foreground hover:text-foreground"
+              className="h-auto p-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
             >
               review channel
             </Button>

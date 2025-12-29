@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Heart, Youtube, ExternalLink, Loader2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, PanelLeft, Search, ArrowLeft } from "lucide-react";
 import {
@@ -46,12 +46,18 @@ interface YouTubeChannelPageClientProps {
   channelId: string;
 }
 
+const VALID_TABS = new Set(["home", "videos", "shorts", "playlists", "posts", "reviews"]);
+
 export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPageClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: channel, isLoading: isLoadingChannel } = useYouTubeChannel(channelId);
   const [pageToken, setPageToken] = useState<string | undefined>();
   const [playlistsPageToken, setPlaylistsPageToken] = useState<string | undefined>();
-  const [activeTab, setActiveTab] = useState("home");
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get("tab");
+    return tab && VALID_TABS.has(tab) ? tab : "home";
+  });
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("channel");
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
@@ -75,6 +81,34 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
     watchlater: "Watch Later",
     recommendations: "Recommendations",
   };
+
+  // Update URL when tab changes
+  useEffect(() => {
+    const currentTab = searchParams.get("tab");
+    const expectedTab = activeTab === "home" ? null : activeTab;
+    
+    // Only update if URL doesn't match current state
+    if (currentTab !== expectedTab) {
+      const params = new URLSearchParams(searchParams.toString());
+      if (activeTab === "home") {
+        params.delete("tab");
+      } else {
+        params.set("tab", activeTab);
+      }
+      const newUrl = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
+      router.push(newUrl);
+    }
+  }, [activeTab, router, searchParams]);
+
+  // Sync with URL changes (browser back/forward)
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab && VALID_TABS.has(tab)) {
+      setActiveTab(tab);
+    } else if (!tab) {
+      setActiveTab("home");
+    }
+  }, [searchParams]);
 
   const renderMobileSidebarTriggerNav = () => {
     if (!isMobile) return null;

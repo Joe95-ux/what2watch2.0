@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Megaphone, Command, CornerDownLeft } from "lucide-react";
+import { Megaphone, Command, CornerDownLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -205,21 +205,30 @@ export function FeedbackDropdown({ hasHeroSection }: { hasHeroSection?: boolean 
                 onClick={handleSubmit}
                 disabled={isSubmitting || !reason || !priority || !message.trim()}
                 size="sm"
-                className="gap-2"
+                className="gap-2 cursor-pointer"
               >
-                <span>Send</span>
-                <div className="flex items-center gap-0.5">
-                  {isMac ? (
-                    <kbd className="px-1.5 py-0.5 bg-muted/20 rounded-xl text-[10px] flex items-center justify-center">
-                      <Command className="h-3 w-3" />
-                    </kbd>
-                  ) : (
-                    <kbd className="px-1.5 py-0.5 bg-muted/20 rounded-xl text-[10px] font-mono">Ctrl</kbd>
-                  )}
-                  <kbd className="px-1.5 py-0.5 bg-muted/20 rounded-xl text-[10px] flex items-center justify-center">
-                    <CornerDownLeft className="h-3 w-3" />
-                  </kbd>
-                </div>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Sending...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Send</span>
+                    <div className="flex items-center gap-0.5">
+                      {isMac ? (
+                        <kbd className="px-1.5 py-0.5 bg-muted/20 rounded-xl text-[10px] flex items-center justify-center">
+                          <Command className="h-3 w-3" />
+                        </kbd>
+                      ) : (
+                        <kbd className="px-1.5 py-0.5 bg-muted/20 rounded-xl text-[10px] font-mono">Ctrl</kbd>
+                      )}
+                      <kbd className="px-1.5 py-0.5 bg-muted/20 rounded-xl text-[10px] flex items-center justify-center">
+                        <CornerDownLeft className="h-3 w-3" />
+                      </kbd>
+                    </div>
+                  </>
+                )}
               </Button>
             </div>
           </div>

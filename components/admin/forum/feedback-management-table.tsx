@@ -53,6 +53,38 @@ export function FeedbackManagementTable() {
   const [viewingFeedback, setViewingFeedback] = useState<Feedback | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
 
+  const updateStatus = useMutation({
+    mutationFn: async ({
+      feedbackId,
+      status,
+    }: {
+      feedbackId: string;
+      status: string;
+    }) => {
+      const res = await fetch(`/api/admin/feedback/${feedbackId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to update status");
+      }
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
+      // Update local state
+      if (viewingFeedback) {
+        setViewingFeedback({ ...viewingFeedback, status: variables.status });
+      }
+      toast.success("Status updated successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ["admin-feedback", page, statusFilter],
     queryFn: async () => {
@@ -116,15 +148,30 @@ export function FeedbackManagementTable() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "OPEN":
-        return "default";
+        return "destructive"; // Red for open/urgent
       case "IN_PROGRESS":
-        return "secondary";
+        return "default"; // Blue for in progress
       case "RESOLVED":
-        return "outline";
+        return "secondary"; // Green-like for resolved
       case "CLOSED":
-        return "outline";
+        return "outline"; // Gray for closed
       default:
         return "secondary";
+    }
+  };
+
+  const getStatusClassName = (status: string) => {
+    switch (status) {
+      case "OPEN":
+        return "bg-red-500/10 text-red-700 border-red-500/30 dark:text-red-400 dark:bg-red-500/20";
+      case "IN_PROGRESS":
+        return "bg-blue-500/10 text-blue-700 border-blue-500/30 dark:text-blue-400 dark:bg-blue-500/20";
+      case "RESOLVED":
+        return "bg-green-500/10 text-green-700 border-green-500/30 dark:text-green-400 dark:bg-green-500/20";
+      case "CLOSED":
+        return "bg-gray-500/10 text-gray-700 border-gray-500/30 dark:text-gray-400 dark:bg-gray-500/20";
+      default:
+        return "";
     }
   };
 
@@ -224,7 +271,10 @@ export function FeedbackManagementTable() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={getStatusColor(feedback.status) as any}>
+                    <Badge 
+                      variant={getStatusColor(feedback.status) as any}
+                      className={getStatusClassName(feedback.status)}
+                    >
                       {feedback.status.replace("_", " ")}
                     </Badge>
                   </TableCell>
@@ -323,9 +373,28 @@ export function FeedbackManagementTable() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Status:</span>
-                    <Badge variant={getStatusColor(viewingFeedback.status) as any}>
-                      {viewingFeedback.status.replace("_", " ")}
-                    </Badge>
+                    <Select
+                      value={viewingFeedback.status}
+                      onValueChange={(newStatus) => {
+                        if (viewingFeedback) {
+                          updateStatus.mutate({
+                            feedbackId: viewingFeedback.id,
+                            status: newStatus,
+                          });
+                        }
+                      }}
+                      disabled={updateStatus.isPending}
+                    >
+                      <SelectTrigger className="w-[140px] h-7">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="OPEN">Open</SelectItem>
+                        <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                        <SelectItem value="RESOLVED">Resolved</SelectItem>
+                        <SelectItem value="CLOSED">Closed</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Date:</span>
