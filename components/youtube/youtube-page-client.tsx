@@ -54,16 +54,17 @@ export function YouTubePageClient() {
       }
       const newUrl = params.toString() ? `/youtube?${params.toString()}` : "/youtube";
       
-      // Use push() when going from base/default to a tab (creates history entry for back button)
-      // Use replace() when switching between tabs (no history entry)
+      // Always use push() when going to/from base URL (creates history entry for back button)
+      // Use replace() only when switching between tabs (no history entry)
       const previousTab = previousTabRef.current;
-      const wasOnBaseOrDefault = !previousTab || previousTab === "channels" || !searchParams.get("tab");
-      const isGoingToTab = activeTab !== "channels";
+      const isGoingToBase = activeTab === "channels";
+      const isGoingFromBase = !previousTab || previousTab === "channels" || !searchParams.get("tab");
+      const isSwitchingTabs = !isGoingToBase && !isGoingFromBase;
       
-      if (wasOnBaseOrDefault && isGoingToTab) {
-        router.push(newUrl);
-      } else {
+      if (isSwitchingTabs) {
         router.replace(newUrl);
+      } else {
+        router.push(newUrl);
       }
       
       previousTabRef.current = activeTab;

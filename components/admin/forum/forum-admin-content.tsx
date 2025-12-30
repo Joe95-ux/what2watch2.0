@@ -59,16 +59,17 @@ export function ForumAdminContent() {
       }
       const newUrl = params.toString() ? `/dashboard/admin/forum?${params.toString()}` : "/dashboard/admin/forum";
       
-      // Use push() when going from base/default to a tab (creates history entry for back button)
-      // Use replace() when switching between tabs (no history entry)
+      // Always use push() when going to/from base URL (creates history entry for back button)
+      // Use replace() only when switching between tabs (no history entry)
       const previousTab = previousTabRef.current;
-      const wasOnBaseOrDefault = !previousTab || previousTab === "users" || !searchParams.get("tab");
-      const isGoingToTab = activeTab !== "users";
+      const isGoingToBase = activeTab === "users";
+      const isGoingFromBase = !previousTab || previousTab === "users" || !searchParams.get("tab");
+      const isSwitchingTabs = !isGoingToBase && !isGoingFromBase;
       
-      if (wasOnBaseOrDefault && isGoingToTab) {
-        router.push(newUrl);
-      } else {
+      if (isSwitchingTabs) {
         router.replace(newUrl);
+      } else {
+        router.push(newUrl);
       }
       
       previousTabRef.current = activeTab;
