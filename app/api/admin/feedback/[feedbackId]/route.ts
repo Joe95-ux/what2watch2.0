@@ -31,6 +31,14 @@ export async function GET(
       include: {
         user: {
           select: {
+            id: true,
+            username: true,
+            displayName: true,
+          },
+        },
+        assignedTo: {
+          select: {
+            id: true,
             username: true,
             displayName: true,
           },
@@ -45,6 +53,43 @@ export async function GET(
             },
           },
           orderBy: { createdAt: "asc" },
+        },
+        notes: {
+          include: {
+            createdBy: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+              },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        },
+        tags: {
+          include: {
+            createdBy: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+              },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
+        activities: {
+          include: {
+            performedBy: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+              },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 50, // Limit to last 50 activities
         },
       },
     });

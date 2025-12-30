@@ -78,7 +78,31 @@ export async function POST(
         where: { id: feedbackId },
         data: updateData,
       });
+
+      // Create activity log for status change
+      await db.feedbackActivity.create({
+        data: {
+          feedbackId,
+          action: "STATUS_CHANGED",
+          description: `Status changed to ${status.replace("_", " ")} via reply`,
+          metadata: {
+            oldStatus: feedback.status,
+            newStatus: status,
+          },
+          performedById: user.id,
+        },
+      });
     }
+
+    // Create activity log for reply
+    await db.feedbackActivity.create({
+      data: {
+        feedbackId,
+        action: "REPLY_SENT",
+        description: "Reply sent to user",
+        performedById: user.id,
+      },
+    });
 
     // Send email to user with the reply
     const userName = feedback.user?.displayName || feedback.user?.username || "User";

@@ -259,7 +259,7 @@ export default function AiUsageContent() {
 
   if (isError) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-[95rem] mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <Card>
           <CardContent className="pt-6">
             <p className="text-destructive">Failed to load analytics: {error?.message || "Unknown error"}</p>
@@ -270,7 +270,7 @@ export default function AiUsageContent() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
+    <div className="max-w-[95rem] mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 sm:mb-6">
         <div className="flex items-center gap-2">
           <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
@@ -548,7 +548,7 @@ export default function AiUsageContent() {
                               onClick={() => setCurrentPage(page)}
                               className={cn(
                                 "h-9 w-9",
-                                currentPage === page && "bg-primary text-primary-foreground"
+                                currentPage === page && "bg-primary text-primary/80"
                               )}
                             >
                               {page}

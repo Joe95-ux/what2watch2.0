@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Eye, Mail, ChevronLeft, ChevronRight, Loader2, Search, Filter, Download, X, ChevronDown, ChevronUp, CalendarIcon, ArrowUpDown, ArrowDown, ArrowUp, Trash2, CheckCheck, MoreVertical, Copy, UserRound } from "lucide-react";
+import { Eye, Mail, ChevronLeft, ChevronRight, Loader2, Search, Filter, Download, X, ChevronDown, ChevronUp, CalendarIcon, ArrowUpDown, ArrowDown, ArrowUp, Trash2, CheckCheck, MoreVertical, Copy, UserRound, FileText, Tag, History, UserPlus, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow, format, subDays, startOfDay, endOfDay } from "date-fns";
 import {
@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -67,6 +68,43 @@ interface FeedbackReply {
   };
 }
 
+interface FeedbackTag {
+  id: string;
+  name: string;
+  color: string | null;
+  createdAt: string;
+  createdBy: {
+    id: string;
+    username: string | null;
+    displayName: string | null;
+  };
+}
+
+interface FeedbackNote {
+  id: string;
+  note: string;
+  isPrivate: boolean;
+  createdAt: string;
+  createdBy: {
+    id: string;
+    username: string | null;
+    displayName: string | null;
+  };
+}
+
+interface FeedbackActivity {
+  id: string;
+  action: string;
+  description: string;
+  metadata: any;
+  createdAt: string;
+  performedBy: {
+    id: string;
+    username: string | null;
+    displayName: string | null;
+  };
+}
+
 interface Feedback {
   id: string;
   reason: string;
@@ -85,6 +123,14 @@ interface Feedback {
     username: string | null;
     displayName: string | null;
   } | null;
+  assignedTo?: {
+    id: string;
+    username: string | null;
+    displayName: string | null;
+  } | null;
+  tags?: FeedbackTag[];
+  notes?: FeedbackNote[];
+  activities?: FeedbackActivity[];
 }
 
 const FEEDBACK_REASONS = [
@@ -123,6 +169,10 @@ export function FeedbackManagementTable() {
   const [bulkStatus, setBulkStatus] = useState<string>("");
   const [userFilter, setUserFilter] = useState("all");
   const [replyCountFilter, setReplyCountFilter] = useState<"all" | "with" | "without">("all");
+  const [activeTab, setActiveTab] = useState<"replies" | "notes" | "tags" | "activity">("replies");
+  const [newNote, setNewNote] = useState("");
+  const [newTag, setNewTag] = useState("");
+  const [availableAdmins, setAvailableAdmins] = useState<Array<{ id: string; username: string | null; displayName: string | null }>>([]);
 
   const updateStatus = useMutation({
     mutationFn: async ({
@@ -241,6 +291,7 @@ export function FeedbackManagementTable() {
       if (!res.ok) throw new Error("Failed to fetch feedback detail");
       const data = await res.json();
       setViewingFeedback(data.feedback);
+      setActiveTab("replies"); // Reset to replies tab when loading new feedback
     } catch (error) {
       console.error("Failed to load feedback detail:", error);
       toast.error("Failed to load feedback details");
@@ -248,6 +299,114 @@ export function FeedbackManagementTable() {
       setIsLoadingFeedbackDetail(false);
     }
   };
+
+  const addNote = useMutation({
+    mutationFn: async ({ feedbackId, note }: { feedbackId: string; note: string }) => {
+      const res = await fetch(`/api/admin/feedback/${feedbackId}/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note, isPrivate: true }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to add note");
+      }
+      return res.json();
+    },
+    onSuccess: async (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
+      await loadFeedbackDetail(variables.feedbackId);
+      setNewNote("");
+      toast.success("Note added successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const addTag = useMutation({
+    mutationFn: async ({ feedbackId, name }: { feedbackId: string; name: string }) => {
+      const res = await fetch(`/api/admin/feedback/${feedbackId}/tags`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to add tag");
+      }
+      return res.json();
+    },
+    onSuccess: async (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
+      await loadFeedbackDetail(variables.feedbackId);
+      setNewTag("");
+      toast.success("Tag added successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const removeTag = useMutation({
+    mutationFn: async ({ feedbackId, tagId }: { feedbackId: string; tagId: string }) => {
+      const res = await fetch(`/api/admin/feedback/${feedbackId}/tags?tagId=${tagId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to remove tag");
+      }
+      return res.json();
+    },
+    onSuccess: async (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
+      await loadFeedbackDetail(variables.feedbackId);
+      toast.success("Tag removed successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const assignFeedback = useMutation({
+    mutationFn: async ({ feedbackId, assignedToId }: { feedbackId: string; assignedToId: string | null }) => {
+      const res = await fetch(`/api/admin/feedback/${feedbackId}/assign`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assignedToId }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to assign feedback");
+      }
+      return res.json();
+    },
+    onSuccess: async (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
+      await loadFeedbackDetail(variables.feedbackId);
+      toast.success(variables.assignedToId ? "Feedback assigned successfully" : "Assignment removed");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  // Load available admins for assignment
+  useEffect(() => {
+    if (viewingFeedback) {
+      fetch("/api/admin/users?role=admin")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.users) {
+            setAvailableAdmins(data.users);
+          }
+        })
+        .catch(() => {
+          // Silently fail
+        });
+    }
+  }, [viewingFeedback]);
 
   const replyToFeedback = useMutation({
     mutationFn: async ({
@@ -1186,6 +1345,7 @@ export function FeedbackManagementTable() {
                   )}
                 </div>
               </TableHead>
+              <TableHead>Assigned</TableHead>
               <TableHead>Replies</TableHead>
               <TableHead 
                 className="cursor-pointer hover:bg-accent/50 transition-colors"
@@ -1212,7 +1372,7 @@ export function FeedbackManagementTable() {
           <TableBody>
             {feedbacks.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   No feedback found
                 </TableCell>
               </TableRow>
@@ -1256,6 +1416,18 @@ export function FeedbackManagementTable() {
                     >
                       {feedback.status.replace("_", " ")}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {feedback.assignedTo ? (
+                      <div className="flex items-center gap-1">
+                        <UserPlus className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">
+                          {feedback.assignedTo.displayName || feedback.assignedTo.username || "Admin"}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Unassigned</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {feedback.replyCount || 0}
@@ -1369,6 +1541,9 @@ export function FeedbackManagementTable() {
       <Dialog open={!!viewingFeedback} onOpenChange={() => {
         setViewingFeedback(null);
         setReplyMessage("");
+        setNewNote("");
+        setNewTag("");
+        setActiveTab("replies");
       }}>
         <DialogContent className="flex flex-col max-h-[90vh] p-0 sm:max-w-[38rem] lg:max-w-[40rem]">
           {/* Fixed Header */}
@@ -1431,70 +1606,290 @@ export function FeedbackManagementTable() {
                       {new Date(viewingFeedback.createdAt).toLocaleString()}
                     </span>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Assigned to:</span>
+                    <Select
+                      value={viewingFeedback.assignedTo?.id || "none"}
+                      onValueChange={(value) => {
+                        if (viewingFeedback) {
+                          assignFeedback.mutate({
+                            feedbackId: viewingFeedback.id,
+                            assignedToId: value === "none" ? null : value,
+                          });
+                        }
+                      }}
+                      disabled={assignFeedback.isPending}
+                    >
+                      <SelectTrigger className="w-[180px] h-7 ml-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Unassigned</SelectItem>
+                        {availableAdmins.map((admin) => (
+                          <SelectItem key={admin.id} value={admin.id}>
+                            {admin.displayName || admin.username || "Admin"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {viewingFeedback.tags && viewingFeedback.tags.length > 0 && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium">Tags:</span>
+                      {viewingFeedback.tags.map((tag) => (
+                        <Badge key={tag.id} variant="outline" className="text-xs">
+                          {tag.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </DialogDescription>
           </DialogHeader>
 
-          {/* Scrollable Content */}
+          {/* Scrollable Content with Tabs */}
           <div className="flex-1 px-6 py-4 overflow-y-auto scrollbar-thin min-h-0">
             {isLoadingFeedbackDetail ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin" />
               </div>
             ) : (
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-sm font-medium">Original Message</Label>
-                  <div className="mt-2 p-4 bg-muted rounded-lg whitespace-pre-wrap text-sm">
-                    {viewingFeedback?.message}
-                  </div>
-                </div>
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="w-full">
+                <TabsList className="grid w-full grid-cols-4 mb-4">
+                  <TabsTrigger value="replies" className="text-xs sm:text-sm">
+                    <Mail className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Replies</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="notes" className="text-xs sm:text-sm">
+                    <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Notes</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="tags" className="text-xs sm:text-sm">
+                    <Tag className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Tags</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="activity" className="text-xs sm:text-sm">
+                    <History className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Activity</span>
+                  </TabsTrigger>
+                </TabsList>
 
-                {/* Reply History */}
-                {viewingFeedback?.replies && viewingFeedback.replies.length > 0 && (
+                <TabsContent value="replies" className="mt-0 space-y-4">
                   <div>
-                    <Label className="text-sm font-medium mb-2 block">Reply History ({viewingFeedback.replies.length})</Label>
-                    <div className="space-y-3">
-                      {viewingFeedback.replies.map((reply) => (
-                        <div key={reply.id} className="border rounded-lg p-4 bg-primary/5">
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-medium">
-                                {reply.repliedBy?.displayName || reply.repliedBy?.username || "Admin"}
-                              </span>
-                              {reply.status && (
-                                <Badge 
-                                  variant={getStatusColor(reply.status) as any}
-                                  className={cn("text-xs", getStatusClassName(reply.status))}
-                                >
-                                  {reply.status.replace("_", " ")}
-                                </Badge>
-                              )}
-                            </div>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
-                            </span>
-                          </div>
-                          <div className="text-sm whitespace-pre-wrap">{reply.message}</div>
-                        </div>
-                      ))}
+                    <Label className="text-sm font-medium">Original Message</Label>
+                    <div className="mt-2 p-4 bg-muted rounded-lg whitespace-pre-wrap text-sm">
+                      {viewingFeedback?.message}
                     </div>
                   </div>
-                )}
 
-                {/* Reply Form */}
-                <div>
-                  <Label htmlFor="reply-message" className="text-sm font-medium">Reply Message</Label>
-                  <Textarea
-                    id="reply-message"
-                    className="mt-2 min-h-[120px]"
-                    placeholder="Enter your reply message. This will be sent to the user via email."
-                    value={replyMessage}
-                    onChange={(e) => setReplyMessage(e.target.value)}
-                  />
-                </div>
-              </div>
+                  {/* Reply History */}
+                  {viewingFeedback?.replies && viewingFeedback.replies.length > 0 && (
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Reply History ({viewingFeedback.replies.length})</Label>
+                      <div className="space-y-3">
+                        {viewingFeedback.replies.map((reply) => (
+                          <div key={reply.id} className="border rounded-lg p-4 bg-primary/5">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium">
+                                  {reply.repliedBy?.displayName || reply.repliedBy?.username || "Admin"}
+                                </span>
+                                {reply.status && (
+                                  <Badge 
+                                    variant={getStatusColor(reply.status) as any}
+                                    className={cn("text-xs", getStatusClassName(reply.status))}
+                                  >
+                                    {reply.status.replace("_", " ")}
+                                  </Badge>
+                                )}
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
+                              </span>
+                            </div>
+                            <div className="text-sm whitespace-pre-wrap">{reply.message}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Reply Form */}
+                  <div>
+                    <Label htmlFor="reply-message" className="text-sm font-medium">Reply Message</Label>
+                    <Textarea
+                      id="reply-message"
+                      className="mt-2 min-h-[120px]"
+                      placeholder="Enter your reply message. This will be sent to the user via email."
+                      value={replyMessage}
+                      onChange={(e) => setReplyMessage(e.target.value)}
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="notes" className="mt-0 space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">Internal Notes</Label>
+                    <div className="space-y-3 mb-4">
+                      {viewingFeedback?.notes && viewingFeedback.notes.length > 0 ? (
+                        viewingFeedback.notes.map((note) => (
+                          <div key={note.id} className="border rounded-lg p-3 bg-muted/50">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium">
+                                  {note.createdBy?.displayName || note.createdBy?.username || "Admin"}
+                                </span>
+                                {note.isPrivate && (
+                                  <Badge variant="outline" className="text-xs">Private</Badge>
+                                )}
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(new Date(note.createdAt), { addSuffix: true })}
+                              </span>
+                            </div>
+                            <div className="text-sm whitespace-pre-wrap">{note.note}</div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No notes yet</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="new-note" className="text-sm font-medium">Add Note</Label>
+                      <Textarea
+                        id="new-note"
+                        className="mt-2 min-h-[100px]"
+                        placeholder="Add an internal note (only visible to admins)..."
+                        value={newNote}
+                        onChange={(e) => setNewNote(e.target.value)}
+                      />
+                      <Button
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => {
+                          if (viewingFeedback && newNote.trim()) {
+                            addNote.mutate({
+                              feedbackId: viewingFeedback.id,
+                              note: newNote.trim(),
+                            });
+                          }
+                        }}
+                        disabled={!newNote.trim() || addNote.isPending}
+                      >
+                        {addNote.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Adding...
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Note
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="tags" className="mt-0 space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">Tags</Label>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {viewingFeedback?.tags && viewingFeedback.tags.length > 0 ? (
+                        viewingFeedback.tags.map((tag) => (
+                          <Badge
+                            key={tag.id}
+                            variant="outline"
+                            className="text-xs cursor-pointer hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => {
+                              if (viewingFeedback) {
+                                removeTag.mutate({
+                                  feedbackId: viewingFeedback.id,
+                                  tagId: tag.id,
+                                });
+                              }
+                            }}
+                          >
+                            {tag.name}
+                            <X className="h-3 w-3 ml-1" />
+                          </Badge>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No tags yet</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="new-tag" className="text-sm font-medium">Add Tag</Label>
+                      <div className="flex gap-2 mt-2">
+                        <Input
+                          id="new-tag"
+                          placeholder="Enter tag name..."
+                          value={newTag}
+                          onChange={(e) => setNewTag(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && viewingFeedback && newTag.trim()) {
+                              addTag.mutate({
+                                feedbackId: viewingFeedback.id,
+                                name: newTag.trim(),
+                              });
+                            }
+                          }}
+                        />
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            if (viewingFeedback && newTag.trim()) {
+                              addTag.mutate({
+                                feedbackId: viewingFeedback.id,
+                                name: newTag.trim(),
+                              });
+                            }
+                          }}
+                          disabled={!newTag.trim() || addTag.isPending}
+                        >
+                          {addTag.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Plus className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="activity" className="mt-0">
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">Activity Log</Label>
+                    <div className="space-y-3">
+                      {viewingFeedback?.activities && viewingFeedback.activities.length > 0 ? (
+                        viewingFeedback.activities.map((activity) => (
+                          <div key={activity.id} className="border rounded-lg p-3">
+                            <div className="flex items-start justify-between mb-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium">
+                                  {activity.performedBy?.displayName || activity.performedBy?.username || "Admin"}
+                                </span>
+                                <Badge variant="outline" className="text-xs">
+                                  {activity.action.replace("_", " ")}
+                                </Badge>
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
+                              </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{activity.description}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No activity yet</p>
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
             )}
           </div>
 

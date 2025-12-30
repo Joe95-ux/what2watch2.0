@@ -39,12 +39,14 @@ export async function PATCH(
 
     const feedback = await db.feedback.findUnique({
       where: { id: feedbackId },
-      select: { id: true },
+      select: { id: true, status: true },
     });
 
     if (!feedback) {
       return NextResponse.json({ error: "Feedback not found" }, { status: 404 });
     }
+
+    const oldStatus = feedback.status;
 
     await db.feedback.update({
       where: { id: feedbackId },
@@ -52,6 +54,22 @@ export async function PATCH(
         status,
       },
     });
+
+    // Create activity log if status changed
+    if (oldStatus !== status) {
+      await db.feedbackActivity.create({
+        data: {
+          feedbackId,
+          action: "STATUS_CHANGED",
+          description: `Status changed from ${oldStatus.replace("_", " ")} to ${status.replace("_", " ")}`,
+          metadata: {
+            oldStatus,
+            newStatus: status,
+          },
+          performedById: user.id,
+        },
+      });
+    }
 
     return NextResponse.json({ success: true, status });
   } catch (error) {

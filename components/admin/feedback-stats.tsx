@@ -282,18 +282,20 @@ export function FeedbackStats() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 divide-x divide-y divide-border">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 border border-border rounded-lg overflow-hidden">
         {statCards.map((stat, index) => {
           const columnsPerRow = 4;
           const totalRows = Math.ceil(statCards.length / columnsPerRow);
           const currentRow = Math.floor(index / columnsPerRow) + 1;
           const isLastRow = currentRow === totalRows;
+          const isLastColumn = (index + 1) % columnsPerRow === 0;
           
           return (
             <div 
               key={stat.label} 
               className={cn(
-                "p-4 sm:p-8",
+                "p-4 sm:p-8 border-r border-b border-border",
+                isLastColumn && "border-r-0",
                 isLastRow && "border-b-0"
               )}
             >
@@ -311,7 +313,7 @@ export function FeedbackStats() {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6 mt-8">
         {/* Trends Chart */}
         <Card className="xl:col-span-2">
           <CardHeader className="pb-4">
@@ -383,10 +385,15 @@ export function FeedbackStats() {
                   <Pie
                     data={statusChartData}
                     cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={100}
+                    cy="45%"
+                    labelLine={true}
+                    label={({ percent, value }) => {
+                      // Only show percentage on pie, hide if too small
+                      if (percent < 0.05 && value === 0) return "";
+                      return `${(percent * 100).toFixed(0)}%`;
+                    }}
+                    outerRadius={70}
+                    innerRadius={20}
                     fill="#8884d8"
                     dataKey="value"
                   >
@@ -394,7 +401,17 @@ export function FeedbackStats() {
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Pie>
-                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <ChartTooltip 
+                    content={<ChartTooltipContent />}
+                    formatter={(value: number, name: string) => [
+                      `${value} (${((value / stats.total) * 100).toFixed(1)}%)`,
+                      name
+                    ]}
+                  />
+                  <ChartLegend 
+                    content={<ChartLegendContent />}
+                    wrapperStyle={{ paddingTop: "20px" }}
+                  />
                 </PieChart>
               </ChartContainer>
             ) : (

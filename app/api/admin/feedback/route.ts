@@ -116,9 +116,23 @@ export async function GET(request: NextRequest) {
               displayName: true,
             },
           },
+          assignedTo: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+            },
+          },
           replies: {
             select: {
               id: true,
+            },
+          },
+          tags: {
+            select: {
+              id: true,
+              name: true,
+              color: true,
             },
           },
         },

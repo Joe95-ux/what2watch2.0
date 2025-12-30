@@ -119,6 +119,10 @@ model User {
   feedback Feedback[]
   feedbackReplies Feedback[] @relation("FeedbackReplies")
   feedbackReplyHistory FeedbackReply[]
+  feedbackNotes FeedbackNote[]
+  feedbackTags FeedbackTag[]
+  feedbackActivities FeedbackActivity[]
+  assignedFeedback Feedback[] @relation("AssignedFeedback")
   generalNotifications GeneralNotification[]
   activities Activity[]
   followedActivities Activity[] @relation("UserFollowedActivities")
@@ -1614,6 +1618,13 @@ model Feedback {
   // Reply history
   replies        FeedbackReply[]
   
+  // Advanced features
+  assignedToId  String?  @db.ObjectId // Assigned admin/moderator
+  assignedTo    User?    @relation("AssignedFeedback", fields: [assignedToId], references: [id], onDelete: SetNull)
+  notes         FeedbackNote[]
+  tags          FeedbackTag[]
+  activities    FeedbackActivity[]
+  
   status         String   @default("OPEN") // "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"
   
   createdAt      DateTime @default(now())
@@ -1624,6 +1635,7 @@ model Feedback {
   @@index([status])
   @@index([createdAt])
   @@index([repliedById])
+  @@index([assignedToId])
 }
 
 // Feedback Reply - Multiple replies per feedback
@@ -1670,4 +1682,67 @@ model GeneralNotification {
   @@index([userId, isRead])
   @@index([userId, createdAt])
   @@index([type])
+}
+
+// Feedback Note - Internal notes/comments for admins
+model FeedbackNote {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  feedbackId    String   @db.ObjectId
+  feedback      Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  
+  note          String   // Note content
+  isPrivate     Boolean  @default(true) // Private notes only visible to admins
+  
+  createdById   String   @db.ObjectId
+  createdBy     User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("feedback_notes")
+  @@index([feedbackId])
+  @@index([createdById])
+  @@index([createdAt])
+}
+
+// Feedback Tag - Tags/labels for categorization
+model FeedbackTag {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  feedbackId    String   @db.ObjectId
+  feedback      Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  
+  name          String   // Tag name (e.g., "bug", "feature", "urgent", "follow-up")
+  color         String?  // Optional color for UI display
+  
+  createdById   String   @db.ObjectId
+  createdBy     User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+
+  @@map("feedback_tags")
+  @@index([feedbackId])
+  @@index([name])
+  @@index([createdById])
+}
+
+// Feedback Activity - Activity log/history
+model FeedbackActivity {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  feedbackId    String   @db.ObjectId
+  feedback      Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  
+  action        String   // Action type: "STATUS_CHANGED", "ASSIGNED", "TAG_ADDED", "NOTE_ADDED", "PRIORITY_CHANGED", etc.
+  description   String   // Human-readable description
+  metadata      Json?    // Additional data (e.g., oldStatus, newStatus, oldPriority, newPriority)
+  
+  performedById String   @db.ObjectId
+  performedBy   User     @relation(fields: [performedById], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+
+  @@map("feedback_activities")
+  @@index([feedbackId])
+  @@index([performedById])
+  @@index([createdAt])
+  @@index([action])
 }
