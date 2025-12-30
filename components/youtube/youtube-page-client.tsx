@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { YouTubeChannelsTab } from "./youtube-channels-tab";
@@ -26,9 +26,27 @@ export function YouTubePageClient() {
     const tab = searchParams.get("tab");
     return tab && VALID_TABS.has(tab) ? tab : "channels";
   });
+  const isUpdatingFromUrlRef = useRef(false);
 
-  // Update URL when tab changes
+  // Sync with URL changes (browser back/forward)
   useEffect(() => {
+    const tab = searchParams.get("tab");
+    const expectedTab = tab && VALID_TABS.has(tab) ? tab : "channels";
+    
+    if (expectedTab !== activeTab) {
+      isUpdatingFromUrlRef.current = true;
+      setActiveTab(expectedTab);
+    }
+  }, [searchParams, activeTab]);
+
+  // Update URL when tab changes (only when user clicks, not from URL sync)
+  useEffect(() => {
+    // Skip if this update came from URL change
+    if (isUpdatingFromUrlRef.current) {
+      isUpdatingFromUrlRef.current = false;
+      return;
+    }
+
     const currentTab = searchParams.get("tab");
     const expectedTab = activeTab === "channels" ? null : activeTab;
     
@@ -41,19 +59,9 @@ export function YouTubePageClient() {
         params.set("tab", activeTab);
       }
       const newUrl = params.toString() ? `/youtube?${params.toString()}` : "/youtube";
-      router.push(newUrl);
+      router.replace(newUrl);
     }
   }, [activeTab, router, searchParams]);
-
-  // Sync with URL changes (browser back/forward)
-  useEffect(() => {
-    const tab = searchParams.get("tab");
-    if (tab && VALID_TABS.has(tab)) {
-      setActiveTab(tab);
-    } else if (!tab) {
-      setActiveTab("channels");
-    }
-  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-background">

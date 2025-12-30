@@ -385,17 +385,18 @@ export function FeedbackStats() {
                   <Pie
                     data={statusChartData}
                     cx="50%"
-                    cy="45%"
-                    labelLine={true}
-                    label={({ percent, value }) => {
-                      // Only show percentage on pie, hide if too small
-                      if (percent < 0.05 && value === 0) return "";
-                      return `${(percent * 100).toFixed(0)}%`;
+                    cy="50%"
+                    labelLine={false}
+                    label={({ percent, name }) => {
+                      // Only show label if segment is large enough to avoid overlap
+                      if (percent < 0.08) return "";
+                      return `${name}: ${(percent * 100).toFixed(0)}%`;
                     }}
-                    outerRadius={70}
-                    innerRadius={20}
+                    outerRadius="85%"
+                    innerRadius={0}
                     fill="#8884d8"
                     dataKey="value"
+                    paddingAngle={2}
                   >
                     {statusChartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />

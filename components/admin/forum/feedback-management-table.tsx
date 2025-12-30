@@ -1655,7 +1655,7 @@ export function FeedbackManagementTable() {
                 <TabsContent value="replies" className="mt-0 space-y-4">
                   <div>
                     <Label className="text-sm font-medium">Original Message</Label>
-                    <div className="mt-2 p-4 bg-muted rounded-lg whitespace-pre-wrap text-sm">
+                    <div className="mt-2 p-4 bg-muted rounded-lg whitespace-pre-wrap text-sm text-muted-foreground">
                       {viewingFeedback?.message}
                     </div>
                   </div>
@@ -1685,7 +1685,7 @@ export function FeedbackManagementTable() {
                                 {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
                               </span>
                             </div>
-                            <div className="text-sm whitespace-pre-wrap">{reply.message}</div>
+                            <div className="text-sm whitespace-pre-wrap text-muted-foreground">{reply.message}</div>
                           </div>
                         ))}
                       </div>
@@ -1725,7 +1725,7 @@ export function FeedbackManagementTable() {
                                 {formatDistanceToNow(new Date(note.createdAt), { addSuffix: true })}
                               </span>
                             </div>
-                            <div className="text-sm whitespace-pre-wrap">{note.note}</div>
+                            <div className="text-sm whitespace-pre-wrap text-muted-foreground">{note.note}</div>
                           </div>
                         ))
                       ) : (
@@ -1773,7 +1773,7 @@ export function FeedbackManagementTable() {
                 <TabsContent value="tags" className="mt-0 space-y-4">
                   <div>
                     <Label className="text-sm font-medium mb-2 block">Tags</Label>
-                    <div className="flex flex-wrap gap-2 mb-4">
+                    <div className="flex flex-wrap gap-2">
                       {viewingFeedback?.tags && viewingFeedback.tags.length > 0 ? (
                         viewingFeedback.tags.map((tag) => (
                           <Badge
@@ -1793,30 +1793,27 @@ export function FeedbackManagementTable() {
                             <X className="h-3 w-3 ml-1" />
                           </Badge>
                         ))
-                      ) : (
-                        <p className="text-sm text-muted-foreground">No tags yet</p>
-                      )}
-                    </div>
-                    <div>
-                      <Label htmlFor="new-tag" className="text-sm font-medium">Add Tag</Label>
-                      <div className="flex gap-2 mt-2">
+                      ) : null}
+                      <div className="flex items-center gap-2 rounded-full border border-dashed border-border px-3 py-0.5">
                         <Input
-                          id="new-tag"
-                          placeholder="Enter tag name..."
-                          className="text-muted-foreground placeholder:text-muted-foreground/60"
                           value={newTag}
                           onChange={(e) => setNewTag(e.target.value)}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter" && viewingFeedback && newTag.trim()) {
+                            if ((e.key === "Enter" || e.key === ",") && viewingFeedback && newTag.trim()) {
+                              e.preventDefault();
                               addTag.mutate({
                                 feedbackId: viewingFeedback.id,
                                 name: newTag.trim(),
                               });
                             }
                           }}
+                          placeholder="Add tag"
+                          className="h-7 w-28 border-none bg-transparent px-2 text-xs focus-visible:ring-0 text-muted-foreground placeholder:text-muted-foreground/60"
                         />
                         <Button
-                          size="sm"
+                          type="button"
+                          variant="ghost"
+                          size="icon"
                           onClick={() => {
                             if (viewingFeedback && newTag.trim()) {
                               addTag.mutate({
@@ -1826,6 +1823,7 @@ export function FeedbackManagementTable() {
                             }
                           }}
                           disabled={!newTag.trim() || addTag.isPending}
+                          className="h-7 w-7"
                         >
                           {addTag.isPending ? (
                             <Loader2 className="h-4 w-4 animate-spin" />

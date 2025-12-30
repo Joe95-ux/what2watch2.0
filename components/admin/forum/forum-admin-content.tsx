@@ -32,9 +32,27 @@ export function ForumAdminContent() {
   });
   const navRef = useRef<HTMLDivElement>(null);
   const activeTabRef = useRef<HTMLButtonElement | null>(null);
+  const isUpdatingFromUrlRef = useRef(false);
 
-  // Sync URL with tab changes
+  // Sync tab with URL changes (e.g., browser back/forward)
   useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+    const expectedTab = tabFromUrl && VALID_TABS.has(tabFromUrl) ? tabFromUrl : "users";
+    
+    if (expectedTab !== activeTab) {
+      isUpdatingFromUrlRef.current = true;
+      setActiveTab(expectedTab);
+    }
+  }, [searchParams, activeTab]);
+
+  // Sync URL with tab changes (only when user clicks, not from URL sync)
+  useEffect(() => {
+    // Skip if this update came from URL change
+    if (isUpdatingFromUrlRef.current) {
+      isUpdatingFromUrlRef.current = false;
+      return;
+    }
+
     const currentTab = searchParams.get("tab");
     const expectedTab = activeTab === "users" ? null : activeTab;
     
@@ -46,19 +64,9 @@ export function ForumAdminContent() {
         params.set("tab", activeTab);
       }
       const newUrl = params.toString() ? `/dashboard/admin/forum?${params.toString()}` : "/dashboard/admin/forum";
-      router.push(newUrl);
+      router.replace(newUrl);
     }
   }, [activeTab, router, searchParams]);
-
-  // Sync tab with URL changes (e.g., browser back/forward)
-  useEffect(() => {
-    const tabFromUrl = searchParams.get("tab");
-    if (tabFromUrl && VALID_TABS.has(tabFromUrl) && tabFromUrl !== activeTab) {
-      setActiveTab(tabFromUrl);
-    } else if (!tabFromUrl && activeTab !== "users") {
-      setActiveTab("users");
-    }
-  }, [searchParams]);
 
   // Scroll active tab into view when it changes
   useEffect(() => {

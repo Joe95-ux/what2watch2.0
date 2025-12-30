@@ -79,12 +79,22 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if sheet is open
+    if (isReviewSheetOpen) {
+      return;
+    }
+    
     // Don't navigate if clicking on buttons or links
     const target = e.target as HTMLElement;
     if (
       target.closest("button") ||
       target.closest("a[href^='http']") ||
-      target.closest("a[href^='/']")
+      target.closest("a[href^='/']") ||
+      target.closest("[role='dialog']") ||
+      target.closest("[data-radix-portal]") ||
+      target.closest("[data-slot='sheet']") ||
+      target.closest("[data-slot='sheet-content']") ||
+      target.closest("[data-slot='sheet-overlay']")
     ) {
       return;
     }
