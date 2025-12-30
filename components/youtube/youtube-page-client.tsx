@@ -28,17 +28,6 @@ export function YouTubePageClient() {
   });
   const isUpdatingFromUrlRef = useRef(false);
 
-  // Sync with URL changes (browser back/forward)
-  useEffect(() => {
-    const tab = searchParams.get("tab");
-    const expectedTab = tab && VALID_TABS.has(tab) ? tab : "channels";
-    
-    if (expectedTab !== activeTab) {
-      isUpdatingFromUrlRef.current = true;
-      setActiveTab(expectedTab);
-    }
-  }, [searchParams, activeTab]);
-
   // Update URL when tab changes (only when user clicks, not from URL sync)
   useEffect(() => {
     // Skip if this update came from URL change
@@ -62,6 +51,17 @@ export function YouTubePageClient() {
       router.replace(newUrl);
     }
   }, [activeTab, router, searchParams]);
+
+  // Sync with URL changes (browser back/forward)
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    const expectedTab = tab && VALID_TABS.has(tab) ? tab : "channels";
+    
+    if (expectedTab !== activeTab) {
+      isUpdatingFromUrlRef.current = true;
+      setActiveTab(expectedTab);
+    }
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-background">

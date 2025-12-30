@@ -34,17 +34,6 @@ export function ForumAdminContent() {
   const activeTabRef = useRef<HTMLButtonElement | null>(null);
   const isUpdatingFromUrlRef = useRef(false);
 
-  // Sync tab with URL changes (e.g., browser back/forward)
-  useEffect(() => {
-    const tabFromUrl = searchParams.get("tab");
-    const expectedTab = tabFromUrl && VALID_TABS.has(tabFromUrl) ? tabFromUrl : "users";
-    
-    if (expectedTab !== activeTab) {
-      isUpdatingFromUrlRef.current = true;
-      setActiveTab(expectedTab);
-    }
-  }, [searchParams, activeTab]);
-
   // Sync URL with tab changes (only when user clicks, not from URL sync)
   useEffect(() => {
     // Skip if this update came from URL change
@@ -67,6 +56,17 @@ export function ForumAdminContent() {
       router.replace(newUrl);
     }
   }, [activeTab, router, searchParams]);
+
+  // Sync tab with URL changes (e.g., browser back/forward)
+  useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+    const expectedTab = tabFromUrl && VALID_TABS.has(tabFromUrl) ? tabFromUrl : "users";
+    
+    if (expectedTab !== activeTab) {
+      isUpdatingFromUrlRef.current = true;
+      setActiveTab(expectedTab);
+    }
+  }, [searchParams]);
 
   // Scroll active tab into view when it changes
   useEffect(() => {
