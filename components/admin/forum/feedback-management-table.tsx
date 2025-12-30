@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Eye, Mail, ChevronLeft, ChevronRight, Loader2, Search, Filter, Download, X, ChevronDown, ChevronUp, CalendarIcon, ArrowUpDown, ArrowDown, ArrowUp, Trash2, CheckCheck, MoreVertical, Copy, User as UserIcon } from "lucide-react";
+import { Eye, Mail, ChevronLeft, ChevronRight, Loader2, Search, Filter, Download, X, ChevronDown, ChevronUp, CalendarIcon, ArrowUpDown, ArrowDown, ArrowUp, Trash2, CheckCheck, MoreVertical, Copy, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow, format, subDays, startOfDay, endOfDay } from "date-fns";
 import {
@@ -588,104 +588,105 @@ export function FeedbackManagementTable() {
                 setSearchQuery(e.target.value);
                 setPage(1);
               }}
-              className="pl-9 pr-3 h-9"
+              className={cn(
+                "pl-9 h-9",
+                searchQuery ? "pr-20" : "pr-12"
+              )}
             />
-            {searchQuery && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 cursor-pointer"
-                onClick={() => {
-                  setSearchQuery("");
-                  setPage(1);
-                }}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            )}
-          </div>
-
-          {/* Sort Button */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "h-9 px-3 gap-2 cursor-pointer whitespace-nowrap",
-                  sortOrder !== "desc" && "bg-primary/10 text-primary"
-                )}
-              >
-                <ArrowUpDown className="h-4 w-4" />
-                <span className="hidden sm:inline">
-                  {sortOrder === "desc" ? "Newest" : "Oldest"}
-                </span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <div className="p-2">
-                <div className="text-xs font-medium mb-2 px-2">Sort by</div>
-                {[
-                  { value: "createdAt", label: "Date" },
-                  { value: "priority", label: "Priority" },
-                  { value: "status", label: "Status" },
-                ].map((field) => (
-                  <DropdownMenuItem
-                    key={field.value}
-                    onClick={() => {
-                      if (sortField === field.value) {
-                        setSortOrder(sortOrder === "desc" ? "asc" : "desc");
-                      } else {
-                        setSortField(field.value as typeof sortField);
-                        setSortOrder("desc");
-                      }
-                      setPage(1);
-                    }}
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 cursor-pointer"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setPage(1);
+                  }}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+              {/* Sort Dropdown - Inside Search Bar */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className={cn(
-                      "cursor-pointer",
-                      sortField === field.value && "bg-accent"
+                      "h-7 w-7 cursor-pointer",
+                      sortOrder !== "desc" && "text-primary"
                     )}
                   >
+                    <ArrowUpDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="p-2">
+                    <div className="text-xs font-medium mb-2 px-2">Sort by</div>
+                    {[
+                      { value: "createdAt", label: "Date" },
+                      { value: "priority", label: "Priority" },
+                      { value: "status", label: "Status" },
+                    ].map((field) => (
+                      <DropdownMenuItem
+                        key={field.value}
+                        onClick={() => {
+                          if (sortField === field.value) {
+                            setSortOrder(sortOrder === "desc" ? "asc" : "desc");
+                          } else {
+                            setSortField(field.value as typeof sortField);
+                            setSortOrder("desc");
+                          }
+                          setPage(1);
+                        }}
+                        className={cn(
+                          "cursor-pointer",
+                          sortField === field.value && "bg-accent"
+                        )}
+                      >
+                        <span className="flex items-center gap-2">
+                          {sortField === field.value && sortOrder === "desc" && (
+                            <ArrowDown className="h-4 w-4" />
+                          )}
+                          {sortField === field.value && sortOrder === "asc" && (
+                            <ArrowUp className="h-4 w-4" />
+                          )}
+                          {sortField !== field.value && <div className="h-4 w-4" />}
+                          {field.label}
+                        </span>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSortOrder("desc");
+                      setPage(1);
+                    }}
+                    className={cn("cursor-pointer", sortOrder === "desc" && "bg-accent")}
+                  >
                     <span className="flex items-center gap-2">
-                      {sortField === field.value && sortOrder === "desc" && (
-                        <ArrowDown className="h-4 w-4" />
-                      )}
-                      {sortField === field.value && sortOrder === "asc" && (
-                        <ArrowUp className="h-4 w-4" />
-                      )}
-                      {sortField !== field.value && <div className="h-4 w-4" />}
-                      {field.label}
+                      <ArrowDown className="h-4 w-4" />
+                      Newest First
                     </span>
                   </DropdownMenuItem>
-                ))}
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => {
-                  setSortOrder("desc");
-                  setPage(1);
-                }}
-                className={cn("cursor-pointer", sortOrder === "desc" && "bg-accent")}
-              >
-                <span className="flex items-center gap-2">
-                  <ArrowDown className="h-4 w-4" />
-                  Newest First
-                </span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  setSortOrder("asc");
-                  setPage(1);
-                }}
-                className={cn("cursor-pointer", sortOrder === "asc" && "bg-accent")}
-              >
-                <span className="flex items-center gap-2">
-                  <ArrowUp className="h-4 w-4" />
-                  Oldest First
-                </span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSortOrder("asc");
+                      setPage(1);
+                    }}
+                    className={cn("cursor-pointer", sortOrder === "asc" && "bg-accent")}
+                  >
+                    <span className="flex items-center gap-2">
+                      <ArrowUp className="h-4 w-4" />
+                      Oldest First
+                    </span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
 
           {/* Filter Button */}
           <Tooltip>
@@ -1091,30 +1092,15 @@ export function FeedbackManagementTable() {
 
       {/* Bulk Actions Bar */}
       {selectedFeedbackIds.size > 0 && (
-        <div className="flex items-center justify-between gap-4 p-4 border rounded-lg bg-muted/30">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSelectAll}
-              className="cursor-pointer"
-            >
-              <div className="h-4 w-4 mr-2 flex items-center justify-center">
-                {selectedFeedbackIds.size === feedbacks.length ? (
-                  <CheckCheck className="h-4 w-4" />
-                ) : (
-                  <div className="h-4 w-4 border-2 border-current rounded" />
-                )}
-              </div>
-              {selectedFeedbackIds.size === feedbacks.length ? "Deselect All" : "Select All"}
-            </Button>
-            <span className="text-sm text-muted-foreground">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg bg-muted/30">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
               {selectedFeedbackIds.size} of {feedbacks.length} selected
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <Select value={bulkStatus} onValueChange={setBulkStatus}>
-              <SelectTrigger className="w-[140px] h-9">
+              <SelectTrigger className="w-full sm:w-[140px] h-9">
                 <SelectValue placeholder="Update status" />
               </SelectTrigger>
               <SelectContent>
@@ -1124,24 +1110,25 @@ export function FeedbackManagementTable() {
                 <SelectItem value="CLOSED">Closed</SelectItem>
               </SelectContent>
             </Select>
+            {bulkStatus && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setBulkStatusDialogOpen(true)}
+                disabled={bulkUpdateStatus.isPending}
+                className="cursor-pointer whitespace-nowrap"
+              >
+                Update Status
+              </Button>
+            )}
             <Button
               variant="outline"
-              size="sm"
-              onClick={() => setBulkStatusDialogOpen(true)}
-              disabled={!bulkStatus || bulkUpdateStatus.isPending}
-              className="cursor-pointer"
-            >
-              Update Status
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
+              size="icon"
               onClick={handleBulkDelete}
               disabled={deleteFeedback.isPending}
-              className="cursor-pointer"
+              className="cursor-pointer h-9 w-9"
             >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete ({selectedFeedbackIds.size})
+              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -1319,7 +1306,7 @@ export function FeedbackManagementTable() {
                               onClick={() => window.open(`/users/${feedback.user.id}`, "_blank")}
                               className="cursor-pointer"
                             >
-                              <UserIcon className="h-4 w-4 mr-2" />
+                              <UserRound className="h-4 w-4 mr-2" />
                               View User Profile
                             </DropdownMenuItem>
                           )}
