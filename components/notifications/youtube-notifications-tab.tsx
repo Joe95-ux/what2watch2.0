@@ -12,6 +12,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useYouTubeNotifications, useMarkNotificationsAsRead, useDeleteYouTubeNotifications } from "@/hooks/use-youtube-notifications";
 import Image from "next/image";
 import Link from "next/link";
@@ -36,6 +46,9 @@ export function YouTubeNotificationsTab() {
   const { data, isLoading } = useYouTubeNotifications(filter === "unread");
   const markAsRead = useMarkNotificationsAsRead();
   const deleteNotifications = useDeleteYouTubeNotifications();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
+  const [notificationToDelete, setNotificationToDelete] = useState<string | null>(null);
 
   const notifications = data?.notifications || [];
   const unreadCount = data?.unreadCount || 0;
@@ -49,13 +62,25 @@ export function YouTubeNotificationsTab() {
   };
 
   const handleDelete = (notificationId: string) => {
-    deleteNotifications.mutate({ notificationIds: [notificationId] });
+    setNotificationToDelete(notificationId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (notificationToDelete) {
+      deleteNotifications.mutate({ notificationIds: [notificationToDelete] });
+      setDeleteDialogOpen(false);
+      setNotificationToDelete(null);
+    }
   };
 
   const handleDeleteAll = () => {
-    if (confirm("Are you sure you want to delete all notifications? This action cannot be undone.")) {
-      deleteNotifications.mutate({ deleteAll: true });
-    }
+    setDeleteAllDialogOpen(true);
+  };
+
+  const handleDeleteAllConfirm = () => {
+    deleteNotifications.mutate({ deleteAll: true });
+    setDeleteAllDialogOpen(false);
   };
 
   return (
@@ -267,6 +292,50 @@ export function YouTubeNotificationsTab() {
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Notification</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this notification? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteNotifications.isPending}
+            >
+              {deleteNotifications.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete All Confirmation Dialog */}
+      <AlertDialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete All Notifications</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete all notifications? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAllConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteNotifications.isPending}
+            >
+              {deleteNotifications.isPending ? "Deleting..." : "Delete All"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

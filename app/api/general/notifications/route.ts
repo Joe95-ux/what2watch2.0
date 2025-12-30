@@ -133,3 +133,62 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
+/**
+ * Delete notifications
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const { userId: clerkUserId } = await auth();
+
+    if (!clerkUserId) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const user = await db.user.findUnique({
+      where: { clerkId: clerkUserId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    const body = await request.json();
+    const { notificationIds, deleteAll } = body;
+
+    if (deleteAll) {
+      await db.generalNotification.deleteMany({
+        where: {
+          userId: user.id,
+        },
+      });
+    } else if (notificationIds && Array.isArray(notificationIds)) {
+      await db.generalNotification.deleteMany({
+        where: {
+          id: { in: notificationIds },
+          userId: user.id,
+        },
+      });
+    } else {
+      return NextResponse.json(
+        { error: "Invalid request" },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("[GeneralNotifications] DELETE error", error);
+    return NextResponse.json(
+      { error: "Failed to delete notifications" },
+      { status: 500 }
+    );
+  }
+}
+

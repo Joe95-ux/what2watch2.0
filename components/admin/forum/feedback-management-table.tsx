@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Eye, Mail, ChevronLeft, ChevronRight, Loader2, Search, Filter, Download, X, ChevronDown, ChevronUp, CalendarIcon } from "lucide-react";
+import { Eye, Mail, ChevronLeft, ChevronRight, Loader2, Search, Filter, Download, X, ChevronDown, ChevronUp, CalendarIcon, ArrowUpDown, ArrowDown, ArrowUp, Trash2, CheckCheck, MoreVertical, Copy, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow, format, subDays, startOfDay, endOfDay } from "date-fns";
 import {
@@ -34,6 +34,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -41,6 +42,18 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 interface FeedbackReply {
@@ -68,9 +81,10 @@ interface Feedback {
   replies?: FeedbackReply[];
   createdAt: string;
   user: {
+    id: string;
     username: string | null;
     displayName: string | null;
-  };
+  } | null;
 }
 
 const FEEDBACK_REASONS = [
@@ -99,6 +113,16 @@ export function FeedbackManagementTable() {
   const [viewingFeedback, setViewingFeedback] = useState<Feedback | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
   const [isLoadingFeedbackDetail, setIsLoadingFeedbackDetail] = useState(false);
+  const [sortField, setSortField] = useState<"createdAt" | "priority" | "status">("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [selectedFeedbackIds, setSelectedFeedbackIds] = useState<Set<string>>(new Set());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
+  const [bulkStatusDialogOpen, setBulkStatusDialogOpen] = useState(false);
+  const [feedbackToDelete, setFeedbackToDelete] = useState<string | null>(null);
+  const [bulkStatus, setBulkStatus] = useState<string>("");
+  const [userFilter, setUserFilter] = useState("all");
+  const [replyCountFilter, setReplyCountFilter] = useState<"all" | "with" | "without">("all");
 
   const updateStatus = useMutation({
     mutationFn: async ({
@@ -183,7 +207,7 @@ export function FeedbackManagementTable() {
   }, [dateFilter, customDateRange, dateRange]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-feedback", page, statusFilter, priorityFilter, reasonFilter, dateRange, searchQuery],
+    queryKey: ["admin-feedback", page, statusFilter, priorityFilter, reasonFilter, dateRange, searchQuery, sortField, sortOrder, userFilter, replyCountFilter],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -192,6 +216,10 @@ export function FeedbackManagementTable() {
         priority: priorityFilter,
         reason: reasonFilter,
         search: searchQuery,
+        sortField: sortField,
+        sortOrder: sortOrder,
+        userFilter: userFilter,
+        replyCountFilter: replyCountFilter,
       });
       if (dateRange?.from) {
         params.append("dateFrom", dateRange.from.toISOString());
@@ -321,7 +349,22 @@ export function FeedbackManagementTable() {
     return option?.label || value;
   };
 
-  const hasActiveFilters = statusFilter !== "all" || priorityFilter !== "all" || reasonFilter !== "all" || dateFilter !== "all" || searchQuery.trim() !== "";
+  const hasActiveFilters = useMemo(() => {
+    return (
+      statusFilter !== "all" ||
+      priorityFilter !== "all" ||
+      reasonFilter !== "all" ||
+      dateFilter !== "all" ||
+      searchQuery.trim() !== "" ||
+      userFilter !== "all" ||
+      replyCountFilter !== "all"
+    );
+  }, [statusFilter, priorityFilter, reasonFilter, dateFilter, searchQuery, userFilter, replyCountFilter]);
+
+  const handleCopyFeedbackId = (feedbackId: string) => {
+    navigator.clipboard.writeText(feedbackId);
+    toast.success("Feedback ID copied to clipboard");
+  };
 
   const clearFilters = () => {
     setStatusFilter("all");
@@ -330,6 +373,8 @@ export function FeedbackManagementTable() {
     setDateFilter("all");
     setCustomDateRange(undefined);
     setSearchQuery("");
+    setUserFilter("all");
+    setReplyCountFilter("all");
     setPage(1);
   };
 
@@ -349,6 +394,105 @@ export function FeedbackManagementTable() {
     return labels[dateFilter] || "All Time";
   };
 
+  const deleteFeedback = useMutation({
+    mutationFn: async (feedbackIds: string[]) => {
+      const res = await fetch("/api/admin/feedback", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feedbackIds }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to delete feedback");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
+      setSelectedFeedbackIds(new Set());
+      setFeedbackToDelete(null);
+      setDeleteDialogOpen(false);
+      setDeleteAllDialogOpen(false);
+      toast.success("Feedback deleted successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const bulkUpdateStatus = useMutation({
+    mutationFn: async ({ feedbackIds, status }: { feedbackIds: string[]; status: string }) => {
+      const res = await fetch("/api/admin/feedback", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feedbackIds, status }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to update status");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-feedback"] });
+      setSelectedFeedbackIds(new Set());
+      setBulkStatusDialogOpen(false);
+      setBulkStatus("");
+      toast.success("Status updated successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleSelectFeedback = (feedbackId: string, selected: boolean) => {
+    const newSelected = new Set(selectedFeedbackIds);
+    if (selected) {
+      newSelected.add(feedbackId);
+    } else {
+      newSelected.delete(feedbackId);
+    }
+    setSelectedFeedbackIds(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedFeedbackIds.size === feedbacks.length) {
+      setSelectedFeedbackIds(new Set());
+    } else {
+      setSelectedFeedbackIds(new Set(feedbacks.map((f: Feedback) => f.id)));
+    }
+  };
+
+  const handleDelete = (feedbackId: string) => {
+    setFeedbackToDelete(feedbackId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (feedbackToDelete) {
+      deleteFeedback.mutate([feedbackToDelete]);
+    }
+  };
+
+  const handleBulkDelete = () => {
+    setDeleteAllDialogOpen(true);
+  };
+
+  const handleBulkDeleteConfirm = () => {
+    if (selectedFeedbackIds.size > 0) {
+      deleteFeedback.mutate(Array.from(selectedFeedbackIds));
+    }
+  };
+
+  const handleBulkStatusUpdate = () => {
+    if (selectedFeedbackIds.size > 0 && bulkStatus) {
+      bulkUpdateStatus.mutate({
+        feedbackIds: Array.from(selectedFeedbackIds),
+        status: bulkStatus,
+      });
+    }
+  };
+
   const handleExportCSV = async () => {
     try {
       const params = new URLSearchParams({
@@ -357,6 +501,10 @@ export function FeedbackManagementTable() {
         reason: reasonFilter,
         search: searchQuery,
         export: "csv",
+        sortField: sortField,
+        sortOrder: sortOrder,
+        userFilter: userFilter,
+        replyCountFilter: replyCountFilter,
       });
       if (dateRange?.from) {
         params.append("dateFrom", dateRange.from.toISOString());
@@ -456,6 +604,88 @@ export function FeedbackManagementTable() {
               </Button>
             )}
           </div>
+
+          {/* Sort Button */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "h-9 px-3 gap-2 cursor-pointer whitespace-nowrap",
+                  sortOrder !== "desc" && "bg-primary/10 text-primary"
+                )}
+              >
+                <ArrowUpDown className="h-4 w-4" />
+                <span className="hidden sm:inline">
+                  {sortOrder === "desc" ? "Newest" : "Oldest"}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <div className="p-2">
+                <div className="text-xs font-medium mb-2 px-2">Sort by</div>
+                {[
+                  { value: "createdAt", label: "Date" },
+                  { value: "priority", label: "Priority" },
+                  { value: "status", label: "Status" },
+                ].map((field) => (
+                  <DropdownMenuItem
+                    key={field.value}
+                    onClick={() => {
+                      if (sortField === field.value) {
+                        setSortOrder(sortOrder === "desc" ? "asc" : "desc");
+                      } else {
+                        setSortField(field.value as typeof sortField);
+                        setSortOrder("desc");
+                      }
+                      setPage(1);
+                    }}
+                    className={cn(
+                      "cursor-pointer",
+                      sortField === field.value && "bg-accent"
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      {sortField === field.value && sortOrder === "desc" && (
+                        <ArrowDown className="h-4 w-4" />
+                      )}
+                      {sortField === field.value && sortOrder === "asc" && (
+                        <ArrowUp className="h-4 w-4" />
+                      )}
+                      {sortField !== field.value && <div className="h-4 w-4" />}
+                      {field.label}
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => {
+                  setSortOrder("desc");
+                  setPage(1);
+                }}
+                className={cn("cursor-pointer", sortOrder === "desc" && "bg-accent")}
+              >
+                <span className="flex items-center gap-2">
+                  <ArrowDown className="h-4 w-4" />
+                  Newest First
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setSortOrder("asc");
+                  setPage(1);
+                }}
+                className={cn("cursor-pointer", sortOrder === "asc" && "bg-accent")}
+              >
+                <span className="flex items-center gap-2">
+                  <ArrowUp className="h-4 w-4" />
+                  Oldest First
+                </span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Filter Button */}
           <Tooltip>
@@ -750,6 +980,98 @@ export function FeedbackManagementTable() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
+              {/* User Filter */}
+              <DropdownMenu
+                open={openDropdowns["User"] || false}
+                onOpenChange={(open) => setOpenDropdowns((prev) => ({ ...prev, User: open }))}
+              >
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => toggleDropdown("User")}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground dark:hover:text-foreground transition-colors cursor-pointer whitespace-nowrap focus:outline-none focus-visible:outline-none rounded-sm px-2 py-1"
+                  >
+                    <span>User:</span>
+                    <span className="font-medium">
+                      {getFilterDisplayValue(userFilter, [
+                        { value: "all", label: "All Users" },
+                        { value: "registered", label: "Registered Users" },
+                        { value: "anonymous", label: "Anonymous" },
+                      ])}
+                    </span>
+                    {openDropdowns["User"] ? (
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  {[
+                    { value: "all", label: "All Users" },
+                    { value: "registered", label: "Registered Users" },
+                    { value: "anonymous", label: "Anonymous" },
+                  ].map((option) => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      onClick={() => {
+                        handleFilterValueChange("User", option.value, setUserFilter);
+                        setPage(1);
+                      }}
+                      className={cn("cursor-pointer", userFilter === option.value && "bg-accent")}
+                    >
+                      {option.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Reply Count Filter */}
+              <DropdownMenu
+                open={openDropdowns["Replies"] || false}
+                onOpenChange={(open) => setOpenDropdowns((prev) => ({ ...prev, Replies: open }))}
+              >
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => toggleDropdown("Replies")}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground dark:hover:text-foreground transition-colors cursor-pointer whitespace-nowrap focus:outline-none focus-visible:outline-none rounded-sm px-2 py-1"
+                  >
+                    <span>Replies:</span>
+                    <span className="font-medium">
+                      {getFilterDisplayValue(replyCountFilter, [
+                        { value: "all", label: "All" },
+                        { value: "with", label: "With Replies" },
+                        { value: "without", label: "Without Replies" },
+                      ])}
+                    </span>
+                    {openDropdowns["Replies"] ? (
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  {[
+                    { value: "all", label: "All" },
+                    { value: "with", label: "With Replies" },
+                    { value: "without", label: "Without Replies" },
+                  ].map((option) => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      onClick={() => {
+                        handleFilterValueChange("Replies", option.value, (val) => setReplyCountFilter(val as typeof replyCountFilter));
+                        setPage(1);
+                      }}
+                      className={cn("cursor-pointer", replyCountFilter === option.value && "bg-accent")}
+                    >
+                      {option.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               {/* Clear All Button */}
               {hasActiveFilters && (
                 <Button
@@ -767,24 +1089,143 @@ export function FeedbackManagementTable() {
         </div>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedFeedbackIds.size > 0 && (
+        <div className="flex items-center justify-between gap-4 p-4 border rounded-lg bg-muted/30">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSelectAll}
+              className="cursor-pointer"
+            >
+              <div className="h-4 w-4 mr-2 flex items-center justify-center">
+                {selectedFeedbackIds.size === feedbacks.length ? (
+                  <CheckCheck className="h-4 w-4" />
+                ) : (
+                  <div className="h-4 w-4 border-2 border-current rounded" />
+                )}
+              </div>
+              {selectedFeedbackIds.size === feedbacks.length ? "Deselect All" : "Select All"}
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {selectedFeedbackIds.size} of {feedbacks.length} selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={bulkStatus} onValueChange={setBulkStatus}>
+              <SelectTrigger className="w-[140px] h-9">
+                <SelectValue placeholder="Update status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="OPEN">Open</SelectItem>
+                <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                <SelectItem value="RESOLVED">Resolved</SelectItem>
+                <SelectItem value="CLOSED">Closed</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setBulkStatusDialogOpen(true)}
+              disabled={!bulkStatus || bulkUpdateStatus.isPending}
+              className="cursor-pointer"
+            >
+              Update Status
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleBulkDelete}
+              disabled={deleteFeedback.isPending}
+              className="cursor-pointer"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete ({selectedFeedbackIds.size})
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div className="border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={selectedFeedbackIds.size === feedbacks.length && feedbacks.length > 0}
+                  onCheckedChange={handleSelectAll}
+                  className="cursor-pointer"
+                />
+              </TableHead>
               <TableHead>User</TableHead>
               <TableHead>Reason</TableHead>
-              <TableHead>Priority</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-accent/50 transition-colors"
+                onClick={() => {
+                  if (sortField === "priority") {
+                    setSortOrder(sortOrder === "desc" ? "asc" : "desc");
+                  } else {
+                    setSortField("priority");
+                    setSortOrder("desc");
+                  }
+                  setPage(1);
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  Priority
+                  {sortField === "priority" && (
+                    sortOrder === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-accent/50 transition-colors"
+                onClick={() => {
+                  if (sortField === "status") {
+                    setSortOrder(sortOrder === "desc" ? "asc" : "desc");
+                  } else {
+                    setSortField("status");
+                    setSortOrder("desc");
+                  }
+                  setPage(1);
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  Status
+                  {sortField === "status" && (
+                    sortOrder === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />
+                  )}
+                </div>
+              </TableHead>
               <TableHead>Replies</TableHead>
-              <TableHead>Date</TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-accent/50 transition-colors"
+                onClick={() => {
+                  if (sortField === "createdAt") {
+                    setSortOrder(sortOrder === "desc" ? "asc" : "desc");
+                  } else {
+                    setSortField("createdAt");
+                    setSortOrder("desc");
+                  }
+                  setPage(1);
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  Date
+                  {sortField === "createdAt" && (
+                    sortOrder === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />
+                  )}
+                </div>
+              </TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {feedbacks.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   No feedback found
                 </TableCell>
               </TableRow>
@@ -792,10 +1233,26 @@ export function FeedbackManagementTable() {
               feedbacks.map((feedback: Feedback) => (
                 <TableRow key={feedback.id}>
                   <TableCell>
+                    <Checkbox
+                      checked={selectedFeedbackIds.has(feedback.id)}
+                      onCheckedChange={(checked) => handleSelectFeedback(feedback.id, checked as boolean)}
+                      className="cursor-pointer"
+                    />
+                  </TableCell>
+                  <TableCell>
                     <div>
-                      <div className="font-medium">
-                        {feedback.user?.displayName || feedback.user?.username || feedback.username || "Unknown"}
-                      </div>
+                      {feedback.user?.id ? (
+                        <Link
+                          href={`/users/${feedback.user.id}`}
+                          className="font-medium hover:underline text-primary"
+                        >
+                          {feedback.user?.displayName || feedback.user?.username || feedback.username || "Unknown"}
+                        </Link>
+                      ) : (
+                        <div className="font-medium">
+                          {feedback.user?.displayName || feedback.user?.username || feedback.username || "Unknown"}
+                        </div>
+                      )}
                       <div className="text-xs text-muted-foreground">{feedback.userEmail}</div>
                     </div>
                   </TableCell>
@@ -846,6 +1303,43 @@ export function FeedbackManagementTable() {
                         <Mail className="h-4 w-4" />
                         Reply
                       </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-2 cursor-pointer"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {feedback.user?.id && (
+                            <DropdownMenuItem
+                              onClick={() => window.open(`/users/${feedback.user.id}`, "_blank")}
+                              className="cursor-pointer"
+                            >
+                              <UserIcon className="h-4 w-4 mr-2" />
+                              View User Profile
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem
+                            onClick={() => handleCopyFeedbackId(feedback.id)}
+                            className="cursor-pointer"
+                          >
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copy Feedback ID
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(feedback.id)}
+                            className="cursor-pointer text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -1053,6 +1547,71 @@ export function FeedbackManagementTable() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Feedback</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this feedback? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteFeedback.isPending}
+            >
+              {deleteFeedback.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Selected Feedback</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedFeedbackIds.size} feedback item{selectedFeedbackIds.size > 1 ? "s" : ""}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteFeedback.isPending}
+            >
+              {deleteFeedback.isPending ? "Deleting..." : `Delete ${selectedFeedbackIds.size}`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Status Update Dialog */}
+      <AlertDialog open={bulkStatusDialogOpen} onOpenChange={setBulkStatusDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Update Status</AlertDialogTitle>
+            <AlertDialogDescription>
+              Update status for {selectedFeedbackIds.size} feedback item{selectedFeedbackIds.size > 1 ? "s" : ""} to {bulkStatus ? bulkStatus.replace("_", " ") : ""}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkStatusUpdate}
+              disabled={bulkUpdateStatus.isPending || !bulkStatus}
+            >
+              {bulkUpdateStatus.isPending ? "Updating..." : "Update"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

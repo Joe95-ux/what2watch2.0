@@ -1,13 +1,31 @@
 "use client";
 
-import { useGeneralNotifications, useMarkGeneralNotificationsAsRead, GeneralNotification } from "@/hooks/use-general-notifications";
+import { useState } from "react";
+import { useGeneralNotifications, useMarkGeneralNotificationsAsRead, useDeleteGeneralNotifications, GeneralNotification } from "@/hooks/use-general-notifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { X, Megaphone, Bell } from "lucide-react";
+import { X, Megaphone, Bell, CheckCheck, Trash2, MoreVertical, MoreHorizontal } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 function getGeneralNotificationIcon(type: string) {
   switch (type) {
@@ -31,8 +49,13 @@ export function GeneralNotificationsTab() {
   const router = useRouter();
   const { data, isLoading } = useGeneralNotifications(false);
   const markAsRead = useMarkGeneralNotificationsAsRead();
+  const deleteNotifications = useDeleteGeneralNotifications();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
+  const [notificationToDelete, setNotificationToDelete] = useState<string | null>(null);
 
   const notifications = data?.notifications || [];
+  const unreadCount = data?.unreadCount || 0;
 
   const handleNotificationClick = (notification: GeneralNotification) => {
     if (!notification.isRead) {
@@ -49,6 +72,28 @@ export function GeneralNotificationsTab() {
     } else {
       markAsRead.mutate({ markAllAsRead: true });
     }
+  };
+
+  const handleDelete = (notificationId: string) => {
+    setNotificationToDelete(notificationId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (notificationToDelete) {
+      deleteNotifications.mutate({ notificationIds: [notificationToDelete] });
+      setDeleteDialogOpen(false);
+      setNotificationToDelete(null);
+    }
+  };
+
+  const handleDeleteAll = () => {
+    setDeleteAllDialogOpen(true);
+  };
+
+  const handleDeleteAllConfirm = () => {
+    deleteNotifications.mutate({ deleteAll: true });
+    setDeleteAllDialogOpen(false);
   };
 
   if (isLoading) {
@@ -72,17 +117,75 @@ export function GeneralNotificationsTab() {
 
   return (
     <div className="space-y-4">
+      {/* Header Actions */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">General Notifications</h3>
-        {notifications.some((n) => !n.isRead) && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleMarkAsRead()}
-            disabled={markAsRead.isPending}
-          >
-            Mark all as read
-          </Button>
+        {/* Desktop: Show buttons */}
+        <div className="hidden sm:flex gap-2">
+          {unreadCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleMarkAsRead()}
+              disabled={markAsRead.isPending}
+              className="text-sm cursor-pointer"
+            >
+              <CheckCheck className="h-4 w-4 mr-2" />
+              Mark all as read
+            </Button>
+          )}
+          {notifications.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDeleteAll}
+              disabled={deleteNotifications.isPending}
+              className="text-sm text-destructive hover:text-destructive cursor-pointer"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete all
+            </Button>
+          )}
+        </div>
+
+        {/* Mobile: Show dropdown menu */}
+        {(unreadCount > 0 || notifications.length > 0) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="sm:hidden cursor-pointer"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {unreadCount > 0 && (
+                <DropdownMenuItem
+                  onClick={() => handleMarkAsRead()}
+                  disabled={markAsRead.isPending}
+                  className="cursor-pointer"
+                >
+                  <CheckCheck className="h-4 w-4 mr-2" />
+                  Mark all as read
+                </DropdownMenuItem>
+              )}
+              {notifications.length > 0 && (
+                <>
+                  {unreadCount > 0 && <DropdownMenuSeparator />}
+                  <DropdownMenuItem
+                    onClick={handleDeleteAll}
+                    disabled={deleteNotifications.isPending}
+                    className="cursor-pointer text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete all
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
       <div className="bg-card border rounded-lg divide-y">
@@ -121,25 +224,88 @@ export function GeneralNotificationsTab() {
                       })}
                     </p>
                   </div>
-                  {!notification.isRead && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMarkAsRead(notification.id);
-                      }}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                      {!notification.isRead && (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMarkAsRead(notification.id);
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <CheckCheck className="h-4 w-4 mr-2" />
+                          Mark as read
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(notification.id);
+                        }}
+                        className="cursor-pointer text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Notification</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this notification? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteNotifications.isPending}
+            >
+              {deleteNotifications.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete All Confirmation Dialog */}
+      <AlertDialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete All Notifications</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete all notifications? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAllConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteNotifications.isPending}
+            >
+              {deleteNotifications.isPending ? "Deleting..." : "Delete All"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
