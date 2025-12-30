@@ -27,12 +27,17 @@ export function YouTubePageClient() {
     return tab && VALID_TABS.has(tab) ? tab : "channels";
   });
   const isUpdatingFromUrlRef = useRef(false);
+  const previousTabRef = useRef<string | null>(() => {
+    const tab = searchParams.get("tab");
+    return tab && VALID_TABS.has(tab) ? tab : "channels";
+  });
 
   // Update URL when tab changes (only when user clicks, not from URL sync)
   useEffect(() => {
     // Skip if this update came from URL change
     if (isUpdatingFromUrlRef.current) {
       isUpdatingFromUrlRef.current = false;
+      previousTabRef.current = activeTab;
       return;
     }
 
@@ -48,7 +53,20 @@ export function YouTubePageClient() {
         params.set("tab", activeTab);
       }
       const newUrl = params.toString() ? `/youtube?${params.toString()}` : "/youtube";
-      router.replace(newUrl);
+      
+      // Use push() when going from base/default to a tab (creates history entry for back button)
+      // Use replace() when switching between tabs (no history entry)
+      const previousTab = previousTabRef.current;
+      const wasOnBaseOrDefault = !previousTab || previousTab === "channels" || !searchParams.get("tab");
+      const isGoingToTab = activeTab !== "channels";
+      
+      if (wasOnBaseOrDefault && isGoingToTab) {
+        router.push(newUrl);
+      } else {
+        router.replace(newUrl);
+      }
+      
+      previousTabRef.current = activeTab;
     }
   }, [activeTab, router, searchParams]);
 
