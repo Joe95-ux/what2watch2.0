@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   Table,
   TableBody,
@@ -149,6 +150,7 @@ export function FeedbackManagementTable() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [reasonFilter, setReasonFilter] = useState("all");
@@ -256,8 +258,8 @@ export function FeedbackManagementTable() {
     return dateRange ? { from: dateRange.from, to: dateRange.to } : undefined;
   }, [dateFilter, customDateRange, dateRange]);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["admin-feedback", page, statusFilter, priorityFilter, reasonFilter, dateRange, searchQuery, sortField, sortOrder, userFilter, replyCountFilter],
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ["admin-feedback", page, statusFilter, priorityFilter, reasonFilter, dateRange, debouncedSearchQuery, sortField, sortOrder, userFilter, replyCountFilter],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -265,7 +267,7 @@ export function FeedbackManagementTable() {
         status: statusFilter,
         priority: priorityFilter,
         reason: reasonFilter,
-        search: searchQuery,
+        search: debouncedSearchQuery,
         sortField: sortField,
         sortOrder: sortOrder,
         userFilter: userFilter,
@@ -514,11 +516,11 @@ export function FeedbackManagementTable() {
       priorityFilter !== "all" ||
       reasonFilter !== "all" ||
       dateFilter !== "all" ||
-      searchQuery.trim() !== "" ||
+      debouncedSearchQuery.trim() !== "" ||
       userFilter !== "all" ||
       replyCountFilter !== "all"
     );
-  }, [statusFilter, priorityFilter, reasonFilter, dateFilter, searchQuery, userFilter, replyCountFilter]);
+  }, [statusFilter, priorityFilter, reasonFilter, dateFilter, debouncedSearchQuery, userFilter, replyCountFilter]);
 
   const handleCopyFeedbackId = (feedbackId: string) => {
     navigator.clipboard.writeText(feedbackId);
@@ -658,7 +660,7 @@ export function FeedbackManagementTable() {
         status: statusFilter,
         priority: priorityFilter,
         reason: reasonFilter,
-        search: searchQuery,
+        search: debouncedSearchQuery,
         export: "csv",
         sortField: sortField,
         sortOrder: sortOrder,
@@ -692,45 +694,6 @@ export function FeedbackManagementTable() {
   const feedbacks = data?.feedbacks ?? [];
   const pagination = data?.pagination;
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-4">
-          <Skeleton className="h-10 w-32" />
-          <Skeleton className="h-10 w-32" />
-        </div>
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Reason</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Replies</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-8 w-16" /></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       {/* Filter Row */}
@@ -748,7 +711,7 @@ export function FeedbackManagementTable() {
                 setPage(1);
               }}
               className={cn(
-                "pl-9 h-9",
+                "pl-9 h-9 text-muted-foreground placeholder:text-muted-foreground/60",
                 searchQuery ? "pr-20" : "pr-12"
               )}
             />
@@ -1370,7 +1333,21 @@ export function FeedbackManagementTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {feedbacks.length === 0 ? (
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-16" /></TableCell>
+                </TableRow>
+              ))
+            ) : feedbacks.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   No feedback found
@@ -1720,7 +1697,7 @@ export function FeedbackManagementTable() {
                     <Label htmlFor="reply-message" className="text-sm font-medium">Reply Message</Label>
                     <Textarea
                       id="reply-message"
-                      className="mt-2 min-h-[120px]"
+                      className="mt-2 min-h-[120px] text-muted-foreground placeholder:text-muted-foreground/60"
                       placeholder="Enter your reply message. This will be sent to the user via email."
                       value={replyMessage}
                       onChange={(e) => setReplyMessage(e.target.value)}
@@ -1759,7 +1736,7 @@ export function FeedbackManagementTable() {
                       <Label htmlFor="new-note" className="text-sm font-medium">Add Note</Label>
                       <Textarea
                         id="new-note"
-                        className="mt-2 min-h-[100px]"
+                        className="mt-2 min-h-[100px] text-muted-foreground placeholder:text-muted-foreground/60"
                         placeholder="Add an internal note (only visible to admins)..."
                         value={newNote}
                         onChange={(e) => setNewNote(e.target.value)}
@@ -1826,6 +1803,7 @@ export function FeedbackManagementTable() {
                         <Input
                           id="new-tag"
                           placeholder="Enter tag name..."
+                          className="text-muted-foreground placeholder:text-muted-foreground/60"
                           value={newTag}
                           onChange={(e) => setNewTag(e.target.value)}
                           onKeyDown={(e) => {

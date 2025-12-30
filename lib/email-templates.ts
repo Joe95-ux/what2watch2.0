@@ -413,3 +413,57 @@ export function getAdminAppealNotificationEmail({
   });
 }
 
+/**
+ * Email template for when feedback is assigned to an admin/moderator
+ */
+export function getFeedbackAssignedEmail({
+  recipientName,
+  assignedByName,
+  feedbackReason,
+  feedbackMessage,
+  feedbackPriority,
+  viewFeedbackUrl,
+  notificationSettingsUrl,
+}: {
+  recipientName: string;
+  assignedByName: string;
+  feedbackReason: string;
+  feedbackMessage: string;
+  feedbackPriority: string;
+  viewFeedbackUrl: string;
+  notificationSettingsUrl: string;
+}): string {
+  const messagePreview = feedbackMessage.replace(/<[^>]*>/g, "").substring(0, 200);
+  const fullMessagePreview = messagePreview.length < feedbackMessage.replace(/<[^>]*>/g, "").length 
+    ? messagePreview + "..." 
+    : messagePreview;
+
+  const content = `
+    <p style="margin: 0 0 20px;">Hi ${recipientName},</p>
+    
+    <p style="margin: 0 0 20px;">
+      <strong>${assignedByName}</strong> has assigned a feedback item to you for review and response.
+    </p>
+    
+    <div style="background-color: #f9f9f9; padding: 20px; border-radius: 6px; margin: 20px 0;">
+      <p style="margin: 0 0 10px; font-weight: 600; color: #1a1a1a;">Feedback Details:</p>
+      <p style="margin: 0 0 8px; color: #4a4a4a;"><strong>Reason:</strong> ${feedbackReason}</p>
+      <p style="margin: 0 0 8px; color: #4a4a4a;"><strong>Priority:</strong> ${feedbackPriority}</p>
+      <p style="margin: 15px 0 0; font-weight: 600; color: #1a1a1a;">Message:</p>
+      <p style="margin: 5px 0 0; color: #6a6a6a; font-size: 14px; line-height: 1.5;">${fullMessagePreview}</p>
+    </div>
+    
+    <p style="margin: 20px 0;">
+      Please review this feedback and respond to the user as soon as possible.
+    </p>
+  `;
+
+  return getEmailTemplate({
+    title: "Feedback Assigned to You",
+    content,
+    ctaText: "View Feedback",
+    ctaUrl: viewFeedbackUrl,
+    footerText: `You're receiving this because you've been assigned to handle this feedback. <a href="${notificationSettingsUrl}" style="color: #6b7280; text-decoration: underline;">Manage notification preferences</a>`,
+  });
+}
+
