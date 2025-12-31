@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useMemo } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { UserManagementTable } from "./user-management-table";
@@ -21,26 +21,50 @@ const tabs = [
 
 const VALID_TABS = new Set(tabs.map((tab) => tab.id));
 const DEFAULT_TAB = "users";
+const STORAGE_KEY = "forum-admin-active-tab";
 
 export function ForumAdminContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const previousTabRef = useRef<string | null>(null);
-  
-  // Single source of truth: derive activeTab from URL
-  const activeTab = useMemo(() => {
-    const tabFromUrl = searchParams.get("tab");
-    return tabFromUrl && VALID_TABS.has(tabFromUrl) ? tabFromUrl : DEFAULT_TAB;
-  }, [searchParams]);
-  
   const navRef = useRef<HTMLDivElement>(null);
   const activeTabRef = useRef<HTMLButtonElement | null>(null);
+  const isInitialMount = useRef(true);
+  
+  // Initialize activeTab from localStorage (or URL on first load, or default)
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window === "undefined") {
+      const tabFromUrl = searchParams.get("tab");
+      return tabFromUrl && VALID_TABS.has(tabFromUrl) ? tabFromUrl : DEFAULT_TAB;
+    }
+    
+    // On first load, prioritize URL (for sharing/bookmarking), then localStorage, then default
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl && VALID_TABS.has(tabFromUrl)) {
+      // Save URL tab to localStorage
+      localStorage.setItem(STORAGE_KEY, tabFromUrl);
+      return tabFromUrl;
+    }
+    
+    const savedTab = localStorage.getItem(STORAGE_KEY);
+    if (savedTab && VALID_TABS.has(savedTab)) {
+      return savedTab;
+    }
+    
+    return DEFAULT_TAB;
+  });
 
   // Handle tab change (only called on user clicks)
   const handleTabChange = (newTab: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    const previousTab = previousTabRef.current || (searchParams.get("tab") || DEFAULT_TAB);
+    // Update localStorage (source of truth)
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_KEY, newTab);
+    }
     
+    // Update state
+    setActiveTab(newTab);
+    
+    // Update URL (for sharing/bookmarking)
+    const params = new URLSearchParams(searchParams.toString());
     if (newTab === DEFAULT_TAB) {
       params.delete("tab");
     } else {
@@ -51,10 +75,11 @@ export function ForumAdminContent() {
       ? `/dashboard/admin/forum?${params.toString()}` 
       : "/dashboard/admin/forum";
     
-    // Use push() when going to/from base URL (creates history entry)
     // Use replace() when switching between tabs (no history entry)
+    // Use push() when going to/from base URL (creates history entry)
+    const currentTabFromUrl = searchParams.get("tab") || DEFAULT_TAB;
     const isGoingToBase = newTab === DEFAULT_TAB;
-    const isGoingFromBase = previousTab === DEFAULT_TAB;
+    const isGoingFromBase = !currentTabFromUrl || currentTabFromUrl === DEFAULT_TAB;
     const isSwitchingTabs = !isGoingToBase && !isGoingFromBase;
     
     if (isSwitchingTabs) {
@@ -62,9 +87,36 @@ export function ForumAdminContent() {
     } else {
       router.push(newUrl);
     }
-    
-    previousTabRef.current = newTab;
   };
+
+  // Sync with URL changes (browser back/forward)
+  useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+    
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      // On initial mount, we already handled URL in useState initializer
+      return;
+    }
+    
+    // When URL changes (browser back/forward):
+    if (tabFromUrl && VALID_TABS.has(tabFromUrl)) {
+      // URL has a tab - use it and save to localStorage
+      if (typeof window !== "undefined") {
+        localStorage.setItem(STORAGE_KEY, tabFromUrl);
+      }
+      setActiveTab(tabFromUrl);
+    } else {
+      // URL is base - keep current tab from localStorage (don't reset to default)
+      // This allows tab to persist when navigating back from tab URL to base URL
+      if (typeof window !== "undefined") {
+        const savedTab = localStorage.getItem(STORAGE_KEY);
+        if (savedTab && VALID_TABS.has(savedTab) && savedTab !== activeTab) {
+          setActiveTab(savedTab);
+        }
+      }
+    }
+  }, [searchParams, activeTab]);
 
   // Scroll active tab into view when it changes
   useEffect(() => {
