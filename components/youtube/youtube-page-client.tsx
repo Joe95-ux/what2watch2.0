@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useRef, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { YouTubeChannelsTab } from "./youtube-channels-tab";
@@ -18,69 +18,48 @@ const tabs = [
 ];
 
 const VALID_TABS = new Set(tabs.map((tab) => tab.id));
+const DEFAULT_TAB = "channels";
 
 export function YouTubePageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState(() => {
+  const previousTabRef = useRef<string | null>(null);
+  
+  // Single source of truth: derive activeTab from URL
+  const activeTab = useMemo(() => {
     const tab = searchParams.get("tab");
-    return tab && VALID_TABS.has(tab) ? tab : "channels";
-  });
-  const isUpdatingFromUrlRef = useRef(false);
-  const previousTabRef = useRef<string | null>(() => {
-    const tab = searchParams.get("tab");
-    return tab && VALID_TABS.has(tab) ? tab : "channels";
-  });
-
-  // Update URL when tab changes (only when user clicks, not from URL sync)
-  useEffect(() => {
-    // Skip if this update came from URL change
-    if (isUpdatingFromUrlRef.current) {
-      isUpdatingFromUrlRef.current = false;
-      previousTabRef.current = activeTab;
-      return;
-    }
-
-    const currentTab = searchParams.get("tab");
-    const expectedTab = activeTab === "channels" ? null : activeTab;
-    
-    // Only update if URL doesn't match current state
-    if (currentTab !== expectedTab) {
-      const params = new URLSearchParams(searchParams.toString());
-      if (activeTab === "channels") {
-        params.delete("tab");
-      } else {
-        params.set("tab", activeTab);
-      }
-      const newUrl = params.toString() ? `/youtube?${params.toString()}` : "/youtube";
-      
-      // Always use push() when going to/from base URL (creates history entry for back button)
-      // Use replace() only when switching between tabs (no history entry)
-      const previousTab = previousTabRef.current;
-      const isGoingToBase = activeTab === "channels";
-      const isGoingFromBase = !previousTab || previousTab === "channels" || !searchParams.get("tab");
-      const isSwitchingTabs = !isGoingToBase && !isGoingFromBase;
-      
-      if (isSwitchingTabs) {
-        router.replace(newUrl);
-      } else {
-        router.push(newUrl);
-      }
-      
-      previousTabRef.current = activeTab;
-    }
-  }, [activeTab, router, searchParams]);
-
-  // Sync with URL changes (browser back/forward)
-  useEffect(() => {
-    const tab = searchParams.get("tab");
-    const expectedTab = tab && VALID_TABS.has(tab) ? tab : "channels";
-    
-    if (expectedTab !== activeTab) {
-      isUpdatingFromUrlRef.current = true;
-      setActiveTab(expectedTab);
-    }
+    return tab && VALID_TABS.has(tab) ? tab : DEFAULT_TAB;
   }, [searchParams]);
+
+  // Handle tab change (only called on user clicks)
+  const handleTabChange = (newTab: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    const previousTab = previousTabRef.current || (searchParams.get("tab") || DEFAULT_TAB);
+    
+    if (newTab === DEFAULT_TAB) {
+      params.delete("tab");
+    } else {
+      params.set("tab", newTab);
+    }
+    
+    const newUrl = params.toString() 
+      ? `/youtube?${params.toString()}` 
+      : "/youtube";
+    
+    // Use push() when going to/from base URL (creates history entry)
+    // Use replace() when switching between tabs (no history entry)
+    const isGoingToBase = newTab === DEFAULT_TAB;
+    const isGoingFromBase = previousTab === DEFAULT_TAB;
+    const isSwitchingTabs = !isGoingToBase && !isGoingFromBase;
+    
+    if (isSwitchingTabs) {
+      router.replace(newUrl);
+    } else {
+      router.push(newUrl);
+    }
+    
+    previousTabRef.current = newTab;
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -93,7 +72,7 @@ export function YouTubePageClient() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={cn(
                     "relative py-4 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2",
                     activeTab === tab.id
@@ -115,7 +94,7 @@ export function YouTubePageClient() {
 
       {/* Content */}
       <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsContent value="channels" className="mt-0">
             <YouTubeChannelsTab />
           </TabsContent>

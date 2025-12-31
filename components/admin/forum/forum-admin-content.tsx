@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useRef, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { UserManagementTable } from "./user-management-table";
@@ -20,72 +20,51 @@ const tabs = [
 ];
 
 const VALID_TABS = new Set(tabs.map((tab) => tab.id));
+const DEFAULT_TAB = "users";
 
 export function ForumAdminContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const previousTabRef = useRef<string | null>(null);
   
-  // Lazy state initialization from URL
-  const [activeTab, setActiveTab] = useState(() => {
+  // Single source of truth: derive activeTab from URL
+  const activeTab = useMemo(() => {
     const tabFromUrl = searchParams.get("tab");
-    return tabFromUrl && VALID_TABS.has(tabFromUrl) ? tabFromUrl : "users";
-  });
+    return tabFromUrl && VALID_TABS.has(tabFromUrl) ? tabFromUrl : DEFAULT_TAB;
+  }, [searchParams]);
+  
   const navRef = useRef<HTMLDivElement>(null);
   const activeTabRef = useRef<HTMLButtonElement | null>(null);
-  const isUpdatingFromUrlRef = useRef(false);
-  const previousTabRef = useRef<string | null>(() => {
-    const tabFromUrl = searchParams.get("tab");
-    return tabFromUrl && VALID_TABS.has(tabFromUrl) ? tabFromUrl : "users";
-  });
 
-  // Sync URL with tab changes (only when user clicks, not from URL sync)
-  useEffect(() => {
-    // Skip if this update came from URL change
-    if (isUpdatingFromUrlRef.current) {
-      isUpdatingFromUrlRef.current = false;
-      previousTabRef.current = activeTab;
-      return;
-    }
-
-    const currentTab = searchParams.get("tab");
-    const expectedTab = activeTab === "users" ? null : activeTab;
+  // Handle tab change (only called on user clicks)
+  const handleTabChange = (newTab: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    const previousTab = previousTabRef.current || (searchParams.get("tab") || DEFAULT_TAB);
     
-    if (currentTab !== expectedTab) {
-      const params = new URLSearchParams(searchParams.toString());
-      if (activeTab === "users") {
-        params.delete("tab");
-      } else {
-        params.set("tab", activeTab);
-      }
-      const newUrl = params.toString() ? `/dashboard/admin/forum?${params.toString()}` : "/dashboard/admin/forum";
-      
-      // Always use push() when going to/from base URL (creates history entry for back button)
-      // Use replace() only when switching between tabs (no history entry)
-      const previousTab = previousTabRef.current;
-      const isGoingToBase = activeTab === "users";
-      const isGoingFromBase = !previousTab || previousTab === "users" || !searchParams.get("tab");
-      const isSwitchingTabs = !isGoingToBase && !isGoingFromBase;
-      
-      if (isSwitchingTabs) {
-        router.replace(newUrl);
-      } else {
-        router.push(newUrl);
-      }
-      
-      previousTabRef.current = activeTab;
+    if (newTab === DEFAULT_TAB) {
+      params.delete("tab");
+    } else {
+      params.set("tab", newTab);
     }
-  }, [activeTab, router, searchParams]);
-
-  // Sync tab with URL changes (e.g., browser back/forward)
-  useEffect(() => {
-    const tabFromUrl = searchParams.get("tab");
-    const expectedTab = tabFromUrl && VALID_TABS.has(tabFromUrl) ? tabFromUrl : "users";
     
-    if (expectedTab !== activeTab) {
-      isUpdatingFromUrlRef.current = true;
-      setActiveTab(expectedTab);
+    const newUrl = params.toString() 
+      ? `/dashboard/admin/forum?${params.toString()}` 
+      : "/dashboard/admin/forum";
+    
+    // Use push() when going to/from base URL (creates history entry)
+    // Use replace() when switching between tabs (no history entry)
+    const isGoingToBase = newTab === DEFAULT_TAB;
+    const isGoingFromBase = previousTab === DEFAULT_TAB;
+    const isSwitchingTabs = !isGoingToBase && !isGoingFromBase;
+    
+    if (isSwitchingTabs) {
+      router.replace(newUrl);
+    } else {
+      router.push(newUrl);
     }
-  }, [searchParams]);
+    
+    previousTabRef.current = newTab;
+  };
 
   // Scroll active tab into view when it changes
   useEffect(() => {
@@ -136,7 +115,7 @@ export function ForumAdminContent() {
                         activeTabRef.current = el;
                       }
                     }}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => handleTabChange(tab.id)}
                     className={cn(
                       "relative py-4 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2",
                       activeTab === tab.id
@@ -156,7 +135,7 @@ export function ForumAdminContent() {
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsContent value="users" className="mt-0">
             <UserManagementTable />
           </TabsContent>
