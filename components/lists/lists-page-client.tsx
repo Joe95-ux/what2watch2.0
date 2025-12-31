@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { List, Globe } from "lucide-react";
@@ -13,41 +13,102 @@ const mainTabs = [
   { id: "public-lists", label: "Public Lists", icon: Globe },
 ];
 
+const VALID_TABS = new Set(mainTabs.map((tab) => tab.id));
+const DEFAULT_TAB = "my-lists";
+const STORAGE_KEY = "lists-page-active-tab";
+
 export function ListsPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isInitialMount = useRef(true);
+  
+  // Initialize activeTab from localStorage (or URL on first load, or default)
   const [activeTab, setActiveTab] = useState(() => {
-    const tab = searchParams.get("tab");
-    return tab && mainTabs.some(t => t.id === tab) ? tab : "my-lists";
+    if (typeof window === "undefined") {
+      const tab = searchParams.get("tab");
+      return tab && VALID_TABS.has(tab) ? tab : DEFAULT_TAB;
+    }
+    
+    // On first load, prioritize URL (for sharing/bookmarking), then localStorage, then default
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl && VALID_TABS.has(tabFromUrl)) {
+      // Save URL tab to localStorage
+      localStorage.setItem(STORAGE_KEY, tabFromUrl);
+      return tabFromUrl;
+    }
+    
+    const savedTab = localStorage.getItem(STORAGE_KEY);
+    if (savedTab && VALID_TABS.has(savedTab)) {
+      return savedTab;
+    }
+    
+    return DEFAULT_TAB;
   });
 
-  // Update URL when tab changes
-  useEffect(() => {
-    const currentTab = searchParams.get("tab");
-    const expectedTab = activeTab === "my-lists" ? null : activeTab;
+  // Handle tab change (only called on user clicks)
+  const handleTabChange = (newTab: string) => {
+    // Update localStorage (source of truth)
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_KEY, newTab);
+    }
     
-    // Only update if URL doesn't match current state
-    if (currentTab !== expectedTab) {
-      const params = new URLSearchParams(searchParams.toString());
-      if (activeTab === "my-lists") {
-        params.delete("tab");
-      } else {
-        params.set("tab", activeTab);
-      }
-      const newUrl = params.toString() ? `/lists?${params.toString()}` : "/lists";
+    // Update state
+    setActiveTab(newTab);
+    
+    // Update URL (for sharing/bookmarking)
+    const params = new URLSearchParams(searchParams.toString());
+    if (newTab === DEFAULT_TAB) {
+      params.delete("tab");
+    } else {
+      params.set("tab", newTab);
+    }
+    
+    const newUrl = params.toString() 
+      ? `/lists?${params.toString()}` 
+      : "/lists";
+    
+    // Use replace() when switching between tabs (no history entry)
+    // Use push() when going to/from base URL (creates history entry)
+    const currentTabFromUrl = searchParams.get("tab") || DEFAULT_TAB;
+    const isGoingToBase = newTab === DEFAULT_TAB;
+    const isGoingFromBase = !currentTabFromUrl || currentTabFromUrl === DEFAULT_TAB;
+    const isSwitchingTabs = !isGoingToBase && !isGoingFromBase;
+    
+    if (isSwitchingTabs) {
+      router.replace(newUrl);
+    } else {
       router.push(newUrl);
     }
-  }, [activeTab, router, searchParams]);
+  };
 
   // Sync with URL changes (browser back/forward)
   useEffect(() => {
-    const tab = searchParams.get("tab");
-    if (tab && mainTabs.some(t => t.id === tab)) {
-      setActiveTab(tab);
-    } else if (!tab) {
-      setActiveTab("my-lists");
+    const tabFromUrl = searchParams.get("tab");
+    
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      // On initial mount, we already handled URL in useState initializer
+      return;
     }
-  }, [searchParams]);
+    
+    // When URL changes (browser back/forward):
+    if (tabFromUrl && VALID_TABS.has(tabFromUrl)) {
+      // URL has a tab - use it and save to localStorage
+      if (typeof window !== "undefined") {
+        localStorage.setItem(STORAGE_KEY, tabFromUrl);
+      }
+      setActiveTab(tabFromUrl);
+    } else {
+      // URL is base - keep current tab from localStorage (don't reset to default)
+      // This allows tab to persist when navigating back from tab URL to base URL
+      if (typeof window !== "undefined") {
+        const savedTab = localStorage.getItem(STORAGE_KEY);
+        if (savedTab && VALID_TABS.has(savedTab) && savedTab !== activeTab) {
+          setActiveTab(savedTab);
+        }
+      }
+    }
+  }, [searchParams, activeTab]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -60,7 +121,7 @@ export function ListsPageClient() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={cn(
                     "relative py-4 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2",
                     activeTab === tab.id
@@ -82,7 +143,7 @@ export function ListsPageClient() {
 
       {/* Content */}
       <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsContent value="my-lists" className="mt-0">
             <MyListsTab />
           </TabsContent>

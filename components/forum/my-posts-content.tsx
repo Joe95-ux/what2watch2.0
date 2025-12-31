@@ -74,6 +74,10 @@ type TabType = "posts" | "activity" | "notifications" | "summary";
 type StatusFilter = "all" | "published" | "scheduled" | "archived" | "private";
 type SortField = "createdAt" | "views" | "replies" | "score";
 
+const VALID_TABS: TabType[] = ["posts", "activity", "notifications", "summary"];
+const DEFAULT_TAB: TabType = "posts";
+const STORAGE_KEY = "my-posts-active-tab";
+
 interface Post {
   id: string;
   slug: string;
@@ -200,8 +204,30 @@ export default function MyPostsContent() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const heroRef = useRef<HTMLDivElement>(null);
-  const [activeTab, setActiveTab] = useState<TabType>("posts");
+  
+  // Initialize activeTab from localStorage
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    if (typeof window === "undefined") {
+      return DEFAULT_TAB;
+    }
+    
+    const savedTab = localStorage.getItem(STORAGE_KEY);
+    if (savedTab && VALID_TABS.includes(savedTab as TabType)) {
+      return savedTab as TabType;
+    }
+    
+    return DEFAULT_TAB;
+  });
+  
   const [isScrolled, setIsScrolled] = useState(false);
+  
+  // Save to localStorage when tab changes
+  const handleTabChange = (newTab: TabType) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_KEY, newTab);
+    }
+    setActiveTab(newTab);
+  };
   
   // Get current user data
   const { data: currentUser, isLoading: isLoadingUser } = useCurrentUser();
@@ -560,7 +586,7 @@ export default function MyPostsContent() {
 
             <MyPostsStickyNav
               activeTab={activeTab}
-              onTabChange={setActiveTab}
+              onTabChange={handleTabChange}
               isScrolled={isScrolled}
               postCount={totalPosts}
               isLoading={isLoadingUser}
