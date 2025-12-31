@@ -111,12 +111,16 @@ export function ForumAdminContent() {
       // This allows tab to persist when navigating back from tab URL to base URL
       if (typeof window !== "undefined") {
         const savedTab = localStorage.getItem(STORAGE_KEY);
-        if (savedTab && VALID_TABS.has(savedTab) && savedTab !== activeTab) {
-          setActiveTab(savedTab);
+        if (savedTab && VALID_TABS.has(savedTab)) {
+          // Use functional update to avoid dependency on activeTab
+          setActiveTab((currentTab) => {
+            // Only update if different to avoid unnecessary re-renders
+            return savedTab !== currentTab ? savedTab : currentTab;
+          });
         }
       }
     }
-  }, [searchParams, activeTab]);
+  }, [searchParams]);
 
   // Scroll active tab into view when it changes
   useEffect(() => {
