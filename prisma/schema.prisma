@@ -58,6 +58,16 @@ model User {
   bannedAt         DateTime?
   bannedUntil      DateTime? // Temporary ban
   banReason        String?
+  banAppealReason  String?  // User's appeal reason
+  banAppealAt      DateTime? // When user appealed
+  banAppealStatus  String?  // "pending", "reviewed", "approved", "rejected"
+  isSuspended     Boolean @default(false)
+  suspendedAt     DateTime?
+  suspendedUntil  DateTime? // Temporary suspension
+  suspendReason   String?
+  suspendAppealReason String?  // User's appeal reason
+  suspendAppealAt   DateTime? // When user appealed
+  suspendAppealStatus String?  // "pending", "reviewed", "approved", "rejected"
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

@@ -638,7 +638,9 @@ export default function ListView({
     );
   }
 
-  if (!list || (list.items.length === 0 && !isLoading)) {
+  // Only show error if list doesn't exist (not if it's empty)
+  // Empty lists should show the empty state which allows editing
+  if (!list) {
     return (
       <div className="min-h-screen bg-background">
         <CollectionBanner fallbackGradient />

@@ -65,7 +65,7 @@ export default function MyListsListsTab() {
       const newUrl = params.toString() ? `/lists?${params.toString()}` : "/lists";
       router.push(newUrl);
     }
-  }, [activeTab, router, searchParams]);
+  }, [activeTab, router]);
 
   // Sync with URL changes (browser back/forward)
   useEffect(() => {

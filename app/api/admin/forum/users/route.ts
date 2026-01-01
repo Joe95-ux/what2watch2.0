@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search") || "";
     const role = searchParams.get("role") || "";
     const isBanned = searchParams.get("isBanned");
+    const isSuspended = searchParams.get("isSuspended");
 
     const skip = (page - 1) * limit;
 
@@ -34,6 +35,10 @@ export async function GET(request: NextRequest) {
       where.isBanned = isBanned === "true";
     }
 
+    if (isSuspended !== null && isSuspended !== undefined) {
+      where.isSuspended = isSuspended === "true";
+    }
+
     const [users, total] = await Promise.all([
       db.user.findMany({
         where,
@@ -52,6 +57,10 @@ export async function GET(request: NextRequest) {
           bannedAt: true,
           bannedUntil: true,
           banReason: true,
+          isSuspended: true,
+          suspendedAt: true,
+          suspendedUntil: true,
+          suspendReason: true,
           createdAt: true,
           _count: {
             select: {

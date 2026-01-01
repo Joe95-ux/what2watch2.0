@@ -124,11 +124,61 @@ export async function POST(
 
     const user = await db.user.findUnique({
       where: { clerkId: clerkUserId },
-      select: { id: true },
+      select: { 
+        id: true,
+        isBanned: true,
+        isSuspended: true,
+        suspendedUntil: true,
+        bannedUntil: true,
+      },
     });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Check if user is banned
+    if (user.isBanned) {
+      // Check if temporary ban has expired
+      if (user.bannedUntil && new Date(user.bannedUntil) <= new Date()) {
+        // Ban expired, but isBanned flag might still be true - allow action
+        // (In production, you'd want a cron job to clear expired bans)
+      } else {
+        // User is banned (permanent or temporary that hasn't expired)
+        if (user.bannedUntil) {
+          return NextResponse.json(
+            { error: `Your account is banned until ${new Date(user.bannedUntil).toLocaleDateString()}. Please contact support if you believe this is an error.` },
+            { status: 403 }
+          );
+        } else {
+          return NextResponse.json(
+            { error: "Your account has been banned. Please contact support if you believe this is an error." },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
+    // Check if user is suspended
+    if (user.isSuspended) {
+      // Check if temporary suspension has expired
+      if (user.suspendedUntil && new Date(user.suspendedUntil) <= new Date()) {
+        // Suspension expired, but isSuspended flag might still be true - allow action
+        // (In production, you'd want a cron job to clear expired suspensions)
+      } else {
+        // User is suspended (permanent or temporary that hasn't expired)
+        if (user.suspendedUntil) {
+          return NextResponse.json(
+            { error: `Your account is suspended until ${new Date(user.suspendedUntil).toLocaleDateString()}. You cannot create new replies during this time. Please contact support if you believe this is an error.` },
+            { status: 403 }
+          );
+        } else {
+          return NextResponse.json(
+            { error: "Your account has been suspended. You cannot create new replies. Please contact support if you believe this is an error." },
+            { status: 403 }
+          );
+        }
+      }
     }
 
     // Rate limiting - 20 replies per hour

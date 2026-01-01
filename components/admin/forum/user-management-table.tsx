@@ -20,7 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MoreHorizontal, Search, Ban, UserCheck, X } from "lucide-react";
+import { MoreHorizontal, Search, Ban, UserCheck, X, Pause } from "lucide-react";
+import { BanSuspendModal } from "./ban-suspend-modal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +37,11 @@ export function UserManagementTable() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [bannedFilter, setBannedFilter] = useState("");
+  const [suspendedFilter, setSuspendedFilter] = useState("");
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [banModalOpen, setBanModalOpen] = useState(false);
+  const [suspendModalOpen, setSuspendModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<{ id: string; username?: string; displayName?: string } | null>(null);
 
   // Handle window resize to reset search expansion on desktop
   useEffect(() => {
@@ -50,7 +55,7 @@ export function UserManagementTable() {
   }, []);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-forum-users", page, search, roleFilter, bannedFilter],
+    queryKey: ["admin-forum-users", page, search, roleFilter, bannedFilter, suspendedFilter],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -59,6 +64,7 @@ export function UserManagementTable() {
       if (search) params.append("search", search);
       if (roleFilter) params.append("role", roleFilter);
       if (bannedFilter) params.append("isBanned", bannedFilter);
+      if (suspendedFilter) params.append("isSuspended", suspendedFilter);
 
       const res = await fetch(`/api/admin/forum/users?${params}`);
       if (!res.ok) throw new Error("Failed to fetch users");
@@ -72,7 +78,15 @@ export function UserManagementTable() {
       data,
     }: {
       userId: string;
-      data: { role?: string; isBanned?: boolean; banReason?: string };
+      data: { 
+        role?: string; 
+        isBanned?: boolean; 
+        banReason?: string;
+        bannedUntil?: Date;
+        isSuspended?: boolean;
+        suspendReason?: string;
+        suspendedUntil?: Date;
+      };
     }) => {
       const res = await fetch(`/api/admin/forum/users/${userId}`, {
         method: "PATCH",
@@ -93,6 +107,34 @@ export function UserManagementTable() {
       toast.error(error.message);
     },
   });
+
+  const handleBan = async (reason: string, until?: Date) => {
+    if (!selectedUser) return;
+    await updateUser.mutateAsync({
+      userId: selectedUser.id,
+      data: {
+        isBanned: true,
+        banReason: reason,
+        bannedUntil: until,
+      },
+    });
+    setBanModalOpen(false);
+    setSelectedUser(null);
+  };
+
+  const handleSuspend = async (reason: string, until?: Date) => {
+    if (!selectedUser) return;
+    await updateUser.mutateAsync({
+      userId: selectedUser.id,
+      data: {
+        isSuspended: true,
+        suspendReason: reason,
+        suspendedUntil: until,
+      },
+    });
+    setSuspendModalOpen(false);
+    setSelectedUser(null);
+  };
 
   const users = data?.users || [];
   const pagination = data?.pagination;
@@ -216,12 +258,22 @@ export function UserManagementTable() {
           </Select>
           <Select value={bannedFilter || "all"} onValueChange={(value) => { setBannedFilter(value === "all" ? "" : value); setPage(1); }}>
             <SelectTrigger className="w-[140px] cursor-pointer">
-              <SelectValue placeholder="All Status" />
+              <SelectValue placeholder="Ban Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="false">Active</SelectItem>
+              <SelectItem value="all">All Ban Status</SelectItem>
+              <SelectItem value="false">Not Banned</SelectItem>
               <SelectItem value="true">Banned</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={suspendedFilter || "all"} onValueChange={(value) => { setSuspendedFilter(value === "all" ? "" : value); setPage(1); }}>
+            <SelectTrigger className="w-[140px] cursor-pointer">
+              <SelectValue placeholder="Suspend Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Suspend Status</SelectItem>
+              <SelectItem value="false">Not Suspended</SelectItem>
+              <SelectItem value="true">Suspended</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -288,11 +340,15 @@ export function UserManagementTable() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {user.isBanned ? (
-                      <Badge variant="destructive">Banned</Badge>
-                    ) : (
-                      <Badge variant="default">Active</Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {user.isBanned ? (
+                        <Badge variant="destructive">Banned</Badge>
+                      ) : user.isSuspended ? (
+                        <Badge variant="secondary">Suspended</Badge>
+                      ) : (
+                        <Badge variant="default">Active</Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>{user._count?.forumPosts || 0}</TableCell>
                   <TableCell>
@@ -303,20 +359,57 @@ export function UserManagementTable() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        {!user.isBanned ? (
-                          <DropdownMenuItem
-                            onClick={() =>
-                              updateUser.mutate({
-                                userId: user.id,
-                                data: { isBanned: true, banReason: "Violation of community guidelines" },
-                              })
-                            }
-                            className="cursor-pointer"
-                          >
-                            <Ban className="mr-2 h-4 w-4" />
-                            Ban User
-                          </DropdownMenuItem>
-                        ) : (
+                        {!user.isBanned && !user.isSuspended && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedUser({ id: user.id, username: user.username, displayName: user.displayName });
+                                setSuspendModalOpen(true);
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <Pause className="mr-2 h-4 w-4" />
+                              Suspend User
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedUser({ id: user.id, username: user.username, displayName: user.displayName });
+                                setBanModalOpen(true);
+                              }}
+                              className="cursor-pointer text-destructive"
+                            >
+                              <Ban className="mr-2 h-4 w-4" />
+                              Ban User
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {user.isSuspended && !user.isBanned && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                updateUser.mutate({
+                                  userId: user.id,
+                                  data: { isSuspended: false },
+                                })
+                              }
+                              className="cursor-pointer"
+                            >
+                              <UserCheck className="mr-2 h-4 w-4" />
+                              Unsuspend User
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedUser({ id: user.id, username: user.username, displayName: user.displayName });
+                                setBanModalOpen(true);
+                              }}
+                              className="cursor-pointer text-destructive"
+                            >
+                              <Ban className="mr-2 h-4 w-4" />
+                              Ban User
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {user.isBanned && (
                           <DropdownMenuItem
                             onClick={() =>
                               updateUser.mutate({
@@ -368,6 +461,32 @@ export function UserManagementTable() {
           </div>
         </div>
       )}
+
+      {/* Ban Modal */}
+      <BanSuspendModal
+        isOpen={banModalOpen}
+        onClose={() => {
+          setBanModalOpen(false);
+          setSelectedUser(null);
+        }}
+        onConfirm={handleBan}
+        actionType="ban"
+        userName={selectedUser?.username || selectedUser?.displayName}
+        isLoading={updateUser.isPending}
+      />
+
+      {/* Suspend Modal */}
+      <BanSuspendModal
+        isOpen={suspendModalOpen}
+        onClose={() => {
+          setSuspendModalOpen(false);
+          setSelectedUser(null);
+        }}
+        onConfirm={handleSuspend}
+        actionType="suspend"
+        userName={selectedUser?.username || selectedUser?.displayName}
+        isLoading={updateUser.isPending}
+      />
     </div>
   );
 }
