@@ -4,11 +4,10 @@ import { useState, useMemo } from "react";
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
 import { useTheme } from "next-themes";
 
-// Correct geography URL for react-simple-maps
 const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
 interface CountryData {
-  country: string;
+  country: string; // Could be code (US) or name (United States)
   views: number;
 }
 
@@ -17,81 +16,142 @@ interface WorldMapHeatmapProps {
   maxViews?: number;
 }
 
-// Country code to name mapping
-const COUNTRY_NAMES: Record<string, string> = {
-  US: "United States",
-  GB: "United Kingdom",
-  CA: "Canada",
-  AU: "Australia",
-  DE: "Germany",
-  FR: "France",
-  IT: "Italy",
-  ES: "Spain",
-  NL: "Netherlands",
-  BE: "Belgium",
-  CH: "Switzerland",
-  AT: "Austria",
-  SE: "Sweden",
-  NO: "Norway",
-  DK: "Denmark",
-  FI: "Finland",
-  PL: "Poland",
-  CZ: "Czechia",
-  IE: "Ireland",
-  PT: "Portugal",
-  GR: "Greece",
-  HU: "Hungary",
-  RO: "Romania",
-  BG: "Bulgaria",
-  HR: "Croatia",
-  SK: "Slovakia",
-  SI: "Slovenia",
-  LT: "Lithuania",
-  LV: "Latvia",
-  EE: "Estonia",
-  JP: "Japan",
-  CN: "China",
-  KR: "South Korea",
-  IN: "India",
-  BR: "Brazil",
-  MX: "Mexico",
-  AR: "Argentina",
-  CL: "Chile",
-  CO: "Colombia",
-  PE: "Peru",
-  ZA: "South Africa",
-  EG: "Egypt",
-  NG: "Nigeria",
-  KE: "Kenya",
-  IL: "Israel",
-  AE: "United Arab Emirates",
-  SA: "Saudi Arabia",
-  TR: "Turkey",
-  RU: "Russia",
-  UA: "Ukraine",
-  NZ: "New Zealand",
-  SG: "Singapore",
-  MY: "Malaysia",
-  TH: "Thailand",
-  PH: "Philippines",
-  ID: "Indonesia",
-  VN: "Vietnam",
-  SZ: "Eswatini",
+// Enhanced mapping with common variations
+const COUNTRY_MAPPINGS: Record<string, string> = {
+  // ISO A2 codes to names
+  'US': 'United States',
+  'GB': 'United Kingdom',
+  'UK': 'United Kingdom', // Common alternative
+  'CA': 'Canada',
+  'AU': 'Australia',
+  'DE': 'Germany',
+  'FR': 'France',
+  'IT': 'Italy',
+  'ES': 'Spain',
+  'NL': 'Netherlands',
+  'BE': 'Belgium',
+  'CH': 'Switzerland',
+  'AT': 'Austria',
+  'SE': 'Sweden',
+  'NO': 'Norway',
+  'DK': 'Denmark',
+  'FI': 'Finland',
+  'PL': 'Poland',
+  'CZ': 'Czechia', // Note: Map uses "Czechia" not "Czech Republic"
+  'IE': 'Ireland',
+  'PT': 'Portugal',
+  'GR': 'Greece',
+  'HU': 'Hungary',
+  'RO': 'Romania',
+  'BG': 'Bulgaria',
+  'HR': 'Croatia',
+  'SK': 'Slovakia',
+  'SI': 'Slovenia',
+  'LT': 'Lithuania',
+  'LV': 'Latvia',
+  'EE': 'Estonia',
+  'JP': 'Japan',
+  'CN': 'China',
+  'KR': 'South Korea',
+  'IN': 'India',
+  'BR': 'Brazil',
+  'MX': 'Mexico',
+  'AR': 'Argentina',
+  'CL': 'Chile',
+  'CO': 'Colombia',
+  'PE': 'Peru',
+  'ZA': 'South Africa',
+  'EG': 'Egypt',
+  'NG': 'Nigeria',
+  'KE': 'Kenya',
+  'IL': 'Israel',
+  'AE': 'United Arab Emirates',
+  'SA': 'Saudi Arabia',
+  'TR': 'Turkey',
+  'RU': 'Russia',
+  'UA': 'Ukraine',
+  'NZ': 'New Zealand',
+  'SG': 'Singapore',
+  'MY': 'Malaysia',
+  'TH': 'Thailand',
+  'PH': 'Philippines',
+  'ID': 'Indonesia',
+  'VN': 'Vietnam',
+  'SZ': 'Eswatini',
+  
+  // Also map names to codes for reverse lookup
+  'United States': 'US',
+  'United Kingdom': 'GB',
+  'Canada': 'CA',
+  'Australia': 'AU',
+  'Germany': 'DE',
+  'France': 'FR',
+  'Italy': 'IT',
+  'Spain': 'ES',
+  'Netherlands': 'NL',
+  'Belgium': 'BE',
+  'Switzerland': 'CH',
+  'Austria': 'AT',
+  'Sweden': 'SE',
+  'Norway': 'NO',
+  'Denmark': 'DK',
+  'Finland': 'FI',
+  'Poland': 'PL',
+  'Czech Republic': 'CZ',
+  'Czechia': 'CZ',
+  'Ireland': 'IE',
+  'Portugal': 'PT',
+  'Greece': 'GR',
+  'Hungary': 'HU',
+  'Romania': 'RO',
+  'Bulgaria': 'BG',
+  'Croatia': 'HR',
+  'Slovakia': 'SK',
+  'Slovenia': 'SI',
+  'Lithuania': 'LT',
+  'Latvia': 'LV',
+  'Estonia': 'EE',
+  'Japan': 'JP',
+  'China': 'CN',
+  'South Korea': 'KR',
+  'India': 'IN',
+  'Brazil': 'BR',
+  'Mexico': 'MX',
+  'Argentina': 'AR',
+  'Chile': 'CL',
+  'Colombia': 'CO',
+  'Peru': 'PE',
+  'South Africa': 'ZA',
+  'Egypt': 'EG',
+  'Nigeria': 'NG',
+  'Kenya': 'KE',
+  'Israel': 'IL',
+  'United Arab Emirates': 'AE',
+  'Saudi Arabia': 'SA',
+  'Turkey': 'TR',
+  'Russia': 'RU',
+  'Ukraine': 'UA',
+  'New Zealand': 'NZ',
+  'Singapore': 'SG',
+  'Malaysia': 'MY',
+  'Thailand': 'TH',
+  'Philippines': 'PH',
+  'Indonesia': 'ID',
+  'Vietnam': 'VN',
+  'Eswatini': 'SZ',
 };
 
-// Get color intensity based on views - improved for better contrast
+// Get color intensity based on views
 function getColorIntensity(views: number, maxViews: number, isDark: boolean): string {
-  if (maxViews === 0) return isDark ? "#374151" : "#f3f4f6"; // Better contrast
+  if (maxViews === 0 || views === 0) return isDark ? "#374151" : "#f3f4f6";
   
   const intensity = views / maxViews;
   
-  // Blue color scale that works well on both themes
-  if (intensity === 0) return isDark ? "#374151" : "#f3f4f6";
-  if (intensity < 0.1) return isDark ? "#3b82f6" : "#93c5fd"; // Blue-400/Blue-300
-  if (intensity < 0.3) return isDark ? "#2563eb" : "#60a5fa"; // Blue-600/Blue-400
-  if (intensity < 0.5) return isDark ? "#1d4ed8" : "#3b82f6"; // Blue-700/Blue-500
-  if (intensity < 0.7) return isDark ? "#1e40af" : "#1d4ed8"; // Blue-800/Blue-700
-  return isDark ? "#1e3a8a" : "#1e40af"; // Blue-900/Blue-800
+  if (intensity < 0.1) return isDark ? "#3b82f6" : "#93c5fd";
+  if (intensity < 0.3) return isDark ? "#2563eb" : "#60a5fa";
+  if (intensity < 0.5) return isDark ? "#1d4ed8" : "#3b82f6";
+  if (intensity < 0.7) return isDark ? "#1e40af" : "#1d4ed8";
+  return isDark ? "#1e3a8a" : "#1e40af";
 }
 
 export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
@@ -101,54 +161,88 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   
-  // Create a map of country codes to views - handle various formats
+  // Create a normalized map of country codes to views
   const countryMap = useMemo(() => {
     const map = new Map<string, number>();
     
     countries.forEach(({ country, views }) => {
-      if (country) {
-        const upperCountry = country.toUpperCase().trim();
-        // Store by the code as-is (should be ISO_A2 like "US", "SZ")
-        map.set(upperCountry, views);
-        
-        // Also try to find by country name and map to code
-        const countryEntry = Object.entries(COUNTRY_NAMES).find(
-          ([_, name]) => name.toLowerCase() === country.toLowerCase()
-        );
-        if (countryEntry) {
-          map.set(countryEntry[0], views);
-        }
+      if (!country) return;
+      
+      // Normalize the country identifier
+      const normalized = country.trim().toUpperCase();
+      
+      // Try multiple strategies to match the country
+      
+      // 1. Direct code match (if provided code matches map's ISO_A2)
+      map.set(normalized, views);
+      
+      // 2. If it's a name, try to convert to code
+      const codeFromName = COUNTRY_MAPPINGS[normalized] || 
+                          Object.entries(COUNTRY_MAPPINGS).find(
+                            ([key, value]) => 
+                              key.toUpperCase() === normalized || 
+                              value.toUpperCase() === normalized
+                          )?.[1];
+      
+      if (codeFromName) {
+        map.set(codeFromName.toUpperCase(), views);
       }
+      
+      // 3. Also store by lowercase name for fallback matching
+      const countryName = COUNTRY_MAPPINGS[normalized] || normalized;
+      map.set(countryName.toLowerCase(), views);
     });
     
     return map;
   }, [countries]);
 
-  // Calculate max views if not provided
+  // Calculate max views
   const calculatedMaxViews = maxViews || 
     (countries.length > 0 ? Math.max(...countries.map((c) => c.views)) : 0);
 
-  const handleMouseEnter = (geo: any, event: React.MouseEvent<SVGPathElement>) => {
+  const handleMouseEnter = (geo: any, event: React.MouseEvent) => {
     const countryCode = geo.properties.ISO_A2;
+    const countryName = geo.properties.NAME;
+    
+    if (!countryCode && !countryName) return;
+    
+    setHoveredCountry(countryCode);
+    
+    // Try multiple ways to find the views
+    let views = 0;
+    
+    // 1. Try by country code
     if (countryCode) {
-      const upperCode = countryCode.toUpperCase();
-      const views = countryMap.get(upperCode) || 0;
-      const countryName = geo.properties.NAME || geo.properties.name || countryCode;
-      setHoveredCountry(upperCode);
-      setTooltipContent(`${countryName}: ${views.toLocaleString()} ${views === 1 ? "view" : "views"}`);
-      setTooltipPosition({ x: event.clientX, y: event.clientY });
+      views = countryMap.get(countryCode.toUpperCase()) || 0;
     }
-  };
-  
-  const handleMouseMove = (event: React.MouseEvent<SVGPathElement>) => {
-    if (tooltipContent) {
-      setTooltipPosition({ x: event.clientX, y: event.clientY });
+    
+    // 2. Try by country name
+    if (views === 0 && countryName) {
+      views = countryMap.get(countryName.toLowerCase()) || 0;
+      
+      // 3. Try by mapped name
+      if (views === 0) {
+        const mappedCode = COUNTRY_MAPPINGS[countryName];
+        if (mappedCode) {
+          views = countryMap.get(mappedCode.toUpperCase()) || 0;
+        }
+      }
     }
+    
+    const displayName = COUNTRY_MAPPINGS[countryCode] || countryName || countryCode;
+    setTooltipContent(`${displayName}: ${views.toLocaleString()} ${views === 1 ? "view" : "views"}`);
+    setTooltipPosition({ x: event.clientX, y: event.clientY });
   };
 
   const handleMouseLeave = () => {
     setHoveredCountry(null);
     setTooltipContent("");
+  };
+
+  const handleMouseMove = (event: React.MouseEvent) => {
+    if (tooltipContent) {
+      setTooltipPosition({ x: event.clientX, y: event.clientY });
+    }
   };
 
   return (
@@ -162,6 +256,7 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
           backgroundColor: isDark ? "#111827" : "#f9fafb",
           borderColor: isDark ? "#374151" : "#e5e7eb"
         }}
+        onMouseMove={handleMouseMove}
       >
         <ComposableMap
           projectionConfig={{
@@ -179,18 +274,50 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
               {({ geographies }) =>
                 geographies.map((geo) => {
                   const countryCode = geo.properties.ISO_A2;
-                  if (!countryCode) {
-                    return null;
+                  const countryName = geo.properties.NAME;
+                  
+                  if (!countryCode && !countryName) {
+                    // Small territories without codes
+                    return (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        fill={isDark ? "#2a2a2a" : "#f0f0f0"}
+                        stroke={isDark ? "#374151" : "#d1d5db"}
+                        strokeWidth={0.5}
+                        style={{
+                          default: { outline: "none" },
+                          hover: { outline: "none" },
+                        }}
+                      />
+                    );
                   }
                   
-                  const countryName = geo.properties.NAME || geo.properties.name || countryCode;
-                  const upperCode = countryCode.toUpperCase();
+                  // Try to find views for this country
+                  let views = 0;
+                  const normalizedCode = countryCode?.toUpperCase();
+                  const normalizedName = countryName?.toLowerCase();
                   
-                  // Get views - match by ISO_A2 code
-                  const views = countryMap.get(upperCode) || 0;
+                  // Check by code first
+                  if (normalizedCode) {
+                    views = countryMap.get(normalizedCode) || 0;
+                  }
+                  
+                  // Check by name if no views found by code
+                  if (views === 0 && normalizedName) {
+                    views = countryMap.get(normalizedName) || 0;
+                    
+                    // Try mapped code
+                    if (views === 0) {
+                      const mappedCode = COUNTRY_MAPPINGS[countryName];
+                      if (mappedCode) {
+                        views = countryMap.get(mappedCode.toUpperCase()) || 0;
+                      }
+                    }
+                  }
                   
                   const fillColor = getColorIntensity(views, calculatedMaxViews, isDark);
-                  const isHovered = hoveredCountry === upperCode;
+                  const isHovered = hoveredCountry === countryCode;
                   
                   return (
                     <Geography
@@ -199,10 +326,7 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
                       fill={isHovered ? (isDark ? "#60a5fa" : "#3b82f6") : fillColor}
                       stroke={isDark ? "#1f2937" : "#d1d5db"}
                       strokeWidth={0.5}
-                      onMouseEnter={(event) => {
-                        handleMouseEnter(geo, event);
-                      }}
-                      onMouseMove={handleMouseMove}
+                      onMouseEnter={(event) => handleMouseEnter(geo, event)}
                       onMouseLeave={handleMouseLeave}
                       style={{
                         default: {
@@ -237,6 +361,7 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
               backgroundColor: isDark ? "#1f2937" : "#ffffff",
               color: isDark ? "#f9fafb" : "#111827",
               border: `1px solid ${isDark ? "#374151" : "#e5e7eb"}`,
+              maxWidth: '200px',
             }}
           >
             {tooltipContent}
@@ -272,4 +397,7 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
   );
 }
 
-export { COUNTRY_NAMES };
+// Export the mapping for use in the table
+export const COUNTRY_NAMES = Object.fromEntries(
+  Object.entries(COUNTRY_MAPPINGS).filter(([key, value]) => key.length === 2)
+) as Record<string, string>;
