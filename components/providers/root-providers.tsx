@@ -1,7 +1,7 @@
 "use client";
 
 import { ThemeProvider } from "next-themes";
-import React, { ReactNode } from "react";
+import React, { ReactNode, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import NextTopLoader from "nextjs-toploader";
@@ -20,7 +20,9 @@ function RootProviders({ children }: { children: ReactNode }) {
           enableSystem
           disableTransitionOnChange
         >
-          <PageViewTracker />
+          <Suspense fallback={null}>
+            <PageViewTracker />
+          </Suspense>
           {children}
         </ThemeProvider>
         <ReactQueryDevtools initialIsOpen={false} />
