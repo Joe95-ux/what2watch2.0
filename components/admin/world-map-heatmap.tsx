@@ -45,15 +45,26 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
   const [geoJsonData, setGeoJsonData] = useState<any>(null);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
   
-  // Create a map of country codes to views
-  const countryMap = useMemo(() => {
-    const map = new Map<string, number>();
+  // Create maps of country codes and names to views
+  const countryMap = useMemo<{ codeMap: Map<string, number>; nameMap: Map<string, number> }>(() => {
+    const codeMap = new Map<string, number>();
+    const nameMap = new Map<string, number>();
+    
     countries.forEach(({ country, views }) => {
       if (country) {
-        map.set(country.toUpperCase(), views);
+        const upperCountry = country.toUpperCase().trim();
+        // Store by code (assuming it's already a 2-letter code)
+        if (upperCountry.length === 2) {
+          codeMap.set(upperCountry, views);
+        }
+        // Also store by name for fallback matching
+        nameMap.set(upperCountry, views);
+        // Store original case too
+        nameMap.set(country.trim(), views);
       }
     });
-    return map;
+    
+    return { codeMap, nameMap };
   }, [countries]);
 
   // Calculate max views if not provided
@@ -93,7 +104,9 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
            properties?.ISO2 || 
            properties?.iso2 || 
            properties?.id || 
-           properties?.ISO_A2_EH || 
+           properties?.ISO_A2_EH ||
+           properties?.ISO_A3 ||
+           properties?.iso_a3 ||
            null;
   };
 
@@ -102,14 +115,36 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
     return properties?.NAME || 
            properties?.name || 
            properties?.NAME_LONG || 
-           properties?.ADMIN || 
+           properties?.ADMIN ||
+           properties?.admin ||
            countryCode || 
            "Unknown";
+  };
+
+  // Helper to get views for a country by matching code or name
+  const getCountryViews = (countryCode: string | null, countryName: string): number => {
+    if (!countryCode) return 0;
+    
+    const upperCode = countryCode.toUpperCase();
+    // Try by code first
+    if (countryMap.codeMap.has(upperCode)) {
+      return countryMap.codeMap.get(upperCode) || 0;
+    }
+    
+    // Try by name as fallback
+    const upperName = countryName.toUpperCase();
+    if (countryMap.nameMap.has(upperName)) {
+      return countryMap.nameMap.get(upperName) || 0;
+    }
+    
+    return 0;
   };
 
   // Style function for GeoJSON features
   const getStyle = (feature: any) => {
     const countryCode = getCountryCode(feature.properties);
+    const countryName = getCountryName(feature.properties, countryCode);
+    
     if (!countryCode) {
       return {
         fillColor: "#e0e0e0",
@@ -120,14 +155,14 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
       };
     }
     
-    const views = countryMap.get(countryCode.toUpperCase()) || 0;
+    const views = getCountryViews(countryCode, countryName);
     const fillColor = hoveredCountry === countryCode 
       ? "#ff6b6b" 
       : getColorIntensity(views, calculatedMaxViews);
     
     return {
       fillColor,
-      fillOpacity: 0.8,
+      fillOpacity: views > 0 ? 0.8 : 0.3,
       color: "#ffffff",
       weight: 0.5,
       opacity: 1,
@@ -140,7 +175,7 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
     if (!countryCode) return;
     
     const countryName = getCountryName(feature.properties, countryCode);
-    const views = countryMap.get(countryCode.toUpperCase()) || 0;
+    const views = getCountryViews(countryCode, countryName);
 
     layer.on({
       mouseover: () => {

@@ -212,12 +212,43 @@ export function TrafficAnalyticsContent() {
             </CardTitle>
             <CardDescription>Geographic distribution of website traffic</CardDescription>
           </CardHeader>
-          <CardContent className="overflow-hidden">
-            <div className="w-full h-[500px] overflow-hidden">
-              <WorldMapHeatmap
-                countries={data.countries}
-                maxViews={Math.max(...data.countries.map((c) => c.views), 0)}
-              />
+          <CardContent className="overflow-hidden p-0">
+            <div className="flex gap-4 h-[500px]">
+              {/* Country Traffic Table - Left Side */}
+              <div className="w-64 border-r border-border overflow-y-auto">
+                <div className="p-4 space-y-2">
+                  <h3 className="text-sm font-semibold mb-3 sticky top-0 bg-background pb-2">Top Countries</h3>
+                  <div className="space-y-1">
+                    {data.countries
+                      .sort((a, b) => b.views - a.views)
+                      .slice(0, 20)
+                      .map((country, index) => (
+                        <div
+                          key={country.country}
+                          className="flex items-center justify-between p-2 rounded hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <span className="text-xs text-muted-foreground w-5 flex-shrink-0">
+                              {index + 1}
+                            </span>
+                            <span className="text-sm truncate">{country.country || "Unknown"}</span>
+                          </div>
+                          <span className="text-sm font-medium ml-2 flex-shrink-0">
+                            {country.views.toLocaleString()}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Map - Right Side */}
+              <div className="flex-1 overflow-hidden">
+                <WorldMapHeatmap
+                  countries={data.countries}
+                  maxViews={Math.max(...data.countries.map((c) => c.views), 0)}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
