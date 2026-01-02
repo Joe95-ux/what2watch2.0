@@ -2,12 +2,25 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { Globe, UsersRound, Eye, TrendingUp, Monitor, Smartphone, Tablet } from "lucide-react";
-import { WorldMapHeatmap } from "@/components/admin/world-map-heatmap";
+
+// Dynamically import WorldMapHeatmap with SSR disabled (Leaflet requires browser environment)
+const WorldMapHeatmap = dynamic(
+  () => import("@/components/admin/world-map-heatmap").then((mod) => ({ default: mod.WorldMapHeatmap })),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="text-muted-foreground">Loading map...</div>
+      </div>
+    )
+  }
+);
 
 interface TrafficAnalytics {
   totals: {
