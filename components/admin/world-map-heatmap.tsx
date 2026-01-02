@@ -128,7 +128,7 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
   const calculatedMaxViews = maxViews || 
     (countries.length > 0 ? Math.max(...countries.map((c) => c.views)) : 0);
 
-  const handleMouseEnter = (geo: any, event: React.MouseEvent) => {
+  const handleMouseEnter = (geo: any, event: React.MouseEvent<SVGPathElement>) => {
     const countryCode = geo.properties.ISO_A2;
     if (countryCode) {
       const upperCode = countryCode.toUpperCase();
@@ -139,16 +139,16 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
       setTooltipPosition({ x: event.clientX, y: event.clientY });
     }
   };
+  
+  const handleMouseMove = (event: React.MouseEvent<SVGPathElement>) => {
+    if (tooltipContent) {
+      setTooltipPosition({ x: event.clientX, y: event.clientY });
+    }
+  };
 
   const handleMouseLeave = () => {
     setHoveredCountry(null);
     setTooltipContent("");
-  };
-
-  const handleMouseMove = (event: React.MouseEvent) => {
-    if (tooltipContent) {
-      setTooltipPosition({ x: event.clientX, y: event.clientY });
-    }
   };
 
   return (
@@ -162,7 +162,6 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
           backgroundColor: isDark ? "#111827" : "#f9fafb",
           borderColor: isDark ? "#374151" : "#e5e7eb"
         }}
-        onMouseMove={handleMouseMove}
       >
         <ComposableMap
           projectionConfig={{
@@ -203,6 +202,7 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
                       onMouseEnter={(event) => {
                         handleMouseEnter(geo, event);
                       }}
+                      onMouseMove={handleMouseMove}
                       onMouseLeave={handleMouseLeave}
                       style={{
                         default: {
