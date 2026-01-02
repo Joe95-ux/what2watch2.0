@@ -61,16 +61,66 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
 
   // Load GeoJSON data
   useEffect(() => {
-    fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
+    // Using a proper GeoJSON source for world countries
+    fetch("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
       .then((res) => res.json())
-      .then((data) => setGeoJsonData(data))
-      .catch((err) => console.error("Failed to load GeoJSON:", err));
+      .then((data) => {
+        // Validate it's a proper GeoJSON
+        if (data && data.type === "FeatureCollection" && Array.isArray(data.features)) {
+          setGeoJsonData(data);
+        } else {
+          console.error("Invalid GeoJSON format received");
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load GeoJSON:", err);
+        // Fallback to alternative source
+        fetch("https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json")
+          .then((res) => res.json())
+          .then((data) => {
+            if (data && data.type === "FeatureCollection") {
+              setGeoJsonData(data);
+            }
+          })
+          .catch((fallbackErr) => console.error("Fallback GeoJSON load failed:", fallbackErr));
+      });
   }, []);
+
+  // Helper to get country code from feature properties (handles different GeoJSON formats)
+  const getCountryCode = (properties: any): string | null => {
+    return properties?.ISO_A2 || 
+           properties?.iso_a2 || 
+           properties?.ISO2 || 
+           properties?.iso2 || 
+           properties?.id || 
+           properties?.ISO_A2_EH || 
+           null;
+  };
+
+  // Helper to get country name from feature properties
+  const getCountryName = (properties: any, countryCode: string | null): string => {
+    return properties?.NAME || 
+           properties?.name || 
+           properties?.NAME_LONG || 
+           properties?.ADMIN || 
+           countryCode || 
+           "Unknown";
+  };
 
   // Style function for GeoJSON features
   const getStyle = (feature: any) => {
-    const countryCode = feature.properties.ISO_A2;
-    const views = countryMap.get(countryCode) || 0;
+    const countryCode = getCountryCode(feature.properties);
+    if (!countryCode) {
+      return {
+        fillColor: "#e0e0e0",
+        fillOpacity: 0.3,
+        color: "#ffffff",
+        weight: 0.5,
+        opacity: 1,
+      };
+    }
+    
+    const views = countryMap.get(countryCode.toUpperCase()) || 0;
     const fillColor = hoveredCountry === countryCode 
       ? "#ff6b6b" 
       : getColorIntensity(views, calculatedMaxViews);
@@ -86,9 +136,11 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
 
   // Event handlers for GeoJSON
   const onEachFeature = (feature: any, layer: any) => {
-    const countryCode = feature.properties.ISO_A2;
-    const countryName = feature.properties.NAME || countryCode;
-    const views = countryMap.get(countryCode) || 0;
+    const countryCode = getCountryCode(feature.properties);
+    if (!countryCode) return;
+    
+    const countryName = getCountryName(feature.properties, countryCode);
+    const views = countryMap.get(countryCode.toUpperCase()) || 0;
 
     layer.on({
       mouseover: () => {
