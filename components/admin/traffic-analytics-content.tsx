@@ -212,6 +212,8 @@ export function TrafficAnalyticsContent() {
                       .map((country, index) => {
                         const countryCode = country.country?.toUpperCase() || "";
                         const countryName = COUNTRY_NAMES[countryCode] || country.country || "Unknown";
+                        // Only show code if we have a proper name mapping (not the same as code)
+                        const showCode = COUNTRY_NAMES[countryCode] && countryCode.length === 2;
                         return (
                           <div
                             key={country.country}
@@ -222,7 +224,7 @@ export function TrafficAnalyticsContent() {
                                 {index + 1}
                               </span>
                               <span className="text-sm">
-                                {countryName} {countryCode && `(${countryCode})`}
+                                {countryName} {showCode && `(${countryCode})`}
                               </span>
                             </div>
                             <span className="text-sm font-medium ml-2 flex-shrink-0">
@@ -236,13 +238,11 @@ export function TrafficAnalyticsContent() {
               </div>
               
               {/* Map - Right Side */}
-              <div className="flex-1 overflow-hidden">
-                <div className="w-full h-full">
-                  <WorldMapHeatmap
-                    countries={data.countries}
-                    maxViews={Math.max(...data.countries.map((c) => c.views), 0)}
-                  />
-                </div>
+              <div className="flex-1 overflow-hidden" style={{ minHeight: "450px" }}>
+                <WorldMapHeatmap
+                  countries={data.countries}
+                  maxViews={Math.max(...data.countries.map((c) => c.views), 0)}
+                />
               </div>
             </div>
           </CardContent>

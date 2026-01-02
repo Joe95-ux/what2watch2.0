@@ -75,6 +75,7 @@ const COUNTRY_NAMES: Record<string, string> = {
   PH: "Philippines",
   ID: "Indonesia",
   VN: "Vietnam",
+  SZ: "Eswatini",
 };
 
 // Get color intensity based on views
@@ -110,21 +111,38 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
 
   return (
     <TooltipProvider>
-      <div className="w-full h-full flex flex-col">
-        <div className="flex-1 overflow-hidden" style={{ height: "calc(100% - 3rem)" }}>
+      <div className="w-full h-full flex flex-col bg-muted/20 rounded-lg">
+        <div className="flex-1 overflow-hidden" style={{ minHeight: "400px", width: "100%" }}>
           <ComposableMap
             projectionConfig={{
               scale: 147,
               center: [0, 20],
             }}
-            className="w-full"
             style={{ width: "100%", height: "100%" }}
           >
             <Geographies geography={geoUrl}>
               {({ geographies }) =>
                 geographies.map((geo) => {
                   const countryCode = geo.properties.ISO_A2;
-                  const views = countryMap.get(countryCode) || 0;
+                  if (!countryCode) {
+                    // Render countries without codes in light gray
+                    return (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        fill="#e0e0e0"
+                        stroke="#ffffff"
+                        strokeWidth={0.5}
+                        style={{
+                          default: { outline: "none" },
+                          hover: { outline: "none" },
+                          pressed: { outline: "none" },
+                        }}
+                      />
+                    );
+                  }
+                  
+                  const views = countryMap.get(countryCode.toUpperCase()) || 0;
                   const fillColor = hoveredCountry === countryCode 
                     ? "#ff6b6b" 
                     : getColorIntensity(views, calculatedMaxViews);
