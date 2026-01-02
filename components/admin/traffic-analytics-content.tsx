@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { Globe, Users, Eye, TrendingUp, Monitor, Smartphone, Tablet } from "lucide-react";
+import { Globe, UsersRound, Eye, TrendingUp, Monitor, Smartphone, Tablet } from "lucide-react";
 import { WorldMapHeatmap } from "@/components/admin/world-map-heatmap";
 
 interface TrafficAnalytics {
@@ -40,13 +40,66 @@ export function TrafficAnalyticsContent() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <Skeleton className="h-8 w-48" />
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-96" />
+          </div>
+          <Skeleton className="h-10 w-[140px]" />
+        </div>
+        
+        {/* KPI Cards Skeleton */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-32" />
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-4 rounded" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-24 mb-2" />
+                <Skeleton className="h-3 w-40" />
+              </CardContent>
+            </Card>
           ))}
         </div>
-        <Skeleton className="h-96" />
+
+        {/* Trend Chart Skeleton */}
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48 mb-2" />
+            <Skeleton className="h-4 w-64" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-[300px] w-full" />
+          </CardContent>
+        </Card>
+
+        {/* World Map Skeleton */}
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-64 mb-2" />
+            <Skeleton className="h-4 w-80" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-[500px] w-full" />
+          </CardContent>
+        </Card>
+
+        {/* Charts Grid Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-6 w-40 mb-2" />
+                <Skeleton className="h-4 w-56" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-[300px] w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
@@ -97,7 +150,7 @@ export function TrafficAnalyticsContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Unique Visitors</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <UsersRound className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{data.totals.uniqueVisitors.toLocaleString()}</div>
@@ -146,8 +199,8 @@ export function TrafficAnalyticsContent() {
             </CardTitle>
             <CardDescription>Geographic distribution of website traffic</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="w-full" style={{ height: "500px" }}>
+          <CardContent className="overflow-hidden">
+            <div className="w-full h-[500px] overflow-hidden">
               <WorldMapHeatmap
                 countries={data.countries}
                 maxViews={Math.max(...data.countries.map((c) => c.views), 0)}
@@ -168,7 +221,13 @@ export function TrafficAnalyticsContent() {
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={data.topPages.slice(0, 10)}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="path" angle={-45} textAnchor="end" height={100} />
+                <XAxis 
+                  dataKey="path" 
+                  angle={-45} 
+                  textAnchor="end" 
+                  height={100}
+                  tick={{ fontSize: 11 }}
+                />
                 <YAxis />
                 <Tooltip />
                 <Bar dataKey="views" fill="#8884d8" />
@@ -184,7 +243,7 @@ export function TrafficAnalyticsContent() {
             <CardDescription>Top countries by page views</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={400}>
               <PieChart>
                 <Pie
                   data={data.countries.slice(0, 6)}
@@ -192,14 +251,22 @@ export function TrafficAnalyticsContent() {
                   nameKey="country"
                   cx="50%"
                   cy="50%"
-                  outerRadius={100}
-                  label
+                  outerRadius={140}
+                  label={({ country, percent }) => 
+                    `${country}\n${(percent * 100).toFixed(1)}%`
+                  }
+                  labelLine={true}
                 >
                   {data.countries.slice(0, 6).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip 
+                  formatter={(value: number, name: string) => [
+                    `${value.toLocaleString()} views`,
+                    name
+                  ]}
+                />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
