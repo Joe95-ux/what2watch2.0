@@ -361,26 +361,46 @@ export function UserManagementTable() {
                       <DropdownMenuContent align="end">
                         {!user.isBanned && !user.isSuspended && (
                           <>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedUser({ id: user.id, username: user.username, displayName: user.displayName });
-                                setSuspendModalOpen(true);
-                              }}
-                              className="cursor-pointer"
-                            >
-                              <Pause className="mr-2 h-4 w-4" />
-                              Suspend User
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedUser({ id: user.id, username: user.username, displayName: user.displayName });
-                                setBanModalOpen(true);
-                              }}
-                              className="cursor-pointer text-destructive"
-                            >
-                              <Ban className="mr-2 h-4 w-4" />
-                              Ban User
-                            </DropdownMenuItem>
+                            {(user.isForumAdmin || user.isForumModerator || user.role === "ADMIN" || user.role === "SUPER_ADMIN") ? (
+                              <DropdownMenuItem
+                                disabled
+                                className="cursor-not-allowed opacity-50"
+                              >
+                                <Pause className="mr-2 h-4 w-4" />
+                                Suspend User (Remove Admin First)
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedUser({ id: user.id, username: user.username, displayName: user.displayName });
+                                  setSuspendModalOpen(true);
+                                }}
+                                className="cursor-pointer"
+                              >
+                                <Pause className="mr-2 h-4 w-4" />
+                                Suspend User
+                              </DropdownMenuItem>
+                            )}
+                            {(user.isForumAdmin || user.isForumModerator || user.role === "ADMIN" || user.role === "SUPER_ADMIN") ? (
+                              <DropdownMenuItem
+                                disabled
+                                className="cursor-not-allowed opacity-50 text-destructive"
+                              >
+                                <Ban className="mr-2 h-4 w-4" />
+                                Ban User (Remove Admin First)
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedUser({ id: user.id, username: user.username, displayName: user.displayName });
+                                  setBanModalOpen(true);
+                                }}
+                                className="cursor-pointer text-destructive"
+                              >
+                                <Ban className="mr-2 h-4 w-4" />
+                                Ban User
+                              </DropdownMenuItem>
+                            )}
                           </>
                         )}
                         {user.isSuspended && !user.isBanned && (
@@ -397,16 +417,26 @@ export function UserManagementTable() {
                               <UserCheck className="mr-2 h-4 w-4" />
                               Unsuspend User
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedUser({ id: user.id, username: user.username, displayName: user.displayName });
-                                setBanModalOpen(true);
-                              }}
-                              className="cursor-pointer text-destructive"
-                            >
-                              <Ban className="mr-2 h-4 w-4" />
-                              Ban User
-                            </DropdownMenuItem>
+                            {(user.isForumAdmin || user.isForumModerator || user.role === "ADMIN" || user.role === "SUPER_ADMIN") ? (
+                              <DropdownMenuItem
+                                disabled
+                                className="cursor-not-allowed opacity-50 text-destructive"
+                              >
+                                <Ban className="mr-2 h-4 w-4" />
+                                Ban User (Remove Admin First)
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedUser({ id: user.id, username: user.username, displayName: user.displayName });
+                                  setBanModalOpen(true);
+                                }}
+                                className="cursor-pointer text-destructive"
+                              >
+                                <Ban className="mr-2 h-4 w-4" />
+                                Ban User
+                              </DropdownMenuItem>
+                            )}
                           </>
                         )}
                         {user.isBanned && (

@@ -107,6 +107,7 @@ model User {
   listEngagementActions ListEngagementEvent[] @relation("UserListEngagementActor")
   aiChatEvents AiChatEvent[]
   aiChatSessions AiChatSession[]
+  pageViews     PageView[]
   
   // Social features
   followers     Follow[] @relation("UserFollowers")
@@ -1755,4 +1756,59 @@ model FeedbackActivity {
   @@index([performedById])
   @@index([createdAt])
   @@index([action])
+}
+
+// Website Traffic Analytics - Page views and visitor tracking
+model PageView {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String?  @db.ObjectId
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  // Page information
+  path          String   // Page path (e.g., "/dashboard", "/playlists/123")
+  route         String?  // Route pattern (e.g., "/playlists/[id]")
+  title         String?  // Page title
+  
+  // Visitor tracking
+  visitorToken  String   // Unique visitor identifier (from cookie)
+  sessionId     String?  // Session identifier
+  
+  // Traffic source
+  referrer      String?  // HTTP referrer
+  referrerDomain String? // Extracted referrer domain
+  utmSource     String?  // UTM source parameter
+  utmMedium     String?  // UTM medium parameter
+  utmCampaign   String?  // UTM campaign parameter
+  utmTerm       String?  // UTM term parameter
+  utmContent    String?  // UTM content parameter
+  
+  // Geolocation
+  country       String?  // Country code (e.g., "US", "GB")
+  countryName   String?  // Country name
+  region        String?  // Region/state
+  city          String?  // City name
+  ipAddress     String?  // IP address (hashed for privacy)
+  
+  // Device and browser
+  userAgent     String?  // User agent string
+  deviceType    String?  // "desktop", "mobile", "tablet"
+  browser       String?  // Browser name
+  os            String?  // Operating system
+  
+  // Metadata
+  metadata      Json?    // Additional metadata
+  
+  createdAt     DateTime @default(now())
+
+  @@map("page_views")
+  @@index([userId])
+  @@index([path])
+  @@index([country])
+  @@index([referrerDomain])
+  @@index([utmSource])
+  @@index([utmCampaign])
+  @@index([visitorToken])
+  @@index([createdAt])
+  @@index([createdAt, country])
+  @@index([createdAt, referrerDomain])
 }

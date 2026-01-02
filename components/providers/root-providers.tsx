@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import NextTopLoader from "nextjs-toploader";
 import { AvatarProvider } from "@/contexts/avatar-context";
+import { PageViewTracker } from "@/components/analytics/page-view-tracker";
 
 function RootProviders({ children }: { children: ReactNode }) {
   const [queryClient] = React.useState(() => new QueryClient({}));
@@ -19,6 +20,7 @@ function RootProviders({ children }: { children: ReactNode }) {
           enableSystem
           disableTransitionOnChange
         >
+          <PageViewTracker />
           {children}
         </ThemeProvider>
         <ReactQueryDevtools initialIsOpen={false} />

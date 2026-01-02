@@ -15,6 +15,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/lists(.*)', // List API endpoints (handles auth internally)
   '/api/analytics/playlist-events', // Allow unauthenticated visit tracking
   '/api/analytics/list-events', // Allow unauthenticated visit tracking
+  '/api/analytics/page-views', // Allow unauthenticated page view tracking
   '/api/users/(.*)/profile',
   '/api/users/(.*)/forum-stats',
 ]);

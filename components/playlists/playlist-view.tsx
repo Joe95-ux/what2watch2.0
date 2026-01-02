@@ -1485,12 +1485,7 @@ export default function PlaylistView({
                                 </Button>
                               </th>
                             )}
-                            {tmdbSortField === "listOrder" && (
-                              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                Order
-                              </th>
-                            )}
-                            {!isMixedPlaylist && (
+                            {tmdbSortField === "listOrder" && !isMixedPlaylist && (
                               <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                 Order
                               </th>
@@ -1624,7 +1619,7 @@ export default function PlaylistView({
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                                      className="h-8 w-8 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setItemToRemove({
@@ -1922,9 +1917,11 @@ export default function PlaylistView({
                                 </Button>
                               </th>
                             )}
-                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                              Order
-                            </th>
+                            {!isMixedPlaylist && (
+                              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                Order
+                              </th>
+                            )}
                             <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                               Title
                             </th>
@@ -2043,7 +2040,7 @@ export default function PlaylistView({
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                                    className="h-8 w-8 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setItemToRemove({

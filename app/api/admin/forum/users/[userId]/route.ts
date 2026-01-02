@@ -94,12 +94,20 @@ export async function PATCH(
         displayName: true,
         emailNotifications: true,
         pushNotifications: true,
+        role: true,
+        isForumAdmin: true,
+        isForumModerator: true,
       },
     });
 
     if (!targetUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+
+    // Guard rail: Detect if target user is an admin or moderator
+    // We'll automatically remove their admin/moderator status when banning/suspending
+    const isAdmin = targetUser.role === "ADMIN" || targetUser.role === "SUPER_ADMIN" || targetUser.isForumAdmin;
+    const isModerator = targetUser.isForumModerator;
 
     const updateData: any = {};
 
@@ -118,6 +126,17 @@ export async function PATCH(
     if (isBanned !== undefined) {
       updateData.isBanned = isBanned;
       if (isBanned) {
+        // Automatically remove admin/moderator status when banning
+        if (isAdmin && (isForumAdmin === undefined || isForumAdmin !== false)) {
+          updateData.isForumAdmin = false;
+        }
+        if (isModerator && (isForumModerator === undefined || isForumModerator !== false)) {
+          updateData.isForumModerator = false;
+        }
+        if (isAdmin && (role === undefined || (role !== "USER" && role !== "MODERATOR"))) {
+          updateData.role = "USER";
+        }
+        
         updateData.bannedAt = new Date();
         updateData.banReason = banReason || null;
         if (bannedUntil) {
@@ -140,6 +159,17 @@ export async function PATCH(
     if (isSuspended !== undefined) {
       updateData.isSuspended = isSuspended;
       if (isSuspended) {
+        // Automatically remove admin/moderator status when suspending
+        if (isAdmin && (isForumAdmin === undefined || isForumAdmin !== false)) {
+          updateData.isForumAdmin = false;
+        }
+        if (isModerator && (isForumModerator === undefined || isForumModerator !== false)) {
+          updateData.isForumModerator = false;
+        }
+        if (isAdmin && (role === undefined || (role !== "USER" && role !== "MODERATOR"))) {
+          updateData.role = "USER";
+        }
+        
         updateData.suspendedAt = new Date();
         updateData.suspendReason = suspendReason || null;
         if (suspendedUntil) {
