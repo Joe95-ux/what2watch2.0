@@ -2,25 +2,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import dynamic from "next/dynamic";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { Globe, UsersRound, Eye, TrendingUp, Monitor, Smartphone, Tablet } from "lucide-react";
-
-// Dynamically import WorldMapHeatmap with SSR disabled (Leaflet requires browser environment)
-const WorldMapHeatmap = dynamic(
-  () => import("@/components/admin/world-map-heatmap").then((mod) => ({ default: mod.WorldMapHeatmap })),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-full flex items-center justify-center">
-        <div className="text-muted-foreground">Loading map...</div>
-      </div>
-    )
-  }
-);
+import { WorldMapHeatmap, COUNTRY_NAMES } from "@/components/admin/world-map-heatmap";
 
 interface TrafficAnalytics {
   totals: {
@@ -215,39 +202,47 @@ export function TrafficAnalyticsContent() {
           <CardContent className="overflow-hidden p-0">
             <div className="flex gap-4 h-[500px]">
               {/* Country Traffic Table - Left Side */}
-              <div className="w-64 border-r border-border overflow-y-auto">
+              <div className="w-80 overflow-y-auto">
                 <div className="p-4 space-y-2">
-                  <h3 className="text-sm font-semibold mb-3 sticky top-0 bg-background pb-2">Top Countries</h3>
+                  <h3 className="text-sm font-semibold mb-3 sticky top-0 bg-background p-2">Top Countries</h3>
                   <div className="space-y-1">
                     {data.countries
                       .sort((a, b) => b.views - a.views)
                       .slice(0, 20)
-                      .map((country, index) => (
-                        <div
-                          key={country.country}
-                          className="flex items-center justify-between p-2 rounded hover:bg-muted/50 transition-colors"
-                        >
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <span className="text-xs text-muted-foreground w-5 flex-shrink-0">
-                              {index + 1}
+                      .map((country, index) => {
+                        const countryCode = country.country?.toUpperCase() || "";
+                        const countryName = COUNTRY_NAMES[countryCode] || country.country || "Unknown";
+                        return (
+                          <div
+                            key={country.country}
+                            className="flex items-center justify-between p-2 rounded hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <span className="text-xs text-muted-foreground w-5 flex-shrink-0">
+                                {index + 1}
+                              </span>
+                              <span className="text-sm">
+                                {countryName} {countryCode && `(${countryCode})`}
+                              </span>
+                            </div>
+                            <span className="text-sm font-medium ml-2 flex-shrink-0">
+                              {country.views.toLocaleString()}
                             </span>
-                            <span className="text-sm truncate">{country.country || "Unknown"}</span>
                           </div>
-                          <span className="text-sm font-medium ml-2 flex-shrink-0">
-                            {country.views.toLocaleString()}
-                          </span>
-                        </div>
-                      ))}
+                        );
+                      })}
                   </div>
                 </div>
               </div>
               
               {/* Map - Right Side */}
               <div className="flex-1 overflow-hidden">
-                <WorldMapHeatmap
-                  countries={data.countries}
-                  maxViews={Math.max(...data.countries.map((c) => c.views), 0)}
-                />
+                <div className="w-full h-full">
+                  <WorldMapHeatmap
+                    countries={data.countries}
+                    maxViews={Math.max(...data.countries.map((c) => c.views), 0)}
+                  />
+                </div>
               </div>
             </div>
           </CardContent>

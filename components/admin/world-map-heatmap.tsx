@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
+import { useState, useMemo } from "react";
+import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import "leaflet/dist/leaflet.css";
+
+const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
 interface CountryData {
   country: string;
@@ -14,6 +15,67 @@ interface WorldMapHeatmapProps {
   countries: CountryData[];
   maxViews?: number;
 }
+
+// Country code to name mapping
+const COUNTRY_NAMES: Record<string, string> = {
+  US: "United States",
+  GB: "United Kingdom",
+  CA: "Canada",
+  AU: "Australia",
+  DE: "Germany",
+  FR: "France",
+  IT: "Italy",
+  ES: "Spain",
+  NL: "Netherlands",
+  BE: "Belgium",
+  CH: "Switzerland",
+  AT: "Austria",
+  SE: "Sweden",
+  NO: "Norway",
+  DK: "Denmark",
+  FI: "Finland",
+  PL: "Poland",
+  CZ: "Czech Republic",
+  IE: "Ireland",
+  PT: "Portugal",
+  GR: "Greece",
+  HU: "Hungary",
+  RO: "Romania",
+  BG: "Bulgaria",
+  HR: "Croatia",
+  SK: "Slovakia",
+  SI: "Slovenia",
+  LT: "Lithuania",
+  LV: "Latvia",
+  EE: "Estonia",
+  JP: "Japan",
+  CN: "China",
+  KR: "South Korea",
+  IN: "India",
+  BR: "Brazil",
+  MX: "Mexico",
+  AR: "Argentina",
+  CL: "Chile",
+  CO: "Colombia",
+  PE: "Peru",
+  ZA: "South Africa",
+  EG: "Egypt",
+  NG: "Nigeria",
+  KE: "Kenya",
+  IL: "Israel",
+  AE: "United Arab Emirates",
+  SA: "Saudi Arabia",
+  TR: "Turkey",
+  RU: "Russia",
+  UA: "Ukraine",
+  NZ: "New Zealand",
+  SG: "Singapore",
+  MY: "Malaysia",
+  TH: "Thailand",
+  PH: "Philippines",
+  ID: "Indonesia",
+  VN: "Vietnam",
+};
 
 // Get color intensity based on views
 function getColorIntensity(views: number, maxViews: number): string {
@@ -29,220 +91,84 @@ function getColorIntensity(views: number, maxViews: number): string {
   return "#0b5394"; // Very high - darkest blue
 }
 
-// Component to handle map initialization
-function MapInitializer() {
-  const map = useMap();
-  
-  useEffect(() => {
-    // Fit bounds to show the world
-    map.setView([20, 0], 2);
-  }, [map]);
-  
-  return null;
-}
-
 export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
-  const [geoJsonData, setGeoJsonData] = useState<any>(null);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
   
-  // Create maps of country codes and names to views
-  const countryMap = useMemo<{ codeMap: Map<string, number>; nameMap: Map<string, number> }>(() => {
-    const codeMap = new Map<string, number>();
-    const nameMap = new Map<string, number>();
-    
+  // Create a map of country codes to views
+  const countryMap = useMemo(() => {
+    const map = new Map<string, number>();
     countries.forEach(({ country, views }) => {
       if (country) {
-        const upperCountry = country.toUpperCase().trim();
-        // Store by code (assuming it's already a 2-letter code)
-        if (upperCountry.length === 2) {
-          codeMap.set(upperCountry, views);
-        }
-        // Also store by name for fallback matching
-        nameMap.set(upperCountry, views);
-        // Store original case too
-        nameMap.set(country.trim(), views);
+        map.set(country.toUpperCase(), views);
       }
     });
-    
-    return { codeMap, nameMap };
+    return map;
   }, [countries]);
 
   // Calculate max views if not provided
   const calculatedMaxViews = maxViews || Math.max(...countries.map((c) => c.views), 0);
 
-  // Load GeoJSON data
-  useEffect(() => {
-    // Using a proper GeoJSON source for world countries
-    fetch("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
-      .then((res) => res.json())
-      .then((data) => {
-        // Validate it's a proper GeoJSON
-        if (data && data.type === "FeatureCollection" && Array.isArray(data.features)) {
-          setGeoJsonData(data);
-        } else {
-          console.error("Invalid GeoJSON format received");
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to load GeoJSON:", err);
-        // Fallback to alternative source
-        fetch("https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json")
-          .then((res) => res.json())
-          .then((data) => {
-            if (data && data.type === "FeatureCollection") {
-              setGeoJsonData(data);
-            }
-          })
-          .catch((fallbackErr) => console.error("Fallback GeoJSON load failed:", fallbackErr));
-      });
-  }, []);
-
-  // Helper to get country code from feature properties (handles different GeoJSON formats)
-  const getCountryCode = (properties: any): string | null => {
-    return properties?.ISO_A2 || 
-           properties?.iso_a2 || 
-           properties?.ISO2 || 
-           properties?.iso2 || 
-           properties?.id || 
-           properties?.ISO_A2_EH ||
-           properties?.ISO_A3 ||
-           properties?.iso_a3 ||
-           null;
-  };
-
-  // Helper to get country name from feature properties
-  const getCountryName = (properties: any, countryCode: string | null): string => {
-    return properties?.NAME || 
-           properties?.name || 
-           properties?.NAME_LONG || 
-           properties?.ADMIN ||
-           properties?.admin ||
-           countryCode || 
-           "Unknown";
-  };
-
-  // Helper to get views for a country by matching code or name
-  const getCountryViews = (countryCode: string | null, countryName: string): number => {
-    if (!countryCode) return 0;
-    
-    const upperCode = countryCode.toUpperCase();
-    // Try by code first
-    if (countryMap.codeMap.has(upperCode)) {
-      return countryMap.codeMap.get(upperCode) || 0;
-    }
-    
-    // Try by name as fallback
-    const upperName = countryName.toUpperCase();
-    if (countryMap.nameMap.has(upperName)) {
-      return countryMap.nameMap.get(upperName) || 0;
-    }
-    
-    return 0;
-  };
-
-  // Style function for GeoJSON features
-  const getStyle = (feature: any) => {
-    const countryCode = getCountryCode(feature.properties);
-    const countryName = getCountryName(feature.properties, countryCode);
-    
-    if (!countryCode) {
-      return {
-        fillColor: "#e0e0e0",
-        fillOpacity: 0.3,
-        color: "#ffffff",
-        weight: 0.5,
-        opacity: 1,
-      };
-    }
-    
-    const views = getCountryViews(countryCode, countryName);
-    const fillColor = hoveredCountry === countryCode 
-      ? "#ff6b6b" 
-      : getColorIntensity(views, calculatedMaxViews);
-    
-    return {
-      fillColor,
-      fillOpacity: views > 0 ? 0.8 : 0.3,
-      color: "#ffffff",
-      weight: 0.5,
-      opacity: 1,
-    };
-  };
-
-  // Event handlers for GeoJSON
-  const onEachFeature = (feature: any, layer: any) => {
-    const countryCode = getCountryCode(feature.properties);
-    if (!countryCode) return;
-    
-    const countryName = getCountryName(feature.properties, countryCode);
-    const views = getCountryViews(countryCode, countryName);
-
-    layer.on({
-      mouseover: () => {
-        setHoveredCountry(countryCode);
-        layer.setStyle({
-          fillOpacity: 1,
-          weight: 2,
-        });
-      },
-      mouseout: () => {
-        setHoveredCountry(null);
-        layer.setStyle({
-          fillOpacity: 0.8,
-          weight: 0.5,
-        });
-      },
-    });
-
-    // Add tooltip
-    layer.bindTooltip(
-      `<div style="text-align: center;">
-        <strong>${countryName}</strong><br/>
-        <span style="color: #666; font-size: 12px;">
-          ${views.toLocaleString()} ${views === 1 ? "view" : "views"}
-        </span>
-      </div>`,
-      {
-        permanent: false,
-        direction: "top",
-        offset: [0, -5],
-      }
-    );
-  };
-
-  if (!geoJsonData) {
-    return (
-      <div className="w-full h-full flex items-center justify-center">
-        <div className="text-muted-foreground">Loading map...</div>
-      </div>
-    );
-  }
-
   return (
     <TooltipProvider>
       <div className="w-full h-full flex flex-col">
-        <div className="flex-1 overflow-hidden rounded-lg">
-          <MapContainer
-            center={[20, 0] as [number, number]}
-            zoom={2}
-            style={{ height: "100%", width: "100%" }}
-            zoomControl={true}
-            scrollWheelZoom={true}
-            className="z-0"
+        <div className="flex-1 overflow-hidden" style={{ height: "calc(100% - 3rem)" }}>
+          <ComposableMap
+            projectionConfig={{
+              scale: 147,
+              center: [0, 20],
+            }}
+            className="w-full"
+            style={{ width: "100%", height: "100%" }}
           >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <MapInitializer />
-            {geoJsonData && (
-              <GeoJSON
-                data={geoJsonData}
-                style={getStyle}
-                onEachFeature={onEachFeature}
-              />
-            )}
-          </MapContainer>
+            <Geographies geography={geoUrl}>
+              {({ geographies }) =>
+                geographies.map((geo) => {
+                  const countryCode = geo.properties.ISO_A2;
+                  const views = countryMap.get(countryCode) || 0;
+                  const fillColor = hoveredCountry === countryCode 
+                    ? "#ff6b6b" 
+                    : getColorIntensity(views, calculatedMaxViews);
+                  const countryName = geo.properties.NAME || countryCode;
+
+                  return (
+                    <Tooltip key={geo.rsmKey}>
+                      <TooltipTrigger asChild>
+                        <Geography
+                          geography={geo}
+                          fill={fillColor}
+                          stroke="#ffffff"
+                          strokeWidth={0.5}
+                          onMouseEnter={() => setHoveredCountry(countryCode)}
+                          onMouseLeave={() => setHoveredCountry(null)}
+                          style={{
+                            default: {
+                              outline: "none",
+                              cursor: "pointer",
+                            },
+                            hover: {
+                              outline: "none",
+                              cursor: "pointer",
+                            },
+                            pressed: {
+                              outline: "none",
+                            },
+                          }}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="space-y-1">
+                          <p className="font-semibold">{countryName}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {views.toLocaleString()} {views === 1 ? "view" : "views"}
+                          </p>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })
+              }
+            </Geographies>
+          </ComposableMap>
         </div>
         
         {/* Legend */}
@@ -268,3 +194,6 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
     </TooltipProvider>
   );
 }
+
+// Export country names mapping for use in table
+export { COUNTRY_NAMES };
