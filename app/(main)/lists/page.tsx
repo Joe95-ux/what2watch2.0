@@ -1,6 +1,9 @@
 import { Suspense } from "react";
 import { ListsPageClient } from "@/components/lists/lists-page-client";
 
+// Force dynamic rendering since this page uses useSearchParams()
+export const dynamic = "force-dynamic";
+
 function ListsPageFallback() {
   return (
     <div className="min-h-screen bg-background">
