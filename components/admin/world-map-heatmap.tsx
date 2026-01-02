@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ComposableMap, Geographies, Geography, Sphere, Graticule } from "react-simple-maps";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ComposableMap, Geographies, Geography } from "react-simple-maps";
+import { useTheme } from "next-themes";
 
 const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
@@ -94,6 +94,8 @@ function getColorIntensity(views: number, maxViews: number): string {
 
 export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   
   // Create a map of country codes to views
   const countryMap = useMemo(() => {
@@ -110,9 +112,16 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
   const calculatedMaxViews = maxViews || Math.max(...countries.map((c) => c.views), 0);
 
   return (
-    <TooltipProvider>
-      <div className="w-full h-full flex flex-col">
-        <div className="flex-1" style={{ width: "100%", height: "100%", minHeight: "450px" }}>
+    <div className="w-full h-full flex flex-col">
+        <div 
+          className="flex-1" 
+          style={{ 
+            width: "100%", 
+            height: "100%", 
+            minHeight: "450px",
+            backgroundColor: isDark ? "#1a1a1a" : "#f5f5f5"
+          }}
+        >
           <ComposableMap
             projectionConfig={{
               rotate: [-10, 0, 0],
@@ -120,20 +129,18 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
             }}
             style={{ width: "100%", height: "100%" }}
           >
-            <Sphere stroke="#E4E5E6" strokeWidth={0.5} fill="#f5f5f5" />
-            <Graticule stroke="#E4E5E6" strokeWidth={0.5} />
             <Geographies geography={geoUrl}>
               {({ geographies }) =>
                 geographies.map((geo) => {
                   const countryCode = geo.properties.ISO_A2;
                   if (!countryCode) {
-                    // Render countries without codes in light gray
+                    // Render countries without codes
                     return (
                       <Geography
                         key={geo.rsmKey}
                         geography={geo}
-                        fill="#F5F4F6"
-                        stroke="#ffffff"
+                        fill={isDark ? "#2a2a2a" : "#F5F4F6"}
+                        stroke={isDark ? "#3a3a3a" : "#ffffff"}
                         strokeWidth={0.5}
                         style={{
                           default: { outline: "none", cursor: "pointer" },
@@ -145,46 +152,39 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
                   }
                   
                   const views = countryMap.get(countryCode.toUpperCase()) || 0;
+                  const baseFillColor = getColorIntensity(views, calculatedMaxViews);
                   const fillColor = hoveredCountry === countryCode 
                     ? "#ff6b6b" 
-                    : getColorIntensity(views, calculatedMaxViews);
+                    : baseFillColor;
                   const countryName = geo.properties.NAME || countryCode;
 
+                  const currentFill = hoveredCountry === countryCode ? "#ff6b6b" : fillColor;
+                  
                   return (
-                    <Tooltip key={geo.rsmKey}>
-                      <TooltipTrigger asChild>
-                        <Geography
-                          geography={geo}
-                          fill={fillColor}
-                          stroke="#ffffff"
-                          strokeWidth={0.5}
-                          onMouseEnter={() => setHoveredCountry(countryCode)}
-                          onMouseLeave={() => setHoveredCountry(null)}
-                          style={{
-                            default: {
-                              outline: "none",
-                              cursor: "pointer",
-                            },
-                            hover: {
-                              outline: "none",
-                              cursor: "pointer",
-                              fill: hoveredCountry === countryCode ? "#ff6b6b" : fillColor,
-                            },
-                            pressed: {
-                              outline: "none",
-                            },
-                          }}
-                        />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <div className="space-y-1">
-                          <p className="font-semibold">{countryName}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {views.toLocaleString()} {views === 1 ? "view" : "views"}
-                          </p>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
+                    <Geography
+                      key={geo.rsmKey}
+                      geography={geo}
+                      fill={currentFill}
+                      stroke={isDark ? "#3a3a3a" : "#ffffff"}
+                      strokeWidth={0.5}
+                      onMouseEnter={() => setHoveredCountry(countryCode)}
+                      onMouseLeave={() => setHoveredCountry(null)}
+                      style={{
+                        default: {
+                          outline: "none",
+                          cursor: "pointer",
+                        },
+                        hover: {
+                          outline: "none",
+                          cursor: "pointer",
+                        },
+                        pressed: {
+                          outline: "none",
+                        },
+                      }}
+                    >
+                      <title>{`${countryName}: ${views.toLocaleString()} ${views === 1 ? "view" : "views"}`}</title>
+                    </Geography>
                   );
                 })
               }
@@ -212,7 +212,6 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
           </div>
         </div>
       </div>
-    </TooltipProvider>
   );
 }
 
