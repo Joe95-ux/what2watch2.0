@@ -36,7 +36,7 @@ const COUNTRY_NAMES: Record<string, string> = {
   DK: "Denmark",
   FI: "Finland",
   PL: "Poland",
-  CZ: "Czech Republic",
+  CZ: "Czechia",
   IE: "Ireland",
   PT: "Portugal",
   GR: "Greece",
@@ -101,14 +101,17 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   
-  // Create a map of country codes to views
+  // Create a map of country codes to views - handle various formats
   const countryMap = useMemo(() => {
     const map = new Map<string, number>();
+    
     countries.forEach(({ country, views }) => {
-      // Try both ISO_A2 and ISO_A3 codes
       if (country) {
-        map.set(country.toUpperCase(), views);
-        // Also add the country name if available in COUNTRY_NAMES
+        const upperCountry = country.toUpperCase().trim();
+        // Store by the code as-is (should be ISO_A2 like "US", "SZ")
+        map.set(upperCountry, views);
+        
+        // Also try to find by country name and map to code
         const countryEntry = Object.entries(COUNTRY_NAMES).find(
           ([_, name]) => name.toLowerCase() === country.toLowerCase()
         );
@@ -117,6 +120,7 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
         }
       }
     });
+    
     return map;
   }, [countries]);
 
@@ -125,11 +129,12 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
     (countries.length > 0 ? Math.max(...countries.map((c) => c.views)) : 0);
 
   const handleMouseEnter = (geo: any, event: React.MouseEvent) => {
-    const countryCode = geo.properties.ISO_A2 || geo.properties.ISO_A3;
+    const countryCode = geo.properties.ISO_A2;
     if (countryCode) {
-      const views = countryMap.get(countryCode.toUpperCase()) || 0;
+      const upperCode = countryCode.toUpperCase();
+      const views = countryMap.get(upperCode) || 0;
       const countryName = geo.properties.NAME || geo.properties.name || countryCode;
-      setHoveredCountry(countryCode);
+      setHoveredCountry(upperCode);
       setTooltipContent(`${countryName}: ${views.toLocaleString()} ${views === 1 ? "view" : "views"}`);
       setTooltipPosition({ x: event.clientX, y: event.clientY });
     }
@@ -174,27 +179,19 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
             <Geographies geography={geoUrl}>
               {({ geographies }) =>
                 geographies.map((geo) => {
-                  const countryCode = geo.properties.ISO_A2 || geo.properties.ISO_A3;
+                  const countryCode = geo.properties.ISO_A2;
+                  if (!countryCode) {
+                    return null;
+                  }
+                  
                   const countryName = geo.properties.NAME || geo.properties.name || countryCode;
+                  const upperCode = countryCode.toUpperCase();
                   
-                  // Get views - try both ISO codes and country names
-                  let views = 0;
-                  if (countryCode) {
-                    views = countryMap.get(countryCode.toUpperCase()) || 0;
-                  }
-                  
-                  // If no views found by code, try by name
-                  if (views === 0 && countryName) {
-                    const countryEntry = Object.entries(COUNTRY_NAMES).find(
-                      ([_, name]) => name.toLowerCase() === countryName.toLowerCase()
-                    );
-                    if (countryEntry) {
-                      views = countryMap.get(countryEntry[0]) || 0;
-                    }
-                  }
+                  // Get views - match by ISO_A2 code
+                  const views = countryMap.get(upperCode) || 0;
                   
                   const fillColor = getColorIntensity(views, calculatedMaxViews, isDark);
-                  const isHovered = hoveredCountry === countryCode;
+                  const isHovered = hoveredCountry === upperCode;
                   
                   return (
                     <Geography
@@ -203,7 +200,9 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
                       fill={isHovered ? (isDark ? "#60a5fa" : "#3b82f6") : fillColor}
                       stroke={isDark ? "#1f2937" : "#d1d5db"}
                       strokeWidth={0.5}
-                      onMouseEnter={(event) => handleMouseEnter(geo, event)}
+                      onMouseEnter={(event) => {
+                        handleMouseEnter(geo, event);
+                      }}
                       onMouseLeave={handleMouseLeave}
                       style={{
                         default: {
@@ -231,14 +230,13 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
         {/* Tooltip */}
         {tooltipContent && (
           <div 
-            className="absolute z-50 px-3 py-2 text-sm rounded-md shadow-lg pointer-events-none"
+            className="fixed z-50 px-3 py-2 text-sm rounded-md shadow-lg pointer-events-none"
             style={{
               left: `${tooltipPosition.x + 10}px`,
               top: `${tooltipPosition.y - 40}px`,
               backgroundColor: isDark ? "#1f2937" : "#ffffff",
               color: isDark ? "#f9fafb" : "#111827",
               border: `1px solid ${isDark ? "#374151" : "#e5e7eb"}`,
-              transform: "translateX(-50%)",
             }}
           >
             {tooltipContent}

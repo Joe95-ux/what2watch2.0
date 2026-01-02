@@ -238,7 +238,7 @@ export function TrafficAnalyticsContent() {
               </div>
               
               {/* Map - Right Side */}
-              <div className="flex-1 overflow-hidden" style={{ minHeight: "450px" }}>
+              <div className="flex-1 overflow-hidden mr-4" style={{ minHeight: "450px" }}>
                 <WorldMapHeatmap
                   countries={data.countries}
                   maxViews={Math.max(...data.countries.map((c) => c.views), 0)}
