@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ComposableMap, Geographies, Geography } from "react-simple-maps";
+import { ComposableMap, Geographies, Geography, Sphere, Graticule } from "react-simple-maps";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
@@ -111,15 +111,17 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
 
   return (
     <TooltipProvider>
-      <div className="w-full h-full flex flex-col bg-muted/20 rounded-lg">
-        <div className="flex-1 overflow-hidden" style={{ minHeight: "400px", width: "100%" }}>
+      <div className="w-full h-full flex flex-col">
+        <div className="flex-1" style={{ width: "100%", height: "100%", minHeight: "450px" }}>
           <ComposableMap
             projectionConfig={{
+              rotate: [-10, 0, 0],
               scale: 147,
-              center: [0, 20],
             }}
             style={{ width: "100%", height: "100%" }}
           >
+            <Sphere stroke="#E4E5E6" strokeWidth={0.5} fill="#f5f5f5" />
+            <Graticule stroke="#E4E5E6" strokeWidth={0.5} />
             <Geographies geography={geoUrl}>
               {({ geographies }) =>
                 geographies.map((geo) => {
@@ -130,12 +132,12 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
                       <Geography
                         key={geo.rsmKey}
                         geography={geo}
-                        fill="#e0e0e0"
+                        fill="#F5F4F6"
                         stroke="#ffffff"
                         strokeWidth={0.5}
                         style={{
-                          default: { outline: "none" },
-                          hover: { outline: "none" },
+                          default: { outline: "none", cursor: "pointer" },
+                          hover: { outline: "none", cursor: "pointer" },
                           pressed: { outline: "none" },
                         }}
                       />
@@ -166,6 +168,7 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
                             hover: {
                               outline: "none",
                               cursor: "pointer",
+                              fill: hoveredCountry === countryCode ? "#ff6b6b" : fillColor,
                             },
                             pressed: {
                               outline: "none",
