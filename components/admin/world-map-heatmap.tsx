@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
+import {
+  ComposableMap,
+  Geographies,
+  Geography,
+  ZoomableGroup,
+} from "react-simple-maps";
 import countriesLib from "i18n-iso-countries";
 import en from "i18n-iso-countries/langs/en.json";
 import { useTheme } from "next-themes";
@@ -13,7 +18,7 @@ countriesLib.registerLocale(en);
 const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
 interface CountryData {
-  country: string; 
+  country: string;
   views: number;
 }
 
@@ -23,7 +28,11 @@ interface WorldMapHeatmapProps {
 }
 
 // Get color intensity based on views
-function getColorIntensity(views: number, maxViews: number, isDark: boolean): string {
+function getColorIntensity(
+  views: number,
+  maxViews: number,
+  isDark: boolean
+): string {
   if (maxViews === 0) return isDark ? "#374151" : "#f3f4f6";
 
   const intensity = views / maxViews;
@@ -43,7 +52,6 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
- 
   const countryMap = useMemo(() => {
     const map = new Map<string, number>();
 
@@ -60,7 +68,8 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
   }, [countries]);
 
   const calculatedMaxViews =
-    maxViews || (countries.length > 0 ? Math.max(...countries.map((c) => c.views)) : 0);
+    maxViews ||
+    (countries.length > 0 ? Math.max(...countries.map((c) => c.views)) : 0);
 
   const handleMouseEnter = (geo: any, event: React.MouseEvent) => {
     const isoA3 = geo.properties.ISO_A3 as string | undefined;
@@ -68,15 +77,14 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
 
     const views = countryMap.get(isoA3) || 0;
     const countryName =
-      countriesLib.getName(isoA3, "en") ||
-      geo.properties.NAME ||
-      isoA3;
-
-    console.log(views, countryName);
-    console.log(geo.properties);
+      countriesLib.getName(isoA3, "en") || geo.properties.NAME || isoA3;
 
     setHoveredCountry(isoA3);
-    setTooltipContent(`${countryName}: ${views.toLocaleString()} ${views === 1 ? "view" : "views"}`);
+    setTooltipContent(
+      `${countryName}: ${views.toLocaleString()} ${
+        views === 1 ? "view" : "views"
+      }`
+    );
     setTooltipPosition({ x: event.clientX, y: event.clientY });
   };
 
@@ -110,20 +118,24 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
             <Geographies geography={geoUrl}>
               {({ geographies }) =>
                 geographies.map((geo) => {
+                  console.log({"geo": geo});
                   const isoA3 = geo.properties.ISO_A3 as string | undefined;
-                  console.log(isoA3);
-                  console.log(geo.properties);
-                  if (!isoA3) return null;
 
                   const views = countryMap.get(isoA3) || 0;
-                  const fillColor = getColorIntensity(views, calculatedMaxViews, isDark);
+                  const fillColor = getColorIntensity(
+                    views,
+                    calculatedMaxViews,
+                    isDark
+                  );
                   const isHovered = hoveredCountry === isoA3;
 
                   return (
                     <Geography
                       key={geo.rsmKey}
                       geography={geo}
-                      fill={isHovered ? (isDark ? "#60a5fa" : "#3b82f6") : fillColor}
+                      fill={
+                        isHovered ? (isDark ? "#60a5fa" : "#3b82f6") : fillColor
+                      }
                       stroke={isDark ? "#1f2937" : "#d1d5db"}
                       strokeWidth={0.5}
                       onMouseEnter={(e) => handleMouseEnter(geo, e)}
@@ -161,6 +173,53 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
             {tooltipContent}
           </div>
         )}
+      </div>
+      {/* Legend */}{" "}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-4 text-sm flex-shrink-0 px-2">
+        {" "}
+        <div className="flex items-center gap-2">
+          {" "}
+          <div
+            className="w-4 h-4 rounded border"
+            style={{
+              backgroundColor: isDark ? "#374151" : "#f3f4f6",
+              borderColor: isDark ? "#4b5563" : "#d1d5db",
+            }}
+          />{" "}
+          <span className={isDark ? "text-gray-300" : "text-gray-600"}>
+            No data
+          </span>{" "}
+        </div>{" "}
+        <div className="flex items-center gap-2">
+          {" "}
+          <div
+            className="w-4 h-4 rounded"
+            style={{ backgroundColor: isDark ? "#3b82f6" : "#93c5fd" }}
+          />{" "}
+          <span className={isDark ? "text-gray-300" : "text-gray-600"}>
+            Low
+          </span>{" "}
+        </div>{" "}
+        <div className="flex items-center gap-2">
+          {" "}
+          <div
+            className="w-4 h-4 rounded"
+            style={{ backgroundColor: isDark ? "#1d4ed8" : "#3b82f6" }}
+          />{" "}
+          <span className={isDark ? "text-gray-300" : "text-gray-600"}>
+            Medium
+          </span>{" "}
+        </div>{" "}
+        <div className="flex items-center gap-2">
+          {" "}
+          <div
+            className="w-4 h-4 rounded"
+            style={{ backgroundColor: isDark ? "#1e3a8a" : "#1e40af" }}
+          />{" "}
+          <span className={isDark ? "text-gray-300" : "text-gray-600"}>
+            High
+          </span>{" "}
+        </div>{" "}
       </div>
     </div>
   );
