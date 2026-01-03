@@ -7,7 +7,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { Globe, UsersRound, Eye, TrendingUp, Monitor, Smartphone, Tablet } from "lucide-react";
-import { WorldMapHeatmap, COUNTRY_NAMES } from "@/components/admin/world-map-heatmap";
+import { WorldMapHeatmap } from "@/components/admin/world-map-heatmap";
+import countries from "i18n-iso-countries";
+import en from "i18n-iso-countries/langs/en.json";
+
+countries.registerLocale(en);
 
 interface TrafficAnalytics {
   totals: {
@@ -211,9 +215,8 @@ export function TrafficAnalyticsContent() {
                       .slice(0, 20)
                       .map((country, index) => {
                         const countryCode = country.country?.toUpperCase() || "";
-                        const countryName = COUNTRY_NAMES[countryCode] || country.country || "Unknown";
-                        // Only show code if we have a proper name mapping (not the same as code)
-                        const showCode = COUNTRY_NAMES[countryCode] && countryCode.length === 2;
+                        const countryName = countries.getName(countryCode, "en") || countryCode || "Unknown";
+                        const showCode = countryCode.length === 2;
                         return (
                           <div
                             key={country.country}
