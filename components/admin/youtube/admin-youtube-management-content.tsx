@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Youtube, ChevronLeft, ChevronRight, Film } from "lucide-react";
+import { Youtube, ChevronLeft, ChevronRight, Film, Search, Filter, X, ArrowUpDown, ArrowDown, ArrowUp, ChevronDown, ChevronUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { YouTubeChannelExtractorInline } from "@/components/youtube/youtube-channel-extractor-inline";
 import { YouTubeChannelCard } from "@/components/youtube/youtube-channel-card";
@@ -11,7 +11,21 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { useDebounce } from "@/hooks/use-debounce";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Channel {
   id: string;
@@ -48,6 +62,14 @@ export default function AdminYouTubeManagementContent() {
   const [activePage, setActivePage] = useState(1);
   const [inactivePage, setInactivePage] = useState(1);
   const [filterNollywood, setFilterNollywood] = useState<"all" | "nollywood" | "notNollywood">("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [privacyFilter, setPrivacyFilter] = useState<"all" | "public" | "private">("all");
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
+  const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
+  const [sortField, setSortField] = useState<"title" | "createdAt" | "updatedAt">("title");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   const queryClient = useQueryClient();
 
@@ -86,25 +108,60 @@ export default function AdminYouTubeManagementContent() {
 
   const channels = useMemo(() => {
     try {
-      return Array.isArray(data?.channels) ? data.channels : [];
+      let filtered = Array.isArray(data?.channels) ? data.channels : [];
+      
+      // Apply Nollywood filter
+      if (filterNollywood === "nollywood") {
+        filtered = filtered.filter((ch) => ch.isNollywood);
+      } else if (filterNollywood === "notNollywood") {
+        filtered = filtered.filter((ch) => !ch.isNollywood);
+      }
+      
+      // Apply search filter
+      if (debouncedSearchQuery.trim()) {
+        const query = debouncedSearchQuery.toLowerCase();
+        filtered = filtered.filter((ch) => 
+          ch.title?.toLowerCase().includes(query) ||
+          ch.channelId.toLowerCase().includes(query)
+        );
+      }
+      
+      // Apply status filter
+      if (statusFilter === "active") {
+        filtered = filtered.filter((ch) => ch.isActive);
+      } else if (statusFilter === "inactive") {
+        filtered = filtered.filter((ch) => !ch.isActive);
+      }
+      
+      // Apply privacy filter
+      if (privacyFilter === "public") {
+        filtered = filtered.filter((ch) => !ch.isPrivate);
+      } else if (privacyFilter === "private") {
+        filtered = filtered.filter((ch) => ch.isPrivate);
+      }
+      
+      // Apply sorting
+      filtered.sort((a, b) => {
+        let comparison = 0;
+        if (sortField === "title") {
+          comparison = (a.title || "").localeCompare(b.title || "");
+        } else if (sortField === "createdAt") {
+          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        } else if (sortField === "updatedAt") {
+          comparison = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+        }
+        return sortOrder === "asc" ? comparison : -comparison;
+      });
+      
+      return filtered;
     } catch (error) {
       console.error("Error processing channels:", error);
       return [];
     }
-  }, [data?.channels]);
+  }, [data?.channels, filterNollywood, debouncedSearchQuery, statusFilter, privacyFilter, sortField, sortOrder]);
   
-  // Filter channels
-  const filteredChannels = useMemo(() => {
-    try {
-      if (!Array.isArray(channels)) return [];
-      if (filterNollywood === "all") return channels;
-      if (filterNollywood === "nollywood") return channels.filter((ch) => ch.isNollywood);
-      return channels.filter((ch) => !ch.isNollywood);
-    } catch (error) {
-      console.error("Error filtering channels:", error);
-      return [];
-    }
-  }, [channels, filterNollywood]);
+  // Filter channels (for backward compatibility)
+  const filteredChannels = channels;
 
   const activeChannels = useMemo(() => {
     try {
@@ -188,33 +245,306 @@ export default function AdminYouTubeManagementContent() {
         <YouTubeChannelExtractorInline onChannelAdded={() => refetch()} />
       </div>
 
-      {/* Filters */}
-      <div className="mb-6 flex items-center gap-4">
-        <Label className="text-sm font-medium">Filter:</Label>
+      {/* Search, Sort, and Filter Row */}
+      <div className="space-y-3 mb-6">
         <div className="flex items-center gap-2">
-          <Button
-            variant={filterNollywood === "all" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterNollywood("all")}
-          >
-            All ({channels.length})
-          </Button>
-          <Button
-            variant={filterNollywood === "nollywood" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterNollywood("nollywood")}
-            className="gap-2"
-          >
-            <Film className="h-4 w-4" />
-            Nollywood ({channels.filter((ch) => ch.isNollywood).length})
-          </Button>
-          <Button
-            variant={filterNollywood === "notNollywood" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterNollywood("notNollywood")}
-          >
-            Not Nollywood ({channels.filter((ch) => !ch.isNollywood).length})
-          </Button>
+          {/* Search Bar */}
+          <div className="relative min-w-0 flex-1 sm:max-w-[20rem]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="Search channels..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setActivePage(1);
+                setInactivePage(1);
+              }}
+              className={cn(
+                "pl-9 h-9 text-muted-foreground placeholder:text-muted-foreground/60",
+                searchQuery ? "pr-20" : "pr-12"
+              )}
+            />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 cursor-pointer"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setActivePage(1);
+                    setInactivePage(1);
+                  }}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+              {/* Sort Dropdown - Inside Search Bar */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "h-7 w-7 cursor-pointer",
+                      sortOrder !== "asc" && "text-primary"
+                    )}
+                  >
+                    <ArrowUpDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="p-2">
+                    <div className="text-xs font-medium mb-2 px-2">Sort by</div>
+                    {[
+                      { value: "title", label: "Title" },
+                      { value: "createdAt", label: "Date Added" },
+                      { value: "updatedAt", label: "Last Updated" },
+                    ].map((field) => (
+                      <DropdownMenuItem
+                        key={field.value}
+                        onClick={() => {
+                          if (sortField === field.value) {
+                            setSortOrder(sortOrder === "desc" ? "asc" : "desc");
+                          } else {
+                            setSortField(field.value as typeof sortField);
+                            setSortOrder("asc");
+                          }
+                          setActivePage(1);
+                          setInactivePage(1);
+                        }}
+                        className={cn(
+                          "cursor-pointer",
+                          sortField === field.value && "bg-accent"
+                        )}
+                      >
+                        <span className="flex items-center gap-2">
+                          {sortField === field.value && sortOrder === "desc" && (
+                            <ArrowDown className="h-4 w-4" />
+                          )}
+                          {sortField === field.value && sortOrder === "asc" && (
+                            <ArrowUp className="h-4 w-4" />
+                          )}
+                          {sortField !== field.value && <div className="h-4 w-4" />}
+                          {field.label}
+                        </span>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSortOrder("asc");
+                      setActivePage(1);
+                      setInactivePage(1);
+                    }}
+                    className={cn("cursor-pointer", sortOrder === "asc" && "bg-accent")}
+                  >
+                    <span className="flex items-center gap-2">
+                      <ArrowUp className="h-4 w-4" />
+                      A-Z / Oldest First
+                    </span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSortOrder("desc");
+                      setActivePage(1);
+                      setInactivePage(1);
+                    }}
+                    className={cn("cursor-pointer", sortOrder === "desc" && "bg-accent")}
+                  >
+                    <span className="flex items-center gap-2">
+                      <ArrowDown className="h-4 w-4" />
+                      Z-A / Newest First
+                    </span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
+          {/* Filter Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsFilterRowOpen(!isFilterRowOpen)}
+                className={cn(
+                  "h-9 w-9 rounded-full cursor-pointer",
+                  (statusFilter !== "all" || privacyFilter !== "all" || filterNollywood !== "all") && "bg-primary/10 text-primary"
+                )}
+              >
+                <Filter className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Filter channels</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+
+        {/* Filter Row - Collapsible */}
+        <div
+          className={cn(
+            "overflow-hidden transition-all duration-300 ease-in-out",
+            isFilterRowOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          )}
+        >
+          <div className="overflow-x-auto scrollbar-hide pb-2">
+            <div className="flex items-center gap-4 min-w-max px-1">
+              {/* Nollywood Filter */}
+              <DropdownMenu
+                open={openDropdowns["Nollywood"] || false}
+                onOpenChange={(open) => setOpenDropdowns((prev) => ({ ...prev, Nollywood: open }))}
+              >
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setOpenDropdowns((prev) => ({ ...prev, Nollywood: !prev.Nollywood }))}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground dark:hover:text-foreground transition-colors cursor-pointer whitespace-nowrap focus:outline-none focus-visible:outline-none rounded-sm px-2 py-1"
+                  >
+                    <span>Nollywood:</span>
+                    <span className="font-medium">
+                      {filterNollywood === "all" ? "All" : filterNollywood === "nollywood" ? "Nollywood" : "Not Nollywood"}
+                    </span>
+                    {openDropdowns["Nollywood"] ? (
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  {[
+                    { value: "all", label: "All" },
+                    { value: "nollywood", label: "Nollywood" },
+                    { value: "notNollywood", label: "Not Nollywood" },
+                  ].map((option) => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      onClick={() => {
+                        setFilterNollywood(option.value as typeof filterNollywood);
+                        setOpenDropdowns((prev) => ({ ...prev, Nollywood: false }));
+                        setActivePage(1);
+                        setInactivePage(1);
+                      }}
+                      className={cn("cursor-pointer", filterNollywood === option.value && "bg-accent")}
+                    >
+                      {option.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Status Filter */}
+              <DropdownMenu
+                open={openDropdowns["Status"] || false}
+                onOpenChange={(open) => setOpenDropdowns((prev) => ({ ...prev, Status: open }))}
+              >
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setOpenDropdowns((prev) => ({ ...prev, Status: !prev.Status }))}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground dark:hover:text-foreground transition-colors cursor-pointer whitespace-nowrap focus:outline-none focus-visible:outline-none rounded-sm px-2 py-1"
+                  >
+                    <span>Status:</span>
+                    <span className="font-medium">
+                      {statusFilter === "all" ? "All" : statusFilter === "active" ? "Active" : "Inactive"}
+                    </span>
+                    {openDropdowns["Status"] ? (
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  {[
+                    { value: "all", label: "All" },
+                    { value: "active", label: "Active" },
+                    { value: "inactive", label: "Inactive" },
+                  ].map((option) => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      onClick={() => {
+                        setStatusFilter(option.value as typeof statusFilter);
+                        setOpenDropdowns((prev) => ({ ...prev, Status: false }));
+                        setActivePage(1);
+                        setInactivePage(1);
+                      }}
+                      className={cn("cursor-pointer", statusFilter === option.value && "bg-accent")}
+                    >
+                      {option.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Privacy Filter */}
+              <DropdownMenu
+                open={openDropdowns["Privacy"] || false}
+                onOpenChange={(open) => setOpenDropdowns((prev) => ({ ...prev, Privacy: open }))}
+              >
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setOpenDropdowns((prev) => ({ ...prev, Privacy: !prev.Privacy }))}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground dark:hover:text-foreground transition-colors cursor-pointer whitespace-nowrap focus:outline-none focus-visible:outline-none rounded-sm px-2 py-1"
+                  >
+                    <span>Privacy:</span>
+                    <span className="font-medium">
+                      {privacyFilter === "all" ? "All" : privacyFilter === "public" ? "Public" : "Private"}
+                    </span>
+                    {openDropdowns["Privacy"] ? (
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  {[
+                    { value: "all", label: "All" },
+                    { value: "public", label: "Public" },
+                    { value: "private", label: "Private" },
+                  ].map((option) => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      onClick={() => {
+                        setPrivacyFilter(option.value as typeof privacyFilter);
+                        setOpenDropdowns((prev) => ({ ...prev, Privacy: false }));
+                        setActivePage(1);
+                        setInactivePage(1);
+                      }}
+                      className={cn("cursor-pointer", privacyFilter === option.value && "bg-accent")}
+                    >
+                      {option.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Clear Filters */}
+              {(statusFilter !== "all" || privacyFilter !== "all" || filterNollywood !== "all" || searchQuery) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setStatusFilter("all");
+                    setPrivacyFilter("all");
+                    setFilterNollywood("all");
+                    setSearchQuery("");
+                    setActivePage(1);
+                    setInactivePage(1);
+                  }}
+                  className="text-xs"
+                >
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

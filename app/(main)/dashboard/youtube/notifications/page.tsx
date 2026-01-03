@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCheck, ExternalLink, MoreVertical, Trash2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { CheckCheck, ExternalLink, MoreVertical, Trash2, Search, Filter, X, ArrowUpDown, ArrowDown, ArrowUp, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { useDebounce } from "@/hooks/use-debounce";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +15,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useYouTubeNotifications, useMarkNotificationsAsRead, useDeleteYouTubeNotifications } from "@/hooks/use-youtube-notifications";
 import Image from "next/image";
 import Link from "next/link";
@@ -33,12 +41,71 @@ function NotificationSkeleton() {
 
 export default function YouTubeNotificationsPage() {
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const [channelFilter, setChannelFilter] = useState<string>("all");
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
+  const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
+  const [sortField, setSortField] = useState<"date" | "channel">("date");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  
   const { data, isLoading } = useYouTubeNotifications(filter === "unread");
   const markAsRead = useMarkNotificationsAsRead();
   const deleteNotifications = useDeleteYouTubeNotifications();
 
-  const notifications = data?.notifications || [];
+  const allNotifications = data?.notifications || [];
   const unreadCount = data?.unreadCount || 0;
+  
+  // Get unique channels for filter
+  const uniqueChannels = useMemo(() => {
+    const channels = new Map<string, { title: string; thumbnail: string | null }>();
+    allNotifications.forEach((notif) => {
+      if (notif.channelTitle && !channels.has(notif.channelTitle)) {
+        channels.set(notif.channelTitle, {
+          title: notif.channelTitle,
+          thumbnail: notif.channelThumbnail || null,
+        });
+      }
+    });
+    return Array.from(channels.values());
+  }, [allNotifications]);
+  
+  // Filter and sort notifications
+  const notifications = useMemo(() => {
+    let filtered = allNotifications;
+    
+    // Apply read/unread filter
+    if (filter === "unread") {
+      filtered = filtered.filter((n) => !n.isRead);
+    }
+    
+    // Apply search filter
+    if (debouncedSearchQuery.trim()) {
+      const query = debouncedSearchQuery.toLowerCase();
+      filtered = filtered.filter((n) => 
+        n.videoTitle?.toLowerCase().includes(query) ||
+        n.channelTitle?.toLowerCase().includes(query)
+      );
+    }
+    
+    // Apply channel filter
+    if (channelFilter !== "all") {
+      filtered = filtered.filter((n) => n.channelTitle === channelFilter);
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      if (sortField === "date") {
+        comparison = new Date(a.publishedAt).getTime() - new Date(b.publishedAt).getTime();
+      } else if (sortField === "channel") {
+        comparison = (a.channelTitle || "").localeCompare(b.channelTitle || "");
+      }
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+    
+    return filtered;
+  }, [allNotifications, filter, debouncedSearchQuery, channelFilter, sortField, sortOrder]);
 
   const handleMarkAsRead = (notificationId?: string) => {
     if (notificationId) {
@@ -82,7 +149,7 @@ export default function YouTubeNotificationsPage() {
                 Mark all as read
               </Button>
             )}
-            {notifications.length > 0 && (
+            {allNotifications.length > 0 && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -96,28 +163,259 @@ export default function YouTubeNotificationsPage() {
             )}
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant={filter === "all" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setFilter("all")}
-            className="text-sm"
-          >
-            All
-          </Button>
-          <Button
-            variant={filter === "unread" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setFilter("unread")}
-            className="text-sm"
-          >
-            Unread
-            {unreadCount > 0 && (
-              <Badge variant="secondary" className="ml-2">
-                {unreadCount}
-              </Badge>
-            )}
-          </Button>
+      </div>
+
+      {/* Search, Sort, and Filter Row */}
+      <div className="space-y-3 mb-6">
+        <div className="flex items-center gap-2">
+          {/* Search Bar */}
+          <div className="relative min-w-0 flex-1 sm:max-w-[20rem]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="Search notifications..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={cn(
+                "pl-9 h-9 text-muted-foreground placeholder:text-muted-foreground/60",
+                searchQuery ? "pr-20" : "pr-12"
+              )}
+            />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 cursor-pointer"
+                  onClick={() => setSearchQuery("")}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+              {/* Sort Dropdown - Inside Search Bar */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "h-7 w-7 cursor-pointer",
+                      sortOrder !== "desc" && "text-primary"
+                    )}
+                  >
+                    <ArrowUpDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="p-2">
+                    <div className="text-xs font-medium mb-2 px-2">Sort by</div>
+                    {[
+                      { value: "date", label: "Date" },
+                      { value: "channel", label: "Channel" },
+                    ].map((field) => (
+                      <DropdownMenuItem
+                        key={field.value}
+                        onClick={() => {
+                          if (sortField === field.value) {
+                            setSortOrder(sortOrder === "desc" ? "asc" : "desc");
+                          } else {
+                            setSortField(field.value as typeof sortField);
+                            setSortOrder("desc");
+                          }
+                        }}
+                        className={cn(
+                          "cursor-pointer",
+                          sortField === field.value && "bg-accent"
+                        )}
+                      >
+                        <span className="flex items-center gap-2">
+                          {sortField === field.value && sortOrder === "desc" && (
+                            <ArrowDown className="h-4 w-4" />
+                          )}
+                          {sortField === field.value && sortOrder === "asc" && (
+                            <ArrowUp className="h-4 w-4" />
+                          )}
+                          {sortField !== field.value && <div className="h-4 w-4" />}
+                          {field.label}
+                        </span>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSortOrder("desc");
+                    }}
+                    className={cn("cursor-pointer", sortOrder === "desc" && "bg-accent")}
+                  >
+                    <span className="flex items-center gap-2">
+                      <ArrowDown className="h-4 w-4" />
+                      Newest First
+                    </span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSortOrder("asc");
+                    }}
+                    className={cn("cursor-pointer", sortOrder === "asc" && "bg-accent")}
+                  >
+                    <span className="flex items-center gap-2">
+                      <ArrowUp className="h-4 w-4" />
+                      Oldest First
+                    </span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
+          {/* Filter Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsFilterRowOpen(!isFilterRowOpen)}
+                className={cn(
+                  "h-9 w-9 rounded-full cursor-pointer",
+                  (filter !== "all" || channelFilter !== "all") && "bg-primary/10 text-primary"
+                )}
+              >
+                <Filter className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Filter notifications</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+
+        {/* Filter Row - Collapsible */}
+        <div
+          className={cn(
+            "overflow-hidden transition-all duration-300 ease-in-out",
+            isFilterRowOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          )}
+        >
+          <div className="overflow-x-auto scrollbar-hide pb-2">
+            <div className="flex items-center gap-4 min-w-max px-1">
+              {/* Read/Unread Filter */}
+              <DropdownMenu
+                open={openDropdowns["Status"] || false}
+                onOpenChange={(open) => setOpenDropdowns((prev) => ({ ...prev, Status: open }))}
+              >
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setOpenDropdowns((prev) => ({ ...prev, Status: !prev.Status }))}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground dark:hover:text-foreground transition-colors cursor-pointer whitespace-nowrap focus:outline-none focus-visible:outline-none rounded-sm px-2 py-1"
+                  >
+                    <span>Status:</span>
+                    <span className="font-medium">
+                      {filter === "all" ? "All" : "Unread"}
+                      {filter === "unread" && unreadCount > 0 && (
+                        <Badge variant="secondary" className="ml-2 text-xs">
+                          {unreadCount}
+                        </Badge>
+                      )}
+                    </span>
+                    {openDropdowns["Status"] ? (
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  {[
+                    { value: "all", label: "All" },
+                    { value: "unread", label: "Unread" },
+                  ].map((option) => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      onClick={() => {
+                        setFilter(option.value as typeof filter);
+                        setOpenDropdowns((prev) => ({ ...prev, Status: false }));
+                      }}
+                      className={cn("cursor-pointer", filter === option.value && "bg-accent")}
+                    >
+                      {option.label}
+                      {option.value === "unread" && unreadCount > 0 && (
+                        <Badge variant="secondary" className="ml-2 text-xs">
+                          {unreadCount}
+                        </Badge>
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Channel Filter */}
+              {uniqueChannels.length > 0 && (
+                <DropdownMenu
+                  open={openDropdowns["Channel"] || false}
+                  onOpenChange={(open) => setOpenDropdowns((prev) => ({ ...prev, Channel: open }))}
+                >
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => setOpenDropdowns((prev) => ({ ...prev, Channel: !prev.Channel }))}
+                      className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground dark:hover:text-foreground transition-colors cursor-pointer whitespace-nowrap focus:outline-none focus-visible:outline-none rounded-sm px-2 py-1"
+                    >
+                      <span>Channel:</span>
+                      <span className="font-medium">
+                        {channelFilter === "all" ? "All Channels" : channelFilter}
+                      </span>
+                      {openDropdowns["Channel"] ? (
+                        <ChevronUp className="h-3.5 w-3.5" />
+                      ) : (
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56 max-h-[300px] overflow-y-auto">
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setChannelFilter("all");
+                        setOpenDropdowns((prev) => ({ ...prev, Channel: false }));
+                      }}
+                      className={cn("cursor-pointer", channelFilter === "all" && "bg-accent")}
+                    >
+                      All Channels
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {uniqueChannels.map((channel) => (
+                      <DropdownMenuItem
+                        key={channel.title}
+                        onClick={() => {
+                          setChannelFilter(channel.title);
+                          setOpenDropdowns((prev) => ({ ...prev, Channel: false }));
+                        }}
+                        className={cn("cursor-pointer", channelFilter === channel.title && "bg-accent")}
+                      >
+                        {channel.title}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
+              {/* Clear Filters */}
+              {(filter !== "all" || channelFilter !== "all" || searchQuery) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setFilter("all");
+                    setChannelFilter("all");
+                    setSearchQuery("");
+                  }}
+                  className="text-xs"
+                >
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
