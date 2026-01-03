@@ -72,12 +72,11 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
     (countries.length > 0 ? Math.max(...countries.map((c) => c.views)) : 0);
 
   const handleMouseEnter = (geo: any, event: React.MouseEvent) => {
-    const isoA3 = geo.properties.ISO_A3 as string | undefined;
+    const countryName = geo.properties.name as string | undefined;
+    const isoA3 = countriesLib.alpha3ToNumeric(countryName) as string | undefined;
     if (!isoA3 || isoA3 === "-99") return;
 
     const views = countryMap.get(isoA3) || 0;
-    const countryName =
-      countriesLib.getName(isoA3, "en") || geo.properties.NAME || isoA3;
 
     setHoveredCountry(isoA3);
     setTooltipContent(
@@ -118,8 +117,8 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
             <Geographies geography={geoUrl}>
               {({ geographies }) =>
                 geographies.map((geo) => {
-                  console.log({"geo": geo});
-                  const isoA3 = geo.properties.ISO_A3 as string | undefined;
+                  const countryName = geo.properties.name as string | undefined;
+                  const isoA3 = countriesLib.alpha3ToNumeric(countryName) as string | undefined;
 
                   const views = countryMap.get(isoA3) || 0;
                   const fillColor = getColorIntensity(
