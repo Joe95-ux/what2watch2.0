@@ -57,7 +57,8 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
 
     countries.forEach(({ country, views }) => {
       const isoA2 = country.toUpperCase().trim();
-      const isoA3 = countriesLib.alpha2ToAlpha3(isoA2);
+      const isoA3 = countriesLib.alpha3ToNumeric(isoA2);
+      console.log({"isoA3": isoA3});
 
       if (isoA3) {
         map.set(isoA3, views);
@@ -73,7 +74,7 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
 
   const handleMouseEnter = (geo: any, event: React.MouseEvent) => {
     const countryName = geo.properties.name as string | undefined;
-    const isoA3 = countriesLib.alpha3ToNumeric(countryName) as string | undefined;
+    const isoA3 = countriesLib.getAlpha3Code(countryName, "en") as string | undefined;
     if (!isoA3 || isoA3 === "-99") return;
 
     const views = countryMap.get(isoA3) || 0;
@@ -118,7 +119,7 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
               {({ geographies }) =>
                 geographies.map((geo) => {
                   const countryName = geo.properties.name as string | undefined;
-                  const isoA3 = countriesLib.alpha3ToNumeric(countryName) as string | undefined;
+                  const isoA3 = countriesLib.getAlpha3Code(countryName, "en") as string | undefined;
 
                   const views = countryMap.get(isoA3) || 0;
                   const fillColor = getColorIntensity(

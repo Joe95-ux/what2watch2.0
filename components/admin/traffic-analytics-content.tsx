@@ -216,7 +216,7 @@ export function TrafficAnalyticsContent() {
                       .map((country, index) => {
                         const countryCode = country.country?.toUpperCase() || "";
                         const countryName = countries.getName(countryCode, "en") || countryCode || "Unknown";
-                        const showCode = countryCode.length === 3;
+                        const showCode = countryCode.length === 2;
                         return (
                           <div
                             key={country.country}
