@@ -13,7 +13,7 @@ countriesLib.registerLocale(en);
 const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
 interface CountryData {
-  country: string; // ISO_A2 in DB (US, SZ)
+  country: string; 
   views: number;
 }
 
@@ -43,10 +43,7 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
-  /**
-   * 🔑 KEY FIX:
-   * Convert ISO_A2 (DB) → ISO_A3 (map)
-   */
+ 
   const countryMap = useMemo(() => {
     const map = new Map<string, number>();
 
@@ -67,13 +64,16 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
 
   const handleMouseEnter = (geo: any, event: React.MouseEvent) => {
     const isoA3 = geo.properties.ISO_A3 as string | undefined;
-    if (!isoA3) return;
+    if (!isoA3 || isoA3 === "-99") return;
 
     const views = countryMap.get(isoA3) || 0;
     const countryName =
       countriesLib.getName(isoA3, "en") ||
       geo.properties.NAME ||
       isoA3;
+
+    console.log(views, countryName);
+    console.log(geo.properties);
 
     setHoveredCountry(isoA3);
     setTooltipContent(`${countryName}: ${views.toLocaleString()} ${views === 1 ? "view" : "views"}`);
@@ -111,6 +111,8 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
               {({ geographies }) =>
                 geographies.map((geo) => {
                   const isoA3 = geo.properties.ISO_A3 as string | undefined;
+                  console.log(isoA3);
+                  console.log(geo.properties);
                   if (!isoA3) return null;
 
                   const views = countryMap.get(isoA3) || 0;

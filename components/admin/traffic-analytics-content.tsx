@@ -206,7 +206,7 @@ export function TrafficAnalyticsContent() {
           <CardContent className="overflow-hidden p-0">
             <div className="flex gap-4 h-[500px]">
               {/* Country Traffic Table - Left Side */}
-              <div className="w-80 overflow-y-auto">
+              <div className="w-90 overflow-y-auto">
                 <div className="p-4 space-y-2">
                   <h3 className="text-sm font-semibold mb-3 sticky top-0 bg-background p-2">Top Countries</h3>
                   <div className="space-y-1">
@@ -216,7 +216,7 @@ export function TrafficAnalyticsContent() {
                       .map((country, index) => {
                         const countryCode = country.country?.toUpperCase() || "";
                         const countryName = countries.getName(countryCode, "en") || countryCode || "Unknown";
-                        const showCode = countryCode.length === 2;
+                        const showCode = countryCode.length === 3;
                         return (
                           <div
                             key={country.country}
