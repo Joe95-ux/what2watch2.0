@@ -72,7 +72,7 @@ export default function YouTubeNotificationsPage() {
   
   // Filter and sort notifications
   const notifications = useMemo(() => {
-    let filtered = allNotifications;
+    let filtered = [...allNotifications];
     
     // Apply read/unread filter
     if (filter === "unread") {

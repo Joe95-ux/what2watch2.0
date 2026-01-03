@@ -168,18 +168,34 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
   const countryMap = useMemo(() => {
     const map = new Map<string, number>();
     countries.forEach(({ country, views }) => {
-      // Try both ISO_A2 and ISO_A3 codes
       if (country) {
-        map.set(country.toUpperCase(), views);
-        // Also add the country name if available in COUNTRY_NAMES
+        const upperCountry = country.toUpperCase().trim();
+        // Store by the code as-is (should be ISO_A2 like "US", "SZ")
+        map.set(upperCountry, views);
+        
+        // Also try to find by country name and map to code
         const countryEntry = Object.entries(COUNTRY_NAMES).find(
           ([_, name]) => name.toLowerCase() === country.toLowerCase()
         );
         if (countryEntry) {
           map.set(countryEntry[0], views);
         }
+        
+        // Also handle case where country might be the full name
+        // Check if it matches any value in COUNTRY_NAMES
+        const reverseEntry = Object.entries(COUNTRY_NAMES).find(
+          ([code, name]) => name.toLowerCase() === country.toLowerCase()
+        );
+        if (reverseEntry) {
+          map.set(reverseEntry[0], views);
+        }
       }
     });
+    
+    // Debug: log the country map
+    console.log("Country Map:", Array.from(map.entries()));
+    console.log("Countries data:", countries);
+    
     return map;
   }, [countries]);
 
@@ -188,11 +204,26 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
     (countries.length > 0 ? Math.max(...countries.map((c) => c.views)) : 0);
 
   const handleMouseEnter = (geo: any, event: React.MouseEvent) => {
-    const countryCode = geo.properties.ISO_A2 || geo.properties.ISO_A3;
+    const countryCode = geo.properties.ISO_A2;
     if (countryCode) {
-      const views = countryMap.get(countryCode.toUpperCase()) || 0;
+      const upperCode = countryCode.toUpperCase();
+      let views = countryMap.get(upperCode) || 0;
+      
+      // If no views found by code, try by name
+      if (views === 0) {
+        const countryName = geo.properties.NAME || geo.properties.name;
+        if (countryName) {
+          const countryEntry = Object.entries(COUNTRY_NAMES).find(
+            ([_, name]) => name.toLowerCase() === countryName.toLowerCase()
+          );
+          if (countryEntry) {
+            views = countryMap.get(countryEntry[0]) || 0;
+          }
+        }
+      }
+      
       const countryName = geo.properties.NAME || geo.properties.name || countryCode;
-      setHoveredCountry(countryCode);
+      setHoveredCountry(upperCode);
       setTooltipContent(`${countryName}: ${views.toLocaleString()} ${views === 1 ? "view" : "views"}`);
       setTooltipPosition({ x: event.clientX, y: event.clientY });
     }
@@ -237,14 +268,17 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
             <Geographies geography={geoUrl}>
               {({ geographies }) =>
                 geographies.map((geo) => {
-                  const countryCode = geo.properties.ISO_A2 || geo.properties.ISO_A3;
-                  const countryName = geo.properties.NAME || geo.properties.name || countryCode;
-                  
-                  // Get views - try both ISO codes and country names
-                  let views = 0;
-                  if (countryCode) {
-                    views = countryMap.get(countryCode.toUpperCase()) || 0;
+                  // Use ISO_A2 only (not ISO_A3) for consistency
+                  const countryCode = geo.properties.ISO_A2;
+                  if (!countryCode) {
+                    return null;
                   }
+                  
+                  const countryName = geo.properties.NAME || geo.properties.name || countryCode;
+                  const upperCode = countryCode.toUpperCase();
+                  
+                  // Get views - match by ISO_A2 code
+                  let views = countryMap.get(upperCode) || 0;
                   
                   // If no views found by code, try by name
                   if (views === 0 && countryName) {
@@ -256,8 +290,13 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
                     }
                   }
                   
+                  // Debug for US specifically
+                  if (upperCode === "US" && views > 0) {
+                    console.log(`US found with ${views} views`);
+                  }
+                  
                   const fillColor = getColorIntensity(views, calculatedMaxViews, isDark);
-                  const isHovered = hoveredCountry === countryCode;
+                  const isHovered = hoveredCountry === upperCode;
                   
                   return (
                     <Geography
@@ -266,6 +305,7 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
                       fill={isHovered ? (isDark ? "#60a5fa" : "#3b82f6") : fillColor}
                       stroke={isDark ? "#1f2937" : "#d1d5db"}
                       strokeWidth={0.5}
+                      data-tooltip-id="map-tooltip"
                       onMouseEnter={(event) => handleMouseEnter(geo, event)}
                       onMouseLeave={handleMouseLeave}
                       style={{
@@ -308,6 +348,7 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
              zIndex: 9999,
              whiteSpace: "nowrap",
            }}
+           id="map-tooltip"
          >
            {tooltipContent}
          </div>

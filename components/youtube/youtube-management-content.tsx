@@ -72,7 +72,7 @@ export default function YouTubeManagementContent() {
   });
 
   const channels = useMemo(() => {
-    let filtered = data?.channels || [];
+    let filtered = [...(data?.channels || [])];
     
     // Apply search filter
     if (debouncedSearchQuery.trim()) {

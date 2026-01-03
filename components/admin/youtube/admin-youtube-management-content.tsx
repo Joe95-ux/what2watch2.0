@@ -108,7 +108,7 @@ export default function AdminYouTubeManagementContent() {
 
   const channels = useMemo(() => {
     try {
-      let filtered = Array.isArray(data?.channels) ? data.channels : [];
+      let filtered = Array.isArray(data?.channels) ? [...data.channels] : [];
       
       // Apply Nollywood filter
       if (filterNollywood === "nollywood") {
