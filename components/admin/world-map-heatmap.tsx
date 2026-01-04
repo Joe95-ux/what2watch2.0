@@ -57,7 +57,7 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
 
     countries.forEach(({ country, views }) => {
       const isoA2 = country.toUpperCase().trim();
-      const isoA3 = countriesLib.alpha3ToNumeric(isoA2);
+      const isoA3 = countriesLib.alpha2ToAlpha3(isoA2);
       console.log({"isoA3": isoA3});
 
       if (isoA3) {
