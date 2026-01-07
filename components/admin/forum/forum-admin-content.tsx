@@ -7,12 +7,12 @@ import { UserManagementTable } from "./user-management-table";
 import { PostModerationTable } from "./post-moderation-table";
 import { CategoryManagement } from "./category-management";
 import { ReportsManagementTable } from "./reports-management-table";
-import { Users, MessageSquare, Hash, Flag, Megaphone } from "lucide-react";
+import { UsersRound, MessageSquare, Hash, Flag, Megaphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FeedbackManagementTable } from "./feedback-management-table";
 
 const tabs = [
-  { id: "users", label: "Users", icon: Users },
+  { id: "users", label: "Users", icon: UsersRound },
   { id: "posts", label: "Posts", icon: MessageSquare },
   { id: "categories", label: "Categories", icon: Hash },
   { id: "reports", label: "Reports", icon: Flag },

@@ -28,7 +28,7 @@ const navLinks: NavLink[] = [
   { href: "/popular", label: "Popular" },
   { href: "/lists", label: "Lists" },
   { href: "/members", label: "Members" },
-  { href: "/forum", label: "Forum" },
+  { href: "/forums", label: "Forums" },
   { href: "/youtube", label: "YouTube" },
 ];
 
@@ -53,35 +53,78 @@ export default function Navbar() {
 
   // Check if we're on dashboard page
   // Exclude /dashboard/ai/discover from dashboard layout (search should be on right)
-  const isDiscoverPage = pathname === "/dashboard/ai/discover" || pathname?.startsWith("/dashboard/ai/discover");
-  const isDashboard = (pathname === "/dashboard" || pathname?.startsWith("/dashboard/")) && !isDiscoverPage;
+  const isDiscoverPage =
+    pathname === "/dashboard/ai/discover" ||
+    pathname?.startsWith("/dashboard/ai/discover");
+  const isDashboard =
+    (pathname === "/dashboard" || pathname?.startsWith("/dashboard/")) &&
+    !isDiscoverPage;
 
-  const shouldUseMaxSearchNav = pathname === "/search" || pathname?.startsWith("/search");
+  const shouldUseMaxSearchNav =
+    pathname === "/search" || pathname?.startsWith("/search");
 
   // Check if we're on a page with hero section (dark navbar needed)
-  const hasHeroSection = pathname === "/browse" || pathname === "/popular" || pathname === "/lists" || pathname === "/members" || pathname?.startsWith("/browse/") || pathname?.startsWith("/popular") || pathname?.startsWith("/lists/");
+  const hasHeroSection =
+    pathname === "/browse" ||
+    pathname === "/popular" ||
+    pathname === "/lists" ||
+    pathname === "/members" ||
+    pathname?.startsWith("/browse/") ||
+    pathname?.startsWith("/popular") ||
+    pathname?.startsWith("/lists/");
 
   return (
-    <nav className={cn(
-      "sticky top-0 z-50 w-full backdrop-blur-md transition-all duration-300 ease-in-out",
-      hasHeroSection 
-        ? "bg-black/80 border-b border-[rgba(255,255,255,0.1)] shadow-sm"
-        : "bg-background/95 dark:bg-background/80 border-b border-border/50 supports-[backdrop-filter]:bg-background/80 dark:supports-[backdrop-filter]:bg-background/80"
-    )}>
-      <div className={cn(
-        "w-full flex h-16 items-center px-4 sm:px-6 lg:px-8",
-        shouldUseMaxSearchNav && "container mx-auto",
-        isDashboard ? "grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_auto] gap-2 md:gap-4" : "justify-between",
-        isDiscoverPage && "justify-between"
-      )}>
+    <nav
+      className={cn(
+        "sticky top-0 z-50 w-full backdrop-blur-md transition-all duration-300 ease-in-out",
+        hasHeroSection
+          ? "bg-black/80 border-b border-[rgba(255,255,255,0.1)] shadow-sm"
+          : "bg-background/95 dark:bg-background/80 border-b border-border/50 supports-[backdrop-filter]:bg-background/80 dark:supports-[backdrop-filter]:bg-background/80"
+      )}
+    >
+      <div
+        className={cn(
+          "w-full flex h-16 items-center px-4 sm:px-6 lg:px-8",
+          shouldUseMaxSearchNav && "container mx-auto",
+          isDashboard
+            ? "grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_auto] gap-2 md:gap-4"
+            : "justify-between",
+          isDiscoverPage && "justify-between"
+        )}
+      >
         {/* Left side - Logo and Nav Dropdown */}
         <div className="flex items-center gap-3">
           {/* Navigation Dropdown - Show between md (768px) and xl (1280px) on desktop, hidden on dashboard */}
           {!isDashboard && !isDiscoverPage && (
             <div className="hidden md:block xl:hidden">
-              <NavDropdown navLinks={navLinks} hasHeroSection={hasHeroSection} />
+              <NavDropdown
+                navLinks={navLinks}
+                hasHeroSection={hasHeroSection}
+              />
             </div>
           )}
+          {/* Mobile Menu Button */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild className="md:hidden">
+              <HamburgerButton
+                isOpen={mobileMenuOpen}
+                showMorph={false}
+                className={cn(
+                  "h-9 w-9 max-[412px]:h-7 max-[412px]:w-7 transition-colors duration-300",
+                  hasHeroSection && "text-white hover:bg-black/20"
+                )}
+              />
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[300px] sm:w-[400px] pt-6">
+              {isSheetMounted && (
+                <MobileNav
+                  navLinks={navLinks}
+                  pathname={pathname}
+                  onLinkClick={() => setMobileMenuOpen(false)}
+                />
+              )}
+            </SheetContent>
+          </Sheet>
           <Logo fontSize="text-xl" iconSize={20} />
         </div>
 
@@ -103,13 +146,18 @@ export default function Navbar() {
                       href={link.href}
                       className={cn(
                         "relative px-3 py-2 text-sm font-medium transition-colors rounded-md",
-                        hasHeroSection 
+                        hasHeroSection
                           ? "hover:bg-white/10 hover:text-white"
                           : "hover:bg-accent hover:text-accent-foreground",
                         isActive
-                          ? hasHeroSection ? "text-white font-semibold" : "text-foreground dark:text-foreground font-semibold"
-                          : hasHeroSection ? "text-white/90" : "text-foreground/80 dark:text-muted-foreground",
-                        isActive && "after:content-[''] after:absolute after:bottom-[-15px] after:left-0 after:right-0 after:h-[3px] after:bg-[#E50914] after:rounded-t-[15px]"
+                          ? hasHeroSection
+                            ? "text-white font-semibold"
+                            : "text-foreground dark:text-foreground font-semibold"
+                          : hasHeroSection
+                          ? "text-white/90"
+                          : "text-foreground/80 dark:text-muted-foreground",
+                        isActive &&
+                          "after:content-[''] after:absolute after:bottom-[-15px] after:left-0 after:right-0 after:h-[3px] after:bg-[#E50914] after:rounded-t-[15px]"
                       )}
                     >
                       {link.label}
@@ -124,46 +172,29 @@ export default function Navbar() {
               {/* Search - Always visible, expands on mobile */}
               <Search hasHeroSection={hasHeroSection} />
 
-              {/* Mobile Menu Button */}
-              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                <SheetTrigger asChild className="md:hidden">
-                  <HamburgerButton
-                    isOpen={mobileMenuOpen}
-                    showMorph={false}
-                    className={cn(
-                      "h-9 w-9 max-[412px]:h-7 max-[412px]:w-7 transition-colors duration-300",
-                      hasHeroSection && "text-white hover:bg-black/20"
-                    )}
-                  />
-                </SheetTrigger>
-                <SheetContent side="right" className="w-[300px] sm:w-[400px] pt-6">
-                  {isSheetMounted && (
-                    <MobileNav 
-                      navLinks={navLinks} 
-                      pathname={pathname}
-                      onLinkClick={() => setMobileMenuOpen(false)}
-                    />
-                  )}
-                </SheetContent>
-              </Sheet>
-
               {/* User Auth */}
               {isLoaded && (
                 <div className="flex items-center gap-2">
                   {isSignedIn ? (
                     <>
                       {/* Unified Notification Center */}
-                      <div className={cn(
-                        "hidden md:inline-flex",
-                        hasHeroSection && "[&_button]:hover:bg-black/20 [&_button]:text-white"
-                      )}>
+                      <div
+                        className={cn(
+                          "hidden md:inline-flex",
+                          hasHeroSection &&
+                            "[&_button]:hover:bg-black/20 [&_button]:text-white"
+                        )}
+                      >
                         <UnifiedNotificationCenter />
                       </div>
                       {/* Feedback Dropdown */}
-                      <div className={cn(
-                        "hidden md:inline-flex",
-                        hasHeroSection && "[&_button]:hover:bg-black/20 [&_button]:text-white"
-                      )}>
+                      <div
+                        className={cn(
+                          "hidden md:inline-flex",
+                          hasHeroSection &&
+                            "[&_button]:hover:bg-black/20 [&_button]:text-white"
+                        )}
+                      >
                         <FeedbackDropdown hasHeroSection={hasHeroSection} />
                       </div>
                       <UserProfileButton hasHeroSection={hasHeroSection} />
@@ -199,17 +230,23 @@ export default function Navbar() {
                 {isSignedIn ? (
                   <>
                     {/* Unified Notification Center */}
-                    <div className={cn(
-                      "hidden md:inline-flex",
-                      hasHeroSection && "[&_button]:hover:bg-black/20 [&_button]:text-white"
-                    )}>
+                    <div
+                      className={cn(
+                        "hidden md:inline-flex",
+                        hasHeroSection &&
+                          "[&_button]:hover:bg-black/20 [&_button]:text-white"
+                      )}
+                    >
                       <UnifiedNotificationCenter />
                     </div>
                     {/* Feedback Dropdown */}
-                    <div className={cn(
-                      "hidden md:inline-flex",
-                      hasHeroSection && "[&_button]:hover:bg-black/20 [&_button]:text-white"
-                    )}>
+                    <div
+                      className={cn(
+                        "hidden md:inline-flex",
+                        hasHeroSection &&
+                          "[&_button]:hover:bg-black/20 [&_button]:text-white"
+                      )}
+                    >
                       <FeedbackDropdown hasHeroSection={hasHeroSection} />
                     </div>
                     <UserProfileButton hasHeroSection={hasHeroSection} />
@@ -240,10 +277,13 @@ export default function Navbar() {
                   )}
                 />
               </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[400px] pt-6">
+              <SheetContent
+                side="right"
+                className="w-[300px] sm:w-[400px] pt-6"
+              >
                 {isSheetMounted && (
-                  <MobileNav 
-                    navLinks={navLinks} 
+                  <MobileNav
+                    navLinks={navLinks}
                     pathname={pathname}
                     onLinkClick={() => setMobileMenuOpen(false)}
                   />
