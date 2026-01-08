@@ -125,7 +125,7 @@ export function FeedbackDropdown({ hasHeroSection }: { hasHeroSection?: boolean 
             <Button
               variant="ghost"
               size="icon"
-              className={cn(
+              className={cn("cursor-pointer",
                 hasHeroSection && "[&_button]:hover:bg-black/20 [&_button]:text-white"
               )}
             >

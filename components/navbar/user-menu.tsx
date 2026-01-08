@@ -23,7 +23,7 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
   return (
     <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className={cn(
+        <Button variant="ghost" size="icon" className={cn("cursor-pointer",
           "h-9 w-9 transition-colors duration-300",
           hasHeroSection && "hover:bg-black/20"
         )}>
