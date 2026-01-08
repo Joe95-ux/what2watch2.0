@@ -168,19 +168,19 @@ export default function Navbar() {
             )}
 
             {/* Right side - Search, Profile, Nav Trigger (non-dashboard and discover page) */}
-            <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-0 sm:gap-3 flex-shrink-0">
               {/* Search - Always visible, expands on mobile */}
               <Search hasHeroSection={hasHeroSection} />
 
               {/* User Auth */}
               {isLoaded && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-0 sm:gap-2">
                   {isSignedIn ? (
                     <>
                       {/* Unified Notification Center */}
                       <div
                         className={cn(
-                          "hidden md:inline-flex",
+                          "hidden md:inline-flex cursor-pointer",
                           hasHeroSection &&
                             "[&_button]:hover:bg-black/20 [&_button]:text-white"
                         )}
@@ -190,7 +190,7 @@ export default function Navbar() {
                       {/* Feedback Dropdown */}
                       <div
                         className={cn(
-                          "hidden md:inline-flex",
+                          "hidden md:inline-flex cursor-pointer",
                           hasHeroSection &&
                             "[&_button]:hover:bg-black/20 [&_button]:text-white"
                         )}
@@ -199,7 +199,7 @@ export default function Navbar() {
                       </div>
                       <UserProfileButton hasHeroSection={hasHeroSection} />
                       {/* User Menu - Hidden on mobile, shown in mobile menu */}
-                      <div className="hidden md:block">
+                      <div className="hidden md:block cursor-pointer">
                         <UserMenu hasHeroSection={hasHeroSection} />
                       </div>
                     </>
@@ -218,7 +218,7 @@ export default function Navbar() {
 
         {/* Right side - Search, Profile, Nav Trigger (dashboard only) */}
         {isDashboard && (
-          <div className="flex items-center gap-3 flex-shrink-0 justify-end md:justify-start">
+          <div className="flex items-center gap-0 sm:gap-3 flex-shrink-0 justify-end md:justify-start">
             {/* Search - Visible on mobile, hidden on desktop (where it's in center) */}
             <div className="md:hidden">
               <Search hasHeroSection={hasHeroSection} />
@@ -226,13 +226,13 @@ export default function Navbar() {
 
             {/* User Auth */}
             {isLoaded && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-0 sm:gap-2">
                 {isSignedIn ? (
                   <>
                     {/* Unified Notification Center */}
                     <div
                       className={cn(
-                        "hidden md:inline-flex",
+                        "hidden md:inline-flex cursor-pointer",
                         hasHeroSection &&
                           "[&_button]:hover:bg-black/20 [&_button]:text-white"
                       )}
@@ -242,7 +242,7 @@ export default function Navbar() {
                     {/* Feedback Dropdown */}
                     <div
                       className={cn(
-                        "hidden md:inline-flex",
+                        "hidden md:inline-flex cursor-pointer",
                         hasHeroSection &&
                           "[&_button]:hover:bg-black/20 [&_button]:text-white"
                       )}
@@ -251,7 +251,7 @@ export default function Navbar() {
                     </div>
                     <UserProfileButton hasHeroSection={hasHeroSection} />
                     {/* User Menu - Hidden on mobile, shown in mobile menu */}
-                    <div className="hidden md:block">
+                    <div className="hidden md:block cursor-pointer">
                       <UserMenu hasHeroSection={hasHeroSection} />
                     </div>
                   </>
@@ -264,32 +264,6 @@ export default function Navbar() {
                 )}
               </div>
             )}
-
-            {/* Mobile Menu Button */}
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild className="md:hidden">
-                <HamburgerButton
-                  isOpen={mobileMenuOpen}
-                  showMorph={false}
-                  className={cn(
-                    "h-9 w-9 max-[412px]:h-7 max-[412px]:w-7 transition-colors duration-300",
-                    hasHeroSection && "text-white hover:bg-black/20"
-                  )}
-                />
-              </SheetTrigger>
-              <SheetContent
-                side="right"
-                className="w-[300px] sm:w-[400px] pt-6"
-              >
-                {isSheetMounted && (
-                  <MobileNav
-                    navLinks={navLinks}
-                    pathname={pathname}
-                    onLinkClick={() => setMobileMenuOpen(false)}
-                  />
-                )}
-              </SheetContent>
-            </Sheet>
           </div>
         )}
       </div>

@@ -23,7 +23,7 @@ const HamburgerButton = React.forwardRef<HTMLButtonElement, HamburgerButtonProps
         )}
         {...props}
       >
-        <span className="relative block h-5 w-7 max-[412px]:h-4 max-[412px]:w-5">
+        <span className="relative block h-4 w-6 max-[412px]:h-4 max-[412px]:w-5">
           <span
             className={cn(
               "absolute left-0 top-0 h-[2px] w-full rounded-full bg-current transition-all duration-300 ease-in-out",

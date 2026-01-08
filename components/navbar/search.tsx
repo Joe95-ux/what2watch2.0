@@ -311,7 +311,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
             }}
           >
             <SearchIcon className={cn(
-              "size-6 transition-colors duration-300",
+              "size-5 transition-colors duration-300",
               hasHeroSection && "text-white"
             )} />
           </Button>
