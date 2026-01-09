@@ -116,13 +116,11 @@ export default function Navbar() {
               />
             </SheetTrigger>
             <SheetContent side="left" className="w-[300px] sm:w-[400px] pt-6">
-              {isSheetMounted && (
-                <MobileNav
-                  navLinks={navLinks}
-                  pathname={pathname}
-                  onLinkClick={() => setMobileMenuOpen(false)}
-                />
-              )}
+              <MobileNav
+                navLinks={navLinks}
+                pathname={pathname}
+                onLinkClick={() => setMobileMenuOpen(false)}
+              />
             </SheetContent>
           </Sheet>
           <Logo fontSize="text-xl" iconSize={20} />
