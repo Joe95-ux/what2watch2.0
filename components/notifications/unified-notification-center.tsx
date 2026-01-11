@@ -13,9 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useForumNotifications, useMarkForumNotificationsAsRead, ForumNotification } from "@/hooks/use-forum-notifications";
-import { useYouTubeNotifications, useMarkNotificationsAsRead, YouTubeNotification } from "@/hooks/use-youtube-notifications";
-import { useGeneralNotifications, useMarkGeneralNotificationsAsRead, GeneralNotification } from "@/hooks/use-general-notifications";
+import { useForumNotifications, useMarkForumNotificationsAsRead, useDeleteForumNotifications, ForumNotification } from "@/hooks/use-forum-notifications";
+import { useYouTubeNotifications, useMarkNotificationsAsRead, useDeleteYouTubeNotifications, YouTubeNotification } from "@/hooks/use-youtube-notifications";
+import { useGeneralNotifications, useMarkGeneralNotificationsAsRead, useDeleteGeneralNotifications, GeneralNotification } from "@/hooks/use-general-notifications";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useAvatar } from "@/contexts/avatar-context";
 import Link from "next/link";
@@ -97,6 +97,9 @@ export function UnifiedNotificationCenter() {
   const markForumAsRead = useMarkForumNotificationsAsRead();
   const markYouTubeAsRead = useMarkNotificationsAsRead();
   const markGeneralAsRead = useMarkGeneralNotificationsAsRead();
+  const deleteForumNotifications = useDeleteForumNotifications();
+  const deleteYouTubeNotifications = useDeleteYouTubeNotifications();
+  const deleteGeneralNotifications = useDeleteGeneralNotifications();
 
   const forumNotifications = forumData?.notifications || [];
   const youtubeNotifications = youtubeData?.notifications || [];
@@ -293,16 +296,18 @@ export function UnifiedNotificationCenter() {
                               </p>
                             </div>
                             <div className="flex items-center gap-1">
-                              {!notification.isRead && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6"
-                                  onClick={() => handleMarkYouTubeAsRead(notification.id)}
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteYouTubeNotifications.mutate({ notificationIds: [notification.id] });
+                                }}
+                                disabled={deleteYouTubeNotifications.isPending}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -384,19 +389,18 @@ export function UnifiedNotificationCenter() {
                                 })}
                               </p>
                             </div>
-                            {!notification.isRead && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleMarkGeneralAsRead(notification.id);
-                                }}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteGeneralNotifications.mutate({ notificationIds: [notification.id] });
+                              }}
+                              disabled={deleteGeneralNotifications.isPending}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -480,20 +484,19 @@ export function UnifiedNotificationCenter() {
                                   })}
                                 </p>
                               </div>
-                              {!notification.isRead && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    handleMarkForumAsRead(notification.id);
-                                  }}
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  deleteForumNotifications.mutate({ notificationIds: [notification.id] });
+                                }}
+                                disabled={deleteForumNotifications.isPending}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
                             </div>
                           </div>
                         </div>

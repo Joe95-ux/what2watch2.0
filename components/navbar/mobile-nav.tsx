@@ -6,16 +6,21 @@ import { useUser, SignInButton, useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetClose } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserCircle } from "lucide-react";
+import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserCircle, X, Megaphone, Bookmark, List, BookOpen, ClipboardList } from "lucide-react";
 import { Youtube } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useForumNotifications } from "@/hooks/use-forum-notifications";
 import { useYouTubeNotifications } from "@/hooks/use-youtube-notifications";
 import { UnifiedNotificationCenterMobile } from "@/components/notifications/unified-notification-center-mobile";
 import { AvatarPickerDialog } from "@/components/avatar/avatar-picker-dialog";
+import Logo from "@/components/Logo";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 
 interface MobileNavProps {
   navLinks: Array<{ href: string; label: string }>;
@@ -31,6 +36,11 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
   const [isThemeOpen, setIsThemeOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [isAvatarEditorOpen, setIsAvatarEditorOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackReason, setFeedbackReason] = useState("");
+  const [feedbackPriority, setFeedbackPriority] = useState("");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
   // Get unread notification counts
   const { data: forumData } = useForumNotifications(false);
@@ -45,111 +55,254 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
     onLinkClick();
   };
 
+  const handleFeedbackSubmit = async () => {
+    if (!isSignedIn) {
+      toast.error("Please sign in to submit feedback");
+      return;
+    }
+
+    if (!feedbackReason || !feedbackPriority || !feedbackMessage.trim()) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    setIsSubmittingFeedback(true);
+    try {
+      const response = await fetch("/api/feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reason: feedbackReason,
+          priority: feedbackPriority,
+          message: feedbackMessage.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit feedback");
+      }
+
+      toast.success("Feedback submitted successfully!");
+      setFeedbackReason("");
+      setFeedbackPriority("");
+      setFeedbackMessage("");
+      setFeedbackOpen(false);
+      onLinkClick();
+    } catch (error) {
+      console.error("[MobileNav] feedback submit error", error);
+      toast.error("Failed to submit feedback. Please try again.");
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col">
-      {/* Navigation Links - Styled like DropdownMenu */}
-      <div className="p-1">
-        {navLinks.map((link) => {
-          // For forum, match exact path or paths starting with /forum/
-          const isActive = link.href === "/forum" 
-            ? pathname === link.href || pathname?.startsWith(link.href + "/")
-            : pathname === link.href;
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={onLinkClick}
-              className={cn(
-                "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
-                "focus:bg-accent focus:text-accent-foreground",
-                "hover:bg-accent hover:text-accent-foreground",
-                isActive
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground"
-              )}
-            >
-              {link.label}
-            </Link>
-          );
-        })}
+    <div className="flex flex-col h-full">
+      {/* Header with Logo and Close Button */}
+      <SheetHeader className="flex flex-row items-center justify-between px-4 py-3 border-b">
+        <div className="h-6">
+          <Logo />
+        </div>
+        <SheetClose asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <X className="h-4 w-4" />
+          </Button>
+        </SheetClose>
+      </SheetHeader>
+
+      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+        {/* First Section: Dashboard, Notifications, Feedback */}
         {isSignedIn && (
-          <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
-            <SheetTrigger asChild>
-              <button
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <Link href="/dashboard" onClick={onLinkClick} className="flex-1">
+                <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                  <div className="rounded-full bg-primary/10 p-2">
+                    <LayoutDashboard className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="text-xs font-medium">Dashboard</span>
+                </div>
+              </Link>
+              
+              <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+                <SheetTrigger asChild>
+                  <button className="flex-1">
+                    <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors relative">
+                      <div className="rounded-full bg-primary/10 p-2">
+                        <Bell className="h-5 w-5 text-primary" />
+                      </div>
+                      {totalUnreadCount > 0 && (
+                        <Badge
+                          variant="destructive"
+                          className="absolute top-1 right-1 h-4 min-w-4 px-1 flex items-center justify-center text-[10px]"
+                        >
+                          {totalUnreadCount > 99 ? "99+" : totalUnreadCount}
+                        </Badge>
+                      )}
+                      <span className="text-xs font-medium">Notifications</span>
+                    </div>
+                  </button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-full sm:w-[400px] p-0 flex flex-col">
+                  <UnifiedNotificationCenterMobile onClose={() => setNotificationsOpen(false)} />
+                </SheetContent>
+              </Sheet>
+
+              <Popover open={feedbackOpen} onOpenChange={setFeedbackOpen}>
+                <PopoverTrigger asChild>
+                  <button className="flex-1">
+                    <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                      <div className="rounded-full bg-primary/10 p-2">
+                        <Megaphone className="h-5 w-5 text-primary" />
+                      </div>
+                      <span className="text-xs font-medium">Feedback</span>
+                    </div>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[90vw] max-w-[400px] p-4" align="center">
+                  <div className="space-y-4">
+                    <h3 className="font-semibold">Feedback</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label>Reason</Label>
+                        <Select value={feedbackReason} onValueChange={setFeedbackReason}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select reason" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {["Bug Report", "Feature Request", "UI/UX Issue", "Performance Issue", "Content Issue", "Account Issue", "Other"].map((r) => (
+                              <SelectItem key={r} value={r}>{r}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Priority</Label>
+                        <Select value={feedbackPriority} onValueChange={setFeedbackPriority}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select priority" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {["Low", "Medium", "High", "Urgent"].map((p) => (
+                              <SelectItem key={p} value={p}>{p}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Message</Label>
+                      <Textarea
+                        placeholder="Describe your feedback..."
+                        value={feedbackMessage}
+                        onChange={(e) => setFeedbackMessage(e.target.value)}
+                        className="min-h-[100px]"
+                        maxLength={2000}
+                      />
+                      <div className="text-xs text-muted-foreground text-right">
+                        {feedbackMessage.length}/2000
+                      </div>
+                    </div>
+                    <Button
+                      onClick={handleFeedbackSubmit}
+                      disabled={isSubmittingFeedback || !feedbackReason || !feedbackPriority || !feedbackMessage.trim()}
+                      className="w-full"
+                    >
+                      {isSubmittingFeedback ? "Submitting..." : "Submit Feedback"}
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+        )}
+
+        {/* Second Section: Watchlist, Lists, Playlists, Diary */}
+        {isSignedIn && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <Link href="/dashboard/watchlist" onClick={onLinkClick}>
+                <div className="flex flex-col items-center gap-2 p-4 rounded-md bg-muted/50 hover:bg-muted transition-colors">
+                  <Bookmark className="h-5 w-5 text-primary" />
+                  <span className="text-xs font-medium">Watchlist</span>
+                </div>
+              </Link>
+              <Link href="/dashboard/lists" onClick={onLinkClick}>
+                <div className="flex flex-col items-center gap-2 p-4 rounded-md bg-muted/50 hover:bg-muted transition-colors">
+                  <ClipboardList className="h-5 w-5 text-primary" />
+                  <span className="text-xs font-medium">Lists</span>
+                </div>
+              </Link>
+              <Link href="/dashboard/playlists" onClick={onLinkClick}>
+                <div className="flex flex-col items-center gap-2 p-4 rounded-md bg-muted/50 hover:bg-muted transition-colors">
+                  <List className="h-5 w-5 text-primary" />
+                  <span className="text-xs font-medium">Playlists</span>
+                </div>
+              </Link>
+              <Link href="/dashboard/diary" onClick={onLinkClick}>
+                <div className="flex flex-col items-center gap-2 p-4 rounded-md bg-muted/50 hover:bg-muted transition-colors">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  <span className="text-xs font-medium">Diary</span>
+                </div>
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation Links */}
+        <div className="space-y-2">
+          {navLinks.map((link) => {
+            const isActive = link.href === "/forum" 
+              ? pathname === link.href || pathname?.startsWith(link.href + "/")
+              : pathname === link.href;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={onLinkClick}
                 className={cn(
-                  "relative mt-1 flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
-                  "focus:bg-accent focus:text-accent-foreground",
-                  "hover:bg-accent hover:text-accent-foreground",
-                  "text-muted-foreground"
+                  "flex items-center rounded-md px-3 py-2.5 text-sm transition-colors",
+                  "hover:bg-muted/50",
+                  isActive ? "bg-muted text-foreground font-medium" : "text-muted-foreground"
                 )}
               >
-                <Bell className="mr-2 h-4 w-4" />
-                <span>Notifications</span>
-                {totalUnreadCount > 0 && (
-                  <Badge
-                    variant="destructive"
-                    className="ml-auto h-5 min-w-5 px-1.5 flex items-center justify-center text-xs"
-                  >
-                    {totalUnreadCount > 99 ? "99+" : totalUnreadCount}
-                  </Badge>
-                )}
-              </button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-full sm:w-[400px] p-0 flex flex-col">
-              <UnifiedNotificationCenterMobile onClose={() => setNotificationsOpen(false)} />
-            </SheetContent>
-          </Sheet>
-        )}
-      </div>
+                {link.label}
+              </Link>
+            );
+          })}
+        </div>
 
-      {/* User Menu Items (only shown when signed in) */}
-      {isSignedIn && (
-        <>
-          <Separator className="my-1" />
-          <div className="p-1">
-            <Link
-              href="/dashboard"
-              onClick={onLinkClick}
-              className={cn(
-                "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
-                "focus:bg-accent focus:text-accent-foreground",
-                "hover:bg-accent hover:text-accent-foreground",
-                pathname === "/dashboard"
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground"
-              )}
-            >
-              <LayoutDashboard className="mr-2 h-4 w-4" />
-              <span>Dashboard</span>
-            </Link>
+        {/* User Menu Items (only shown when signed in) */}
+        {isSignedIn && (
+          <div className="space-y-2">
             <Link
               href="/browse/personalized"
               onClick={onLinkClick}
               className={cn(
-                "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
-                "focus:bg-accent focus:text-accent-foreground",
-                "hover:bg-accent hover:text-accent-foreground",
+                "flex items-center rounded-md px-3 py-2.5 text-sm transition-colors",
+                "hover:bg-muted/50",
                 pathname === "/browse/personalized"
-                  ? "bg-accent text-accent-foreground"
+                  ? "bg-muted text-foreground font-medium"
                   : "text-muted-foreground"
               )}
             >
-              <Compass className="mr-2 h-4 w-4" />
+              <Compass className="mr-3 h-4 w-4" />
               <span>Guide</span>
             </Link>
             <Link
               href="/settings"
               onClick={onLinkClick}
               className={cn(
-                "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
-                "focus:bg-accent focus:text-accent-foreground",
-                "hover:bg-accent hover:text-accent-foreground",
+                "flex items-center rounded-md px-3 py-2.5 text-sm transition-colors",
+                "hover:bg-muted/50",
                 pathname === "/settings"
-                  ? "bg-accent text-accent-foreground"
+                  ? "bg-muted text-foreground font-medium"
                   : "text-muted-foreground"
               )}
             >
-              <Settings className="mr-2 h-4 w-4" />
+              <Settings className="mr-3 h-4 w-4" />
               <span>Settings</span>
             </Link>
             <button
@@ -157,62 +310,57 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                 setIsAvatarEditorOpen(true);
                 onLinkClick();
               }}
-              className={cn(
-                "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
-                "focus:bg-accent focus:text-accent-foreground",
-                "hover:bg-accent hover:text-accent-foreground",
-                "text-muted-foreground"
-              )}
+              className="flex items-center w-full rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
             >
-              <UserCircle className="mr-2 h-4 w-4" />
+              <UserCircle className="mr-3 h-4 w-4" />
               <span>Edit Avatar</span>
             </button>
 
             {/* Theme Toggle - Collapsible */}
-            <div className="relative">
+            <div>
               <button
                 onClick={() => setIsThemeOpen(!isThemeOpen)}
                 className={cn(
-                  "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
-                  "focus:bg-accent focus:text-accent-foreground",
-                  "hover:bg-accent hover:text-accent-foreground",
+                  "flex w-full items-center justify-between rounded-md px-3 py-2.5 text-sm transition-colors",
+                  "hover:bg-muted/50",
                   isThemeOpen
-                    ? "bg-accent text-accent-foreground"
+                    ? "bg-muted text-foreground font-medium"
                     : "text-muted-foreground"
                 )}
               >
-                {theme === "light" ? (
-                  <Sun className="mr-2 h-4 w-4" />
-                ) : theme === "dark" ? (
-                  <Moon className="mr-2 h-4 w-4" />
-                ) : (
-                  <Monitor className="mr-2 h-4 w-4" />
-                )}
-                <span>Theme</span>
+                <div className="flex items-center">
+                  {theme === "light" ? (
+                    <Sun className="mr-3 h-4 w-4" />
+                  ) : theme === "dark" ? (
+                    <Moon className="mr-3 h-4 w-4" />
+                  ) : (
+                    <Monitor className="mr-3 h-4 w-4" />
+                  )}
+                  <span>Theme</span>
+                </div>
                 <ChevronRight
                   className={cn(
-                    "ml-auto h-4 w-4 transition-transform duration-200",
+                    "h-4 w-4 transition-transform duration-200",
                     isThemeOpen && "rotate-90"
                   )}
                 />
               </button>
               {isThemeOpen && (
-                <div className="ml-4 mt-1 space-y-0.5">
+                <div className="ml-4 mt-1 space-y-1">
                   <button
                     onClick={() => {
                       setTheme("light");
                       onLinkClick();
                     }}
                     className={cn(
-                      "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
-                      "focus:bg-accent focus:text-accent-foreground",
-                      "hover:bg-accent hover:text-accent-foreground",
+                      "flex w-full items-center rounded-md px-3 py-2 text-sm transition-colors",
+                      "hover:bg-muted/50",
                       theme === "light"
-                        ? "bg-accent text-accent-foreground"
+                        ? "bg-muted text-foreground font-medium"
                         : "text-muted-foreground"
                     )}
                   >
-                    <Sun className="mr-2 h-4 w-4" />
+                    <Sun className="mr-3 h-4 w-4" />
                     <span>Light</span>
                   </button>
                   <button
@@ -221,15 +369,14 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                       onLinkClick();
                     }}
                     className={cn(
-                      "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
-                      "focus:bg-accent focus:text-accent-foreground",
-                      "hover:bg-accent hover:text-accent-foreground",
+                      "flex w-full items-center rounded-md px-3 py-2 text-sm transition-colors",
+                      "hover:bg-muted/50",
                       theme === "dark"
-                        ? "bg-accent text-accent-foreground"
+                        ? "bg-muted text-foreground font-medium"
                         : "text-muted-foreground"
                     )}
                   >
-                    <Moon className="mr-2 h-4 w-4" />
+                    <Moon className="mr-3 h-4 w-4" />
                     <span>Dark</span>
                   </button>
                   <button
@@ -238,47 +385,50 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                       onLinkClick();
                     }}
                     className={cn(
-                      "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
-                      "focus:bg-accent focus:text-accent-foreground",
-                      "hover:bg-accent hover:text-accent-foreground",
+                      "flex w-full items-center rounded-md px-3 py-2 text-sm transition-colors",
+                      "hover:bg-muted/50",
                       theme === "system"
-                        ? "bg-accent text-accent-foreground"
+                        ? "bg-muted text-foreground font-medium"
                         : "text-muted-foreground"
                     )}
                   >
-                    <Monitor className="mr-2 h-4 w-4" />
+                    <Monitor className="mr-3 h-4 w-4" />
                     <span>System</span>
                   </button>
                 </div>
               )}
             </div>
 
-            <Separator className="my-1" />
-
-            <Link href="/dashboard/youtube/management" onClick={onLinkClick}>
-              <div className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer">
-                <Youtube className="h-4 w-4" />
-                <span>YouTube Management</span>
-              </div>
+            <Link 
+              href="/dashboard/youtube/management" 
+              onClick={onLinkClick}
+              className="flex items-center rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
+            >
+              <Youtube className="mr-3 h-4 w-4" />
+              <span>YouTube Management</span>
             </Link>
-
-            <Separator className="my-1" />
 
             <button
               onClick={handleSignOut}
-              className={cn(
-                "relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
-                "focus:bg-accent focus:text-accent-foreground",
-                "hover:bg-accent hover:text-accent-foreground",
-                "text-destructive focus:text-destructive"
-              )}
+              className="flex w-full items-center rounded-md px-3 py-2.5 text-sm text-destructive hover:bg-muted/50 transition-colors"
             >
-              <LogOut className="mr-2 h-4 w-4" />
+              <LogOut className="mr-3 h-4 w-4" />
               <span>Logout</span>
             </button>
           </div>
-        </>
-      )}
+        )}
+
+        {/* Auth Section */}
+        {!isSignedIn && (
+          <div className="pt-4">
+            <SignInButton mode="modal">
+              <Button className="w-full" onClick={onLinkClick} variant="default">
+                Sign In
+              </Button>
+            </SignInButton>
+          </div>
+        )}
+      </div>
 
       {/* Avatar Picker Dialog */}
       {isSignedIn && (
@@ -287,20 +437,6 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
           onClose={() => setIsAvatarEditorOpen(false)}
           currentAvatarUrl={user?.imageUrl}
         />
-      )}
-
-      {/* Auth Section */}
-      {!isSignedIn && (
-        <>
-          <Separator className="my-1" />
-          <div className="p-1">
-            <SignInButton mode="modal">
-              <Button className="w-full" onClick={onLinkClick} variant="default">
-                Sign In
-              </Button>
-            </SignInButton>
-          </div>
-        </>
       )}
     </div>
   );

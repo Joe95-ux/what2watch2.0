@@ -2,24 +2,48 @@
 
 import { FAQAccordion } from "@/components/landing/faq-accordion";
 import { ContactForm } from "@/components/contact/contact-form";
-import { HelpCircle, Mail, Phone, MapPin, ArrowUpRight } from "lucide-react";
+import { Mail, Phone, MapPin, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 export default function ContactPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
+        {/* Header Section */}
+        <div className="max-w-6xl mx-auto mb-8">
+          {/* Contact Us Header */}
+          <div className="inline-flex items-center px-4 py-2 rounded-lg bg-muted/50 border mb-4">
+            <span className="text-lg font-medium">Contact Us</span>
+          </div>
+          
+          {/* Breadcrumb */}
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="/">Home</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Contact</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+
         {/* First Section: Contact Info & Form */}
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 max-w-6xl mx-auto mb-20">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 max-w-6xl mx-auto mb-30">
           {/* Left Column: Contact Info */}
           <div className="space-y-6">
-            {/* Contact Us Button */}
-            <div className="flex items-center gap-3">
-              <button className="flex items-center justify-center w-12 h-12 rounded-[25px] border bg-card hover:bg-muted transition-colors">
-                <HelpCircle className="h-6 w-6 text-primary" />
-              </button>
-              <span className="text-lg font-medium">Contact Us</span>
-            </div>
 
             {/* Get in Touch */}
             <div className="space-y-2">
@@ -94,18 +118,18 @@ export default function ContactPage() {
 
           {/* Right Column: Contact Form */}
           <div>
-            <div className="border rounded-lg p-6 bg-card">
+            <div className="border rounded-lg p-6 bg-transparent">
               <ContactForm />
             </div>
           </div>
         </div>
 
         {/* Second Section: FAQ */}
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 max-w-6xl mx-auto">
+        <div className="flex flex-col gap-12 lg:gap-16 max-w-[50rem] mx-auto">
           {/* Left Column: Title & Description */}
           <div className="space-y-2">
-            <h2 className="text-2xl font-semibold">Frequently Asked Questions</h2>
-            <p className="text-muted-foreground">
+            <h2 className="text-2xl font-semibold text-center">Frequently Asked Questions</h2>
+            <p className="text-muted-foreground text-center">
               Browse through our FAQ to find quick answers to common questions.
             </p>
           </div>

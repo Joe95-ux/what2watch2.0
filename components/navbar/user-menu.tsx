@@ -1,13 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { MoreVertical, LayoutDashboard, Youtube, Bookmark, List, BookOpen, Activity, User, ClipboardList, Compass } from "lucide-react";
+import { MoreVertical, Youtube, Bookmark, List, BookOpen, Activity, User, ClipboardList, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
@@ -19,6 +17,10 @@ interface UserMenuProps {
 
 export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const handleLinkClick = () => {
+    setTimeout(() => setIsDropdownOpen(false), 100);
+  };
 
   return (
     <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
@@ -34,132 +36,72 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
           <span className="sr-only">User menu</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[18rem]">
-        <Link href="/dashboard">
-          <DropdownMenuItem 
-            className="cursor-pointer"
-            onSelect={(e) => {
-              // Prevent default closing behavior - close manually after navigation
-              e.preventDefault();
-              setTimeout(() => setIsDropdownOpen(false), 100);
-            }}
-          >
-            <LayoutDashboard className="mr-2 h-4 w-4" />
-            <span>Dashboard</span>
-          </DropdownMenuItem>
-        </Link>
-        <DropdownMenuSeparator />
+      <DropdownMenuContent align="end" className="w-[18rem] p-4">
+        <div className="space-y-4">
+          {/* First Section: Watchlist, Lists, Playlists, Diary */}
+          <div className="grid grid-cols-2 gap-3">
+            <Link href="/dashboard/watchlist" onClick={handleLinkClick}>
+              <div className="flex flex-col items-center gap-2 p-4 rounded-md bg-muted/50 hover:bg-muted transition-colors">
+                <Bookmark className="h-5 w-5 text-primary" />
+                <span className="text-xs font-medium">Watchlist</span>
+              </div>
+            </Link>
+            <Link href="/dashboard/lists" onClick={handleLinkClick}>
+              <div className="flex flex-col items-center gap-2 p-4 rounded-md bg-muted/50 hover:bg-muted transition-colors">
+                <ClipboardList className="h-5 w-5 text-primary" />
+                <span className="text-xs font-medium">Lists</span>
+              </div>
+            </Link>
+            <Link href="/dashboard/playlists" onClick={handleLinkClick}>
+              <div className="flex flex-col items-center gap-2 p-4 rounded-md bg-muted/50 hover:bg-muted transition-colors">
+                <List className="h-5 w-5 text-primary" />
+                <span className="text-xs font-medium">Playlists</span>
+              </div>
+            </Link>
+            <Link href="/dashboard/diary" onClick={handleLinkClick}>
+              <div className="flex flex-col items-center gap-2 p-4 rounded-md bg-muted/50 hover:bg-muted transition-colors">
+                <BookOpen className="h-5 w-5 text-primary" />
+                <span className="text-xs font-medium">Diary</span>
+              </div>
+            </Link>
+          </div>
 
-        <Link href="/browse/personalized">
-          <DropdownMenuItem 
-            className="cursor-pointer"
-            onSelect={(e) => {
-              e.preventDefault();
-              setTimeout(() => setIsDropdownOpen(false), 100);
-            }}
-          >
-            <Compass className="mr-2 h-4 w-4" />
-            <span>Guide</span>
-          </DropdownMenuItem>
-        </Link>
-        <DropdownMenuSeparator />
-
-        <Link href="/dashboard/watchlist">
-          <DropdownMenuItem 
-            className="cursor-pointer"
-            onSelect={(e) => {
-              e.preventDefault();
-              setTimeout(() => setIsDropdownOpen(false), 100);
-            }}
-          >
-            <Bookmark className="mr-2 h-4 w-4" />
-            <span>Watchlist</span>
-          </DropdownMenuItem>
-        </Link>
-        <DropdownMenuSeparator />
-
-        <Link href="/dashboard/playlists">
-          <DropdownMenuItem 
-            className="cursor-pointer"
-            onSelect={(e) => {
-              e.preventDefault();
-              setTimeout(() => setIsDropdownOpen(false), 100);
-            }}
-          >
-            <List className="mr-2 h-4 w-4" />
-            <span>Playlists</span>
-          </DropdownMenuItem>
-        </Link>
-        <DropdownMenuSeparator />
-
-        <Link href="/dashboard/lists">
-          <DropdownMenuItem 
-            className="cursor-pointer"
-            onSelect={(e) => {
-              e.preventDefault();
-              setTimeout(() => setIsDropdownOpen(false), 100);
-            }}
-          >
-            <ClipboardList className="mr-2 h-4 w-4" />
-            <span>Lists</span>
-          </DropdownMenuItem>
-        </Link>
-        <DropdownMenuSeparator />
-
-        <Link href="/dashboard/diary">
-          <DropdownMenuItem 
-            className="cursor-pointer"
-            onSelect={(e) => {
-              e.preventDefault();
-              setTimeout(() => setIsDropdownOpen(false), 100);
-            }}
-          >
-            <BookOpen className="mr-2 h-4 w-4" />
-            <span>Diary</span>
-          </DropdownMenuItem>
-        </Link>
-        <DropdownMenuSeparator />
-
-        <Link href="/dashboard/activity">
-          <DropdownMenuItem 
-            className="cursor-pointer"
-            onSelect={(e) => {
-              e.preventDefault();
-              setTimeout(() => setIsDropdownOpen(false), 100);
-            }}
-          >
-            <Activity className="mr-2 h-4 w-4" />
-            <span>Activity</span>
-          </DropdownMenuItem>
-        </Link>
-        <DropdownMenuSeparator />
-
-        <Link href="/dashboard/profile">
-          <DropdownMenuItem 
-            className="cursor-pointer"
-            onSelect={(e) => {
-              e.preventDefault();
-              setTimeout(() => setIsDropdownOpen(false), 100);
-            }}
-          >
-            <User className="mr-2 h-4 w-4" />
-            <span>Profile</span>
-          </DropdownMenuItem>
-        </Link>
-        <DropdownMenuSeparator />
-
-        <Link href="/dashboard/youtube/management">
-          <DropdownMenuItem 
-            className="cursor-pointer"
-            onSelect={(e) => {
-              e.preventDefault();
-              setTimeout(() => setIsDropdownOpen(false), 100);
-            }}
-          >
-            <Youtube className="mr-2 h-4 w-4" />
-            <span>YouTube Management</span>
-          </DropdownMenuItem>
-        </Link>
+          {/* Other Items */}
+          <div className="space-y-2">
+            <Link
+              href="/browse/personalized"
+              onClick={handleLinkClick}
+              className="flex items-center rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
+            >
+              <Compass className="mr-3 h-4 w-4" />
+              <span>Guide</span>
+            </Link>
+            <Link
+              href="/dashboard/activity"
+              onClick={handleLinkClick}
+              className="flex items-center rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
+            >
+              <Activity className="mr-3 h-4 w-4" />
+              <span>Activity</span>
+            </Link>
+            <Link
+              href="/dashboard/profile"
+              onClick={handleLinkClick}
+              className="flex items-center rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
+            >
+              <User className="mr-3 h-4 w-4" />
+              <span>Profile</span>
+            </Link>
+            <Link
+              href="/dashboard/youtube/management"
+              onClick={handleLinkClick}
+              className="flex items-center rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
+            >
+              <Youtube className="mr-3 h-4 w-4" />
+              <span>YouTube Management</span>
+            </Link>
+          </div>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );

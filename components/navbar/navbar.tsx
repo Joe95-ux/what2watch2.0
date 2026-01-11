@@ -115,7 +115,7 @@ export default function Navbar() {
                 )}
               />
             </SheetTrigger>
-            <SheetContent side="left" className="w-[300px] sm:w-[400px] pt-6">
+            <SheetContent side="left" className="w-[300px] sm:w-[400px] p-0 [&>button]:hidden">
               <MobileNav
                 navLinks={navLinks}
                 pathname={pathname}

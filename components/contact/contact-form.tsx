@@ -160,22 +160,24 @@ export function ContactForm({ type: initialType = "general", onSuccess }: Contac
       {/* Contact Type Selector */}
       <div className="space-y-2">
         <Label>Contact Type</Label>
-        <div className="grid grid-cols-3 gap-2">
-          {(["support", "feedback", "general"] as ContactType[]).map((type) => (
-            <Button
-              key={type}
-              type="button"
-              variant={contactType === type ? "default" : "outline"}
-              onClick={() => setContactType(type)}
-              className={cn(
-                "flex items-center gap-2",
-                contactType === type && "bg-primary text-primary-foreground"
-              )}
-            >
-              {getTypeIcon(type)}
-              {getTypeLabel(type)}
-            </Button>
-          ))}
+        <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
+          <div className="flex gap-2 min-w-max">
+            {(["support", "feedback", "general"] as ContactType[]).map((type) => (
+              <Button
+                key={type}
+                type="button"
+                variant={contactType === type ? "default" : "outline"}
+                onClick={() => setContactType(type)}
+                className={cn(
+                  "flex items-center gap-2 whitespace-nowrap",
+                  contactType === type && "bg-primary text-primary-foreground"
+                )}
+              >
+                {getTypeIcon(type)}
+                {getTypeLabel(type)}
+              </Button>
+            ))}
+          </div>
         </div>
       </div>
 

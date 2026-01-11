@@ -12,7 +12,7 @@ const PrivacyPage = () => {
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <Card className="max-w-[800px] mx-auto rounded-[5px]">
-        <CardHeader className="bg-muted/50 rounded-t-[5px]">
+        <CardHeader className="bg-muted/50 py-3 rounded-t-[5px]">
           <h1 className="text-3xl font-bold">Privacy Policy</h1>
           <p className="text-sm text-muted-foreground mt-2">Date: {currentDate}</p>
         </CardHeader>
