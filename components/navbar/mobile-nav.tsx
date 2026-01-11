@@ -13,6 +13,7 @@ import { Youtube } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useForumNotifications } from "@/hooks/use-forum-notifications";
 import { useYouTubeNotifications } from "@/hooks/use-youtube-notifications";
+import { useGeneralNotifications } from "@/hooks/use-general-notifications";
 import { UnifiedNotificationCenterMobile } from "@/components/notifications/unified-notification-center-mobile";
 import { AvatarPickerDialog } from "@/components/avatar/avatar-picker-dialog";
 import Logo from "@/components/Logo";
@@ -45,9 +46,11 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
   // Get unread notification counts
   const { data: forumData } = useForumNotifications(false);
   const { data: youtubeData } = useYouTubeNotifications(false);
+  const { data: generalData } = useGeneralNotifications(false);
   const forumUnreadCount = forumData?.unreadCount || 0;
   const youtubeUnreadCount = youtubeData?.unreadCount || 0;
-  const totalUnreadCount = forumUnreadCount + youtubeUnreadCount;
+  const generalUnreadCount = generalData?.unreadCount || 0;
+  const totalUnreadCount = forumUnreadCount + youtubeUnreadCount + generalUnreadCount;
 
   const handleSignOut = async () => {
     await signOut();
@@ -120,7 +123,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               <Link href="/dashboard" onClick={onLinkClick} className="flex-1">
                 <div className="flex flex-col items-center gap-2">
                     <div className="rounded-full bg-primary/10 p-2">
-                      <LayoutDashboard className="h-5 w-5 text-muted-foreground/60" />
+                      <LayoutDashboard className="h-5 w-5 text-foreground" />
                     </div>
                   <span className="text-xs font-medium">Dashboard</span>
                 </div>
@@ -131,7 +134,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   <button className="flex-1">
                     <div className="flex flex-col items-center gap-2">
                         <div className="rounded-full bg-primary/10 p-2 relative">
-                          <Bell className="h-5 w-5 text-muted-foreground/60" />
+                          <Bell className="h-5 w-5 text-foreground" />
                           {totalUnreadCount > 0 && (
                             <Badge
                               variant="destructive"
@@ -155,7 +158,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   <button className="flex-1">
                     <div className="flex flex-col items-center gap-2">
                       <div className="rounded-full bg-primary/10 p-2">
-                        <Megaphone className="h-5 w-5 text-muted-foreground/60" />
+                        <Megaphone className="h-5 w-5 text-foreground" />
                       </div>
                       <span className="text-xs font-medium">Feedback</span>
                     </div>
@@ -225,25 +228,25 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
             <div className="grid grid-cols-2 gap-2">
               <Link href="/dashboard/watchlist" onClick={onLinkClick}>
                 <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors">
-                  <Bookmark className="h-5 w-5 text-muted-foreground/60" />
+                  <Bookmark className="h-5 w-5 text-foreground" />
                   <span className="text-xs font-medium">Watchlist</span>
                 </div>
               </Link>
               <Link href="/dashboard/lists" onClick={onLinkClick}>
                 <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors">
-                  <ClipboardList className="h-5 w-5 text-muted-foreground/60" />
+                  <ClipboardList className="h-5 w-5 text-foreground" />
                   <span className="text-xs font-medium">Lists</span>
                 </div>
               </Link>
               <Link href="/dashboard/playlists" onClick={onLinkClick}>
                 <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors">
-                  <List className="h-5 w-5 text-muted-foreground/60" />
+                  <List className="h-5 w-5 text-foreground" />
                   <span className="text-xs font-medium">Playlists</span>
                 </div>
               </Link>
               <Link href="/dashboard/diary" onClick={onLinkClick}>
                 <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors">
-                  <BookOpen className="h-5 w-5 text-muted-foreground/60" />
+                  <BookOpen className="h-5 w-5 text-foreground" />
                   <span className="text-xs font-medium">Diary</span>
                 </div>
               </Link>
@@ -262,7 +265,8 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
             
             // Get icon for each link
             const getIcon = () => {
-              const iconColor = isActive ? "text-foreground/60" : "text-muted-foreground/60";
+              // Icons should be brighter than labels (text-foreground is brighter than text-muted-foreground)
+              const iconColor = "text-foreground";
               switch (link.href) {
                 case "/browse":
                   return <Search className={cn("mr-3 h-4 w-4", iconColor)} />;
@@ -313,7 +317,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   : "text-muted-foreground"
               )}
             >
-              <Settings className="mr-3 h-4 w-4 text-muted-foreground/60" />
+              <Settings className="mr-3 h-4 w-4 text-foreground" />
               <span>Settings</span>
             </Link>
             <button
@@ -323,7 +327,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               }}
               className="flex items-center w-full rounded-md px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors text-[0.95rem] text-muted-foreground"
             >
-              <UserRound className="mr-3 h-4 w-4 text-muted-foreground/60" />
+              <UserRound className="mr-3 h-4 w-4 text-foreground" />
               <span>Edit Avatar</span>
             </button>
 
@@ -340,11 +344,11 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               >
                 <div className="flex items-center">
                   {theme === "light" ? (
-                    <Sun className="mr-3 h-4 w-4 text-muted-foreground/60" />
+                    <Sun className="mr-3 h-4 w-4 text-foreground" />
                   ) : theme === "dark" ? (
-                    <Moon className="mr-3 h-4 w-4 text-muted-foreground/60" />
+                    <Moon className="mr-3 h-4 w-4 text-foreground" />
                   ) : (
-                    <Monitor className="mr-3 h-4 w-4 text-muted-foreground/60" />
+                    <Monitor className="mr-3 h-4 w-4 text-foreground" />
                   )}
                   <span>Theme</span>
                 </div>
@@ -369,7 +373,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                         : "text-muted-foreground"
                     )}
                   >
-                    <Sun className="mr-3 h-4 w-4 text-muted-foreground/60" />
+                    <Sun className="mr-3 h-4 w-4 text-foreground" />
                     <span>Light</span>
                   </button>
                   <button
@@ -384,7 +388,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                         : "text-muted-foreground"
                     )}
                   >
-                    <Moon className="mr-3 h-4 w-4 text-muted-foreground/60" />
+                    <Moon className="mr-3 h-4 w-4 text-foreground" />
                     <span>Dark</span>
                   </button>
                   <button
@@ -399,7 +403,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                         : "text-muted-foreground"
                     )}
                   >
-                    <Monitor className="mr-3 h-4 w-4 text-muted-foreground/60" />
+                    <Monitor className="mr-3 h-4 w-4 text-foreground" />
                     <span>System</span>
                   </button>
                 </div>

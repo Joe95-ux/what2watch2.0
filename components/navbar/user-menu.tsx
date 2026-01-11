@@ -42,25 +42,25 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
           <div className="grid grid-cols-2 gap-2">
             <Link href="/dashboard/watchlist" onClick={handleLinkClick}>
               <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors">
-                <Bookmark className="h-5 w-5 text-muted-foreground/60" />
+                <Bookmark className="h-5 w-5 text-foreground" />
                 <span className="text-xs font-medium">Watchlist</span>
               </div>
             </Link>
             <Link href="/dashboard/lists" onClick={handleLinkClick}>
               <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors">
-                <ClipboardList className="h-5 w-5 text-muted-foreground/60" />
+                <ClipboardList className="h-5 w-5 text-foreground" />
                 <span className="text-xs font-medium">Lists</span>
               </div>
             </Link>
             <Link href="/dashboard/playlists" onClick={handleLinkClick}>
               <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors">
-                <List className="h-5 w-5 text-muted-foreground/60" />
+                <List className="h-5 w-5 text-foreground" />
                 <span className="text-xs font-medium">Playlists</span>
               </div>
             </Link>
             <Link href="/dashboard/diary" onClick={handleLinkClick}>
               <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors">
-                <BookOpen className="h-5 w-5 text-muted-foreground/60" />
+                <BookOpen className="h-5 w-5 text-foreground" />
                 <span className="text-xs font-medium">Diary</span>
               </div>
             </Link>
@@ -73,7 +73,7 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
               onClick={handleLinkClick}
               className="flex items-center rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
             >
-              <LayoutDashboard className="mr-3 h-4 w-4 text-muted-foreground/60" />
+              <LayoutDashboard className="mr-3 h-4 w-4 text-foreground" />
               <span>Dashboard</span>
             </Link>
             <Link
@@ -81,7 +81,7 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
               onClick={handleLinkClick}
               className="flex items-center rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
             >
-              <Compass className="mr-3 h-4 w-4 text-muted-foreground/60" />
+              <Compass className="mr-3 h-4 w-4 text-foreground" />
               <span>Guide</span>
             </Link>
             <Link
@@ -89,7 +89,7 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
               onClick={handleLinkClick}
               className="flex items-center rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
             >
-              <Activity className="mr-3 h-4 w-4 text-muted-foreground/60" />
+              <Activity className="mr-3 h-4 w-4 text-foreground" />
               <span>Activity</span>
             </Link>
             <Link
@@ -97,7 +97,7 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
               onClick={handleLinkClick}
               className="flex items-center rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
             >
-              <UserRound className="mr-3 h-4 w-4 text-muted-foreground/60" />
+              <UserRound className="mr-3 h-4 w-4 text-foreground" />
               <span>Profile</span>
             </Link>
             <Link
@@ -105,7 +105,7 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
               onClick={handleLinkClick}
               className="flex items-center rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
             >
-              <Youtube className="mr-3 h-4 w-4 text-muted-foreground/60" />
+              <Youtube className="mr-3 h-4 w-4 text-foreground" />
               <span>YouTube Feed</span>
             </Link>
           </div>
