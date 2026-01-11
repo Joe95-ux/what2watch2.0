@@ -6,9 +6,9 @@ import { useUser, SignInButton, useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetClose } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetClose, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserCircle, X, Megaphone, Bookmark, List, BookOpen, ClipboardList } from "lucide-react";
+import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UsersRound, X, Megaphone, Bookmark, List, BookOpen, ClipboardList } from "lucide-react";
 import { Youtube } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useForumNotifications } from "@/hooks/use-forum-notifications";
@@ -119,9 +119,9 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
             <div className="flex items-center justify-between gap-3">
               <Link href="/dashboard" onClick={onLinkClick} className="flex-1">
                 <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                  <div className="rounded-full bg-primary/10 p-2">
-                    <LayoutDashboard className="h-5 w-5 text-primary" />
-                  </div>
+                    <div className="rounded-full bg-primary/10 p-2">
+                      <LayoutDashboard className="h-5 w-5 text-muted-foreground" />
+                    </div>
                   <span className="text-xs font-medium">Dashboard</span>
                 </div>
               </Link>
@@ -130,9 +130,9 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                 <SheetTrigger asChild>
                   <button className="flex-1">
                     <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors relative">
-                      <div className="rounded-full bg-primary/10 p-2">
-                        <Bell className="h-5 w-5 text-primary" />
-                      </div>
+                        <div className="rounded-full bg-primary/10 p-2">
+                          <Bell className="h-5 w-5 text-muted-foreground" />
+                        </div>
                       {totalUnreadCount > 0 && (
                         <Badge
                           variant="destructive"
@@ -155,7 +155,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   <button className="flex-1">
                     <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
                       <div className="rounded-full bg-primary/10 p-2">
-                        <Megaphone className="h-5 w-5 text-primary" />
+                        <Megaphone className="h-5 w-5 text-muted-foreground" />
                       </div>
                       <span className="text-xs font-medium">Feedback</span>
                     </div>
@@ -222,28 +222,28 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
         {/* Second Section: Watchlist, Lists, Playlists, Diary */}
         {isSignedIn && (
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <Link href="/dashboard/watchlist" onClick={onLinkClick}>
-                <div className="flex flex-col items-center gap-2 p-4 rounded-md bg-muted/50 hover:bg-muted transition-colors">
-                  <Bookmark className="h-5 w-5 text-primary" />
+                <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors">
+                  <Bookmark className="h-5 w-5 text-muted-foreground" />
                   <span className="text-xs font-medium">Watchlist</span>
                 </div>
               </Link>
               <Link href="/dashboard/lists" onClick={onLinkClick}>
-                <div className="flex flex-col items-center gap-2 p-4 rounded-md bg-muted/50 hover:bg-muted transition-colors">
-                  <ClipboardList className="h-5 w-5 text-primary" />
+                <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors">
+                  <ClipboardList className="h-5 w-5 text-muted-foreground" />
                   <span className="text-xs font-medium">Lists</span>
                 </div>
               </Link>
               <Link href="/dashboard/playlists" onClick={onLinkClick}>
-                <div className="flex flex-col items-center gap-2 p-4 rounded-md bg-muted/50 hover:bg-muted transition-colors">
-                  <List className="h-5 w-5 text-primary" />
+                <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors">
+                  <List className="h-5 w-5 text-muted-foreground" />
                   <span className="text-xs font-medium">Playlists</span>
                 </div>
               </Link>
               <Link href="/dashboard/diary" onClick={onLinkClick}>
-                <div className="flex flex-col items-center gap-2 p-4 rounded-md bg-muted/50 hover:bg-muted transition-colors">
-                  <BookOpen className="h-5 w-5 text-primary" />
+                <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors">
+                  <BookOpen className="h-5 w-5 text-muted-foreground" />
                   <span className="text-xs font-medium">Diary</span>
                 </div>
               </Link>
@@ -312,7 +312,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               }}
               className="flex items-center w-full rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
             >
-              <UserCircle className="mr-3 h-4 w-4" />
+              <UsersRound className="mr-3 h-4 w-4" />
               <span>Edit Avatar</span>
             </button>
 
@@ -405,7 +405,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               className="flex items-center rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
             >
               <Youtube className="mr-3 h-4 w-4" />
-              <span>YouTube Management</span>
+              <span>YouTube Feed</span>
             </Link>
 
             <button

@@ -18,11 +18,9 @@ export default function ContactPage() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
         {/* Header Section */}
-        <div className="max-w-6xl mx-auto mb-8">
+        <div className="max-w-6xl mx-auto mb-20">
           {/* Contact Us Header */}
-          <div className="inline-flex items-center px-4 py-2 rounded-lg bg-muted/50 border mb-4">
-            <span className="text-lg font-medium">Contact Us</span>
-          </div>
+          <h1 className="text-3xl font-bold mb-4">Contact Us</h1>
           
           {/* Breadcrumb */}
           <Breadcrumb>
