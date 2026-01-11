@@ -39,7 +39,7 @@ export default function ContactPage() {
         </div>
 
         {/* First Section: Contact Info & Form */}
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 max-w-6xl mx-auto mb-30">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 max-w-6xl mx-auto mb-30">
           {/* Left Column: Contact Info */}
           <div className="space-y-6">
 

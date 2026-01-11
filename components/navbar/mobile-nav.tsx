@@ -8,7 +8,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetClose, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UsersRound, X, Megaphone, Bookmark, List, BookOpen, ClipboardList } from "lucide-react";
+import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserRound, X, Megaphone, Bookmark, List, BookOpen, ClipboardList, TrendingUp, Users, MessageSquare, Youtube as YoutubeIcon, Search } from "lucide-react";
 import { Youtube } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useForumNotifications } from "@/hooks/use-forum-notifications";
@@ -112,15 +112,15 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
         </SheetClose>
       </SheetHeader>
 
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+      <div className="flex-1 overflow-y-auto px-4 py-6 pb-20 space-y-6">
         {/* First Section: Dashboard, Notifications, Feedback */}
         {isSignedIn && (
           <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between gap-2">
               <Link href="/dashboard" onClick={onLinkClick} className="flex-1">
-                <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                <div className="flex flex-col items-center gap-2">
                     <div className="rounded-full bg-primary/10 p-2">
-                      <LayoutDashboard className="h-5 w-5 text-muted-foreground" />
+                      <LayoutDashboard className="h-5 w-5 text-muted-foreground/60" />
                     </div>
                   <span className="text-xs font-medium">Dashboard</span>
                 </div>
@@ -129,14 +129,14 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
                 <SheetTrigger asChild>
                   <button className="flex-1">
-                    <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors relative">
+                    <div className="flex flex-col items-center gap-2 relative">
                         <div className="rounded-full bg-primary/10 p-2">
-                          <Bell className="h-5 w-5 text-muted-foreground" />
+                          <Bell className="h-5 w-5 text-muted-foreground/60" />
                         </div>
                       {totalUnreadCount > 0 && (
                         <Badge
                           variant="destructive"
-                          className="absolute top-1 right-1 h-4 min-w-4 px-1 flex items-center justify-center text-[10px]"
+                          className="absolute top-0 right-0 h-4 min-w-4 px-1 flex items-center justify-center text-[10px]"
                         >
                           {totalUnreadCount > 99 ? "99+" : totalUnreadCount}
                         </Badge>
@@ -153,9 +153,9 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               <Popover open={feedbackOpen} onOpenChange={setFeedbackOpen}>
                 <PopoverTrigger asChild>
                   <button className="flex-1">
-                    <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                    <div className="flex flex-col items-center gap-2">
                       <div className="rounded-full bg-primary/10 p-2">
-                        <Megaphone className="h-5 w-5 text-muted-foreground" />
+                        <Megaphone className="h-5 w-5 text-muted-foreground/60" />
                       </div>
                       <span className="text-xs font-medium">Feedback</span>
                     </div>
@@ -225,25 +225,25 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
             <div className="grid grid-cols-2 gap-2">
               <Link href="/dashboard/watchlist" onClick={onLinkClick}>
                 <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors">
-                  <Bookmark className="h-5 w-5 text-muted-foreground" />
+                  <Bookmark className="h-5 w-5 text-muted-foreground/60" />
                   <span className="text-xs font-medium">Watchlist</span>
                 </div>
               </Link>
               <Link href="/dashboard/lists" onClick={onLinkClick}>
                 <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors">
-                  <ClipboardList className="h-5 w-5 text-muted-foreground" />
+                  <ClipboardList className="h-5 w-5 text-muted-foreground/60" />
                   <span className="text-xs font-medium">Lists</span>
                 </div>
               </Link>
               <Link href="/dashboard/playlists" onClick={onLinkClick}>
                 <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors">
-                  <List className="h-5 w-5 text-muted-foreground" />
+                  <List className="h-5 w-5 text-muted-foreground/60" />
                   <span className="text-xs font-medium">Playlists</span>
                 </div>
               </Link>
               <Link href="/dashboard/diary" onClick={onLinkClick}>
                 <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/50 hover:bg-muted transition-colors">
-                  <BookOpen className="h-5 w-5 text-muted-foreground" />
+                  <BookOpen className="h-5 w-5 text-muted-foreground/60" />
                   <span className="text-xs font-medium">Diary</span>
                 </div>
               </Link>
@@ -254,21 +254,47 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
         {/* Navigation Links */}
         <div className="space-y-2">
           {navLinks.map((link) => {
-            const isActive = link.href === "/forum" 
+            const isActive = link.href === "/forums" 
               ? pathname === link.href || pathname?.startsWith(link.href + "/")
-              : pathname === link.href;
+              : link.href === "/forum"
+              ? pathname === link.href || pathname?.startsWith(link.href + "/")
+              : pathname === link.href || (link.href !== "/" && pathname?.startsWith(link.href + "/"));
+            
+            // Get icon for each link
+            const getIcon = () => {
+              const iconColor = isActive ? "text-foreground/60" : "text-muted-foreground/60";
+              switch (link.href) {
+                case "/browse":
+                  return <Search className={cn("mr-3 h-4 w-4", iconColor)} />;
+                case "/popular":
+                  return <TrendingUp className={cn("mr-3 h-4 w-4", iconColor)} />;
+                case "/lists":
+                  return <ClipboardList className={cn("mr-3 h-4 w-4", iconColor)} />;
+                case "/members":
+                  return <Users className={cn("mr-3 h-4 w-4", iconColor)} />;
+                case "/forums":
+                case "/forum":
+                  return <MessageSquare className={cn("mr-3 h-4 w-4", iconColor)} />;
+                case "/youtube":
+                  return <YoutubeIcon className={cn("mr-3 h-4 w-4", iconColor)} />;
+                default:
+                  return null;
+              }
+            };
+            
             return (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={onLinkClick}
                 className={cn(
-                  "flex items-center rounded-md px-3 py-2.5 text-sm transition-colors",
-                  "hover:bg-muted/50",
+                  "flex items-center rounded-md px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors",
+                  "text-[0.95rem]",
                   isActive ? "bg-muted text-foreground font-medium" : "text-muted-foreground"
                 )}
               >
-                {link.label}
+                {getIcon()}
+                <span>{link.label}</span>
               </Link>
             );
           })}
@@ -278,31 +304,16 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
         {isSignedIn && (
           <div className="space-y-2">
             <Link
-              href="/browse/personalized"
-              onClick={onLinkClick}
-              className={cn(
-                "flex items-center rounded-md px-3 py-2.5 text-sm transition-colors",
-                "hover:bg-muted/50",
-                pathname === "/browse/personalized"
-                  ? "bg-muted text-foreground font-medium"
-                  : "text-muted-foreground"
-              )}
-            >
-              <Compass className="mr-3 h-4 w-4" />
-              <span>Guide</span>
-            </Link>
-            <Link
               href="/settings"
               onClick={onLinkClick}
               className={cn(
-                "flex items-center rounded-md px-3 py-2.5 text-sm transition-colors",
-                "hover:bg-muted/50",
+                "flex items-center rounded-md px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
                 pathname === "/settings"
                   ? "bg-muted text-foreground font-medium"
                   : "text-muted-foreground"
               )}
             >
-              <Settings className="mr-3 h-4 w-4" />
+              <Settings className="mr-3 h-4 w-4 text-muted-foreground/60" />
               <span>Settings</span>
             </Link>
             <button
@@ -310,9 +321,9 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                 setIsAvatarEditorOpen(true);
                 onLinkClick();
               }}
-              className="flex items-center w-full rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
+              className="flex items-center w-full rounded-md px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors text-[0.95rem] text-muted-foreground"
             >
-              <UsersRound className="mr-3 h-4 w-4" />
+              <UserRound className="mr-3 h-4 w-4 text-muted-foreground/60" />
               <span>Edit Avatar</span>
             </button>
 
@@ -321,8 +332,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               <button
                 onClick={() => setIsThemeOpen(!isThemeOpen)}
                 className={cn(
-                  "flex w-full items-center justify-between rounded-md px-3 py-2.5 text-sm transition-colors",
-                  "hover:bg-muted/50",
+                  "flex w-full items-center justify-between rounded-md px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
                   isThemeOpen
                     ? "bg-muted text-foreground font-medium"
                     : "text-muted-foreground"
@@ -330,11 +340,11 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               >
                 <div className="flex items-center">
                   {theme === "light" ? (
-                    <Sun className="mr-3 h-4 w-4" />
+                    <Sun className="mr-3 h-4 w-4 text-muted-foreground/60" />
                   ) : theme === "dark" ? (
-                    <Moon className="mr-3 h-4 w-4" />
+                    <Moon className="mr-3 h-4 w-4 text-muted-foreground/60" />
                   ) : (
-                    <Monitor className="mr-3 h-4 w-4" />
+                    <Monitor className="mr-3 h-4 w-4 text-muted-foreground/60" />
                   )}
                   <span>Theme</span>
                 </div>
@@ -353,14 +363,13 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                       onLinkClick();
                     }}
                     className={cn(
-                      "flex w-full items-center rounded-md px-3 py-2 text-sm transition-colors",
-                      "hover:bg-muted/50",
+                      "flex w-full items-center rounded-md px-3 py-2 bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
                       theme === "light"
                         ? "bg-muted text-foreground font-medium"
                         : "text-muted-foreground"
                     )}
                   >
-                    <Sun className="mr-3 h-4 w-4" />
+                    <Sun className="mr-3 h-4 w-4 text-muted-foreground/60" />
                     <span>Light</span>
                   </button>
                   <button
@@ -369,14 +378,13 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                       onLinkClick();
                     }}
                     className={cn(
-                      "flex w-full items-center rounded-md px-3 py-2 text-sm transition-colors",
-                      "hover:bg-muted/50",
+                      "flex w-full items-center rounded-md px-3 py-2 bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
                       theme === "dark"
                         ? "bg-muted text-foreground font-medium"
                         : "text-muted-foreground"
                     )}
                   >
-                    <Moon className="mr-3 h-4 w-4" />
+                    <Moon className="mr-3 h-4 w-4 text-muted-foreground/60" />
                     <span>Dark</span>
                   </button>
                   <button
@@ -385,36 +393,19 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                       onLinkClick();
                     }}
                     className={cn(
-                      "flex w-full items-center rounded-md px-3 py-2 text-sm transition-colors",
-                      "hover:bg-muted/50",
+                      "flex w-full items-center rounded-md px-3 py-2 bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
                       theme === "system"
                         ? "bg-muted text-foreground font-medium"
                         : "text-muted-foreground"
                     )}
                   >
-                    <Monitor className="mr-3 h-4 w-4" />
+                    <Monitor className="mr-3 h-4 w-4 text-muted-foreground/60" />
                     <span>System</span>
                   </button>
                 </div>
               )}
             </div>
 
-            <Link 
-              href="/dashboard/youtube/management" 
-              onClick={onLinkClick}
-              className="flex items-center rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
-            >
-              <Youtube className="mr-3 h-4 w-4" />
-              <span>YouTube Feed</span>
-            </Link>
-
-            <button
-              onClick={handleSignOut}
-              className="flex w-full items-center rounded-md px-3 py-2.5 text-sm text-destructive hover:bg-muted/50 transition-colors"
-            >
-              <LogOut className="mr-3 h-4 w-4" />
-              <span>Logout</span>
-            </button>
           </div>
         )}
 
@@ -429,6 +420,19 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
           </div>
         )}
       </div>
+
+      {/* Fixed Logout Button */}
+      {isSignedIn && (
+        <div className="sticky bottom-0 px-4 py-3 border-t bg-background">
+          <button
+            onClick={handleSignOut}
+            className="flex w-full items-center justify-center rounded-md px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors text-[0.95rem] text-destructive"
+          >
+            <LogOut className="mr-3 h-4 w-4 text-destructive/70" />
+            <span>Logout</span>
+          </button>
+        </div>
+      )}
 
       {/* Avatar Picker Dialog */}
       {isSignedIn && (
