@@ -8,7 +8,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetClose, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserRound, X, Megaphone, Bookmark, List, BookOpen, ClipboardList, TrendingUp, Users, MessageSquare, Youtube as YoutubeIcon, Search } from "lucide-react";
+import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserRound, X, Megaphone, Bookmark, List, BookOpen, ClipboardList, TrendingUp, UsersRound, MessageSquare, Youtube as YoutubeIcon, Search } from "lucide-react";
 import { Youtube } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useForumNotifications } from "@/hooks/use-forum-notifications";
@@ -129,18 +129,18 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
                 <SheetTrigger asChild>
                   <button className="flex-1">
-                    <div className="flex flex-col items-center gap-2 relative">
-                        <div className="rounded-full bg-primary/10 p-2">
+                    <div className="flex flex-col items-center gap-2">
+                        <div className="rounded-full bg-primary/10 p-2 relative">
                           <Bell className="h-5 w-5 text-muted-foreground/60" />
+                          {totalUnreadCount > 0 && (
+                            <Badge
+                              variant="destructive"
+                              className="absolute -top-1 -right-1 h-4 min-w-4 px-1 flex items-center justify-center text-[10px]"
+                            >
+                              {totalUnreadCount > 99 ? "99+" : totalUnreadCount}
+                            </Badge>
+                          )}
                         </div>
-                      {totalUnreadCount > 0 && (
-                        <Badge
-                          variant="destructive"
-                          className="absolute top-0 right-0 h-4 min-w-4 px-1 flex items-center justify-center text-[10px]"
-                        >
-                          {totalUnreadCount > 99 ? "99+" : totalUnreadCount}
-                        </Badge>
-                      )}
                       <span className="text-xs font-medium">Notifications</span>
                     </div>
                   </button>
@@ -271,7 +271,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                 case "/lists":
                   return <ClipboardList className={cn("mr-3 h-4 w-4", iconColor)} />;
                 case "/members":
-                  return <Users className={cn("mr-3 h-4 w-4", iconColor)} />;
+                  return <UsersRound className={cn("mr-3 h-4 w-4", iconColor)} />;
                 case "/forums":
                 case "/forum":
                   return <MessageSquare className={cn("mr-3 h-4 w-4", iconColor)} />;
