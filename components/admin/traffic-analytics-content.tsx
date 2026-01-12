@@ -5,12 +5,13 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { Globe, UsersRound, Eye, TrendingUp, Monitor, Smartphone, Tablet, ChevronDown, ChevronUp } from "lucide-react";
+import { Globe, UsersRound, Eye, TrendingUp, Monitor, Smartphone, Tablet, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from "lucide-react";
 import { WorldMapHeatmap } from "@/components/admin/world-map-heatmap";
 import countries from "i18n-iso-countries";
 import en from "i18n-iso-countries/langs/en.json";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SimplePagination } from "@/components/ui/pagination";
+import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Calendar } from "@/components/ui/calendar";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
@@ -270,7 +271,9 @@ export function TrafficAnalyticsContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Page Views</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
+            <div className="h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+              <Eye className="h-4 w-4 text-blue-500" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{data.totals.pageViews.toLocaleString()}</div>
@@ -281,7 +284,9 @@ export function TrafficAnalyticsContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Unique Visitors</CardTitle>
-            <UsersRound className="h-4 w-4 text-muted-foreground" />
+            <div className="h-8 w-8 rounded-full bg-green-500/10 flex items-center justify-center">
+              <UsersRound className="h-4 w-4 text-green-500" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{data.totals.uniqueVisitors.toLocaleString()}</div>
@@ -292,7 +297,9 @@ export function TrafficAnalyticsContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Sessions</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <div className="h-8 w-8 rounded-full bg-purple-500/10 flex items-center justify-center">
+              <TrendingUp className="h-4 w-4 text-purple-500" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{data.totals.uniqueSessions.toLocaleString()}</div>
@@ -347,36 +354,38 @@ export function TrafficAnalyticsContent() {
                     
                     return (
                       <>
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="w-12">#</TableHead>
-                              <TableHead>Country</TableHead>
-                              <TableHead className="text-right">Views</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {paginatedCountries.map((country, index) => {
-                              const countryCode = country.country?.toUpperCase() || "";
-                              const countryName = countries.getName(countryCode, "en") || countryCode || "Unknown";
-                              const showCode = countryCode.length === 2;
-                              const globalIndex = startIndex + index;
-                              return (
-                                <TableRow key={country.country}>
-                                  <TableCell className="text-muted-foreground">
-                                    {globalIndex + 1}
-                                  </TableCell>
-                                  <TableCell>
-                                    {countryName} {showCode && `(${countryCode})`}
-                                  </TableCell>
-                                  <TableCell className="text-right font-medium">
-                                    {country.views.toLocaleString()}
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
+                        <div className="border rounded-md">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-12">#</TableHead>
+                                <TableHead>Country</TableHead>
+                                <TableHead className="text-right">Views</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {paginatedCountries.map((country, index) => {
+                                const countryCode = country.country?.toUpperCase() || "";
+                                const countryName = countries.getName(countryCode, "en") || countryCode || "Unknown";
+                                const showCode = countryCode.length === 2;
+                                const globalIndex = startIndex + index;
+                                return (
+                                  <TableRow key={country.country}>
+                                    <TableCell className="text-muted-foreground">
+                                      {globalIndex + 1}
+                                    </TableCell>
+                                    <TableCell>
+                                      {countryName} {showCode && `(${countryCode})`}
+                                    </TableCell>
+                                    <TableCell className="text-right font-medium">
+                                      {country.views.toLocaleString()}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
                         {totalPages > 1 && (
                           <div className="p-4 border-t">
                             <SimplePagination
@@ -454,6 +463,7 @@ export function TrafficAnalyticsContent() {
                     `${country}\n${(percent * 100).toFixed(1)}%`
                   }
                   labelLine={true}
+                  stroke="none"
                 >
                   {data.countries.slice(0, 6).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -504,11 +514,50 @@ export function TrafficAnalyticsContent() {
                     </TableBody>
                   </Table>
                   {totalPages > 1 && (
-                    <SimplePagination
-                      currentPage={sourcesPage}
-                      totalPages={totalPages}
-                      onPageChange={setSourcesPage}
-                    />
+                    <div className="flex items-center justify-center gap-2 mt-6 w-full">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSourcesPage(Math.max(1, sourcesPage - 1))}
+                        disabled={sourcesPage === 1}
+                        className="flex-shrink-0 cursor-pointer"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <div className="flex items-center gap-1 overflow-x-auto">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1)
+                          .filter(page => {
+                            return page === 1 || 
+                                   page === totalPages || 
+                                   (page >= sourcesPage - 1 && page <= sourcesPage + 1);
+                          })
+                          .map((page, index, array) => {
+                            const showEllipsisBefore = index > 0 && array[index - 1] < page - 1;
+                            return (
+                              <div key={page} className="flex items-center gap-1">
+                                {showEllipsisBefore && <span className="text-muted-foreground px-2">...</span>}
+                                <Button
+                                  variant={sourcesPage === page ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => setSourcesPage(page)}
+                                  className="cursor-pointer min-w-[2.5rem]"
+                                >
+                                  {page}
+                                </Button>
+                              </div>
+                            );
+                          })}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSourcesPage(Math.min(totalPages, sourcesPage + 1))}
+                        disabled={sourcesPage === totalPages}
+                        className="flex-shrink-0 cursor-pointer"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
                   )}
                 </>
               );
@@ -523,7 +572,7 @@ export function TrafficAnalyticsContent() {
             <CardDescription>Traffic by device</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={400}>
               <PieChart>
                 <Pie
                   data={data.devices}
@@ -531,10 +580,11 @@ export function TrafficAnalyticsContent() {
                   nameKey="deviceType"
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
+                  innerRadius={80}
+                  outerRadius={140}
                   cornerRadius={8}
                   paddingAngle={4}
+                  stroke="none"
                 >
                   {data.devices.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
