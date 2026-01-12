@@ -116,12 +116,14 @@ export function TrafficAnalyticsContent() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="space-y-2">
             <Skeleton className="h-8 w-64" />
             <Skeleton className="h-4 w-96" />
           </div>
-          <Skeleton className="h-10 w-[140px]" />
+          <div className="self-end md:self-auto">
+            <Skeleton className="h-10 w-[140px]" />
+          </div>
         </div>
         
         {/* KPI Cards Skeleton */}
@@ -190,14 +192,15 @@ export function TrafficAnalyticsContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold">Website Traffic Analytics</h2>
           <p className="text-sm text-muted-foreground">
             Track visits, visitors, and traffic sources
           </p>
         </div>
-        <DropdownMenu open={dateDropdownOpen} onOpenChange={setDateDropdownOpen}>
+        <div className="self-end md:self-auto">
+          <DropdownMenu open={dateDropdownOpen} onOpenChange={setDateDropdownOpen}>
           <DropdownMenuTrigger asChild>
             <button
               type="button"
@@ -264,6 +267,7 @@ export function TrafficAnalyticsContent() {
             </div>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -315,15 +319,19 @@ export function TrafficAnalyticsContent() {
           <CardDescription>Daily page views over time</CardDescription>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={data.trend}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="views" stroke="#8884d8" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
+          <div className="overflow-x-auto">
+            <div style={{ minWidth: "600px" }}>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={data.trend}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="views" stroke="#8884d8" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -338,9 +346,10 @@ export function TrafficAnalyticsContent() {
             <CardDescription>Geographic distribution of website traffic</CardDescription>
           </CardHeader>
           <CardContent className="overflow-hidden p-0">
-            <div className="flex gap-4 h-[500px]">
-              {/* Country Traffic Table - Left Side */}
-              <div className="w-120 flex flex-col">
+            <div className="overflow-x-auto">
+              <div className="flex flex-row gap-4 h-[500px] min-w-max">
+                {/* Country Traffic Table - Left Side */}
+                <div className="w-120 flex flex-col flex-shrink-0">
                 <div className="p-4 border-b">
                   <h3 className="text-base font-semibold">Top Countries</h3>
                 </div>
@@ -399,12 +408,13 @@ export function TrafficAnalyticsContent() {
                 </div>
               </div>
               
-              {/* Map - Right Side */}
-              <div className="flex-1 overflow-hidden mr-4" style={{ minHeight: "450px" }}>
-                <WorldMapHeatmap
-                  countries={data.countries}
-                  maxViews={Math.max(...data.countries.map((c) => c.views), 0)}
-                />
+                {/* Map - Right Side */}
+                <div className="flex-1 overflow-hidden mr-4 flex-shrink-0" style={{ minHeight: "450px", minWidth: "600px" }}>
+                  <WorldMapHeatmap
+                    countries={data.countries}
+                    maxViews={Math.max(...data.countries.map((c) => c.views), 0)}
+                  />
+                </div>
               </div>
             </div>
           </CardContent>
@@ -419,25 +429,29 @@ export function TrafficAnalyticsContent() {
             <CardDescription>Most visited pages</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart 
-                data={data.topPages.slice(0, 10)}
-                margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="path" 
-                  angle={-45} 
-                  textAnchor="end" 
-                  height={100}
-                  tick={{ fontSize: 11 }}
-                  interval={0}
-                />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="views" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="overflow-x-auto">
+              <div style={{ minWidth: "600px" }}>
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart 
+                    data={data.topPages.slice(0, 10)}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="path" 
+                      angle={-45} 
+                      textAnchor="end" 
+                      height={100}
+                      tick={{ fontSize: 11 }}
+                      interval={0}
+                    />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="views" fill="#8884d8" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -448,33 +462,37 @@ export function TrafficAnalyticsContent() {
             <CardDescription>Top countries by page views</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={400}>
-              <PieChart>
-                <Pie
-                  data={data.countries.slice(0, 6)}
-                  dataKey="views"
-                  nameKey="country"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={140}
-                  label={({ country, percent }) => 
-                    `${country}\n${(percent * 100).toFixed(1)}%`
-                  }
-                  labelLine={true}
-                  stroke="none"
-                >
-                  {data.countries.slice(0, 6).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  formatter={(value: number, name: string) => [
-                    `${value.toLocaleString()} views`,
-                    name
-                  ]}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="overflow-x-auto">
+              <div style={{ minWidth: "600px" }}>
+                <ResponsiveContainer width="100%" height={400}>
+                  <PieChart>
+                    <Pie
+                      data={data.countries.slice(0, 6)}
+                      dataKey="views"
+                      nameKey="country"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={140}
+                      label={({ country, percent }) => 
+                        `${country}\n${(percent * 100).toFixed(1)}%`
+                      }
+                      labelLine={true}
+                      stroke="none"
+                    >
+                      {data.countries.slice(0, 6).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value: number, name: string) => [
+                        `${value.toLocaleString()} views`,
+                        name
+                      ]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -570,32 +588,36 @@ export function TrafficAnalyticsContent() {
             <CardDescription>Traffic by device</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={400}>
-              <PieChart>
-                <Pie
-                  data={data.devices}
-                  dataKey="views"
-                  nameKey="deviceType"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={80}
-                  outerRadius={140}
-                  cornerRadius={8}
-                  paddingAngle={4}
-                  stroke="none"
-                >
-                  {data.devices.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  formatter={(value: number, name: string) => [
-                    `${value.toLocaleString()} views`,
-                    name.charAt(0).toUpperCase() + name.slice(1)
-                  ]}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="overflow-x-auto">
+              <div style={{ minWidth: "600px" }}>
+                <ResponsiveContainer width="100%" height={400}>
+                  <PieChart>
+                    <Pie
+                      data={data.devices}
+                      dataKey="views"
+                      nameKey="deviceType"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={80}
+                      outerRadius={140}
+                      cornerRadius={8}
+                      paddingAngle={4}
+                      stroke="none"
+                    >
+                      {data.devices.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value: number, name: string) => [
+                        `${value.toLocaleString()} views`,
+                        name.charAt(0).toUpperCase() + name.slice(1)
+                      ]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
             {/* Custom Legend */}
             <div className="flex flex-wrap items-center justify-center gap-4 mt-6">
               {data.devices.map((device, index) => (
