@@ -4,12 +4,17 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { Globe, UsersRound, Eye, TrendingUp, Monitor, Smartphone, Tablet } from "lucide-react";
+import { Globe, UsersRound, Eye, TrendingUp, Monitor, Smartphone, Tablet, ChevronDown, ChevronUp } from "lucide-react";
 import { WorldMapHeatmap } from "@/components/admin/world-map-heatmap";
 import countries from "i18n-iso-countries";
 import en from "i18n-iso-countries/langs/en.json";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SimplePagination } from "@/components/ui/pagination";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Calendar } from "@/components/ui/calendar";
+import { format, subDays, startOfDay, endOfDay } from "date-fns";
+import { cn } from "@/lib/utils";
 
 countries.registerLocale(en);
 
@@ -30,16 +35,82 @@ interface TrafficAnalytics {
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#00ff00", "#0088fe"];
 
 export function TrafficAnalyticsContent() {
-  const [range, setRange] = useState("30");
+  const [dateFilter, setDateFilter] = useState<"7" | "30" | "90" | "365" | "custom">("30");
+  const [customDateRange, setCustomDateRange] = useState<{ from?: Date; to?: Date } | undefined>(undefined);
+  const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
+  const [sourcesPage, setSourcesPage] = useState(1);
+  const [countriesPage, setCountriesPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Calculate date range for API
+  const getDateRange = () => {
+    if (dateFilter === "custom" && customDateRange?.from && customDateRange?.to) {
+      return {
+        from: customDateRange.from.toISOString(),
+        to: customDateRange.to.toISOString(),
+      };
+    }
+    const now = new Date();
+    let from: Date;
+    switch (dateFilter) {
+      case "7":
+        from = startOfDay(subDays(now, 7));
+        break;
+      case "30":
+        from = startOfDay(subDays(now, 30));
+        break;
+      case "90":
+        from = startOfDay(subDays(now, 90));
+        break;
+      case "365":
+        from = startOfDay(subDays(now, 365));
+        break;
+      default:
+        from = startOfDay(subDays(now, 30));
+    }
+    return {
+      from: from.toISOString(),
+      to: endOfDay(now).toISOString(),
+    };
+  };
+
+  const dateRange = getDateRange();
+  const queryKey = dateFilter === "custom" 
+    ? ["traffic-analytics", dateRange.from, dateRange.to]
+    : ["traffic-analytics", dateFilter];
 
   const { data, isLoading } = useQuery<TrafficAnalytics>({
-    queryKey: ["traffic-analytics", range],
+    queryKey,
     queryFn: async () => {
-      const res = await fetch(`/api/analytics/traffic?range=${range}`);
+      const params = new URLSearchParams();
+      if (dateFilter === "custom" && dateRange.from && dateRange.to) {
+        params.append("from", dateRange.from);
+        params.append("to", dateRange.to);
+      } else {
+        params.append("range", dateFilter);
+      }
+      const res = await fetch(`/api/analytics/traffic?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch traffic analytics");
       return res.json();
     },
   });
+
+  const getDateFilterDisplay = () => {
+    if (dateFilter === "custom" && customDateRange?.from && customDateRange?.to) {
+      return `${format(customDateRange.from, "MMM d")} - ${format(customDateRange.to, "MMM d, yyyy")}`;
+    }
+    const labels: Record<string, string> = {
+      "7": "Last 7 Days",
+      "30": "Last 30 Days",
+      "90": "Last 90 Days",
+      "365": "Last Year",
+    };
+    return labels[dateFilter] || "Last 30 Days";
+  };
+
+  const calendarSelectedRange = customDateRange?.from && customDateRange?.to
+    ? { from: customDateRange.from, to: customDateRange.to }
+    : undefined;
 
   if (isLoading) {
     return (
@@ -125,17 +196,73 @@ export function TrafficAnalyticsContent() {
             Track visits, visitors, and traffic sources
           </p>
         </div>
-        <Select value={range} onValueChange={setRange}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7">Last 7 days</SelectItem>
-            <SelectItem value="30">Last 30 days</SelectItem>
-            <SelectItem value="90">Last 90 days</SelectItem>
-            <SelectItem value="365">Last year</SelectItem>
-          </SelectContent>
-        </Select>
+        <DropdownMenu open={dateDropdownOpen} onOpenChange={setDateDropdownOpen}>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground dark:hover:text-foreground transition-colors cursor-pointer whitespace-nowrap focus:outline-none focus-visible:outline-none rounded-sm px-2 py-1"
+            >
+              <span>Date:</span>
+              <span className="font-medium">{getDateFilterDisplay()}</span>
+              {dateDropdownOpen ? (
+                <ChevronUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-auto p-0 rounded-[25px] dark:bg-[#000000]">
+            <div className="flex flex-col sm:flex-row">
+              {/* Left Column - Days List */}
+              <div className="border-b sm:border-b-0 sm:border-r p-[10px] min-w-[180px]">
+                {[
+                  { value: "7", label: "Last 7 Days" },
+                  { value: "30", label: "Last 30 Days" },
+                  { value: "90", label: "Last 90 Days" },
+                  { value: "365", label: "Last Year" },
+                  { value: "custom", label: "Custom Range" },
+                ].map((option) => (
+                  <DropdownMenuItem
+                    key={option.value}
+                    onClick={() => {
+                      if (option.value === "custom") {
+                        setDateFilter("custom");
+                      } else {
+                        setDateFilter(option.value as typeof dateFilter);
+                        setCustomDateRange(undefined);
+                        setDateDropdownOpen(false);
+                      }
+                    }}
+                    className={cn(
+                      "cursor-pointer rounded-[12px]",
+                      dateFilter === option.value && "bg-accent"
+                    )}
+                  >
+                    {option.label}
+                  </DropdownMenuItem>
+                ))}
+              </div>
+              {/* Right Column - Date Picker */}
+              <div className="p-3">
+                <Calendar
+                  mode="range"
+                  selected={calendarSelectedRange}
+                  onSelect={(range) => {
+                    if (range) {
+                      setCustomDateRange(range);
+                      setDateFilter("custom");
+                      if (range.from && range.to) {
+                        setDateDropdownOpen(false);
+                      }
+                    }
+                  }}
+                  numberOfMonths={1}
+                  className="rounded-[15px] border-none"
+                />
+              </div>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Summary Cards */}
@@ -206,37 +333,62 @@ export function TrafficAnalyticsContent() {
           <CardContent className="overflow-hidden p-0">
             <div className="flex gap-4 h-[500px]">
               {/* Country Traffic Table - Left Side */}
-              <div className="w-90 overflow-y-auto">
-                <div className="p-4 space-y-2">
-                  <h3 className="text-sm font-semibold mb-3 sticky top-0 bg-background p-2">Top Countries</h3>
-                  <div className="space-y-1">
-                    {data.countries
-                      .sort((a, b) => b.views - a.views)
-                      .slice(0, 20)
-                      .map((country, index) => {
-                        const countryCode = country.country?.toUpperCase() || "";
-                        const countryName = countries.getName(countryCode, "en") || countryCode || "Unknown";
-                        const showCode = countryCode.length === 2;
-                        return (
-                          <div
-                            key={country.country}
-                            className="flex items-center justify-between p-2 rounded hover:bg-muted/50 transition-colors"
-                          >
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <span className="text-xs text-muted-foreground w-5 flex-shrink-0">
-                                {index + 1}
-                              </span>
-                              <span className="text-sm">
-                                {countryName} {showCode && `(${countryCode})`}
-                              </span>
-                            </div>
-                            <span className="text-sm font-medium ml-2 flex-shrink-0">
-                              {country.views.toLocaleString()}
-                            </span>
+              <div className="w-90 flex flex-col">
+                <div className="p-4 border-b">
+                  <h3 className="text-base font-semibold">Top Countries</h3>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  {(() => {
+                    const sortedCountries = [...data.countries].sort((a, b) => b.views - a.views);
+                    const totalPages = Math.ceil(sortedCountries.length / itemsPerPage);
+                    const startIndex = (countriesPage - 1) * itemsPerPage;
+                    const endIndex = startIndex + itemsPerPage;
+                    const paginatedCountries = sortedCountries.slice(startIndex, endIndex);
+                    
+                    return (
+                      <>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-12">#</TableHead>
+                              <TableHead>Country</TableHead>
+                              <TableHead className="text-right">Views</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {paginatedCountries.map((country, index) => {
+                              const countryCode = country.country?.toUpperCase() || "";
+                              const countryName = countries.getName(countryCode, "en") || countryCode || "Unknown";
+                              const showCode = countryCode.length === 2;
+                              const globalIndex = startIndex + index;
+                              return (
+                                <TableRow key={country.country}>
+                                  <TableCell className="text-muted-foreground">
+                                    {globalIndex + 1}
+                                  </TableCell>
+                                  <TableCell>
+                                    {countryName} {showCode && `(${countryCode})`}
+                                  </TableCell>
+                                  <TableCell className="text-right font-medium">
+                                    {country.views.toLocaleString()}
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                        {totalPages > 1 && (
+                          <div className="p-4 border-t">
+                            <SimplePagination
+                              currentPage={countriesPage}
+                              totalPages={totalPages}
+                              onPageChange={setCountriesPage}
+                            />
                           </div>
-                        );
-                      })}
-                  </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
               
@@ -260,8 +412,11 @@ export function TrafficAnalyticsContent() {
             <CardDescription>Most visited pages</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={data.topPages.slice(0, 10)}>
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart 
+                data={data.topPages.slice(0, 10)}
+                margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="path" 
@@ -269,6 +424,7 @@ export function TrafficAnalyticsContent() {
                   textAnchor="end" 
                   height={100}
                   tick={{ fontSize: 11 }}
+                  interval={0}
                 />
                 <YAxis />
                 <Tooltip />
@@ -321,14 +477,42 @@ export function TrafficAnalyticsContent() {
             <CardDescription>Top referrer domains</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {data.sources.slice(0, 10).map((source) => (
-                <div key={source.domain} className="flex items-center justify-between">
-                  <span className="text-sm">{source.domain || "Direct"}</span>
-                  <span className="text-sm font-medium">{source.views.toLocaleString()}</span>
-                </div>
-              ))}
-            </div>
+            {(() => {
+              const totalPages = Math.ceil(data.sources.length / itemsPerPage);
+              const startIndex = (sourcesPage - 1) * itemsPerPage;
+              const endIndex = startIndex + itemsPerPage;
+              const paginatedSources = data.sources.slice(startIndex, endIndex);
+              
+              return (
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Source</TableHead>
+                        <TableHead className="text-right">Views</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedSources.map((source) => (
+                        <TableRow key={source.domain}>
+                          <TableCell>{source.domain || "Direct"}</TableCell>
+                          <TableCell className="text-right font-medium">
+                            {source.views.toLocaleString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {totalPages > 1 && (
+                    <SimplePagination
+                      currentPage={sourcesPage}
+                      totalPages={totalPages}
+                      onPageChange={setSourcesPage}
+                    />
+                  )}
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
 
@@ -339,16 +523,43 @@ export function TrafficAnalyticsContent() {
             <CardDescription>Traffic by device</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {data.devices.map((device) => (
-                <div key={device.deviceType} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {device.deviceType === "desktop" && <Monitor className="h-4 w-4" />}
-                    {device.deviceType === "mobile" && <Smartphone className="h-4 w-4" />}
-                    {device.deviceType === "tablet" && <Tablet className="h-4 w-4" />}
-                    <span className="text-sm capitalize">{device.deviceType}</span>
-                  </div>
-                  <span className="text-sm font-medium">{device.views.toLocaleString()}</span>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={data.devices}
+                  dataKey="views"
+                  nameKey="deviceType"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  cornerRadius={8}
+                  paddingAngle={4}
+                >
+                  {data.devices.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  formatter={(value: number, name: string) => [
+                    `${value.toLocaleString()} views`,
+                    name.charAt(0).toUpperCase() + name.slice(1)
+                  ]}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            {/* Custom Legend */}
+            <div className="flex flex-wrap items-center justify-center gap-4 mt-6">
+              {data.devices.map((device, index) => (
+                <div key={device.deviceType} className="flex items-center gap-2">
+                  <div 
+                    className="w-3 h-3 rounded-full" 
+                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                  />
+                  <span className="text-sm capitalize">{device.deviceType}</span>
+                  <span className="text-sm text-muted-foreground">
+                    ({device.views.toLocaleString()})
+                  </span>
                 </div>
               ))}
             </div>

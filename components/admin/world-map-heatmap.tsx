@@ -101,11 +101,11 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
   return (
     <div className="relative w-full h-full flex flex-col">
       <div
-        className="relative flex-1 rounded-lg overflow-hidden border"
+        className="relative flex-1 rounded-lg overflow-hidden"
         style={{
           minHeight: "450px",
-          backgroundColor: isDark ? "#111827" : "#f9fafb",
-          borderColor: isDark ? "#374151" : "#e5e7eb",
+          backgroundColor: isDark ? "transparent" : "#f9fafb",
+          borderColor: isDark ? "none" : "#e5e7eb",
         }}
         onMouseMove={handleMouseMove}
       >
@@ -174,7 +174,7 @@ export function WorldMapHeatmap({ countries, maxViews }: WorldMapHeatmapProps) {
         )}
       </div>
       {/* Legend */}{" "}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-4 text-sm flex-shrink-0 px-2">
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-4 text-sm flex-shrink-0 px-2">
         {" "}
         <div className="flex items-center gap-2">
           {" "}
