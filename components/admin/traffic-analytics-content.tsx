@@ -340,7 +340,7 @@ export function TrafficAnalyticsContent() {
           <CardContent className="overflow-hidden p-0">
             <div className="flex gap-4 h-[500px]">
               {/* Country Traffic Table - Left Side */}
-              <div className="w-90 flex flex-col">
+              <div className="w-120 flex flex-col">
                 <div className="p-4 border-b">
                   <h3 className="text-base font-semibold">Top Countries</h3>
                 </div>
@@ -354,8 +354,7 @@ export function TrafficAnalyticsContent() {
                     
                     return (
                       <>
-                        <div className="border rounded-md">
-                          <Table>
+                        <Table>
                             <TableHeader>
                               <TableRow>
                                 <TableHead className="w-12">#</TableHead>
@@ -385,7 +384,6 @@ export function TrafficAnalyticsContent() {
                               })}
                             </TableBody>
                           </Table>
-                        </div>
                         {totalPages > 1 && (
                           <div className="p-4 border-t">
                             <SimplePagination
