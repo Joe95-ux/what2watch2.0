@@ -192,7 +192,7 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as NotificationTab)} className="w-full flex-1 flex flex-col">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as NotificationTab)} className="w-full flex-1 flex flex-col min-h-0">
         <TabsList className="w-full rounded-none border-b h-auto p-0 bg-transparent flex-shrink-0">
           <TabsTrigger 
             value="youtube" 
