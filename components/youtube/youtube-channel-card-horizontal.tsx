@@ -183,37 +183,25 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
 
   return (
     <div
-      className="border rounded-lg p-4 hover:border-primary/50 transition-colors cursor-pointer relative pb-14"
+      className="border rounded-lg hover:border-primary/50 transition-colors cursor-pointer relative pb-14 overflow-hidden"
       onClick={handleCardClick}
     >
-      {/* YouTube Link - Top Right */}
-      <Link
-        href={channelUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={(e) => e.stopPropagation()}
-        className="absolute top-4 right-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary z-10"
-      >
-        <ExternalLink className="h-3 w-3" />
-        YouTube
-      </Link>
-
-      {/* First Section: Profile Picture (1/3 width) + Channel Info (2/3 width) */}
-      <div className="flex items-start gap-4 mb-4" onClick={(e) => e.stopPropagation()}>
-        {/* Profile Picture - Left, 1/3 width */}
+      {/* First Section: Profile Picture (1/3 width) + Channel Info (2/3 width) - No padding */}
+      <div className="flex items-start" onClick={(e) => e.stopPropagation()}>
+        {/* Profile Picture - Left, 1/3 width, flush with top and left, only top-left border radius */}
         <div className="flex-shrink-0 w-1/3">
           {isInDb ? (
             <Link href={profilePath} className="block">
               {channel.thumbnail ? (
-                <Avatar className="h-full w-full aspect-square cursor-pointer ring-2 ring-border hover:ring-primary transition-all rounded-lg">
-                  <AvatarImage src={channel.thumbnail} alt={channelTitle} className="rounded-lg" />
-                  <AvatarFallback className="rounded-lg">
+                <Avatar className="h-full w-full aspect-square cursor-pointer ring-2 ring-border hover:ring-primary transition-all rounded-tl-lg">
+                  <AvatarImage src={channel.thumbnail} alt={channelTitle} className="rounded-tl-lg" />
+                  <AvatarFallback className="rounded-tl-lg">
                     <Youtube className="h-8 w-8" />
                   </AvatarFallback>
                 </Avatar>
               ) : (
-                <Avatar className="h-full w-full aspect-square cursor-pointer ring-2 ring-border hover:ring-primary transition-all rounded-lg">
-                  <AvatarFallback className="rounded-lg">
+                <Avatar className="h-full w-full aspect-square cursor-pointer ring-2 ring-border hover:ring-primary transition-all rounded-tl-lg">
+                  <AvatarFallback className="rounded-tl-lg">
                     <Youtube className="h-8 w-8" />
                   </AvatarFallback>
                 </Avatar>
@@ -225,15 +213,15 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
               onClick={handleNameClick}
             >
               {channel.thumbnail ? (
-                <Avatar className="h-full w-full aspect-square ring-2 ring-border group-hover:ring-primary transition-all rounded-lg">
-                  <AvatarImage src={channel.thumbnail} alt={channelTitle} className="rounded-lg" />
-                  <AvatarFallback className="rounded-lg">
+                <Avatar className="h-full w-full aspect-square ring-2 ring-border group-hover:ring-primary transition-all rounded-tl-lg">
+                  <AvatarImage src={channel.thumbnail} alt={channelTitle} className="rounded-tl-lg" />
+                  <AvatarFallback className="rounded-tl-lg">
                     <Youtube className="h-8 w-8" />
                   </AvatarFallback>
                 </Avatar>
               ) : (
-                <Avatar className="h-full w-full aspect-square ring-2 ring-border group-hover:ring-primary transition-all rounded-lg">
-                  <AvatarFallback className="rounded-lg">
+                <Avatar className="h-full w-full aspect-square ring-2 ring-border group-hover:ring-primary transition-all rounded-tl-lg">
+                  <AvatarFallback className="rounded-tl-lg">
                     <Youtube className="h-8 w-8" />
                   </AvatarFallback>
                 </Avatar>
@@ -242,8 +230,8 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
           )}
         </div>
 
-        {/* Channel Info - Right, 2/3 width */}
-        <div className="flex-1 min-w-0 space-y-2">
+        {/* Channel Info - Right, 2/3 width, with padding */}
+        <div className="flex-1 min-w-0 p-4 space-y-2">
           {/* Channel Name - First Line */}
           <div>
             {isInDb ? (
@@ -265,18 +253,18 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
           {/* Subscribers and Video Count - Second Line */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground text-left">
             <div className="flex items-center gap-1">
-              <UsersRound className="h-3 w-3" />
+              <UsersRound className="h-4 w-4" />
               <span>{formatCount(channel.subscriberCount || "0")}</span>
             </div>
             <span>|</span>
             <div className="flex items-center gap-1">
-              <Video className="h-3 w-3" />
+              <Video className="h-4 w-4" />
               <span>{formatCount(channel.videoCount || "0")}</span>
             </div>
           </div>
 
           {/* Review Channel Action/Average Reviews - Third Line */}
-          <div className="text-left">
+          <div className="text-left space-y-1">
             {channel.rating ? (
               <Button
                 variant="ghost"
@@ -309,35 +297,46 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
                 review channel
               </Button>
             )}
+            {/* YouTube Link - Under review average */}
+            <Link
+              href={channelUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="block text-xs text-muted-foreground hover:text-primary"
+            >
+              <div className="flex items-center gap-1">
+                <ExternalLink className="h-3 w-3" />
+                YouTube
+              </div>
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* Separator */}
-      <div className="border-t border-border mb-4" />
+      {/* Separator - flush with profile photo */}
+      <div className="border-t border-border" />
 
-      {/* Next Row: Summary, Categories, Note - All Left Aligned */}
-      <div className="space-y-3 text-left" onClick={(e) => e.stopPropagation()}>
+      {/* Second Section: Summary, Categories, Note - With padding */}
+      <div className="p-4 space-y-3 text-left" onClick={(e) => e.stopPropagation()}>
         {/* Users found channel summary */}
         {channelSummary?.summary && (
           <div>
             <span className="text-sm text-muted-foreground">Users found channel: </span>
-            <div className="flex flex-col gap-1.5 mt-1">
-              <div className="inline-flex flex-wrap items-center gap-1.5">
-                {summaryWords.map((word, index) => (
-                  <span
-                    key={index}
-                    className={cn(
-                      "px-2 py-0.5 rounded-md border text-xs font-medium",
-                      isNegativeSummary
-                        ? "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
-                        : "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
-                    )}
-                  >
-                    {word}
-                  </span>
-                ))}
-              </div>
+            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+              {summaryWords.map((word, index) => (
+                <span
+                  key={index}
+                  className={cn(
+                    "text-xs font-medium",
+                    isNegativeSummary
+                      ? "text-orange-700 dark:text-orange-400"
+                      : "text-blue-700 dark:text-blue-400"
+                  )}
+                >
+                  {word}
+                </span>
+              ))}
             </div>
           </div>
         )}
@@ -407,22 +406,23 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
 
 export function YouTubeChannelCardHorizontalSkeleton() {
   return (
-    <div className="border rounded-lg p-4 relative pb-14">
-      {/* First Section Skeleton */}
-      <div className="flex items-start gap-4 mb-4">
-        <Skeleton className="w-1/3 aspect-square rounded-lg" />
-        <div className="flex-1 space-y-2">
+    <div className="border rounded-lg relative pb-14 overflow-hidden">
+      {/* First Section Skeleton - No padding */}
+      <div className="flex items-start">
+        <Skeleton className="w-1/3 aspect-square rounded-tl-lg" />
+        <div className="flex-1 p-4 space-y-2">
           <Skeleton className="h-5 w-3/4" />
           <Skeleton className="h-3 w-1/2" />
           <Skeleton className="h-3 w-1/3" />
+          <Skeleton className="h-3 w-16" />
         </div>
       </div>
 
       {/* Separator */}
-      <div className="border-t border-border mb-4" />
+      <div className="border-t border-border" />
 
-      {/* Content Skeleton */}
-      <div className="space-y-3">
+      {/* Second Section Skeleton - With padding */}
+      <div className="p-4 space-y-3">
         <Skeleton className="h-4 w-full" />
         <div className="flex gap-2">
           <Skeleton className="h-5 w-16 rounded" />
