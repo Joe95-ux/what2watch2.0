@@ -32,6 +32,7 @@ export function YouTubeChannelsTab() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [poolFilter, setPoolFilter] = useState<"all" | "inMyFeed" | "notInMyFeed">("all");
+  const { data: cardStyle } = useYouTubeCardStyle();
 
   const { data, isLoading } = useQuery<{
     channels: Channel[];
@@ -127,7 +128,7 @@ export function YouTubeChannelsTab() {
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: 30 }).map((_, index) => 
-            cardStyle === "horizontal" ? (
+            (cardStyle || "centered") === "horizontal" ? (
               <YouTubeChannelCardHorizontalSkeleton key={index} />
             ) : (
               <YouTubeChannelCardPageSkeleton key={index} />
@@ -142,7 +143,7 @@ export function YouTubeChannelsTab() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {channels.map((channel) => 
-              cardStyle === "horizontal" ? (
+              (cardStyle || "centered") === "horizontal" ? (
                 <YouTubeChannelCardHorizontal key={channel.id} channel={channel} />
               ) : (
                 <YouTubeChannelCardPage key={channel.id} channel={channel} />

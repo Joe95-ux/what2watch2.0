@@ -53,6 +53,7 @@ interface ChannelData {
 // Component to fetch and display channels with categories and ratings
 function ChannelListChannelsGrid({ items, listId }: { items: YouTubeChannelListItem[]; listId: string }) {
   const { data: cardStyle } = useYouTubeCardStyle();
+  const effectiveCardStyle = cardStyle || "centered";
   const channelIds = items.map((item) => item.channelId);
 
   // Create a map of channelId to position to preserve order
@@ -156,7 +157,7 @@ function ChannelListChannelsGrid({ items, listId }: { items: YouTubeChannelListI
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {items.map((_, index) => 
-          cardStyle === "horizontal" ? (
+          effectiveCardStyle === "horizontal" ? (
             <YouTubeChannelCardHorizontalSkeleton key={index} />
           ) : (
             <YouTubeChannelCardPageSkeleton key={index} />
@@ -179,7 +180,7 @@ function ChannelListChannelsGrid({ items, listId }: { items: YouTubeChannelListI
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {channels.map((channel: ChannelData) => 
-        cardStyle === "horizontal" ? (
+        effectiveCardStyle === "horizontal" ? (
           <YouTubeChannelCardHorizontal key={channel.id} channel={channel} />
         ) : (
           <YouTubeChannelCardPage key={channel.id} channel={channel} />
