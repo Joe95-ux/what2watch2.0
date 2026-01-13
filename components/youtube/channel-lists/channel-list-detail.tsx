@@ -25,6 +25,8 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { YouTubeChannelCardPage, YouTubeChannelCardPageSkeleton } from "../youtube-channel-card-page";
+import { YouTubeChannelCardHorizontal, YouTubeChannelCardHorizontalSkeleton } from "../youtube-channel-card-horizontal";
+import { useYouTubeCardStyle } from "@/hooks/use-youtube-card-style";
 
 interface ChannelListDetailProps {
   listId: string;
@@ -50,6 +52,7 @@ interface ChannelData {
 
 // Component to fetch and display channels with categories and ratings
 function ChannelListChannelsGrid({ items, listId }: { items: YouTubeChannelListItem[]; listId: string }) {
+  const { data: cardStyle } = useYouTubeCardStyle();
   const channelIds = items.map((item) => item.channelId);
 
   // Create a map of channelId to position to preserve order
@@ -152,9 +155,13 @@ function ChannelListChannelsGrid({ items, listId }: { items: YouTubeChannelListI
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {items.map((_, index) => (
-          <YouTubeChannelCardPageSkeleton key={index} />
-        ))}
+        {items.map((_, index) => 
+          cardStyle === "horizontal" ? (
+            <YouTubeChannelCardHorizontalSkeleton key={index} />
+          ) : (
+            <YouTubeChannelCardPageSkeleton key={index} />
+          )
+        )}
       </div>
     );
   }
@@ -171,9 +178,13 @@ function ChannelListChannelsGrid({ items, listId }: { items: YouTubeChannelListI
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {channels.map((channel: ChannelData) => (
-        <YouTubeChannelCardPage key={channel.id} channel={channel} />
-      ))}
+      {channels.map((channel: ChannelData) => 
+        cardStyle === "horizontal" ? (
+          <YouTubeChannelCardHorizontal key={channel.id} channel={channel} />
+        ) : (
+          <YouTubeChannelCardPage key={channel.id} channel={channel} />
+        )
+      )}
     </div>
   );
 }

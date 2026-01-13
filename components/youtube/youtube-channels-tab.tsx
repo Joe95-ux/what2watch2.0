@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { YouTubeChannelCardPage, YouTubeChannelCardPageSkeleton } from "./youtube-channel-card-page";
+import { YouTubeChannelCardHorizontal, YouTubeChannelCardHorizontalSkeleton } from "./youtube-channel-card-horizontal";
+import { useYouTubeCardStyle } from "@/hooks/use-youtube-card-style";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -124,9 +126,13 @@ export function YouTubeChannelsTab() {
       {/* Channels Grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 30 }).map((_, index) => (
-            <YouTubeChannelCardPageSkeleton key={index} />
-          ))}
+          {Array.from({ length: 30 }).map((_, index) => 
+            cardStyle === "horizontal" ? (
+              <YouTubeChannelCardHorizontalSkeleton key={index} />
+            ) : (
+              <YouTubeChannelCardPageSkeleton key={index} />
+            )
+          )}
         </div>
       ) : channels.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center">
@@ -135,9 +141,13 @@ export function YouTubeChannelsTab() {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {channels.map((channel) => (
-              <YouTubeChannelCardPage key={channel.id} channel={channel} />
-            ))}
+            {channels.map((channel) => 
+              cardStyle === "horizontal" ? (
+                <YouTubeChannelCardHorizontal key={channel.id} channel={channel} />
+              ) : (
+                <YouTubeChannelCardPage key={channel.id} channel={channel} />
+              )
+            )}
           </div>
 
           {/* Pagination */}

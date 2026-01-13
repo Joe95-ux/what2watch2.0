@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -31,7 +32,8 @@ import {
   MessageSquare,
   ThumbsUp,
   AtSign,
-  CheckCircle2
+  CheckCircle2,
+  LayoutGrid
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -70,33 +72,38 @@ interface SettingsContentProps {
     notifyOnForumMentions: boolean;
     notifyOnForumSubscriptions: boolean;
   };
+  youtubeCardStyle: string;
 }
 
-type SettingsSection = "account" | "preferences" | "activity" | "theme" | "notifications";
+type SettingsSection = "account" | "preferences" | "activity" | "theme" | "notifications" | "view";
 
 export default function SettingsContent({ 
   user, 
   preferences, 
   activitySettings: initialActivitySettings,
-  notificationSettings: initialNotificationSettings 
+  notificationSettings: initialNotificationSettings,
+  youtubeCardStyle: initialYoutubeCardStyle
 }: SettingsContentProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { theme, setTheme } = useTheme();
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const [activeSection, setActiveSection] = useState<SettingsSection>("account");
 
   // Check for section query parameter on mount
   useEffect(() => {
     const sectionParam = searchParams.get("section");
-    if (sectionParam && ["account", "preferences", "activity", "theme", "notifications"].includes(sectionParam)) {
+    if (sectionParam && ["account", "preferences", "activity", "theme", "notifications", "view"].includes(sectionParam)) {
       setActiveSection(sectionParam as SettingsSection);
     }
   }, [searchParams]);
   const [activitySettings, setActivitySettings] = useState(initialActivitySettings);
   const [notificationSettings, setNotificationSettings] = useState(initialNotificationSettings);
+  const [youtubeCardStyle, setYoutubeCardStyle] = useState(initialYoutubeCardStyle);
   const [isSavingActivity, setIsSavingActivity] = useState(false);
   const [isSavingNotifications, setIsSavingNotifications] = useState(false);
+  const [isSavingView, setIsSavingView] = useState(false);
 
   const handleStartOnboarding = async () => {
     setIsLoading(true);
@@ -170,12 +177,40 @@ export default function SettingsContent({
     }
   };
 
+  const handleViewSettingsChange = async (cardStyle: string) => {
+    setYoutubeCardStyle(cardStyle);
+    setIsSavingView(true);
+    
+    try {
+      const response = await fetch("/api/user/view-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ youtubeCardStyle: cardStyle }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save settings");
+      }
+
+      toast.success("View settings updated");
+      // Invalidate the card style query to update all components
+      queryClient.invalidateQueries({ queryKey: ["youtube-card-style"] });
+    } catch (error) {
+      console.error("Error updating view settings:", error);
+      toast.error("Failed to update view settings");
+      setYoutubeCardStyle(youtubeCardStyle);
+    } finally {
+      setIsSavingView(false);
+    }
+  };
+
   const settingsSections: Array<{ id: SettingsSection; label: string; icon: React.ReactNode }> = [
     { id: "account", label: "Account", icon: <UserRound className="h-4 w-4" /> },
     { id: "preferences", label: "Preferences", icon: <Palette className="h-4 w-4" /> },
     { id: "activity", label: "Activity Privacy", icon: <Lock className="h-4 w-4" /> },
     { id: "theme", label: "Theme", icon: <Sun className="h-4 w-4" /> },
     { id: "notifications", label: "Notifications", icon: <Bell className="h-4 w-4" /> },
+    { id: "view", label: "View", icon: <LayoutGrid className="h-4 w-4" /> },
   ];
 
   return (
@@ -538,6 +573,53 @@ export default function SettingsContent({
                             disabled={isSavingNotifications || !notificationSettings.emailNotifications && !notificationSettings.pushNotifications}
                           />
                         </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* View Section */}
+            {activeSection === "view" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-semibold mb-2">View</h2>
+                  <p className="text-muted-foreground">Customize how content cards are displayed</p>
+                </div>
+                <Separator />
+                <div className="space-y-6">
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">YouTube Channel Cards</Label>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Choose your preferred card layout for YouTube channels
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {[
+                        { value: "centered", label: "Centered", desc: "Profile picture centered with content below" },
+                        { value: "horizontal", label: "Horizontal", desc: "Profile picture on left with content on right" },
+                      ].map(({ value, label, desc }) => (
+                        <button
+                          key={value}
+                          onClick={() => handleViewSettingsChange(value)}
+                          disabled={isSavingView}
+                          className={cn(
+                            "flex flex-col items-start gap-2 p-4 rounded-lg border-2 transition-all text-left",
+                            "hover:border-primary/50 hover:bg-accent/50",
+                            youtubeCardStyle === value
+                              ? "border-primary bg-accent"
+                              : "border-border",
+                            isSavingView && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 w-full">
+                            <span className="text-sm font-medium">{label}</span>
+                            {youtubeCardStyle === value && (
+                              <CheckCircle2 className="h-4 w-4 text-primary ml-auto" />
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">{desc}</p>
+                        </button>
                       ))}
                     </div>
                   </div>

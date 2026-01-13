@@ -15,6 +15,7 @@ import { useUser } from "@clerk/nextjs";
 import { useQuery } from "@tanstack/react-query";
 import { ChannelReviewFormSheet } from "./channel-review-form-sheet";
 import { useState } from "react";
+import { useChannelReviews, ChannelReview } from "@/hooks/use-youtube-channel-reviews";
 
 function formatCount(count: string | number): string {
   const num = typeof count === "string" ? parseInt(count, 10) : count;
@@ -49,6 +50,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
   const { isSignedIn } = useUser();
   const { addToPool, removeFromPool } = useChannelPool();
   const [isReviewSheetOpen, setIsReviewSheetOpen] = useState(false);
+  const [initialReview, setInitialReview] = useState<ChannelReview | null>(null);
   const channelTitle = channel.title || "Unknown Channel";
   const channelUrl = channel.channelUrl || `https://www.youtube.com/channel/${channel.channelId}`;
   const displayName = channelTitle.length > 30 ? channelTitle.slice(0, 30) + "..." : channelTitle;
@@ -68,6 +70,13 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
     staleTime: 1000 * 60 * 60, // Cache for 1 hour
     gcTime: 1000 * 60 * 60 * 24, // Keep in cache for 24 hours
   });
+
+  // Fetch viewer state to check if user has already reviewed
+  const { data: reviewsData } = useChannelReviews(channel.channelId, {
+    page: 1,
+    limit: 1,
+  });
+  const viewerState = reviewsData?.viewerState;
 
   const handlePoolAction = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -112,6 +121,60 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
     } else {
       window.open(channelUrl, "_blank", "noopener,noreferrer");
     }
+  };
+
+  const handleReviewClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // Check if user has already reviewed
+    if (viewerState?.hasReview && viewerState.reviewId) {
+      // Fetch the existing review
+      try {
+        const response = await fetch(`/api/youtube/channel-reviews/${viewerState.reviewId}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.id) {
+            setInitialReview({
+              id: data.id,
+              channelId: data.channelId,
+              userId: data.userId,
+              rating: data.rating,
+              title: data.title,
+              content: data.content,
+              tags: data.tags,
+              helpfulCount: data.helpfulCount,
+              notHelpfulCount: data.notHelpfulCount,
+              isEdited: data.isEdited,
+              status: "published",
+              createdAt: data.createdAt,
+              updatedAt: data.updatedAt,
+              user: data.user,
+              viewerHasVoted: data.viewerHasVoted,
+              canEdit: data.canEdit,
+            } as ChannelReview);
+          } else {
+            setInitialReview(null);
+          }
+        } else {
+          setInitialReview(null);
+        }
+      } catch (error) {
+        console.error("[YouTubeChannelCardPage] Failed to fetch review:", error);
+        setInitialReview(null);
+      }
+    } else {
+      setInitialReview(null);
+    }
+    
+    setIsReviewSheetOpen(true);
+  };
+
+  const handleCloseReviewSheet = () => {
+    setIsReviewSheetOpen(false);
+    // Reset initial review after a short delay to allow sheet to close
+    setTimeout(() => {
+      setInitialReview(null);
+    }, 200);
   };
 
   // Determine if summary is negative based on rating
@@ -238,10 +301,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
             <Button
               variant="ghost"
               size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsReviewSheetOpen(true);
-              }}
+              onClick={handleReviewClick}
               className="h-auto p-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
             >
               <div className="flex items-center gap-1">
@@ -263,10 +323,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
             <Button
               variant="ghost"
               size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsReviewSheetOpen(true);
-              }}
+              onClick={handleReviewClick}
               className="h-auto p-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
             >
               review channel
@@ -333,8 +390,8 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
         channelTitle={channelTitle}
         channelThumbnail={channel.thumbnail}
         isOpen={isReviewSheetOpen}
-        onClose={() => setIsReviewSheetOpen(false)}
-        initialReview={null}
+        onClose={handleCloseReviewSheet}
+        initialReview={initialReview}
       />
     </div>
   );

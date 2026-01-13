@@ -50,6 +50,9 @@ model User {
   notifyOnForumMentions Boolean @default(true) // POST_MENTION, REPLY_MENTION
   notifyOnForumSubscriptions Boolean @default(true) // POST_SUBSCRIPTION
   
+  // View preferences
+  youtubeCardStyle String @default("centered") // "centered" (default) or "horizontal"
+  
   // Admin & Moderation
   role            String   @default("USER") // "USER", "MODERATOR", "ADMIN", "SUPER_ADMIN"
   isForumModerator Boolean @default(false)

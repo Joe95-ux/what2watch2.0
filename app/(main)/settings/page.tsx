@@ -36,6 +36,7 @@ export default async function SettingsPage() {
       notifyOnForumReplies: true,
       notifyOnForumMentions: true,
       notifyOnForumSubscriptions: true,
+      youtubeCardStyle: true,
       preferences: {
         select: {
           favoriteGenres: true,
@@ -75,6 +76,7 @@ export default async function SettingsPage() {
       notifyOnForumMentions: user.notifyOnForumMentions ?? true,
       notifyOnForumSubscriptions: user.notifyOnForumSubscriptions ?? true,
     }}
+    youtubeCardStyle={user.youtubeCardStyle || "centered"}
   />;
 }
 
