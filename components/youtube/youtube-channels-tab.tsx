@@ -153,7 +153,7 @@ export function YouTubeChannelsTab() {
 
           {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2">
+            <div className="flex items-center justify-center gap-2 mt-6">
               <Button
                 variant="outline"
                 size="sm"
@@ -161,18 +161,41 @@ export function YouTubeChannelsTab() {
                 disabled={page === 1}
               >
                 <ChevronLeft className="h-4 w-4" />
-                Previous
               </Button>
-              <span className="text-sm text-muted-foreground">
-                Page {pagination.page} of {pagination.totalPages}
-              </span>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                  .filter((pageNum) => {
+                    return (
+                      pageNum === 1 ||
+                      pageNum === pagination.totalPages ||
+                      (pageNum >= page - 1 && pageNum <= page + 1)
+                    );
+                  })
+                  .map((pageNum, index, array) => {
+                    const showEllipsisBefore = index > 0 && array[index - 1] < pageNum - 1;
+                    return (
+                      <div key={pageNum} className="flex items-center gap-1">
+                        {showEllipsisBefore && (
+                          <span className="text-muted-foreground px-2">...</span>
+                        )}
+                        <Button
+                          variant={page === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setPage(pageNum)}
+                          className="min-w-[2.5rem]"
+                        >
+                          {pageNum}
+                        </Button>
+                      </div>
+                    );
+                  })}
+              </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
-                disabled={page === pagination.totalPages}
+                disabled={page >= pagination.totalPages}
               >
-                Next
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
