@@ -531,7 +531,7 @@ export default function SettingsContent({
                             onCheckedChange={(checked) =>
                               handleNotificationSettingsChange({ [key]: checked } as Partial<typeof notificationSettings>)
                             }
-                            disabled={isSavingNotifications || !notificationSettings.emailNotifications && !notificationSettings.pushNotifications}
+                            disabled={isSavingNotifications || (!notificationSettings.emailNotifications && !notificationSettings.pushNotifications)}
                           />
                         </div>
                       ))}
@@ -570,7 +570,7 @@ export default function SettingsContent({
                             onCheckedChange={(checked) =>
                               handleNotificationSettingsChange({ [key]: checked } as Partial<typeof notificationSettings>)
                             }
-                            disabled={isSavingNotifications || !notificationSettings.emailNotifications && !notificationSettings.pushNotifications}
+                            disabled={isSavingNotifications || (!notificationSettings.emailNotifications && !notificationSettings.pushNotifications)}
                           />
                         </div>
                       ))}

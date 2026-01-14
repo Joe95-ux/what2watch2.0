@@ -148,8 +148,22 @@ export function useCreateChannelReview(channelId: string) {
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate review queries
       queryClient.invalidateQueries({
         queryKey: ["channel-reviews", channelId],
+        exact: false,
+      });
+      // Invalidate channel data queries to update rating in cards
+      queryClient.invalidateQueries({
+        queryKey: ["youtube-channels-all"],
+        exact: false,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["youtube-channels-all-infinite"],
+        exact: false,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["channel-list-channels"],
         exact: false,
       });
     },
@@ -177,8 +191,22 @@ export function useUpdateChannelReview(channelId: string) {
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate review queries
       queryClient.invalidateQueries({
         queryKey: ["channel-reviews", channelId],
+        exact: false,
+      });
+      // Invalidate channel data queries to update rating in cards
+      queryClient.invalidateQueries({
+        queryKey: ["youtube-channels-all"],
+        exact: false,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["youtube-channels-all-infinite"],
+        exact: false,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["channel-list-channels"],
         exact: false,
       });
     },
@@ -202,8 +230,22 @@ export function useDeleteChannelReview(channelId: string) {
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate review queries
       queryClient.invalidateQueries({
         queryKey: ["channel-reviews", channelId],
+        exact: false,
+      });
+      // Invalidate channel data queries to update rating in cards
+      queryClient.invalidateQueries({
+        queryKey: ["youtube-channels-all"],
+        exact: false,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["youtube-channels-all-infinite"],
+        exact: false,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["channel-list-channels"],
         exact: false,
       });
     },
