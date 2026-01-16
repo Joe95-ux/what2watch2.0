@@ -28,6 +28,7 @@ import {
   Eye,
   Lock,
   Heart,
+  Loader2,
 } from "lucide-react";
 import Image from "next/image";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
@@ -1030,9 +1031,16 @@ export default function ListView({
                               }
                             }}
                             disabled={selectedItemsToAdd.size === 0 || updateList.isPending}
-                            className="h-7 text-xs"
+                            className="h-7 text-xs cursor-pointer"
                           >
-                            Add Selected ({selectedItemsToAdd.size})
+                            {updateList.isPending ? (
+                              <>
+                                <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                                Adding...
+                              </>
+                            ) : (
+                              `Add Selected (${selectedItemsToAdd.size})`
+                            )}
                           </Button>
                         </div>
                       )}
@@ -1083,7 +1091,7 @@ export default function ListView({
                                       }
                                       setSelectedItemsToAdd(newSelected);
                                     }}
-                                    className="flex-shrink-0"
+                                    className="flex-shrink-0 cursor-pointer"
                                   />
                                   {item.poster_path ? (
                                     <div className="relative w-12 h-16 rounded overflow-hidden flex-shrink-0 bg-muted">
