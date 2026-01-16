@@ -68,6 +68,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import CreateListModal from "@/components/lists/create-list-modal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
@@ -235,6 +236,7 @@ export default function WatchlistView({
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isAddToWatchlistOpen, setIsAddToWatchlistOpen] = useState(false);
   const [addSearchQuery, setAddSearchQuery] = useState("");
+  const [selectedItemsToAdd, setSelectedItemsToAdd] = useState<Set<string>>(new Set());
   const { isSignedIn } = useUser();
   const addToWatchlist = useAddToWatchlist();
   const [isLgScreen, setIsLgScreen] = useState(false);
@@ -935,7 +937,13 @@ export default function WatchlistView({
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Popover
                   open={isAddToWatchlistOpen}
-                  onOpenChange={setIsAddToWatchlistOpen}
+                  onOpenChange={(open) => {
+                    setIsAddToWatchlistOpen(open);
+                    if (!open) {
+                      setSelectedItemsToAdd(new Set());
+                      setAddSearchQuery("");
+                    }
+                  }}
                 >
                   <PopoverTrigger asChild>
                     <Button
@@ -951,7 +959,7 @@ export default function WatchlistView({
                     className="w-[400px] p-0 max-w-[calc(100vw-1rem)] mx-[0.5rem] sm:mx-0"
                     align="end"
                   >
-                    <div className="p-4 border-b">
+                    <div className="p-4 border-b space-y-3">
                       <Input
                         placeholder="Search movies or TV shows..."
                         value={addSearchQuery}
@@ -959,8 +967,95 @@ export default function WatchlistView({
                         className="w-full"
                         autoFocus
                       />
+                      {debouncedAddSearchQuery.trim() && searchResults?.results && searchResults.results.length > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            {selectedItemsToAdd.size} selected
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={async () => {
+                              if (selectedItemsToAdd.size === 0) return;
+
+                              const itemsToAdd = Array.from(selectedItemsToAdd)
+                                .map((key) => {
+                                  const [id, type] = key.split("-");
+                                  const item = searchResults.results.find(
+                                    (i) => `${i.id}-${"title" in i ? "movie" : "tv"}` === key
+                                  );
+                                  if (!item) return null;
+                                  const isMovie = "title" in item;
+                                  return {
+                                    tmdbId: parseInt(id),
+                                    mediaType: type as "movie" | "tv",
+                                    title: isMovie ? item.title : item.name,
+                                    posterPath: item.poster_path || null,
+                                    backdropPath: item.backdrop_path || null,
+                                    releaseDate: isMovie
+                                      ? (item.release_date ?? undefined)
+                                      : undefined,
+                                    firstAirDate: !isMovie
+                                      ? (item.first_air_date ?? undefined)
+                                      : undefined,
+                                  };
+                                })
+                                .filter((item): item is NonNullable<typeof item> => item !== null);
+
+                              try {
+                                // Add items one by one to handle errors gracefully
+                                let successCount = 0;
+                                let errorCount = 0;
+                                for (const item of itemsToAdd) {
+                                  try {
+                                    await addToWatchlist.mutateAsync({
+                                      tmdbId: item.tmdbId,
+                                      mediaType: item.mediaType,
+                                      title: item.title,
+                                      posterPath: item.posterPath,
+                                      backdropPath: item.backdropPath,
+                                      releaseDate: item.releaseDate,
+                                      firstAirDate: item.firstAirDate,
+                                    });
+                                    successCount++;
+                                  } catch (error) {
+                                    errorCount++;
+                                    console.error(`Failed to add ${item.title}:`, error);
+                                  }
+                                }
+
+                                if (successCount > 0) {
+                                  toast.success(
+                                    `Added ${successCount} item${successCount > 1 ? "s" : ""} to watchlist`
+                                  );
+                                }
+                                if (errorCount > 0) {
+                                  toast.error(
+                                    `Failed to add ${errorCount} item${errorCount > 1 ? "s" : ""}`
+                                  );
+                                }
+
+                                setSelectedItemsToAdd(new Set());
+                                setAddSearchQuery("");
+                                setIsAddToWatchlistOpen(false);
+                              } catch (error) {
+                                toast.error("Failed to add items to watchlist");
+                                console.error(error);
+                              }
+                            }}
+                            disabled={selectedItemsToAdd.size === 0 || addToWatchlist.isPending}
+                            className="h-7 text-xs"
+                          >
+                            Add Selected ({selectedItemsToAdd.size})
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                    {debouncedAddSearchQuery.trim() && (
+                    {!debouncedAddSearchQuery.trim() ? (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        Start typing to search for movies or TV shows
+                      </div>
+                    ) : (
                       <div className="h-auto max-h-[400px] p-2 overflow-y-auto scrollbar-thin">
                         {isSearchLoading ? (
                           <div className="p-4 text-center text-sm text-muted-foreground">
@@ -973,53 +1068,37 @@ export default function WatchlistView({
                               const isMovie = "title" in item;
                               const title = isMovie ? item.title : item.name;
                               const mediaType = isMovie ? "movie" : "tv";
+                              const itemKey = `${item.id}-${mediaType}`;
                               const isInWatchlist = watchlist.some(
                                 (w) =>
                                   w.tmdbId === item.id &&
                                   w.mediaType === mediaType
                               );
+                              const isSelected = selectedItemsToAdd.has(itemKey);
 
                               return (
-                                <button
-                                  key={`${item.id}-${mediaType}`}
-                                  onClick={async () => {
-                                    if (isInWatchlist) {
-                                      toast.error(
-                                        `${title} is already in your watchlist`
-                                      );
-                                      return;
-                                    }
-
-                                    try {
-                                      await addToWatchlist.mutateAsync({
-                                        tmdbId: item.id,
-                                        mediaType,
-                                        title,
-                                        posterPath: item.poster_path || null,
-                                        backdropPath:
-                                          item.backdrop_path || null,
-                                        releaseDate: isMovie
-                                          ? item.release_date || undefined
-                                          : undefined,
-                                        firstAirDate: !isMovie
-                                          ? item.first_air_date || undefined
-                                          : undefined,
-                                      });
-                                      toast.success(
-                                        `Added ${title} to watchlist`
-                                      );
-                                      setAddSearchQuery("");
-                                      setIsAddToWatchlistOpen(false);
-                                    } catch (error) {
-                                      toast.error("Failed to add to watchlist");
-                                      console.error(error);
-                                    }
-                                  }}
-                                  disabled={
-                                    isInWatchlist || addToWatchlist.isPending
-                                  }
-                                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                                <div
+                                  key={itemKey}
+                                  className={cn(
+                                    "w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors",
+                                    isInWatchlist && "opacity-50"
+                                  )}
                                 >
+                                  <Checkbox
+                                    checked={isInWatchlist || isSelected}
+                                    disabled={isInWatchlist}
+                                    onCheckedChange={(checked) => {
+                                      if (isInWatchlist) return;
+                                      const newSelected = new Set(selectedItemsToAdd);
+                                      if (checked) {
+                                        newSelected.add(itemKey);
+                                      } else {
+                                        newSelected.delete(itemKey);
+                                      }
+                                      setSelectedItemsToAdd(newSelected);
+                                    }}
+                                    className="flex-shrink-0"
+                                  />
                                   {item.poster_path ? (
                                     <div className="relative w-12 h-16 rounded overflow-hidden flex-shrink-0 bg-muted">
                                       <Image
@@ -1063,12 +1142,10 @@ export default function WatchlistView({
                                       )}
                                     </div>
                                   </div>
-                                  {isInWatchlist ? (
+                                  {isInWatchlist && (
                                     <Check className="h-5 w-5 text-primary flex-shrink-0" />
-                                  ) : (
-                                    <Plus className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                                   )}
-                                </button>
+                                </div>
                               );
                             })}
                           </div>
@@ -1077,11 +1154,6 @@ export default function WatchlistView({
                             No results found
                           </div>
                         )}
-                      </div>
-                    )}
-                    {!debouncedAddSearchQuery.trim() && (
-                      <div className="p-4 text-center text-sm text-muted-foreground">
-                        Start typing to search for movies or TV shows
                       </div>
                     )}
                   </PopoverContent>

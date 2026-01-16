@@ -85,6 +85,7 @@ import { reorderPlaylistEntries, type PlaylistEntry } from "@/lib/playlist-utils
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -239,6 +240,7 @@ export default function PlaylistView({
   const [isEditPlaylistModalOpen, setIsEditPlaylistModalOpen] = useState(false);
   const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false);
   const [addSearchQuery, setAddSearchQuery] = useState("");
+  const [selectedItemsToAdd, setSelectedItemsToAdd] = useState<Set<string>>(new Set());
   const debouncedAddSearchQuery = useDebounce(addSearchQuery, 300);
   const { data: searchResults, isLoading: isSearchLoading } = useSearch({
     query: debouncedAddSearchQuery,
@@ -1187,7 +1189,13 @@ export default function PlaylistView({
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Popover
                   open={isAddToPlaylistOpen}
-                  onOpenChange={setIsAddToPlaylistOpen}
+                  onOpenChange={(open) => {
+                    setIsAddToPlaylistOpen(open);
+                    if (!open) {
+                      setSelectedItemsToAdd(new Set());
+                      setAddSearchQuery("");
+                    }
+                  }}
                 >
                   <PopoverTrigger asChild>
                     <Button
@@ -1203,7 +1211,7 @@ export default function PlaylistView({
                     className="w-[400px] p-0 max-w-[calc(100vw-1rem)] mx-[0.5rem] sm:mx-0"
                     align="end"
                   >
-                    <div className="p-4 border-b">
+                    <div className="p-4 border-b space-y-3">
                       <Input
                         placeholder="Search movies or TV shows..."
                         value={addSearchQuery}
@@ -1211,6 +1219,84 @@ export default function PlaylistView({
                         className="w-full"
                         autoFocus
                       />
+                      {debouncedAddSearchQuery.trim() && searchResults?.results && searchResults.results.length > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            {selectedItemsToAdd.size} selected
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={async () => {
+                              if (!playlist || selectedItemsToAdd.size === 0) return;
+
+                              const itemsToAdd = Array.from(selectedItemsToAdd)
+                                .map((key) => {
+                                  const [id, type] = key.split("-");
+                                  const item = searchResults.results.find(
+                                    (i) => `${i.id}-${"title" in i ? "movie" : "tv"}` === key
+                                  );
+                                  if (!item) return null;
+                                  const isMovie = "title" in item;
+                                  return {
+                                    tmdbId: parseInt(id),
+                                    mediaType: type as "movie" | "tv",
+                                    title: isMovie ? item.title : item.name,
+                                    posterPath: item.poster_path || null,
+                                    backdropPath: item.backdrop_path || null,
+                                    releaseDate: isMovie
+                                      ? (item.release_date ?? undefined)
+                                      : undefined,
+                                    firstAirDate: !isMovie
+                                      ? (item.first_air_date ?? undefined)
+                                      : undefined,
+                                  };
+                                })
+                                .filter((item): item is NonNullable<typeof item> => item !== null);
+
+                              try {
+                                // Add items one by one to handle errors gracefully
+                                let successCount = 0;
+                                let errorCount = 0;
+                                for (const item of itemsToAdd) {
+                                  try {
+                                    await addItemToPlaylist.mutateAsync({
+                                      playlistId: playlist.id,
+                                      item,
+                                    });
+                                    successCount++;
+                                  } catch (error) {
+                                    errorCount++;
+                                    console.error(`Failed to add ${item.title}:`, error);
+                                  }
+                                }
+
+                                if (successCount > 0) {
+                                  toast.success(
+                                    `Added ${successCount} item${successCount > 1 ? "s" : ""} to playlist`
+                                  );
+                                }
+                                if (errorCount > 0) {
+                                  toast.error(
+                                    `Failed to add ${errorCount} item${errorCount > 1 ? "s" : ""}`
+                                  );
+                                }
+
+                                setSelectedItemsToAdd(new Set());
+                                setAddSearchQuery("");
+                                setIsAddToPlaylistOpen(false);
+                              } catch (error) {
+                                toast.error("Failed to add items to playlist");
+                                console.error(error);
+                              }
+                            }}
+                            disabled={selectedItemsToAdd.size === 0 || addItemToPlaylist.isPending}
+                            className="h-7 text-xs"
+                          >
+                            Add Selected ({selectedItemsToAdd.size})
+                          </Button>
+                        </div>
+                      )}
                     </div>
                     {!debouncedAddSearchQuery.trim() ? (
                       <div className="p-4 text-center text-sm text-muted-foreground">
@@ -1228,62 +1314,37 @@ export default function PlaylistView({
                               const isMovie = "title" in item;
                               const title = isMovie ? item.title : item.name;
                               const mediaType = isMovie ? "movie" : "tv";
+                              const itemKey = `${item.id}-${mediaType}`;
                               const isInPlaylist = playlist?.items?.some(
                                 (i: PlaylistItem) =>
                                   i.tmdbId === item.id &&
                                   i.mediaType === mediaType
                               ) || false;
+                              const isSelected = selectedItemsToAdd.has(itemKey);
 
                               return (
-                                <button
-                                  key={`${item.id}-${mediaType}`}
-                                  onClick={async () => {
-                                    if (isInPlaylist) {
-                                      toast.error(
-                                        `${title} is already in this playlist`
-                                      );
-                                      return;
-                                    }
-
-                                    if (!playlist) return;
-
-                                    try {
-                                      // Add item to playlist using the hook (handles cache invalidation)
-                                      await addItemToPlaylist.mutateAsync({
-                                        playlistId: playlist.id,
-                                        item: {
-                                          tmdbId: item.id,
-                                          mediaType: mediaType as "movie" | "tv",
-                                          title,
-                                          posterPath: item.poster_path || null,
-                                          backdropPath: item.backdrop_path || null,
-                                          releaseDate: isMovie
-                                            ? (item.release_date ?? undefined)
-                                            : undefined,
-                                          firstAirDate: !isMovie
-                                            ? (item.first_air_date ?? undefined)
-                                            : undefined,
-                                        },
-                                      });
-
-                                      toast.success(
-                                        `Added ${title} to playlist`
-                                      );
-                                      setAddSearchQuery("");
-                                      setIsAddToPlaylistOpen(false);
-                                    } catch (error) {
-                                      const errorMessage = error instanceof Error ? error.message : "Failed to add to playlist";
-                                      if (errorMessage.includes("already in playlist")) {
-                                        toast.error("Item is already in this playlist");
-                                      } else {
-                                        toast.error("Failed to add to playlist");
-                                      }
-                                      console.error(error);
-                                    }
-                                  }}
-                                  disabled={isInPlaylist}
-                                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                                <div
+                                  key={itemKey}
+                                  className={cn(
+                                    "w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors",
+                                    isInPlaylist && "opacity-50"
+                                  )}
                                 >
+                                  <Checkbox
+                                    checked={isInPlaylist || isSelected}
+                                    disabled={isInPlaylist}
+                                    onCheckedChange={(checked) => {
+                                      if (isInPlaylist) return;
+                                      const newSelected = new Set(selectedItemsToAdd);
+                                      if (checked) {
+                                        newSelected.add(itemKey);
+                                      } else {
+                                        newSelected.delete(itemKey);
+                                      }
+                                      setSelectedItemsToAdd(newSelected);
+                                    }}
+                                    className="flex-shrink-0"
+                                  />
                                   {item.poster_path ? (
                                     <div className="relative w-12 h-16 rounded overflow-hidden flex-shrink-0 bg-muted">
                                       <Image
@@ -1311,10 +1372,10 @@ export default function PlaylistView({
                                       {mediaType}
                                     </p>
                                   </div>
-                                  {!isInPlaylist && (
-                                    <Plus className="h-4 w-4 text-primary group-hover:text-primary/80" />
+                                  {isInPlaylist && (
+                                    <Check className="h-4 w-4 text-primary flex-shrink-0" />
                                   )}
-                                </button>
+                                </div>
                               );
                             })}
                           </div>

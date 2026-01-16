@@ -75,6 +75,7 @@ import { reorderListEntries, type ListEntry } from "@/lib/list-utils";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -221,6 +222,7 @@ export default function ListView({
   const [isEditListModalOpen, setIsEditListModalOpen] = useState(false);
   const [isAddToListOpen, setIsAddToListOpen] = useState(false);
   const [addSearchQuery, setAddSearchQuery] = useState("");
+  const [selectedItemsToAdd, setSelectedItemsToAdd] = useState<Set<string>>(new Set());
   const debouncedAddSearchQuery = useDebounce(addSearchQuery, 300);
   const { data: searchResults, isLoading: isSearchLoading } = useSearch({
     query: debouncedAddSearchQuery,
@@ -928,7 +930,13 @@ export default function ListView({
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Popover
                   open={isAddToListOpen}
-                  onOpenChange={setIsAddToListOpen}
+                  onOpenChange={(open) => {
+                    setIsAddToListOpen(open);
+                    if (!open) {
+                      setSelectedItemsToAdd(new Set());
+                      setAddSearchQuery("");
+                    }
+                  }}
                 >
                   <PopoverTrigger asChild>
                     <Button
@@ -944,7 +952,7 @@ export default function ListView({
                     className="w-[400px] p-0 max-w-[calc(100vw-1rem)] mx-[0.5rem] sm:mx-0"
                     align="end"
                   >
-                    <div className="p-4 border-b">
+                    <div className="p-4 border-b space-y-3">
                       <Input
                         placeholder="Search movies or TV shows..."
                         value={addSearchQuery}
@@ -952,6 +960,82 @@ export default function ListView({
                         className="w-full"
                         autoFocus
                       />
+                      {debouncedAddSearchQuery.trim() && searchResults?.results && searchResults.results.length > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            {selectedItemsToAdd.size} selected
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={async () => {
+                              if (!list || selectedItemsToAdd.size === 0) return;
+
+                              const itemsToAdd = Array.from(selectedItemsToAdd)
+                                .map((key) => {
+                                  const [id, type] = key.split("-");
+                                  const item = searchResults.results.find(
+                                    (i) => `${i.id}-${"title" in i ? "movie" : "tv"}` === key
+                                  );
+                                  if (!item) return null;
+                                  const isMovie = "title" in item;
+                                  return {
+                                    tmdbId: parseInt(id),
+                                    mediaType: type as "movie" | "tv",
+                                    title: isMovie ? item.title : item.name,
+                                    posterPath: item.poster_path || null,
+                                    backdropPath: item.backdrop_path || null,
+                                    releaseDate: isMovie
+                                      ? (item.release_date ?? null)
+                                      : null,
+                                    firstAirDate: !isMovie
+                                      ? (item.first_air_date ?? null)
+                                      : null,
+                                  };
+                                })
+                                .filter((item): item is NonNullable<typeof item> => item !== null);
+
+                              try {
+                                const existingItems = list.items || [];
+                                const newItems = [
+                                  ...existingItems.map((i) => ({
+                                    tmdbId: i.tmdbId,
+                                    mediaType: i.mediaType as "movie" | "tv",
+                                    title: i.title,
+                                    posterPath: i.posterPath,
+                                    backdropPath: i.backdropPath,
+                                    releaseDate: i.releaseDate,
+                                    firstAirDate: i.firstAirDate,
+                                    position: i.position,
+                                  })),
+                                  ...itemsToAdd.map((item, index) => ({
+                                    ...item,
+                                    position: existingItems.length + index + 1,
+                                  })),
+                                ];
+
+                                await updateList.mutateAsync({
+                                  listId: list.id,
+                                  items: newItems,
+                                });
+                                toast.success(
+                                  `Added ${itemsToAdd.length} item${itemsToAdd.length > 1 ? "s" : ""} to list`
+                                );
+                                setSelectedItemsToAdd(new Set());
+                                setAddSearchQuery("");
+                                setIsAddToListOpen(false);
+                              } catch (error) {
+                                toast.error("Failed to add items to list");
+                                console.error(error);
+                              }
+                            }}
+                            disabled={selectedItemsToAdd.size === 0 || updateList.isPending}
+                            className="h-7 text-xs"
+                          >
+                            Add Selected ({selectedItemsToAdd.size})
+                          </Button>
+                        </div>
+                      )}
                     </div>
                     {!debouncedAddSearchQuery.trim() ? (
                       <div className="p-4 text-center text-sm text-muted-foreground">
@@ -970,72 +1054,37 @@ export default function ListView({
                               const isMovie = "title" in item;
                               const title = isMovie ? item.title : item.name;
                               const mediaType = isMovie ? "movie" : "tv";
+                              const itemKey = `${item.id}-${mediaType}`;
                               const isInList = list?.items.some(
                                 (i) =>
                                   i.tmdbId === item.id &&
                                   i.mediaType === mediaType
                               );
+                              const isSelected = selectedItemsToAdd.has(itemKey);
 
                               return (
-                                <button
-                                  key={`${item.id}-${mediaType}`}
-                                  onClick={async () => {
-                                    if (isInList) {
-                                      toast.error(
-                                        `${title} is already in this list`
-                                      );
-                                      return;
-                                    }
-
-                                    if (!list) return;
-
-                                    try {
-                                      const existingItems = list.items || [];
-                                      const newItems = [
-                                        ...existingItems.map((i) => ({
-                                          tmdbId: i.tmdbId,
-                                          mediaType: i.mediaType as "movie" | "tv",
-                                          title: i.title,
-                                          posterPath: i.posterPath,
-                                          backdropPath: i.backdropPath,
-                                          releaseDate: i.releaseDate,
-                                          firstAirDate: i.firstAirDate,
-                                          position: i.position,
-                                        })),
-                                        {
-                                          tmdbId: item.id,
-                                          mediaType: mediaType as "movie" | "tv",
-                                          title,
-                                          posterPath: item.poster_path || null,
-                                          backdropPath:
-                                            item.backdrop_path || null,
-                                          releaseDate: isMovie
-                                            ? item.release_date || null
-                                            : null,
-                                          firstAirDate: !isMovie
-                                            ? item.first_air_date || null
-                                            : null,
-                                          position: existingItems.length + 1,
-                                        },
-                                      ];
-
-                                      await updateList.mutateAsync({
-                                        listId: list.id,
-                                        items: newItems,
-                                      });
-                                      toast.success(
-                                        `Added ${title} to list`
-                                      );
-                                      setAddSearchQuery("");
-                                      setIsAddToListOpen(false);
-                                    } catch (error) {
-                                      toast.error("Failed to add to list");
-                                      console.error(error);
-                                    }
-                                  }}
-                                  disabled={isInList || updateList.isPending}
-                                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                                <div
+                                  key={itemKey}
+                                  className={cn(
+                                    "w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors",
+                                    isInList && "opacity-50"
+                                  )}
                                 >
+                                  <Checkbox
+                                    checked={isInList || isSelected}
+                                    disabled={isInList}
+                                    onCheckedChange={(checked) => {
+                                      if (isInList) return;
+                                      const newSelected = new Set(selectedItemsToAdd);
+                                      if (checked) {
+                                        newSelected.add(itemKey);
+                                      } else {
+                                        newSelected.delete(itemKey);
+                                      }
+                                      setSelectedItemsToAdd(newSelected);
+                                    }}
+                                    className="flex-shrink-0"
+                                  />
                                   {item.poster_path ? (
                                     <div className="relative w-12 h-16 rounded overflow-hidden flex-shrink-0 bg-muted">
                                       <Image
@@ -1063,10 +1112,10 @@ export default function ListView({
                                       {mediaType}
                                     </p>
                                   </div>
-                                  {!isInList && (
-                                    <Plus className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                  {isInList && (
+                                    <Check className="h-4 w-4 text-primary flex-shrink-0" />
                                   )}
-                                </button>
+                                </div>
                               );
                             })}
                           </div>
