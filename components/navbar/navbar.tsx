@@ -16,6 +16,7 @@ import { UserProfileButton } from "./user-profile-button";
 import { NavDropdown } from "./nav-dropdown";
 import MobileNav from "./mobile-nav";
 import { HamburgerButton } from "./hamburger-button";
+import { YouTubeNavDropdown } from "./youtube-nav-dropdown";
 import { cn } from "@/lib/utils";
 
 interface NavLink {
@@ -29,7 +30,6 @@ const navLinks: NavLink[] = [
   { href: "/lists", label: "Lists" },
   { href: "/members", label: "Members" },
   { href: "/forums", label: "Forums" },
-  { href: "/youtube", label: "YouTube" },
 ];
 
 export default function Navbar() {
@@ -162,6 +162,7 @@ export default function Navbar() {
                     </Link>
                   );
                 })}
+                <YouTubeNavDropdown hasHeroSection={hasHeroSection} />
               </div>
             )}
 

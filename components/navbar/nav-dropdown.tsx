@@ -6,9 +6,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Youtube, TrendingUp, BarChart3, Sparkles, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HamburgerButton } from "./hamburger-button";
 
@@ -22,9 +25,19 @@ interface NavDropdownProps {
   hasHeroSection?: boolean;
 }
 
+const youtubeNavItems = [
+  { href: "/youtube", label: "Overview", icon: Youtube },
+  { href: "/youtube/trends", label: "Trending Topics", icon: TrendingUp },
+  { href: "/youtube/analyzer", label: "Title Analyzer", icon: BarChart3 },
+  { href: "/youtube/insights", label: "Content Insights", icon: Sparkles },
+];
+
 export function NavDropdown({ navLinks, hasHeroSection = false }: NavDropdownProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [youtubeOpen, setYoutubeOpen] = useState(false);
+
+  const isYouTubeActive = pathname === "/youtube" || pathname?.startsWith("/youtube/");
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -55,6 +68,27 @@ export function NavDropdown({ navLinks, hasHeroSection = false }: NavDropdownPro
                 onClick={() => setOpen(false)}
               >
                 <span>{link.label}</span>
+              </DropdownMenuItem>
+            </Link>
+          );
+        })}
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel>YouTube</DropdownMenuLabel>
+        {youtubeNavItems.map((item) => {
+          const Icon = item.icon;
+          const isActive =
+            pathname === item.href || (item.href !== "/youtube" && pathname?.startsWith(item.href));
+          return (
+            <Link key={item.href} href={item.href}>
+              <DropdownMenuItem
+                className={cn(
+                  "cursor-pointer flex items-center gap-2",
+                  isActive && "bg-accent text-accent-foreground"
+                )}
+                onClick={() => setOpen(false)}
+              >
+                <Icon className="h-4 w-4" />
+                <span>{item.label}</span>
               </DropdownMenuItem>
             </Link>
           );

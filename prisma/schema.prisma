@@ -1607,6 +1607,91 @@ model UserYouTubeBadge {
   @@map("user_youtube_badges")
   @@unique([badgeId, userId])
   @@index([userId])
+  @@index([badgeId])
+}
+
+// Video Snapshots - Track video metrics over time for trend analysis
+model YouTubeVideoSnapshot {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  videoId       String
+  channelId     String
+  
+  // Snapshot data from YouTube API
+  viewCount     String   // Using String for BigInt compatibility
+  likeCount     Int
+  commentCount  Int
+  title         String
+  description   String?
+  tags          String[] @default([])
+  thumbnailUrl  String?
+  publishedAt   DateTime
+  
+  // Calculated metrics
+  viewVelocity  Float?   // Views per hour since publish
+  engagementRate Float?  // (likes + comments) / views * 100
+  
+  snapshotDate  DateTime @default(now())
+  
+  @@map("youtube_video_snapshots")
+  @@index([videoId, snapshotDate])
+  @@index([channelId])
+  @@index([snapshotDate])
+  @@index([viewVelocity])
+  @@index([engagementRate])
+}
+
+// Trends - Track trending keywords and topics
+model YouTubeTrend {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  keyword       String
+  category      String?
+  
+  // Trend metrics
+  searchVolume  Int      // Estimated from API
+  videoCount    Int      // Videos with this keyword
+  avgViews      String   // Using String for BigInt
+  avgEngagement Float
+  momentum      Float    // Rate of change (positive = rising, negative = falling)
+  
+  period        String   // "daily", "weekly", "monthly"
+  startDate     DateTime
+  endDate       DateTime
+  
+  @@map("youtube_trends")
+  @@index([keyword, period])
+  @@index([momentum])
+  @@index([startDate])
+  @@index([category])
+}
+
+// Video Analysis - Title and thumbnail analysis data
+model YouTubeVideoAnalysis {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  videoId       String   @unique
+  
+  // Title analysis
+  titleLength   Int
+  hasQuestion   Boolean  @default(false)
+  hasBrackets   Boolean  @default(false)
+  hasNumber     Boolean  @default(false)
+  wordCount     Int
+  topWords      String[] @default([])
+  
+  // Thumbnail analysis (basic - can be enhanced with image processing)
+  hasFace       Boolean  @default(false)
+  hasText       Boolean  @default(false)
+  dominantColors String[] @default([])
+  brightness    Float?
+  
+  // Performance metrics
+  estimatedCTR  Float?
+  viewCount     String   // Using String for BigInt
+  engagementRate Float
+  
+  analyzedAt    DateTime @default(now())
+  
+  @@map("youtube_video_analyses")
+  @@index([analyzedAt])
 }
 
 // Feedback - User feedback submissions

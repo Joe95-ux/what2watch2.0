@@ -1,0 +1,48 @@
+name: YouTube Background Jobs
+
+on:
+  schedule:
+    # Snapshot collection: Every 6 hours
+    - cron: '0 */6 * * *'
+    # Trend calculation: Daily at 1 AM UTC
+    - cron: '0 1 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  snapshots:
+    runs-on: ubuntu-latest
+    # Only run snapshot collection on its schedule or manual trigger
+    if: github.event.schedule == '0 */6 * * *' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Collect Video Snapshots
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X POST ${{ secrets.APP_URL }}/api/youtube/snapshots/collect \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json")
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          if [ "$http_code" -ne 200 ]; then
+            echo "Error: HTTP $http_code"
+            echo "$body"
+            exit 1
+          fi
+          echo "Success: $body"
+
+  trends:
+    runs-on: ubuntu-latest
+    # Only run trend calculation on its schedule or manual trigger
+    if: github.event.schedule == '0 1 * * *' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Calculate Trends
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X POST ${{ secrets.APP_URL }}/api/youtube/trends/calculate \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json")
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          if [ "$http_code" -ne 200 ]; then
+            echo "Error: HTTP $http_code"
+            echo "$body"
+            exit 1
+          fi
+          echo "Success: $body"

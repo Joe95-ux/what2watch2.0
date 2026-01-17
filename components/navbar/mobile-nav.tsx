@@ -8,7 +8,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetClose, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserRound, X, Megaphone, Bookmark, List, BookOpen, ClipboardList, TrendingUp, UsersRound, MessageSquare, Youtube as YoutubeIcon, Search } from "lucide-react";
+import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserRound, X, Megaphone, Bookmark, List, BookOpen, ClipboardList, TrendingUp, UsersRound, MessageSquare, Youtube as YoutubeIcon, Search, BarChart3, Sparkles, ChevronDown } from "lucide-react";
 import { Youtube } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useForumNotifications } from "@/hooks/use-forum-notifications";
@@ -29,8 +29,16 @@ interface MobileNavProps {
   onLinkClick: () => void;
 }
 
+const youtubeNavItems = [
+  { href: "/youtube", label: "Overview", icon: YoutubeIcon },
+  { href: "/youtube/trends", label: "Trending Topics", icon: TrendingUp },
+  { href: "/youtube/analyzer", label: "Title Analyzer", icon: BarChart3 },
+  { href: "/youtube/insights", label: "Content Insights", icon: Sparkles },
+];
+
 export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNavProps) {
   const { isSignedIn, user } = useUser();
+  const [youtubeExpanded, setYoutubeExpanded] = useState(false);
   const { signOut } = useClerk();
   const router = useRouter();
   const { setTheme, theme } = useTheme();
@@ -279,8 +287,6 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                 case "/forums":
                 case "/forum":
                   return <MessageSquare className={cn("mr-3 h-4 w-4", iconColor)} />;
-                case "/youtube":
-                  return <YoutubeIcon className={cn("mr-3 h-4 w-4", iconColor)} />;
                 default:
                   return null;
               }
@@ -302,6 +308,56 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               </Link>
             );
           })}
+          
+          {/* YouTube Dropdown */}
+          <div className="space-y-1">
+            <button
+              onClick={() => setYoutubeExpanded(!youtubeExpanded)}
+              className={cn(
+                "flex items-center justify-between w-full rounded-md px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
+                (pathname === "/youtube" || pathname?.startsWith("/youtube/"))
+                  ? "bg-muted text-foreground font-medium"
+                  : "text-muted-foreground"
+              )}
+            >
+              <div className="flex items-center">
+                <YoutubeIcon className="mr-3 h-4 w-4 text-foreground" />
+                <span>YouTube</span>
+              </div>
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 transition-transform",
+                  youtubeExpanded && "rotate-180"
+                )}
+              />
+            </button>
+            {youtubeExpanded && (
+              <div className="ml-4 space-y-1">
+                {youtubeNavItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive =
+                    pathname === item.href ||
+                    (item.href !== "/youtube" && pathname?.startsWith(item.href));
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={onLinkClick}
+                      className={cn(
+                        "flex items-center rounded-md px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors text-[0.9rem]",
+                        isActive
+                          ? "bg-muted/70 text-foreground font-medium"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      <Icon className="mr-2 h-3.5 w-3.5 text-foreground" />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* User Menu Items (only shown when signed in) */}
