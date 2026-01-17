@@ -16,6 +16,7 @@ import { useQueryClient } from "@tanstack/react-query";
 export function ContentGapsPageClient() {
   const [category, setCategory] = useState<string | undefined>(undefined);
   const [minScore, setMinScore] = useState(0);
+  const [detectMessage, setDetectMessage] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useContentGaps(category, 30, minScore);
@@ -24,14 +25,33 @@ export function ContentGapsPageClient() {
   const {
     data: detectData,
     isLoading: isDetecting,
+    error: detectError,
     refetch: detectGaps,
   } = useDetectContentGaps(category, 30, false);
 
-  const handleDetect = () => {
-    detectGaps().then(() => {
-      // Refetch stored gaps after detection
-      queryClient.invalidateQueries({ queryKey: ["content-gaps"] });
-    });
+  const handleDetect = async () => {
+    setDetectMessage(null);
+    try {
+      const result = await detectGaps();
+      if (result.data) {
+        // Check if there's a message (e.g., no trends available)
+        if (result.data.message) {
+          setDetectMessage(result.data.message);
+        }
+        
+        // Refetch stored gaps after detection
+        await queryClient.invalidateQueries({ queryKey: ["content-gaps"] });
+        
+        // Show success message if gaps were found
+        if (result.data.gaps && result.data.gaps.length > 0) {
+          setDetectMessage(`Found ${result.data.gaps.length} content gaps!`);
+          setTimeout(() => setDetectMessage(null), 5000);
+        }
+      }
+    } catch (error) {
+      console.error("Error detecting gaps:", error);
+      setDetectMessage(error instanceof Error ? error.message : "Failed to detect gaps");
+    }
   };
 
   const getGapScoreColor = (score: number) => {
@@ -108,11 +128,37 @@ export function ContentGapsPageClient() {
           </Button>
         </div>
 
-        {/* Error State */}
-        {error && (
-          <Card className="border-destructive">
-            <CardContent className="py-12 text-center">
-              <p className="text-destructive">Failed to load content gaps. Please try again later.</p>
+        {/* Message/Error State */}
+        {(detectMessage || error || detectError) && (
+          <Card className={detectMessage?.includes("Found") ? "border-green-500" : "border-destructive"}>
+            <CardContent className="py-6">
+              <div className="text-center">
+                {detectMessage ? (
+                  <>
+                    <p className={detectMessage.includes("Found") ? "text-green-600 dark:text-green-400" : "text-destructive"}>
+                      {detectMessage}
+                    </p>
+                    {detectMessage.includes("No trends available") && (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        You need to run trend calculation first. Go to the Trends page and wait for trends to be calculated, or trigger the trend calculation job.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="text-destructive">
+                      {detectError
+                        ? "Failed to detect content gaps. Please try again later."
+                        : "Failed to load content gaps. Please try again later."}
+                    </p>
+                    {detectError && (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Make sure you have trending topics available. Try running trend calculation first.
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
             </CardContent>
           </Card>
         )}
@@ -138,18 +184,34 @@ export function ContentGapsPageClient() {
             <CardContent className="py-12 text-center">
               <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No content gaps found</h3>
-              <p className="text-muted-foreground mb-4">
+              <p className="text-muted-foreground mb-2">
                 {minScore > 0
                   ? `No gaps found with score ≥ ${minScore}. Try lowering the minimum score.`
+                  : isDetecting
+                  ? "Detecting content gaps..."
                   : "Click 'Detect New Gaps' to find content opportunities."}
               </p>
+              {!isDetecting && (
+                <p className="text-sm text-muted-foreground mb-4">
+                  Note: You need trending topics in the database first. Make sure trend calculation has run.
+                </p>
+              )}
               <Button
                 onClick={handleDetect}
                 disabled={isDetecting}
                 className="cursor-pointer bg-[#006DCA] hover:bg-[#0056A3] text-white"
               >
-                <Target className="h-4 w-4 mr-2" />
-                Detect Gaps
+                {isDetecting ? (
+                  <>
+                    <Zap className="h-4 w-4 mr-2 animate-pulse" />
+                    Detecting...
+                  </>
+                ) : (
+                  <>
+                    <Target className="h-4 w-4 mr-2" />
+                    Detect Gaps
+                  </>
+                )}
               </Button>
             </CardContent>
           </Card>

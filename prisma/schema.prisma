@@ -1721,6 +1721,43 @@ model ContentGap {
   @@index([keyword])
 }
 
+// Channel Diagnostic - Analysis of competitor channels
+model ChannelDiagnostic {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  channelId     String
+  analyzedBy    String   @db.ObjectId  // User who requested
+  
+  // Performance metrics
+  avgViews      String   // Using String for BigInt
+  avgEngagement Float
+  uploadFrequency Float  // Videos per week
+  bestFormat    String?  // Most successful format
+  
+  // Growth metrics
+  subscriberGrowthRate Float
+  viewGrowthRate       Float
+  
+  // Pattern analysis
+  avgTitleLength       Float?
+  percentWithBrackets  Float?
+  percentWithNumbers  Float?
+  percentWithQuestions Float?
+  percentWithFaces      Float?  // Thumbnails with faces
+  percentWithText      Float?   // Thumbnails with text
+  
+  // Top performing videos (stored as video IDs)
+  topVideosByViews     String[] @default([])
+  topVideosByEngagement String[] @default([])
+  
+  analyzedAt    DateTime @default(now())
+  
+  @@unique([channelId, analyzedBy])
+  @@map("channel_diagnostics")
+  @@index([channelId])
+  @@index([analyzedBy])
+  @@index([analyzedAt])
+}
+
 // Feedback - User feedback submissions
 model Feedback {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId

@@ -16,6 +16,7 @@ export interface ContentGap {
 interface ContentGapsResponse {
   gaps: ContentGap[];
   total: number;
+  message?: string;
 }
 
 async function fetchContentGaps(
@@ -51,9 +52,15 @@ async function detectContentGaps(
 
   const response = await fetch(`/api/youtube/gaps/detect?${params.toString()}`);
   if (!response.ok) {
-    throw new Error("Failed to detect content gaps");
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Failed to detect content gaps");
   }
-  return response.json();
+  const data = await response.json();
+  // Handle case where API returns message instead of gaps
+  if (data.message && (!data.gaps || data.gaps.length === 0)) {
+    return { gaps: [], total: 0 };
+  }
+  return data;
 }
 
 export function useContentGaps(
