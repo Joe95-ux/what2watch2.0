@@ -16,6 +16,10 @@ export interface VideoAnalysis {
   estimatedCTR: number | null;
   viewCount: string;
   engagementRate: number;
+  engagementPercentile?: number;
+  velocityPercentile?: number;
+  ctrPercentile?: number;
+  recommendations?: string[];
   analyzedAt: Date;
 }
 
@@ -28,6 +32,7 @@ export interface VideoAnalysisResult {
   likeCount: string;
   commentCount: string;
   publishedAt: string;
+  viewVelocity?: number;
   analysis: VideoAnalysis | null;
 }
 
@@ -37,6 +42,8 @@ export interface AggregateAnalysis {
   percentWithNumbers: number;
   percentWithQuestions: number;
   totalVideos: number;
+  avgEngagementRate?: number;
+  avgEstimatedCTR?: number;
 }
 
 interface AnalyzeResponse {

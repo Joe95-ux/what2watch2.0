@@ -31,10 +31,7 @@ export function YouTubeTrendsPageClient() {
       <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <TrendingUp className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold tracking-tight">Trending Topics</h1>
-          </div>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">Trending Topics</h1>
           <p className="text-muted-foreground text-lg">
             Discover trending keywords and topics on YouTube. Track momentum and find content opportunities.
           </p>
@@ -153,7 +150,7 @@ export function YouTubeTrendsPageClient() {
                     );
 
                   return (
-                    <Card key={trend.id || index} className="hover:border-primary/50 transition-colors">
+                    <Card key={trend.id || index} className="hover:border-primary/50 hover:shadow-md transition-all cursor-pointer">
                       <CardHeader>
                         <div className="flex items-start justify-between">
                           <div className="flex-1">

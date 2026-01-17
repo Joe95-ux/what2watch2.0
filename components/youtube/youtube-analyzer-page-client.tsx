@@ -29,10 +29,7 @@ export function YouTubeAnalyzerPageClient() {
       <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <BarChart3 className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold tracking-tight">Title & Thumbnail Analyzer</h1>
-          </div>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">Title & Thumbnail Analyzer</h1>
           <p className="text-muted-foreground text-lg">
             Analyze top-performing YouTube video titles and thumbnails. Discover patterns that drive views and engagement.
           </p>
@@ -69,6 +66,7 @@ export function YouTubeAnalyzerPageClient() {
                   }
                 }}
                 disabled={!searchQuery.trim() || isLoading}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 {isLoading ? "Analyzing..." : "Analyze"}
               </Button>
@@ -117,20 +115,44 @@ export function YouTubeAnalyzerPageClient() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div>
-                      <p className="text-sm font-medium mb-2">Average Title Length</p>
-                      <p className="text-2xl font-bold">{analysis.aggregateAnalysis.avgTitleLength} characters</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <p className="text-sm font-medium mb-2 text-muted-foreground">Avg Title Length</p>
+                        <p className="text-2xl font-bold">{analysis.aggregateAnalysis.avgTitleLength} chars</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium mb-2 text-muted-foreground">Avg Engagement</p>
+                        <p className="text-2xl font-bold">
+                          {analysis.aggregateAnalysis.avgEngagementRate
+                            ? analysis.aggregateAnalysis.avgEngagementRate.toFixed(2)
+                            : "0.00"}
+                          %
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium mb-2 text-muted-foreground">Avg Estimated CTR</p>
+                        <p className="text-2xl font-bold text-primary">
+                          {analysis.aggregateAnalysis.avgEstimatedCTR
+                            ? analysis.aggregateAnalysis.avgEstimatedCTR.toFixed(2)
+                            : "0.00"}
+                          %
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium mb-2 text-muted-foreground">Videos Analyzed</p>
+                        <p className="text-2xl font-bold">{analysis.aggregateAnalysis.totalVideos}</p>
+                      </div>
                     </div>
                     <div>
-                      <p className="text-sm font-medium mb-2">Common Patterns</p>
+                      <p className="text-sm font-medium mb-3 text-muted-foreground">Common Patterns</p>
                       <div className="flex flex-wrap gap-2">
-                        <Badge variant="secondary" className="text-sm">
+                        <Badge variant="secondary" className="text-sm font-normal">
                           {analysis.aggregateAnalysis.percentWithBrackets}% use brackets
                         </Badge>
-                        <Badge variant="secondary" className="text-sm">
+                        <Badge variant="secondary" className="text-sm font-normal">
                           {analysis.aggregateAnalysis.percentWithNumbers}% use numbers
                         </Badge>
-                        <Badge variant="secondary" className="text-sm">
+                        <Badge variant="secondary" className="text-sm font-normal">
                           {analysis.aggregateAnalysis.percentWithQuestions}% ask questions
                         </Badge>
                       </div>
@@ -243,66 +265,152 @@ export function YouTubeAnalyzerPageClient() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {analysis.videos.map((video) => (
-                      <div
-                        key={video.id}
-                        className="flex gap-4 p-4 border rounded-lg hover:border-primary/50 transition-colors"
-                      >
-                        {video.thumbnail && (
-                          <div className="relative w-32 h-20 flex-shrink-0 rounded overflow-hidden">
-                            <Image
-                              src={video.thumbnail}
-                              alt={video.title}
-                              fill
-                              className="object-cover"
-                              sizes="128px"
-                            />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <h4 className="font-medium line-clamp-2">{video.title}</h4>
-                            <Link
-                              href={`https://www.youtube.com/watch?v=${video.id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex-shrink-0"
-                            >
-                              <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-primary" />
-                            </Link>
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1">{video.channelTitle}</p>
-                          {video.analysis && (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {video.analysis.hasBrackets && (
-                                <Badge variant="outline" className="text-xs">Brackets</Badge>
-                              )}
-                              {video.analysis.hasNumber && (
-                                <Badge variant="outline" className="text-xs">Number</Badge>
-                              )}
-                              {video.analysis.hasQuestion && (
-                                <Badge variant="outline" className="text-xs">Question</Badge>
-                              )}
-                              {video.analysis.hasFace && (
-                                <Badge variant="outline" className="text-xs">Face</Badge>
-                              )}
-                              {video.analysis.hasText && (
-                                <Badge variant="outline" className="text-xs">Text</Badge>
-                              )}
-                              <Badge variant="outline" className="text-xs">
-                                {video.analysis.titleLength} chars
-                              </Badge>
+                  <div className="space-y-3">
+                    {analysis.videos.map((video) => {
+                      const publishedDate = video.publishedAt 
+                        ? new Date(video.publishedAt)
+                        : null;
+                      const daysAgo = publishedDate
+                        ? Math.floor((Date.now() - publishedDate.getTime()) / (1000 * 60 * 60 * 24))
+                        : null;
+                      
+                      return (
+                        <Link
+                          key={video.id}
+                          href={`https://www.youtube.com/watch?v=${video.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex gap-4 p-4 border rounded-lg hover:border-primary/50 hover:bg-accent/50 transition-all cursor-pointer group"
+                        >
+                          {video.thumbnail && (
+                            <div className="relative w-40 h-24 flex-shrink-0 rounded overflow-hidden bg-muted">
+                              <Image
+                                src={video.thumbnail}
+                                alt={video.title}
+                                fill
+                                className="object-cover group-hover:scale-105 transition-transform"
+                                sizes="160px"
+                              />
                             </div>
                           )}
-                          <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
-                            <span>{parseInt(video.viewCount || "0", 10).toLocaleString()} views</span>
-                            <span>{video.likeCount} likes</span>
-                            <span>{video.commentCount} comments</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <h4 className="font-semibold text-sm line-clamp-2 group-hover:text-primary transition-colors">
+                                {video.title}
+                              </h4>
+                              <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary flex-shrink-0 mt-0.5 transition-colors" />
+                            </div>
+                            <p className="text-xs text-muted-foreground mb-2">{video.channelTitle}</p>
+                            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mb-2">
+                              <span className="font-medium text-foreground">
+                                {parseInt(video.viewCount || "0", 10).toLocaleString()} views
+                              </span>
+                              <span>•</span>
+                              <span>{parseInt(video.likeCount || "0", 10).toLocaleString()} likes</span>
+                              <span>•</span>
+                              <span>{parseInt(video.commentCount || "0", 10).toLocaleString()} comments</span>
+                              {video.analysis && video.analysis.engagementRate !== undefined && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-primary font-medium">
+                                    {video.analysis.engagementRate.toFixed(2)}% engagement
+                                  </span>
+                                </>
+                              )}
+                              {video.viewVelocity && video.viewVelocity > 0 && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-blue-600 dark:text-blue-400 font-medium">
+                                    {Math.round(video.viewVelocity).toLocaleString()}/hr
+                                  </span>
+                                </>
+                              )}
+                              {video.analysis?.estimatedCTR && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-green-600 dark:text-green-400 font-medium">
+                                    {video.analysis.estimatedCTR.toFixed(2)}% CTR
+                                  </span>
+                                </>
+                              )}
+                              {publishedDate && (
+                                <>
+                                  <span>•</span>
+                                  <span>
+                                    {daysAgo === 0
+                                      ? "Today"
+                                      : daysAgo === 1
+                                      ? "1 day ago"
+                                      : daysAgo && daysAgo < 30
+                                      ? `${daysAgo} days ago`
+                                      : publishedDate.toLocaleDateString("en-US", {
+                                          month: "short",
+                                          day: "numeric",
+                                          year: publishedDate.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
+                                        })}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                            {video.analysis && (
+                              <div className="space-y-2">
+                                <div className="flex flex-wrap gap-1.5">
+                                  {video.analysis.hasBrackets && (
+                                    <Badge variant="secondary" className="text-xs font-normal">Brackets</Badge>
+                                  )}
+                                  {video.analysis.hasNumber && (
+                                    <Badge variant="secondary" className="text-xs font-normal">Number</Badge>
+                                  )}
+                                  {video.analysis.hasQuestion && (
+                                    <Badge variant="secondary" className="text-xs font-normal">Question</Badge>
+                                  )}
+                                  {video.analysis.hasFace && (
+                                    <Badge variant="secondary" className="text-xs font-normal">Face</Badge>
+                                  )}
+                                  {video.analysis.hasText && (
+                                    <Badge variant="secondary" className="text-xs font-normal">Text</Badge>
+                                  )}
+                                  <Badge variant="outline" className="text-xs font-normal">
+                                    {video.analysis.titleLength} chars
+                                  </Badge>
+                                </div>
+                                {(video.analysis.engagementPercentile !== undefined ||
+                                  video.analysis.velocityPercentile !== undefined ||
+                                  video.analysis.ctrPercentile !== undefined) && (
+                                  <div className="flex flex-wrap gap-2 text-xs">
+                                    {video.analysis.engagementPercentile !== undefined && (
+                                      <span className="text-muted-foreground">
+                                        Engagement: <span className="font-medium text-foreground">{video.analysis.engagementPercentile}th percentile</span>
+                                      </span>
+                                    )}
+                                    {video.analysis.velocityPercentile !== undefined && (
+                                      <span className="text-muted-foreground">
+                                        Growth: <span className="font-medium text-foreground">{video.analysis.velocityPercentile}th percentile</span>
+                                      </span>
+                                    )}
+                                    {video.analysis.ctrPercentile !== undefined && (
+                                      <span className="text-muted-foreground">
+                                        CTR: <span className="font-medium text-foreground">{video.analysis.ctrPercentile}th percentile</span>
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                                {video.analysis.recommendations && video.analysis.recommendations.length > 0 && (
+                                  <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950/30 rounded-md border border-blue-200 dark:border-blue-800">
+                                    <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-1">💡 Recommendations:</p>
+                                    <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-0.5 list-disc list-inside">
+                                      {video.analysis.recommendations.map((rec, idx) => (
+                                        <li key={idx}>{rec}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      </div>
-                    ))}
+                        </Link>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>

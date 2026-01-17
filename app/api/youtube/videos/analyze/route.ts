@@ -213,6 +213,20 @@ export async function GET(request: NextRequest) {
         const likeCount = parseInt(video.statistics?.likeCount || "0", 10);
         const commentCount = parseInt(video.statistics?.commentCount || "0", 10);
         const engagementRate = viewCount > 0 ? ((likeCount + commentCount) / viewCount) * 100 : 0;
+        
+        // Calculate view velocity (will be used later for percentile calculation)
+
+        // Estimate CTR based on title and thumbnail patterns
+        // Factors: brackets (+15%), numbers (+10%), questions (+5%), face in thumbnail (+20%), text in thumbnail (+10%)
+        let estimatedCTR = 2.0; // Base CTR of 2%
+        if (titleAnalysis.hasBrackets) estimatedCTR += 0.15;
+        if (titleAnalysis.hasNumber) estimatedCTR += 0.10;
+        if (titleAnalysis.hasQuestion) estimatedCTR += 0.05;
+        if (thumbnailAnalysis?.hasFace) estimatedCTR += 0.20;
+        if (thumbnailAnalysis?.hasText) estimatedCTR += 0.10;
+        // Optimal title length (50-60 chars) adds +0.10
+        if (titleAnalysis.titleLength >= 50 && titleAnalysis.titleLength <= 60) estimatedCTR += 0.10;
+        estimatedCTR = Math.min(estimatedCTR, 10.0); // Cap at 10%
 
         // Check if analysis exists
         const existing = await db.youTubeVideoAnalysis.findUnique({
@@ -229,12 +243,19 @@ export async function GET(request: NextRequest) {
                 hasText: thumbnailAnalysis.hasText,
                 dominantColors: thumbnailAnalysis.dominantColors,
                 brightness: thumbnailAnalysis.brightness,
+                estimatedCTR,
                 viewCount: viewCount.toString(),
                 engagementRate,
               },
             });
           }
-          return existing;
+          // Update estimatedCTR even if no thumbnail analysis
+          return await db.youTubeVideoAnalysis.update({
+            where: { videoId: video.id },
+            data: {
+              estimatedCTR,
+            },
+          });
         }
 
         // Create new analysis
@@ -251,6 +272,7 @@ export async function GET(request: NextRequest) {
             hasText: thumbnailAnalysis?.hasText || false,
             dominantColors: thumbnailAnalysis?.dominantColors || [],
             brightness: thumbnailAnalysis?.brightness || null,
+            estimatedCTR,
             viewCount: viewCount.toString(),
             engagementRate,
           },
@@ -258,24 +280,125 @@ export async function GET(request: NextRequest) {
       })
     );
 
+    // Calculate view velocities for all videos (for percentile calculation)
+    const videoViewVelocities = videos.map((video: any) => {
+      const publishedAt = new Date(video.snippet?.publishedAt || Date.now());
+      const now = new Date();
+      const hoursSincePublish = Math.max(
+        (now.getTime() - publishedAt.getTime()) / (1000 * 60 * 60),
+        1
+      );
+      const viewCount = parseInt(video.statistics?.viewCount || "0", 10);
+      return {
+        videoId: video.id,
+        viewVelocity: viewCount / hoursSincePublish,
+      };
+    });
+
+    // Calculate percentiles for competitive benchmarking
+    const engagementRates = analyses
+      .filter((a) => a?.engagementRate !== undefined)
+      .map((a) => a!.engagementRate)
+      .sort((a, b) => a - b);
+    const viewVelocities = videoViewVelocities
+      .map((v) => v.viewVelocity)
+      .sort((a, b) => a - b);
+    const ctrs = analyses
+      .filter((a) => a?.estimatedCTR !== undefined && a.estimatedCTR !== null)
+      .map((a) => a!.estimatedCTR!)
+      .sort((a, b) => a - b);
+
+    const getPercentile = (value: number, sortedArray: number[]): number => {
+      if (sortedArray.length === 0) return 50;
+      const index = sortedArray.findIndex((v) => v >= value);
+      if (index === -1) return 100;
+      return Math.round((index / sortedArray.length) * 100);
+    };
+
+    // Generate recommendations based on patterns
+    const generateRecommendations = (analysis: any, video: any): string[] => {
+      const recommendations: string[] = [];
+      const titleAnalysis = titleAnalyses.find((a: any) => a.videoId === video.id);
+      const thumbnailAnalysis = thumbnailAnalyses.find((a) => a.videoId === video.id);
+
+      if (!titleAnalysis) return recommendations;
+
+      // Title recommendations
+      if (!titleAnalysis.hasBrackets && percentWithBrackets > 40) {
+        recommendations.push("Consider adding brackets [ ] to your title - " + percentWithBrackets + "% of top videos use them");
+      }
+      if (!titleAnalysis.hasNumber && percentWithNumbers > 30) {
+        recommendations.push("Add numbers to your title - " + percentWithNumbers + "% of top videos include numbers");
+      }
+      if (titleAnalysis.titleLength < 50 || titleAnalysis.titleLength > 60) {
+        recommendations.push("Optimize title length to 50-60 characters for better CTR");
+      }
+
+      // Thumbnail recommendations
+      if (thumbnailAnalysis) {
+        const withFaces = analyses.filter((a) => a?.hasFace).length;
+        const facePercent = (withFaces / analyses.length) * 100;
+        if (!thumbnailAnalysis.hasFace && facePercent > 50) {
+          recommendations.push("Add a face to your thumbnail - " + Math.round(facePercent) + "% of top videos feature faces");
+        }
+        if (!thumbnailAnalysis.hasText && analyses.filter((a) => a?.hasText).length > analyses.length * 0.4) {
+          recommendations.push("Consider adding text overlay to your thumbnail for better engagement");
+        }
+      }
+
+      // Engagement recommendations
+      if (analysis && analysis.engagementRate < 2) {
+        recommendations.push("Low engagement rate - try asking questions in your title or adding a call-to-action");
+      }
+
+      return recommendations;
+    };
+
     return NextResponse.json({
-      videos: videos.map((video: any, index: number) => ({
-        id: video.id,
-        title: video.snippet?.title,
-        channelTitle: video.snippet?.channelTitle,
-        thumbnail: video.snippet?.thumbnails?.high?.url,
-        viewCount: video.statistics?.viewCount || "0",
-        likeCount: video.statistics?.likeCount || "0",
-        commentCount: video.statistics?.commentCount || "0",
-        publishedAt: video.snippet?.publishedAt,
-        analysis: analyses[index],
-      })),
+      videos:       videos.map((video: any, index: number) => {
+        const analysis = analyses[index];
+        const viewVelocity = videoViewVelocities.find((v) => v.videoId === video.id)?.viewVelocity || 0;
+        const engagementPercentile = analysis
+          ? getPercentile(analysis.engagementRate, engagementRates)
+          : 50;
+        const velocityPercentile = getPercentile(viewVelocity, viewVelocities);
+        const ctrPercentile = analysis?.estimatedCTR
+          ? getPercentile(analysis.estimatedCTR, ctrs)
+          : 50;
+
+        return {
+          id: video.id,
+          title: video.snippet?.title,
+          channelTitle: video.snippet?.channelTitle,
+          thumbnail: video.snippet?.thumbnails?.high?.url,
+          viewCount: video.statistics?.viewCount || "0",
+          likeCount: video.statistics?.likeCount || "0",
+          commentCount: video.statistics?.commentCount || "0",
+          publishedAt: video.snippet?.publishedAt,
+          viewVelocity,
+          analysis: analysis
+            ? {
+                ...analysis,
+                engagementPercentile,
+                velocityPercentile,
+                ctrPercentile,
+                recommendations: generateRecommendations(analysis, video),
+              }
+            : null,
+        };
+      }),
       aggregateAnalysis: {
         avgTitleLength: Math.round(avgTitleLength),
         percentWithBrackets: Math.round(percentWithBrackets),
         percentWithNumbers: Math.round(percentWithNumbers),
         percentWithQuestions: Math.round(percentWithQuestions),
         totalVideos: videos.length,
+        avgEngagementRate:
+          engagementRates.length > 0
+            ? engagementRates.reduce((a, b) => a + b, 0) / engagementRates.length
+            : 0,
+        avgEstimatedCTR:
+          ctrs.length > 0 ? ctrs.reduce((a, b) => a + b, 0) / ctrs.length : 0,
       },
     });
   } catch (error) {

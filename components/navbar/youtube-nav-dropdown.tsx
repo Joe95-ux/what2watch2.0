@@ -64,7 +64,7 @@ export function YouTubeNavDropdown({ hasHeroSection = false }: YouTubeNavDropdow
           const isActive =
             pathname === item.href || (item.href !== "/youtube" && pathname?.startsWith(item.href));
           return (
-            <Link key={item.href} href={item.href}>
+            <Link key={item.href} href={item.href} className="cursor-pointer">
               <DropdownMenuItem
                 className={cn(
                   "cursor-pointer flex items-center gap-2",

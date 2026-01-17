@@ -19,10 +19,7 @@ export function YouTubeInsightsPageClient() {
       <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Sparkles className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold tracking-tight">Content Insights</h1>
-          </div>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">Content Insights</h1>
           <p className="text-muted-foreground text-lg">
             Get data-driven insights about YouTube content performance, trends, and opportunities.
           </p>
@@ -49,8 +46,8 @@ export function YouTubeInsightsPageClient() {
                   <p className="text-muted-foreground mb-3">
                     Top trending topics and keywords in your niche.
                   </p>
-                  <Link href="/youtube/trends">
-                    <Button variant="outline" size="sm" className="w-full">
+                  <Link href="/youtube/trends" className="cursor-pointer">
+                    <Button variant="outline" size="sm" className="w-full cursor-pointer">
                       View All Trends
                     </Button>
                   </Link>
@@ -68,8 +65,8 @@ export function YouTubeInsightsPageClient() {
                   <p className="text-muted-foreground mb-3">
                     Analyze top-performing video titles and thumbnails.
                   </p>
-                  <Link href="/youtube/analyzer">
-                    <Button variant="outline" size="sm" className="w-full">
+                  <Link href="/youtube/analyzer" className="cursor-pointer">
+                    <Button variant="outline" size="sm" className="w-full cursor-pointer">
                       Try Analyzer
                     </Button>
                   </Link>
@@ -102,8 +99,8 @@ export function YouTubeInsightsPageClient() {
                     <CardTitle>Top Trending Topics</CardTitle>
                     <CardDescription>Highest momentum keywords today</CardDescription>
                   </div>
-                  <Link href="/youtube/trends">
-                    <Button variant="ghost" size="sm">
+                  <Link href="/youtube/trends" className="cursor-pointer">
+                    <Button variant="ghost" size="sm" className="cursor-pointer">
                       View All
                     </Button>
                   </Link>
@@ -126,8 +123,9 @@ export function YouTubeInsightsPageClient() {
                       <Link
                         key={trend.id}
                         href={`/youtube/trends?keyword=${encodeURIComponent(trend.keyword)}`}
+                        className="cursor-pointer"
                       >
-                        <div className="flex items-center justify-between p-3 border rounded-lg hover:border-primary/50 transition-colors cursor-pointer">
+                        <div className="flex items-center justify-between p-3 border rounded-lg hover:border-primary/50 hover:bg-accent/50 transition-all cursor-pointer">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <span className="font-medium">{trend.keyword}</span>
