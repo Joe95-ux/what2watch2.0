@@ -43,6 +43,7 @@ import {
   Shield,
   MessageSquare,
   TrendingUp,
+  Play,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -137,6 +138,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: "/dashboard/admin/stats", label: "Admin Stats Center", icon: BarChart3 },
     { href: "/dashboard/admin/traffic", label: "Traffic Analytics", icon: TrendingUp },
     { href: "/dashboard/admin/youtube", label: "YouTube Management", icon: Youtube },
+    { href: "/dashboard/admin/youtube/jobs", label: "YouTube Jobs", icon: Play },
   ] : [];
 
   return (

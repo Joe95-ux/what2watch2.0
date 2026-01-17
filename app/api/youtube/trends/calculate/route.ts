@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 
 /**
@@ -16,15 +17,35 @@ export async function POST(request: NextRequest) {
 
 async function handleTrendCalculation(request: NextRequest) {
   try {
-    // Optional: Add API key authentication for cron jobs
+    // Support both cron secret and user session authentication
     const authHeader = request.headers.get("authorization");
     const expectedToken = process.env.CRON_SECRET;
-
-    if (expectedToken && authHeader !== `Bearer ${expectedToken}`) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    
+    // Check if it's a cron request with secret
+    const isCronRequest = expectedToken && authHeader === `Bearer ${expectedToken}`;
+    
+    // If not cron request, check for user authentication (for manual triggers)
+    if (!isCronRequest) {
+      const { userId: clerkUserId } = await auth();
+      if (!clerkUserId) {
+        return NextResponse.json(
+          { error: "Unauthorized" },
+          { status: 401 }
+        );
+      }
+      
+      // For manual triggers, verify user is admin
+      const user = await db.user.findUnique({
+        where: { clerkId: clerkUserId },
+        select: { role: true, isForumAdmin: true },
+      });
+      
+      if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN" && !user.isForumAdmin)) {
+        return NextResponse.json(
+          { error: "Forbidden: Admin access required" },
+          { status: 403 }
+        );
+      }
     }
 
     const now = new Date();
