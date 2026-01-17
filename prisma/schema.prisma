@@ -1694,6 +1694,33 @@ model YouTubeVideoAnalysis {
   @@index([analyzedAt])
 }
 
+// Content Gap - High-demand, low-supply content opportunities
+model ContentGap {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  keyword       String
+  
+  // Demand metrics
+  searchVolume  Int      // Estimated search volume
+  trendScore    Float    // Trend momentum score
+  
+  // Supply metrics
+  videoCount    Int      // Number of existing videos
+  avgVideoAge   Int      // Average days since publish
+  topVideoViews String   // Views of top video (using String for BigInt)
+  
+  // Gap score (higher = bigger opportunity)
+  gapScore      Float
+  
+  category      String?
+  discoveredAt  DateTime @default(now())
+  
+  @@map("content_gaps")
+  @@index([gapScore])
+  @@index([category])
+  @@index([discoveredAt])
+  @@index([keyword])
+}
+
 // Feedback - User feedback submissions
 model Feedback {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId

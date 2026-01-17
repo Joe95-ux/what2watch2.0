@@ -8,7 +8,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetClose, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserRound, X, Megaphone, Bookmark, List, BookOpen, ClipboardList, TrendingUp, UsersRound, MessageSquare, Youtube as YoutubeIcon, Search, BarChart3, Sparkles, ChevronDown } from "lucide-react";
+import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserRound, X, Megaphone, Bookmark, List, BookOpen, ClipboardList, TrendingUp, UsersRound, MessageSquare, Youtube as YoutubeIcon, Search, BarChart3, Sparkles, ChevronDown, Target } from "lucide-react";
 import { Youtube } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useForumNotifications } from "@/hooks/use-forum-notifications";
@@ -33,6 +33,7 @@ const youtubeNavItems = [
   { href: "/youtube", label: "Overview", icon: YoutubeIcon },
   { href: "/youtube/trends", label: "Trending Topics", icon: TrendingUp },
   { href: "/youtube/analyzer", label: "Title Analyzer", icon: BarChart3 },
+  { href: "/youtube/gaps", label: "Content Gaps", icon: Target },
   { href: "/youtube/insights", label: "Content Insights", icon: Sparkles },
 ];
 

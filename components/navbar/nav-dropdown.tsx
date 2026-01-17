@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Youtube, TrendingUp, BarChart3, Sparkles, ChevronRight } from "lucide-react";
+import { Youtube, TrendingUp, BarChart3, Sparkles, ChevronRight, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HamburgerButton } from "./hamburger-button";
 
@@ -29,6 +29,7 @@ const youtubeNavItems = [
   { href: "/youtube", label: "Overview", icon: Youtube },
   { href: "/youtube/trends", label: "Trending Topics", icon: TrendingUp },
   { href: "/youtube/analyzer", label: "Title Analyzer", icon: BarChart3 },
+  { href: "/youtube/gaps", label: "Content Gaps", icon: Sparkles },
   { href: "/youtube/insights", label: "Content Insights", icon: Sparkles },
 ];
 

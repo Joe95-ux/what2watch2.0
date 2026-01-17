@@ -66,7 +66,7 @@ export function YouTubeAnalyzerPageClient() {
                   }
                 }}
                 disabled={!searchQuery.trim() || isLoading}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                className="cursor-pointer bg-[#006DCA] hover:bg-[#0056A3] text-white"
               >
                 {isLoading ? "Analyzing..." : "Analyze"}
               </Button>

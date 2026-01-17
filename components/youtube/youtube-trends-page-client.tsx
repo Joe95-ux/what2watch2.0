@@ -37,11 +37,10 @@ export function YouTubeTrendsPageClient() {
           </p>
           <div className="mt-4">
             <Button
-              variant="outline"
               size="sm"
               onClick={() => refetch()}
               disabled={isLoading}
-              className="gap-2"
+              className="gap-2 cursor-pointer bg-[#006DCA] hover:bg-[#0056A3] text-white"
             >
               <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
               Refresh Trends

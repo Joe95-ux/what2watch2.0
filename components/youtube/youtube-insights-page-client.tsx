@@ -47,7 +47,7 @@ export function YouTubeInsightsPageClient() {
                     Top trending topics and keywords in your niche.
                   </p>
                   <Link href="/youtube/trends" className="cursor-pointer">
-                    <Button variant="outline" size="sm" className="w-full cursor-pointer">
+                    <Button size="sm" className="w-full cursor-pointer bg-[#006DCA] hover:bg-[#0056A3] text-white">
                       View All Trends
                     </Button>
                   </Link>
@@ -100,7 +100,7 @@ export function YouTubeInsightsPageClient() {
                     <CardDescription>Highest momentum keywords today</CardDescription>
                   </div>
                   <Link href="/youtube/trends" className="cursor-pointer">
-                    <Button variant="ghost" size="sm" className="cursor-pointer">
+                    <Button size="sm" className="cursor-pointer bg-[#006DCA] hover:bg-[#0056A3] text-white">
                       View All
                     </Button>
                   </Link>
@@ -167,10 +167,10 @@ export function YouTubeInsightsPageClient() {
               </CardHeader>
               <CardContent>
                 <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                  <li>Content gap analysis</li>
                   <li>Performance benchmarking</li>
                   <li>Opportunity alerts</li>
                   <li>Channel diagnostic tools</li>
+                  <li>Format inspiration engine</li>
                 </ul>
               </CardContent>
             </Card>
@@ -190,16 +190,21 @@ export function YouTubeInsightsPageClient() {
               <CardContent>
                 <div className="space-y-4">
                   <p className="text-muted-foreground">
-                    Content gap analysis will identify opportunities where demand exceeds supply.
-                    This feature is coming soon in Phase 2.
+                    Discover content gaps where demand exceeds supply. Find trending topics with low competition.
                   </p>
+                  <Link href="/youtube/gaps" className="cursor-pointer">
+                    <Button className="w-full cursor-pointer bg-[#006DCA] hover:bg-[#0056A3] text-white">
+                      <Target className="h-4 w-4 mr-2" />
+                      Find Content Gaps
+                    </Button>
+                  </Link>
                   <div className="p-4 border rounded-lg bg-muted/50">
                     <div className="flex items-start gap-3">
                       <Zap className="h-5 w-5 text-primary mt-0.5" />
                       <div>
                         <p className="font-medium mb-1">How it works</p>
                         <p className="text-sm text-muted-foreground">
-                          We'll compare high-volume search queries against existing video coverage
+                          We compare high-volume search queries against existing video coverage
                           to find topics with high demand but low supply - perfect opportunities
                           for new content.
                         </p>
