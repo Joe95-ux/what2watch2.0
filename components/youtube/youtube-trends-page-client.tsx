@@ -94,7 +94,13 @@ export function YouTubeTrendsPageClient() {
         {error && (
           <Card className="border-destructive">
             <CardContent className="py-12 text-center">
-              <p className="text-destructive">Failed to load trends. Please try again later.</p>
+              <p className="text-destructive mb-2">Failed to load trends.</p>
+              <p className="text-sm text-muted-foreground">
+                {error instanceof Error ? error.message : "Please try again later."}
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Make sure trend calculation has been run. Check Dashboard → Admin → YouTube Jobs
+              </p>
             </CardContent>
           </Card>
         )}
@@ -120,11 +126,21 @@ export function YouTubeTrendsPageClient() {
             <CardContent className="py-12 text-center">
               <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No trends available yet</h3>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground mb-4">
                 {searchQuery
                   ? `No trends found matching "${searchQuery}". Try a different search term.`
-                  : "Trend data will appear here once we start collecting video snapshots."}
+                  : "Trend data will appear here once we start collecting video snapshots and calculating trends."}
               </p>
+              {!searchQuery && (
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>To get trends, you need to:</p>
+                  <ol className="list-decimal list-inside space-y-1">
+                    <li>Run the "Collect Video Snapshots" job</li>
+                    <li>Then run the "Calculate Trends" job</li>
+                  </ol>
+                  <p className="mt-2">You can trigger these jobs from: Dashboard → Admin → YouTube Jobs</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         ) : (

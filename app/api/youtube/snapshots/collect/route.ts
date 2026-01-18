@@ -277,6 +277,9 @@ async function handleSnapshotCollection(request: NextRequest) {
       success: true,
       snapshotsCreated: totalSnapshots,
       errors,
+      message: totalSnapshots > 0
+        ? `Successfully created ${totalSnapshots} snapshots${errors > 0 ? ` (${errors} errors)` : ""}`
+        : `No new snapshots created${errors > 0 ? ` (${errors} errors occurred)` : ". No videos found to snapshot."}`,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

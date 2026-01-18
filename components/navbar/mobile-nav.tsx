@@ -267,7 +267,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
         {/* Navigation Links */}
         <div className="space-y-2">
           {navLinks.map((link) => {
-            const isActive = link.href === "/forums" 
+            const isActive = link.href === "/forum" 
               ? pathname === link.href || pathname?.startsWith(link.href + "/")
               : link.href === "/forum"
               ? pathname === link.href || pathname?.startsWith(link.href + "/")
@@ -286,7 +286,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   return <ClipboardList className={cn("mr-3 h-4 w-4", iconColor)} />;
                 case "/members":
                   return <UsersRound className={cn("mr-3 h-4 w-4", iconColor)} />;
-                case "/forums":
+                case "/forum":
                 case "/forum":
                   return <MessageSquare className={cn("mr-3 h-4 w-4", iconColor)} />;
                 default:

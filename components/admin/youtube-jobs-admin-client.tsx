@@ -61,6 +61,10 @@ export function YouTubeJobsAdminClient() {
         throw new Error(data.error || "Job failed");
       }
 
+      const successMessage = data.message || data.success 
+        ? `${job.name} completed: ${data.message || JSON.stringify(data, null, 2)}`
+        : `${job.name} completed successfully`;
+
       setJobs((prev) =>
         prev.map((j) =>
           j.id === jobId
@@ -68,13 +72,13 @@ export function YouTubeJobsAdminClient() {
                 ...j,
                 status: "success" as const,
                 lastRun: new Date(),
-                message: JSON.stringify(data, null, 2),
+                message: data.message || JSON.stringify(data, null, 2),
               }
             : j
         )
       );
 
-      toast.success(`${job.name} completed successfully`);
+      toast.success(successMessage);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       setJobs((prev) =>

@@ -29,7 +29,7 @@ const navLinks: NavLink[] = [
   { href: "/popular", label: "Popular" },
   { href: "/lists", label: "Lists" },
   { href: "/members", label: "Members" },
-  { href: "/forums", label: "Forums" },
+  { href: "/forum", label: "Forums" },
 ];
 
 export default function Navbar() {

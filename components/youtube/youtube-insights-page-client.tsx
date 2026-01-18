@@ -10,8 +10,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export function YouTubeInsightsPageClient() {
-  // Get top trending topics
-  const { data: trendsData, isLoading: trendsLoading } = useYouTubeTrends("daily", 5, undefined, 5);
+  // Get top trending topics - use lower minMomentum to show more results
+  const { data: trendsData, isLoading: trendsLoading, error: trendsError } = useYouTubeTrends("daily", 5, undefined, 0);
   const topTrends = trendsData?.trends || [];
 
   return (
@@ -113,10 +113,19 @@ export function YouTubeInsightsPageClient() {
                       <Skeleton key={i} className="h-12 w-full" />
                     ))}
                   </div>
-                ) : topTrends.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4">
-                    No trending topics yet. Trends will appear once we start collecting data.
+                ) : trendsError ? (
+                  <p className="text-destructive text-center py-4">
+                    Failed to load trends. Please try again later.
                   </p>
+                ) : topTrends.length === 0 ? (
+                  <div className="text-center py-4">
+                    <p className="text-muted-foreground mb-2">
+                      No trending topics yet.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Trends will appear once snapshot collection and trend calculation jobs have run.
+                    </p>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     {topTrends.map((trend) => (

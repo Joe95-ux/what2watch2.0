@@ -813,7 +813,7 @@ export default function LandingPage() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/forums" className="text-muted-foreground hover:text-foreground">
+                  <Link href="/forum" className="text-muted-foreground hover:text-foreground">
                     Forums
                   </Link>
                 </li>

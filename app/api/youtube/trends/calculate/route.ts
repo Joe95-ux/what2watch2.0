@@ -112,6 +112,7 @@ async function handleTrendCalculation(request: NextRequest) {
 
     // Calculate trends for each keyword
     let trendsCreated = 0;
+    let trendsUpdated = 0;
 
     for (const [keyword, data] of keywordMap.entries()) {
       // Only process keywords with at least 3 videos
@@ -180,6 +181,7 @@ async function handleTrendCalculation(request: NextRequest) {
             endDate: now,
           },
         });
+        trendsUpdated++;
       } else {
         // Create new trend
         await db.youTubeTrend.create({
@@ -196,15 +198,18 @@ async function handleTrendCalculation(request: NextRequest) {
             endDate: now,
           },
         });
+        trendsCreated++;
       }
-
-      trendsCreated++;
     }
 
     return NextResponse.json({
       success: true,
       trendsCreated,
+      trendsUpdated,
       keywordsProcessed: keywordMap.size,
+      message: trendsCreated > 0 || trendsUpdated > 0
+        ? `Successfully processed ${trendsCreated} new trends and updated ${trendsUpdated} existing trends`
+        : "No trends were created or updated. This may be normal if there are no new patterns detected.",
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

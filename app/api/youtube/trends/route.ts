@@ -32,24 +32,40 @@ export async function GET(request: NextRequest) {
         startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     }
 
-    // Build where clause
+    // Build where clause - be more flexible with date ranges
     const where: any = {
       period,
-      startDate: { gte: startDate },
-      endDate: { lte: endDate },
       momentum: { gte: minMomentum },
     };
 
-    if (category) {
-      where.category = category;
-    }
-
-    // Fetch trends
-    const trends = await db.youTubeTrend.findMany({
-      where,
+    // Only filter by date if we have recent trends, otherwise get any trends
+    // First try to get recent trends
+    let trends = await db.youTubeTrend.findMany({
+      where: {
+        ...where,
+        startDate: { gte: startDate },
+        endDate: { lte: endDate },
+        ...(category && { category }),
+      },
       orderBy: { momentum: "desc" },
       take: limit,
     });
+
+    // If no recent trends found, get any trends for this period (more flexible)
+    if (trends.length === 0) {
+      trends = await db.youTubeTrend.findMany({
+        where: {
+          period,
+          momentum: { gte: minMomentum },
+          ...(category && { category }),
+        },
+        orderBy: [
+          { startDate: "desc" }, // Get most recent first
+          { momentum: "desc" },
+        ],
+        take: limit,
+      });
+    }
 
     return NextResponse.json({
       trends: trends.map((t) => ({
