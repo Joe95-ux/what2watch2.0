@@ -193,7 +193,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
             variant="ghost"
             size="sm"
             onClick={() => router.back()}
-            className="bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white border-white/20"
+            className="bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white border-white/20 cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
@@ -210,6 +210,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
               variant="ghost"
               size="sm"
               onClick={() => router.back()}
+              className="cursor-pointer"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
@@ -247,7 +248,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                       setSelectedVideo(trailer);
                       setIsTrailerModalOpen(true);
                     }}
-                    className="text-xs sm:text-sm"
+                    className="text-xs sm:text-sm cursor-pointer"
                   >
                     <Play className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                     Watch Trailer
@@ -385,6 +386,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                       }
                     }}
                     className={cn(
+                      "cursor-pointer",
                       isLiked && "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
                     )}
                   >
@@ -408,6 +410,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                       }
                     }}
                     className={cn(
+                      "cursor-pointer",
                       isInWatchlist && "bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800"
                     )}
                   >
@@ -424,7 +427,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                     item={mockItem}
                     type={log.mediaType}
                     trigger={
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" className="cursor-pointer">
                         <Plus className="h-4 w-4 mr-2" />
                         Add to Playlist
                       </Button>
@@ -435,6 +438,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                     variant="outline"
                     size="sm"
                     onClick={handleShare}
+                    className="cursor-pointer"
                   >
                     <Share2 className="h-4 w-4 mr-2" />
                     Share
@@ -591,6 +595,8 @@ function EditLogDialog({ isOpen, onClose, log, onUpdate, isPending }: EditLogDia
   };
 
   const handleSubmit = async () => {
+    if (isPending || updateLog.isPending) return;
+    
     try {
       const tagsArray = tags.trim() ? tags.split(",").map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
       await updateLog.mutateAsync({
@@ -608,6 +614,7 @@ function EditLogDialog({ isOpen, onClose, log, onUpdate, isPending }: EditLogDia
         tags: tagsArray,
       });
       toast.success("Review updated");
+      onClose();
     } catch {
       toast.error("Failed to update review");
     }
@@ -736,11 +743,11 @@ function EditLogDialog({ isOpen, onClose, log, onUpdate, isPending }: EditLogDia
           </div>
         </div>
         <DialogFooter className="sticky bottom-0 z-10 bg-background border-t px-6 py-4">
-          <Button variant="outline" onClick={onClose} className="cursor-pointer">
+          <Button variant="outline" onClick={onClose} disabled={isPending || updateLog.isPending} className="cursor-pointer">
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isPending} className="cursor-pointer">
-            {isPending ? "Updating..." : "Update"}
+          <Button onClick={handleSubmit} disabled={isPending || updateLog.isPending} className="cursor-pointer">
+            {isPending || updateLog.isPending ? "Updating..." : "Update"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1138,7 +1145,7 @@ function CommentsSection({
               />
               <Button
                 size="sm"
-                className="mt-2"
+                className="mt-2 cursor-pointer"
                 onClick={handlePostComment}
                 disabled={!newComment.trim() || createComment.isPending}
               >
@@ -1199,7 +1206,7 @@ function CommentsSection({
                   variant="outline"
                   size="sm"
                   onClick={() => setShowAllComments(!showAllComments)}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 cursor-pointer"
                 >
                   {showAllComments ? (
                     <>
@@ -1464,6 +1471,7 @@ function CommentItem({
                   variant="outline"
                   onClick={handleCancelEdit}
                   disabled={isSaving}
+                  className="cursor-pointer"
                 >
                   Cancel
                 </Button>
@@ -1471,6 +1479,7 @@ function CommentItem({
                   size="sm"
                   onClick={handleSaveEdit}
                   disabled={!editContent.trim() || isSaving}
+                  className="cursor-pointer"
                 >
                   {isSaving ? "Saving..." : "Save"}
                 </Button>
@@ -1485,7 +1494,7 @@ function CommentItem({
                 {currentUser && (
                   <button
                     onClick={() => onReply(comment.id)}
-                    className="flex items-center gap-1 hover:text-foreground transition-colors"
+                    className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
                   >
                     <Reply className="h-3.5 w-3.5" />
                     Reply
@@ -1499,7 +1508,7 @@ function CommentItem({
                     <button
                       onClick={handleToggleLike}
                       className={cn(
-                        "flex items-center gap-1 hover:text-foreground transition-colors",
+                        "flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer",
                         hasLiked && "text-red-500"
                       )}
                       disabled={addReaction.isPending || removeReaction.isPending}
@@ -1514,7 +1523,7 @@ function CommentItem({
                     <div className="relative" ref={emojiPickerRef}>
                       <button
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                        className="flex items-center gap-1 hover:text-foreground transition-colors"
+                        className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
                       >
                         <Smile className="h-3.5 w-3.5" />
                       </button>
@@ -1546,7 +1555,7 @@ function CommentItem({
                               : handleEmojiClick({ emoji } as EmojiClickData)
                           }
                           className={cn(
-                            "flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs hover:bg-muted transition-colors",
+                            "flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs hover:bg-muted transition-colors cursor-pointer",
                             userHasReacted && "bg-muted"
                           )}
                           title={`${reactions.length} ${emoji}`}
@@ -1595,6 +1604,7 @@ function CommentItem({
                       size="sm"
                       variant="outline"
                       onClick={onCancelReply}
+                      className="cursor-pointer"
                     >
                       Cancel
                     </Button>
@@ -1602,6 +1612,7 @@ function CommentItem({
                       size="sm"
                       onClick={() => onPostReply(comment.id)}
                       disabled={!replyContent.trim()}
+                      className="cursor-pointer"
                     >
                       Reply
                     </Button>
