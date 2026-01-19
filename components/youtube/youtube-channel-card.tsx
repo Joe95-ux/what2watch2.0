@@ -215,7 +215,7 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
 
   return (
     <div
-      className={`border rounded-lg p-4 hover:border-primary/50 transition-colors cursor-pointer ${
+      className={`border-2 rounded-lg p-4 hover:border-primary/50 transition-colors cursor-pointer ${
         !channel.isActive ? "opacity-60" : ""
       }`}
       onClick={handleCardClick}

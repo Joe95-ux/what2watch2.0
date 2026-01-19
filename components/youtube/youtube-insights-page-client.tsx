@@ -127,14 +127,14 @@ export function YouTubeInsightsPageClient() {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="flex flex-col space-y-3">
                     {topTrends.map((trend) => (
                       <Link
                         key={trend.id}
                         href={`/youtube/trends?keyword=${encodeURIComponent(trend.keyword)}`}
-                        className="cursor-pointer"
+                        className="cursor-pointer block"
                       >
-                        <div className="flex items-center justify-between p-3 border rounded-lg hover:border-primary/50 hover:bg-accent/50 transition-all cursor-pointer">
+                        <div className="flex items-center justify-between p-3 border-2 rounded-lg hover:border-primary/50 hover:bg-accent/50 transition-all cursor-pointer">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <span className="font-medium">{trend.keyword}</span>
@@ -201,13 +201,15 @@ export function YouTubeInsightsPageClient() {
                   <p className="text-muted-foreground">
                     Discover content gaps where demand exceeds supply. Find trending topics with low competition.
                   </p>
-                  <Link href="/youtube/gaps" className="cursor-pointer">
-                    <Button className="w-full cursor-pointer bg-[#006DCA] hover:bg-[#0056A3] text-white">
-                      <Target className="h-4 w-4 mr-2" />
-                      Find Content Gaps
-                    </Button>
-                  </Link>
-                  <div className="p-4 border rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <Link href="/youtube/gaps" className="cursor-pointer">
+                      <Button size="default" className="cursor-pointer bg-[#006DCA] hover:bg-[#0056A3] text-white">
+                        <Target className="h-4 w-4 mr-2" />
+                        Find Content Gaps
+                      </Button>
+                    </Link>
+                  </div>
+                  <div className="p-4 border-2 rounded-lg bg-muted/50">
                     <div className="flex items-start gap-3">
                       <Zap className="h-5 w-5 text-primary mt-0.5" />
                       <div>

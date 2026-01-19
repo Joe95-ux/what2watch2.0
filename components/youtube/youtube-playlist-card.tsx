@@ -32,7 +32,7 @@ export function YouTubePlaylistCard({ playlist, className, onClick }: YouTubePla
 
   return (
     <div
-      className={cn("relative bg-card rounded-lg overflow-hidden border border-border cursor-pointer group", className)}
+      className={cn("relative bg-card rounded-lg overflow-hidden border-2 border-border cursor-pointer group", className)}
       onClick={handleClick}
       role="button"
       tabIndex={0}

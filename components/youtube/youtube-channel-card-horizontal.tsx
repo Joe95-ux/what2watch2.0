@@ -183,7 +183,7 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
 
   return (
     <div
-      className="border rounded-lg hover:border-primary/50 transition-colors cursor-pointer relative pb-14 overflow-hidden"
+      className="border-2 rounded-lg hover:border-primary/50 transition-colors cursor-pointer relative pb-14 overflow-hidden"
       onClick={handleCardClick}
     >
       {/* First Section: Profile Picture (1/3 width) + Channel Info (2/3 width) - No padding */}
@@ -406,7 +406,7 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
 
 export function YouTubeChannelCardHorizontalSkeleton() {
   return (
-    <div className="border rounded-lg relative pb-14 overflow-hidden">
+    <div className="border-2 rounded-lg relative pb-14 overflow-hidden">
       {/* First Section Skeleton - No padding */}
       <div className="flex items-start">
         <Skeleton className="w-1/3 aspect-square rounded-tl-lg" />

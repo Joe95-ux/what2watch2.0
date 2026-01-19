@@ -47,7 +47,7 @@ export default function YouTubePosts({
     return (
       <div className="space-y-6">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="bg-card rounded-lg border p-6 space-y-4">
+          <div key={i} className="bg-card rounded-lg border-2 p-6 space-y-4">
             <div className="flex items-center gap-3">
               <Skeleton className="w-10 h-10 rounded-full" />
               <div className="space-y-2 flex-1">
@@ -80,7 +80,7 @@ export default function YouTubePosts({
       {posts.map((post) => (
         <article
           key={post.id}
-          className="bg-card rounded-lg border p-6 hover:border-primary/50 transition-colors"
+          className="bg-card rounded-lg border-2 p-6 hover:border-primary/50 transition-colors"
         >
           {/* Post Header */}
           <div className="flex items-start gap-4 mb-4">

@@ -183,7 +183,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
 
   return (
     <div
-      className="border rounded-lg p-4 hover:border-primary/50 transition-colors cursor-pointer relative pb-14"
+      className="border-2 rounded-lg p-4 hover:border-primary/50 transition-colors cursor-pointer relative pb-14"
       onClick={handleCardClick}
     >
       {/* YouTube Link - Top Right */}
@@ -399,7 +399,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
 
 export function YouTubeChannelCardPageSkeleton() {
   return (
-    <div className="border rounded-lg p-4 relative pb-14">
+    <div className="border-2 rounded-lg p-4 relative pb-14">
       {/* Avatar - Centered */}
       <div className="flex justify-center mb-4">
         <Skeleton className="h-16 w-16 rounded-full" />

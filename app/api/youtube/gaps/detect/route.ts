@@ -43,99 +43,185 @@ export async function GET(request: NextRequest) {
     }
 
     // For each trending keyword, check video supply
-    const gaps = await Promise.all(
-      recentTrends.slice(0, 50).map(async (trend) => {
-        // Search YouTube for videos with this keyword
-        const searchUrl = new URL("https://www.googleapis.com/youtube/v3/search");
-        searchUrl.searchParams.set("part", "snippet");
-        searchUrl.searchParams.set("q", trend.keyword);
-        searchUrl.searchParams.set("type", "video");
-        searchUrl.searchParams.set("order", "viewCount");
-        searchUrl.searchParams.set("maxResults", "10");
-        searchUrl.searchParams.set("key", YOUTUBE_API_KEY);
+    // Process in batches to avoid rate limits and improve accuracy
+    const batchSize = 10;
+    const allGaps: Array<{
+      keyword: string;
+      category: string | null | undefined;
+      searchVolume: number;
+      videoCount: number;
+      avgVideoAge: number;
+      topVideoViews: number;
+      gapScore: number;
+      momentum: number;
+      avgViews: string;
+    }> = [];
 
-        const searchResponse = await fetch(searchUrl.toString(), {
-          next: { revalidate: 3600 }, // Cache for 1 hour
-        });
+    for (let i = 0; i < Math.min(recentTrends.length, 50); i += batchSize) {
+      const batch = recentTrends.slice(i, i + batchSize);
+      
+      const batchGaps = await Promise.all(
+        batch.map(async (trend) => {
+          try {
+            // Search YouTube for videos with this keyword
+            // Use relevance order first to get better quality results
+            const searchUrl = new URL("https://www.googleapis.com/youtube/v3/search");
+            searchUrl.searchParams.set("part", "snippet");
+            searchUrl.searchParams.set("q", trend.keyword);
+            searchUrl.searchParams.set("type", "video");
+            searchUrl.searchParams.set("order", "relevance"); // Use relevance for better quality
+            searchUrl.searchParams.set("maxResults", "50"); // Get more results for better accuracy
+            searchUrl.searchParams.set("key", YOUTUBE_API_KEY);
 
-        if (!searchResponse.ok) {
-          return null;
-        }
+            const searchResponse = await fetch(searchUrl.toString(), {
+              next: { revalidate: 3600 }, // Cache for 1 hour
+            });
 
-        const searchData = await searchResponse.json();
-        const videoCount = searchData.pageInfo?.totalResults || 0;
-        const videoIds = searchData.items?.map((item: any) => item.id.videoId).join(",") || "";
-
-        // Get video details to calculate average age and top views
-        let avgVideoAge = 0;
-        let topVideoViews = 0;
-
-        if (videoIds) {
-          const videosUrl = new URL("https://www.googleapis.com/youtube/v3/videos");
-          videosUrl.searchParams.set("part", "snippet,statistics");
-          videosUrl.searchParams.set("id", videoIds);
-          videosUrl.searchParams.set("key", YOUTUBE_API_KEY);
-
-          const videosResponse = await fetch(videosUrl.toString(), {
-            next: { revalidate: 3600 },
-          });
-
-          if (videosResponse.ok) {
-            const videosData = await videosResponse.json();
-            const videos = videosData.items || [];
-
-            if (videos.length > 0) {
-              const now = new Date();
-              const ages = videos.map((video: any) => {
-                const publishedAt = new Date(video.snippet?.publishedAt || now);
-                return Math.floor((now.getTime() - publishedAt.getTime()) / (1000 * 60 * 60 * 24));
-              });
-              avgVideoAge = ages.reduce((a: number, b: number) => a + b, 0) / ages.length;
-
-              // Get top video views
-              const topVideo = videos[0];
-              topVideoViews = parseInt(topVideo.statistics?.viewCount || "0", 10);
+            if (!searchResponse.ok) {
+              console.warn(`YouTube search failed for keyword: ${trend.keyword}`);
+              return null;
             }
+
+            const searchData = await searchResponse.json();
+            const items = searchData.items || [];
+            
+            // Use actual returned items count, not totalResults (which can be inaccurate)
+            const videoCount = Math.max(items.length, searchData.pageInfo?.totalResults || 0);
+            
+            // Filter out low-quality results (videos with very low views might be spam)
+            const validVideoIds = items
+              .slice(0, 20) // Analyze top 20 results
+              .map((item: any) => item.id?.videoId)
+              .filter((id: string) => id);
+
+            if (validVideoIds.length === 0) {
+              return null;
+            }
+
+            const videoIds = validVideoIds.join(",");
+
+            // Get video details to calculate average age and top views
+            let avgVideoAge = 0;
+            let topVideoViews = 0;
+            let totalViews = 0;
+            let validVideos = 0;
+
+            if (videoIds) {
+              const videosUrl = new URL("https://www.googleapis.com/youtube/v3/videos");
+              videosUrl.searchParams.set("part", "snippet,statistics");
+              videosUrl.searchParams.set("id", videoIds);
+              videosUrl.searchParams.set("key", YOUTUBE_API_KEY);
+
+              const videosResponse = await fetch(videosUrl.toString(), {
+                next: { revalidate: 3600 },
+              });
+
+              if (videosResponse.ok) {
+                const videosData = await videosResponse.json();
+                const videos = videosData.items || [];
+
+                if (videos.length > 0) {
+                  const now = new Date();
+                  const validAges: number[] = [];
+                  
+                  videos.forEach((video: any) => {
+                    const publishedAt = new Date(video.snippet?.publishedAt || now);
+                    const age = Math.floor((now.getTime() - publishedAt.getTime()) / (1000 * 60 * 60 * 24));
+                    const views = parseInt(video.statistics?.viewCount || "0", 10);
+                    
+                    // Only count videos with reasonable views (filter spam)
+                    if (views > 100) {
+                      validAges.push(age);
+                      totalViews += views;
+                      validVideos++;
+                    }
+                  });
+
+                  if (validAges.length > 0) {
+                    avgVideoAge = validAges.reduce((a, b) => a + b, 0) / validAges.length;
+                    
+                    // Get top video views (highest views from valid videos)
+                    const sortedVideos = videos
+                      .map((v: any) => parseInt(v.statistics?.viewCount || "0", 10))
+                      .filter((views: number) => views > 100)
+                      .sort((a: number, b: number) => b - a);
+                    
+                    topVideoViews = sortedVideos[0] || 0;
+                  }
+                }
+              }
+            }
+
+            // Skip if we don't have enough valid data
+            if (validVideos === 0 || videoCount === 0) {
+              return null;
+            }
+
+            // Calculate gap score with improved algorithm
+            // Higher score = bigger opportunity
+            // Factors:
+            // - High search volume relative to video count (demand vs supply)
+            // - High momentum (trending up)
+            // - Old videos (opportunity for fresh content)
+            // - Low competition (top video has low views)
+            const searchVolume = trend.searchVolume || 1000;
+            const normalizedVideoCount = Math.max(videoCount, 1);
+            
+            // Improved demand/supply ratio calculation
+            // Use logarithmic scale to prevent extreme values
+            const demandSupplyRatio = Math.log10(Math.max(searchVolume / normalizedVideoCount, 1));
+            
+            // Normalize momentum (0-1 scale)
+            const momentumScore = Math.min(Math.max(trend.momentum, 0) / 100, 1);
+            
+            // Freshness bonus (older content = better opportunity)
+            const freshnessScore = avgVideoAge > 365 ? 1.5 : avgVideoAge > 180 ? 1.2 : avgVideoAge > 90 ? 1.0 : 0.8;
+            
+            // Competition score (lower top views = less competition)
+            const competitionScore = topVideoViews < 50000 ? 1.5 : topVideoViews < 200000 ? 1.2 : topVideoViews < 1000000 ? 1.0 : 0.8;
+
+            // Weighted gap score
+            const gapScore =
+              (demandSupplyRatio * 0.35 + // Demand/supply ratio (35%)
+                momentumScore * 0.3 + // Momentum (30%)
+                (Math.min(avgVideoAge / 365, 2)) * 0.2 + // Freshness (20%, capped at 2 years)
+                competitionScore * 0.15) * // Low competition (15%)
+              freshnessScore;
+
+            // Only return gaps with meaningful scores
+            if (gapScore < 0.5) {
+              return null;
+            }
+
+            return {
+              keyword: trend.keyword,
+              category: trend.category || category || null,
+              searchVolume,
+              videoCount,
+              avgVideoAge: Math.round(avgVideoAge),
+              topVideoViews,
+              gapScore: Math.round(gapScore * 100) / 100,
+              momentum: trend.momentum,
+              avgViews: trend.avgViews,
+            };
+          } catch (error) {
+            console.error(`Error processing gap for keyword ${trend.keyword}:`, error);
+            return null;
           }
-        }
+        })
+      );
 
-        // Calculate gap score
-        // Higher score = bigger opportunity
-        // Factors:
-        // - High search volume (demand)
-        // - Low video count (low supply)
-        // - High momentum (trending up)
-        // - Old videos (opportunity for fresh content)
-        const searchVolume = trend.searchVolume || 1000;
-        const normalizedVideoCount = Math.max(videoCount, 1); // Avoid division by zero
-        const demandSupplyRatio = searchVolume / normalizedVideoCount;
-        const momentumScore = Math.max(trend.momentum, 0) / 100; // Normalize momentum
-        const freshnessScore = avgVideoAge > 365 ? 1.5 : avgVideoAge > 180 ? 1.2 : 1.0; // Older = better opportunity
+      // Add valid gaps from this batch
+      allGaps.push(...batchGaps.filter((gap): gap is NonNullable<typeof gap> => gap !== null));
+      
+      // Small delay between batches to avoid rate limits
+      if (i + batchSize < Math.min(recentTrends.length, 50)) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+    }
 
-        const gapScore =
-          (demandSupplyRatio * 0.4 + // Demand/supply ratio (40%)
-            momentumScore * 0.3 + // Momentum (30%)
-            (avgVideoAge / 365) * 0.2 + // Freshness (20%)
-            (topVideoViews < 100000 ? 1.5 : topVideoViews < 500000 ? 1.2 : 1.0) * 0.1) * // Low competition (10%)
-          freshnessScore;
-
-        return {
-          keyword: trend.keyword,
-          category: trend.category || category,
-          searchVolume,
-          videoCount,
-          avgVideoAge: Math.round(avgVideoAge),
-          topVideoViews,
-          gapScore: Math.round(gapScore * 100) / 100,
-          momentum: trend.momentum,
-          avgViews: trend.avgViews,
-        };
-      })
-    );
-
-    // Filter out nulls and sort by gap score
-    const validGaps = gaps
-      .filter((gap): gap is NonNullable<typeof gap> => gap !== null)
+    // Sort by gap score and take top results
+    const validGaps = allGaps
       .sort((a, b) => b.gapScore - a.gapScore)
       .slice(0, limit);
 
