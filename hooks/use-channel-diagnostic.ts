@@ -24,11 +24,12 @@ export interface TopVideo {
   viewCount: number;
   engagementRate: number;
   publishedAt: Date;
+  thumbnail?: string | null;
 }
 
 export interface ChannelInfo {
   title: string;
-  thumbnail: string;
+  thumbnail: string | null;
   subscriberCount: string;
   videoCount: string;
   viewCount: string;

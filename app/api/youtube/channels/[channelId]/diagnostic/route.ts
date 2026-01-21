@@ -232,17 +232,29 @@ export async function GET(
     const totalViews = parseInt(statistics.viewCount || "0", 10);
     const videoCount = parseInt(statistics.videoCount || "0", 10);
 
-    // Estimate growth rates (would need historical snapshots for accurate calculation)
-    const subscriberGrowthRate = videoCount > 0 ? (subscriberCount / videoCount) / 100 : 0;
-    const viewGrowthRate = videoCount > 0 ? (totalViews / videoCount) / 1000 : 0;
+    // Calculate meaningful metrics (not true growth rates, but useful indicators)
+    // Since we don't have historical data, we'll show subscribers and views per video
+    // These give insight into channel performance
+    const subscribersPerVideo = videoCount > 0 ? subscriberCount / videoCount : 0;
+    const viewsPerVideo = videoCount > 0 ? totalViews / videoCount : 0;
+    
+    // Store these values (we'll display them as "per video" metrics in the UI)
+    const subscriberGrowthRate = subscribersPerVideo;
+    const viewGrowthRate = viewsPerVideo;
 
-    // Determine best format (simplified - would need format classification)
-    // For now, we'll use title patterns as a proxy
-    const bestFormat = videosWithQuestions > videos.length * 0.3
-      ? "Tutorial/How-to"
-      : videosWithNumbers > videos.length * 0.3
-      ? "List/Top 10"
-      : "General";
+    // Determine best format based on title patterns
+    // Analyze what type of content performs best
+    const questionRatio = videosWithQuestions / videos.length;
+    const numberRatio = videosWithNumbers / videos.length;
+    
+    let bestFormat = "Mixed Content";
+    if (questionRatio > 0.3) {
+      bestFormat = "Tutorials & How-To Guides";
+    } else if (numberRatio > 0.3) {
+      bestFormat = "List Videos (Top 10, Rankings)";
+    } else if (videosWithBrackets / videos.length > 0.4) {
+      bestFormat = "Formatted Titles (with brackets)";
+    }
 
     // Create or update diagnostic (use actual channel ID)
     const diagnostic = await db.channelDiagnostic.upsert({
@@ -340,10 +352,21 @@ export async function GET(
       }
     });
 
-    // Get top videos details
+    // Get top videos details with thumbnails
     const topVideosDetails = videosWithMetrics
       .filter((v) => topVideosByViews.includes(v.videoId) || topVideosByEngagement.includes(v.videoId))
-      .slice(0, 10);
+      .slice(0, 10)
+      .map((v) => {
+        const video = videos.find((vid: any) => vid.id === v.videoId);
+        return {
+          videoId: v.videoId,
+          title: v.title,
+          viewCount: v.viewCount,
+          engagementRate: v.engagementRate,
+          publishedAt: v.publishedAt,
+          thumbnail: video?.snippet?.thumbnails?.high?.url || video?.snippet?.thumbnails?.medium?.url || video?.snippet?.thumbnails?.default?.url || null,
+        };
+      });
 
     return NextResponse.json({
       diagnostic: {
@@ -365,7 +388,7 @@ export async function GET(
       },
       channel: {
         title: channel.snippet?.title,
-        thumbnail: channel.snippet?.thumbnails?.high?.url,
+        thumbnail: channel.snippet?.thumbnails?.high?.url || channel.snippet?.thumbnails?.medium?.url || channel.snippet?.thumbnails?.default?.url || null,
         subscriberCount: statistics.subscriberCount,
         videoCount: statistics.videoCount,
         viewCount: statistics.viewCount,

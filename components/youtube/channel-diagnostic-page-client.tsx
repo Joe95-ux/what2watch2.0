@@ -261,7 +261,7 @@ export function ChannelDiagnosticPageClient() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-start gap-4">
-                    {data.channel.thumbnail && (
+                    {data.channel.thumbnail ? (
                       <div className="relative w-24 h-24 rounded-full overflow-hidden flex-shrink-0">
                         <Image
                           src={data.channel.thumbnail}
@@ -269,7 +269,12 @@ export function ChannelDiagnosticPageClient() {
                           fill
                           className="object-cover"
                           sizes="96px"
+                          unoptimized
                         />
+                      </div>
+                    ) : (
+                      <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                        <Video className="h-8 w-8 text-muted-foreground" />
                       </div>
                     )}
                     <div className="flex-1">
@@ -340,13 +345,18 @@ export function ChannelDiagnosticPageClient() {
 
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardDescription>Best Format</CardDescription>
+                    <CardDescription>Most Common Format</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center gap-2">
-                      <Target className="h-5 w-5 text-muted-foreground" />
-                      <p className="text-lg font-semibold">
-                        {data.diagnostic.bestFormat || "N/A"}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Target className="h-5 w-5 text-muted-foreground" />
+                        <p className="text-lg font-semibold">
+                          {data.diagnostic.bestFormat || "Mixed Content"}
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Based on title patterns
                       </p>
                     </div>
                   </CardContent>
@@ -363,15 +373,27 @@ export function ChannelDiagnosticPageClient() {
                   <CardContent>
                     <div className="space-y-4">
                       <div>
-                        <p className="text-sm text-muted-foreground mb-1">Subscriber Growth Rate</p>
+                        <p className="text-sm text-muted-foreground mb-1">Subscribers per Video</p>
                         <p className="text-2xl font-bold">
-                          {data.diagnostic.subscriberGrowthRate.toFixed(2)}
+                          {data.diagnostic.subscriberGrowthRate >= 1000
+                            ? `${(data.diagnostic.subscriberGrowthRate / 1000).toFixed(1)}K`
+                            : Math.round(data.diagnostic.subscriberGrowthRate).toLocaleString()}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Total subscribers ÷ total videos
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground mb-1">View Growth Rate</p>
+                        <p className="text-sm text-muted-foreground mb-1">Average Views per Video</p>
                         <p className="text-2xl font-bold">
-                          {data.diagnostic.viewGrowthRate.toFixed(2)}
+                          {data.diagnostic.viewGrowthRate >= 1000000
+                            ? `${(data.diagnostic.viewGrowthRate / 1000000).toFixed(1)}M`
+                            : data.diagnostic.viewGrowthRate >= 1000
+                            ? `${(data.diagnostic.viewGrowthRate / 1000).toFixed(1)}K`
+                            : Math.round(data.diagnostic.viewGrowthRate).toLocaleString()}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Total views ÷ total videos
                         </p>
                       </div>
                     </div>
@@ -405,39 +427,60 @@ export function ChannelDiagnosticPageClient() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Title Patterns</CardTitle>
+                    <CardDescription>
+                      Common patterns found in video titles
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
                       {data.diagnostic.avgTitleLength && (
-                        <div>
+                        <div className="pb-3 border-b">
                           <p className="text-sm text-muted-foreground mb-1">Average Title Length</p>
                           <p className="text-2xl font-bold">
-                            {Math.round(data.diagnostic.avgTitleLength)} chars
+                            {Math.round(data.diagnostic.avgTitleLength)} characters
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Longer titles often perform better
                           </p>
                         </div>
                       )}
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {data.diagnostic.percentWithBrackets !== undefined && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">Use Brackets</span>
-                            <Badge variant="secondary">
-                              {data.diagnostic.percentWithBrackets.toFixed(1)}%
+                          <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                            <div>
+                              <span className="text-sm font-medium">Titles with Brackets</span>
+                              <p className="text-xs text-muted-foreground">
+                                e.g., [2024] or (NEW)
+                              </p>
+                            </div>
+                            <Badge variant="secondary" className="text-sm">
+                              {data.diagnostic.percentWithBrackets.toFixed(0)}%
                             </Badge>
                           </div>
                         )}
                         {data.diagnostic.percentWithNumbers !== undefined && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">Use Numbers</span>
-                            <Badge variant="secondary">
-                              {data.diagnostic.percentWithNumbers.toFixed(1)}%
+                          <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                            <div>
+                              <span className="text-sm font-medium">Titles with Numbers</span>
+                              <p className="text-xs text-muted-foreground">
+                                e.g., Top 10, 5 Ways
+                              </p>
+                            </div>
+                            <Badge variant="secondary" className="text-sm">
+                              {data.diagnostic.percentWithNumbers.toFixed(0)}%
                             </Badge>
                           </div>
                         )}
                         {data.diagnostic.percentWithQuestions !== undefined && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">Ask Questions</span>
-                            <Badge variant="secondary">
-                              {data.diagnostic.percentWithQuestions.toFixed(1)}%
+                          <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                            <div>
+                              <span className="text-sm font-medium">Question Titles</span>
+                              <p className="text-xs text-muted-foreground">
+                                e.g., How to... or What is...?
+                              </p>
+                            </div>
+                            <Badge variant="secondary" className="text-sm">
+                              {data.diagnostic.percentWithQuestions.toFixed(0)}%
                             </Badge>
                           </div>
                         )}
@@ -449,24 +492,42 @@ export function ChannelDiagnosticPageClient() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Thumbnail Patterns</CardTitle>
+                    <CardDescription>
+                      Visual elements in video thumbnails
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {data.diagnostic.percentWithFaces !== undefined && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Videos with Faces</span>
-                          <Badge variant="secondary">
-                            {data.diagnostic.percentWithFaces.toFixed(1)}%
+                        <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                          <div>
+                            <span className="text-sm font-medium">Thumbnails with Faces</span>
+                            <p className="text-xs text-muted-foreground">
+                              Human faces increase click-through rates
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="text-sm">
+                            {data.diagnostic.percentWithFaces.toFixed(0)}%
                           </Badge>
                         </div>
                       )}
                       {data.diagnostic.percentWithText !== undefined && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Videos with Text</span>
-                          <Badge variant="secondary">
-                            {data.diagnostic.percentWithText.toFixed(1)}%
+                        <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                          <div>
+                            <span className="text-sm font-medium">Thumbnails with Text</span>
+                            <p className="text-xs text-muted-foreground">
+                              Text overlays can improve engagement
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="text-sm">
+                            {data.diagnostic.percentWithText.toFixed(0)}%
                           </Badge>
                         </div>
+                      )}
+                      {data.diagnostic.percentWithFaces === undefined && data.diagnostic.percentWithText === undefined && (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          Thumbnail analysis data not available
+                        </p>
                       )}
                     </div>
                   </CardContent>
@@ -490,8 +551,24 @@ export function ChannelDiagnosticPageClient() {
                         href={`https://www.youtube.com/watch?v=${video.videoId}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-4 p-3 border rounded-lg hover:border-primary/50 hover:bg-accent/50 transition-all cursor-pointer group"
+                        className="flex items-center gap-4 p-3 border-2 rounded-lg hover:border-primary/50 hover:bg-accent/50 transition-all cursor-pointer group"
                       >
+                        {video.thumbnail ? (
+                          <div className="relative w-40 h-24 flex-shrink-0 rounded overflow-hidden bg-muted">
+                            <Image
+                              src={video.thumbnail}
+                              alt={video.title}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform"
+                              sizes="160px"
+                              unoptimized
+                            />
+                          </div>
+                        ) : (
+                          <div className="relative w-40 h-24 flex-shrink-0 rounded overflow-hidden bg-muted flex items-center justify-center">
+                            <Video className="h-8 w-8 text-muted-foreground" />
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <h4 className="font-semibold text-sm line-clamp-2 group-hover:text-primary transition-colors">
