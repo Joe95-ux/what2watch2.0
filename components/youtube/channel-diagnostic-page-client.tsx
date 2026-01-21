@@ -17,30 +17,119 @@ import { ExternalLink } from "lucide-react";
 export function ChannelDiagnosticPageClient() {
   const [channelId, setChannelId] = useState("");
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
+  const [isResolving, setIsResolving] = useState(false);
+  const [resolveError, setResolveError] = useState<string | null>(null);
 
   const { data, isLoading, error } = useChannelDiagnostic(activeChannelId, !!activeChannelId);
 
-  const handleAnalyze = () => {
-    if (channelId.trim()) {
-      // Extract channel ID from URL if provided
-      let extractedId = channelId.trim();
-      
-      // Handle different URL formats
-      if (channelId.includes("youtube.com")) {
-        const urlMatch = channelId.match(/(?:channel\/|user\/|@)([^/?]+)/);
-        if (urlMatch) {
-          extractedId = urlMatch[1];
+  const resolveChannelId = async (input: string): Promise<string | null> => {
+    const trimmed = input.trim();
+    
+    // If it's already a channel ID (starts with UC and is 24 chars)
+    if (/^UC[a-zA-Z0-9_-]{22}$/.test(trimmed)) {
+      return trimmed;
+    }
+
+    // Extract from URL formats
+    if (trimmed.includes("youtube.com")) {
+      // Extract from /channel/UC... format
+      const channelMatch = trimmed.match(/\/channel\/([a-zA-Z0-9_-]+)/);
+      if (channelMatch && channelMatch[1].startsWith("UC")) {
+        return channelMatch[1];
+      }
+
+      // Extract handle from /@... format
+      const handleMatch = trimmed.match(/\/@([a-zA-Z0-9_-]+)/);
+      if (handleMatch) {
+        const handle = handleMatch[1];
+        // Resolve handle via API
+        try {
+          const response = await fetch(`/api/youtube/channels/search?q=${encodeURIComponent(handle)}&maxResults=1`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.channels && data.channels.length > 0) {
+              return data.channels[0].channelId;
+            }
+          }
+        } catch (err) {
+          console.error("Error resolving handle:", err);
+        }
+        return null;
+      }
+
+      // Extract from /c/... or /user/... format
+      const customMatch = trimmed.match(/\/(?:c|user)\/([a-zA-Z0-9_-]+)/);
+      if (customMatch) {
+        const customUrl = customMatch[1];
+        // Try to search for it
+        try {
+          const response = await fetch(`/api/youtube/channels/search?q=${encodeURIComponent(customUrl)}&maxResults=1`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.channels && data.channels.length > 0) {
+              return data.channels[0].channelId;
+            }
+          }
+        } catch (err) {
+          console.error("Error resolving custom URL:", err);
+        }
+        return null;
+      }
+    }
+
+    // If it's just a handle (starts with @)
+    if (trimmed.startsWith("@")) {
+      const handle = trimmed.slice(1);
+      try {
+        const response = await fetch(`/api/youtube/channels/search?q=${encodeURIComponent(handle)}&maxResults=1`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.channels && data.channels.length > 0) {
+            return data.channels[0].channelId;
+          }
+        }
+      } catch (err) {
+        console.error("Error resolving handle:", err);
+      }
+      return null;
+    }
+
+    // Try searching for it as a channel name
+    try {
+      const response = await fetch(`/api/youtube/channels/search?q=${encodeURIComponent(trimmed)}&maxResults=1`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.channels && data.channels.length > 0) {
+          return data.channels[0].channelId;
         }
       }
+    } catch (err) {
+      console.error("Error searching channel:", err);
+    }
+
+    return null;
+  };
+
+  const handleAnalyze = async () => {
+    if (!channelId.trim()) return;
+
+    setIsResolving(true);
+    setResolveError(null);
+    setActiveChannelId(null);
+
+    try {
+      const resolvedId = await resolveChannelId(channelId);
       
-      // If it starts with UC, it's already a channel ID
-      if (extractedId.startsWith("UC")) {
-        setActiveChannelId(extractedId);
+      if (resolvedId) {
+        setActiveChannelId(resolvedId);
       } else {
-        // Try to find channel by handle/slug
-        // For now, assume it's a channel ID
-        setActiveChannelId(extractedId);
+        setResolveError("Could not find channel. Please check the URL or channel ID and try again.");
       }
+    } catch (err) {
+      setResolveError("Failed to resolve channel. Please try again.");
+      console.error("Error resolving channel:", err);
+    } finally {
+      setIsResolving(false);
     }
   };
 
@@ -64,48 +153,58 @@ export function ChannelDiagnosticPageClient() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Enter channel ID (e.g., UC...) or channel URL"
-                  value={channelId}
-                  onChange={(e) => setChannelId(e.target.value)}
-                  className="pl-10"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && channelId.trim()) {
-                      handleAnalyze();
-                    }
-                  }}
-                />
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="https://www.youtube.com/@channelname or UC..."
+                    value={channelId}
+                    onChange={(e) => {
+                      setChannelId(e.target.value);
+                      setResolveError(null);
+                    }}
+                    className="pl-10"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && channelId.trim() && !isResolving && !isLoading) {
+                        handleAnalyze();
+                      }
+                    }}
+                  />
+                </div>
+                <Button
+                  onClick={handleAnalyze}
+                  disabled={!channelId.trim() || isLoading || isResolving}
+                  className="cursor-pointer bg-[#006DCA] hover:bg-[#0056A3] text-white"
+                >
+                  {isResolving ? "Resolving..." : isLoading ? "Analyzing..." : "Analyze"}
+                </Button>
               </div>
-              <Button
-                onClick={handleAnalyze}
-                disabled={!channelId.trim() || isLoading}
-                className="cursor-pointer bg-[#006DCA] hover:bg-[#0056A3] text-white"
-              >
-                {isLoading ? "Analyzing..." : "Analyze"}
-              </Button>
+              <p className="text-xs text-muted-foreground">
+                Supports: Channel URL (youtube.com/@channelname), Channel ID (UC...), or channel name
+              </p>
             </div>
           </CardContent>
         </Card>
 
         {/* Error State */}
-        {error && (
+        {(resolveError || error) && (
           <Card className="border-destructive">
             <CardContent className="py-12 text-center">
               <p className="text-destructive">
-                {error instanceof Error ? error.message : "Failed to analyze channel. Please try again."}
+                {resolveError || (error instanceof Error ? error.message : "Failed to analyze channel. Please try again.")}
               </p>
               <p className="text-sm text-muted-foreground mt-2">
-                Make sure the channel ID is correct and the channel is public.
+                {resolveError 
+                  ? "Please check the URL format and try again."
+                  : "Make sure the channel ID is correct and the channel is public."}
               </p>
             </CardContent>
           </Card>
         )}
 
         {/* Results */}
-        {isLoading ? (
+        {isLoading || isResolving ? (
           <div className="space-y-4">
             <Card>
               <CardHeader>
@@ -395,7 +494,7 @@ export function ChannelDiagnosticPageClient() {
               </Card>
             </TabsContent>
           </Tabs>
-        ) : (
+        ) : !activeChannelId && !resolveError && !error ? (
           <Card>
             <CardContent className="py-12 text-center">
               <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -405,7 +504,7 @@ export function ChannelDiagnosticPageClient() {
               </p>
             </CardContent>
           </Card>
-        )}
+        ) : null}
       </div>
     </div>
   );

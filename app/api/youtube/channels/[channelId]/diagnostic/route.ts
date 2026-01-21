@@ -43,6 +43,14 @@ export async function GET(
 
     const { channelId } = await params;
 
+    // Validate that it's a channel ID (should be resolved in frontend)
+    if (!/^UC[a-zA-Z0-9_-]{22}$/.test(channelId)) {
+      return NextResponse.json(
+        { error: "Invalid channel ID format. Channel ID must start with 'UC' and be 24 characters long." },
+        { status: 400 }
+      );
+    }
+    
     // Fetch channel details
     const channelUrl = new URL("https://www.googleapis.com/youtube/v3/channels");
     channelUrl.searchParams.set("part", "snippet,statistics,contentDetails");
@@ -54,8 +62,10 @@ export async function GET(
     });
 
     if (!channelResponse.ok) {
+      const errorText = await channelResponse.text();
+      console.error("YouTube API error:", errorText);
       return NextResponse.json(
-        { error: "Failed to fetch channel from YouTube API" },
+        { error: "Failed to fetch channel from YouTube API. Make sure the channel ID is correct and the channel is public." },
         { status: channelResponse.status }
       );
     }
@@ -64,10 +74,12 @@ export async function GET(
 
     if (!channelData.items || channelData.items.length === 0) {
       return NextResponse.json(
-        { error: "Channel not found" },
+        { error: "Channel not found. Please check the channel ID or URL and ensure the channel is public." },
         { status: 404 }
       );
     }
+    
+    const actualChannelId = channelData.items[0].id;
 
     const channel = channelData.items[0];
     const statistics = channel.statistics || {};
@@ -232,11 +244,11 @@ export async function GET(
       ? "List/Top 10"
       : "General";
 
-    // Create or update diagnostic
+    // Create or update diagnostic (use actual channel ID)
     const diagnostic = await db.channelDiagnostic.upsert({
       where: {
         channelId_analyzedBy: {
-          channelId,
+          channelId: actualChannelId,
           analyzedBy: user.id,
         },
       },
@@ -257,7 +269,7 @@ export async function GET(
         topVideosByEngagement,
       },
       create: {
-        channelId,
+        channelId: actualChannelId,
         analyzedBy: user.id,
         avgViews: avgViews.toString(),
         avgEngagement,
@@ -287,6 +299,7 @@ export async function GET(
         return await db.channelDiagnostic.update({
           where: { id: existing.id },
           data: {
+            channelId: actualChannelId,
             avgViews: avgViews.toString(),
             avgEngagement,
             uploadFrequency,
@@ -306,7 +319,7 @@ export async function GET(
       } else {
         return await db.channelDiagnostic.create({
           data: {
-            channelId,
+            channelId: actualChannelId,
             analyzedBy: user.id,
             avgViews: avgViews.toString(),
             avgEngagement,
@@ -335,7 +348,7 @@ export async function GET(
     return NextResponse.json({
       diagnostic: {
         id: diagnostic.id,
-        channelId: diagnostic.channelId,
+        channelId: actualChannelId,
         avgViews: diagnostic.avgViews,
         avgEngagement: diagnostic.avgEngagement,
         uploadFrequency: diagnostic.uploadFrequency,
