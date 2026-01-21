@@ -42,13 +42,13 @@ export function ChannelDiagnosticPageClient() {
       const handleMatch = trimmed.match(/\/@([a-zA-Z0-9_-]+)/);
       if (handleMatch) {
         const handle = handleMatch[1];
-        // Resolve handle via API
+        // Resolve handle using forHandle API
         try {
-          const response = await fetch(`/api/youtube/channels/search?q=${encodeURIComponent(handle)}&maxResults=1`);
+          const response = await fetch(`/api/youtube/channels/resolve?handle=${encodeURIComponent(handle)}`);
           if (response.ok) {
             const data = await response.json();
-            if (data.channels && data.channels.length > 0) {
-              return data.channels[0].channelId;
+            if (data.channelId) {
+              return data.channelId;
             }
           }
         } catch (err) {
@@ -58,10 +58,23 @@ export function ChannelDiagnosticPageClient() {
       }
 
       // Extract from /c/... or /user/... format
+      // These might not work with forHandle, so try search as fallback
       const customMatch = trimmed.match(/\/(?:c|user)\/([a-zA-Z0-9_-]+)/);
       if (customMatch) {
         const customUrl = customMatch[1];
-        // Try to search for it
+        // First try forHandle (in case custom URL matches handle)
+        try {
+          const response = await fetch(`/api/youtube/channels/resolve?handle=${encodeURIComponent(customUrl)}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.channelId) {
+              return data.channelId;
+            }
+          }
+        } catch (err) {
+          console.error("Error resolving custom URL:", err);
+        }
+        // Fallback to search
         try {
           const response = await fetch(`/api/youtube/channels/search?q=${encodeURIComponent(customUrl)}&maxResults=1`);
           if (response.ok) {
@@ -71,7 +84,7 @@ export function ChannelDiagnosticPageClient() {
             }
           }
         } catch (err) {
-          console.error("Error resolving custom URL:", err);
+          console.error("Error searching custom URL:", err);
         }
         return null;
       }
@@ -81,11 +94,11 @@ export function ChannelDiagnosticPageClient() {
     if (trimmed.startsWith("@")) {
       const handle = trimmed.slice(1);
       try {
-        const response = await fetch(`/api/youtube/channels/search?q=${encodeURIComponent(handle)}&maxResults=1`);
+        const response = await fetch(`/api/youtube/channels/resolve?handle=${encodeURIComponent(handle)}`);
         if (response.ok) {
           const data = await response.json();
-          if (data.channels && data.channels.length > 0) {
-            return data.channels[0].channelId;
+          if (data.channelId) {
+            return data.channelId;
           }
         }
       } catch (err) {
@@ -94,7 +107,20 @@ export function ChannelDiagnosticPageClient() {
       return null;
     }
 
-    // Try searching for it as a channel name
+    // Try forHandle first (in case it's a handle without @)
+    try {
+      const response = await fetch(`/api/youtube/channels/resolve?handle=${encodeURIComponent(trimmed)}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.channelId) {
+          return data.channelId;
+        }
+      }
+    } catch (err) {
+      // Ignore and try search
+    }
+
+    // Fallback: Try searching for it as a channel name
     try {
       const response = await fetch(`/api/youtube/channels/search?q=${encodeURIComponent(trimmed)}&maxResults=1`);
       if (response.ok) {
