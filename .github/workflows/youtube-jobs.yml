@@ -7,42 +7,105 @@ on:
     # Trend calculation: Daily at 1 AM UTC
     - cron: '0 1 * * *'
   workflow_dispatch: # Allow manual triggering
+    inputs:
+      job_type:
+        description: 'Which job to run'
+        required: false
+        type: choice
+        options:
+          - snapshots
+          - trends
+          - both
 
 jobs:
   snapshots:
     runs-on: ubuntu-latest
-    # Only run snapshot collection on its schedule or manual trigger
-    if: github.event.schedule == '0 */6 * * *' || github.event_name == 'workflow_dispatch'
+    # Run snapshot collection on its schedule, manual trigger, or when "both" is selected
+    if: |
+      github.event.schedule == '0 */6 * * *' ||
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.job_type == 'snapshots' || github.event.inputs.job_type == 'both' || github.event.inputs.job_type == ''))
     steps:
       - name: Collect Video Snapshots
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          response=$(curl -s -w "\n%{http_code}" -X POST ${{ secrets.APP_URL }}/api/youtube/snapshots/collect \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            -H "Content-Type: application/json")
+          set -e
+          echo "Starting snapshot collection job..."
+          echo "APP_URL: ${APP_URL}"
+          
+          if [ -z "$APP_URL" ]; then
+            echo "Error: APP_URL secret is not set"
+            exit 1
+          fi
+          
+          if [ -z "$CRON_SECRET" ]; then
+            echo "Error: CRON_SECRET secret is not set"
+            exit 1
+          fi
+          
+          response=$(curl -s -w "\n%{http_code}" -X POST "${APP_URL}/api/youtube/snapshots/collect" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            --max-time 300 \
+            --fail-with-body || true)
+          
           http_code=$(echo "$response" | tail -n1)
           body=$(echo "$response" | sed '$d')
+          
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+          
           if [ "$http_code" -ne 200 ]; then
-            echo "Error: HTTP $http_code"
+            echo "❌ Error: HTTP $http_code"
             echo "$body"
             exit 1
           fi
-          echo "Success: $body"
+          
+          echo "✅ Success: $body"
 
   trends:
     runs-on: ubuntu-latest
-    # Only run trend calculation on its schedule or manual trigger
-    if: github.event.schedule == '0 1 * * *' || github.event_name == 'workflow_dispatch'
+    # Run trend calculation on its schedule, manual trigger, or when "both" is selected
+    if: |
+      github.event.schedule == '0 1 * * *' ||
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.job_type == 'trends' || github.event.inputs.job_type == 'both' || github.event.inputs.job_type == ''))
     steps:
       - name: Calculate Trends
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          response=$(curl -s -w "\n%{http_code}" -X POST ${{ secrets.APP_URL }}/api/youtube/trends/calculate \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            -H "Content-Type: application/json")
+          set -e
+          echo "Starting trend calculation job..."
+          echo "APP_URL: ${APP_URL}"
+          
+          if [ -z "$APP_URL" ]; then
+            echo "Error: APP_URL secret is not set"
+            exit 1
+          fi
+          
+          if [ -z "$CRON_SECRET" ]; then
+            echo "Error: CRON_SECRET secret is not set"
+            exit 1
+          fi
+          
+          response=$(curl -s -w "\n%{http_code}" -X POST "${APP_URL}/api/youtube/trends/calculate" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            --max-time 300 \
+            --fail-with-body || true)
+          
           http_code=$(echo "$response" | tail -n1)
           body=$(echo "$response" | sed '$d')
+          
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+          
           if [ "$http_code" -ne 200 ]; then
-            echo "Error: HTTP $http_code"
+            echo "❌ Error: HTTP $http_code"
             echo "$body"
             exit 1
           fi
-          echo "Success: $body"
+          
+          echo "✅ Success: $body"
