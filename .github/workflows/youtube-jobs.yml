@@ -6,11 +6,13 @@ on:
     - cron: '0 */6 * * *'
     # Trend calculation: Daily at 1 AM UTC
     - cron: '0 1 * * *'
-  workflow_dispatch: # Allow manual triggering
+
+  workflow_dispatch:
     inputs:
       job_type:
         description: 'Which job to run'
         required: false
+        default: both
         type: choice
         options:
           - snapshots
@@ -20,92 +22,102 @@ on:
 jobs:
   snapshots:
     runs-on: ubuntu-latest
-    # Run snapshot collection on its schedule, manual trigger, or when "both" is selected
     if: |
-      github.event.schedule == '0 */6 * * *' ||
-      (github.event_name == 'workflow_dispatch' && (github.event.inputs.job_type == 'snapshots' || github.event.inputs.job_type == 'both' || github.event.inputs.job_type == ''))
+      (github.event_name == 'schedule' && github.event.schedule == '0 */6 * * *') ||
+      (github.event_name == 'workflow_dispatch' &&
+        contains(fromJSON('["snapshots","both"]'), github.event.inputs.job_type))
     steps:
+      - name: Debug context
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Schedule: ${{ github.event.schedule }}"
+          echo "Job type: ${{ github.event.inputs.job_type }}"
+
       - name: Collect Video Snapshots
         env:
           APP_URL: ${{ secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          set -e
-          echo "Starting snapshot collection job..."
-          echo "APP_URL: ${APP_URL}"
-          
-          if [ -z "$APP_URL" ]; then
-            echo "Error: APP_URL secret is not set"
+          set -euo pipefail
+
+          echo "▶ Starting snapshot collection..."
+
+          if [ -z "${APP_URL:-}" ]; then
+            echo "❌ APP_URL secret is missing"
             exit 1
           fi
-          
-          if [ -z "$CRON_SECRET" ]; then
-            echo "Error: CRON_SECRET secret is not set"
+
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "❌ CRON_SECRET secret is missing"
             exit 1
           fi
-          
-          response=$(curl -s -w "\n%{http_code}" -X POST "${APP_URL}/api/youtube/snapshots/collect" \
+
+          response=$(curl -s -w "\n%{http_code}" \
+            -X POST "${APP_URL}/api/youtube/snapshots/collect" \
             -H "Authorization: Bearer ${CRON_SECRET}" \
             -H "Content-Type: application/json" \
-            --max-time 300 \
-            --fail-with-body || true)
-          
+            --max-time 300)
+
           http_code=$(echo "$response" | tail -n1)
           body=$(echo "$response" | sed '$d')
-          
+
           echo "HTTP Status: $http_code"
           echo "Response: $body"
-          
-          if [ "$http_code" -ne 200 ]; then
-            echo "❌ Error: HTTP $http_code"
-            echo "$body"
+
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "❌ Snapshot job failed"
             exit 1
           fi
-          
-          echo "✅ Success: $body"
+
+          echo "✅ Snapshot job completed successfully"
 
   trends:
     runs-on: ubuntu-latest
-    # Run trend calculation on its schedule, manual trigger, or when "both" is selected
     if: |
-      github.event.schedule == '0 1 * * *' ||
-      (github.event_name == 'workflow_dispatch' && (github.event.inputs.job_type == 'trends' || github.event.inputs.job_type == 'both' || github.event.inputs.job_type == ''))
+      (github.event_name == 'schedule' && github.event.schedule == '0 1 * * *') ||
+      (github.event_name == 'workflow_dispatch' &&
+        contains(fromJSON('["trends","both"]'), github.event.inputs.job_type))
     steps:
+      - name: Debug context
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Schedule: ${{ github.event.schedule }}"
+          echo "Job type: ${{ github.event.inputs.job_type }}"
+
       - name: Calculate Trends
         env:
           APP_URL: ${{ secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          set -e
-          echo "Starting trend calculation job..."
-          echo "APP_URL: ${APP_URL}"
-          
-          if [ -z "$APP_URL" ]; then
-            echo "Error: APP_URL secret is not set"
+          set -euo pipefail
+
+          echo "▶ Starting trend calculation..."
+
+          if [ -z "${APP_URL:-}" ]; then
+            echo "❌ APP_URL secret is missing"
             exit 1
           fi
-          
-          if [ -z "$CRON_SECRET" ]; then
-            echo "Error: CRON_SECRET secret is not set"
+
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "❌ CRON_SECRET secret is missing"
             exit 1
           fi
-          
-          response=$(curl -s -w "\n%{http_code}" -X POST "${APP_URL}/api/youtube/trends/calculate" \
+
+          response=$(curl -s -w "\n%{http_code}" \
+            -X POST "${APP_URL}/api/youtube/trends/calculate" \
             -H "Authorization: Bearer ${CRON_SECRET}" \
             -H "Content-Type: application/json" \
-            --max-time 300 \
-            --fail-with-body || true)
-          
+            --max-time 300)
+
           http_code=$(echo "$response" | tail -n1)
           body=$(echo "$response" | sed '$d')
-          
+
           echo "HTTP Status: $http_code"
           echo "Response: $body"
-          
-          if [ "$http_code" -ne 200 ]; then
-            echo "❌ Error: HTTP $http_code"
-            echo "$body"
+
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "❌ Trend calculation failed"
             exit 1
           fi
-          
-          echo "✅ Success: $body"
+
+          echo "✅ Trend calculation completed successfully"

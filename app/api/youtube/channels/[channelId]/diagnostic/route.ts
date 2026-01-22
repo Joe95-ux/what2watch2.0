@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import OpenAI from "openai";
 
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+}) : null;
 
 /**
  * Analyze a channel and generate diagnostic report
@@ -215,17 +219,104 @@ export async function GET(
       .slice(0, 10)
       .map((v) => v.videoId);
 
-    // Get video analyses from database for thumbnail patterns
-    const videoAnalyses = await db.youTubeVideoAnalysis.findMany({
-      where: {
-        videoId: { in: videos.map((v: any) => v.id) },
-      },
-    });
+    // Analyze thumbnails on-the-fly using OpenAI Vision API
+    // This ensures we get accurate data even if videos haven't been analyzed before
+    let videosWithFaces = 0;
+    let videosWithText = 0;
+    
+    if (openai) {
+      // Analyze thumbnails in batches to avoid rate limits
+      // Limit to first 20 videos to avoid too many API calls
+      const videosToAnalyze = videos.slice(0, 20);
+      const batchSize = 5;
+      const thumbnailAnalyses: Array<{ videoId: string; hasFace: boolean; hasText: boolean }> = [];
+      
+      for (let i = 0; i < videosToAnalyze.length; i += batchSize) {
+        const batch = videosToAnalyze.slice(i, i + batchSize);
+        
+        const batchResults = await Promise.all(
+          batch.map(async (video: any) => {
+            const thumbnailUrl = video.snippet?.thumbnails?.high?.url || 
+                                video.snippet?.thumbnails?.medium?.url || 
+                                video.snippet?.thumbnails?.default?.url;
+            
+            if (!thumbnailUrl) {
+              return { videoId: video.id, hasFace: false, hasText: false };
+            }
 
-    const videosWithFaces = videoAnalyses.filter((a) => a.hasFace).length;
-    const videosWithText = videoAnalyses.filter((a) => a.hasText).length;
-    const percentWithFaces = (videosWithFaces / videos.length) * 100;
-    const percentWithText = (videosWithText / videos.length) * 100;
+            try {
+              // Use OpenAI Vision API to analyze thumbnail
+              const response = await openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages: [
+                  {
+                    role: "user",
+                    content: [
+                      {
+                        type: "text",
+                        text: "Analyze this YouTube thumbnail image. Respond with JSON only: {\"hasFace\": boolean, \"hasText\": boolean}. hasFace: true if there's a person's face clearly visible. hasText: true if there's any text/words visible in the thumbnail.",
+                      },
+                      {
+                        type: "image_url",
+                        image_url: { url: thumbnailUrl },
+                      },
+                    ],
+                  },
+                ],
+                max_tokens: 100,
+                response_format: { type: "json_object" },
+              });
+
+              const analysisText = response.choices[0]?.message?.content || "{}";
+              const analysis = JSON.parse(analysisText);
+
+              return {
+                videoId: video.id,
+                hasFace: analysis.hasFace === true,
+                hasText: analysis.hasText === true,
+              };
+            } catch (error) {
+              console.error(`Error analyzing thumbnail for video ${video.id}:`, error);
+              return { videoId: video.id, hasFace: false, hasText: false };
+            }
+          })
+        );
+        
+        thumbnailAnalyses.push(...batchResults);
+        
+        // Small delay between batches to avoid rate limits
+        if (i + batchSize < videosToAnalyze.length) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+      }
+
+      // Count videos with faces and text
+      videosWithFaces = thumbnailAnalyses.filter((a) => a.hasFace).length;
+      videosWithText = thumbnailAnalyses.filter((a) => a.hasText).length;
+      
+      // Scale percentages based on analyzed videos vs total videos
+      const analyzedCount = thumbnailAnalyses.length;
+      if (analyzedCount > 0 && analyzedCount < videos.length) {
+        // Extrapolate: assume same ratio for remaining videos
+        const faceRatio = videosWithFaces / analyzedCount;
+        const textRatio = videosWithText / analyzedCount;
+        videosWithFaces = Math.round(faceRatio * videos.length);
+        videosWithText = Math.round(textRatio * videos.length);
+      }
+    } else {
+      // Fallback: Check database if OpenAI is not configured
+      const videoAnalyses = await db.youTubeVideoAnalysis.findMany({
+        where: {
+          videoId: { in: videos.map((v: any) => v.id) },
+        },
+      });
+
+      videosWithFaces = videoAnalyses.filter((a) => a.hasFace).length;
+      videosWithText = videoAnalyses.filter((a) => a.hasText).length;
+    }
+
+    const percentWithFaces = videos.length > 0 ? (videosWithFaces / videos.length) * 100 : 0;
+    const percentWithText = videos.length > 0 ? (videosWithText / videos.length) * 100 : 0;
 
     // Calculate growth rates (simplified - would need historical data for accurate calculation)
     const subscriberCount = parseInt(statistics.subscriberCount || "0", 10);
