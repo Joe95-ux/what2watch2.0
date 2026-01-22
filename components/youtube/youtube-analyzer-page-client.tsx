@@ -101,10 +101,10 @@ export function YouTubeAnalyzerPageClient() {
         ) : analysis && analysis.aggregateAnalysis ? (
           <Tabs defaultValue="titles" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="titles">Title Analysis</TabsTrigger>
-              <TabsTrigger value="thumbnails">Thumbnail Analysis</TabsTrigger>
-              <TabsTrigger value="videos">Top Videos</TabsTrigger>
-              <TabsTrigger value="patterns">Patterns</TabsTrigger>
+              <TabsTrigger value="titles" className="cursor-pointer">Title Analysis</TabsTrigger>
+              <TabsTrigger value="thumbnails" className="cursor-pointer">Thumbnail Analysis</TabsTrigger>
+              <TabsTrigger value="videos" className="cursor-pointer">Top Videos</TabsTrigger>
+              <TabsTrigger value="patterns" className="cursor-pointer">Patterns</TabsTrigger>
             </TabsList>
 
             <TabsContent value="titles" className="space-y-4">

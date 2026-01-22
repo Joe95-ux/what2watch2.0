@@ -28,9 +28,9 @@ export function YouTubeInsightsPageClient() {
         {/* Insights Tabs */}
         <Tabs defaultValue="overview" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="opportunities">Opportunities</TabsTrigger>
-            <TabsTrigger value="performance">Performance</TabsTrigger>
+            <TabsTrigger value="overview" className="cursor-pointer">Overview</TabsTrigger>
+            <TabsTrigger value="opportunities" className="cursor-pointer">Opportunities</TabsTrigger>
+            <TabsTrigger value="performance" className="cursor-pointer">Performance</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">

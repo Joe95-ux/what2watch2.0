@@ -150,6 +150,9 @@ export async function GET(request: NextRequest) {
       stats.videos.push({
         videoId: video.id,
         title: video.snippet?.title,
+        thumbnail: video.snippet?.thumbnails?.high?.url || 
+                   video.snippet?.thumbnails?.medium?.url || 
+                   video.snippet?.thumbnails?.default?.url,
         viewCount,
         engagementRate,
       });

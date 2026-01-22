@@ -325,8 +325,8 @@ export function YouTubeAnalyticsDashboard() {
             <CardContent>
               <Tabs value={topContentTab} onValueChange={(v) => setTopContentTab(v as "videos" | "channels")}>
                 <TabsList className="mb-4">
-                  <TabsTrigger value="videos">Top Videos</TabsTrigger>
-                  <TabsTrigger value="channels">Top Channels</TabsTrigger>
+                  <TabsTrigger value="videos" className="cursor-pointer">Top Videos</TabsTrigger>
+                  <TabsTrigger value="channels" className="cursor-pointer">Top Channels</TabsTrigger>
                 </TabsList>
                 <TabsContent value="videos" className="mt-0">
                   {data.topVideos.length > 0 ? (
@@ -399,8 +399,8 @@ export function YouTubeAnalyticsDashboard() {
           <CardContent>
             <Tabs value={peakWatchingTab} onValueChange={(v) => setPeakWatchingTab(v as "hours" | "days")}>
               <TabsList className="mb-4">
-                <TabsTrigger value="hours">By Hour</TabsTrigger>
-                <TabsTrigger value="days">By Day</TabsTrigger>
+                <TabsTrigger value="hours" className="cursor-pointer">By Hour</TabsTrigger>
+                <TabsTrigger value="days" className="cursor-pointer">By Day</TabsTrigger>
               </TabsList>
               <TabsContent value="hours" className="mt-0">
                 <ChartContainer config={chartConfig} className="h-[320px] w-full">

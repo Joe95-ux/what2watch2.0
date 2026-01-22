@@ -247,10 +247,10 @@ export function ChannelDiagnosticPageClient() {
         ) : data ? (
           <Tabs defaultValue="overview" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="performance">Performance</TabsTrigger>
-              <TabsTrigger value="patterns">Patterns</TabsTrigger>
-              <TabsTrigger value="videos">Top Videos</TabsTrigger>
+              <TabsTrigger value="overview" className="cursor-pointer">Overview</TabsTrigger>
+              <TabsTrigger value="performance" className="cursor-pointer">Performance</TabsTrigger>
+              <TabsTrigger value="patterns" className="cursor-pointer">Patterns</TabsTrigger>
+              <TabsTrigger value="videos" className="cursor-pointer">Top Videos</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4">

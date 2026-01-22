@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+
 /**
  * Get format recommendations for a topic/keyword
  * GET /api/youtube/formats/recommendations?keyword=iphone&category=tech
@@ -21,7 +23,48 @@ export async function GET(request: NextRequest) {
     const keyword = searchParams.get("keyword");
     const category = searchParams.get("category") || undefined;
 
-    // Get format performance data
+    // If keyword is provided, use analysis data to generate recommendations
+    if (keyword && YOUTUBE_API_KEY) {
+      // Call the analyze endpoint to get format analysis
+      const analyzeUrl = new URL(`${request.nextUrl.origin}/api/youtube/formats/analyze`);
+      analyzeUrl.searchParams.set("keyword", keyword);
+      analyzeUrl.searchParams.set("limit", "30");
+
+      try {
+        const analyzeResponse = await fetch(analyzeUrl.toString(), {
+          headers: {
+            "Cookie": request.headers.get("cookie") || "",
+          },
+        });
+
+        if (analyzeResponse.ok) {
+          const analyzeData = await analyzeResponse.json();
+          
+          // Generate recommendations from analysis data
+          const recommendations = analyzeData.formatAnalysis
+            .map((format: any) => ({
+              format: format.format,
+              videoCount: format.videoCount,
+              avgEngagement: format.avgEngagement,
+              avgViews: format.avgViews.toString(),
+              recommendationScore: format.avgEngagement * 0.6 + (format.videoCount / 10) * 0.4, // Weighted score
+            }))
+            .sort((a: any, b: any) => b.recommendationScore - a.recommendationScore)
+            .slice(0, 5);
+
+          return NextResponse.json({
+            recommendations,
+            keyword,
+            category,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching analysis data for recommendations:", error);
+        // Fall through to use database data
+      }
+    }
+
+    // Get format performance data from database
     const formatPerformances = await db.formatPerformance.findMany({
       where: {
         period: "monthly",

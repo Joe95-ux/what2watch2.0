@@ -8,6 +8,7 @@ export interface FormatAnalysis {
   topVideos: Array<{
     videoId: string;
     title: string;
+    thumbnail?: string;
     viewCount: number;
     engagementRate: number;
   }>;
@@ -76,10 +77,11 @@ export function useFormatAnalysis(keyword: string | null, limit: number = 20, en
   });
 }
 
-export function useFormatRecommendations(keyword?: string, category?: string) {
+export function useFormatRecommendations(keyword?: string, category?: string, enabled: boolean = true) {
   return useQuery({
     queryKey: ["format-recommendations", keyword, category],
     queryFn: () => getFormatRecommendations(keyword, category),
+    enabled: enabled && !!keyword,
     staleTime: 1000 * 60 * 60, // 1 hour
   });
 }

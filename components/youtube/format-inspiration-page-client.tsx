@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useFormatAnalysis, useFormatRecommendations } from "@/hooks/use-format-inspiration";
+import { useFormatAnalysis } from "@/hooks/use-format-inspiration";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -48,9 +48,19 @@ export function FormatInspirationPageClient() {
     !!activeKeyword
   );
 
-  const { data: recommendationsData, isLoading: recommendationsLoading } = useFormatRecommendations(
-    activeKeyword || undefined
-  );
+  // Generate recommendations from analysis data
+  const recommendations = analysisData?.formatAnalysis
+    ? analysisData.formatAnalysis
+        .map((format) => ({
+          format: format.format,
+          videoCount: format.videoCount,
+          avgEngagement: format.avgEngagement,
+          avgViews: format.avgViews.toString(),
+          recommendationScore: format.avgEngagement * 0.6 + (format.videoCount / 10) * 0.4,
+        }))
+        .sort((a, b) => b.recommendationScore - a.recommendationScore)
+        .slice(0, 5)
+    : [];
 
   const handleAnalyze = () => {
     if (keyword.trim()) {
@@ -133,9 +143,9 @@ export function FormatInspirationPageClient() {
         ) : analysisData ? (
           <Tabs defaultValue="formats" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="formats">Format Performance</TabsTrigger>
-              <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
-              <TabsTrigger value="examples">Top Examples</TabsTrigger>
+              <TabsTrigger value="formats" className="cursor-pointer">Format Performance</TabsTrigger>
+              <TabsTrigger value="recommendations" className="cursor-pointer">Recommendations</TabsTrigger>
+              <TabsTrigger value="examples" className="cursor-pointer">Top Examples</TabsTrigger>
             </TabsList>
 
             <TabsContent value="formats" className="space-y-4">
@@ -178,22 +188,18 @@ export function FormatInspirationPageClient() {
             </TabsContent>
 
             <TabsContent value="recommendations" className="space-y-4">
-              {recommendationsLoading ? (
+              {!activeKeyword ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Lightbulb className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">
+                      Analyze a topic first to see format recommendations.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : recommendations.length > 0 ? (
                 <div className="space-y-4">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <Card key={i}>
-                      <CardHeader>
-                        <Skeleton className="h-6 w-48" />
-                      </CardHeader>
-                      <CardContent>
-                        <Skeleton className="h-20 w-full" />
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : recommendationsData ? (
-                <div className="space-y-4">
-                  {recommendationsData.recommendations.map((rec, index) => (
+                  {recommendations.map((rec, index) => (
                     <Card key={rec.format} className="hover:border-primary/50 transition-all">
                       <CardHeader>
                         <div className="flex items-center justify-between">
@@ -248,7 +254,7 @@ export function FormatInspirationPageClient() {
                 <Card>
                   <CardContent className="py-12 text-center">
                     <p className="text-muted-foreground">
-                      No recommendations available yet. Analyze a topic first.
+                      No recommendations available for this topic. Try analyzing a different keyword.
                     </p>
                   </CardContent>
                 </Card>
@@ -278,6 +284,21 @@ export function FormatInspirationPageClient() {
                               rel="noopener noreferrer"
                               className="flex items-center gap-4 p-3 border-2 rounded-lg hover:border-primary/50 hover:bg-accent/50 transition-all cursor-pointer group"
                             >
+                              {video.thumbnail ? (
+                                <div className="relative w-40 h-24 flex-shrink-0 rounded overflow-hidden border-2">
+                                  <Image
+                                    src={video.thumbnail}
+                                    alt={video.title}
+                                    fill
+                                    className="object-cover"
+                                    unoptimized
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-40 h-24 flex-shrink-0 rounded bg-muted flex items-center justify-center border-2">
+                                  <Video className="h-8 w-8 text-muted-foreground" />
+                                </div>
+                              )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between gap-2 mb-1">
                                   <h4 className="font-semibold text-sm line-clamp-2 group-hover:text-primary transition-colors">
