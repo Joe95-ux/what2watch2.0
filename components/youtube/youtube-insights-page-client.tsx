@@ -77,16 +77,18 @@ export function YouTubeInsightsPageClient() {
                 <CardHeader>
                   <div className="flex items-center gap-2">
                     <Lightbulb className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-lg">Content Ideas</CardTitle>
+                    <CardTitle className="text-lg">Format Inspiration</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground mb-3">
-                    Data-backed content ideas based on gaps and trends.
+                    Discover which video formats work best for your topic.
                   </p>
-                  <Button variant="outline" size="sm" className="w-full" disabled>
-                    Coming Soon
-                  </Button>
+                  <Link href="/youtube/formats" className="cursor-pointer">
+                    <Button variant="outline" size="sm" className="w-full cursor-pointer">
+                      Try Format Inspiration
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             </div>
@@ -178,8 +180,6 @@ export function YouTubeInsightsPageClient() {
                 <ul className="list-disc list-inside space-y-2 text-muted-foreground">
                   <li>Performance benchmarking</li>
                   <li>Opportunity alerts</li>
-                  <li>Channel diagnostic tools</li>
-                  <li>Format inspiration engine</li>
                 </ul>
               </CardContent>
             </Card>

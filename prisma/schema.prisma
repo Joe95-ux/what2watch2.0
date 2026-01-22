@@ -1758,6 +1758,43 @@ model ChannelDiagnostic {
   @@index([analyzedAt])
 }
 
+// Video Format Classification
+model VideoFormat {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  videoId       String   @unique
+  
+  format        String   // "tutorial", "list", "review", "vlog", "rant", "documentary", "reaction", "challenge"
+  confidence    Float    // Classification confidence score (0-1)
+  
+  // Additional metadata
+  category      String?  // Video category/topic
+  detectedAt    DateTime @default(now())
+  
+  @@map("video_formats")
+  @@index([format])
+  @@index([category])
+  @@index([detectedAt])
+}
+
+// Format Performance Tracking
+model FormatPerformance {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  format        String
+  category      String?
+  
+  avgViews      String   // Using String for BigInt
+  avgEngagement Float
+  videoCount    Int
+  
+  period        String   // "weekly", "monthly"
+  calculatedAt  DateTime @default(now())
+  
+  @@map("format_performances")
+  @@index([format, category])
+  @@index([period])
+  @@index([calculatedAt])
+}
+
 // Feedback - User feedback submissions
 model Feedback {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
