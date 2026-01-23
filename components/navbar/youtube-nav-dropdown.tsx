@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Youtube, TrendingUp, BarChart3, Sparkles, ChevronDown, Target, Stethoscope, Lightbulb } from "lucide-react";
+import { Youtube, TrendingUp, BarChart3, Sparkles, ChevronDown, Target, Stethoscope, Lightbulb, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface YouTubeNavDropdownProps {
@@ -25,6 +25,7 @@ interface YouTubeNavDropdownProps {
     { href: "/youtube/gaps", label: "Content Gaps", icon: Target },
     { href: "/youtube/diagnostic", label: "Channel Diagnostic", icon: Stethoscope },
     { href: "/youtube/formats", label: "Format Inspiration", icon: Lightbulb },
+    { href: "/youtube/alerts", label: "Trend Alerts", icon: Bell },
     { href: "/youtube/insights", label: "Content Insights", icon: Sparkles },
   ];
 

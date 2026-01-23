@@ -144,6 +144,7 @@ model User {
   likedLists LikedList[]
   listComments ListComment[]
   listCommentReactions ListCommentReaction[]
+  trendAlerts TrendAlert[]
 
   @@map("users")
 }
@@ -1793,6 +1794,34 @@ model FormatPerformance {
   @@index([format, category])
   @@index([period])
   @@index([calculatedAt])
+}
+
+// Trend Alerts - User-defined alerts for trending opportunities
+model TrendAlert {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  keyword       String
+  category      String?
+  
+  // Alert conditions
+  minMomentum   Float    // Minimum momentum threshold
+  minSearchVolume Int    // Minimum search volume threshold
+  
+  // Status
+  isActive      Boolean  @default(true)
+  lastTriggered DateTime?
+  triggerCount  Int      @default(0) // How many times this alert has been triggered
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@map("trend_alerts")
+  @@index([userId])
+  @@index([isActive])
+  @@index([keyword])
+  @@index([createdAt])
 }
 
 // Feedback - User feedback submissions
