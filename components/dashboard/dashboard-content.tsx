@@ -27,6 +27,7 @@ import { usePersonalizedContent } from "@/hooks/use-movies";
 import { useFavoriteYouTubeVideos } from "@/hooks/use-favorite-youtube-videos";
 import { useYouTubeVideoWatchlist } from "@/hooks/use-youtube-video-watchlist";
 import { useUserYouTubePlaylists } from "@/hooks/use-user-youtube-playlists";
+import { TrendAlertsWidget } from "@/components/dashboard/trend-alerts-widget";
 import { cn } from "@/lib/utils";
 
 export default function DashboardContent() {
@@ -434,6 +435,11 @@ export default function DashboardContent() {
           totals={youtubeTotals}
           highlightVideos={youtubeHighlightVideos}
         />
+
+        {/* Trend Alerts Widget */}
+        <div className="mb-12 max-w-2xl">
+          <TrendAlertsWidget />
+        </div>
       </div>
     </div>
   );

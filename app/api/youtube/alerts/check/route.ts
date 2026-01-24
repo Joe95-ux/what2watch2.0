@@ -89,8 +89,29 @@ export async function GET(request: NextRequest) {
             searchVolume: matchingTrend.searchVolume,
           });
 
-          // TODO: Send notification (email/push) to user
-          // This would integrate with your notification system
+          // Create notification for the user
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+          try {
+            await db.generalNotification.create({
+              data: {
+                userId: alert.userId,
+                type: "TREND_ALERT_TRIGGERED",
+                title: `Trend Alert: "${alert.keyword}"`,
+                message: `Your trend alert for "${alert.keyword}" has been triggered! Momentum: ${matchingTrend.momentum.toFixed(1)}%, Search Volume: ${matchingTrend.searchVolume.toLocaleString()}`,
+                linkUrl: `${baseUrl}/youtube/alerts`,
+                metadata: {
+                  alertId: alert.id,
+                  keyword: alert.keyword,
+                  momentum: matchingTrend.momentum,
+                  searchVolume: matchingTrend.searchVolume,
+                  category: alert.category,
+                },
+                isRead: false,
+              },
+            });
+          } catch (notifError) {
+            console.error("Failed to create notification for alert:", notifError);
+          }
         }
       }
     }

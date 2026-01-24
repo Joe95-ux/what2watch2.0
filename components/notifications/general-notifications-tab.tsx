@@ -5,7 +5,7 @@ import { useGeneralNotifications, useMarkGeneralNotificationsAsRead, useDeleteGe
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { X, Megaphone, Bell, CheckCheck, Trash2, MoreVertical, MoreHorizontal } from "lucide-react";
+import { X, Megaphone, Bell, CheckCheck, Trash2, MoreVertical, MoreHorizontal, TrendingUp } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -31,6 +31,8 @@ function getGeneralNotificationIcon(type: string) {
   switch (type) {
     case "FEEDBACK_SUBMITTED":
       return <Megaphone className="h-4 w-4" />;
+    case "TREND_ALERT_TRIGGERED":
+      return <TrendingUp className="h-4 w-4" />;
     default:
       return <Bell className="h-4 w-4" />;
   }
@@ -40,6 +42,8 @@ function getGeneralNotificationTypeLabel(type: string): string {
   switch (type) {
     case "FEEDBACK_SUBMITTED":
       return "Feedback";
+    case "TREND_ALERT_TRIGGERED":
+      return "Trend Alert";
     default:
       return "General";
   }

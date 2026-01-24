@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, X, CheckCheck, MessageCircle, Reply, ExternalLink, Settings, Megaphone } from "lucide-react";
+import { Bell, X, CheckCheck, MessageCircle, Reply, ExternalLink, Settings, Megaphone, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -43,6 +43,28 @@ function getForumNotificationMessage(notification: ForumNotification): string {
   }
 }
 
+function getGeneralNotificationIcon(type: string) {
+  switch (type) {
+    case "FEEDBACK_SUBMITTED":
+      return <Megaphone className="h-4 w-4" />;
+    case "TREND_ALERT_TRIGGERED":
+      return <TrendingUp className="h-4 w-4" />;
+    default:
+      return <Bell className="h-4 w-4" />;
+  }
+}
+
+function getGeneralNotificationTypeLabel(type: string): string {
+  switch (type) {
+    case "FEEDBACK_SUBMITTED":
+      return "Feedback";
+    case "TREND_ALERT_TRIGGERED":
+      return "Trend Alert";
+    default:
+      return "General";
+  }
+}
+
 function getForumNotificationIcon(type: ForumNotification["type"]) {
   switch (type) {
     case "NEW_REPLY":
@@ -64,24 +86,6 @@ function getForumNotificationLink(notification: ForumNotification): string {
     return `/forum/${notification.post.id}`;
   }
   return "/forum";
-}
-
-function getGeneralNotificationIcon(type: string) {
-  switch (type) {
-    case "FEEDBACK_SUBMITTED":
-      return <Megaphone className="h-4 w-4" />;
-    default:
-      return <Bell className="h-4 w-4" />;
-  }
-}
-
-function getGeneralNotificationTypeLabel(type: string): string {
-  switch (type) {
-    case "FEEDBACK_SUBMITTED":
-      return "Feedback";
-    default:
-      return "General";
-  }
 }
 
 export function UnifiedNotificationCenter() {
