@@ -19,9 +19,15 @@ on:
           - trends
           - both
 
+# Permissions needed for the workflow to run
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   snapshots:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     if: |
       (github.event_name == 'schedule' && github.event.schedule == '0 */6 * * *') ||
       (github.event_name == 'workflow_dispatch' &&
@@ -73,6 +79,7 @@ jobs:
 
   trends:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     if: |
       (github.event_name == 'schedule' && github.event.schedule == '0 1 * * *') ||
       (github.event_name == 'workflow_dispatch' &&

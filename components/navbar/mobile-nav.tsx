@@ -8,7 +8,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetClose, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserRound, X, Megaphone, Bookmark, List, BookOpen, ClipboardList, TrendingUp, UsersRound, MessageSquare, Youtube as YoutubeIcon, Search, BarChart3, Sparkles, ChevronDown, Target, Stethoscope, Lightbulb, BellIcon } from "lucide-react";
+import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserRound, X, Megaphone, Bookmark, List, BookOpen, ClipboardList, TrendingUp, UsersRound, MessageSquare, Youtube as YoutubeIcon, Search, BarChart3, Sparkles, ChevronDown, Target, Stethoscope, Lightbulb, BellIcon, MessageSquare as MessageSquareIcon } from "lucide-react";
 import { Youtube } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useForumNotifications } from "@/hooks/use-forum-notifications";
@@ -36,6 +36,7 @@ const youtubeNavItems = [
   { href: "/youtube/gaps", label: "Content Gaps", icon: Target },
   { href: "/youtube/diagnostic", label: "Channel Diagnostic", icon: Stethoscope },
   { href: "/youtube/formats", label: "Format Inspiration", icon: Lightbulb },
+  { href: "/youtube/questions", label: "Comment Questions", icon: MessageSquareIcon },
   { href: "/youtube/alerts", label: "Trend Alerts", icon: BellIcon },
   { href: "/youtube/insights", label: "Content Insights", icon: Sparkles },
 ];

@@ -1824,6 +1824,51 @@ model TrendAlert {
   @@index([createdAt])
 }
 
+// Comment Question Mining - Extract questions from video comments
+model CommentQuestion {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  videoId       String
+  channelId     String
+  
+  question      String
+  questionType  String?  // "how", "what", "why", "when", "where", "who"
+  
+  upvotes       Int      @default(0) // Comment likes
+  replies       Int      @default(0)
+  
+  extractedAt   DateTime @default(now())
+  
+  @@map("comment_questions")
+  @@index([videoId])
+  @@index([channelId])
+  @@index([questionType])
+  @@index([extractedAt])
+}
+
+// Question Trends - Aggregated question patterns
+model QuestionTrend {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  question          String
+  normalizedQuestion String  // Normalized version for grouping
+  
+  frequency         Int      // How many times asked
+  videos            String[] @default([]) // Video IDs where asked
+  avgUpvotes        Float    @default(0)
+  
+  category          String?
+  trendScore        Float    @default(0) // Based on frequency and engagement
+  
+  firstSeen         DateTime @default(now())
+  lastSeen          DateTime @default(now())
+  
+  @@map("question_trends")
+  @@index([normalizedQuestion])
+  @@index([frequency])
+  @@index([trendScore])
+  @@index([category])
+  @@index([lastSeen])
+}
+
 // Feedback - User feedback submissions
 model Feedback {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
