@@ -251,7 +251,7 @@ export function ChannelReviewFormSheet({
               <FormField
                 control={form.control}
                 name="rating"
-                render={({ field }: { field: { value: number; onChange: (value: number) => void; onBlur: () => void; name: string; ref: React.RefCallback<HTMLButtonElement> } }) => (
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Rating</FormLabel>
                     <FormControl>
@@ -294,7 +294,7 @@ export function ChannelReviewFormSheet({
               <FormField
                 control={form.control}
                 name="title"
-                render={({ field }: { field: { value: string | null; onChange: (value: string | null) => void; onBlur: () => void; name: string; ref: React.RefCallback<HTMLInputElement> } }) => (
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Title (optional)</FormLabel>
                     <FormControl>
@@ -317,7 +317,7 @@ export function ChannelReviewFormSheet({
               <FormField
                 control={form.control}
                 name="content"
-                render={({ field }: { field: { value: string; onChange: (value: string) => void; onBlur: () => void; name: string; ref: React.RefCallback<HTMLTextAreaElement> } }) => (
+                render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center justify-between">
                       <FormLabel>Review</FormLabel>
@@ -343,7 +343,7 @@ export function ChannelReviewFormSheet({
               <FormField
                 control={form.control}
                 name="tags"
-                render={({ field }: { field: { value: string[]; onChange: (value: string[]) => void; onBlur: () => void; name: string; ref: React.RefCallback<HTMLDivElement> } }) => (
+                render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center justify-between">
                       <FormLabel>Tags (optional)</FormLabel>

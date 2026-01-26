@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles, TrendingUp, BarChart3, Lightbulb, Zap, Target } from "lucide-react";
+import { Sparkles, TrendingUp, BarChart3, Lightbulb, Zap, Target, Bell, Award } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -169,20 +169,45 @@ export function YouTubeInsightsPageClient() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Coming Soon</CardTitle>
-                <CardDescription>
-                  Additional insights features being developed:
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                  <li>Performance benchmarking</li>
-                  <li>Opportunity alerts</li>
-                </ul>
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Bell className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-lg">Trend Alerts</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground mb-3">
+                    Get notified when keywords in your niche start trending.
+                  </p>
+                  <Link href="/youtube/alerts" className="cursor-pointer">
+                    <Button variant="outline" size="sm" className="w-full cursor-pointer">
+                      Manage Alerts
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-lg">Performance Benchmarks</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground mb-3">
+                    Compare your channel's performance against industry benchmarks.
+                  </p>
+                  <Link href="/youtube/benchmarks" className="cursor-pointer">
+                    <Button variant="outline" size="sm" className="w-full cursor-pointer">
+                      View Benchmarks
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="opportunities" className="space-y-4">
