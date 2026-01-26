@@ -65,7 +65,7 @@ export function YouTubeNavDropdown({ hasHeroSection = false }: YouTubeNavDropdow
       <DropdownMenuContent align="start" className="w-[480px] p-0">
         <DropdownMenuLabel className="px-3 py-2">YouTube Tools</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <div className="flex">
+        <div className="flex px-2">
           {/* Left Column */}
           <div className="flex-1 py-1">
             {youtubeNavItems.slice(0, 5).map((item) => {
