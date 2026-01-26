@@ -49,7 +49,7 @@ export function TrendAlertsPageClient() {
   const [deletingAlert, setDeletingAlert] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     keyword: "",
-    category: "",
+    category: "none",
     minMomentum: 10,
     minSearchVolume: 1000,
   });
@@ -70,7 +70,7 @@ export function TrendAlertsPageClient() {
     try {
       await createMutation.mutateAsync({
         keyword: formData.keyword.trim(),
-        category: formData.category || undefined,
+        category: formData.category === "none" ? undefined : formData.category,
         minMomentum: formData.minMomentum,
         minSearchVolume: formData.minSearchVolume,
       });
@@ -78,7 +78,7 @@ export function TrendAlertsPageClient() {
       setIsCreateDialogOpen(false);
       setFormData({
         keyword: "",
-        category: "",
+        category: "none",
         minMomentum: 10,
         minSearchVolume: 1000,
       });
@@ -158,7 +158,7 @@ export function TrendAlertsPageClient() {
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {CATEGORIES.map((cat) => (
                         <SelectItem key={cat.value} value={cat.value}>
                           {cat.label}

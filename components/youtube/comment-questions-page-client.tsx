@@ -228,12 +228,12 @@ export function CommentQuestionsPageClient() {
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
                     <label className="text-sm font-medium mb-2 block">Category</label>
-                    <Select value={category || ""} onValueChange={(value) => setCategory(value || undefined)}>
+                    <Select value={category || "all"} onValueChange={(value) => setCategory(value === "all" ? undefined : value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="All categories" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All categories</SelectItem>
+                        <SelectItem value="all">All categories</SelectItem>
                         {CATEGORIES.map((cat) => (
                           <SelectItem key={cat.value} value={cat.value}>
                             {cat.label}
