@@ -67,7 +67,7 @@ export function YouTubeNavDropdown({ hasHeroSection = false }: YouTubeNavDropdow
         <DropdownMenuSeparator />
         <div className="flex px-2">
           {/* Left Column */}
-          <div className="flex-1 py-1">
+          <div className="flex-1 py-1 pr-2">
             {youtubeNavItems.slice(0, 5).map((item) => {
               const Icon = item.icon;
               const isActive =
@@ -93,7 +93,7 @@ export function YouTubeNavDropdown({ hasHeroSection = false }: YouTubeNavDropdow
           <div className="w-px bg-border my-1" />
           
           {/* Right Column */}
-          <div className="flex-1 py-1">
+          <div className="flex-1 py-1 pl-2">
             {youtubeNavItems.slice(5).map((item) => {
               const Icon = item.icon;
               const isActive =

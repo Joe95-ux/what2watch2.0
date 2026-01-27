@@ -55,7 +55,8 @@ async function compareChannel(channelId: string, category?: string): Promise<Ben
   
   const response = await fetch(`/api/youtube/benchmarks/compare?${params.toString()}`);
   if (!response.ok) {
-    throw new Error("Failed to compare channel performance");
+    const errorData = await response.json().catch(() => ({ error: "Failed to compare channel performance" }));
+    throw new Error(errorData.error || "Failed to compare channel performance");
   }
   return response.json();
 }

@@ -244,21 +244,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <SidebarMenu>
                     {youtubeLinks.map((item) => {
                       const Icon = item.icon;
-                      // Check if pathname matches exactly
-                      let isActive = false;
-                      if (pathname === item.href) {
-                        isActive = true;
-                      } else if (pathname?.startsWith(item.href + "/")) {
-                        // Check if there's a more specific route that should be active instead
-                        const moreSpecificRoute = youtubeLinks.find(
-                          (otherItem) => 
-                            otherItem.href !== item.href && 
-                            (pathname === otherItem.href || pathname?.startsWith(otherItem.href + "/")) &&
-                            otherItem.href.startsWith(item.href + "/")
-                        );
-                        // Only mark as active if there's no more specific route
-                        isActive = !moreSpecificRoute;
-                      }
+                      // Find the most specific matching route
+                      const matchingRoutes = youtubeLinks.filter(
+                        (otherItem) =>
+                          pathname === otherItem.href || pathname?.startsWith(otherItem.href + "/")
+                      );
+                      
+                      // Sort by length (most specific first)
+                      matchingRoutes.sort((a, b) => b.href.length - a.href.length);
+                      
+                      // Only the most specific matching route should be active
+                      const isActive = matchingRoutes.length > 0 && matchingRoutes[0].href === item.href;
+                      
                       return (
                         <SidebarMenuItem key={item.href}>
                           <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
@@ -287,7 +284,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       <SidebarMenu>
                         {adminLinks.map((item) => {
                           const Icon = item.icon;
-                          const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
+                          // Find the most specific matching route
+                          const matchingRoutes = adminLinks.filter(
+                            (otherItem) =>
+                              pathname === otherItem.href || pathname?.startsWith(otherItem.href + "/")
+                          );
+                          
+                          // Sort by length (most specific first)
+                          matchingRoutes.sort((a, b) => b.href.length - a.href.length);
+                          
+                          // Only the most specific matching route should be active
+                          const isActive = matchingRoutes.length > 0 && matchingRoutes[0].href === item.href;
+                          
                           return (
                             <SidebarMenuItem key={item.href}>
                               <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>

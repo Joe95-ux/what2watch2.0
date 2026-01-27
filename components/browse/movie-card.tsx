@@ -683,18 +683,18 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                     >
                       <div className="flex items-center gap-1">
                         <IMDBBadge size={isMobile ? 16 : 20} />
-                        <span className={cn("font-semibold text-white", isMobile ? "text-[10px]" : "text-[15px]")}>
+                        <span className={cn("font-semibold text-white", isMobile ? "text-[10px]" : "text-[13px]")}>
                           {ratingData?.rating ? ratingData.rating.toFixed(1) : "N/A"}
                         </span>
                       </div>
                       {year && (
                         <>
-                          <span className={cn("text-white/80 leading-[15px]", isMobile ? "text-[10px]" : "text-[15px]")}>•</span>
-                          <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-[15px]")}>{year}</span>
+                          <span className={cn("text-white/80 leading-[13px]", isMobile ? "text-[10px]" : "text-[13px]")}>•</span>
+                          <span className={cn("text-white/80", isMobile ? "text-[10px]" : "text-[13px]")}>{year}</span>
                         </>
                       )}
-                      <span className={cn("text-white/80 leading-[15px]", isMobile ? "text-[10px]" : "text-[15px]")}>•</span>
-                      <span className={cn("text-white/80 uppercase", isMobile ? "text-[10px]" : "text-[15px]")}>
+                      <span className={cn("text-white/80 leading-[13px]", isMobile ? "text-[10px]" : "text-[13px]")}>•</span>
+                      <span className={cn("text-white/80 uppercase", isMobile ? "text-[10px]" : "text-[13px]")}>
                         {type === "movie" ? "Movie" : "TV"}
                       </span>
                     </div>

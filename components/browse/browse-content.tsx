@@ -574,7 +574,7 @@ function YouTubeChannelsGrid() {
           className="w-full"
         >
           <CarouselContent className="-ml-2 md:-ml-4 gap-4">
-            {Array.from({ length: 6 }).map((_, idx) => (
+            {Array.from({ length: 12 }).map((_, idx) => (
               <CarouselItem key={idx} className="pl-2 md:pl-4 basis-[140px] sm:basis-[160px]">
                 <div className="flex flex-col items-center gap-3">
                   <Skeleton className="w-32 h-32 rounded-full" />

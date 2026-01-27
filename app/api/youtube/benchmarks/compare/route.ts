@@ -49,8 +49,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get channel diagnostic
-    const diagnostic = await db.channelDiagnostic.findFirst({
+    // Get channel diagnostic - try user's diagnostic first, then any diagnostic for this channel
+    let diagnostic = await db.channelDiagnostic.findFirst({
       where: {
         channelId,
         analyzedBy: user.id,
@@ -60,32 +60,77 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // If no user-specific diagnostic, try to find any diagnostic for this channel
+    if (!diagnostic) {
+      diagnostic = await db.channelDiagnostic.findFirst({
+        where: {
+          channelId,
+        },
+        orderBy: {
+          analyzedAt: "desc",
+        },
+      });
+    }
+
     if (!diagnostic) {
       return NextResponse.json(
-        { error: "Channel diagnostic not found. Please run a diagnostic first." },
+        { error: "Channel diagnostic not found. Please run a diagnostic on this channel first using the Channel Diagnostic tool." },
         { status: 404 }
       );
     }
 
-    // Get benchmarks
-    const benchmarksUrl = new URL(`${request.nextUrl.origin}/api/youtube/benchmarks`);
-    if (category) benchmarksUrl.searchParams.set("category", category);
-
-    const benchmarksResponse = await fetch(benchmarksUrl.toString(), {
-      headers: {
-        "Cookie": request.headers.get("cookie") || "",
+    // Calculate benchmarks directly instead of using internal fetch
+    const allDiagnostics = await db.channelDiagnostic.findMany({
+      take: 100,
+      orderBy: {
+        analyzedAt: "desc",
       },
     });
 
-    if (!benchmarksResponse.ok) {
+    if (allDiagnostics.length === 0) {
       return NextResponse.json(
-        { error: "Failed to fetch benchmarks" },
-        { status: benchmarksResponse.status }
+        { error: "No benchmark data available. Please run channel diagnostics first." },
+        { status: 404 }
       );
     }
 
-    const benchmarksData = await benchmarksResponse.json();
-    const benchmarks = benchmarksData.benchmarks;
+    const views = allDiagnostics
+      .map((d) => parseInt(d.avgViews || "0", 10))
+      .filter((v) => v > 0)
+      .sort((a, b) => a - b);
+    
+    const engagements = allDiagnostics
+      .map((d) => d.avgEngagement)
+      .filter((e) => e > 0)
+      .sort((a, b) => a - b);
+
+    const uploadFrequencies = allDiagnostics
+      .map((d) => d.uploadFrequency)
+      .filter((f) => f > 0);
+
+    const getPercentile = (arr: number[], percentile: number): number => {
+      if (arr.length === 0) return 0;
+      const index = Math.floor((percentile / 100) * arr.length);
+      return arr[Math.min(index, arr.length - 1)];
+    };
+
+    const avgViews = views.length > 0 ? views.reduce((a, b) => a + b, 0) / views.length : 0;
+    const avgEngagement = engagements.length > 0 ? engagements.reduce((a, b) => a + b, 0) / engagements.length : 0;
+    const avgUploadFrequency = uploadFrequencies.length > 0 ? uploadFrequencies.reduce((a, b) => a + b, 0) / uploadFrequencies.length : 0;
+
+    const benchmarks = {
+      avgViews: Math.round(avgViews),
+      avgEngagement: parseFloat(avgEngagement.toFixed(2)),
+      avgUploadFrequency: parseFloat(avgUploadFrequency.toFixed(2)),
+      medianViews: Math.round(getPercentile(views, 50)),
+      medianEngagement: parseFloat(getPercentile(engagements, 50).toFixed(2)),
+      p25Views: Math.round(getPercentile(views, 25)),
+      p75Views: Math.round(getPercentile(views, 75)),
+      p25Engagement: parseFloat(getPercentile(engagements, 25).toFixed(2)),
+      p75Engagement: parseFloat(getPercentile(engagements, 75).toFixed(2)),
+    };
+
+    const sampleSize = allDiagnostics.length;
 
     // Calculate channel metrics
     const channelViews = parseInt(diagnostic.avgViews || "0", 10);
@@ -148,7 +193,7 @@ export async function GET(request: NextRequest) {
           ? ((channelEngagement - benchmarks.avgEngagement) / benchmarks.avgEngagement) * 100
           : 0,
       },
-      sampleSize: benchmarksData.sampleSize,
+      sampleSize,
     });
   } catch (error) {
     console.error("Error comparing channel to benchmarks:", error);
