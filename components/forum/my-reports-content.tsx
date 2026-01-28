@@ -48,6 +48,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { sanitizeHtml } from "@/lib/moderation";
 
 type SortField = "createdAt" | "status" | "type" | "reason";
 type SortOrder = "asc" | "desc";
@@ -515,7 +516,7 @@ export function MyReportsContent() {
                         </Link>
                         {selectedReport.target.content && (
                           <p className="text-sm whitespace-pre-wrap">
-                            {selectedReport.target.content}
+                            {sanitizeHtml(selectedReport.target.content)}
                           </p>
                         )}
                       </div>
@@ -528,7 +529,7 @@ export function MyReportsContent() {
                           Post: {selectedReport.target.post.title}
                         </Link>
                         <p className="text-sm whitespace-pre-wrap">
-                          {selectedReport.target.content}
+                          {sanitizeHtml(selectedReport.target.content)}
                         </p>
                       </div>
                     )}
@@ -553,7 +554,7 @@ export function MyReportsContent() {
                   <div className="flex-1 min-w-[200px]">
                     <Label className="text-sm font-medium mb-2 block">Reported By</Label>
                     <p className="text-sm text-muted-foreground">
-                      {selectedReport.reporter?.username || selectedReport.reporter?.displayName || "Unknown"}
+                      Anonymous
                     </p>
                   </div>
                   <div className="flex-1 min-w-[200px]">

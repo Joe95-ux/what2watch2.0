@@ -62,7 +62,7 @@ export function YouTubeNavDropdown({ hasHeroSection = false }: YouTubeNavDropdow
           <ChevronDown className={cn("h-3 w-3 transition-transform", open && "rotate-180")} />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-[480px] p-0">
+      <DropdownMenuContent align="start" className="w-[530px] p-0">
         <DropdownMenuLabel className="px-3 py-2">YouTube Tools</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <div className="flex px-2">
