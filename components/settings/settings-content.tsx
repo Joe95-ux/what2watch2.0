@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useQueryClient } from "@tanstack/react-query";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useReverification } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -114,6 +114,17 @@ export default function SettingsContent({
   const [accountLastName, setAccountLastName] = useState("");
 
   const { user: clerkUser } = useUser();
+  const accountUpdatePayloadRef = useRef<{
+    username?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+  } | null>(null);
+
+  const saveAccountWithReverification = useReverification(async () => {
+    const payload = accountUpdatePayloadRef.current;
+    if (!payload || !clerkUser) throw new Error("You must be signed in to update your account.");
+    await clerkUser.update(payload);
+  });
 
   // Initialize account fields from user.displayName (split into first/last)
   useEffect(() => {
@@ -135,11 +146,32 @@ export default function SettingsContent({
     }
     setIsSavingAccount(true);
     try {
-      await clerkUser.update({
-        username: accountUsername.trim() || null,
-        firstName: accountFirstName.trim() || null,
-        lastName: accountLastName.trim() || null,
-      });
+      // Build update payload with only non-empty values. Sending null can trigger
+      // Clerk's "additional information required" when instance requires those fields.
+      const trimmedUsername = accountUsername.trim();
+      const trimmedFirst = accountFirstName.trim();
+      const trimmedLast = accountLastName.trim();
+      const updatePayload: {
+        username?: string | null;
+        firstName?: string | null;
+        lastName?: string | null;
+      } = {};
+      if (trimmedUsername !== "") {
+        updatePayload.username = trimmedUsername;
+      }
+      if (trimmedFirst !== "" || trimmedLast !== "") {
+        updatePayload.firstName = trimmedFirst || null;
+        updatePayload.lastName = trimmedLast || null;
+      }
+      // If nothing to update, skip the call
+      if (Object.keys(updatePayload).length === 0) {
+        toast.info("No changes to save.");
+        setIsSavingAccount(false);
+        return;
+      }
+      accountUpdatePayloadRef.current = updatePayload;
+      await saveAccountWithReverification();
+      accountUpdatePayloadRef.current = null;
       toast.success("Account updated. Syncing with your profile…");
       // Give webhook time to sync to DB, then refresh page data
       queryClient.invalidateQueries({ queryKey: ["current-user", clerkUser.id] });
@@ -359,6 +391,9 @@ export default function SettingsContent({
                   >
                     {isSavingAccount ? "Saving…" : "Save account"}
                   </Button>
+                  <p className="text-xs text-muted-foreground">
+                    You may be asked to verify your identity (e.g. email or password) before changes are saved. If you see &quot;additional information required&quot;, complete your profile in Manage Account (profile menu) first, then save again.
+                  </p>
                   <Separator />
                   <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
                     <p className="text-sm font-medium">Password & security</p>
