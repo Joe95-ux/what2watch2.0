@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useQueryClient } from "@tanstack/react-query";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -104,6 +106,51 @@ export default function SettingsContent({
   const [isSavingActivity, setIsSavingActivity] = useState(false);
   const [isSavingNotifications, setIsSavingNotifications] = useState(false);
   const [isSavingView, setIsSavingView] = useState(false);
+  const [isSavingAccount, setIsSavingAccount] = useState(false);
+
+  // Account form state (synced from user; displayName → firstName + lastName)
+  const [accountUsername, setAccountUsername] = useState(user.username ?? "");
+  const [accountFirstName, setAccountFirstName] = useState("");
+  const [accountLastName, setAccountLastName] = useState("");
+
+  const { user: clerkUser } = useUser();
+
+  // Initialize account fields from user.displayName (split into first/last)
+  useEffect(() => {
+    if (user.displayName) {
+      const parts = user.displayName.trim().split(/\s+/);
+      setAccountFirstName(parts[0] ?? "");
+      setAccountLastName(parts.slice(1).join(" ") ?? "");
+    } else {
+      setAccountFirstName("");
+      setAccountLastName("");
+    }
+    setAccountUsername(user.username ?? "");
+  }, [user.displayName, user.username]);
+
+  const handleSaveAccount = async () => {
+    if (!clerkUser) {
+      toast.error("You must be signed in to update your account.");
+      return;
+    }
+    setIsSavingAccount(true);
+    try {
+      await clerkUser.update({
+        username: accountUsername.trim() || null,
+        firstName: accountFirstName.trim() || null,
+        lastName: accountLastName.trim() || null,
+      });
+      toast.success("Account updated. Syncing with your profile…");
+      // Give webhook time to sync to DB, then refresh page data
+      queryClient.invalidateQueries({ queryKey: ["current-user", clerkUser.id] });
+      setTimeout(() => router.refresh(), 1500);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update account.";
+      toast.error(message);
+    } finally {
+      setIsSavingAccount(false);
+    }
+  };
 
   const handleStartOnboarding = async () => {
     setIsLoading(true);
@@ -251,29 +298,74 @@ export default function SettingsContent({
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-semibold mb-2">Account</h2>
-                  <p className="text-muted-foreground">Your account information and profile details</p>
+                  <p className="text-muted-foreground">Your account information and profile details. Changes sync with your sign-in profile.</p>
                 </div>
                 <Separator />
                 <div className="space-y-6">
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Email</Label>
                     <div className="flex items-center gap-2">
-                      <p className="text-sm text-foreground">{user.email}</p>
-                      <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                      <Input
+                        value={user.email}
+                        readOnly
+                        className="bg-muted cursor-not-allowed"
+                      />
+                      <CheckCircle2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      To change your email, use Manage Account in the user profile menu (top right), then update your email there.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="account-first-name" className="text-sm font-medium">First name</Label>
+                      <Input
+                        id="account-first-name"
+                        value={accountFirstName}
+                        onChange={(e) => setAccountFirstName(e.target.value)}
+                        placeholder="First name"
+                        className="cursor-pointer"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="account-last-name" className="text-sm font-medium">Last name</Label>
+                      <Input
+                        id="account-last-name"
+                        value={accountLastName}
+                        onChange={(e) => setAccountLastName(e.target.value)}
+                        placeholder="Last name"
+                        className="cursor-pointer"
+                      />
                     </div>
                   </div>
-                  {user.displayName && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Display Name</Label>
-                      <p className="text-sm text-foreground">{user.displayName}</p>
+                  <div className="space-y-2">
+                    <Label htmlFor="account-username" className="text-sm font-medium">Username</Label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground shrink-0">@</span>
+                      <Input
+                        id="account-username"
+                        value={accountUsername}
+                        onChange={(e) => setAccountUsername(e.target.value.replace(/\s/g, ""))}
+                        placeholder="username"
+                        className="cursor-pointer"
+                      />
                     </div>
-                  )}
-                  {user.username && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Username</Label>
-                      <p className="text-sm text-foreground">@{user.username}</p>
-                    </div>
-                  )}
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={handleSaveAccount}
+                    disabled={isSavingAccount}
+                    className="cursor-pointer bg-[#006DCA] hover:bg-[#0056A3] text-white"
+                  >
+                    {isSavingAccount ? "Saving…" : "Save account"}
+                  </Button>
+                  <Separator />
+                  <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
+                    <p className="text-sm font-medium">Password & security</p>
+                    <p className="text-xs text-muted-foreground">
+                      To change your password, open Manage Account in the user profile menu (top right), then go to Security.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
