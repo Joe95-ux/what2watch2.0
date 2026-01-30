@@ -17,7 +17,7 @@ import {
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AvatarPickerDialog } from "@/components/avatar/avatar-picker-dialog";
-import { UserCircle, LogOut, Settings, Moon, Sun, Monitor } from "lucide-react";
+import { UserCircle, LogOut, Settings, Moon, Sun, Monitor, Link2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -128,6 +128,18 @@ export function UserProfileButton({ hasHeroSection = false }: UserProfileButtonP
             >
               <Settings className="mr-2 h-4 w-4" />
               <span>Settings</span>
+            </DropdownMenuItem>
+          </Link>
+          <Link href="/settings?section=links">
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onSelect={(e) => {
+                e.preventDefault();
+                setTimeout(() => setIsDropdownOpen(false), 100);
+              }}
+            >
+              <Link2 className="mr-2 h-4 w-4" />
+              <span>Link in bio</span>
             </DropdownMenuItem>
           </Link>
 

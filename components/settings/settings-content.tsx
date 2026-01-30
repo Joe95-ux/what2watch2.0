@@ -35,10 +35,12 @@ import {
   ThumbsUp,
   AtSign,
   CheckCircle2,
-  LayoutGrid
+  LayoutGrid,
+  Link2
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { SettingsLinksSection } from "@/components/settings/settings-links-section";
 
 interface SettingsContentProps {
   user: {
@@ -77,7 +79,7 @@ interface SettingsContentProps {
   youtubeCardStyle: string;
 }
 
-type SettingsSection = "account" | "preferences" | "activity" | "theme" | "notifications" | "view";
+type SettingsSection = "account" | "preferences" | "activity" | "theme" | "notifications" | "view" | "links";
 
 export default function SettingsContent({ 
   user, 
@@ -96,7 +98,7 @@ export default function SettingsContent({
   // Check for section query parameter on mount
   useEffect(() => {
     const sectionParam = searchParams.get("section");
-    if (sectionParam && ["account", "preferences", "activity", "theme", "notifications", "view"].includes(sectionParam)) {
+    if (sectionParam && ["account", "preferences", "activity", "theme", "notifications", "view", "links"].includes(sectionParam)) {
       setActiveSection(sectionParam as SettingsSection);
     }
   }, [searchParams]);
@@ -290,6 +292,7 @@ export default function SettingsContent({
     { id: "theme", label: "Theme", icon: <Sun className="h-4 w-4" /> },
     { id: "notifications", label: "Notifications", icon: <Bell className="h-4 w-4" /> },
     { id: "view", label: "View", icon: <LayoutGrid className="h-4 w-4" /> },
+    { id: "links", label: "Link in bio", icon: <Link2 className="h-4 w-4" /> },
   ];
 
   return (
@@ -752,6 +755,11 @@ export default function SettingsContent({
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* Link in bio Section */}
+            {activeSection === "links" && (
+              <SettingsLinksSection username={user.username} />
             )}
           </div>
         </div>

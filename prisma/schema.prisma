@@ -145,8 +145,44 @@ model User {
   listComments ListComment[]
   listCommentReactions ListCommentReaction[]
   trendAlerts TrendAlert[]
+  userLinks   UserLink[]
+  linkPage    LinkPage?
 
   @@map("users")
+}
+
+// Link-in-bio page (one per user): theme and bio
+model LinkPage {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @unique @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio       String?
+  theme     Json?    // { buttonStyle?, backgroundColor?, fontFamily? }
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("link_pages")
+}
+
+// Link-in-bio link item (socials, affiliate, in-app lists/playlists)
+model UserLink {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @db.ObjectId
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label        String
+  url          String
+  order        Int      @default(0)
+  isActive      Boolean  @default(true)
+  icon         String?  // optional icon name (e.g. "link", "instagram")
+  resourceType  String?  // "list" | "playlist" | "profile" for in-app links
+  resourceId   String?  // list/playlist id for resolving URL
+  clicks       Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("user_links")
+  @@index([userId])
+  @@index([userId, order])
 }
 
 // User preferences from onboarding
