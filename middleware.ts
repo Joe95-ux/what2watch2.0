@@ -5,9 +5,11 @@ const isPublicRoute = createRouteMatcher([
   '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
+  '/links/(.*)', // Link-in-bio pages (e.g. /links/username) are public
   '/playlists/(.*)/public',
   '/lists/(.*)',
   '/api/webhooks(.*)',
+  '/api/links/(.*)', // Public API for link page data (optional, page is server-rendered)
   '/api/movies(.*)', // Public movie data endpoints
   '/api/tv(.*)', // Public TV data endpoints
   '/api/genres(.*)', // Public genre endpoints

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
@@ -12,7 +14,14 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Copy, Loader2, ChevronUp, ChevronDown, GripVertical } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Plus, Pencil, Trash2, Copy, Loader2, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
+import { Droppable, Draggable } from "@hello-pangea/dnd";
+import { useUserLinksDragDrop, type UserLinkItem } from "@/hooks/use-user-links-drag-drop";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -22,18 +31,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  LINK_PAGE_THEMES,
+  CUSTOM_THEME_ID,
+  getThemeIdForColors,
+} from "@/lib/link-page-themes";
+import { sanitizeHtml } from "@/lib/moderation";
 
-export type UserLinkItem = {
-  id: string;
-  label: string;
-  url: string;
-  order: number;
-  isActive: boolean;
-  icon?: string | null;
-  resourceType?: string | null;
-  resourceId?: string | null;
-  clicks?: number;
-};
+const MAX_BIO_WORDS = 50;
+
+function trimToMaxWords(text: string, maxWords: number): string {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  return words.slice(0, maxWords).join(" ");
+}
+
+const Compact = dynamic(
+  () => import("@uiw/react-color").then((mod) => mod.Compact),
+  { ssr: false }
+);
 
 type LinkPageTheme = {
   buttonStyle?: "rounded" | "pill" | "square";
@@ -61,6 +76,7 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
   const [buttonStyle, setButtonStyle] = useState<"rounded" | "pill" | "square">("rounded");
   const [buttonColor, setButtonColor] = useState("");
   const [backgroundColor, setBackgroundColor] = useState("");
+  const [themeId, setThemeId] = useState<string>("default");
 
   const fetchLinks = useCallback(async () => {
     try {
@@ -81,8 +97,11 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
         });
         setBio(data.linkPage?.bio ?? "");
         setButtonStyle(theme?.buttonStyle ?? "rounded");
-        setButtonColor(theme?.buttonColor ?? "");
-        setBackgroundColor(theme?.backgroundColor ?? "");
+        const bc = theme?.buttonColor ?? "";
+        const bg = theme?.backgroundColor ?? "";
+        setButtonColor(bc);
+        setBackgroundColor(bg);
+        setThemeId(getThemeIdForColors(bg, bc));
       }
     } catch (e) {
       toast.error("Failed to load links");
@@ -168,33 +187,21 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
     }
   };
 
-  const handleReorder = async (fromIndex: number, toIndex: number) => {
-    const reordered = [...links];
-    const [removed] = reordered.splice(fromIndex, 1);
-    reordered.splice(toIndex, 0, removed);
-    const linkIds = reordered.map((l) => l.id);
-    setLinks(reordered.map((l, i) => ({ ...l, order: i })));
-    try {
-      const res = await fetch("/api/user/links/reorder", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ linkIds }),
-      });
-      if (!res.ok) throw new Error("Failed to reorder");
-    } catch {
-      toast.error("Failed to reorder");
-      fetchLinks();
-    }
-  };
+  const { DragDropContext, handleDragEnd, reorderByIndex, displayedLinks } = useUserLinksDragDrop({
+    links,
+    onReorder: fetchLinks,
+  });
 
   const handleSavePage = async () => {
     setSaving(true);
     try {
+      const sanitizedBio = sanitizeHtml(bio.trim());
+      const bioToSave = trimToMaxWords(sanitizedBio, MAX_BIO_WORDS) || null;
       const res = await fetch("/api/user/link-page", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bio: bio.trim() || null,
+          bio: bioToSave,
           theme: {
             buttonStyle,
             buttonColor: buttonColor.trim() || undefined,
@@ -264,7 +271,7 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
               value={`${typeof window !== "undefined" ? window.location.origin : ""}${pageUrl}`}
               className="bg-muted font-mono text-sm"
             />
-            <Button type="button" variant="outline" size="icon" onClick={copyPageUrl}>
+            <Button type="button" variant="outline" size="icon" onClick={copyPageUrl} className="cursor-pointer">
               <Copy className="h-4 w-4" />
             </Button>
           </div>
@@ -285,83 +292,129 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label className="text-sm font-medium">Links</Label>
-          <Button size="sm" onClick={() => setAddOpen(true)}>
+          <Button size="sm" onClick={() => setAddOpen(true)} className="cursor-pointer">
             <Plus className="h-4 w-4 mr-1" />
             Add link
           </Button>
         </div>
-        <ul className="space-y-2">
-          {links.length === 0 ? (
-            <li className="text-sm text-muted-foreground py-4 border border-dashed rounded-lg text-center">
-              No links yet. Add your first link above.
-            </li>
-          ) : (
-            links
-              .sort((a, b) => a.order - b.order)
-              .map((link, index) => (
-                <li
-                  key={link.id}
-                  className="flex items-center gap-2 p-3 rounded-lg border bg-card"
+        {links.length === 0 ? (
+          <div className="text-sm text-muted-foreground py-4 border border-dashed rounded-lg text-center">
+            No links yet. Add your first link above.
+          </div>
+        ) : (
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <Droppable droppableId="user-links">
+              {(provided) => (
+                <div
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                  className="space-y-2"
                 >
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground"
-                      onClick={() => index > 0 && handleReorder(index, index - 1)}
-                      aria-label="Move up"
+                  {displayedLinks.map((link, index) => (
+                    <Draggable
+                      key={link.id}
+                      draggableId={link.id}
+                      index={index}
                     >
-                      <GripVertical className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground"
-                      onClick={() => index < links.length - 1 && handleReorder(index, index + 1)}
-                      aria-label="Move down"
-                    >
-                      <GripVertical className="h-4 w-4 rotate-90" />
-                    </button>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{link.label}</p>
-                    <p className="text-xs text-muted-foreground truncate">{link.url}</p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => openEdit(link)}
-                    className="shrink-0"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeleteLink(link.id)}
-                    className="shrink-0 text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </li>
-              ))
-          )}
-        </ul>
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className={cn(
+                            "flex items-center gap-2 p-3 rounded-lg border bg-card",
+                            snapshot.isDragging && "opacity-70 shadow-md",
+                            "cursor-grab active:cursor-grabbing"
+                          )}
+                        >
+                          <div className="p-1 text-muted-foreground shrink-0" aria-hidden>
+                            <GripVertical className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{link.label}</p>
+                            <p className="text-xs text-muted-foreground truncate">{link.url}</p>
+                          </div>
+                          <div
+                              className="flex items-center gap-0 shrink-0"
+                              onClick={(e) => e.stopPropagation()}
+                              onPointerDown={(e) => e.stopPropagation()}
+                            >
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="cursor-pointer h-8 w-8"
+                              onClick={() => reorderByIndex(index, index - 1)}
+                              disabled={index === 0}
+                              aria-label="Move up"
+                            >
+                              <ChevronUp className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="cursor-pointer h-8 w-8"
+                              onClick={() => reorderByIndex(index, index + 1)}
+                              disabled={index === displayedLinks.length - 1}
+                              aria-label="Move down"
+                            >
+                              <ChevronDown className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEdit(link)}
+                              className="shrink-0 cursor-pointer"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteLink(link.id)}
+                              className="shrink-0 cursor-pointer text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
+        )}
       </div>
 
       <Separator />
 
       {/* Bio & theme */}
       <div className="space-y-4">
-        <Label className="text-sm font-medium">Bio (optional)</Label>
-        <Input
-          placeholder="Short bio for your link page"
-          value={bio}
-          onChange={(e) => setBio(e.target.value)}
-          className="max-w-md"
-        />
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Bio (optional)</Label>
+          <Textarea
+            placeholder="Short bio for your link page (max 50 words)"
+            value={bio}
+            onChange={(e) => {
+              const sanitized = sanitizeHtml(e.target.value);
+              const trimmed = trimToMaxWords(sanitized, MAX_BIO_WORDS);
+              setBio(trimmed);
+            }}
+            className="max-w-md min-h-[80px] resize-y"
+            rows={3}
+          />
+          <p className="text-xs text-muted-foreground">
+            {bio.trim().split(/\s+/).filter(Boolean).length} / {MAX_BIO_WORDS} words
+          </p>
+        </div>
         <div className="space-y-2">
           <Label className="text-sm font-medium">Button style</Label>
           <Select value={buttonStyle} onValueChange={(v) => setButtonStyle(v as "rounded" | "pill" | "square")}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[180px] cursor-pointer">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -371,25 +424,100 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
             </SelectContent>
           </Select>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Button color (hex)</Label>
-            <Input
-              placeholder="#006DCA"
-              value={buttonColor}
-              onChange={(e) => setButtonColor(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Background color (hex)</Label>
-            <Input
-              placeholder="Leave blank for default"
-              value={backgroundColor}
-              onChange={(e) => setBackgroundColor(e.target.value)}
-            />
-          </div>
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Color theme</Label>
+          <p className="text-xs text-muted-foreground">
+            Pick a preset for a matching look, or choose Custom to set your own colors.
+          </p>
+          <Select
+            value={themeId}
+            onValueChange={(value) => {
+              setThemeId(value);
+              if (value !== CUSTOM_THEME_ID) {
+                const preset = LINK_PAGE_THEMES.find((t) => t.id === value);
+                if (preset) {
+                  setBackgroundColor(preset.backgroundColor);
+                  setButtonColor(preset.buttonColor);
+                }
+              }
+            }}
+          >
+            <SelectTrigger className="w-full max-w-xs cursor-pointer">
+              <SelectValue placeholder="Theme" />
+            </SelectTrigger>
+            <SelectContent>
+              {LINK_PAGE_THEMES.map((t) => (
+                <SelectItem key={t.id} value={t.id} className="cursor-pointer">
+                  {t.name}
+                </SelectItem>
+              ))}
+              <SelectItem value={CUSTOM_THEME_ID} className="cursor-pointer">
+                Custom
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          {themeId === CUSTOM_THEME_ID && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md pt-2">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Page background</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full h-10 justify-start gap-2 cursor-pointer"
+                      style={
+                        backgroundColor
+                          ? { backgroundColor, color: "#fff" }
+                          : undefined
+                      }
+                    >
+                      <span
+                        className="h-5 w-5 rounded border border-border shrink-0"
+                        style={{ backgroundColor: backgroundColor || "var(--muted)" }}
+                      />
+                      {backgroundColor || "Pick color"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 border-0" align="start">
+                    <Compact
+                      color={backgroundColor || "#ffffff"}
+                      onChange={(color) => setBackgroundColor(color.hex)}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Link button color</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full h-10 justify-start gap-2 cursor-pointer"
+                      style={
+                        buttonColor
+                          ? { backgroundColor: buttonColor, color: "#fff" }
+                          : undefined
+                      }
+                    >
+                      <span
+                        className="h-5 w-5 rounded border border-border shrink-0"
+                        style={{ backgroundColor: buttonColor || "var(--muted)" }}
+                      />
+                      {buttonColor || "Pick color"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 border-0" align="start">
+                    <Compact
+                      color={buttonColor || "#006DCA"}
+                      onChange={(color) => setButtonColor(color.hex)}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          )}
         </div>
-        <Button onClick={handleSavePage} disabled={saving}>
+        <Button onClick={handleSavePage} disabled={saving} className="cursor-pointer">
           {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
           Save page settings
         </Button>
@@ -423,10 +551,10 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddOpen(false)}>
+            <Button variant="outline" onClick={() => setAddOpen(false)} className="cursor-pointer">
               Cancel
             </Button>
-            <Button onClick={handleAddLink} disabled={saving}>
+            <Button onClick={handleAddLink} disabled={saving} className="cursor-pointer">
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Add
             </Button>
@@ -462,10 +590,10 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingId(null)}>
+            <Button variant="outline" onClick={() => setEditingId(null)} className="cursor-pointer">
               Cancel
             </Button>
-            <Button onClick={handleUpdateLink} disabled={saving}>
+            <Button onClick={handleUpdateLink} disabled={saving} className="cursor-pointer">
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Save
             </Button>

@@ -311,7 +311,7 @@ export default function SettingsContent({
                 key={section.id}
                 onClick={() => setActiveSection(section.id)}
                 className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors cursor-pointer",
                   "hover:bg-accent hover:text-accent-foreground",
                   activeSection === section.id
                     ? "bg-accent text-accent-foreground shadow-sm"
