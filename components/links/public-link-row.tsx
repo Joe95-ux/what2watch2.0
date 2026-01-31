@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { SocialIcon, networkFor } from "react-social-icons";
 import Link from "next/link";
@@ -14,6 +15,16 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { MoreVertical, Pencil, Trash2, Share2, Link2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -24,7 +35,7 @@ type LinkPageTheme = {
 };
 
 interface PublicLinkRowProps {
-  link: { id: string; label: string; url: string; icon?: string | null };
+  link: { id: string; label: string; url: string; icon?: string | null; resourceType?: string | null; resourceId?: string | null };
   theme: LinkPageTheme | null;
   isOwner: boolean;
 }
@@ -38,6 +49,7 @@ const SHARE_PLATFORMS: Array<{ key: string; label: string; getUrl: (url: string,
 
 export function PublicLinkRow({ link, theme, isOwner }: PublicLinkRowProps) {
   const router = useRouter();
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const buttonStyle = theme?.buttonStyle ?? "rounded";
   const buttonColor = theme?.buttonColor ?? undefined;
   const network = networkFor(link.url);
@@ -57,12 +69,32 @@ export function PublicLinkRow({ link, theme, isOwner }: PublicLinkRowProps) {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  const handleDelete = async () => {
+  const performDelete = async () => {
+    setDeleteOpen(false);
+    const payload = { label: link.label, url: link.url, icon: link.icon ?? null, resourceType: link.resourceType ?? null, resourceId: link.resourceId ?? null };
     try {
       const res = await fetch(`/api/user/links/${link.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
-      toast.success("Link removed");
       router.refresh();
+      toast.success("Link removed", {
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            try {
+              const createRes = await fetch("/api/user/links", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+              if (!createRes.ok) throw new Error("Failed to restore");
+              router.refresh();
+              toast.success("Link restored");
+            } catch {
+              toast.error("Failed to restore link");
+            }
+          },
+        },
+      });
     } catch {
       toast.error("Failed to delete link");
     }
@@ -89,11 +121,11 @@ export function PublicLinkRow({ link, theme, isOwner }: PublicLinkRowProps) {
         )}
       >
         {showSocialIcon ? (
-          <span className="shrink-0 w-5 h-5 flex items-center justify-center [&_.social-icon]:!w-5 [&_.social-icon]:!h-5">
+          <span className="shrink-0 w-7 h-7 flex items-center justify-center [&_.social-icon]:!w-7 [&_.social-icon]:!h-7">
             <SocialIcon
               network={network}
               as="span"
-              style={{ width: 20, height: 20 }}
+              style={{ width: 28, height: 28 }}
               className="!block"
             />
           </span>
@@ -126,7 +158,7 @@ export function PublicLinkRow({ link, theme, isOwner }: PublicLinkRowProps) {
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="cursor-pointer text-destructive focus:text-destructive"
-                onClick={handleDelete}
+                onClick={() => setDeleteOpen(true)}
               >
                 <Trash2 className="mr-3 h-4 w-4" />
                 Delete
@@ -149,8 +181,8 @@ export function PublicLinkRow({ link, theme, isOwner }: PublicLinkRowProps) {
                   className="cursor-pointer py-2.5"
                   onClick={() => handleShare(p.getUrl)}
                 >
-                  <span className="mr-3 w-6 h-6 flex items-center justify-center shrink-0 [&_.social-icon]:!w-5 [&_.social-icon]:!h-5">
-                    <SocialIcon network={p.key} as="span" style={{ width: 20, height: 20 }} />
+                  <span className="mr-3 w-8 h-8 flex items-center justify-center shrink-0 [&_.social-icon]:!w-6 [&_.social-icon]:!h-6">
+                    <SocialIcon network={p.key} as="span" style={{ width: 24, height: 24 }} />
                   </span>
                   {p.label}
                 </DropdownMenuItem>
@@ -159,6 +191,22 @@ export function PublicLinkRow({ link, theme, isOwner }: PublicLinkRowProps) {
           </DropdownMenuSub>
         </DropdownMenuContent>
       </DropdownMenu>
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove link?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove &quot;{link.label}&quot; from your link page. You can undo this from the toast.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={performDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
