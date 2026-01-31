@@ -62,9 +62,9 @@ export function ForumSummaryContent() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 divide-x divide-y divide-border">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 divide-x divide-y divide-border">
           {Array.from({ length: 12 }).map((_, i) => {
-            const columnsPerRow = 4;
+            const columnsPerRow = 3;
             const totalRows = Math.ceil(12 / columnsPerRow);
             const currentRow = Math.floor(i / columnsPerRow) + 1;
             const isLastRow = currentRow === totalRows;
@@ -172,10 +172,10 @@ export function ForumSummaryContent() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 divide-x divide-y divide-border">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 divide-x divide-y divide-border">
         {statCards.map((stat, index) => {
-          // Calculate if this item is in the last row (4 columns on xl screens)
-          const columnsPerRow = 4; // xl:grid-cols-4
+          // Calculate if this item is in the last row (3 columns on xl screens)
+          const columnsPerRow = 3; // xl:grid-cols-3
           const totalRows = Math.ceil(statCards.length / columnsPerRow);
           const currentRow = Math.floor(index / columnsPerRow) + 1;
           const isLastRow = currentRow === totalRows;

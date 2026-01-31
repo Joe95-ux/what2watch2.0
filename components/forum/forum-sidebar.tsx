@@ -102,7 +102,7 @@ export function ForumSidebar({
 
   const { isSignedIn } = useUser();
 
-  // Check if user has saved posts or comments
+  // Check if user has saved posts or comments (invalidated by bookmark hooks so Saved appears after save)
   const { data: bookmarksData } = useQuery({
     queryKey: ["forum-bookmarks-count"],
     queryFn: async () => {
@@ -111,7 +111,7 @@ export function ForumSidebar({
       return response.json();
     },
     enabled: isSignedIn,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
   });
 
   const { data: replyBookmarksData } = useQuery({
@@ -122,7 +122,7 @@ export function ForumSidebar({
       return response.json();
     },
     enabled: isSignedIn,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
   });
 
   const hasSavedPosts = (bookmarksData?.pagination?.total || 0) > 0;

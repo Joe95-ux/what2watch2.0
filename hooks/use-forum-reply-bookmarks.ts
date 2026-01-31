@@ -62,6 +62,9 @@ export function useBookmarkReply(replyId: string) {
       queryClient.invalidateQueries({
         queryKey: ["forum-reply-bookmarks"],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["forum-reply-bookmarks-count"],
+      });
       toast.success("Comment saved");
     },
     onError: (error: Error) => {
@@ -106,6 +109,9 @@ export function useUnbookmarkReply(replyId: string) {
       });
       queryClient.invalidateQueries({
         queryKey: ["forum-reply-bookmarks"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["forum-reply-bookmarks-count"],
       });
       toast.success("Comment unsaved");
     },

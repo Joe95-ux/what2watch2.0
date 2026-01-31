@@ -428,15 +428,15 @@ export function ForumActivityContent() {
 
   return (
     <div>
-      {/* Search and Filters */}
+      {/* Search and Filters - w-full min-w-0 so bar shrinks when sidebar is open on small desktop */}
       <div className="mb-6">
-        <div className="flex justify-start">
-          <div className="w-full sm:w-auto sm:flex-shrink-0">
+        <div className="flex justify-start min-w-0">
+          <div className="w-full min-w-0 max-w-full">
             <FilterSearchBar
               searchValue={searchQuery}
               onSearchChange={setSearchQuery}
               searchPlaceholder="Search activities..."
-              searchMaxWidth="sm:max-w-[25rem]"
+              searchMaxWidth="max-w-[12rem] sm:max-w-[18rem] lg:max-w-[25rem]"
               sortOrder={sortOrder}
               onSortChange={setSortOrder}
               justifyEnd={false}

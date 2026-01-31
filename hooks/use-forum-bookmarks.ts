@@ -62,6 +62,9 @@ export function useBookmarkPost(postId: string) {
       queryClient.invalidateQueries({
         queryKey: ["forum-bookmarks"],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["forum-bookmarks-count"],
+      });
       toast.success("Post saved");
     },
     onError: (error: Error) => {
@@ -106,6 +109,9 @@ export function useUnbookmarkPost(postId: string) {
       });
       queryClient.invalidateQueries({
         queryKey: ["forum-bookmarks"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["forum-bookmarks-count"],
       });
       toast.success("Post removed from saved posts");
     },

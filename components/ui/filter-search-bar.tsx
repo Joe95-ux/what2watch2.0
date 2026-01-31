@@ -94,18 +94,18 @@ export function FilterSearchBar({
   };
 
   return (
-    <div className={cn(!renderFilterRowOutside && "space-y-3")}>
-      {/* Top Row: Search + Sort + Filter Button */}
-      <div className={cn("flex items-center gap-2", justifyEnd && "justify-end")}>
-        {/* Search - Takes most width on small screens, custom max-width on sm+ */}
+    <div className={cn("min-w-0", !renderFilterRowOutside && "space-y-3")}>
+      {/* Top Row: Search + Sort + Filter Button - flex-wrap so buttons don't overlap on narrow content */}
+      <div className={cn("flex flex-wrap items-center gap-2 gap-y-2", justifyEnd && "justify-end")}>
+        {/* Search - shrinks with container; max-width from searchMaxWidth */}
         <div className={cn("relative min-w-0 flex-1", searchMaxWidth && searchMaxWidth)}>
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none shrink-0" />
           <Input
             type="text"
             placeholder={searchPlaceholder}
             value={searchValue}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9 pr-3 h-9"
+            className="pl-9 pr-3 h-9 min-w-0 w-full"
           />
           {searchValue && (
             <Button
@@ -119,14 +119,14 @@ export function FilterSearchBar({
           )}
         </div>
 
-        {/* Sort Button */}
+        {/* Sort Button - shrink-0 so it doesn't squish when row is narrow */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="outline"
               size="sm"
               className={cn(
-                "h-9 px-3 gap-2 cursor-pointer whitespace-nowrap",
+                "h-9 px-3 gap-2 cursor-pointer whitespace-nowrap shrink-0",
                 sortOrder !== "desc" && "bg-primary/10 text-primary"
               )}
             >
@@ -158,13 +158,13 @@ export function FilterSearchBar({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Filter Button */}
+        {/* Filter Button - shrink-0 so it doesn't squish when row is narrow */}
         <Button
           variant="outline"
           size="sm"
           onClick={() => setIsFilterRowOpen(!isFilterRowOpen)}
           className={cn(
-            "h-9 px-3 gap-2 cursor-pointer whitespace-nowrap",
+            "h-9 px-3 gap-2 cursor-pointer whitespace-nowrap shrink-0",
             hasActiveFilters && "bg-primary/10 text-primary"
           )}
         >
