@@ -80,43 +80,46 @@ export function PublicLinkCard({ link, theme, isOwner }: PublicLinkCardProps) {
   return (
     <div
       className={cn(
-        "w-full overflow-hidden border bg-card",
+        "w-full overflow-hidden border bg-card flex flex-col",
         radiusClass,
         !theme?.buttonColor && "border-border"
       )}
       style={theme?.buttonColor ? { borderColor: "transparent" } : undefined}
     >
-      <div className="flex">
+      {/* Section 1: banner (most height), same border radius from settings */}
+      <a
+        href={link.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cn("block relative w-full h-40 bg-muted overflow-hidden", buttonStyle === "pill" ? "rounded-t-full" : buttonStyle === "rounded" ? "rounded-t-xl" : "rounded-t-md")}
+      >
+        {coverImageUrl ? (
+          <Image
+            src={coverImageUrl}
+            alt=""
+            fill
+            className="object-cover"
+            sizes="(max-width: 28rem) 100vw, 28rem"
+            unoptimized={coverImageUrl.startsWith("http") && !coverImageUrl.includes("image.tmdb.org")}
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+            <span className="text-4xl">{link.listPreview ? "📋" : "▶"}</span>
+          </div>
+        )}
+      </a>
+      {/* Section 2: label + description row, three dots at end */}
+      <div className="flex flex-row items-center gap-2 p-3 flex-shrink-0">
         <a
           href={link.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex-1 flex min-w-0"
+          className="flex-1 min-w-0 flex flex-col"
         >
-          <div className="flex flex-1 min-w-0">
-            {coverImageUrl ? (
-              <div className="relative w-24 h-24 shrink-0 bg-muted">
-                <Image
-                  src={coverImageUrl}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  sizes="96px"
-                  unoptimized={coverImageUrl.startsWith("http") && !coverImageUrl.includes("image.tmdb.org")}
-                />
-              </div>
-            ) : (
-              <div className="w-24 h-24 shrink-0 bg-muted flex items-center justify-center text-muted-foreground">
-                <span className="text-2xl">{link.listPreview ? "📋" : "▶"}</span>
-              </div>
-            )}
-            <div className="flex-1 min-w-0 p-3 flex flex-col justify-center">
-              <p className="font-medium text-sm truncate">{link.label}</p>
-              {description ? (
-                <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{description}</p>
-              ) : null}
-            </div>
-          </div>
+          <p className="font-medium text-sm truncate">{link.label}</p>
+          {description ? (
+            <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{description}</p>
+          ) : null}
         </a>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

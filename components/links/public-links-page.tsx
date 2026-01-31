@@ -57,8 +57,8 @@ export function PublicLinksPage({
       style={bgColor ? { backgroundColor: bgColor } : undefined}
     >
       <div className="w-full max-w-[28rem] flex flex-col gap-6">
-        {/* Header: avatar + name block, centered */}
-        <div className="flex flex-col items-center justify-center gap-3 text-center">
+        {/* Header: avatar + name block, flex-row centered */}
+        <div className="flex flex-row items-center justify-center gap-3">
           <div className="relative w-20 h-20 shrink-0 rounded-full overflow-hidden border-4 border-white/20 shadow-lg bg-muted">
             {avatarUrl ? (
               <Image
@@ -75,7 +75,7 @@ export function PublicLinksPage({
               </div>
             )}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 text-left">
             <h1
               className="text-xl font-semibold text-foreground break-words"
               style={theme?.fontFamily ? { fontFamily: theme.fontFamily } : undefined}
@@ -90,7 +90,7 @@ export function PublicLinksPage({
 
         {/* Social icons: new row, centered */}
         {socialLinks.length > 0 && (
-          <div className="flex flex-wrap items-center justify-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-3">
             {socialLinks.map((link) => {
               const network = networkFor(link.url);
               return (
@@ -99,13 +99,13 @@ export function PublicLinksPage({
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-muted/80 hover:bg-muted transition-colors [&_.social-icon]:!w-6 [&_.social-icon]:!h-6"
+                  className="flex items-center justify-center w-12 h-12 rounded-full bg-muted/80 hover:bg-muted transition-colors ring-0 focus:ring-0 focus-visible:ring-0 outline-none [&_.social-icon]:!w-8 [&_.social-icon]:!h-8"
                   aria-label={link.label}
                 >
                   <SocialIcon
                     network={network}
                     as="span"
-                    style={{ width: 24, height: 24 }}
+                    style={{ width: 32, height: 32 }}
                     className="!block"
                   />
                 </a>
