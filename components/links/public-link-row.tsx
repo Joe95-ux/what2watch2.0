@@ -138,7 +138,7 @@ export function PublicLinkRow({ link, theme, isOwner }: PublicLinkRowProps) {
             variant="ghost"
             size="icon"
             className={cn(
-              "shrink-0 h-9 w-9 rounded-full cursor-pointer",
+              "shrink-0 h-9 w-9 rounded-full cursor-pointer ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 outline-none",
               buttonColor ? "text-white hover:bg-white/20" : ""
             )}
             aria-label="Link options"
@@ -171,14 +171,14 @@ export function PublicLinkRow({ link, theme, isOwner }: PublicLinkRowProps) {
               Share
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="min-w-[12rem]">
-              <DropdownMenuItem className="cursor-pointer py-2.5" onClick={handleCopyLink}>
+              <DropdownMenuItem className="cursor-pointer py-1.5" onClick={handleCopyLink}>
                 <Link2 className="mr-3 h-5 w-5 shrink-0" />
                 Copy link
               </DropdownMenuItem>
               {SHARE_PLATFORMS.map((p) => (
                 <DropdownMenuItem
                   key={p.key}
-                  className="cursor-pointer py-2.5"
+                  className="cursor-pointer py-1.5"
                   onClick={() => handleShare(p.getUrl)}
                 >
                   <span className="mr-3 w-8 h-8 flex items-center justify-center shrink-0 [&_.social-icon]:!w-6 [&_.social-icon]:!h-6">

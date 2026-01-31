@@ -74,6 +74,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ link: u
       );
     }
 
+    const linkCount = await db.userLink.count({ where: { userId: user.id } });
+    if (linkCount >= 10) {
+      return NextResponse.json(
+        { error: "Maximum 10 links allowed" },
+        { status: 400 }
+      );
+    }
+
     const maxOrder = await db.userLink.findFirst({
       where: { userId: user.id },
       orderBy: { order: "desc" },

@@ -288,15 +288,23 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
 
       <Separator />
 
-      {/* Links list */}
+      {/* Links list (max 10) */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium">Links</Label>
-          <Button size="sm" onClick={() => setAddOpen(true)} className="cursor-pointer">
+          <Label className="text-sm font-medium">Links {links.length >= 10 ? "(max 10)" : ""}</Label>
+          <Button
+            size="sm"
+            onClick={() => setAddOpen(true)}
+            disabled={links.length >= 10}
+            className="cursor-pointer disabled:pointer-events-none"
+          >
             <Plus className="h-4 w-4 mr-1" />
             Add link
           </Button>
         </div>
+        {links.length >= 10 && (
+          <p className="text-xs text-muted-foreground">You have reached the maximum of 10 links. Remove one to add another.</p>
+        )}
         {links.length === 0 ? (
           <div className="text-sm text-muted-foreground py-4 border border-dashed rounded-lg text-center">
             No links yet. Add your first link above.
