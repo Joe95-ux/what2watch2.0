@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { SocialIcon, networkFor } from "react-social-icons";
-import { cn } from "@/lib/utils";
 import { PublicLinkRow } from "@/components/links/public-link-row";
 import { PublicLinkCard } from "@/components/links/public-link-card";
 
@@ -45,10 +44,7 @@ export function PublicLinksPage({
   isOwner = false,
 }: PublicLinksPageProps) {
   const name = displayName || (username ? `@${username}` : "User");
-  const buttonStyle = theme?.buttonStyle ?? "rounded";
   const bgColor = theme?.backgroundColor ?? undefined;
-  const radiusClass =
-    buttonStyle === "pill" ? "rounded-full" : buttonStyle === "rounded" ? "rounded-xl" : "rounded-md";
 
   const socialLinks = links.filter((link) => {
     const network = networkFor(link.url);
@@ -61,8 +57,8 @@ export function PublicLinksPage({
       style={bgColor ? { backgroundColor: bgColor } : undefined}
     >
       <div className="w-full max-w-[28rem] flex flex-col gap-6">
-        {/* Header: avatar + name block + social icons row */}
-        <div className="flex flex-row flex-wrap items-center gap-3">
+        {/* Header: avatar + name block, centered */}
+        <div className="flex flex-col items-center justify-center gap-3 text-center">
           <div className="relative w-20 h-20 shrink-0 rounded-full overflow-hidden border-4 border-white/20 shadow-lg bg-muted">
             {avatarUrl ? (
               <Image
@@ -79,7 +75,7 @@ export function PublicLinksPage({
               </div>
             )}
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0">
             <h1
               className="text-xl font-semibold text-foreground break-words"
               style={theme?.fontFamily ? { fontFamily: theme.fontFamily } : undefined}
@@ -90,75 +86,66 @@ export function PublicLinksPage({
               <p className="text-sm text-muted-foreground break-all">@{username}</p>
             )}
           </div>
-          {socialLinks.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
-              {socialLinks.map((link) => {
-                const network = networkFor(link.url);
-                return (
-                  <a
-                    key={link.id}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center w-9 h-9 rounded-full bg-muted/80 hover:bg-muted transition-colors"
-                    aria-label={link.label}
-                  >
-                    <SocialIcon
-                      network={network}
-                      as="span"
-                      style={{ width: 20, height: 20 }}
-                      className="!block [&_.social-icon]:!w-5 [&_.social-icon]:!h-5"
-                    />
-                  </a>
-                );
-              })}
-            </div>
-          )}
         </div>
 
-        {/* Card wrapper: About me + Links */}
-        <div
-          className={cn(
-            "w-full border bg-card/80 backdrop-blur-sm overflow-hidden",
-            radiusClass
-          )}
-        >
-          {bio && (
-            <section className="p-4">
-              <h2 className="text-sm font-semibold text-foreground mb-2">About me</h2>
-              <div
-                className={cn(
-                  "border border-dashed border-border p-3 text-sm text-muted-foreground",
-                  radiusClass
-                )}
-                style={theme?.fontFamily ? { fontFamily: theme.fontFamily } : undefined}
-              >
-                {bio}
-              </div>
-            </section>
-          )}
+        {/* Social icons: new row, centered */}
+        {socialLinks.length > 0 && (
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {socialLinks.map((link) => {
+              const network = networkFor(link.url);
+              return (
+                <a
+                  key={link.id}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center w-10 h-10 rounded-full bg-muted/80 hover:bg-muted transition-colors [&_.social-icon]:!w-6 [&_.social-icon]:!h-6"
+                  aria-label={link.label}
+                >
+                  <SocialIcon
+                    network={network}
+                    as="span"
+                    style={{ width: 24, height: 24 }}
+                    className="!block"
+                  />
+                </a>
+              );
+            })}
+          </div>
+        )}
 
-          <section className={cn("p-4", bio && "pt-0")}>
-            <div className="space-y-3">
-              {links.map((link) =>
-                link.listPreview || link.playlistPreview ? (
-                  <PublicLinkCard
-                    key={link.id}
-                    link={link}
-                    theme={theme}
-                    isOwner={isOwner}
-                  />
-                ) : (
-                  <PublicLinkRow
-                    key={link.id}
-                    link={link}
-                    theme={theme}
-                    isOwner={isOwner}
-                  />
-                )
-              )}
+        {/* About me: centered, bio in dashed div with 5px radius */}
+        {bio && (
+          <section className="w-full text-center">
+            <h2 className="text-sm font-semibold text-foreground mb-2">About me</h2>
+            <div
+              className="border border-dashed border-border rounded-[5px] p-3 text-sm text-muted-foreground text-center"
+              style={theme?.fontFamily ? { fontFamily: theme.fontFamily } : undefined}
+            >
+              {bio}
             </div>
           </section>
+        )}
+
+        {/* Links block: no wrapper card */}
+        <div className="w-full space-y-3">
+          {links.map((link) =>
+            link.listPreview || link.playlistPreview ? (
+              <PublicLinkCard
+                key={link.id}
+                link={link}
+                theme={theme}
+                isOwner={isOwner}
+              />
+            ) : (
+              <PublicLinkRow
+                key={link.id}
+                link={link}
+                theme={theme}
+                isOwner={isOwner}
+              />
+            )
+          )}
         </div>
 
         {/* Footer */}

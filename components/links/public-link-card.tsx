@@ -130,12 +130,12 @@ export function PublicLinkCard({ link, theme, isOwner }: PublicLinkCardProps) {
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-[10rem]">
+          <DropdownMenuContent align="end" className="min-w-[12rem]">
             {isOwner && (
               <>
                 <DropdownMenuItem asChild className="cursor-pointer">
                   <Link href="/settings?section=links">
-                    <Pencil className="mr-2 h-4 w-4" />
+                    <Pencil className="mr-3 h-4 w-4" />
                     Edit
                   </Link>
                 </DropdownMenuItem>
@@ -143,29 +143,29 @@ export function PublicLinkCard({ link, theme, isOwner }: PublicLinkCardProps) {
                   className="cursor-pointer text-destructive focus:text-destructive"
                   onClick={handleDelete}
                 >
-                  <Trash2 className="mr-2 h-4 w-4" />
+                  <Trash2 className="mr-3 h-4 w-4" />
                   Delete
                 </DropdownMenuItem>
               </>
             )}
             <DropdownMenuSub>
               <DropdownMenuSubTrigger className="cursor-pointer">
-                <Share2 className="mr-2 h-4 w-4" />
+                <Share2 className="mr-3 h-4 w-4" />
                 Share
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem className="cursor-pointer" onClick={handleCopyLink}>
-                  <Link2 className="mr-2 h-4 w-4" />
+              <DropdownMenuSubContent className="min-w-[12rem]">
+                <DropdownMenuItem className="cursor-pointer py-2.5" onClick={handleCopyLink}>
+                  <Link2 className="mr-3 h-5 w-5 shrink-0" />
                   Copy link
                 </DropdownMenuItem>
                 {SHARE_PLATFORMS.map((p) => (
                   <DropdownMenuItem
                     key={p.key}
-                    className="cursor-pointer"
+                    className="cursor-pointer py-2.5"
                     onClick={() => handleShare(p.getUrl)}
                   >
-                    <span className="mr-2 w-4 h-4 flex items-center justify-center [&_.social-icon]:!w-4 [&_.social-icon]:!h-4">
-                      <SocialIcon network={p.key} as="span" style={{ width: 16, height: 16 }} />
+                    <span className="mr-3 w-6 h-6 flex items-center justify-center shrink-0 [&_.social-icon]:!w-5 [&_.social-icon]:!h-5">
+                      <SocialIcon network={p.key} as="span" style={{ width: 20, height: 20 }} />
                     </span>
                     {p.label}
                   </DropdownMenuItem>

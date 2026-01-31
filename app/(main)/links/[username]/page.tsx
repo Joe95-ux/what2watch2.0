@@ -73,6 +73,21 @@ export default async function LinksPage({ params }: PageProps) {
   const theme = (linkPage?.theme as LinkPageTheme | null) ?? null;
   const isOwner = !!clerkUserId && user.clerkId === clerkUserId;
 
+  /** Parse link URL to detect playlist or list id (when resourceType/resourceId not set). */
+  function parseLinkResource(url: string): { type: "playlist"; id: string } | { type: "list"; id: string } | null {
+    try {
+      const href = url.startsWith("http") ? url : `https://dummy${url.startsWith("/") ? "" : "/"}${url}`;
+      const pathname = new URL(href).pathname;
+      const playlistMatch = pathname.match(/^\/playlists\/([a-zA-Z0-9_-]+)(?:\/public)?\/?$/);
+      if (playlistMatch) return { type: "playlist", id: playlistMatch[1] };
+      const listMatch = pathname.match(/^\/lists\/([a-zA-Z0-9_-]+)\/?$/);
+      if (listMatch) return { type: "list", id: listMatch[1] };
+    } catch {
+      // ignore invalid URLs
+    }
+    return null;
+  }
+
   type LinkWithPreview = (typeof user.userLinks)[number] & {
     listPreview?: { name: string; description: string | null; coverImageUrl: string | null };
     playlistPreview?: { name: string; description: string | null; coverImageUrl: string | null };
@@ -81,9 +96,13 @@ export default async function LinksPage({ params }: PageProps) {
   const links: LinkWithPreview[] = await Promise.all(
     user.userLinks.map(async (link) => {
       const base = { ...link };
-      if (link.resourceType === "list" && link.resourceId) {
+      const parsed = parseLinkResource(link.url);
+      const listId = link.resourceType === "list" && link.resourceId ? link.resourceId : parsed?.type === "list" ? parsed.id : null;
+      const playlistId = link.resourceType === "playlist" && link.resourceId ? link.resourceId : parsed?.type === "playlist" ? parsed.id : null;
+
+      if (listId) {
         const list = await db.list.findFirst({
-          where: { id: link.resourceId, userId: user.id },
+          where: { id: listId, userId: user.id },
           select: {
             name: true,
             description: true,
@@ -100,9 +119,9 @@ export default async function LinksPage({ params }: PageProps) {
           return { ...base, listPreview: { name: list.name, description: list.description, coverImageUrl } };
         }
       }
-      if (link.resourceType === "playlist" && link.resourceId) {
+      if (playlistId) {
         const playlist = await db.playlist.findFirst({
-          where: { id: link.resourceId, userId: user.id },
+          where: { id: playlistId, userId: user.id },
           select: {
             name: true,
             description: true,
