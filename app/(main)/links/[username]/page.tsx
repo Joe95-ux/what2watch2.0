@@ -60,7 +60,7 @@ export default async function LinksPage({ params }: PageProps) {
       userLinks: {
         where: { isActive: true },
         orderBy: { order: "asc" },
-        select: { id: true, label: true, url: true, icon: true, resourceType: true, resourceId: true },
+        select: { id: true, label: true, url: true, icon: true, resourceType: true, resourceId: true, bannerImageUrl: true, customDescription: true, isSensitiveContent: true },
       },
     },
   });
@@ -88,9 +88,16 @@ export default async function LinksPage({ params }: PageProps) {
     return null;
   }
 
+  function truncateToOneLine(text: string | null | undefined): string | null {
+    if (!text || !text.trim()) return null;
+    const firstLine = text.trim().split(/\n/)[0]?.trim();
+    return firstLine ?? null;
+  }
+
   type LinkWithPreview = (typeof user.userLinks)[number] & {
     listPreview?: { name: string; description: string | null; coverImageUrl: string | null };
     playlistPreview?: { name: string; description: string | null; coverImageUrl: string | null };
+    customPreview?: { coverImageUrl: string; description: string | null };
   };
 
   const links: LinkWithPreview[] = await Promise.all(
@@ -137,6 +144,9 @@ export default async function LinksPage({ params }: PageProps) {
               : null;
           return { ...base, playlistPreview: { name: playlist.name, description: playlist.description, coverImageUrl } };
         }
+      }
+      if (link.bannerImageUrl) {
+        return { ...base, customPreview: { coverImageUrl: link.bannerImageUrl, description: truncateToOneLine(link.customDescription) } };
       }
       return base;
     })

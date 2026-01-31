@@ -19,7 +19,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Plus, Pencil, Trash2, Copy, Loader2, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
+import Image from "next/image";
+import { Plus, Pencil, Trash2, Copy, Loader2, GripVertical, ChevronUp, ChevronDown, ImagePlus, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Droppable, Draggable } from "@hello-pangea/dnd";
 import { useUserLinksDragDrop, type UserLinkItem } from "@/hooks/use-user-links-drag-drop";
 import { toast } from "sonner";
@@ -72,6 +74,10 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formLabel, setFormLabel] = useState("");
   const [formUrl, setFormUrl] = useState("");
+  const [formBannerUrl, setFormBannerUrl] = useState<string | null>(null);
+  const [formCustomDescription, setFormCustomDescription] = useState("");
+  const [formSensitiveContent, setFormSensitiveContent] = useState(false);
+  const [bannerUploading, setBannerUploading] = useState(false);
   const [bio, setBio] = useState("");
   const [buttonStyle, setButtonStyle] = useState<"rounded" | "pill" | "square">("rounded");
   const [buttonColor, setButtonColor] = useState("");
@@ -124,7 +130,13 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
       const res = await fetch("/api/user/links", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label: formLabel.trim(), url: formUrl.trim() }),
+        body: JSON.stringify({
+          label: formLabel.trim(),
+          url: formUrl.trim(),
+          bannerImageUrl: formBannerUrl || null,
+          customDescription: formCustomDescription.trim() || null,
+          isSensitiveContent: formSensitiveContent,
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -135,6 +147,9 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
       setAddOpen(false);
       setFormLabel("");
       setFormUrl("");
+      setFormBannerUrl(null);
+      setFormCustomDescription("");
+      setFormSensitiveContent(false);
       toast.success("Link added");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to add link");
@@ -150,7 +165,13 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
       const res = await fetch(`/api/user/links/${editingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label: formLabel.trim(), url: formUrl.trim() }),
+        body: JSON.stringify({
+          label: formLabel.trim(),
+          url: formUrl.trim(),
+          bannerImageUrl: formBannerUrl || null,
+          customDescription: formCustomDescription.trim() || null,
+          isSensitiveContent: formSensitiveContent,
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -163,6 +184,9 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
       setEditingId(null);
       setFormLabel("");
       setFormUrl("");
+      setFormBannerUrl(null);
+      setFormCustomDescription("");
+      setFormSensitiveContent(false);
       toast.success("Link updated");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to update link");
@@ -239,6 +263,40 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
     setEditingId(link.id);
     setFormLabel(link.label);
     setFormUrl(link.url);
+    setFormBannerUrl(link.bannerImageUrl ?? null);
+    setFormCustomDescription(link.customDescription ?? "");
+    setFormSensitiveContent(link.isSensitiveContent ?? false);
+  };
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file (JPEG, PNG, GIF, WebP).");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB.");
+      return;
+    }
+    setBannerUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/user/upload-link-banner", { method: "POST", body: formData });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Upload failed");
+      }
+      const { url } = await res.json();
+      setFormBannerUrl(url);
+      toast.success("Banner uploaded");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to upload");
+    } finally {
+      setBannerUploading(false);
+      e.target.value = "";
+    }
   };
 
   if (loading) {
@@ -557,9 +615,46 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
                 onChange={(e) => setFormUrl(e.target.value)}
               />
             </div>
+            <div className="space-y-2">
+              <Label>Banner image (optional)</Label>
+              <p className="text-xs text-muted-foreground">Add a banner to show this link as a card like playlists.</p>
+              {formBannerUrl ? (
+                <div className="relative rounded-lg border overflow-hidden bg-muted w-full aspect-[560/200] max-h-24">
+                  <Image src={formBannerUrl} alt="" fill className="object-cover" sizes="280px" unoptimized={formBannerUrl.includes("cloudinary")} />
+                  <Button type="button" variant="secondary" size="icon" className="absolute top-1 right-1 h-7 w-7 rounded-full cursor-pointer" onClick={() => setFormBannerUrl(null)} aria-label="Remove banner">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <label className="flex items-center justify-center gap-2 h-20 rounded-lg border border-dashed cursor-pointer hover:bg-muted/50 transition-colors">
+                  <input type="file" accept="image/*" className="sr-only" onChange={handleBannerUpload} disabled={bannerUploading} />
+                  {bannerUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagePlus className="h-5 w-5 text-muted-foreground" />}
+                  <span className="text-sm text-muted-foreground">{bannerUploading ? "Uploading…" : "Upload banner"}</span>
+                </label>
+              )}
+            </div>
+            {formBannerUrl ? (
+              <div className="space-y-2">
+                <Label htmlFor="link-desc">Short description (optional)</Label>
+                <Input
+                  id="link-desc"
+                  placeholder="One line shown under the link"
+                  value={formCustomDescription}
+                  onChange={(e) => setFormCustomDescription(e.target.value)}
+                  maxLength={120}
+                />
+                <p className="text-xs text-muted-foreground">Truncated to one line on your link page.</p>
+              </div>
+            ) : null}
+            <div className="flex items-center space-x-2">
+              <Checkbox id="link-sensitive" checked={formSensitiveContent} onCheckedChange={(c) => setFormSensitiveContent(c === true)} className="cursor-pointer" />
+              <Label htmlFor="link-sensitive" className="text-sm font-normal cursor-pointer">
+                This link contains sexually explicit or sensitive content (visitors will see a consent screen before opening)
+              </Label>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddOpen(false)} className="cursor-pointer">
+            <Button variant="outline" onClick={() => { setAddOpen(false); setFormBannerUrl(null); setFormCustomDescription(""); setFormSensitiveContent(false); }} className="cursor-pointer">
               Cancel
             </Button>
             <Button onClick={handleAddLink} disabled={saving} className="cursor-pointer">
@@ -596,9 +691,45 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
                 onChange={(e) => setFormUrl(e.target.value)}
               />
             </div>
+            <div className="space-y-2">
+              <Label>Banner image (optional)</Label>
+              <p className="text-xs text-muted-foreground">Add a banner to show this link as a card.</p>
+              {formBannerUrl ? (
+                <div className="relative rounded-lg border overflow-hidden bg-muted w-full aspect-[560/200] max-h-24">
+                  <Image src={formBannerUrl} alt="" fill className="object-cover" sizes="280px" unoptimized={formBannerUrl.includes("cloudinary")} />
+                  <Button type="button" variant="secondary" size="icon" className="absolute top-1 right-1 h-7 w-7 rounded-full cursor-pointer" onClick={() => setFormBannerUrl(null)} aria-label="Remove banner">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <label className="flex items-center justify-center gap-2 h-20 rounded-lg border border-dashed cursor-pointer hover:bg-muted/50 transition-colors">
+                  <input type="file" accept="image/*" className="sr-only" onChange={handleBannerUpload} disabled={bannerUploading} />
+                  {bannerUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagePlus className="h-5 w-5 text-muted-foreground" />}
+                  <span className="text-sm text-muted-foreground">{bannerUploading ? "Uploading…" : "Upload banner"}</span>
+                </label>
+              )}
+            </div>
+            {formBannerUrl ? (
+              <div className="space-y-2">
+                <Label htmlFor="edit-desc">Short description (optional)</Label>
+                <Input
+                  id="edit-desc"
+                  placeholder="One line shown under the link"
+                  value={formCustomDescription}
+                  onChange={(e) => setFormCustomDescription(e.target.value)}
+                  maxLength={120}
+                />
+              </div>
+            ) : null}
+            <div className="flex items-center space-x-2">
+              <Checkbox id="edit-sensitive" checked={formSensitiveContent} onCheckedChange={(c) => setFormSensitiveContent(c === true)} className="cursor-pointer" />
+              <Label htmlFor="edit-sensitive" className="text-sm font-normal cursor-pointer">
+                This link contains sexually explicit or sensitive content (visitors will see a consent screen before opening)
+              </Label>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingId(null)} className="cursor-pointer">
+            <Button variant="outline" onClick={() => { setEditingId(null); setFormBannerUrl(null); setFormCustomDescription(""); setFormSensitiveContent(false); }} className="cursor-pointer">
               Cancel
             </Button>
             <Button onClick={handleUpdateLink} disabled={saving} className="cursor-pointer">

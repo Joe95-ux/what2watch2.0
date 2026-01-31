@@ -52,6 +52,10 @@ interface PublicLinkCardProps {
     resourceId?: string | null;
     listPreview?: { name: string; description: string | null; coverImageUrl: string | null };
     playlistPreview?: { name: string; description: string | null; coverImageUrl: string | null };
+    customPreview?: { coverImageUrl: string; description: string | null };
+    bannerImageUrl?: string | null;
+    customDescription?: string | null;
+    isSensitiveContent?: boolean;
   };
   theme: LinkPageTheme | null;
   isOwner: boolean;
@@ -60,10 +64,18 @@ interface PublicLinkCardProps {
 export function PublicLinkCard({ link, theme, isOwner }: PublicLinkCardProps) {
   const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [consentOpen, setConsentOpen] = useState(false);
   const buttonStyle = theme?.buttonStyle ?? "rounded";
-  const preview = link.listPreview ?? link.playlistPreview;
+  const preview = link.listPreview ?? link.playlistPreview ?? link.customPreview;
   const description = preview?.description ?? null;
   const coverImageUrl = preview?.coverImageUrl ?? null;
+  const isCustom = !!link.customPreview;
+  const isSensitive = link.isSensitiveContent === true;
+
+  const openLink = () => {
+    window.open(link.url, "_blank", "noopener,noreferrer");
+    setConsentOpen(false);
+  };
 
   const handleCopyLink = async () => {
     try {
@@ -80,7 +92,7 @@ export function PublicLinkCard({ link, theme, isOwner }: PublicLinkCardProps) {
 
   const performDelete = async () => {
     setDeleteOpen(false);
-    const payload = { label: link.label, url: link.url, icon: link.icon ?? null, resourceType: link.resourceType ?? null, resourceId: link.resourceId ?? null };
+    const payload = { label: link.label, url: link.url, icon: link.icon ?? null, resourceType: link.resourceType ?? null, resourceId: link.resourceId ?? null, bannerImageUrl: link.bannerImageUrl ?? null, customDescription: link.customDescription ?? null, isSensitiveContent: link.isSensitiveContent ?? false };
     try {
       const res = await fetch(`/api/user/links/${link.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
@@ -122,40 +134,79 @@ export function PublicLinkCard({ link, theme, isOwner }: PublicLinkCardProps) {
       style={theme?.buttonColor ? { borderColor: "transparent" } : undefined}
     >
       {/* Section 1: banner (most height), same border radius from settings */}
-      <a
-        href={link.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={cn("block relative w-full h-40 bg-muted overflow-hidden", buttonStyle === "pill" ? "rounded-t-full" : buttonStyle === "rounded" ? "rounded-t-xl" : "rounded-t-md")}
-      >
-        {coverImageUrl ? (
-          <Image
-            src={coverImageUrl}
-            alt=""
-            fill
-            className="object-cover"
-            sizes="(max-width: 28rem) 100vw, 28rem"
-            unoptimized={coverImageUrl.startsWith("http") && !coverImageUrl.includes("image.tmdb.org")}
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-            <span className="text-4xl">{link.listPreview ? "📋" : "▶"}</span>
-          </div>
-        )}
-      </a>
-      {/* Section 2: label + description row, three dots at end */}
-      <div className="flex flex-row items-center gap-2 p-3 flex-shrink-0">
+      {isSensitive ? (
+        <button
+          type="button"
+          onClick={() => setConsentOpen(true)}
+          className={cn("block relative w-full h-40 bg-muted overflow-hidden cursor-pointer text-left", buttonStyle === "pill" ? "rounded-t-full" : buttonStyle === "rounded" ? "rounded-t-xl" : "rounded-t-md")}
+        >
+          {coverImageUrl ? (
+            <Image
+              src={coverImageUrl}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="(max-width: 28rem) 100vw, 28rem"
+              unoptimized={coverImageUrl.startsWith("http") && !coverImageUrl.includes("image.tmdb.org")}
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+              <span className="text-4xl">{isCustom ? "🖼" : link.listPreview ? "📋" : "▶"}</span>
+            </div>
+          )}
+        </button>
+      ) : (
         <a
           href={link.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex-1 min-w-0 flex flex-col"
+          className={cn("block relative w-full h-40 bg-muted overflow-hidden", buttonStyle === "pill" ? "rounded-t-full" : buttonStyle === "rounded" ? "rounded-t-xl" : "rounded-t-md")}
         >
-          <p className="font-medium text-sm truncate">{link.label}</p>
-          {description ? (
-            <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{description}</p>
-          ) : null}
+          {coverImageUrl ? (
+            <Image
+              src={coverImageUrl}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="(max-width: 28rem) 100vw, 28rem"
+              unoptimized={coverImageUrl.startsWith("http") && !coverImageUrl.includes("image.tmdb.org")}
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+              <span className="text-4xl">{isCustom ? "🖼" : link.listPreview ? "📋" : "▶"}</span>
+            </div>
+          )}
         </a>
+      )}
+      {/* Section 2: label + description row, three dots at end; uses background color from link settings */}
+      <div
+        className="flex flex-row items-center gap-2 p-3 flex-shrink-0"
+        style={theme?.backgroundColor ? { backgroundColor: theme.backgroundColor } : undefined}
+      >
+        {isSensitive ? (
+          <button
+            type="button"
+            onClick={() => setConsentOpen(true)}
+            className="flex-1 min-w-0 flex flex-col text-left cursor-pointer"
+          >
+            <p className="font-medium text-sm truncate">{link.label}</p>
+            {description ? (
+              <p className={cn("text-xs text-muted-foreground mt-0.5", isCustom ? "line-clamp-1" : "line-clamp-2")}>{description}</p>
+            ) : null}
+          </button>
+        ) : (
+          <a
+            href={link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 min-w-0 flex flex-col"
+          >
+            <p className="font-medium text-sm truncate">{link.label}</p>
+            {description ? (
+              <p className={cn("text-xs text-muted-foreground mt-0.5", isCustom ? "line-clamp-1" : "line-clamp-2")}>{description}</p>
+            ) : null}
+          </a>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -226,6 +277,20 @@ export function PublicLinkCard({ link, theme, isOwner }: PublicLinkCardProps) {
             <AlertDialogAction onClick={performDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Remove
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={consentOpen} onOpenChange={setConsentOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sensitive content</AlertDialogTitle>
+            <AlertDialogDescription>
+              This link may contain sexually explicit or sensitive content. Do you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={openLink}>Continue</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -10,6 +10,9 @@ export type UserLinkItem = {
   icon?: string | null;
   resourceType?: string | null;
   resourceId?: string | null;
+  bannerImageUrl?: string | null;
+  customDescription?: string | null;
+  isSensitiveContent?: boolean;
   clicks?: number;
 };
 

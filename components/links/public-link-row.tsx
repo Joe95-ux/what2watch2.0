@@ -35,7 +35,7 @@ type LinkPageTheme = {
 };
 
 interface PublicLinkRowProps {
-  link: { id: string; label: string; url: string; icon?: string | null; resourceType?: string | null; resourceId?: string | null };
+  link: { id: string; label: string; url: string; icon?: string | null; resourceType?: string | null; resourceId?: string | null; bannerImageUrl?: string | null; customDescription?: string | null; isSensitiveContent?: boolean };
   theme: LinkPageTheme | null;
   isOwner: boolean;
 }
@@ -50,10 +50,17 @@ const SHARE_PLATFORMS: Array<{ key: string; label: string; getUrl: (url: string,
 export function PublicLinkRow({ link, theme, isOwner }: PublicLinkRowProps) {
   const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [consentOpen, setConsentOpen] = useState(false);
   const buttonStyle = theme?.buttonStyle ?? "rounded";
   const buttonColor = theme?.buttonColor ?? undefined;
   const network = networkFor(link.url);
   const showSocialIcon = network && network !== "sharethis";
+  const isSensitive = link.isSensitiveContent === true;
+
+  const openLink = () => {
+    window.open(link.url, "_blank", "noopener,noreferrer");
+    setConsentOpen(false);
+  };
 
   const handleCopyLink = async () => {
     try {
@@ -71,7 +78,7 @@ export function PublicLinkRow({ link, theme, isOwner }: PublicLinkRowProps) {
 
   const performDelete = async () => {
     setDeleteOpen(false);
-    const payload = { label: link.label, url: link.url, icon: link.icon ?? null, resourceType: link.resourceType ?? null, resourceId: link.resourceId ?? null };
+    const payload = { label: link.label, url: link.url, icon: link.icon ?? null, resourceType: link.resourceType ?? null, resourceId: link.resourceId ?? null, bannerImageUrl: link.bannerImageUrl ?? null, customDescription: link.customDescription ?? null, isSensitiveContent: link.isSensitiveContent ?? false };
     try {
       const res = await fetch(`/api/user/links/${link.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
@@ -111,6 +118,28 @@ export function PublicLinkRow({ link, theme, isOwner }: PublicLinkRowProps) {
       )}
       style={buttonColor ? { backgroundColor: buttonColor } : undefined}
     >
+      {isSensitive ? (
+        <button
+          type="button"
+          onClick={() => setConsentOpen(true)}
+          className={cn(
+            "flex-1 flex items-center gap-3 py-3.5 px-4 min-w-0 font-medium text-sm transition-all hover:opacity-90 active:scale-[0.98] text-left cursor-pointer",
+            buttonColor ? "text-white" : "text-foreground"
+          )}
+        >
+          {showSocialIcon ? (
+          <span className="shrink-0 w-7 h-7 flex items-center justify-center [&_.social-icon]:!w-7 [&_.social-icon]:!h-7">
+            <SocialIcon
+              network={network}
+              as="span"
+              style={{ width: 28, height: 28 }}
+              className="!block"
+            />
+          </span>
+        ) : null}
+        <span className="truncate">{link.label}</span>
+        </button>
+      ) : (
       <a
         href={link.url}
         target="_blank"
@@ -132,6 +161,7 @@ export function PublicLinkRow({ link, theme, isOwner }: PublicLinkRowProps) {
         ) : null}
         <span className="truncate">{link.label}</span>
       </a>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -204,6 +234,20 @@ export function PublicLinkRow({ link, theme, isOwner }: PublicLinkRowProps) {
             <AlertDialogAction onClick={performDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Remove
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={consentOpen} onOpenChange={setConsentOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sensitive content</AlertDialogTitle>
+            <AlertDialogDescription>
+              This link may contain sexually explicit or sensitive content. Do you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={openLink}>Continue</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

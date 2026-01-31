@@ -38,6 +38,8 @@ export type PublicLink = {
   resourceId?: string | null;
   listPreview?: { name: string; description: string | null; coverImageUrl: string | null };
   playlistPreview?: { name: string; description: string | null; coverImageUrl: string | null };
+  customPreview?: { coverImageUrl: string; description: string | null };
+  isSensitiveContent?: boolean;
 };
 
 export interface PublicLinksPageProps {
@@ -76,7 +78,7 @@ export function PublicLinksPage({
   const hasMoreLinks = restLinks.length > 0;
 
   const renderLink = (link: PublicLink) =>
-    link.listPreview || link.playlistPreview ? (
+    link.listPreview || link.playlistPreview || link.customPreview ? (
       <PublicLinkCard key={link.id} link={link} theme={theme} isOwner={isOwner} />
     ) : (
       <PublicLinkRow key={link.id} link={link} theme={theme} isOwner={isOwner} />
@@ -111,8 +113,8 @@ export function PublicLinksPage({
       style={bgColor ? { backgroundColor: bgColor } : undefined}
     >
       <div className="w-full max-w-[28rem] flex flex-col gap-6">
-        {/* Header: avatar + name block, flex-row centered */}
-        <div className="flex flex-row items-center justify-center gap-3">
+        {/* Header: avatar + name block, flex-col centered */}
+        <div className="flex flex-col items-center justify-center gap-3 text-center">
           <div className="relative w-20 h-20 shrink-0 rounded-full overflow-hidden border-4 border-white/20 shadow-lg bg-muted">
             {avatarUrl ? (
               <Image
@@ -129,7 +131,7 @@ export function PublicLinksPage({
               </div>
             )}
           </div>
-          <div className="min-w-0 text-left">
+          <div className="min-w-0">
             <h1
               className="text-xl font-semibold text-foreground break-words"
               style={theme?.fontFamily ? { fontFamily: theme.fontFamily } : undefined}
@@ -142,9 +144,10 @@ export function PublicLinksPage({
           </div>
         </div>
 
-        {/* Social icons + Share: row, centered */}
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          {socialLinks.map((link) => {
+        {/* Social icons + Share: row, overflow-x-auto with no scrollbar */}
+        <div className="w-full overflow-x-auto scrollbar-hide">
+          <div className="flex items-center justify-center gap-3 flex-nowrap min-w-min">
+            {socialLinks.map((link) => {
             const network = networkFor(link.url);
             return (
               <a
@@ -152,7 +155,7 @@ export function PublicLinksPage({
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center w-12 h-12 rounded-full bg-muted/80 hover:bg-muted transition-colors ring-0 focus:ring-0 focus-visible:ring-0 outline-none [&_.social-icon]:!w-8 [&_.social-icon]:!h-8"
+                className="flex items-center justify-center w-12 h-12 shrink-0 rounded-full bg-muted/80 hover:bg-muted transition-colors ring-0 focus:ring-0 focus-visible:ring-0 outline-none [&_.social-icon]:!w-8 [&_.social-icon]:!h-8"
                 aria-label={link.label}
               >
                 <SocialIcon
@@ -164,7 +167,7 @@ export function PublicLinksPage({
               </a>
             );
           })}
-          <DropdownMenu>
+            <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
@@ -202,6 +205,7 @@ export function PublicLinksPage({
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </div>
 
         {/* About me: centered, bio in dashed div with 10px radius */}
@@ -218,8 +222,8 @@ export function PublicLinksPage({
         )}
 
         {/* My Links: first 6 visible, show more/less for rest (max 10) */}
-        <div className="w-full">
-          <h2 className="text-sm font-semibold text-foreground mb-3">My Links</h2>
+        <div className="w-full text-center">
+          <h2 className="text-sm font-semibold text-foreground mb-3 uppercase">My Links</h2>
           <div className="space-y-3">
             {initialLinks.map(renderLink)}
             <div

@@ -29,6 +29,9 @@ export async function GET(): Promise<NextResponse<{ links: unknown[] } | { error
         icon: true,
         resourceType: true,
         resourceId: true,
+        bannerImageUrl: true,
+        customDescription: true,
+        isSensitiveContent: true,
         clicks: true,
       },
     });
@@ -59,12 +62,15 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ link: u
     }
 
     const body = await request.json();
-    const { label, url, icon, resourceType, resourceId } = body as {
+    const { label, url, icon, resourceType, resourceId, bannerImageUrl, customDescription, isSensitiveContent } = body as {
       label?: string;
       url?: string;
       icon?: string | null;
       resourceType?: string | null;
       resourceId?: string | null;
+      bannerImageUrl?: string | null;
+      customDescription?: string | null;
+      isSensitiveContent?: boolean;
     };
 
     if (!label?.trim() || !url?.trim()) {
@@ -98,6 +104,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ link: u
         icon: icon?.trim() || null,
         resourceType: resourceType?.trim() || null,
         resourceId: resourceId?.trim() || null,
+        bannerImageUrl: bannerImageUrl?.trim() || null,
+        customDescription: customDescription?.trim() || null,
+        isSensitiveContent: isSensitiveContent === true,
       },
       select: {
         id: true,
@@ -108,6 +117,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ link: u
         icon: true,
         resourceType: true,
         resourceId: true,
+        bannerImageUrl: true,
+        customDescription: true,
+        isSensitiveContent: true,
       },
     });
 

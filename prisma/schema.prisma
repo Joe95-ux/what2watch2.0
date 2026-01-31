@@ -164,21 +164,24 @@ model LinkPage {
   @@map("link_pages")
 }
 
-// Link-in-bio link item (socials, affiliate, in-app lists/playlists)
+// Link-in-bio link item (socials, affiliate, in-app lists/playlists, custom with banner)
 model UserLink {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId       String   @db.ObjectId
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  label        String
-  url          String
-  order        Int      @default(0)
-  isActive      Boolean  @default(true)
-  icon         String?  // optional icon name (e.g. "link", "instagram")
-  resourceType  String?  // "list" | "playlist" | "profile" for in-app links
-  resourceId   String?  // list/playlist id for resolving URL
-  clicks       Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId           String   @db.ObjectId
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label            String
+  url              String
+  order            Int      @default(0)
+  isActive         Boolean  @default(true)
+  icon             String?  // optional icon name (e.g. "link", "instagram")
+  resourceType     String?  // "list" | "playlist" | "profile" for in-app links
+  resourceId       String?  // list/playlist id for resolving URL
+  bannerImageUrl   String?  // custom banner (Cloudinary) – link uses card design when set
+  customDescription String? // short description when banner set; truncated to one line on display
+  isSensitiveContent Boolean @default(false) // if true, show consent screen before opening link
+  clicks           Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@map("user_links")
   @@index([userId])

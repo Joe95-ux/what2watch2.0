@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { deleteByUrl } from "@/lib/cloudinary";
 
 export async function PATCH(
   request: NextRequest,
@@ -22,7 +23,7 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json();
-    const { label, url, order, isActive, icon, resourceType, resourceId } = body as {
+    const { label, url, order, isActive, icon, resourceType, resourceId, bannerImageUrl, customDescription, isSensitiveContent } = body as {
       label?: string;
       url?: string;
       order?: number;
@@ -30,6 +31,9 @@ export async function PATCH(
       icon?: string | null;
       resourceType?: string | null;
       resourceId?: string | null;
+      bannerImageUrl?: string | null;
+      customDescription?: string | null;
+      isSensitiveContent?: boolean;
     };
 
     const existing = await db.userLink.findFirst({
@@ -37,6 +41,11 @@ export async function PATCH(
     });
     if (!existing) {
       return NextResponse.json({ error: "Link not found" }, { status: 404 });
+    }
+
+    // If banner is being changed or removed, delete old Cloudinary image
+    if (existing.bannerImageUrl && bannerImageUrl !== undefined && bannerImageUrl !== existing.bannerImageUrl) {
+      await deleteByUrl(existing.bannerImageUrl);
     }
 
     const data: Record<string, unknown> = {};
@@ -47,6 +56,9 @@ export async function PATCH(
     if (icon !== undefined) data.icon = icon?.trim() || null;
     if (resourceType !== undefined) data.resourceType = resourceType?.trim() || null;
     if (resourceId !== undefined) data.resourceId = resourceId?.trim() || null;
+    if (bannerImageUrl !== undefined) data.bannerImageUrl = bannerImageUrl?.trim() || null;
+    if (customDescription !== undefined) data.customDescription = customDescription?.trim() || null;
+    if (isSensitiveContent !== undefined) data.isSensitiveContent = isSensitiveContent === true;
 
     const link = await db.userLink.update({
       where: { id },
@@ -60,6 +72,9 @@ export async function PATCH(
         icon: true,
         resourceType: true,
         resourceId: true,
+        bannerImageUrl: true,
+        customDescription: true,
+        isSensitiveContent: true,
       },
     });
 
@@ -97,6 +112,10 @@ export async function DELETE(
     });
     if (!existing) {
       return NextResponse.json({ error: "Link not found" }, { status: 404 });
+    }
+
+    if (existing.bannerImageUrl) {
+      await deleteByUrl(existing.bannerImageUrl);
     }
 
     await db.userLink.delete({ where: { id } });
