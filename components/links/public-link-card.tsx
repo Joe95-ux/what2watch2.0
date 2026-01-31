@@ -178,10 +178,13 @@ export function PublicLinkCard({ link, theme, isOwner }: PublicLinkCardProps) {
           )}
         </a>
       )}
-      {/* Section 2: label + description row, three dots at end; uses background color from link settings */}
+      {/* Section 2: label + description row, left-aligned; uses link button color from settings */}
       <div
-        className="flex flex-row items-center gap-2 p-3 flex-shrink-0"
-        style={theme?.backgroundColor ? { backgroundColor: theme.backgroundColor } : undefined}
+        className={cn(
+          "flex flex-row items-center gap-2 p-3 flex-shrink-0 text-left",
+          !theme?.buttonColor && "bg-card"
+        )}
+        style={theme?.buttonColor ? { backgroundColor: theme.buttonColor, color: "#fff" } : undefined}
       >
         {isSensitive ? (
           <button
@@ -191,7 +194,7 @@ export function PublicLinkCard({ link, theme, isOwner }: PublicLinkCardProps) {
           >
             <p className="font-medium text-sm truncate">{link.label}</p>
             {description ? (
-              <p className={cn("text-xs text-muted-foreground mt-0.5", isCustom ? "line-clamp-1" : "line-clamp-2")}>{description}</p>
+              <p className={cn("text-xs mt-0.5", theme?.buttonColor ? "text-white/90" : "text-muted-foreground", isCustom ? "line-clamp-1" : "line-clamp-2")}>{description}</p>
             ) : null}
           </button>
         ) : (
@@ -199,11 +202,11 @@ export function PublicLinkCard({ link, theme, isOwner }: PublicLinkCardProps) {
             href={link.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 min-w-0 flex flex-col"
+            className="flex-1 min-w-0 flex flex-col text-left"
           >
             <p className="font-medium text-sm truncate">{link.label}</p>
             {description ? (
-              <p className={cn("text-xs text-muted-foreground mt-0.5", isCustom ? "line-clamp-1" : "line-clamp-2")}>{description}</p>
+              <p className={cn("text-xs mt-0.5", theme?.buttonColor ? "text-white/90" : "text-muted-foreground", isCustom ? "line-clamp-1" : "line-clamp-2")}>{description}</p>
             ) : null}
           </a>
         )}
@@ -212,7 +215,10 @@ export function PublicLinkCard({ link, theme, isOwner }: PublicLinkCardProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="shrink-0 h-9 w-9 rounded-full cursor-pointer ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 outline-none"
+              className={cn(
+                "shrink-0 h-9 w-9 rounded-full cursor-pointer ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 outline-none",
+                theme?.buttonColor && "text-white hover:bg-white/20"
+              )}
               aria-label="Link options"
               onClick={(e) => e.preventDefault()}
             >

@@ -211,7 +211,7 @@ export function PublicLinksPage({
         {/* About me: centered, bio in dashed div with 10px radius */}
         {bio && (
           <section className="w-full text-center">
-            <h2 className="text-sm font-semibold text-foreground mb-2">About me</h2>
+            <h2 className="text-sm font-semibold text-foreground mb-2 uppercase">About me</h2>
             <div
               className="border border-dashed border-border rounded-[10px] p-3 text-sm text-muted-foreground text-center"
               style={theme?.fontFamily ? { fontFamily: theme.fontFamily } : undefined}
