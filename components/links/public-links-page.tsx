@@ -84,6 +84,8 @@ export function PublicLinksPage({
       <PublicLinkRow key={link.id} link={link} theme={theme} isOwner={isOwner} />
     );
 
+  const isOwnerWithNoLinks = isOwner && links.length === 0;
+
   const [pageUrl, setPageUrl] = useState("");
   useEffect(() => {
     if (username && typeof window !== "undefined") {
@@ -144,6 +146,28 @@ export function PublicLinksPage({
           </div>
         </div>
 
+        {/* Owner with no links: prompt to create links */}
+        {isOwnerWithNoLinks && (
+          <>
+            <section className="w-full text-center border border-dashed border-border rounded-lg p-6">
+              <p className="text-sm text-muted-foreground mb-4">
+                You don&apos;t have any links yet. Add links in settings to show them here.
+              </p>
+              <Button asChild className="cursor-pointer">
+                <Link href="/settings?section=links">Create links</Link>
+              </Button>
+            </section>
+            <p className="text-xs text-muted-foreground text-center">
+              Powered by{" "}
+              <Link href="/" className="underline hover:text-foreground">
+                What2Watch
+              </Link>
+            </p>
+          </>
+        )}
+
+        {!isOwnerWithNoLinks && (
+          <>
         {/* Social icons + Share: row, overflow-x-auto with no scrollbar */}
         <div className="w-full overflow-x-auto scrollbar-hide">
           <div className="flex items-center justify-center gap-3 flex-nowrap min-w-min">
@@ -264,6 +288,8 @@ export function PublicLinksPage({
             What2Watch
           </Link>
         </p>
+          </>
+        )}
       </div>
     </div>
   );

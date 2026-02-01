@@ -130,7 +130,7 @@ export function UserProfileButton({ hasHeroSection = false }: UserProfileButtonP
               <span>Settings</span>
             </DropdownMenuItem>
           </Link>
-          <Link href="/settings?section=links">
+          <Link href={username ? `/links/${username}` : "/settings?section=links"}>
             <DropdownMenuItem
               className="cursor-pointer"
               onSelect={(e) => {

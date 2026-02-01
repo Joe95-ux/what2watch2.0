@@ -81,6 +81,16 @@ interface SettingsContentProps {
 
 type SettingsSection = "account" | "preferences" | "activity" | "theme" | "notifications" | "view" | "links";
 
+const SETTINGS_SECTION_STORAGE_KEY = "settings-active-section";
+const VALID_SECTIONS: SettingsSection[] = ["account", "preferences", "activity", "theme", "notifications", "view", "links"];
+
+function getStoredSection(): SettingsSection | null {
+  if (typeof window === "undefined") return null;
+  const stored = localStorage.getItem(SETTINGS_SECTION_STORAGE_KEY);
+  if (stored && VALID_SECTIONS.includes(stored as SettingsSection)) return stored as SettingsSection;
+  return null;
+}
+
 export default function SettingsContent({ 
   user, 
   preferences, 
@@ -93,15 +103,28 @@ export default function SettingsContent({
   const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
-  const [activeSection, setActiveSection] = useState<SettingsSection>("account");
+  const [activeSection, setActiveSectionState] = useState<SettingsSection>("account");
 
-  // Check for section query parameter on mount
+  // Sync from URL or localStorage on mount
   useEffect(() => {
     const sectionParam = searchParams.get("section");
-    if (sectionParam && ["account", "preferences", "activity", "theme", "notifications", "view", "links"].includes(sectionParam)) {
-      setActiveSection(sectionParam as SettingsSection);
+    if (sectionParam && VALID_SECTIONS.includes(sectionParam as SettingsSection)) {
+      setActiveSectionState(sectionParam as SettingsSection);
+      return;
     }
+    const stored = getStoredSection();
+    if (stored) setActiveSectionState(stored);
   }, [searchParams]);
+
+  // Persist section to localStorage when it changes
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(SETTINGS_SECTION_STORAGE_KEY, activeSection);
+  }, [activeSection]);
+
+  const setActiveSection = (section: SettingsSection) => {
+    setActiveSectionState(section);
+  };
   const [activitySettings, setActivitySettings] = useState(initialActivitySettings);
   const [notificationSettings, setNotificationSettings] = useState(initialNotificationSettings);
   const [youtubeCardStyle, setYoutubeCardStyle] = useState(initialYoutubeCardStyle);
