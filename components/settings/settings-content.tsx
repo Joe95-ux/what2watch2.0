@@ -103,20 +103,30 @@ export default function SettingsContent({
   const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
-  const [activeSection, setActiveSectionState] = useState<SettingsSection>("account");
 
-  // Sync from URL or localStorage on mount
+  // Initialize from URL or localStorage so the correct tab shows on first paint (persistence for all tabs)
+  const [activeSection, setActiveSectionState] = useState<SettingsSection>(() => {
+    if (typeof window === "undefined") return "account";
+    const params = new URLSearchParams(window.location.search);
+    const sectionParam = params.get("section");
+    if (sectionParam && VALID_SECTIONS.includes(sectionParam as SettingsSection)) return sectionParam as SettingsSection;
+    const stored = localStorage.getItem(SETTINGS_SECTION_STORAGE_KEY);
+    if (stored && VALID_SECTIONS.includes(stored as SettingsSection)) return stored as SettingsSection;
+    return "account";
+  });
+
+  // Sync from URL when searchParams change (e.g. client navigation to /settings?section=links)
   useEffect(() => {
     const sectionParam = searchParams.get("section");
     if (sectionParam && VALID_SECTIONS.includes(sectionParam as SettingsSection)) {
       setActiveSectionState(sectionParam as SettingsSection);
-      return;
+    } else if (!sectionParam) {
+      const stored = getStoredSection();
+      if (stored) setActiveSectionState(stored);
     }
-    const stored = getStoredSection();
-    if (stored) setActiveSectionState(stored);
   }, [searchParams]);
 
-  // Persist section to localStorage when it changes
+  // Persist current tab to localStorage whenever it changes (any tab: account, preferences, theme, links, etc.)
   useEffect(() => {
     if (typeof window === "undefined") return;
     localStorage.setItem(SETTINGS_SECTION_STORAGE_KEY, activeSection);
