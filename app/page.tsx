@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { SignInButton, useUser } from "@clerk/nextjs";
 import Navbar from "@/components/navbar/navbar";
+import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import TrailerModal from "@/components/browse/trailer-modal";
@@ -769,109 +770,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Main Footer */}
-      <footer className="border-t bg-muted/30 py-12">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <h3 className="mb-4 font-semibold">What2Watch</h3>
-              <p className="text-sm text-muted-foreground">
-                Your personal watchlist companion for discovering great movies and TV shows.
-              </p>
-            </div>
-            <div>
-              <h4 className="mb-4 text-sm font-semibold">Discover</h4>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <Link href="/browse" className="text-muted-foreground hover:text-foreground">
-                    Browse
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/movies" className="text-muted-foreground hover:text-foreground">
-                    Movies
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/tv" className="text-muted-foreground hover:text-foreground">
-                    TV Shows
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="mb-4 text-sm font-semibold">Platform</h4>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <Link href="/dashboard/my-list" className="text-muted-foreground hover:text-foreground">
-                    My List
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/dashboard/playlists" className="text-muted-foreground hover:text-foreground">
-                    Playlists
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/forum" className="text-muted-foreground hover:text-foreground">
-                    Forums
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="mb-4 text-sm font-semibold">Company</h4>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <Link href="/about" className="text-muted-foreground hover:text-foreground">
-                    About
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/privacy" className="text-muted-foreground hover:text-foreground">
-                    Privacy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/terms" className="text-muted-foreground hover:text-foreground">
-                    Terms
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      {/* Bottom Footer */}
-      <footer className="border-t bg-muted/30 py-8">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-center justify-center gap-4">
-            {/* Powered by TMDB */}
-            <div className="flex flex-col items-center gap-2">
-              <p className="text-xs text-muted-foreground">Powered by (not endorsed)</p>
-              <Link
-                href="https://www.themoviedb.org"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center hover:opacity-80 transition-opacity"
-              >
-                <Image
-                  src="/moviedb-logo2.svg"
-                  alt="The Movie Database"
-                  width={80}
-                  height={16}
-                  className="h-4 w-auto"
-                />
-              </Link>
-            </div>
-            {/* Copyright */}
-            <p className="text-xs text-muted-foreground">
-              &copy; {new Date().getFullYear()} What2Watch. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
       <TrailerModal
         video={activeTrailer?.trailer ?? null}

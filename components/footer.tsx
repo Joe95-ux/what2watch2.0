@@ -3,6 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import { SocialIcon } from "react-social-icons";
+import { Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -47,9 +49,9 @@ export default function Footer() {
     <footer className="w-full border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       {/* Four-column section */}
       <div className="w-full px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-8 lg:gap-6 max-w-7xl mx-auto">
-          {/* 1 - Platform (larger) */}
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6 max-w-7xl mx-auto justify-items-center items-center">
+          {/* 1 - Platform */}
+          <div className="flex flex-col w-full max-w-xs">
             <h3 className="text-sm font-semibold text-foreground mb-4">Platform</h3>
             <ul className="space-y-2.5">
               {PLATFORM_LINKS.map((item) => (
@@ -66,7 +68,7 @@ export default function Footer() {
           </div>
 
           {/* 2 - Discover */}
-          <div>
+          <div className="flex flex-col w-full max-w-xs">
             <h3 className="text-sm font-semibold text-foreground mb-4">Discover</h3>
             <ul className="space-y-2.5">
               {DISCOVER_LINKS.map((item) => (
@@ -83,7 +85,7 @@ export default function Footer() {
           </div>
 
           {/* 3 - Useful Links */}
-          <div>
+          <div className="flex flex-col w-full max-w-xs">
             <h3 className="text-sm font-semibold text-foreground mb-4">Useful Links</h3>
             <ul className="space-y-2.5">
               {USEFUL_LINKS.map((item) => (
@@ -99,12 +101,15 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* 4 - Newsletter (largest, same width as column 1) */}
-          <div className="sm:col-span-2 lg:col-span-2">
-            <h3 className="text-sm font-semibold text-foreground mb-4">
-              Sign up for our Newsletter
+          {/* 4 - Newsletter + social */}
+          <div className="flex flex-col items-center text-center w-full max-w-xs">
+            <h3 className="text-sm font-semibold text-foreground mb-2">
+              Get the latest update
             </h3>
-            <form onSubmit={handleNewsletterSubmit} className="space-y-3">
+            <p className="text-xs text-muted-foreground mb-4">
+              Subscribe to our newsletter for the latest movie and tv show insights.
+            </p>
+            <form onSubmit={handleNewsletterSubmit} className="space-y-3 w-full">
               <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   type="email"
@@ -130,6 +135,43 @@ export default function Footer() {
                 </p>
               )}
             </form>
+            {/* Social icons */}
+            <div className="flex items-center justify-center gap-3 mt-6">
+              <a
+                href="https://www.instagram.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Instagram"
+              >
+                <SocialIcon network="instagram" as="span" style={{ width: 24, height: 24 }} className="!block" />
+              </a>
+              <a
+                href="https://www.facebook.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Facebook"
+              >
+                <SocialIcon network="facebook" as="span" style={{ width: 24, height: 24 }} className="!block" />
+              </a>
+              <a
+                href="https://www.youtube.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="YouTube"
+              >
+                <SocialIcon network="youtube" as="span" style={{ width: 24, height: 24 }} className="!block" />
+              </a>
+              <a
+                href="mailto:hello@what2watch.net"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Email"
+              >
+                <Mail className="h-6 w-6" />
+              </a>
+            </div>
           </div>
         </div>
       </div>
