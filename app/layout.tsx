@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
+import { dark } from "@clerk/themes";
 import RootProviders from "@/components/providers/root-providers";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -22,13 +24,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" style={{ height: "100%" }}>
-      <body
-        className={`${inter.variable} font-sans antialiased h-full`}
-      >
-        <Toaster richColors position="bottom-right" />
-        <RootProviders>{children}</RootProviders>
-      </body>
-    </html>
+    <ClerkProvider
+      afterSignOutUrl="/sign-in"
+      appearance={{
+        baseTheme: dark,
+        elements: {
+          formButtonPrimary:
+            "bg-primary hover:bg-primary/90 text-sm !shadow-none",
+        },
+      }}
+    >
+      <html lang="en" style={{ height: "100%" }}>
+        <body
+          className={`${inter.variable} font-sans antialiased h-full`}
+        >
+          <Toaster richColors position="bottom-right" />
+          <RootProviders>{children}</RootProviders>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

@@ -7,7 +7,6 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import NextTopLoader from "nextjs-toploader";
 import { AvatarProvider } from "@/contexts/avatar-context";
 import { PageViewTracker } from "@/components/analytics/page-view-tracker";
-import { ClerkThemeProvider } from "@/components/providers/clerk-theme-provider";
 
 function RootProviders({ children }: { children: ReactNode }) {
   const [queryClient] = React.useState(() => new QueryClient({}));
@@ -21,12 +20,10 @@ function RootProviders({ children }: { children: ReactNode }) {
           enableSystem
           disableTransitionOnChange
         >
-          <ClerkThemeProvider>
-            <Suspense fallback={null}>
-              <PageViewTracker />
-            </Suspense>
-            {children}
-          </ClerkThemeProvider>
+          <Suspense fallback={null}>
+            <PageViewTracker />
+          </Suspense>
+          {children}
         </ThemeProvider>
         <ReactQueryDevtools initialIsOpen={false} />
       </AvatarProvider>
