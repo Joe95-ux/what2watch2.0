@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import RootProviders from "@/components/providers/root-providers";
 import { Toaster } from "@/components/ui/sonner";
-import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
 const inter = Inter({
@@ -23,16 +22,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider
-      afterSignOutUrl="/sign-in"
-      appearance={{
-        elements: {
-          formButtonPrimary:
-            "bg-primary hover:bg-primary/90 text-sm !shadow-none",
-        },
-      }}
-    >
-    <html lang="en" style={{ height: '100%' }}>
+    <html lang="en" style={{ height: "100%" }}>
       <body
         className={`${inter.variable} font-sans antialiased h-full`}
       >
@@ -40,6 +30,5 @@ export default function RootLayout({
         <RootProviders>{children}</RootProviders>
       </body>
     </html>
-    </ClerkProvider>
   );
 }
