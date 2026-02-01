@@ -849,7 +849,7 @@ export default function LandingPage() {
           <div className="flex flex-col items-center justify-center gap-4">
             {/* Powered by TMDB */}
             <div className="flex flex-col items-center gap-2">
-              <p className="text-xs text-muted-foreground">Powered by</p>
+              <p className="text-xs text-muted-foreground">Powered by (not endorsed)</p>
               <Link
                 href="https://www.themoviedb.org"
                 target="_blank"

@@ -60,7 +60,7 @@ export function UserProfileButton({ hasHeroSection = false }: UserProfileButtonP
         <DropdownMenuTrigger asChild>
           <button
             className={cn(
-              "flex items-center gap-2 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer",
+              "flex items-center gap-2 rounded-full transition-colors duration-300 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 cursor-pointer",
               hasHeroSection 
                 ? "hover:bg-black/20 p-1" 
                 : "hover:bg-accent p-1"
