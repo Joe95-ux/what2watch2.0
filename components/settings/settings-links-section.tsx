@@ -20,7 +20,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import Image from "next/image";
-import { Plus, Pencil, Trash2, Copy, Loader2, GripVertical, ChevronUp, ChevronDown, ImagePlus, X } from "lucide-react";
+import { Plus, Copy, Loader2, GripVertical, ChevronUp, ChevronDown, ImagePlus, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Droppable, Draggable } from "@hello-pangea/dnd";
 import { useUserLinksDragDrop, type UserLinkItem } from "@/hooks/use-user-links-drag-drop";
@@ -39,6 +39,7 @@ import {
   getThemeIdForColors,
 } from "@/lib/link-page-themes";
 import { sanitizeHtml } from "@/lib/moderation";
+import { LinkRowActionsDropdown } from "@/components/settings/link-row-actions-dropdown";
 
 const MAX_BIO_WORDS = 50;
 
@@ -427,22 +428,10 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
                             >
                               <ChevronDown className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openEdit(link)}
-                              className="shrink-0 cursor-pointer"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteLink(link.id)}
-                              className="shrink-0 cursor-pointer text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <LinkRowActionsDropdown
+                              onEdit={() => openEdit(link)}
+                              onDelete={() => handleDeleteLink(link.id)}
+                            />
                           </div>
                         </div>
                       )}
