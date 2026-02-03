@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useUserActivity, type ActivityType, type Activity } from "@/hooks/use-activity";
+import { useUserActivity, useActivityLike, type ActivityType, type Activity } from "@/hooks/use-activity";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
@@ -47,8 +47,11 @@ const ACTIVITY_TYPES: { value: ActivityType | "all"; label: string; icon: React.
 function ActivityItem({ activity }: { activity: Activity }) {
   const { data: currentUser } = useCurrentUser();
   const { avatarUrl: contextAvatarUrl } = useAvatar();
+  const { toggleLike, isPending } = useActivityLike(activity.id, activity.likedByMe ?? false);
   const displayName = activity.user.username || activity.user.displayName || "Unknown";
   const isCurrentUser = currentUser?.id === activity.user.id;
+  const canLike = !!currentUser && !isCurrentUser;
+  const likeCount = activity.likeCount ?? 0;
 
   const getActivityMessage = () => {
     switch (activity.type) {
@@ -208,9 +211,31 @@ function ActivityItem({ activity }: { activity: Activity }) {
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-sm leading-relaxed">{getActivityMessage()}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
-            </p>
+            <div className="flex items-center gap-3 mt-1">
+              <p className="text-xs text-muted-foreground">
+                {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
+              </p>
+              {canLike && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-primary"
+                  onClick={() => toggleLike()}
+                  disabled={isPending}
+                >
+                  <Heart
+                    className={cn("h-3.5 w-3.5 mr-1", activity.likedByMe && "fill-primary text-primary")}
+                  />
+                  {likeCount > 0 ? likeCount : "Like"}
+                </Button>
+              )}
+              {!canLike && likeCount > 0 && (
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Heart className="h-3.5 w-3.5" />
+                  {likeCount}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Poster or Icon */}

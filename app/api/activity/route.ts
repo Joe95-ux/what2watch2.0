@@ -102,7 +102,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ activiti
       orderBy.createdAt = sortOrder === "asc" ? "asc" : "desc";
     }
 
-    // Fetch activities
+    // Fetch activities with like count
     let activities = await db.activity.findMany({
       where,
       include: {
@@ -121,6 +121,9 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ activiti
             displayName: true,
             avatarUrl: true,
           },
+        },
+        _count: {
+          select: { likes: true },
         },
       },
       orderBy,
@@ -142,11 +145,31 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ activiti
     // Apply limit after filtering
     activities = activities.slice(0, limit);
 
-    // Group activities if requested
-    let groupedActivities: Record<string, typeof activities> | null = null;
+    // Which activities has the current user liked?
+    const activityIds = activities.map((a: typeof activities[0]) => a.id);
+    const likedByMeRecords = activityIds.length > 0
+      ? await db.activityLike.findMany({
+          where: { activityId: { in: activityIds }, userId: user.id },
+          select: { activityId: true },
+        })
+      : [];
+    const likedByMeSet = new Set(likedByMeRecords.map((r: { activityId: string }) => r.activityId));
+
+    // Enrich with likeCount and likedByMe (omit _count from response)
+    const enrichedActivities = activities.map((activity: typeof activities[0]) => {
+      const { _count, ...rest } = activity;
+      return {
+        ...rest,
+        likeCount: _count?.likes ?? 0,
+        likedByMe: likedByMeSet.has(activity.id),
+      };
+    });
+
+    // Group activities if requested (use enriched so response has likeCount/likedByMe)
+    let groupedActivities: Record<string, typeof enrichedActivities> | null = null;
     if (groupBy && (groupBy === "day" || groupBy === "week" || groupBy === "month")) {
       groupedActivities = {};
-      activities.forEach((activity: typeof activities[0]) => {
+      enrichedActivities.forEach((activity: (typeof enrichedActivities)[0]) => {
         const date = new Date(activity.createdAt);
         let key: string;
 
@@ -169,9 +192,9 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ activiti
     }
 
     return NextResponse.json({
-      activities: groupedActivities ? Object.values(groupedActivities).flat() : activities,
+      activities: groupedActivities ? Object.values(groupedActivities).flat() : enrichedActivities,
       grouped: groupedActivities,
-      total: activities.length,
+      total: enrichedActivities.length,
     });
   } catch (error) {
     console.error("Activity feed API error:", error);

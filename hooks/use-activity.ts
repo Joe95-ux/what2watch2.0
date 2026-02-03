@@ -25,6 +25,8 @@ export interface Activity {
   rating: number | null;
   metadata: Record<string, unknown> | null;
   createdAt: string;
+  likeCount?: number;
+  likedByMe?: boolean;
   user: {
     id: string;
     username: string | null;
@@ -194,5 +196,42 @@ export function useCreateActivity() {
       queryClient.invalidateQueries({ queryKey: ["activity-feed"] });
     },
   });
+}
+
+// Like/unlike an activity
+async function likeActivity(activityId: string): Promise<{ liked: boolean }> {
+  const res = await fetch(`/api/activity/${activityId}/like`, { method: "POST" });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to like activity");
+  }
+  return res.json();
+}
+
+async function unlikeActivity(activityId: string): Promise<{ liked: boolean }> {
+  const res = await fetch(`/api/activity/${activityId}/like`, { method: "DELETE" });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to unlike activity");
+  }
+  return res.json();
+}
+
+// Hook to like/unlike an activity (toggles)
+export function useActivityLike(activityId: string | undefined, currentLiked: boolean) {
+  const queryClient = useQueryClient();
+
+  const like = useMutation({
+    mutationFn: () => (currentLiked ? unlikeActivity(activityId!) : likeActivity(activityId!)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["activity-feed"] });
+      queryClient.invalidateQueries({ queryKey: ["user-activity"] });
+    },
+  });
+
+  return {
+    toggleLike: () => activityId && like.mutate(),
+    isPending: like.isPending,
+  };
 }
 

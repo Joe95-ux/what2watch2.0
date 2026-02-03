@@ -33,6 +33,10 @@ function getGeneralNotificationIcon(type: string) {
       return <Megaphone className="h-4 w-4" />;
     case "TREND_ALERT_TRIGGERED":
       return <TrendingUp className="h-4 w-4" />;
+    case "NEW_FOLLOWER":
+      return <Bell className="h-4 w-4" />;
+    case "ACTIVITY_LIKED":
+      return <Bell className="h-4 w-4" />;
     default:
       return <Bell className="h-4 w-4" />;
   }
@@ -44,6 +48,10 @@ function getGeneralNotificationTypeLabel(type: string): string {
       return "Feedback";
     case "TREND_ALERT_TRIGGERED":
       return "Trend Alert";
+    case "NEW_FOLLOWER":
+      return "New Follower";
+    case "ACTIVITY_LIKED":
+      return "Activity Liked";
     default:
       return "General";
   }
