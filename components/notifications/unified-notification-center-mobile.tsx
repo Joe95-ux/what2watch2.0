@@ -255,7 +255,7 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
                     key={notification.id}
                     className={cn(
                       "p-4 hover:bg-muted/50 transition-colors",
-                      !notification.isRead && "bg-muted/30"
+                      !notification.isRead && "border-l-[3px] border-l-primary bg-primary/10 dark:bg-primary/20"
                     )}
                   >
                     <div className="flex gap-3">
@@ -351,7 +351,7 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
                     onClick={() => handleGeneralNotificationClick(notification)}
                     className={cn(
                       "p-4 hover:bg-muted/50 transition-colors cursor-pointer",
-                      !notification.isRead && "bg-muted/30"
+                      !notification.isRead && "border-l-[3px] border-l-primary bg-primary/10 dark:bg-primary/20"
                     )}
                   >
                     <div className="flex gap-3">
@@ -437,7 +437,7 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
                     <div
                       className={cn(
                         "p-4 hover:bg-muted/50 transition-colors",
-                        !notification.isRead && "bg-muted/30"
+                        !notification.isRead && "border-l-[3px] border-l-primary bg-primary/10 dark:bg-primary/20"
                       )}
                     >
                       <div className="flex gap-3">

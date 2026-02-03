@@ -36,11 +36,13 @@ import {
   AtSign,
   CheckCircle2,
   LayoutGrid,
-  Link2
+  Link2,
+  Youtube,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { SettingsLinksSection } from "@/components/settings/settings-links-section";
+import { SettingsYoutubeVisibilitySection } from "@/components/settings/settings-youtube-visibility-section";
 
 interface SettingsContentProps {
   user: {
@@ -48,6 +50,7 @@ interface SettingsContentProps {
     email: string;
     displayName: string | null;
     username: string | null;
+    role: string | null;
   };
   preferences: {
     favoriteGenres: number[];
@@ -79,10 +82,10 @@ interface SettingsContentProps {
   youtubeCardStyle: string;
 }
 
-type SettingsSection = "account" | "preferences" | "activity" | "theme" | "notifications" | "view" | "links";
+type SettingsSection = "account" | "preferences" | "activity" | "theme" | "notifications" | "view" | "links" | "youtubeVisibility";
 
 const SETTINGS_SECTION_STORAGE_KEY = "settings-active-section";
-const VALID_SECTIONS: SettingsSection[] = ["account", "preferences", "activity", "theme", "notifications", "view", "links"];
+const VALID_SECTIONS: SettingsSection[] = ["account", "preferences", "activity", "theme", "notifications", "view", "links", "youtubeVisibility"];
 
 function getStoredSection(): SettingsSection | null {
   if (typeof window === "undefined") return null;
@@ -318,6 +321,7 @@ export default function SettingsContent({
     }
   };
 
+  const isAdmin = user.role === "ADMIN" || user.role === "SUPER_ADMIN";
   const settingsSections: Array<{ id: SettingsSection; label: string; icon: React.ReactNode }> = [
     { id: "account", label: "Account", icon: <UserRound className="h-4 w-4" /> },
     { id: "preferences", label: "Preferences", icon: <Palette className="h-4 w-4" /> },
@@ -326,6 +330,7 @@ export default function SettingsContent({
     { id: "notifications", label: "Notifications", icon: <Bell className="h-4 w-4" /> },
     { id: "view", label: "View", icon: <LayoutGrid className="h-4 w-4" /> },
     { id: "links", label: "Link in bio", icon: <Link2 className="h-4 w-4" /> },
+    ...(isAdmin ? [{ id: "youtubeVisibility" as const, label: "YouTube tools visibility", icon: <Youtube className="h-4 w-4" /> }] : []),
   ];
 
   return (
@@ -793,6 +798,11 @@ export default function SettingsContent({
             {/* Link in bio Section */}
             {activeSection === "links" && (
               <SettingsLinksSection username={user.username} />
+            )}
+
+            {/* YouTube tools visibility (Admin / Super Admin only) */}
+            {activeSection === "youtubeVisibility" && isAdmin && (
+              <SettingsYoutubeVisibilitySection />
             )}
           </div>
         </div>

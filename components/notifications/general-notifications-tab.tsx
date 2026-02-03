@@ -207,7 +207,7 @@ export function GeneralNotificationsTab() {
             onClick={() => handleNotificationClick(notification)}
             className={cn(
               "p-4 hover:bg-muted/50 transition-colors cursor-pointer",
-              !notification.isRead && "bg-muted/30"
+              !notification.isRead && "border-l-[3px] border-l-primary bg-primary/10 dark:bg-primary/20"
             )}
           >
             <div className="flex gap-3">

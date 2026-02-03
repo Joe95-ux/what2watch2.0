@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useForumNotifications } from "@/hooks/use-forum-notifications";
 import { useYouTubeNotifications } from "@/hooks/use-youtube-notifications";
 import { useGeneralNotifications } from "@/hooks/use-general-notifications";
+import { useYouTubeToolsVisibility } from "@/hooks/use-youtube-tools-visibility";
 import { UnifiedNotificationCenterMobile } from "@/components/notifications/unified-notification-center-mobile";
 import { AvatarPickerDialog } from "@/components/avatar/avatar-picker-dialog";
 import Logo from "@/components/Logo";
@@ -28,6 +29,8 @@ interface MobileNavProps {
   pathname: string;
   onLinkClick: () => void;
 }
+
+const YOUTUBE_URL = "https://www.youtube.com";
 
 const youtubeNavItems = [
   { href: "/youtube", label: "Overview", icon: YoutubeIcon },
@@ -45,6 +48,10 @@ const youtubeNavItems = [
 export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNavProps) {
   const { isSignedIn, user } = useUser();
   const [youtubeExpanded, setYoutubeExpanded] = useState(false);
+  const { data: youtubeVisibility } = useYouTubeToolsVisibility();
+  const showSimpleYouTubeLink =
+    youtubeVisibility?.mode === "HIDDEN_FROM_ALL" ||
+    (youtubeVisibility?.mode === "INVITE_ONLY" && !youtubeVisibility?.hasAccess);
   const { signOut } = useClerk();
   const router = useRouter();
   const { setTheme, theme } = useTheme();
@@ -315,53 +322,68 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
             );
           })}
           
-          {/* YouTube Dropdown */}
+          {/* YouTube: simple link or tools list */}
           <div className="space-y-1">
-            <button
-              onClick={() => setYoutubeExpanded(!youtubeExpanded)}
-              className={cn(
-                "flex items-center justify-between w-full rounded-md px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
-                (pathname === "/youtube" || pathname?.startsWith("/youtube/"))
-                  ? "bg-muted text-foreground font-medium"
-                  : "text-muted-foreground"
-              )}
-            >
-              <div className="flex items-center">
+            {showSimpleYouTubeLink ? (
+              <a
+                href={YOUTUBE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center rounded-md px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors text-[0.95rem] text-muted-foreground"
+                onClick={onLinkClick}
+              >
                 <YoutubeIcon className="mr-3 h-4 w-4 text-foreground" />
                 <span>YouTube</span>
-              </div>
-              <ChevronDown
-                className={cn(
-                  "h-4 w-4 transition-transform",
-                  youtubeExpanded && "rotate-180"
+              </a>
+            ) : (
+              <>
+                <button
+                  onClick={() => setYoutubeExpanded(!youtubeExpanded)}
+                  className={cn(
+                    "flex items-center justify-between w-full rounded-md px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
+                    (pathname === "/youtube" || pathname?.startsWith("/youtube/"))
+                      ? "bg-muted text-foreground font-medium"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  <div className="flex items-center">
+                    <YoutubeIcon className="mr-3 h-4 w-4 text-foreground" />
+                    <span>YouTube</span>
+                  </div>
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 transition-transform",
+                      youtubeExpanded && "rotate-180"
+                    )}
+                  />
+                </button>
+                {youtubeExpanded && (
+                  <div className="ml-4 space-y-1">
+                    {youtubeNavItems.map((item) => {
+                      const Icon = item.icon;
+                      const isActive =
+                        pathname === item.href ||
+                        (item.href !== "/youtube" && pathname?.startsWith(item.href));
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={onLinkClick}
+                          className={cn(
+                            "flex items-center rounded-md px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors text-[0.9rem]",
+                            isActive
+                              ? "bg-muted/70 text-foreground font-medium"
+                              : "text-muted-foreground"
+                          )}
+                        >
+                          <Icon className="mr-2 h-3.5 w-3.5 text-foreground" />
+                          <span>{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
                 )}
-              />
-            </button>
-            {youtubeExpanded && (
-              <div className="ml-4 space-y-1">
-                {youtubeNavItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive =
-                    pathname === item.href ||
-                    (item.href !== "/youtube" && pathname?.startsWith(item.href));
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={onLinkClick}
-                      className={cn(
-                        "flex items-center rounded-md px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors text-[0.9rem]",
-                        isActive
-                          ? "bg-muted/70 text-foreground font-medium"
-                          : "text-muted-foreground"
-                      )}
-                    >
-                      <Icon className="mr-2 h-3.5 w-3.5 text-foreground" />
-                      <span>{item.label}</span>
-                    </Link>
-                  );
-                })}
-              </div>
+              </>
             )}
           </div>
         </div>

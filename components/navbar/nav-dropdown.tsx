@@ -11,9 +11,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Youtube, TrendingUp, BarChart3, Sparkles, ChevronRight, Target, Stethoscope, Lightbulb, Bell, MessageSquare, Award } from "lucide-react";
+import { Youtube, TrendingUp, BarChart3, Sparkles, Target, Stethoscope, Lightbulb, Bell, MessageSquare, Award } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HamburgerButton } from "./hamburger-button";
+import { useYouTubeToolsVisibility } from "@/hooks/use-youtube-tools-visibility";
+
+const YOUTUBE_URL = "https://www.youtube.com";
 
 interface NavLink {
   href: string;
@@ -80,25 +83,34 @@ export function NavDropdown({ navLinks, hasHeroSection = false }: NavDropdownPro
         })}
         <DropdownMenuSeparator />
         <DropdownMenuLabel>YouTube</DropdownMenuLabel>
-        {youtubeNavItems.map((item) => {
-          const Icon = item.icon;
-          const isActive =
-            pathname === item.href || (item.href !== "/youtube" && pathname?.startsWith(item.href));
-          return (
-            <Link key={item.href} href={item.href}>
-              <DropdownMenuItem
-                className={cn(
-                  "cursor-pointer flex items-center gap-2",
-                  isActive && "bg-accent text-accent-foreground"
-                )}
-                onClick={() => setOpen(false)}
-              >
-                <Icon className="h-4 w-4" />
-                <span>{item.label}</span>
-              </DropdownMenuItem>
-            </Link>
-          );
-        })}
+        {showSimpleYouTubeLink ? (
+          <a href={YOUTUBE_URL} target="_blank" rel="noopener noreferrer">
+            <DropdownMenuItem className="cursor-pointer flex items-center gap-2" onClick={() => setOpen(false)}>
+              <Youtube className="h-4 w-4" />
+              <span>YouTube</span>
+            </DropdownMenuItem>
+          </a>
+        ) : (
+          youtubeNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive =
+              pathname === item.href || (item.href !== "/youtube" && pathname?.startsWith(item.href));
+            return (
+              <Link key={item.href} href={item.href}>
+                <DropdownMenuItem
+                  className={cn(
+                    "cursor-pointer flex items-center gap-2",
+                    isActive && "bg-accent text-accent-foreground"
+                  )}
+                  onClick={() => setOpen(false)}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{item.label}</span>
+                </DropdownMenuItem>
+              </Link>
+            );
+          })
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

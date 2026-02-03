@@ -2132,3 +2132,13 @@ model PageView {
   @@index([createdAt, country])
   @@index([createdAt, referrerDomain])
 }
+
+// YouTube tools visibility - admin-controlled (single config doc)
+model YoutubeToolsVisibility {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  mode          String   @default("AVAILABLE_TO_ALL") // "HIDDEN_FROM_ALL" | "AVAILABLE_TO_ALL" | "INVITE_ONLY"
+  allowedEmails String[] @default([]) // When INVITE_ONLY, list of emails (lowercase) that can see tools
+  updatedAt     DateTime @updatedAt
+
+  @@map("youtube_tools_visibility")
+}

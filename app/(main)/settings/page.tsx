@@ -17,6 +17,7 @@ export default async function SettingsPage() {
       email: true,
       displayName: true,
       username: true,
+      role: true,
       activityVisibility: true,
       showRatingsInActivity: true,
       showReviewsInActivity: true,

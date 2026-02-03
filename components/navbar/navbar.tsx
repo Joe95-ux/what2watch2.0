@@ -17,6 +17,7 @@ import { NavDropdown } from "./nav-dropdown";
 import MobileNav from "./mobile-nav";
 import { HamburgerButton } from "./hamburger-button";
 import { YouTubeNavDropdown } from "./youtube-nav-dropdown";
+import { useYouTubeToolsVisibility } from "@/hooks/use-youtube-tools-visibility";
 import { cn } from "@/lib/utils";
 
 interface NavLink {
@@ -32,9 +33,15 @@ const navLinks: NavLink[] = [
   { href: "/forum", label: "Forums" },
 ];
 
+const YOUTUBE_URL = "https://www.youtube.com";
+
 export default function Navbar() {
   const { isSignedIn, isLoaded } = useUser();
   const pathname = usePathname();
+  const { data: youtubeVisibility } = useYouTubeToolsVisibility();
+  const showSimpleYouTubeLink =
+    youtubeVisibility?.mode === "HIDDEN_FROM_ALL" ||
+    (youtubeVisibility?.mode === "INVITE_ONLY" && !youtubeVisibility?.hasAccess);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSheetMounted, setIsSheetMounted] = useState(false);
 
@@ -162,7 +169,24 @@ export default function Navbar() {
                     </Link>
                   );
                 })}
-                <YouTubeNavDropdown hasHeroSection={hasHeroSection} />
+                {showSimpleYouTubeLink ? (
+                  <a
+                    href={YOUTUBE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "relative px-3 py-2 text-sm font-medium transition-colors rounded-md",
+                      hasHeroSection
+                        ? "hover:bg-white/10 hover:text-white"
+                        : "hover:bg-accent hover:text-accent-foreground",
+                      hasHeroSection ? "text-white/90" : "text-foreground/80 dark:text-muted-foreground"
+                    )}
+                  >
+                    YouTube
+                  </a>
+                ) : (
+                  <YouTubeNavDropdown hasHeroSection={hasHeroSection} />
+                )}
               </div>
             )}
 
