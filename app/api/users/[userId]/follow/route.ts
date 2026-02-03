@@ -33,10 +33,10 @@ export async function POST(
       );
     }
 
-    // Check if target user exists
+    // Check if target user exists and get notification preference
     const targetUser = await db.user.findUnique({
       where: { id: targetUserId },
-      select: { id: true },
+      select: { id: true, notifyOnNewFollowers: true },
     });
 
     if (!targetUser) {
@@ -70,6 +70,29 @@ export async function POST(
         followingId: targetUserId,
       },
     });
+
+    // Notify the followed user if they have new-follower notifications enabled
+    if (targetUser.notifyOnNewFollowers !== false) {
+      try {
+        const follower = await db.user.findUnique({
+          where: { id: currentUser.id },
+          select: { username: true, displayName: true },
+        });
+        const followerName = follower?.displayName || follower?.username || "Someone";
+        await db.generalNotification.create({
+          data: {
+            userId: targetUserId,
+            type: "NEW_FOLLOWER",
+            title: "New follower",
+            message: `${followerName} started following you`,
+            linkUrl: `/users/${currentUser.id}`,
+            metadata: { followerId: currentUser.id },
+          },
+        });
+      } catch (err) {
+        console.error("Failed to create new-follower notification:", err);
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

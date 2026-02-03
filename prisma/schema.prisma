@@ -140,6 +140,7 @@ model User {
   generalNotifications GeneralNotification[]
   activities Activity[]
   followedActivities Activity[] @relation("UserFollowedActivities")
+  activityLikes ActivityLike[]
   lists List[]
   likedLists LikedList[]
   listComments ListComment[]
@@ -1143,11 +1144,28 @@ model Activity {
   
   createdAt     DateTime     @default(now())
   
+  likes         ActivityLike[]
+  
   @@map("activities")
   @@index([userId, createdAt])
   @@index([userId, type])
   @@index([createdAt])
   @@index([tmdbId, mediaType])
+}
+
+// Activity likes - users can like activities in the feed
+model ActivityLike {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  activityId String   @db.ObjectId
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  userId     String   @db.ObjectId
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  
+  @@unique([activityId, userId])
+  @@map("activity_likes")
+  @@index([activityId])
+  @@index([userId])
 }
 
 // Lists - user-created ranked lists (different from playlists)

@@ -154,6 +154,21 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
       },
     });
 
+    // Create activity for creating playlist
+    try {
+      await db.activity.create({
+        data: {
+          userId: user.id,
+          type: "CREATED_PLAYLIST",
+          listId: playlist.id,
+          listName: playlist.name,
+        },
+      });
+    } catch (error) {
+      // Silently fail - activity creation is not critical
+      console.error("Failed to create activity:", error);
+    }
+
     return NextResponse.json({ success: true, playlist });
   } catch (error) {
     console.error("Create playlist API error:", error);
