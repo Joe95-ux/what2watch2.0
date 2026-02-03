@@ -344,10 +344,11 @@ export default function ActivityContent() {
   const allActivities = useMemo(() => data?.activities || [], [data?.activities]);
   const grouped = data?.grouped;
 
-  // Reset to page 1 when filters change
+  // Reset to page 1 when filters change (skip when landing with ?highlight= so we don't overwrite)
   useEffect(() => {
+    if (highlightActivityId) return;
     setCurrentPage(1);
-  }, [selectedType, selectedUserId, debouncedSearch, dateRange, groupBy, sortOrder]);
+  }, [highlightActivityId, selectedType, selectedUserId, debouncedSearch, dateRange, groupBy, sortOrder]);
 
   // Allow scroll+highlight to run again when highlight param changes (e.g. user clicks notification again)
   useEffect(() => {
@@ -364,7 +365,7 @@ export default function ActivityContent() {
     const index = flatList.findIndex((a) => a.id === highlightActivityId);
     if (index >= 0) {
       const targetPage = Math.floor(index / ITEMS_PER_PAGE) + 1;
-      setCurrentPage(targetPage);
+      setCurrentPage((p) => (p === targetPage ? p : targetPage));
     }
   }, [highlightActivityId, flatList]);
 
@@ -458,29 +459,42 @@ export default function ActivityContent() {
     }
     return paginatedActivities.map((a) => a.id);
   }, [paginatedGrouped, paginatedActivities]);
+  const scrollHighlightRef = useRef<{ id: string } | null>(null);
   useEffect(() => {
     if (
       !highlightActivityId ||
-      highlightDoneRef.current ||
       !currentPageItemIds.includes(highlightActivityId)
     ) {
       return;
     }
+    if (scrollHighlightRef.current?.id === highlightActivityId) return;
+    scrollHighlightRef.current = { id: highlightActivityId };
     highlightDoneRef.current = true;
-    const timer = setTimeout(() => {
-      const el = document.getElementById(`activity-${highlightActivityId}`);
-      el?.scrollIntoView({ behavior: "smooth", block: "center" });
-      setShowHighlight(true);
-      const clearTimer = setTimeout(() => {
+
+    const id = highlightActivityId;
+    const path = pathname;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("highlight");
+    const cleanUrl = params.toString() ? `${path}?${params}` : path;
+
+    let clearTimerId: ReturnType<typeof setTimeout> | undefined;
+    const startTimerId = setTimeout(() => {
+      const el = document.getElementById(`activity-${id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        setShowHighlight(true);
+      }
+      clearTimerId = setTimeout(() => {
         setShowHighlight(false);
-        const next = new URLSearchParams(searchParams.toString());
-        next.delete("highlight");
-        const q = next.toString();
-        router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false });
+        scrollHighlightRef.current = null;
+        router.replace(cleanUrl, { scroll: false });
       }, HIGHLIGHT_DURATION_MS);
-      return () => clearTimeout(clearTimer);
-    }, 150);
-    return () => clearTimeout(timer);
+    }, 350);
+
+    return () => {
+      clearTimeout(startTimerId);
+      if (clearTimerId != null) clearTimeout(clearTimerId);
+    };
   }, [highlightActivityId, currentPageItemIds, pathname, router, searchParams]);
 
   return (
