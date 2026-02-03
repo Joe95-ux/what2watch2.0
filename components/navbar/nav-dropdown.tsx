@@ -44,9 +44,10 @@ const youtubeNavItems = [
 export function NavDropdown({ navLinks, hasHeroSection = false }: NavDropdownProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [youtubeOpen, setYoutubeOpen] = useState(false);
-
-  const isYouTubeActive = pathname === "/youtube" || pathname?.startsWith("/youtube/");
+  const { data: youtubeVisibility } = useYouTubeToolsVisibility();
+  const showSimpleYouTubeLink =
+    youtubeVisibility?.mode === "HIDDEN_FROM_ALL" ||
+    (youtubeVisibility?.mode === "INVITE_ONLY" && !youtubeVisibility?.hasAccess);
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
