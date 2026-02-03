@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Youtube, Eye, EyeOff, Mail, Plus, X } from "lucide-react";
+import { Eye, EyeOff, Mail, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -77,8 +77,7 @@ export function SettingsYoutubeVisibilitySection() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold mb-2 flex items-center gap-2">
-          <Youtube className="h-6 w-6" />
+        <h2 className="text-2xl font-semibold mb-2">
           YouTube tools visibility
         </h2>
         <p className="text-muted-foreground">
@@ -94,7 +93,7 @@ export function SettingsYoutubeVisibilitySection() {
               onClick={() => handleSaveMode(m.value)}
               disabled={updateMutation.isPending}
               className={cn(
-                "flex items-start gap-3 p-4 rounded-lg border-2 text-left transition-all",
+                "flex items-start gap-3 p-4 rounded-lg border-2 text-left transition-all cursor-pointer",
                 "hover:border-primary/50 hover:bg-accent/50",
                 currentMode === m.value ? "border-primary bg-accent" : "border-border"
               )}
@@ -122,9 +121,9 @@ export function SettingsYoutubeVisibilitySection() {
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddEmail())}
-              className="flex-1"
+              className="flex-1 cursor-pointer"
             />
-            <Button type="button" onClick={handleAddEmail} disabled={!newEmail.trim() || updateMutation.isPending}>
+            <Button type="button" onClick={handleAddEmail} disabled={!newEmail.trim() || updateMutation.isPending} className="cursor-pointer">
               <Plus className="h-4 w-4 mr-1" />
               Add
             </Button>
@@ -140,7 +139,7 @@ export function SettingsYoutubeVisibilitySection() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7"
+                  className="h-7 w-7 cursor-pointer"
                   onClick={() => handleRemoveEmail(email)}
                   disabled={updateMutation.isPending}
                 >
