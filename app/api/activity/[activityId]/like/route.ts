@@ -113,7 +113,7 @@ export async function POST(
             type: "ACTIVITY_LIKED",
             title: "Activity liked",
             message: `${likerName} liked your activity`,
-            linkUrl: `/dashboard/activity`,
+            linkUrl: `/dashboard/activity?highlight=${activityId}`,
             metadata: { activityId, likerId: user.id },
           },
         });

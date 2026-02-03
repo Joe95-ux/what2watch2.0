@@ -219,7 +219,7 @@ function ActivityItem({ activity }: { activity: Activity }) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 px-2 text-xs text-muted-foreground hover:text-primary"
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-primary cursor-pointer"
                   onClick={() => toggleLike()}
                   disabled={isPending}
                 >

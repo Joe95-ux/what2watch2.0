@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useActivityFeed, useActivityUsers, useActivityLike, type ActivityType, type Activity } from "@/hooks/use-activity";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -221,7 +222,7 @@ function ActivityItem({ activity }: { activity: Activity }) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 px-2 text-xs text-muted-foreground hover:text-primary"
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-primary cursor-pointer"
                   onClick={() => toggleLike()}
                   disabled={isPending}
                 >
@@ -269,7 +270,16 @@ function ActivityItem({ activity }: { activity: Activity }) {
 
 const ITEMS_PER_PAGE = 25;
 
+const HIGHLIGHT_DURATION_MS = 3000;
+
 export default function ActivityContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const highlightActivityId = searchParams.get("highlight");
+  const [showHighlight, setShowHighlight] = useState(false);
+  const highlightDoneRef = useRef(false);
+
   const [selectedType, setSelectedType] = useState<ActivityType | "all">("all");
   const [selectedUserId, setSelectedUserId] = useState<string | "all">("all");
   const [sortBy] = useState<"createdAt">("createdAt");
@@ -338,6 +348,25 @@ export default function ActivityContent() {
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedType, selectedUserId, debouncedSearch, dateRange, groupBy, sortOrder]);
+
+  // Allow scroll+highlight to run again when highlight param changes (e.g. user clicks notification again)
+  useEffect(() => {
+    highlightDoneRef.current = false;
+  }, [highlightActivityId]);
+
+  // When landing with ?highlight=activityId, switch to the page that contains that activity
+  const flatList = useMemo(
+    () => (grouped ? Object.values(grouped).flat() : allActivities),
+    [grouped, allActivities]
+  );
+  useEffect(() => {
+    if (!highlightActivityId || flatList.length === 0) return;
+    const index = flatList.findIndex((a) => a.id === highlightActivityId);
+    if (index >= 0) {
+      const targetPage = Math.floor(index / ITEMS_PER_PAGE) + 1;
+      setCurrentPage(targetPage);
+    }
+  }, [highlightActivityId, flatList]);
 
   // Pagination calculations
   const totalItems = useMemo(() => {
@@ -421,6 +450,38 @@ export default function ActivityContent() {
     });
     return newGrouped;
   }, [grouped, currentPage]);
+
+  // Scroll to highlighted activity and show pulse, then clear URL
+  const currentPageItemIds = useMemo(() => {
+    if (paginatedGrouped) {
+      return Object.values(paginatedGrouped).flat().map((a) => a.id);
+    }
+    return paginatedActivities.map((a) => a.id);
+  }, [paginatedGrouped, paginatedActivities]);
+  useEffect(() => {
+    if (
+      !highlightActivityId ||
+      highlightDoneRef.current ||
+      !currentPageItemIds.includes(highlightActivityId)
+    ) {
+      return;
+    }
+    highlightDoneRef.current = true;
+    const timer = setTimeout(() => {
+      const el = document.getElementById(`activity-${highlightActivityId}`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setShowHighlight(true);
+      const clearTimer = setTimeout(() => {
+        setShowHighlight(false);
+        const next = new URLSearchParams(searchParams.toString());
+        next.delete("highlight");
+        const q = next.toString();
+        router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false });
+      }, HIGHLIGHT_DURATION_MS);
+      return () => clearTimeout(clearTimer);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [highlightActivityId, currentPageItemIds, pathname, router, searchParams]);
 
   return (
     <div className="flex-1 space-y-6 p-6">
@@ -592,7 +653,17 @@ export default function ActivityContent() {
                       </h3>
                     </div>
                     {groupActivities.map((activity) => (
-                      <ActivityItem key={activity.id} activity={activity} />
+                      <div
+                        key={activity.id}
+                        id={`activity-${activity.id}`}
+                        className={cn(
+                          highlightActivityId === activity.id &&
+                            showHighlight &&
+                            "animate-pulse rounded-lg bg-muted/60 transition-colors"
+                        )}
+                      >
+                        <ActivityItem activity={activity} />
+                      </div>
                     ))}
                   </div>
                 ))}
@@ -600,7 +671,17 @@ export default function ActivityContent() {
           ) : (
             <div className="divide-y">
               {paginatedActivities.map((activity) => (
-                <ActivityItem key={activity.id} activity={activity} />
+                <div
+                  key={activity.id}
+                  id={`activity-${activity.id}`}
+                  className={cn(
+                    highlightActivityId === activity.id &&
+                      showHighlight &&
+                      "animate-pulse rounded-lg bg-muted/60 transition-colors"
+                  )}
+                >
+                  <ActivityItem activity={activity} />
+                </div>
               ))}
             </div>
           )}
