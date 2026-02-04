@@ -616,72 +616,70 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
                 </SelectItem>
               </SelectContent>
             </Select>
-            {themeId === CUSTOM_THEME_ID && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md pt-2">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Page background</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full h-10 justify-start gap-2 cursor-pointer"
-                        style={
-                          backgroundColor
-                            ? { backgroundColor, color: "#fff" }
-                            : undefined
-                        }
-                      >
-                        <span
-                          className="h-5 w-5 rounded border border-border shrink-0"
-                          style={{ backgroundColor: backgroundColor || "var(--muted)" }}
-                        />
-                        {backgroundColor || "Pick color"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 border-0" align="start">
-                      <Compact
-                        color={backgroundColor || "#ffffff"}
-                        onChange={(color) => {
-                          const hex = typeof color?.hex === "string" ? color.hex : undefined;
-                          if (hex !== undefined) setBackgroundColor(hex);
-                        }}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md pt-2">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Page background</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full h-10 justify-start gap-2 cursor-pointer"
+                      style={
+                        backgroundColor
+                          ? { backgroundColor, color: "#fff" }
+                          : undefined
+                      }
+                    >
+                      <span
+                        className="h-5 w-5 rounded border border-border shrink-0"
+                        style={{ backgroundColor: backgroundColor || "var(--muted)" }}
                       />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Link button color</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full h-10 justify-start gap-2 cursor-pointer"
-                        style={
-                          buttonColor
-                            ? { backgroundColor: buttonColor, color: "#fff" }
-                            : undefined
-                        }
-                      >
-                        <span
-                          className="h-5 w-5 rounded border border-border shrink-0"
-                          style={{ backgroundColor: buttonColor || "var(--muted)" }}
-                        />
-                        {buttonColor || "Pick color"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 border-0" align="start">
-                      <Compact
-                        color={buttonColor || "#006DCA"}
-                        onChange={(color) => {
-                          const hex = typeof color?.hex === "string" ? color.hex : undefined;
-                          if (hex !== undefined) setButtonColor(hex);
-                        }}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                      {backgroundColor || "Pick color"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 border-0" align="start">
+                    <Compact
+                      color={backgroundColor || "#ffffff"}
+                      onChange={(color) => {
+                        const hex = typeof color?.hex === "string" ? color.hex : undefined;
+                        if (hex !== undefined) setBackgroundColor(hex);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
-            )}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Link button color</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full h-10 justify-start gap-2 cursor-pointer"
+                      style={
+                        buttonColor
+                          ? { backgroundColor: buttonColor, color: "#fff" }
+                          : undefined
+                      }
+                    >
+                      <span
+                        className="h-5 w-5 rounded border border-border shrink-0"
+                        style={{ backgroundColor: buttonColor || "var(--muted)" }}
+                      />
+                      {buttonColor || "Pick color"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 border-0" align="start">
+                    <Compact
+                      color={buttonColor || "#006DCA"}
+                      onChange={(color) => {
+                        const hex = typeof color?.hex === "string" ? color.hex : undefined;
+                        if (hex !== undefined) setButtonColor(hex);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
           </div>
           <Button onClick={() => handleSavePage()} disabled={saving} className="cursor-pointer">
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
