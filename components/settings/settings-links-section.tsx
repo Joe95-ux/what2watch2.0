@@ -257,6 +257,8 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
     try {
       const sanitizedBio = sanitizeHtml(bio.trim());
       const bioToSave = trimToMaxWords(sanitizedBio, MAX_BIO_WORDS) || null;
+      const bgValue = (backgroundColor ?? "").toString().trim();
+      const btnValue = (buttonColor ?? "").toString().trim();
       const res = await fetch("/api/user/link-page", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -264,8 +266,8 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
           bio: bioToSave,
           theme: {
             buttonStyle,
-            buttonColor: buttonColor.trim() || undefined,
-            backgroundColor: backgroundColor.trim() || undefined,
+            buttonColor: btnValue || null,
+            backgroundColor: bgValue || null,
           },
         }),
       });
@@ -639,7 +641,10 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
                     <PopoverContent className="w-auto p-0 border-0" align="start">
                       <Compact
                         color={backgroundColor || "#ffffff"}
-                        onChange={(color) => setBackgroundColor(color.hex)}
+                        onChange={(color) => {
+                          const hex = typeof color?.hex === "string" ? color.hex : undefined;
+                          if (hex !== undefined) setBackgroundColor(hex);
+                        }}
                       />
                     </PopoverContent>
                   </Popover>
@@ -667,7 +672,10 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
                     <PopoverContent className="w-auto p-0 border-0" align="start">
                       <Compact
                         color={buttonColor || "#006DCA"}
-                        onChange={(color) => setButtonColor(color.hex)}
+                        onChange={(color) => {
+                          const hex = typeof color?.hex === "string" ? color.hex : undefined;
+                          if (hex !== undefined) setButtonColor(hex);
+                        }}
                       />
                     </PopoverContent>
                   </Popover>
@@ -696,8 +704,9 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
                 <ExternalLink className="h-4 w-4" />
               </Button>
             </div>
-            <div className="rounded-md border bg-background overflow-hidden max-h-[min(70vh,28rem)] overflow-y-auto">
-              <PublicLinksPage
+            <div className="rounded-md border bg-background overflow-hidden">
+              <div className="scrollbar-thin max-h-[min(70vh,28rem)] overflow-y-auto">
+                <PublicLinksPage
                 displayName={currentUser?.displayName ?? null}
                 username={username}
                 avatarUrl={contextAvatarUrl ?? null}
@@ -710,6 +719,7 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
                 links={previewLinks}
                 isOwner={false}
               />
+              </div>
             </div>
           </div>
         </div>
