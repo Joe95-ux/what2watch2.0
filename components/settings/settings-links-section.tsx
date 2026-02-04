@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,12 +15,25 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import Image from "next/image";
-import { Plus, Copy, Loader2, GripVertical, ChevronUp, ChevronDown, ImagePlus, X } from "lucide-react";
+import { Plus, Copy, Loader2, GripVertical, ChevronUp, ChevronDown, ImagePlus, X, ExternalLink } from "lucide-react";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { useAvatar } from "@/contexts/avatar-context";
+import { PublicLinksPage, type PublicLink } from "@/components/links/public-links-page";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Droppable, Draggable } from "@hello-pangea/dnd";
 import { useUserLinksDragDrop, type UserLinkItem } from "@/hooks/use-user-links-drag-drop";
@@ -63,7 +76,17 @@ interface SettingsLinksSectionProps {
   username: string | null;
 }
 
+type SavedSnapshot = {
+  bio: string;
+  buttonStyle: "rounded" | "pill" | "square";
+  buttonColor: string;
+  backgroundColor: string;
+  linkIds: string[];
+};
+
 export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
+  const { data: currentUser } = useCurrentUser();
+  const { avatarUrl: contextAvatarUrl } = useAvatar();
   const [links, setLinks] = useState<UserLinkItem[]>([]);
   const [linkPage, setLinkPage] = useState<{ bio: string | null; theme: LinkPageTheme | null }>({
     bio: null,
@@ -84,6 +107,8 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
   const [buttonColor, setButtonColor] = useState("");
   const [backgroundColor, setBackgroundColor] = useState("");
   const [themeId, setThemeId] = useState<string>("default");
+  const [openSaveBeforeDialog, setOpenSaveBeforeDialog] = useState(false);
+  const lastSavedRef = useRef<SavedSnapshot | null>(null);
 
   const fetchLinks = useCallback(async () => {
     try {
@@ -91,9 +116,12 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
         fetch("/api/user/links"),
         fetch("/api/user/link-page"),
       ]);
+      let linkIds: string[] = [];
       if (linksRes.ok) {
         const data = await linksRes.json();
-        setLinks(data.links ?? []);
+        const linkList = data.links ?? [];
+        setLinks(linkList);
+        linkIds = linkList.map((l: UserLinkItem) => l.id);
       }
       if (pageRes.ok) {
         const data = await pageRes.json();
@@ -109,6 +137,13 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
         setButtonColor(bc);
         setBackgroundColor(bg);
         setThemeId(getThemeIdForColors(bg, bc));
+        lastSavedRef.current = {
+          bio: data.linkPage?.bio ?? "",
+          buttonStyle: theme?.buttonStyle ?? "rounded",
+          buttonColor: bc,
+          backgroundColor: bg,
+          linkIds,
+        };
       }
     } catch (e) {
       toast.error("Failed to load links");
@@ -217,7 +252,7 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
     onReorder: fetchLinks,
   });
 
-  const handleSavePage = async () => {
+  const handleSavePage = async (onSuccess?: () => void) => {
     setSaving(true);
     try {
       const sanitizedBio = sanitizeHtml(bio.trim());
@@ -242,13 +277,80 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
         bio: bio.trim() || null,
         theme: { buttonStyle, buttonColor: buttonColor || undefined, backgroundColor: backgroundColor || undefined },
       });
+      lastSavedRef.current = {
+        bio: bio.trim(),
+        buttonStyle,
+        buttonColor,
+        backgroundColor,
+        linkIds: displayedLinks.map((l) => l.id),
+      };
       toast.success("Link page updated");
+      onSuccess?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setSaving(false);
     }
   };
+
+  const currentSnapshot: SavedSnapshot = {
+    bio,
+    buttonStyle,
+    buttonColor,
+    backgroundColor,
+    linkIds: displayedLinks.map((l) => l.id),
+  };
+  const lastSaved = lastSavedRef.current;
+  const isDirty =
+    lastSaved === null ||
+    lastSaved.bio !== currentSnapshot.bio ||
+    lastSaved.buttonStyle !== currentSnapshot.buttonStyle ||
+    lastSaved.buttonColor !== currentSnapshot.buttonColor ||
+    lastSaved.backgroundColor !== currentSnapshot.backgroundColor ||
+    (lastSaved.linkIds.length !== currentSnapshot.linkIds.length ||
+      lastSaved.linkIds.some((id, i) => id !== currentSnapshot.linkIds[i]));
+
+  const linkPageUrl =
+    typeof window !== "undefined" && username
+      ? `${window.location.origin}/links/${username}`
+      : "";
+
+  const openLinkPageInNewTab = useCallback(() => {
+    if (linkPageUrl) window.open(linkPageUrl, "_blank", "noopener,noreferrer");
+  }, [linkPageUrl]);
+
+  const handleViewFullPage = useCallback(() => {
+    if (isDirty) {
+      setOpenSaveBeforeDialog(true);
+    } else {
+      openLinkPageInNewTab();
+    }
+  }, [isDirty, openLinkPageInNewTab]);
+
+  const handleSaveAndOpen = useCallback(() => {
+    handleSavePage(() => {
+      setOpenSaveBeforeDialog(false);
+      openLinkPageInNewTab();
+    });
+  }, [openLinkPageInNewTab]);
+
+  const previewLinks: PublicLink[] = displayedLinks.map((link) => ({
+    id: link.id,
+    label: link.label,
+    url: link.url,
+    icon: link.icon ?? undefined,
+    resourceType: link.resourceType ?? undefined,
+    resourceId: link.resourceId ?? undefined,
+    isSensitiveContent: link.isSensitiveContent ?? undefined,
+    ...(link.bannerImageUrl
+      ? {
+          customPreview: {
+            coverImageUrl: link.bannerImageUrl,
+            description: link.customDescription ?? null,
+          },
+        }
+      : {}),
+  }));
 
   const copyPageUrl = () => {
     const base = typeof window !== "undefined" ? window.location.origin : "";
@@ -447,136 +549,204 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
 
       <Separator />
 
-      {/* Bio & theme */}
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Bio (optional)</Label>
-          <Textarea
-            placeholder="Short bio for your link page (max 50 words)"
-            value={bio}
-            onChange={(e) => {
-              const sanitized = sanitizeHtml(e.target.value);
-              const trimmed = trimToMaxWords(sanitized, MAX_BIO_WORDS);
-              setBio(trimmed);
-            }}
-            className="max-w-md min-h-[80px] resize-y"
-            rows={3}
-          />
-          <p className="text-xs text-muted-foreground">
-            {bio.trim().split(/\s+/).filter(Boolean).length} / {MAX_BIO_WORDS} words
-          </p>
-        </div>
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Button style</Label>
-          <Select value={buttonStyle} onValueChange={(v) => setButtonStyle(v as "rounded" | "pill" | "square")}>
-            <SelectTrigger className="w-[180px] cursor-pointer">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="rounded">Rounded</SelectItem>
-              <SelectItem value="pill">Pill</SelectItem>
-              <SelectItem value="square">Square</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-3">
-          <Label className="text-sm font-medium">Color theme</Label>
-          <p className="text-xs text-muted-foreground">
-            Pick a preset for a matching look, or choose Custom to set your own colors.
-          </p>
-          <Select
-            value={themeId}
-            onValueChange={(value) => {
-              setThemeId(value);
-              if (value !== CUSTOM_THEME_ID) {
-                const preset = LINK_PAGE_THEMES.find((t) => t.id === value);
-                if (preset) {
-                  setBackgroundColor(preset.backgroundColor);
-                  setButtonColor(preset.buttonColor);
+      {/* Bio & theme + live preview */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Bio (optional)</Label>
+            <Textarea
+              placeholder="Short bio for your link page (max 50 words)"
+              value={bio}
+              onChange={(e) => {
+                const sanitized = sanitizeHtml(e.target.value);
+                const trimmed = trimToMaxWords(sanitized, MAX_BIO_WORDS);
+                setBio(trimmed);
+              }}
+              className="max-w-md min-h-[80px] resize-y"
+              rows={3}
+            />
+            <p className="text-xs text-muted-foreground">
+              {bio.trim().split(/\s+/).filter(Boolean).length} / {MAX_BIO_WORDS} words
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Button style</Label>
+            <Select value={buttonStyle} onValueChange={(v) => setButtonStyle(v as "rounded" | "pill" | "square")}>
+              <SelectTrigger className="w-[180px] cursor-pointer">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="rounded">Rounded</SelectItem>
+                <SelectItem value="pill">Pill</SelectItem>
+                <SelectItem value="square">Square</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Color theme</Label>
+            <p className="text-xs text-muted-foreground">
+              Pick a preset for a matching look, or choose Custom to set your own colors.
+            </p>
+            <Select
+              value={themeId}
+              onValueChange={(value) => {
+                setThemeId(value);
+                if (value !== CUSTOM_THEME_ID) {
+                  const preset = LINK_PAGE_THEMES.find((t) => t.id === value);
+                  if (preset) {
+                    setBackgroundColor(preset.backgroundColor);
+                    setButtonColor(preset.buttonColor);
+                  }
                 }
-              }
-            }}
-          >
-            <SelectTrigger className="w-full max-w-xs cursor-pointer">
-              <SelectValue placeholder="Theme" />
-            </SelectTrigger>
-            <SelectContent>
-              {LINK_PAGE_THEMES.map((t) => (
-                <SelectItem key={t.id} value={t.id} className="cursor-pointer">
-                  {t.name}
+              }}
+            >
+              <SelectTrigger className="w-full max-w-xs cursor-pointer">
+                <SelectValue placeholder="Theme" />
+              </SelectTrigger>
+              <SelectContent>
+                {LINK_PAGE_THEMES.map((t) => (
+                  <SelectItem key={t.id} value={t.id} className="cursor-pointer">
+                    {t.name}
+                  </SelectItem>
+                ))}
+                <SelectItem value={CUSTOM_THEME_ID} className="cursor-pointer">
+                  Custom
                 </SelectItem>
-              ))}
-              <SelectItem value={CUSTOM_THEME_ID} className="cursor-pointer">
-                Custom
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          {themeId === CUSTOM_THEME_ID && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md pt-2">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Page background</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full h-10 justify-start gap-2 cursor-pointer"
-                      style={
-                        backgroundColor
-                          ? { backgroundColor, color: "#fff" }
-                          : undefined
-                      }
-                    >
-                      <span
-                        className="h-5 w-5 rounded border border-border shrink-0"
-                        style={{ backgroundColor: backgroundColor || "var(--muted)" }}
+              </SelectContent>
+            </Select>
+            {themeId === CUSTOM_THEME_ID && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md pt-2">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Page background</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full h-10 justify-start gap-2 cursor-pointer"
+                        style={
+                          backgroundColor
+                            ? { backgroundColor, color: "#fff" }
+                            : undefined
+                        }
+                      >
+                        <span
+                          className="h-5 w-5 rounded border border-border shrink-0"
+                          style={{ backgroundColor: backgroundColor || "var(--muted)" }}
+                        />
+                        {backgroundColor || "Pick color"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 border-0" align="start">
+                      <Compact
+                        color={backgroundColor || "#ffffff"}
+                        onChange={(color) => setBackgroundColor(color.hex)}
                       />
-                      {backgroundColor || "Pick color"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 border-0" align="start">
-                    <Compact
-                      color={backgroundColor || "#ffffff"}
-                      onChange={(color) => setBackgroundColor(color.hex)}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Link button color</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full h-10 justify-start gap-2 cursor-pointer"
-                      style={
-                        buttonColor
-                          ? { backgroundColor: buttonColor, color: "#fff" }
-                          : undefined
-                      }
-                    >
-                      <span
-                        className="h-5 w-5 rounded border border-border shrink-0"
-                        style={{ backgroundColor: buttonColor || "var(--muted)" }}
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Link button color</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full h-10 justify-start gap-2 cursor-pointer"
+                        style={
+                          buttonColor
+                            ? { backgroundColor: buttonColor, color: "#fff" }
+                            : undefined
+                        }
+                      >
+                        <span
+                          className="h-5 w-5 rounded border border-border shrink-0"
+                          style={{ backgroundColor: buttonColor || "var(--muted)" }}
+                        />
+                        {buttonColor || "Pick color"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 border-0" align="start">
+                      <Compact
+                        color={buttonColor || "#006DCA"}
+                        onChange={(color) => setButtonColor(color.hex)}
                       />
-                      {buttonColor || "Pick color"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 border-0" align="start">
-                    <Compact
-                      color={buttonColor || "#006DCA"}
-                      onChange={(color) => setButtonColor(color.hex)}
-                    />
-                  </PopoverContent>
-                </Popover>
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+          <Button onClick={() => handleSavePage()} disabled={saving} className="cursor-pointer">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Save page settings
+          </Button>
         </div>
-        <Button onClick={handleSavePage} disabled={saving} className="cursor-pointer">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-          Save page settings
-        </Button>
+
+        {/* Live preview */}
+        <div className="lg:sticky lg:top-4">
+          <div className="rounded-lg border bg-card p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-medium text-muted-foreground">Preview</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0 cursor-pointer"
+                onClick={handleViewFullPage}
+                aria-label="View full page in new tab"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="rounded-md border bg-background overflow-hidden max-h-[min(70vh,28rem)] overflow-y-auto">
+              <PublicLinksPage
+                displayName={currentUser?.displayName ?? null}
+                username={username}
+                avatarUrl={contextAvatarUrl ?? null}
+                bio={bio.trim() || null}
+                theme={{
+                  buttonStyle,
+                  buttonColor: buttonColor.trim() || undefined,
+                  backgroundColor: backgroundColor.trim() || undefined,
+                }}
+                links={previewLinks}
+                isOwner={false}
+              />
+            </div>
+          </div>
+        </div>
       </div>
+
+      <AlertDialog open={openSaveBeforeDialog} onOpenChange={setOpenSaveBeforeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes. Save and open your link page, or open without saving?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
+            <Button
+              variant="outline"
+              className="cursor-pointer"
+              onClick={() => {
+                setOpenSaveBeforeDialog(false);
+                openLinkPageInNewTab();
+              }}
+            >
+              Open without saving
+            </Button>
+            <AlertDialogAction
+              className="cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault();
+                handleSaveAndOpen();
+              }}
+            >
+              Save and open
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Add link dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
