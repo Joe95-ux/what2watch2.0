@@ -234,7 +234,7 @@ export default function ContentSelection({
         <button
           onClick={handleDislike}
           disabled={isTransitioning}
-          className="flex items-center justify-center w-16 h-16 rounded-full bg-background border-2 border-border hover:border-destructive hover:bg-destructive/10 transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center justify-center cursor-pointer w-16 h-16 rounded-full bg-background border-2 border-border hover:border-destructive hover:bg-destructive/10 transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Dislike"
         >
           <X className="h-6 w-6 text-destructive" />
@@ -243,7 +243,7 @@ export default function ContentSelection({
         <button
           onClick={handleSkip}
           disabled={isTransitioning}
-          className="px-6 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           Skip
         </button>
@@ -251,7 +251,7 @@ export default function ContentSelection({
         <button
           onClick={handleLike}
           disabled={isTransitioning}
-          className="flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-[#066f72] to-[#0d9488] hover:from-[#055a5d] hover:to-[#0a7a6e] transition-all hover:scale-110 active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center justify-center cursor-pointer w-16 h-16 rounded-full bg-gradient-to-r from-[#066f72] to-[#0d9488] hover:from-[#055a5d] hover:to-[#0a7a6e] transition-all hover:scale-110 active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Like"
         >
           <Heart className="h-6 w-6 text-white fill-white" />

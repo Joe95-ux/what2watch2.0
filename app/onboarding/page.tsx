@@ -172,8 +172,8 @@ export default function OnboardingPage() {
 
       {/* Main Content - Scrollable area below fixed header */}
       <div className="flex items-center justify-center flex-1 overflow-y-auto pt-24 pb-12">
-        <div className="h-full container mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-          <div className="w-full max-w-2xl mx-auto space-y-8">
+        <div className="flex h-full container mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          <div className="content-center w-full max-w-2xl mx-auto space-y-8">
             {/* Sign-up Step - Auto-advances */}
             {currentStep === "signup" && (
               <div className="space-y-6 text-center animate-in fade-in-50 duration-500">
