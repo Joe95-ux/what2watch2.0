@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ interface LikedContent {
   genreIds: number[];
 }
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const [currentStep, setCurrentStep] = useState<OnboardingStep>("signup");
   const [currentPhase, setCurrentPhase] = useState(1);
   const [likedContent, setLikedContent] = useState<LikedContent[]>([]);
@@ -332,5 +332,13 @@ export default function OnboardingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <OnboardingContent />
+    </Suspense>
   );
 }
