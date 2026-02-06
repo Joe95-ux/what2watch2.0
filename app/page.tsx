@@ -1,32 +1,23 @@
 'use client';
 
-import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
-  Play,
   ArrowRight,
   Sparkles,
   Users,
   Clapperboard,
   Compass,
-  TrendingUp,
-  ChevronLeft,
-  ChevronRight,
+  UserPlus,
+  Search,
+  List,
+  Share2,
   Plus,
 } from "lucide-react";
 import { SignInButton, useUser } from "@clerk/nextjs";
 import Navbar from "@/components/navbar/navbar";
 import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import TrailerModal from "@/components/browse/trailer-modal";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  useTrendingMovies,
-  useTrendingTV,
-} from "@/hooks/use-movies";
 import { usePublicPlaylists } from "@/hooks/use-playlists";
 import { usePublicLists } from "@/components/lists/public-lists-content";
 import {
@@ -40,34 +31,34 @@ import PlaylistCard from "@/components/browse/playlist-card";
 import ListCard from "@/components/browse/list-card";
 import { List } from "@/hooks/use-lists";
 import { Playlist } from "@/hooks/use-playlists";
-import {
-  getBackdropUrl,
-  getPosterUrl,
-  TMDBMovie,
-  TMDBSeries,
-  TMDBVideo,
-} from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
 
-type HeroSlide = {
-  id: number;
-  type: "movie" | "tv";
-  title: string;
-  overview: string;
-  backdrop: string | null;
-  poster: string | null;
-  rating: number;
-  voteCount: number;
-  year: string | null;
-  popularity: number;
-};
-
-type TrailerState = {
-  videos: TMDBVideo[];
-  trailer: TMDBVideo | null;
-  loading: boolean;
-  error?: string;
-};
+const HOW_IT_WORKS_STEPS = [
+  {
+    title: "Sign up & set preferences",
+    description: "Create your account and tell us what you love—movies, TV, genres—so we can personalize your experience.",
+    icon: UserPlus,
+    side: "left" as const,
+  },
+  {
+    title: "Get personalized picks",
+    description: "Your \"Made for you\" feed and browse page adapt to your tastes with recommendations that match.",
+    icon: Search,
+    side: "right" as const,
+  },
+  {
+    title: "Create lists & playlists",
+    description: "Build curated lists and playlists of movies and TV shows. Add YouTube mixes for a single hub.",
+    icon: List,
+    side: "left" as const,
+  },
+  {
+    title: "Share with the community",
+    description: "Publish lists, follow other curators, and discover what the community is watching and discussing.",
+    icon: Share2,
+    side: "right" as const,
+  },
+];
 
 function CuratedListsCarousel() {
   const { data: lists = [], isLoading: isLoadingLists } = usePublicLists(10);
@@ -157,246 +148,6 @@ export default function LandingPage() {
   const router = useRouter();
   const { isSignedIn } = useUser();
 
-  const {
-    data: trendingMovies = [],
-    isLoading: isLoadingTrendingMovies,
-  } = useTrendingMovies("week", 1);
-  const {
-    data: trendingTV = [],
-    isLoading: isLoadingTrendingTV,
-  } = useTrendingTV("week", 1);
-
-  const slides: HeroSlide[] = useMemo(() => {
-    const movieSlides: HeroSlide[] = trendingMovies.slice(0, 5).map((movie) => ({
-      id: movie.id,
-      type: "movie",
-      title: movie.title ?? "Untitled",
-      overview: movie.overview ?? "",
-      backdrop: movie.backdrop_path,
-      poster: movie.poster_path,
-      rating: movie.vote_average ?? 0,
-      voteCount: movie.vote_count ?? 0,
-      year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : null,
-      popularity: movie.popularity ?? 0,
-    }));
-
-    const tvSlides: HeroSlide[] = trendingTV.slice(0, 5).map((show) => ({
-      id: show.id,
-      type: "tv",
-      title: show.name ?? "Untitled",
-      overview: show.overview ?? "",
-      backdrop: show.backdrop_path,
-      poster: show.poster_path,
-      rating: show.vote_average ?? 0,
-      voteCount: show.vote_count ?? 0,
-      year: show.first_air_date ? new Date(show.first_air_date).getFullYear().toString() : null,
-      popularity: show.popularity ?? 0,
-    }));
-
-    return [...movieSlides, ...tvSlides];
-  }, [trendingMovies, trendingTV]);
-
-  const [selectedSlideIndex, setSelectedSlideIndex] = useState(0);
-  const [runtimes, setRuntimes] = useState<Record<string, number>>({});
-  const [isPaused, setIsPaused] = useState(false);
-  const playlistScrollRef = useRef<HTMLDivElement>(null);
-  const isAutoScrollingRef = useRef(false);
-  
-  const selectedSlide = slides[selectedSlideIndex] || null;
-
-  // Autoplay carousel - rotate every 8 seconds (paused when user interacts)
-  useEffect(() => {
-    if (slides.length <= 1 || isPaused) return;
-    
-    const interval = setInterval(() => {
-      isAutoScrollingRef.current = true;
-      setSelectedSlideIndex(prev => (prev + 1) % slides.length);
-      // Reset flag after a short delay
-      setTimeout(() => {
-        isAutoScrollingRef.current = false;
-      }, 100);
-    }, 8000);
-
-    return () => clearInterval(interval);
-  }, [slides.length, isPaused]);
-
-  // Reset pause after 10 seconds of inactivity
-  useEffect(() => {
-    if (!isPaused) return;
-    
-    const timeout = setTimeout(() => {
-      setIsPaused(false);
-    }, 10000);
-
-    return () => clearTimeout(timeout);
-  }, [isPaused]);
-
-  // Scroll to selected item in playlist (only if not auto-scrolling)
-  useEffect(() => {
-    if (!playlistScrollRef.current || isAutoScrollingRef.current) return;
-    
-    const selectedElement = playlistScrollRef.current.querySelector(
-      `[data-slide-index="${selectedSlideIndex}"]`
-    ) as HTMLElement;
-    if (selectedElement) {
-      // Find the ScrollArea viewport (parent of the ref element)
-      const scrollAreaViewport = playlistScrollRef.current.closest('[data-slot="scroll-area-viewport"]') as HTMLElement;
-      if (scrollAreaViewport) {
-        const elementTop = selectedElement.offsetTop;
-        const elementHeight = selectedElement.offsetHeight;
-        const containerTop = scrollAreaViewport.scrollTop;
-        const containerHeight = scrollAreaViewport.clientHeight;
-        
-        // Check if element is not fully visible
-        if (elementTop < containerTop || elementTop + elementHeight > containerTop + containerHeight) {
-          // Scroll to center the element in the viewport
-          scrollAreaViewport.scrollTo({
-            top: elementTop - (containerHeight / 2) + (elementHeight / 2),
-            behavior: 'smooth',
-          });
-        }
-      } else {
-        // Fallback: use scrollIntoView with preventScroll option if available
-        selectedElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'nearest',
-        });
-      }
-    }
-  }, [selectedSlideIndex]);
-
-  const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
-  const [activeTrailerKey, setActiveTrailerKey] = useState<string | null>(null);
-  const [activeSlide, setActiveSlide] = useState<HeroSlide | null>(null);
-  const [trailers, setTrailers] = useState<Record<string, TrailerState>>({});
-
-  // Fetch runtime for all slides (movie runtime or TV average episode runtime)
-  useEffect(() => {
-    const fetchRuntimes = async () => {
-      if (slides.length === 0) return;
-
-      const promises = slides.map(async (slide) => {
-        const key = `${slide.type}-${slide.id}`;
-
-        try {
-          const response = await fetch(`/api/${slide.type === "movie" ? "movies" : "tv"}/${slide.id}`);
-          if (!response.ok) {
-            return null;
-          }
-          const data = await response.json();
-          
-          if (slide.type === "movie") {
-            // For movies, use runtime directly (in minutes)
-            if (data.runtime && typeof data.runtime === 'number' && data.runtime > 0) {
-              return { key, runtime: data.runtime };
-            }
-          } else {
-            // For TV shows, calculate average episode runtime
-            if (data.episode_run_time && Array.isArray(data.episode_run_time) && data.episode_run_time.length > 0) {
-              const avgRuntime = Math.round(
-                data.episode_run_time.reduce((a: number, b: number) => a + b, 0) / data.episode_run_time.length
-              );
-              if (avgRuntime > 0) {
-                return { key, runtime: avgRuntime };
-              }
-            }
-          }
-        } catch (error) {
-          console.error(`Failed to fetch runtime for ${key}:`, error);
-        }
-        return null;
-      });
-
-      const results = await Promise.all(promises);
-      const newRuntimes: Record<string, number> = {};
-      results.forEach(result => {
-        if (result && result.runtime > 0) {
-          newRuntimes[result.key] = result.runtime;
-        }
-      });
-      
-      if (Object.keys(newRuntimes).length > 0) {
-        setRuntimes(prev => {
-          // Only update if we have new runtimes that aren't already in state
-          const hasNewData = Object.keys(newRuntimes).some(key => !prev[key]);
-          if (!hasNewData) return prev;
-          return {
-            ...prev,
-            ...newRuntimes,
-          };
-        });
-      }
-    };
-
-    fetchRuntimes();
-  }, [slides]);
-
-  const ensureTrailer = useCallback(async (slide: HeroSlide) => {
-    const key = `${slide.type}-${slide.id}`;
-    const existing = trailers[key];
-
-    if (existing && !existing.loading && (existing.trailer || existing.videos.length === 0 || existing.error)) {
-      return;
-    }
-
-    setTrailers((prev) => ({
-      ...prev,
-      [key]: { ...(prev[key] ?? { videos: [], trailer: null }), loading: true, error: undefined },
-    }));
-
-    try {
-      const response = await fetch(
-        `/api/${slide.type === "movie" ? "movies" : "tv"}/${slide.id}/videos`
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch trailer");
-      }
-      const data = await response.json();
-      const videos: TMDBVideo[] = data.results || [];
-      const officialTrailer =
-        videos.find(
-          (video) =>
-            video.type === "Trailer" &&
-            video.official &&
-            video.site === "YouTube"
-        ) ?? null;
-      const fallbackTrailer =
-        officialTrailer ??
-        videos.find(
-          (video) =>
-            video.type === "Trailer" && video.site === "YouTube"
-        ) ??
-        null;
-
-      setTrailers((prev) => ({
-        ...prev,
-        [key]: {
-          videos,
-          trailer: fallbackTrailer,
-          loading: false,
-        },
-      }));
-      
-    } catch (error) {
-      console.error("Failed to load trailer", error);
-      setTrailers((prev) => ({
-        ...prev,
-        [key]: { videos: [], trailer: null, loading: false, error: "Unable to load trailers right now." },
-      }));
-    }
-  }, [trailers]);
-
-  const handlePlay = useCallback((slide: HeroSlide) => {
-    const key = `${slide.type}-${slide.id}`;
-    setActiveTrailerKey(key);
-    setActiveSlide(slide);
-    setIsTrailerModalOpen(true);
-    void ensureTrailer(slide);
-  }, [ensureTrailer]);
-
-  const activeTrailer = activeTrailerKey ? trailers[activeTrailerKey] : undefined;
-  const heroIsLoading = isLoadingTrendingMovies || isLoadingTrendingTV;
-
   const features = [
     {
       title: "Personalized Discovery",
@@ -426,10 +177,6 @@ export default function LandingPage() {
     { value: "96K+", label: "Reviews" },
     { value: "8.5K+", label: "Playlists" },
   ];
-
-  const handleTrailerDetails = useCallback(() => {
-    router.push("/browse");
-  }, [router]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -498,112 +245,67 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Trending Carousel - YouTube Style */}
-          <div className="mx-auto mt-16 max-w-7xl">
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Trending Now</h2>
-              <Link href="/browse" className="text-sm text-muted-foreground hover:text-foreground">
-                View all →
-              </Link>
+          {/* How it works – timeline */}
+          <div className="mx-auto mt-20 max-w-4xl">
+            <h2 className="mb-2 text-center text-xl font-semibold sm:text-2xl">
+              How it works
+            </h2>
+            <p className="mb-12 text-center text-sm text-muted-foreground sm:text-base">
+              From sign-up to sharing in four simple steps
+            </p>
+            <div className="relative">
+              {/* Center spine – visible from md up */}
+              <div
+                className="absolute left-1/2 top-0 hidden h-full w-px -translate-x-px bg-border md:block"
+                aria-hidden
+              />
+              {/* Timeline steps */}
+              <ul className="space-y-12 md:space-y-16">
+                {HOW_IT_WORKS_STEPS.map((step, index) => {
+                  const Icon = step.icon;
+                  const isLeft = step.side === "left";
+                  return (
+                    <li
+                      key={index}
+                      className={cn(
+                        "relative flex flex-col gap-4 md:flex-row md:items-center md:gap-8",
+                        isLeft ? "md:flex-row-reverse" : ""
+                      )}
+                    >
+                      {/* Content card – left or right of spine on desktop */}
+                      <div
+                        className={cn(
+                          "relative ml-5 flex-1 rounded-xl border bg-card p-5 shadow-sm transition-shadow hover:shadow-md sm:p-6 md:ml-0",
+                          isLeft ? "md:pr-14 md:text-right" : "md:pl-14 md:text-left"
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary",
+                            isLeft ? "md:ml-auto" : ""
+                          )}
+                        >
+                          <Icon className="h-5 w-5 [&>path]:stroke-[2.5]" />
+                        </div>
+                        <h3 className="mb-2 text-lg font-semibold text-foreground">
+                          {step.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {step.description}
+                        </p>
+                      </div>
+                      {/* Spine node – left on mobile, centered on spine on desktop */}
+                      <div
+                        className="absolute left-0 top-6 h-3 w-3 shrink-0 rounded-full border-2 border-primary bg-background md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:h-4 md:w-4 md:bg-primary/10"
+                        aria-hidden
+                      />
+                      {/* Spacer for desktop layout */}
+                      <div className="hidden flex-1 md:block" aria-hidden />
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
-            {heroIsLoading ? (
-              <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[1fr_400px]">
-                {/* Left Column - Featured Content Skeleton */}
-                <div className="relative h-[400px] sm:h-[500px] md:h-[600px] w-full overflow-hidden rounded-lg bg-muted">
-                  <Skeleton className="absolute inset-0 w-full h-full !bg-gray-200 dark:!bg-accent" />
-                  <div className="absolute bottom-0 left-0 right-0 z-10 p-4 sm:p-6">
-                    <div className="grid gap-4 sm:gap-6 grid-cols-[120px_1fr] sm:grid-cols-[150px_1fr] md:grid-cols-[200px_1fr]">
-                      {/* Poster Skeleton */}
-                      <Skeleton className="aspect-[2/3] w-full max-w-[200px] rounded-lg !bg-gray-200 dark:!bg-accent" />
-                      {/* Details Skeleton */}
-                      <div className="flex flex-col justify-end gap-3 sm:gap-4">
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <Skeleton className="h-12 w-12 sm:h-14 sm:w-14 rounded-full !bg-gray-200 dark:!bg-accent" />
-                          <Skeleton className="h-4 w-16 !bg-gray-200 dark:!bg-accent" />
-                        </div>
-                        <Skeleton className="h-6 sm:h-8 md:h-10 w-3/4 !bg-gray-200 dark:!bg-accent" />
-                        <Skeleton className="h-4 w-32 !bg-gray-200 dark:!bg-accent" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column - Playlist Skeleton */}
-                <div className="relative hidden xl:block overflow-hidden">
-                  <Skeleton className="h-5 w-20 mb-3 !bg-gray-200 dark:!bg-accent" />
-                  <div className="space-y-2">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <div key={i} className="flex gap-3 rounded-lg p-3">
-                        <Skeleton className="h-20 w-[140px] flex-shrink-0 rounded !bg-gray-200 dark:!bg-accent" />
-                        <div className="flex flex-1 flex-col justify-between gap-2">
-                          <Skeleton className="h-8 w-8 rounded-full !bg-gray-200 dark:!bg-accent" />
-                          <Skeleton className="h-4 w-3/4 !bg-gray-200 dark:!bg-accent" />
-                          <Skeleton className="h-3 w-1/2 !bg-gray-200 dark:!bg-accent" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : slides.length > 0 ? (
-              <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[1fr_400px]">
-                {/* Left Column - Featured Content */}
-                <div 
-                  className="relative h-[400px] sm:h-[500px] md:h-[600px] w-full overflow-hidden rounded-lg bg-muted"
-                  onMouseEnter={() => setIsPaused(true)}
-                  onMouseLeave={() => setIsPaused(false)}
-                >
-                  <FeaturedContent
-                    slide={selectedSlide}
-                    onPlay={handlePlay}
-                    runtime={selectedSlide ? (() => {
-                      const key = `${selectedSlide.type}-${selectedSlide.id}`;
-                      return runtimes[key];
-                    })() : undefined}
-                    onPrevious={() => {
-                      setIsPaused(true);
-                      setSelectedSlideIndex(prev => (prev - 1 + slides.length) % slides.length);
-                    }}
-                    onNext={() => {
-                      setIsPaused(true);
-                      setSelectedSlideIndex(prev => (prev + 1) % slides.length);
-                    }}
-                    canGoPrevious={slides.length > 1}
-                    canGoNext={slides.length > 1}
-                  />
-                </div>
-
-                {/* Right Column - Playlist (hidden below xl breakpoint) */}
-                <div className="relative hidden xl:block overflow-hidden">
-                  <div className="mb-3">
-                    <h3 className="text-sm font-semibold text-foreground">Up Next</h3>
-                  </div>
-                  
-                  <ScrollArea className="h-[570px] pr-4">
-                    <div ref={playlistScrollRef} className="space-y-2">
-                      {slides.map((slide, index) => {
-                        const isSelected = index === selectedSlideIndex;
-                        const runtime = runtimes[`${slide.type}-${slide.id}`];
-                        return (
-                          <PlaylistItem
-                            key={`${slide.type}-${slide.id}-${index}`}
-                            slide={slide}
-                            isSelected={isSelected}
-                            runtime={runtime}
-                            onClick={() => {
-                              setIsPaused(true);
-                              setSelectedSlideIndex(index);
-                            }}
-                            onPlay={handlePlay}
-                            index={index}
-                          />
-                        );
-                      })}
-                    </div>
-                  </ScrollArea>
-                </div>
-              </div>
-            ) : null}
           </div>
         </div>
       </section>
@@ -635,7 +337,7 @@ export default function LandingPage() {
               Powerful features designed to help you find, organize, and share your favorite entertainment.
             </p>
           </div>
-          <div className="mx-auto mt-16 grid grid-cols-1   sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 max-w-7xl gap-8">
+          <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((feature, index) => (
               <div
                 key={index}
@@ -771,189 +473,6 @@ export default function LandingPage() {
       </section>
 
       <Footer />
-
-      <TrailerModal
-        video={activeTrailer?.trailer ?? null}
-        videos={activeTrailer?.videos ?? []}
-        isOpen={isTrailerModalOpen}
-        onClose={() => setIsTrailerModalOpen(false)}
-        title={activeSlide?.title ?? "Trailer"}
-        isLoading={!activeTrailer || activeTrailer.loading}
-        hasNoVideos={!!activeTrailer && !activeTrailer.loading && activeTrailer.videos.length === 0}
-        errorMessage={activeTrailer?.error}
-        onOpenDetails={handleTrailerDetails}
-      />
-    </div>
-  );
-}
-
-type FeaturedContentProps = {
-  slide: HeroSlide;
-  onPlay: (slide: HeroSlide) => void;
-  runtime?: number;
-  onPrevious: () => void;
-  onNext: () => void;
-  canGoPrevious: boolean;
-  canGoNext: boolean;
-};
-
-function FeaturedContent({ slide, onPlay, runtime, onPrevious, onNext, canGoPrevious, canGoNext }: FeaturedContentProps) {
-  const formatRuntime = (minutes?: number) => {
-    if (!minutes || minutes === 0) return "";
-    // Format runtime in minutes as "Xh Ym" or "Ym"
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-  };
-
-  return (
-    <div className="relative h-full w-full">
-      {/* Wallpaper Background */}
-      {slide.backdrop ? (
-        <Image
-          src={getBackdropUrl(slide.backdrop, "w1280")}
-          alt={slide.title}
-          fill
-          className="object-cover transition-opacity duration-500"
-          sizes="(max-width: 1024px) 100vw, 60vw"
-          priority
-        />
-      ) : (
-        <div className="h-full w-full bg-gradient-to-br from-muted to-muted/50" />
-      )}
-      {/* Dark gradient overlay - more intense as you go down (JustWatch style) */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
-
-      {/* Bottom Section - Poster and Details */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 p-4 sm:p-6">
-        {/* Carousel Controls - Positioned slightly above poster */}
-        {canGoPrevious && (
-          <Button
-            size="icon"
-            variant="ghost"
-            className="absolute left-2 sm:left-4 bottom-[calc(100%-280px)] sm:bottom-[340px] z-20 h-10 w-10 sm:h-11 sm:w-11 cursor-pointer rounded-full bg-black/60 backdrop-blur-sm hover:bg-black/80 border border-white/20 transition-all duration-300 ease-in-out"
-            onClick={onPrevious}
-          >
-            <ChevronLeft className="size-6 sm:size-7 text-white transition-transform duration-300" />
-          </Button>
-        )}
-        {canGoNext && (
-          <Button
-            size="icon"
-            variant="ghost"
-            className="absolute right-2 sm:right-4 bottom-[calc(100%-280px)] sm:bottom-[340px] z-20 h-10 w-10 sm:h-11 sm:w-11 cursor-pointer rounded-full bg-black/60 backdrop-blur-sm hover:bg-black/80 border border-white/20 transition-all duration-300 ease-in-out"
-            onClick={onNext}
-          >
-            <ChevronRight className="size-6 sm:size-7 text-white transition-transform duration-300" />
-          </Button>
-        )}
-        <div className="grid gap-4 sm:gap-6 grid-cols-[120px_1fr] sm:grid-cols-[150px_1fr] md:grid-cols-[200px_1fr]">
-          {/* Poster Column */}
-          {slide.poster && (
-            <div className="relative aspect-[2/3] w-full max-w-[200px] overflow-hidden rounded-lg">
-              <Image
-                src={getPosterUrl(slide.poster, "w500")}
-                alt={slide.title}
-                fill
-                className="object-cover"
-                sizes="(max-width: 640px) 120px, (max-width: 768px) 150px, 200px"
-              />
-            </div>
-          )}
-
-          {/* Details Column */}
-          <div className="flex flex-col justify-end">
-            <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
-              <Button
-                size="icon"
-                onClick={() => onPlay(slide)}
-                className="h-12 w-12 sm:h-14 sm:w-14 cursor-pointer rounded-full bg-black/60 backdrop-blur-sm hover:bg-black/80 border border-white/20 transition-all duration-300 ease-in-out"
-              >
-                <Play className="size-7 fill-current text-white transition-transform duration-300" />
-              </Button>
-              {runtime && formatRuntime(runtime) && (
-                <span className="text-xs sm:text-sm font-medium text-white">{formatRuntime(runtime)}</span>
-              )}
-            </div>
-            <h3 className="mb-1 text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white transition-opacity duration-500 line-clamp-2">{slide.title}</h3>
-            <p className="text-xs sm:text-sm text-white/80 transition-opacity duration-500">Watch the trailer</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-type PlaylistItemProps = {
-  slide: HeroSlide;
-  isSelected: boolean;
-  runtime?: number;
-  onClick: () => void;
-  onPlay: (slide: HeroSlide) => void;
-  index: number;
-};
-
-function PlaylistItem({ slide, isSelected, runtime, onClick, onPlay, index }: PlaylistItemProps) {
-  const formatRuntime = (minutes?: number) => {
-    if (!minutes || minutes === 0) return "";
-    // Format runtime in minutes as "Xh Ym" or "Ym"
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-  };
-
-  return (
-    <div
-      className={cn(
-        "group flex cursor-pointer gap-3 rounded-lg p-3 transition-all duration-300",
-        isSelected
-          ? "bg-primary/10"
-          : "bg-card hover:bg-muted/50"
-      )}
-      onClick={onClick}
-      data-slide-index={index}
-    >
-      {/* Thumbnail */}
-      <div className="relative h-20 w-[140px] flex-shrink-0 overflow-hidden rounded">
-        {slide.poster ? (
-          <Image
-            src={getPosterUrl(slide.poster, "w300")}
-            alt={slide.title}
-            fill
-            className="object-cover"
-            sizes="140px"
-          />
-        ) : (
-          <div className="h-full w-full bg-muted" />
-        )}
-      </div>
-
-      {/* Details */}
-      <div className="flex flex-1 flex-col justify-between overflow-hidden">
-        <div className="flex items-center gap-2">
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8 flex-shrink-0 cursor-pointer rounded-full bg-background/90 hover:bg-background transition-all duration-300 ease-in-out"
-            onClick={(e) => {
-              e.stopPropagation();
-              onPlay(slide);
-            }}
-          >
-            <Play className="h-3.5 w-3.5 fill-current transition-transform duration-300" />
-          </Button>
-          {runtime && formatRuntime(runtime) && (
-            <span className="text-xs font-medium text-muted-foreground">{formatRuntime(runtime)}</span>
-          )}
-        </div>
-        <h4 className={cn(
-          "line-clamp-2 font-medium",
-          isSelected ? "text-primary" : "text-foreground"
-        )}>
-          {slide.title}
-        </h4>
-        <p className="text-xs text-muted-foreground">Watch the trailer</p>
-      </div>
     </div>
   );
 }
