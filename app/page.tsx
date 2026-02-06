@@ -238,9 +238,13 @@ export default function LandingPage() {
               </Button>
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* How it works – timeline */}
-          <div className="mx-auto mt-20 max-w-4xl">
+      {/* How it works – timeline (second section) */}
+      <section className="border-b bg-muted/20 py-20 sm:py-24">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-4xl">
             <h2 className="mb-2 text-center text-xl font-semibold sm:text-2xl">
               How it works
             </h2>
