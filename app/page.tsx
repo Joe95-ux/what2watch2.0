@@ -18,6 +18,7 @@ import { SignInButton, useUser } from "@clerk/nextjs";
 import Navbar from "@/components/navbar/navbar";
 import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { usePublicPlaylists } from "@/hooks/use-playlists";
 import { usePublicLists } from "@/components/lists/public-lists-content";
 import {
@@ -29,7 +30,6 @@ import {
 } from "@/components/ui/carousel";
 import PlaylistCard from "@/components/browse/playlist-card";
 import ListCard from "@/components/browse/list-card";
-import { List } from "@/hooks/use-lists";
 import { Playlist } from "@/hooks/use-playlists";
 import { cn } from "@/lib/utils";
 
@@ -145,7 +145,6 @@ function CuratedListsCarousel() {
 import { FAQAccordion } from "@/components/landing/faq-accordion";
 
 export default function LandingPage() {
-  const router = useRouter();
   const { isSignedIn } = useUser();
 
   const features = [
@@ -163,11 +162,6 @@ export default function LandingPage() {
       title: "Smart Playlists",
       description: "Create, share, and collaborate on playlists with friends in real-time.",
       icon: Clapperboard,
-    },
-    {
-      title: "Live Trends",
-      description: "Stay ahead with real-time trending content from around the world.",
-      icon: TrendingUp,
     },
   ];
 
