@@ -361,8 +361,8 @@ export default function MyListsListsTab() {
             />
           </>
         )
-      ) : (
-        // Playlists view
+      ) : viewMode === "grid" ? (
+        // Playlists grid view
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {(paginatedItems as Playlist[]).map((playlist) => (
@@ -373,7 +373,87 @@ export default function MyListsListsTab() {
               />
             ))}
           </div>
-          {/* Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </>
+      ) : (
+        // Playlists table view
+        <>
+          <div className="border rounded-lg overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="text-left p-4 font-semibold">Name</th>
+                  <th className="text-left p-4 font-semibold">Items</th>
+                  <th className="text-left p-4 font-semibold">Visibility</th>
+                  <th className="text-left p-4 font-semibold">Updated</th>
+                  <th className="text-right p-4 font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(paginatedItems as Playlist[]).map((playlist) => {
+                  const itemCount = (playlist._count?.items ?? playlist.items?.length ?? 0) + (playlist._count?.youtubeItems ?? playlist.youtubeItems?.length ?? 0);
+                  const visibility = playlist.visibility ?? (playlist.isPublic ? "PUBLIC" : "PRIVATE");
+                  return (
+                    <tr key={playlist.id} className="border-t hover:bg-muted/50">
+                      <td className="p-4">
+                        <Link href={`/playlists/${playlist.id}`} className="hover:underline">
+                          <div className="font-medium">{playlist.name}</div>
+                          {playlist.description && (
+                            <div className="text-sm text-muted-foreground line-clamp-1">
+                              {playlist.description}
+                            </div>
+                          )}
+                        </Link>
+                      </td>
+                      <td className="p-4">
+                        <span className="text-sm">{itemCount}</span>
+                      </td>
+                      <td className="p-4">
+                        <span className="text-sm capitalize">
+                          {String(visibility).toLowerCase().replace("_", " ")}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <span className="text-sm text-muted-foreground">
+                          {format(new Date(playlist.updatedAt), "MMM d, yyyy")}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              router.push(`/playlists/${playlist.id}`);
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setItemToDelete({ type: "playlist", item: playlist });
+                              setDeleteDialogOpen(true);
+                            }}
+                            className="text-destructive hover:text-destructive cursor-pointer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}

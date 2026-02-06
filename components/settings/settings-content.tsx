@@ -222,24 +222,10 @@ export default function SettingsContent({
     }
   };
 
-  const handleStartOnboarding = async () => {
-    setIsLoading(true);
-    try {
-      await fetch("/api/user/preferences", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          favoriteGenres: [],
-          onboardingCompleted: false,
-        }),
-      });
-      router.push("/onboarding");
-    } catch (error) {
-      console.error("Error resetting onboarding:", error);
-      toast.error("Failed to start onboarding");
-    } finally {
-      setIsLoading(false);
-    }
+  const handleStartOnboarding = () => {
+    // Navigate to onboarding without changing preferences so the user can update
+    // or skip. Skipping in "update" mode will preserve existing preferences.
+    router.push("/onboarding?update=1");
   };
 
   const handleActivitySettingsChange = async (updates: Partial<typeof activitySettings>) => {

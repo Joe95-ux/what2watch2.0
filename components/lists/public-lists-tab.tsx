@@ -302,8 +302,8 @@ export default function PublicListsTab() {
             />
           </>
         )
-      ) : (
-        // Playlists view
+      ) : viewMode === "grid" ? (
+        // Playlists grid view
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {(paginatedItems as Playlist[]).map((item) => (
@@ -314,7 +314,60 @@ export default function PublicListsTab() {
               />
             ))}
           </div>
-          {/* Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </>
+      ) : (
+        // Playlists table view
+        <>
+          <div className="border rounded-lg overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="text-left p-4 font-semibold">Name</th>
+                  <th className="text-left p-4 font-semibold">Items</th>
+                  <th className="text-left p-4 font-semibold">Creator</th>
+                  <th className="text-left p-4 font-semibold">Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(paginatedItems as Playlist[]).map((item) => {
+                  const itemCount = (item._count?.items ?? item.items?.length ?? 0) + (item._count?.youtubeItems ?? item.youtubeItems?.length ?? 0);
+                  const creatorName = item.user?.username || item.user?.displayName || "Unknown";
+                  return (
+                    <tr
+                      key={item.id}
+                      className="border-t hover:bg-muted/50 cursor-pointer"
+                      onClick={() => router.push(`/playlists/${item.id}/public`)}
+                    >
+                      <td className="p-4">
+                        <div className="font-medium">{item.name}</div>
+                        {item.description && (
+                          <div className="text-sm text-muted-foreground line-clamp-1">
+                            {item.description}
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        <span className="text-sm">{itemCount}</span>
+                      </td>
+                      <td className="p-4">
+                        <span className="text-sm">{creatorName}</span>
+                      </td>
+                      <td className="p-4">
+                        <span className="text-sm text-muted-foreground">
+                          {format(new Date(item.updatedAt), "MMM d, yyyy")}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}

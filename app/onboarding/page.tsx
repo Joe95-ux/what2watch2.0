@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
@@ -28,8 +28,30 @@ export default function OnboardingPage() {
   const [likedContent, setLikedContent] = useState<LikedContent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showLoading, setShowLoading] = useState(false);
+  const [isUpdateMode, setIsUpdateMode] = useState(false);
+  const updateModeChecked = useRef(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, isLoaded } = useUser();
+
+  // Detect "update preferences" mode: from query param or from existing completed onboarding
+  useEffect(() => {
+    if (!isLoaded || !user || updateModeChecked.current) return;
+    updateModeChecked.current = true;
+    const fromUpdateParam = searchParams.get("update") === "1";
+    if (fromUpdateParam) {
+      setIsUpdateMode(true);
+      return;
+    }
+    fetch("/api/user/preferences")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.preferences?.onboardingCompleted === true) {
+          setIsUpdateMode(true);
+        }
+      })
+      .catch(() => {});
+  }, [isLoaded, user, searchParams]);
 
   useEffect(() => {
     if (isLoaded && !user) {
@@ -51,6 +73,11 @@ export default function OnboardingPage() {
   };
 
   const handleSkip = async () => {
+    if (isUpdateMode) {
+      // User already had preferences; don't overwrite with empty — just go back to browse
+      router.push("/browse");
+      return;
+    }
     setIsLoading(true);
     setShowLoading(true);
     try {
@@ -59,6 +86,7 @@ export default function OnboardingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           favoriteGenres: [],
+          preferredTypes: ["movie", "tv"],
           onboardingCompleted: true,
         }),
       });
@@ -91,6 +119,12 @@ export default function OnboardingPage() {
   };
 
   const handleComplete = async () => {
+    // In update mode, skipping with no new selections = keep existing preferences
+    if (isUpdateMode && likedContent.length === 0) {
+      router.push("/browse");
+      return;
+    }
+
     // Extract genres from liked content
     const genreCounts = new Map<number, number>();
     const typeCounts = { movie: 0, tv: 0 };
@@ -215,7 +249,7 @@ export default function OnboardingPage() {
                   <Button
                     size="lg"
                     onClick={handleNext}
-                    className="bg-gradient-to-r from-[#066f72] to-[#0d9488] hover:from-[#055a5d] hover:to-[#0a7a6e] text-white h-11 text-base"
+                    className="bg-gradient-to-r from-[#066f72] to-[#0d9488] hover:from-[#055a5d] hover:to-[#0a7a6e] text-white h-11 text-base cursor-pointer"
                   >
                     Get Started
                   </Button>
@@ -224,7 +258,7 @@ export default function OnboardingPage() {
                     variant="outline"
                     onClick={handleSkip}
                     disabled={isLoading}
-                    className="h-11 text-base"
+                    className="h-11 text-base cursor-pointer"
                   >
                     Skip for Now
                   </Button>
@@ -285,7 +319,7 @@ export default function OnboardingPage() {
                     variant="outline"
                     onClick={handleComplete}
                     disabled={isLoading}
-                    className="h-11 text-base"
+                    className="h-11 text-base cursor-pointer"
                   >
                     {likedContent.length === 0
                       ? "Skip"
