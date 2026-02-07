@@ -15,6 +15,13 @@ export interface SearchFilters {
   year: string;
   minRating: number;
   sortBy: string;
+  watchProvider?: number;
+}
+
+export interface WatchProviderOption {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string | null;
 }
 
 interface FiltersSheetProps {
@@ -23,6 +30,7 @@ interface FiltersSheetProps {
   movieGenres: Array<{ id: number; name: string }>;
   tvGenres: Array<{ id: number; name: string }>;
   allGenres: Array<{ id: number; name: string }>;
+  watchProviders?: WatchProviderOption[];
   resetFilters: () => void;
   onApply: () => void;
   isLoading?: boolean;
@@ -46,6 +54,7 @@ export function FiltersSheet({
   showAllGenres: externalShowAllGenres,
   setShowAllGenres: externalSetShowAllGenres,
   GENRES_TO_SHOW = 8,
+  watchProviders = [],
   currentYear: externalCurrentYear,
   startYear: externalStartYear,
   hasActiveFilters: externalHasActiveFilters,
@@ -69,7 +78,8 @@ export function FiltersSheet({
     filters.type !== "all" || 
     filters.genre.length > 0 || 
     filters.year || 
-    filters.minRating > 0
+    filters.minRating > 0 ||
+    (filters.watchProvider !== undefined && filters.watchProvider > 0)
   );
 
   return (
@@ -155,6 +165,54 @@ export function FiltersSheet({
               </label>
             </div>
           </div>
+
+          {/* Streaming Service Section */}
+          {watchProviders.length > 0 && (
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold uppercase tracking-wider">Streaming Service</Label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFilters({ ...filters, watchProvider: undefined })}
+                  className={cn(
+                    "rounded-lg border p-2 h-auto transition-colors flex items-center gap-2",
+                    (filters.watchProvider === undefined || filters.watchProvider === 0)
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background hover:bg-accent border-input"
+                  )}
+                >
+                  <span className="text-sm font-medium">Any</span>
+                </button>
+                {watchProviders.map((provider) => {
+                  const isSelected = filters.watchProvider === provider.provider_id;
+                  return (
+                    <button
+                      key={provider.provider_id}
+                      type="button"
+                      onClick={() => setFilters({ ...filters, watchProvider: provider.provider_id })}
+                      title={provider.provider_name}
+                      className={cn(
+                        "rounded-lg border p-2 h-10 w-10 transition-colors flex items-center justify-center overflow-hidden",
+                        isSelected
+                          ? "bg-primary border-primary ring-2 ring-primary"
+                          : "bg-background hover:bg-accent border-input"
+                      )}
+                    >
+                      {provider.logo_path ? (
+                        <img
+                          src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
+                          alt={provider.provider_name}
+                          className="h-6 w-6 object-contain"
+                        />
+                      ) : (
+                        <span className="text-xs font-medium truncate">{provider.provider_name.slice(0, 2)}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Sort By Section */}
           <div className="space-y-3">

@@ -19,6 +19,7 @@ import { useTrendingMovies, useTrendingTV } from "@/hooks/use-movies";
 import Image from "next/image";
 import Link from "next/link";
 import { FiltersSheet, type SearchFilters } from "@/components/filters/filters-sheet";
+import { useWatchProviders } from "@/hooks/use-watch-providers";
 
 interface SearchResult {
   id: number;
@@ -47,6 +48,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
     year: "",
     minRating: 0,
     sortBy: "popularity.desc",
+    watchProvider: undefined,
   });
   const [movieGenres, setMovieGenres] = useState<Array<{ id: number; name: string }>>([]);
   const [tvGenres, setTVGenres] = useState<Array<{ id: number; name: string }>>([]);
@@ -56,6 +58,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const debouncedQuery = useDebounce(query, 300);
   const [isMounted, setIsMounted] = useState(false);
+  const { data: watchProviders = [] } = useWatchProviders("US");
 
   // Check if mobile (using standard md breakpoint: 768px)
   const isMobile = useIsMobile();
@@ -254,6 +257,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
     if (filters.year) params.set("year", filters.year);
     if (filters.minRating > 0) params.set("minRating", filters.minRating.toString());
     if (filters.sortBy) params.set("sortBy", filters.sortBy);
+    if (filters.watchProvider !== undefined && filters.watchProvider > 0) params.set("watchProvider", filters.watchProvider.toString());
 
     router.push(`/search?${params.toString()}`);
     setIsExpanded(false);
@@ -267,10 +271,11 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
       year: "",
       minRating: 0,
       sortBy: "popularity.desc",
+      watchProvider: undefined,
     });
   };
 
-  const hasActiveFilters = filters.type !== "all" || filters.genre.length > 0 || filters.year || filters.minRating > 0;
+  const hasActiveFilters = filters.type !== "all" || filters.genre.length > 0 || filters.year || filters.minRating > 0 || (filters.watchProvider !== undefined && filters.watchProvider > 0);
 
   // Don't render until mounted to prevent hydration mismatch
   if (!isMounted) {
@@ -391,6 +396,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
                     movieGenres={movieGenres}
                     tvGenres={tvGenres}
                     allGenres={allGenres}
+                    watchProviders={watchProviders}
                     resetFilters={resetFilters}
                     onApply={async () => {
                       setFiltersOpen(false);
@@ -402,6 +408,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
                       if (filters.year) params.set("year", filters.year);
                       if (filters.minRating > 0) params.set("minRating", filters.minRating.toString());
                       if (filters.sortBy) params.set("sortBy", filters.sortBy);
+                      if (filters.watchProvider !== undefined && filters.watchProvider > 0) params.set("watchProvider", filters.watchProvider.toString());
                       
                       // Redirect to search page
                       router.push(`/search?${params.toString()}`);
@@ -540,6 +547,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
                   movieGenres={movieGenres}
                   tvGenres={tvGenres}
                   allGenres={allGenres}
+                  watchProviders={watchProviders}
                   resetFilters={resetFilters}
                   onApply={async () => {
                     setFiltersOpen(false);
@@ -551,6 +559,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
                     if (filters.year) params.set("year", filters.year);
                     if (filters.minRating > 0) params.set("minRating", filters.minRating.toString());
                     if (filters.sortBy) params.set("sortBy", filters.sortBy);
+                    if (filters.watchProvider !== undefined && filters.watchProvider > 0) params.set("watchProvider", filters.watchProvider.toString());
                     
                     // Redirect to search page
                     router.push(`/search?${params.toString()}`);

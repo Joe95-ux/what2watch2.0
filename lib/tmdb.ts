@@ -436,6 +436,31 @@ export async function getTVWatchProviders(tvId: number): Promise<TMDBWatchProvid
   return fetchTMDB(`/tv/${tvId}/watch/providers`);
 }
 
+/** Watch provider from TMDB watch/providers list */
+export interface TMDBWatchProviderItem {
+  display_priorities?: Record<string, number>;
+  logo_path: string | null;
+  provider_name: string;
+  provider_id: number;
+}
+
+export interface TMDBWatchProvidersListResponse {
+  results: TMDBWatchProviderItem[];
+}
+
+/**
+ * Get list of watch providers for a region (for movies or TV).
+ * Used for "streaming service" filter and browse carousels.
+ */
+export async function getWatchProvidersList(
+  type: 'movie' | 'tv',
+  watchRegion: string = 'US'
+): Promise<TMDBWatchProvidersListResponse> {
+  return fetchTMDB<TMDBWatchProvidersListResponse>(`/watch/providers/${type}`, {
+    watch_region: watchRegion,
+  });
+}
+
 /**
  * Discover movies with filters
  */
@@ -453,6 +478,8 @@ export async function discoverMovies(filters: {
   runtimeMax?: number;
   region?: string;
   withOriginCountry?: string;
+  with_watch_providers?: string;
+  watch_region?: string;
 }): Promise<TMDBResponse<TMDBMovie>> {
   const params: Record<string, string | number> = {
     page: filters.page || 1,
@@ -491,6 +518,8 @@ export async function discoverMovies(filters: {
   }
   if (filters.region) params.region = filters.region;
   if (filters.withOriginCountry) params.with_origin_country = filters.withOriginCountry;
+  if (filters.with_watch_providers) params.with_watch_providers = filters.with_watch_providers;
+  if (filters.watch_region) params.watch_region = filters.watch_region;
   
   return fetchTMDB<TMDBResponse<TMDBMovie>>('/discover/movie', params);
 }
@@ -512,6 +541,8 @@ export async function discoverTV(filters: {
   runtimeMax?: number;
   region?: string;
   withOriginCountry?: string;
+  with_watch_providers?: string;
+  watch_region?: string;
 }): Promise<TMDBResponse<TMDBSeries>> {
   const params: Record<string, string | number> = {
     page: filters.page || 1,
@@ -551,6 +582,8 @@ export async function discoverTV(filters: {
   }
   if (filters.region) params.region = filters.region;
   if (filters.withOriginCountry) params.with_origin_country = filters.withOriginCountry;
+  if (filters.with_watch_providers) params.with_watch_providers = filters.with_watch_providers;
+  if (filters.watch_region) params.watch_region = filters.watch_region;
   
   return fetchTMDB<TMDBResponse<TMDBSeries>>('/discover/tv', params);
 }

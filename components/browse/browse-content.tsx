@@ -41,8 +41,10 @@ import {
 import { Button } from "../ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
+import { useWatchProviders } from "@/hooks/use-watch-providers";
 import { YouTubeProfileSkeleton } from "./youtube-profile-skeleton";
 import { getChannelProfilePath } from "@/lib/channel-path";
+import StreamingServiceRow from "./streaming-service-row";
 
 interface BrowseContentProps {
   favoriteGenres: number[];
@@ -141,6 +143,8 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
   );
   const { data: publicLists = [] } = usePublicLists(10);
   const { data: publicPlaylists = [] } = usePublicPlaylists(10);
+  const { data: watchProviders = [] } = useWatchProviders("US");
+  const topStreamingProviders = watchProviders.slice(0, 5);
 
   // Map mood filters to genre IDs
   const getMoodGenres = (mood: MoodFilter): number[] => {
@@ -417,6 +421,11 @@ export default function BrowseContent({ favoriteGenres, preferredTypes }: Browse
             href="/browse/personalized"
           />
         )}
+
+        {/* Streaming services (first five) */}
+        {topStreamingProviders.map((provider) => (
+          <StreamingServiceRow key={provider.provider_id} provider={provider} />
+        ))}
 
         {/* Explore Curated Lists */}
         {(publicLists.length > 0 || publicPlaylists.length > 0) && (

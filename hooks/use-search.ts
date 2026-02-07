@@ -12,6 +12,8 @@ interface SearchParams {
   runtimeMin?: number;
   runtimeMax?: number;
   withOriginCountry?: string;
+  watchProvider?: number;
+  watchRegion?: string;
 }
 
 export function useSearch(params: SearchParams) {
@@ -37,6 +39,8 @@ export function useSearch(params: SearchParams) {
       if (params.runtimeMin !== undefined) searchParams.set("runtimeMin", params.runtimeMin.toString());
       if (params.runtimeMax !== undefined) searchParams.set("runtimeMax", params.runtimeMax.toString());
       if (params.withOriginCountry) searchParams.set("withOriginCountry", params.withOriginCountry);
+      if (params.watchProvider !== undefined) searchParams.set("watchProvider", params.watchProvider.toString());
+      if (params.watchRegion) searchParams.set("watchRegion", params.watchRegion);
       // Always include page, default to 1
       searchParams.set("page", (params.page || 1).toString());
 
@@ -46,7 +50,7 @@ export function useSearch(params: SearchParams) {
       }
       return response.json() as Promise<TMDBResponse<TMDBMovie | TMDBSeries>>;
     },
-    enabled: !!(params.query || params.genre || params.year || (params.minRating && params.minRating > 0) || params.runtimeMin !== undefined || params.runtimeMax !== undefined || params.withOriginCountry || params.sortBy),
+    enabled: !!(params.query || params.genre || params.year || (params.minRating && params.minRating > 0) || params.runtimeMin !== undefined || params.runtimeMax !== undefined || params.withOriginCountry || params.watchProvider !== undefined || params.sortBy),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
   });

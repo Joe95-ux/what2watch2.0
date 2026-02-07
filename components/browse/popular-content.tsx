@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { FiltersSheet, type SearchFilters } from "@/components/filters/filters-sheet";
+import { useWatchProviders } from "@/hooks/use-watch-providers";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -35,6 +36,9 @@ function PopularContentInner() {
   const minRating = searchParams.get("minRating") ? parseFloat(searchParams.get("minRating")!) : 0;
   const sortBy = searchParams.get("sortBy") || "popularity.desc";
   const page = parseInt(searchParams.get("page") || "1", 10);
+  const watchProviderParam = searchParams.get("watchProvider");
+  const watchProvider = watchProviderParam ? parseInt(watchProviderParam, 10) : undefined;
+  const watchRegion = searchParams.get("watchRegion") || "US";
 
   const [filters, setFilters] = useState<SearchFilters>({
     type,
@@ -42,6 +46,7 @@ function PopularContentInner() {
     year,
     minRating,
     sortBy,
+    watchProvider: watchProvider !== undefined && !Number.isNaN(watchProvider) ? watchProvider : undefined,
   });
 
   // Update filters when URL params change
@@ -50,14 +55,19 @@ function PopularContentInner() {
     const genreArray = genreParam ? genreParam.split(",").map(id => parseInt(id, 10)).filter(id => !isNaN(id)) : [];
     const typeParam = searchParams.get("type") || "all";
     const normalizedType = (typeParam === "movies" ? "movie" : typeParam) as "all" | "movie" | "tv";
+    const wp = searchParams.get("watchProvider");
+    const wpNum = wp ? parseInt(wp, 10) : undefined;
     setFilters({
       type: normalizedType,
       genre: genreArray,
       year: searchParams.get("year") || "",
       minRating: searchParams.get("minRating") ? parseFloat(searchParams.get("minRating")!) : 0,
       sortBy: searchParams.get("sortBy") || "popularity.desc",
+      watchProvider: wpNum != null && !Number.isNaN(wpNum) ? wpNum : undefined,
     });
   }, [searchParams]);
+
+  const { data: watchProviders = [] } = useWatchProviders("US");
 
   // Fetch genres
   useEffect(() => {
@@ -72,7 +82,7 @@ function PopularContentInner() {
   }, []);
 
   // Check if we have active filters (excluding type, as type is handled by tabs)
-  const hasActiveFilters = filters.genre.length > 0 || !!filters.year || filters.minRating > 0;
+  const hasActiveFilters = filters.genre.length > 0 || !!filters.year || filters.minRating > 0 || (filters.watchProvider !== undefined && filters.watchProvider > 0);
 
   // Fetch popular movies when no filters and type is movie or all
   const shouldFetchMovies = !hasActiveFilters && (type === "movie" || type === "all");
@@ -100,7 +110,7 @@ function PopularContentInner() {
     staleTime: 1000 * 60 * 60 * 2, // 2 hours
   });
 
-  // Fetch filtered content when filters are active (genre, year, or rating)
+  // Fetch filtered content when filters are active (genre, year, rating, or watch provider)
   const { data: filteredData, isLoading: isLoadingFiltered } = useSearch({
     type: hasActiveFilters ? (type === "all" ? undefined : type) : undefined,
     genre: hasActiveFilters && genre.length > 0 ? genre : undefined,
@@ -108,6 +118,8 @@ function PopularContentInner() {
     minRating: hasActiveFilters && minRating > 0 ? minRating : undefined,
     sortBy: hasActiveFilters ? sortBy : undefined,
     page,
+    watchProvider: hasActiveFilters && watchProvider !== undefined && !Number.isNaN(watchProvider) ? watchProvider : undefined,
+    watchRegion,
   });
 
   // Determine which data to use
@@ -180,6 +192,12 @@ function PopularContentInner() {
     if (sortBy && !newParams.hasOwnProperty("sortBy")) {
       params.set("sortBy", sortBy);
     }
+    if (watchProvider !== undefined && !Number.isNaN(watchProvider) && !newParams.hasOwnProperty("watchProvider")) {
+      params.set("watchProvider", watchProvider.toString());
+    }
+    if (watchRegion && watchRegion !== "US" && !newParams.hasOwnProperty("watchRegion")) {
+      params.set("watchRegion", watchRegion);
+    }
     
     // Apply new parameters
     Object.entries(newParams).forEach(([key, value]) => {
@@ -216,6 +234,18 @@ function PopularContentInner() {
           }
         } else if (key === "sortBy") {
           params.set(key, value.toString());
+        } else if (key === "watchProvider") {
+          if (value !== undefined && value !== null && Number(value) > 0) {
+            params.set(key, value.toString());
+          } else {
+            params.delete(key);
+          }
+        } else if (key === "watchRegion") {
+          if (value && value !== "US") {
+            params.set(key, value.toString());
+          } else {
+            params.delete(key);
+          }
         } else if (value && value !== "all" && value !== "" && value !== 0) {
           params.set(key, value.toString());
         }
@@ -239,6 +269,7 @@ function PopularContentInner() {
       minRating: filters.minRating > 0 ? filters.minRating : undefined,
       sortBy: filters.sortBy,
       page: 1,
+      watchProvider: filters.watchProvider,
     });
     setFiltersOpen(false);
   };
@@ -250,6 +281,7 @@ function PopularContentInner() {
       year: "",
       minRating: 0,
       sortBy: "popularity.desc",
+      watchProvider: undefined,
     };
     setFilters(resetFilters);
     updateURL({
@@ -259,6 +291,7 @@ function PopularContentInner() {
       minRating: undefined,
       sortBy: "popularity.desc",
       page: 1,
+      watchProvider: undefined,
     });
   };
 
@@ -298,10 +331,10 @@ function PopularContentInner() {
                   {hasActiveFilters && (
                     <span className="ml-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
                       {[
-                        filters.type !== "all",
                         filters.genre.length > 0,
                         !!filters.year,
                         filters.minRating > 0,
+                        (filters.watchProvider !== undefined && filters.watchProvider > 0),
                       ].filter(Boolean).length}
                     </span>
                   )}
@@ -314,6 +347,7 @@ function PopularContentInner() {
                   movieGenres={movieGenres}
                   tvGenres={tvGenres}
                   allGenres={allGenres}
+                  watchProviders={watchProviders}
                   resetFilters={resetFilters}
                   onApply={handleApplyFilters}
                   isLoading={isLoading}

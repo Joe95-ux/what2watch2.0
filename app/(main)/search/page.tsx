@@ -12,6 +12,7 @@ import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState, useEffect } from "react";
 import { FiltersSheet, type SearchFilters } from "@/components/filters/filters-sheet";
+import { useWatchProviders } from "@/hooks/use-watch-providers";
 
 function SearchResultsContent() {
   const searchParams = useSearchParams();
@@ -36,6 +37,9 @@ function SearchResultsContent() {
   const runtimeMin = searchParams.get("runtimeMin") ? parseInt(searchParams.get("runtimeMin")!, 10) : undefined;
   const runtimeMax = searchParams.get("runtimeMax") ? parseInt(searchParams.get("runtimeMax")!, 10) : undefined;
   const withOriginCountry = searchParams.get("withOriginCountry") || undefined;
+  const watchProviderParam = searchParams.get("watchProvider");
+  const watchProvider = watchProviderParam ? parseInt(watchProviderParam, 10) : undefined;
+  const watchRegion = searchParams.get("watchRegion") || "US";
 
   const [filters, setFilters] = useState<SearchFilters>({
     type,
@@ -43,20 +47,26 @@ function SearchResultsContent() {
     year,
     minRating,
     sortBy,
+    watchProvider,
   });
 
   // Update filters when URL params change
   useEffect(() => {
     const genreParam = searchParams.get("genre") || "";
     const genreArray = genreParam ? genreParam.split(",").map(id => parseInt(id, 10)).filter(id => !isNaN(id)) : [];
+    const wp = searchParams.get("watchProvider");
+    const watchProviderFromUrl = wp ? parseInt(wp, 10) : undefined;
     setFilters({
       type: (searchParams.get("type") || "all") as "all" | "movie" | "tv",
       genre: genreArray,
       year: searchParams.get("year") || "",
       minRating: searchParams.get("minRating") ? parseFloat(searchParams.get("minRating")!) : 0,
       sortBy: searchParams.get("sortBy") || "popularity.desc",
+      watchProvider: watchProviderFromUrl != null && !Number.isNaN(watchProviderFromUrl) ? watchProviderFromUrl : undefined,
     });
   }, [searchParams]);
+
+  const { data: watchProviders = [] } = useWatchProviders("US");
 
   // Fetch genres
   useEffect(() => {
@@ -120,6 +130,12 @@ function SearchResultsContent() {
     }
     if (withOriginCountry && !newParams.hasOwnProperty("withOriginCountry")) {
       params.set("withOriginCountry", withOriginCountry);
+    }
+    if (watchProvider !== undefined && !isNaN(watchProvider) && !newParams.hasOwnProperty("watchProvider")) {
+      params.set("watchProvider", watchProvider.toString());
+    }
+    if (watchRegion && watchRegion !== "US" && !newParams.hasOwnProperty("watchRegion")) {
+      params.set("watchRegion", watchRegion);
     }
     
     // Apply new parameters (these override existing ones)
@@ -195,6 +211,8 @@ function SearchResultsContent() {
       minRating: filters.minRating > 0 ? filters.minRating : undefined,
       sortBy: filters.sortBy,
       page: 1, // Reset to page 1 when filters change
+      watchProvider: filters.watchProvider,
+      watchRegion: watchRegion,
       // Preserve runtime and country filters when applying other filters
       runtimeMin: runtimeMin,
       runtimeMax: runtimeMax,
@@ -210,6 +228,7 @@ function SearchResultsContent() {
       year: "",
       minRating: 0,
       sortBy: "popularity.desc",
+      watchProvider: undefined,
     };
     setFilters(resetFilters);
     updateURL({
@@ -219,10 +238,11 @@ function SearchResultsContent() {
       minRating: undefined,
       sortBy: "popularity.desc",
       page: 1,
+      watchProvider: undefined,
     });
   };
 
-  const hasActiveFilters: boolean = filters.type !== "all" || filters.genre.length > 0 || !!filters.year || filters.minRating > 0 || runtimeMin !== undefined || runtimeMax !== undefined || !!withOriginCountry;
+  const hasActiveFilters: boolean = filters.type !== "all" || filters.genre.length > 0 || !!filters.year || filters.minRating > 0 || runtimeMin !== undefined || runtimeMax !== undefined || !!withOriginCountry || (filters.watchProvider !== undefined && filters.watchProvider > 0);
   const currentYear = new Date().getFullYear();
   const startYear = 1900;
 
@@ -276,6 +296,7 @@ function SearchResultsContent() {
                 movieGenres={movieGenres}
                 tvGenres={tvGenres}
                 allGenres={allGenres}
+                watchProviders={watchProviders}
                 resetFilters={resetFilters}
                 onApply={handleApplyFilters}
                 isLoading={isLoading}

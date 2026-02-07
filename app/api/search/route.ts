@@ -48,10 +48,13 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
     const runtimeMin = runtimeMinParam ? parseInt(runtimeMinParam, 10) : undefined;
     const runtimeMax = runtimeMaxParam ? parseInt(runtimeMaxParam, 10) : undefined;
     const withOriginCountry = searchParams.get("withOriginCountry") || undefined;
+    const watchProviderParam = searchParams.get("watchProvider");
+    const watchProvider = watchProviderParam ? parseInt(watchProviderParam, 10) : undefined;
+    const watchRegion = searchParams.get("watchRegion") || "US";
 
     // Allow requests with filters or sortBy even without query
     const hasQuery = query && query.trim().length > 0;
-    const hasFilters = !!(genre || year || yearFrom || yearTo || minRating || runtimeMin !== undefined || runtimeMax !== undefined || withOriginCountry);
+    const hasFilters = !!(genre || year || yearFrom || yearTo || minRating || runtimeMin !== undefined || runtimeMax !== undefined || withOriginCountry || (watchProvider !== undefined && !isNaN(watchProvider)));
     const hasSortBy = sortBy && sortBy !== "popularity.desc"; // If sortBy is specified and not default
     
     if (!hasQuery && !hasFilters && !hasSortBy) {
@@ -177,6 +180,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
             ...(runtimeMin !== undefined && { runtimeMin }),
             ...(runtimeMax !== undefined && { runtimeMax }),
             ...(withOriginCountry && { withOriginCountry }),
+            ...(watchProvider !== undefined && !isNaN(watchProvider) && { with_watch_providers: String(watchProvider), watch_region: watchRegion }),
             sortBy,
           };
 
