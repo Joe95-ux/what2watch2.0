@@ -7,13 +7,16 @@ import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Check } from "lucide-react";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getCountryFlagEmoji } from "@/hooks/use-watch-regions";
 
@@ -80,8 +83,19 @@ export function FiltersSheet({
   const showAllGenres = externalShowAllGenres ?? internalShowAllGenres;
   const setShowAllGenres = externalSetShowAllGenres ?? setInternalShowAllGenres;
   const [showAllWatchProviders, setShowAllWatchProviders] = useState(false);
-  const WATCH_PROVIDERS_TO_SHOW = 10;
-  const watchProvidersToShow = showAllWatchProviders ? watchProviders : watchProviders.slice(0, WATCH_PROVIDERS_TO_SHOW);
+  const [countryOpen, setCountryOpen] = useState(false);
+  const WATCH_PROVIDERS_TO_SHOW = 13;
+  const first13 = watchProviders.slice(0, WATCH_PROVIDERS_TO_SHOW);
+  const selectedInFirst13 = filters.watchProvider != null && first13.some((p) => p.provider_id === filters.watchProvider);
+  const watchProvidersToShow = showAllWatchProviders
+    ? watchProviders
+    : selectedInFirst13
+      ? first13
+      : (() => {
+          const selected = watchProviders.find((p) => p.provider_id === filters.watchProvider);
+          if (!selected) return first13;
+          return [...watchProviders.filter((p) => p.provider_id !== filters.watchProvider).slice(0, WATCH_PROVIDERS_TO_SHOW - 1), selected];
+        })();
   const hasMoreWatchProviders = watchProviders.length > WATCH_PROVIDERS_TO_SHOW;
   
   const currentYear = externalCurrentYear ?? new Date().getFullYear();
@@ -193,35 +207,52 @@ export function FiltersSheet({
             <div className="space-y-3">
               <Label className="text-sm font-semibold uppercase tracking-wider">Where to Watch</Label>
               {watchRegions.length > 0 && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                <Popover open={countryOpen} onOpenChange={setCountryOpen}>
+                  <PopoverTrigger asChild>
                     <Button
                       variant="outline"
+                      role="combobox"
+                      aria-expanded={countryOpen}
                       className="w-full justify-between cursor-pointer"
                     >
                       <span className="flex items-center gap-2">
                         <span>{getCountryFlagEmoji(watchRegion)}</span>
                         <span>{watchRegions.find((r) => r.iso_3166_1 === watchRegion)?.english_name ?? watchRegion}</span>
                       </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="max-h-[min(60vh,400px)] overflow-y-auto">
-                    {watchRegions.map((region) => {
-                      const isSelected = watchRegion === region.iso_3166_1;
-                      return (
-                        <DropdownMenuItem
-                          key={region.iso_3166_1}
-                          onClick={() => setFilters({ ...filters, watchRegion: region.iso_3166_1 })}
-                          className="cursor-pointer flex items-center gap-2"
-                        >
-                          <span className="text-lg">{getCountryFlagEmoji(region.iso_3166_1)}</span>
-                          <span className="flex-1">{region.english_name}</span>
-                          {isSelected && <Check className="h-4 w-4 shrink-0" />}
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search country..." className="h-9" />
+                      <div className="max-h-[min(60vh,400px)] overflow-y-auto">
+                        <CommandList>
+                          <CommandEmpty>No country found.</CommandEmpty>
+                          <CommandGroup>
+                            {watchRegions.map((region) => {
+                              const isSelected = watchRegion === region.iso_3166_1;
+                              return (
+                                <CommandItem
+                                  key={region.iso_3166_1}
+                                  value={`${region.english_name} ${region.iso_3166_1}`}
+                                  onSelect={() => {
+                                    setFilters({ ...filters, watchRegion: region.iso_3166_1 });
+                                    setCountryOpen(false);
+                                  }}
+                                  className="cursor-pointer flex items-center gap-2"
+                                >
+                                  <span className="text-lg">{getCountryFlagEmoji(region.iso_3166_1)}</span>
+                                  <span className="flex-1">{region.english_name}</span>
+                                  {isSelected && <Check className="h-4 w-4 shrink-0" />}
+                                </CommandItem>
+                              );
+                            })}
+                          </CommandGroup>
+                        </CommandList>
+                      </div>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               )}
               {watchProviders.length > 0 && (
                 <div className="flex flex-wrap gap-2">
@@ -248,7 +279,7 @@ export function FiltersSheet({
                         className={cn(
                           "cursor-pointer rounded-lg border p-0 h-10 w-10 transition-colors flex items-center justify-center overflow-hidden relative",
                           isSelected
-                            ? "bg-primary border-primary ring-2 ring-primary"
+                            ? "bg-primary border-transparent"
                             : "bg-background hover:bg-accent border-input"
                         )}
                       >

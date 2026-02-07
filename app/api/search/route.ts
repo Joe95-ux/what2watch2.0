@@ -51,6 +51,9 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
     const watchProviderParam = searchParams.get("watchProvider");
     const watchProvider = watchProviderParam ? parseInt(watchProviderParam, 10) : undefined;
     const watchRegion = searchParams.get("watchRegion") || "US";
+    const pageSizeParam = searchParams.get("pageSize");
+    const pageSize = pageSizeParam ? parseInt(pageSizeParam, 10) : 20;
+    const RESULTS_PER_PAGE = pageSize === 42 ? 42 : 20;
 
     // Allow requests with filters or sortBy even without query
     const hasQuery = query && query.trim().length > 0;
@@ -169,9 +172,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
             total_results: combinedResults.length,
           };
         } else {
-          // Single genre or no genre: use normal discover
-          const filters = {
-            page,
+          // Single genre or no genre: use normal discover (support 42 per page via multi-fetch)
+          const baseFilterProps = {
             ...(genre && genre.length > 0 && { genre: genre[0] }),
             ...(year && { year }),
             ...(yearFrom && { yearFrom }),
@@ -184,22 +186,93 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
             sortBy,
           };
 
-          if (type === "movie") {
-            results = await Promise.race([discoverMovies(filters), timeoutPromise]);
-          } else if (type === "tv") {
-            results = await Promise.race([discoverTV(filters), timeoutPromise]);
+          if (RESULTS_PER_PAGE === 42) {
+            // Fetch 3 TMDB pages per logical page (TMDB returns 20 per page)
+            const tmdbPage1 = (page - 1) * 3 + 1;
+            const tmdbPage2 = tmdbPage1 + 1;
+            const tmdbPage3 = tmdbPage1 + 2;
+            if (type === "movie") {
+              const [r1, r2, r3] = await Promise.race([
+                Promise.all([
+                  discoverMovies({ ...baseFilterProps, page: tmdbPage1 }),
+                  discoverMovies({ ...baseFilterProps, page: tmdbPage2 }),
+                  discoverMovies({ ...baseFilterProps, page: tmdbPage3 }),
+                ]),
+                timeoutPromise,
+              ]);
+              const merged = [...(r1.results || []), ...(r2.results || []), ...(r3.results || [])];
+              const total = r1.total_results ?? 0;
+              results = {
+                page,
+                results: merged.slice(0, 42),
+                total_pages: Math.ceil(total / 42),
+                total_results: total,
+              };
+            } else if (type === "tv") {
+              const [r1, r2, r3] = await Promise.race([
+                Promise.all([
+                  discoverTV({ ...baseFilterProps, page: tmdbPage1 }),
+                  discoverTV({ ...baseFilterProps, page: tmdbPage2 }),
+                  discoverTV({ ...baseFilterProps, page: tmdbPage3 }),
+                ]),
+                timeoutPromise,
+              ]);
+              const merged = [...(r1.results || []), ...(r2.results || []), ...(r3.results || [])];
+              const total = r1.total_results ?? 0;
+              results = {
+                page,
+                results: merged.slice(0, 42),
+                total_pages: Math.ceil(total / 42),
+                total_results: total,
+              };
+            } else {
+              const [m1, m2, m3, t1, t2, t3] = await Promise.race([
+                Promise.all([
+                  discoverMovies({ ...baseFilterProps, page: tmdbPage1 }),
+                  discoverMovies({ ...baseFilterProps, page: tmdbPage2 }),
+                  discoverMovies({ ...baseFilterProps, page: tmdbPage3 }),
+                  discoverTV({ ...baseFilterProps, page: tmdbPage1 }),
+                  discoverTV({ ...baseFilterProps, page: tmdbPage2 }),
+                  discoverTV({ ...baseFilterProps, page: tmdbPage3 }),
+                ]),
+                timeoutPromise,
+              ]);
+              const interleave: (TMDBMovie | TMDBSeries)[] = [];
+              const maxLen = Math.max(m1.results.length, m2.results.length, m3.results.length, t1.results.length, t2.results.length, t3.results.length);
+              for (let i = 0; i < maxLen; i++) {
+                if (i < m1.results.length) interleave.push(m1.results[i]);
+                if (i < t1.results.length) interleave.push(t1.results[i]);
+                if (i < m2.results.length) interleave.push(m2.results[i]);
+                if (i < t2.results.length) interleave.push(t2.results[i]);
+                if (i < m3.results.length) interleave.push(m3.results[i]);
+                if (i < t3.results.length) interleave.push(t3.results[i]);
+              }
+              const total = (m1.total_results ?? 0) + (t1.total_results ?? 0);
+              results = {
+                page,
+                results: interleave.slice(0, 42),
+                total_pages: Math.ceil(total / 42),
+                total_results: total,
+              };
+            }
           } else {
-            // Search both
-            const [movies, tv] = await Promise.race([
-              Promise.all([discoverMovies(filters), discoverTV(filters)]),
-              timeoutPromise,
-            ]);
-            results = {
-              page,
-              results: [...movies.results, ...tv.results],
-              total_pages: Math.max(movies.total_pages, tv.total_pages),
-              total_results: movies.total_results + tv.total_results,
-            };
+            const filters = { page, ...baseFilterProps };
+            if (type === "movie") {
+              results = await Promise.race([discoverMovies(filters), timeoutPromise]);
+            } else if (type === "tv") {
+              results = await Promise.race([discoverTV(filters), timeoutPromise]);
+            } else {
+              const [movies, tv] = await Promise.race([
+                Promise.all([discoverMovies(filters), discoverTV(filters)]),
+                timeoutPromise,
+              ]);
+              results = {
+                page,
+                results: [...movies.results, ...tv.results],
+                total_pages: Math.max(movies.total_pages, tv.total_pages),
+                total_results: movies.total_results + tv.total_results,
+              };
+            }
           }
         }
       } else if (query) {

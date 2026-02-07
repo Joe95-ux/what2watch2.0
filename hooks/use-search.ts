@@ -9,6 +9,7 @@ interface SearchParams {
   minRating?: number;
   sortBy?: string;
   page?: number;
+  pageSize?: number;
   runtimeMin?: number;
   runtimeMax?: number;
   withOriginCountry?: string;
@@ -41,6 +42,7 @@ export function useSearch(params: SearchParams) {
       if (params.withOriginCountry) searchParams.set("withOriginCountry", params.withOriginCountry);
       if (params.watchProvider !== undefined) searchParams.set("watchProvider", params.watchProvider.toString());
       if (params.watchRegion) searchParams.set("watchRegion", params.watchRegion);
+      if (params.pageSize) searchParams.set("pageSize", params.pageSize.toString());
       // Always include page, default to 1
       searchParams.set("page", (params.page || 1).toString());
 

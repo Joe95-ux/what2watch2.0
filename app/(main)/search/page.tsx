@@ -93,6 +93,7 @@ function SearchResultsContent() {
     minRating: minRating > 0 ? minRating : undefined,
     sortBy,
     page,
+    pageSize: 42,
     runtimeMin,
     runtimeMax,
     withOriginCountry,
