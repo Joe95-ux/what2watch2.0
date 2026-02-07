@@ -245,17 +245,17 @@ export function FiltersSheet({
                         onValueChange={setCountrySearch}
                       />
                       <CommandList
-                        className="max-h-[min(60vh,400px)] overflow-y-auto overflow-x-hidden overscroll-contain [content-visibility:auto]"
-                        style={{ contain: "strict" }}
+                        className="max-h-[min(60vh,400px)] overflow-y-auto overflow-x-hidden overscroll-contain"
                       >
                         <CommandEmpty>No country found.</CommandEmpty>
-                        <CommandGroup>
+                        <CommandGroup forceMount>
                           {filteredWatchRegions.map((region) => {
                             const isSelected = watchRegion === region.iso_3166_1;
                             return (
                               <CommandItem
                                 key={region.iso_3166_1}
                                 value={region.iso_3166_1}
+                                forceMount
                                 onSelect={() => {
                                   setFilters({ ...filters, watchRegion: region.iso_3166_1 });
                                   setCountryOpen(false);
