@@ -58,7 +58,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const debouncedQuery = useDebounce(query, 300);
   const [isMounted, setIsMounted] = useState(false);
-  const { data: watchProviders = [] } = useWatchProviders("US");
+  const { data: watchProviders = [] } = useWatchProviders("US", { all: true });
 
   // Check if mobile (using standard md breakpoint: 768px)
   const isMobile = useIsMobile();

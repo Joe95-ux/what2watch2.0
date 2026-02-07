@@ -67,7 +67,7 @@ function PopularContentInner() {
     });
   }, [searchParams]);
 
-  const { data: watchProviders = [] } = useWatchProviders("US");
+  const { data: watchProviders = [] } = useWatchProviders("US", { all: true });
 
   // Fetch genres
   useEffect(() => {

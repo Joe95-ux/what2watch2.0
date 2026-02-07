@@ -66,7 +66,7 @@ function SearchResultsContent() {
     });
   }, [searchParams]);
 
-  const { data: watchProviders = [] } = useWatchProviders("US");
+  const { data: watchProviders = [] } = useWatchProviders("US", { all: true });
 
   // Fetch genres
   useEffect(() => {
@@ -92,12 +92,19 @@ function SearchResultsContent() {
     runtimeMin,
     runtimeMax,
     withOriginCountry,
+    watchProvider: watchProvider !== undefined && !Number.isNaN(watchProvider) ? watchProvider : undefined,
+    watchRegion,
   });
 
   const results = data?.results || [];
   const totalPages = data?.total_pages || 0;
   const totalResults = data?.total_results || 0;
   const currentPage = data?.page || 1;
+
+  const streamingProviderName =
+    watchProvider !== undefined && !Number.isNaN(watchProvider)
+      ? watchProviders.find((p) => p.provider_id === watchProvider)?.provider_name
+      : null;
 
   const updateURL = (newParams: Record<string, string | number | number[] | undefined>) => {
     const params = new URLSearchParams();
@@ -260,6 +267,8 @@ function SearchResultsContent() {
             <h1 className="text-3xl font-bold mb-2">
               {query ? (
                 `Search Results for "${query}"`
+              ) : streamingProviderName ? (
+                `Streaming on ${streamingProviderName}`
               ) : hasActiveFilters ? (
                 "Filtered Results"
               ) : (

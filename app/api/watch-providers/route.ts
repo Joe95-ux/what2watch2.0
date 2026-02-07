@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getWatchProvidersList, type TMDBWatchProviderItem } from "@/lib/tmdb";
 
 const WATCH_REGION = "US";
-const TOP_N = 5;
+const TOP_N_CAROUSELS = 5;
+const MAX_PROVIDERS = 100;
 
 /**
- * GET /api/watch-providers?region=US
- * Returns the first N watch providers (by display priority) for movies and TV combined.
- * Used for browse carousels and search filter sidebar.
+ * GET /api/watch-providers?region=US&limit=5|all
+ * Returns watch providers (by display priority) for movies and TV combined.
+ * limit=5 (default): first 5 for browse carousels.
+ * limit=all: up to MAX_PROVIDERS for filter sidebar (show more/less).
  */
 export async function GET(request: NextRequest): Promise<
   NextResponse<
@@ -17,6 +19,10 @@ export async function GET(request: NextRequest): Promise<
 > {
   try {
     const region = request.nextUrl.searchParams.get("region") || WATCH_REGION;
+    const limitParam = request.nextUrl.searchParams.get("limit");
+    const limitAll = limitParam === "all";
+    const topN = limitAll ? MAX_PROVIDERS : (limitParam ? parseInt(limitParam, 10) : TOP_N_CAROUSELS);
+    const sliceTo = typeof topN === "number" && !Number.isNaN(topN) && topN > 0 ? topN : TOP_N_CAROUSELS;
 
     const [movieRes, tvRes] = await Promise.all([
       getWatchProvidersList("movie", region),
@@ -45,7 +51,7 @@ export async function GET(request: NextRequest): Promise<
 
     const sorted = Array.from(byId.entries())
       .sort((a, b) => a[1].priority - b[1].priority)
-      .slice(0, TOP_N)
+      .slice(0, sliceTo)
       .map(([provider_id, v]) => ({
         provider_id,
         provider_name: v.provider_name,

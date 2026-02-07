@@ -63,6 +63,10 @@ export function FiltersSheet({
   const [internalShowAllGenres, setInternalShowAllGenres] = useState(false);
   const showAllGenres = externalShowAllGenres ?? internalShowAllGenres;
   const setShowAllGenres = externalSetShowAllGenres ?? setInternalShowAllGenres;
+  const [showAllWatchProviders, setShowAllWatchProviders] = useState(false);
+  const WATCH_PROVIDERS_TO_SHOW = 10;
+  const watchProvidersToShow = showAllWatchProviders ? watchProviders : watchProviders.slice(0, WATCH_PROVIDERS_TO_SHOW);
+  const hasMoreWatchProviders = watchProviders.length > WATCH_PROVIDERS_TO_SHOW;
   
   const currentYear = externalCurrentYear ?? new Date().getFullYear();
   const startYear = externalStartYear ?? 1900;
@@ -175,7 +179,7 @@ export function FiltersSheet({
                   type="button"
                   onClick={() => setFilters({ ...filters, watchProvider: undefined })}
                   className={cn(
-                    "rounded-lg border p-2 h-auto transition-colors flex items-center gap-2",
+                    "cursor-pointer rounded-lg border p-2 h-10 transition-colors flex items-center gap-2",
                     (filters.watchProvider === undefined || filters.watchProvider === 0)
                       ? "bg-primary text-primary-foreground border-primary"
                       : "bg-background hover:bg-accent border-input"
@@ -183,7 +187,7 @@ export function FiltersSheet({
                 >
                   <span className="text-sm font-medium">Any</span>
                 </button>
-                {watchProviders.map((provider) => {
+                {watchProvidersToShow.map((provider) => {
                   const isSelected = filters.watchProvider === provider.provider_id;
                   return (
                     <button
@@ -192,7 +196,7 @@ export function FiltersSheet({
                       onClick={() => setFilters({ ...filters, watchProvider: provider.provider_id })}
                       title={provider.provider_name}
                       className={cn(
-                        "rounded-lg border p-2 h-10 w-10 transition-colors flex items-center justify-center overflow-hidden",
+                        "cursor-pointer rounded-lg border p-0 h-10 w-10 transition-colors flex items-center justify-center overflow-hidden",
                         isSelected
                           ? "bg-primary border-primary ring-2 ring-primary"
                           : "bg-background hover:bg-accent border-input"
@@ -202,7 +206,7 @@ export function FiltersSheet({
                         <img
                           src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
                           alt={provider.provider_name}
-                          className="h-6 w-6 object-contain"
+                          className="h-full w-full object-cover rounded-lg"
                         />
                       ) : (
                         <span className="text-xs font-medium truncate">{provider.provider_name.slice(0, 2)}</span>
@@ -211,6 +215,15 @@ export function FiltersSheet({
                   );
                 })}
               </div>
+              {hasMoreWatchProviders && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllWatchProviders(!showAllWatchProviders)}
+                  className="text-sm text-primary hover:underline cursor-pointer"
+                >
+                  {showAllWatchProviders ? "Show less" : "Show more"}
+                </button>
+              )}
             </div>
           )}
 
