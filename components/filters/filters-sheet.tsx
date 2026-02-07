@@ -84,7 +84,15 @@ export function FiltersSheet({
   const setShowAllGenres = externalSetShowAllGenres ?? setInternalShowAllGenres;
   const [showAllWatchProviders, setShowAllWatchProviders] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
+  const [countrySearch, setCountrySearch] = useState("");
   const WATCH_PROVIDERS_TO_SHOW = 13;
+  const filteredWatchRegions = countrySearch.trim()
+    ? watchRegions.filter(
+        (r) =>
+          r.english_name.toLowerCase().includes(countrySearch.toLowerCase()) ||
+          r.iso_3166_1.toLowerCase().includes(countrySearch.toLowerCase())
+      )
+    : watchRegions;
   const first13 = watchProviders.slice(0, WATCH_PROVIDERS_TO_SHOW);
   const selectedInFirst13 = filters.watchProvider != null && first13.some((p) => p.provider_id === filters.watchProvider);
   const watchProvidersToShow = showAllWatchProviders
@@ -207,7 +215,13 @@ export function FiltersSheet({
             <div className="space-y-3">
               <Label className="text-sm font-semibold uppercase tracking-wider">Where to Watch</Label>
               {watchRegions.length > 0 && (
-                <Popover open={countryOpen} onOpenChange={setCountryOpen}>
+                <Popover
+                  open={countryOpen}
+                  onOpenChange={(open) => {
+                    setCountryOpen(open);
+                    if (!open) setCountrySearch("");
+                  }}
+                >
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -223,33 +237,40 @@ export function FiltersSheet({
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Search country..." className="h-9" />
-                      <div className="max-h-[min(60vh,400px)] overflow-y-auto">
-                        <CommandList>
-                          <CommandEmpty>No country found.</CommandEmpty>
-                          <CommandGroup>
-                            {watchRegions.map((region) => {
-                              const isSelected = watchRegion === region.iso_3166_1;
-                              return (
-                                <CommandItem
-                                  key={region.iso_3166_1}
-                                  value={`${region.english_name} ${region.iso_3166_1}`}
-                                  onSelect={() => {
-                                    setFilters({ ...filters, watchRegion: region.iso_3166_1 });
-                                    setCountryOpen(false);
-                                  }}
-                                  className="cursor-pointer flex items-center gap-2"
-                                >
-                                  <span className="text-lg">{getCountryFlagEmoji(region.iso_3166_1)}</span>
-                                  <span className="flex-1">{region.english_name}</span>
-                                  {isSelected && <Check className="h-4 w-4 shrink-0" />}
-                                </CommandItem>
-                              );
-                            })}
-                          </CommandGroup>
-                        </CommandList>
-                      </div>
+                    <Command shouldFilter={false}>
+                      <CommandInput
+                        placeholder="Search country..."
+                        className="h-9"
+                        value={countrySearch}
+                        onValueChange={setCountrySearch}
+                      />
+                      <CommandList
+                        className="max-h-[min(60vh,400px)] overflow-y-auto overflow-x-hidden overscroll-contain [content-visibility:auto]"
+                        style={{ contain: "strict" }}
+                      >
+                        <CommandEmpty>No country found.</CommandEmpty>
+                        <CommandGroup>
+                          {filteredWatchRegions.map((region) => {
+                            const isSelected = watchRegion === region.iso_3166_1;
+                            return (
+                              <CommandItem
+                                key={region.iso_3166_1}
+                                value={region.iso_3166_1}
+                                onSelect={() => {
+                                  setFilters({ ...filters, watchRegion: region.iso_3166_1 });
+                                  setCountryOpen(false);
+                                  setCountrySearch("");
+                                }}
+                                className="cursor-pointer flex items-center gap-2 [content-visibility:auto]"
+                              >
+                                <span className="text-lg">{getCountryFlagEmoji(region.iso_3166_1)}</span>
+                                <span className="flex-1">{region.english_name}</span>
+                                {isSelected && <Check className="h-4 w-4 shrink-0" />}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
                     </Command>
                   </PopoverContent>
                 </Popover>

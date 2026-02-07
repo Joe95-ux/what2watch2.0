@@ -269,10 +269,10 @@ function SearchResultsContent() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
+        {/* Header: on small screens flex-col with filter top-right, title/description left; on md+ row with space-between */}
+        <div className="flex flex-col gap-4 mb-8 md:flex-row md:items-center md:justify-between">
+          <div className="order-2 md:order-1 min-w-0">
+            <h1 className="text-xl font-bold mb-2 flex items-center gap-2 sm:text-2xl md:text-3xl">
               {query ? (
                 `Search Results for "${query}"`
               ) : streamingProviderName ? (
@@ -281,10 +281,10 @@ function SearchResultsContent() {
                     <img
                       src={`https://image.tmdb.org/t/p/w92${streamingProvider.logo_path}`}
                       alt=""
-                      className="h-10 w-10 rounded-lg object-cover shrink-0"
+                      className="h-8 w-8 rounded-lg object-cover shrink-0 md:h-10 md:w-10"
                     />
                   )}
-                  <span>Streaming on {streamingProviderName}</span>
+                  <span className="truncate">Streaming on {streamingProviderName}</span>
                 </>
               ) : hasActiveFilters ? (
                 "Filtered Results"
@@ -293,12 +293,13 @@ function SearchResultsContent() {
               )}
             </h1>
             {totalResults > 0 && (
-              <p className="text-muted-foreground">
+              <p className="text-sm text-muted-foreground sm:text-base">
                 {totalResults.toLocaleString()} {totalResults === 1 ? "result" : "results"} found
               </p>
             )}
           </div>
-          <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+          <div className="order-1 flex justify-end shrink-0 md:order-2">
+            <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" className="gap-2 cursor-pointer">
                 <SlidersHorizontal className="h-4 w-4" />
@@ -337,6 +338,7 @@ function SearchResultsContent() {
               />
             </SheetContent>
           </Sheet>
+          </div>
         </div>
 
         {/* Results */}
