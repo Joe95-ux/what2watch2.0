@@ -13,6 +13,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState, useEffect } from "react";
 import { FiltersSheet, type SearchFilters } from "@/components/filters/filters-sheet";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
+import { useWatchRegions } from "@/hooks/use-watch-regions";
 
 function SearchResultsContent() {
   const searchParams = useSearchParams();
@@ -56,6 +57,7 @@ function SearchResultsContent() {
     const genreArray = genreParam ? genreParam.split(",").map(id => parseInt(id, 10)).filter(id => !isNaN(id)) : [];
     const wp = searchParams.get("watchProvider");
     const watchProviderFromUrl = wp ? parseInt(wp, 10) : undefined;
+    const wr = searchParams.get("watchRegion") || "US";
     setFilters({
       type: (searchParams.get("type") || "all") as "all" | "movie" | "tv",
       genre: genreArray,
@@ -63,10 +65,12 @@ function SearchResultsContent() {
       minRating: searchParams.get("minRating") ? parseFloat(searchParams.get("minRating")!) : 0,
       sortBy: searchParams.get("sortBy") || "popularity.desc",
       watchProvider: watchProviderFromUrl != null && !Number.isNaN(watchProviderFromUrl) ? watchProviderFromUrl : undefined,
+      watchRegion: wr,
     });
   }, [searchParams]);
 
-  const { data: watchProviders = [] } = useWatchProviders("US", { all: true });
+  const { data: watchRegions = [] } = useWatchRegions();
+  const { data: watchProviders = [] } = useWatchProviders(filters.watchRegion || "US", { all: true });
 
   // Fetch genres
   useEffect(() => {
@@ -101,10 +105,11 @@ function SearchResultsContent() {
   const totalResults = data?.total_results || 0;
   const currentPage = data?.page || 1;
 
-  const streamingProviderName =
+  const streamingProvider =
     watchProvider !== undefined && !Number.isNaN(watchProvider)
-      ? watchProviders.find((p) => p.provider_id === watchProvider)?.provider_name
+      ? watchProviders.find((p) => p.provider_id === watchProvider) ?? null
       : null;
+  const streamingProviderName = streamingProvider?.provider_name ?? null;
 
   const updateURL = (newParams: Record<string, string | number | number[] | undefined>) => {
     const params = new URLSearchParams();
@@ -236,6 +241,7 @@ function SearchResultsContent() {
       minRating: 0,
       sortBy: "popularity.desc",
       watchProvider: undefined,
+      watchRegion: "US",
     };
     setFilters(resetFilters);
     updateURL({
@@ -246,6 +252,7 @@ function SearchResultsContent() {
       sortBy: "popularity.desc",
       page: 1,
       watchProvider: undefined,
+      watchRegion: "US",
     });
   };
 
@@ -264,11 +271,20 @@ function SearchResultsContent() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2">
+            <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
               {query ? (
                 `Search Results for "${query}"`
               ) : streamingProviderName ? (
-                `Streaming on ${streamingProviderName}`
+                <>
+                  {streamingProvider?.logo_path && (
+                    <img
+                      src={`https://image.tmdb.org/t/p/w92${streamingProvider.logo_path}`}
+                      alt=""
+                      className="h-10 w-10 rounded-lg object-cover shrink-0"
+                    />
+                  )}
+                  <span>Streaming on {streamingProviderName}</span>
+                </>
               ) : hasActiveFilters ? (
                 "Filtered Results"
               ) : (
@@ -283,7 +299,7 @@ function SearchResultsContent() {
           </div>
           <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="gap-2 cursor-pointer">
                 <SlidersHorizontal className="h-4 w-4" />
                 Filters
                 {hasActiveFilters && (
@@ -293,6 +309,7 @@ function SearchResultsContent() {
                       filters.genre.length > 0,
                       !!filters.year,
                       filters.minRating > 0,
+                      (filters.watchProvider !== undefined && filters.watchProvider > 0),
                     ].filter(Boolean).length}
                   </span>
                 )}
@@ -306,6 +323,7 @@ function SearchResultsContent() {
                 tvGenres={tvGenres}
                 allGenres={allGenres}
                 watchProviders={watchProviders}
+                watchRegions={watchRegions}
                 resetFilters={resetFilters}
                 onApply={handleApplyFilters}
                 isLoading={isLoading}

@@ -7,7 +7,15 @@ import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getCountryFlagEmoji } from "@/hooks/use-watch-regions";
 
 export interface SearchFilters {
   type: "all" | "movie" | "tv";
@@ -16,12 +24,18 @@ export interface SearchFilters {
   minRating: number;
   sortBy: string;
   watchProvider?: number;
+  watchRegion?: string;
 }
 
 export interface WatchProviderOption {
   provider_id: number;
   provider_name: string;
   logo_path: string | null;
+}
+
+export interface WatchRegionOption {
+  iso_3166_1: string;
+  english_name: string;
 }
 
 interface FiltersSheetProps {
@@ -31,6 +45,7 @@ interface FiltersSheetProps {
   tvGenres: Array<{ id: number; name: string }>;
   allGenres: Array<{ id: number; name: string }>;
   watchProviders?: WatchProviderOption[];
+  watchRegions?: WatchRegionOption[];
   resetFilters: () => void;
   onApply: () => void;
   isLoading?: boolean;
@@ -55,6 +70,7 @@ export function FiltersSheet({
   setShowAllGenres: externalSetShowAllGenres,
   GENRES_TO_SHOW = 8,
   watchProviders = [],
+  watchRegions = [],
   currentYear: externalCurrentYear,
   startYear: externalStartYear,
   hasActiveFilters: externalHasActiveFilters,
@@ -78,6 +94,8 @@ export function FiltersSheet({
     ? tvGenres 
     : allGenres;
   
+  const watchRegion = filters.watchRegion || "US";
+
   const hasActiveFilters = externalHasActiveFilters ?? (
     filters.type !== "all" || 
     filters.genre.length > 0 || 
@@ -170,51 +188,89 @@ export function FiltersSheet({
             </div>
           </div>
 
-          {/* Streaming Service Section */}
-          {watchProviders.length > 0 && (
+          {/* Where to Watch Section */}
+          {(watchRegions.length > 0 || watchProviders.length > 0) && (
             <div className="space-y-3">
-              <Label className="text-sm font-semibold uppercase tracking-wider">Streaming Service</Label>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFilters({ ...filters, watchProvider: undefined })}
-                  className={cn(
-                    "cursor-pointer rounded-lg border p-2 h-10 transition-colors flex items-center gap-2",
-                    (filters.watchProvider === undefined || filters.watchProvider === 0)
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background hover:bg-accent border-input"
-                  )}
-                >
-                  <span className="text-sm font-medium">Any</span>
-                </button>
-                {watchProvidersToShow.map((provider) => {
-                  const isSelected = filters.watchProvider === provider.provider_id;
-                  return (
-                    <button
-                      key={provider.provider_id}
-                      type="button"
-                      onClick={() => setFilters({ ...filters, watchProvider: provider.provider_id })}
-                      title={provider.provider_name}
-                      className={cn(
-                        "cursor-pointer rounded-lg border p-0 h-10 w-10 transition-colors flex items-center justify-center overflow-hidden",
-                        isSelected
-                          ? "bg-primary border-primary ring-2 ring-primary"
-                          : "bg-background hover:bg-accent border-input"
-                      )}
+              <Label className="text-sm font-semibold uppercase tracking-wider">Where to Watch</Label>
+              {watchRegions.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between cursor-pointer"
                     >
-                      {provider.logo_path ? (
-                        <img
-                          src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
-                          alt={provider.provider_name}
-                          className="h-full w-full object-cover rounded-lg"
-                        />
-                      ) : (
-                        <span className="text-xs font-medium truncate">{provider.provider_name.slice(0, 2)}</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+                      <span className="flex items-center gap-2">
+                        <span>{getCountryFlagEmoji(watchRegion)}</span>
+                        <span>{watchRegions.find((r) => r.iso_3166_1 === watchRegion)?.english_name ?? watchRegion}</span>
+                      </span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="max-h-[min(60vh,400px)] overflow-y-auto">
+                    {watchRegions.map((region) => {
+                      const isSelected = watchRegion === region.iso_3166_1;
+                      return (
+                        <DropdownMenuItem
+                          key={region.iso_3166_1}
+                          onClick={() => setFilters({ ...filters, watchRegion: region.iso_3166_1 })}
+                          className="cursor-pointer flex items-center gap-2"
+                        >
+                          <span className="text-lg">{getCountryFlagEmoji(region.iso_3166_1)}</span>
+                          <span className="flex-1">{region.english_name}</span>
+                          {isSelected && <Check className="h-4 w-4 shrink-0" />}
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              {watchProviders.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFilters({ ...filters, watchProvider: undefined })}
+                    className={cn(
+                      "cursor-pointer rounded-lg border p-2 h-10 transition-colors flex items-center gap-2",
+                      (filters.watchProvider === undefined || filters.watchProvider === 0)
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background hover:bg-accent border-input"
+                    )}
+                  >
+                    <span className="text-sm font-medium">Any</span>
+                  </button>
+                  {watchProvidersToShow.map((provider) => {
+                    const isSelected = filters.watchProvider === provider.provider_id;
+                    return (
+                      <button
+                        key={provider.provider_id}
+                        type="button"
+                        onClick={() => setFilters({ ...filters, watchProvider: provider.provider_id })}
+                        title={provider.provider_name}
+                        className={cn(
+                          "cursor-pointer rounded-lg border p-0 h-10 w-10 transition-colors flex items-center justify-center overflow-hidden relative",
+                          isSelected
+                            ? "bg-primary border-primary ring-2 ring-primary"
+                            : "bg-background hover:bg-accent border-input"
+                        )}
+                      >
+                        {provider.logo_path ? (
+                          <img
+                            src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
+                            alt={provider.provider_name}
+                            className="h-full w-full object-cover rounded-lg"
+                          />
+                        ) : (
+                          <span className="text-xs font-medium truncate">{provider.provider_name.slice(0, 2)}</span>
+                        )}
+                        {isSelected && (
+                          <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50">
+                            <Check className="h-5 w-5 text-white shrink-0" />
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               {hasMoreWatchProviders && (
                 <button
                   type="button"

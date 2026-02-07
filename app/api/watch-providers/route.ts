@@ -4,6 +4,9 @@ import { getWatchProvidersList, type TMDBWatchProviderItem } from "@/lib/tmdb";
 const WATCH_REGION = "US";
 const TOP_N_CAROUSELS = 5;
 const MAX_PROVIDERS = 100;
+/** Replace Amazon Prime Video with Disney+ in browse carousels (top 5) */
+const AMAZON_PRIME_PROVIDER_ID = 9;
+const DISNEY_PLUS_PROVIDER_ID = 337;
 
 /**
  * GET /api/watch-providers?region=US&limit=5|all
@@ -49,14 +52,27 @@ export async function GET(request: NextRequest): Promise<
     movieRes.results.forEach(add);
     tvRes.results.forEach(add);
 
-    const sorted = Array.from(byId.entries())
+    let sorted = Array.from(byId.entries())
       .sort((a, b) => a[1].priority - b[1].priority)
-      .slice(0, sliceTo)
       .map(([provider_id, v]) => ({
         provider_id,
         provider_name: v.provider_name,
         logo_path: v.logo_path,
       }));
+
+    // For carousels (top 5): replace Amazon Prime Video with Disney+
+    if (!limitAll && sliceTo === TOP_N_CAROUSELS) {
+      const withoutAmazon = sorted.filter((p) => p.provider_id !== AMAZON_PRIME_PROVIDER_ID);
+      let top5 = withoutAmazon.slice(0, TOP_N_CAROUSELS);
+      const hasDisney = top5.some((p) => p.provider_id === DISNEY_PLUS_PROVIDER_ID);
+      const disney = sorted.find((p) => p.provider_id === DISNEY_PLUS_PROVIDER_ID);
+      if (disney && !hasDisney) {
+        top5 = [...withoutAmazon.slice(0, TOP_N_CAROUSELS - 1), disney];
+      }
+      sorted = top5;
+    } else {
+      sorted = sorted.slice(0, sliceTo);
+    }
 
     return NextResponse.json(
       { providers: sorted },

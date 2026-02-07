@@ -20,6 +20,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { FiltersSheet, type SearchFilters } from "@/components/filters/filters-sheet";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
+import { useWatchRegions } from "@/hooks/use-watch-regions";
 
 interface SearchResult {
   id: number;
@@ -49,6 +50,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
     minRating: 0,
     sortBy: "popularity.desc",
     watchProvider: undefined,
+    watchRegion: "US",
   });
   const [movieGenres, setMovieGenres] = useState<Array<{ id: number; name: string }>>([]);
   const [tvGenres, setTVGenres] = useState<Array<{ id: number; name: string }>>([]);
@@ -58,7 +60,8 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const debouncedQuery = useDebounce(query, 300);
   const [isMounted, setIsMounted] = useState(false);
-  const { data: watchProviders = [] } = useWatchProviders("US", { all: true });
+  const { data: watchRegions = [] } = useWatchRegions();
+  const { data: watchProviders = [] } = useWatchProviders(filters.watchRegion || "US", { all: true });
 
   // Check if mobile (using standard md breakpoint: 768px)
   const isMobile = useIsMobile();
@@ -258,6 +261,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
     if (filters.minRating > 0) params.set("minRating", filters.minRating.toString());
     if (filters.sortBy) params.set("sortBy", filters.sortBy);
     if (filters.watchProvider !== undefined && filters.watchProvider > 0) params.set("watchProvider", filters.watchProvider.toString());
+    if (filters.watchRegion && filters.watchRegion !== "US") params.set("watchRegion", filters.watchRegion);
 
     router.push(`/search?${params.toString()}`);
     setIsExpanded(false);
@@ -397,6 +401,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
                     tvGenres={tvGenres}
                     allGenres={allGenres}
                     watchProviders={watchProviders}
+                    watchRegions={watchRegions}
                     resetFilters={resetFilters}
                     onApply={async () => {
                       setFiltersOpen(false);
@@ -409,6 +414,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
                       if (filters.minRating > 0) params.set("minRating", filters.minRating.toString());
                       if (filters.sortBy) params.set("sortBy", filters.sortBy);
                       if (filters.watchProvider !== undefined && filters.watchProvider > 0) params.set("watchProvider", filters.watchProvider.toString());
+                      if (filters.watchRegion && filters.watchRegion !== "US") params.set("watchRegion", filters.watchRegion);
                       
                       // Redirect to search page
                       router.push(`/search?${params.toString()}`);
@@ -548,6 +554,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
                   tvGenres={tvGenres}
                   allGenres={allGenres}
                   watchProviders={watchProviders}
+                  watchRegions={watchRegions}
                   resetFilters={resetFilters}
                   onApply={async () => {
                     setFiltersOpen(false);
@@ -560,6 +567,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
                     if (filters.minRating > 0) params.set("minRating", filters.minRating.toString());
                     if (filters.sortBy) params.set("sortBy", filters.sortBy);
                     if (filters.watchProvider !== undefined && filters.watchProvider > 0) params.set("watchProvider", filters.watchProvider.toString());
+                    if (filters.watchRegion && filters.watchRegion !== "US") params.set("watchRegion", filters.watchRegion);
                     
                     // Redirect to search page
                     router.push(`/search?${params.toString()}`);

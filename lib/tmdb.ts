@@ -448,6 +448,23 @@ export interface TMDBWatchProvidersListResponse {
   results: TMDBWatchProviderItem[];
 }
 
+/** Watch provider region from TMDB watch/providers/regions */
+export interface TMDBWatchProviderRegion {
+  iso_3166_1: string;
+  english_name: string;
+}
+
+export interface TMDBWatchProvidersRegionsResponse {
+  results: TMDBWatchProviderRegion[];
+}
+
+/**
+ * Get list of countries/regions with watch provider data.
+ */
+export async function getWatchProvidersRegions(): Promise<TMDBWatchProvidersRegionsResponse> {
+  return fetchTMDB<TMDBWatchProvidersRegionsResponse>('/watch/providers/regions');
+}
+
 /**
  * Get list of watch providers for a region (for movies or TV).
  * Used for "streaming service" filter and browse carousels.

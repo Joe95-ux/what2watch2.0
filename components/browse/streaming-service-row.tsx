@@ -21,6 +21,14 @@ export default function StreamingServiceRow({ provider }: StreamingServiceRowPro
   const items = data?.results ?? [];
   const viewAllHref = `/search?watchProvider=${provider.provider_id}`;
 
+  const titlePrefix = provider.logo_path ? (
+    <img
+      src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
+      alt=""
+      className="h-8 w-8 rounded-lg object-cover shrink-0"
+    />
+  ) : null;
+
   return (
     <ContentRow
       title={provider.provider_name}
@@ -28,6 +36,7 @@ export default function StreamingServiceRow({ provider }: StreamingServiceRowPro
       type="movie"
       isLoading={isLoading}
       viewAllHref={viewAllHref}
+      titlePrefix={titlePrefix}
     />
   );
 }

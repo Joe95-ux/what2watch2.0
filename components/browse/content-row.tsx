@@ -21,12 +21,13 @@ interface ContentRowProps {
   onClear?: () => void;
   isClearing?: boolean;
   titleAction?: React.ReactNode; // Optional action element next to title (e.g., dropdown)
+  titlePrefix?: React.ReactNode; // Optional element before title (e.g., logo for streaming service)
   viewAllHref?: string; // Optional href for "View All" button
   onLoadMore?: () => void; // Callback when user scrolls to the end
   isLoadingMore?: boolean; // Whether more items are being loaded
 }
 
-export default function ContentRow({ title, items, type, isLoading, href, showClearButton, onClear, isClearing, titleAction, viewAllHref, onLoadMore, isLoadingMore }: ContentRowProps) {
+export default function ContentRow({ title, items, type, isLoading, href, showClearButton, onClear, isClearing, titleAction, titlePrefix, viewAllHref, onLoadMore, isLoadingMore }: ContentRowProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "start",
     slidesToScroll: 5,
@@ -108,8 +109,8 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
     return null;
   }
 
-  // Generate href if not provided
-  const titleHref = href || (() => {
+  // Generate href if not provided: use viewAllHref when present so title link matches "View All"
+  const titleHref = href ?? viewAllHref ?? (() => {
     // Generate routes based on title
     const titleLower = title.toLowerCase();
     if (titleLower.includes("popular movies")) return "/browse/movies/popular";
@@ -132,6 +133,7 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
               href={titleHref}
               className="group/title inline-flex items-center gap-2 transition-all duration-300"
             >
+              {titlePrefix}
               <h2 className="text-2xl font-medium text-foreground group-hover/title:text-primary transition-colors">
                 {title}
               </h2>

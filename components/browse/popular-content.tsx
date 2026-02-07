@@ -13,6 +13,7 @@ import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { FiltersSheet, type SearchFilters } from "@/components/filters/filters-sheet";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
+import { useWatchRegions } from "@/hooks/use-watch-regions";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -47,6 +48,7 @@ function PopularContentInner() {
     minRating,
     sortBy,
     watchProvider: watchProvider !== undefined && !Number.isNaN(watchProvider) ? watchProvider : undefined,
+    watchRegion,
   });
 
   // Update filters when URL params change
@@ -57,6 +59,7 @@ function PopularContentInner() {
     const normalizedType = (typeParam === "movies" ? "movie" : typeParam) as "all" | "movie" | "tv";
     const wp = searchParams.get("watchProvider");
     const wpNum = wp ? parseInt(wp, 10) : undefined;
+    const wr = searchParams.get("watchRegion") || "US";
     setFilters({
       type: normalizedType,
       genre: genreArray,
@@ -64,10 +67,12 @@ function PopularContentInner() {
       minRating: searchParams.get("minRating") ? parseFloat(searchParams.get("minRating")!) : 0,
       sortBy: searchParams.get("sortBy") || "popularity.desc",
       watchProvider: wpNum != null && !Number.isNaN(wpNum) ? wpNum : undefined,
+      watchRegion: wr,
     });
   }, [searchParams]);
 
-  const { data: watchProviders = [] } = useWatchProviders("US", { all: true });
+  const { data: watchRegions = [] } = useWatchRegions();
+  const { data: watchProviders = [] } = useWatchProviders(filters.watchRegion || "US", { all: true });
 
   // Fetch genres
   useEffect(() => {
@@ -348,6 +353,7 @@ function PopularContentInner() {
                   tvGenres={tvGenres}
                   allGenres={allGenres}
                   watchProviders={watchProviders}
+                  watchRegions={watchRegions}
                   resetFilters={resetFilters}
                   onApply={handleApplyFilters}
                   isLoading={isLoading}
