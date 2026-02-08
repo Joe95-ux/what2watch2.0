@@ -8,7 +8,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Check, ChevronsUpDown, Search } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getCountryFlagEmoji } from "@/hooks/use-watch-regions";
 
@@ -229,53 +237,38 @@ export function FiltersSheet({
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                    {/* Search bar – matches shadcn Command input styling */}
-                    <div
-                      data-slot="command-input-wrapper"
-                      className="flex h-9 items-center gap-2 border-b px-3"
-                    >
-                      <Search className="size-4 shrink-0 opacity-50" />
-                      <Input
+                    <Command shouldFilter={false} className="rounded-lg border-0 bg-transparent">
+                      <CommandInput
                         placeholder="Search country..."
                         value={countrySearch}
-                        onChange={(e) => setCountrySearch(e.target.value)}
-                        className="placeholder:text-muted-foreground h-10 flex-1 rounded-md border-0 bg-transparent py-3 text-sm shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        onValueChange={setCountrySearch}
                       />
-                    </div>
-                    {/* List – native scroll, no Command */}
-                    <div
-                      className="max-h-[300px] overflow-x-hidden overflow-y-auto p-1"
-                      role="listbox"
-                    >
-                      {filteredWatchRegions.length === 0 ? (
-                        <p className="py-6 text-center text-sm text-muted-foreground">No country found.</p>
-                      ) : (
-                        filteredWatchRegions.map((region) => {
-                          const isSelected = watchRegion === region.iso_3166_1;
-                          return (
-                            <button
-                              key={region.iso_3166_1}
-                              type="button"
-                              role="option"
-                              aria-selected={isSelected}
-                              onClick={() => {
-                                setFilters({ ...filters, watchRegion: region.iso_3166_1 });
-                                setCountryOpen(false);
-                                setCountrySearch("");
-                              }}
-                              className={cn(
-                                "relative flex w-full cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
-                                isSelected && "bg-accent text-accent-foreground"
-                              )}
-                            >
-                              <span className="text-lg">{getCountryFlagEmoji(region.iso_3166_1)}</span>
-                              <span className="flex-1 truncate">{region.english_name}</span>
-                              {isSelected && <Check className="size-4 shrink-0" />}
-                            </button>
-                          );
-                        })
-                      )}
-                    </div>
+                      <CommandList className="max-h-[300px]">
+                        <CommandEmpty>No country found.</CommandEmpty>
+                        <CommandGroup forceMount className="p-1">
+                          {filteredWatchRegions.map((region) => {
+                            const isSelected = watchRegion === region.iso_3166_1;
+                            return (
+                              <CommandItem
+                                key={region.iso_3166_1}
+                                value={region.iso_3166_1}
+                                forceMount
+                                onSelect={() => {
+                                  setFilters({ ...filters, watchRegion: region.iso_3166_1 });
+                                  setCountryOpen(false);
+                                  setCountrySearch("");
+                                }}
+                                className="cursor-pointer gap-2"
+                              >
+                                <span className="text-lg">{getCountryFlagEmoji(region.iso_3166_1)}</span>
+                                <span className="flex-1 truncate">{region.english_name}</span>
+                                {isSelected && <Check className="size-4 shrink-0" />}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
                   </PopoverContent>
                 </Popover>
               )}
