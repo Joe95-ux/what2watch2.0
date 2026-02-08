@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -244,7 +243,9 @@ export function FiltersSheet({
                         onValueChange={setCountrySearch}
                       />
                       <CommandList className="max-h-[300px]">
-                        <CommandEmpty>No country found.</CommandEmpty>
+                        {filteredWatchRegions.length === 0 && (
+                          <div className="py-6 text-center text-sm text-muted-foreground">No country found.</div>
+                        )}
                         <CommandGroup forceMount className="p-1">
                           {filteredWatchRegions.map((region) => {
                             const isSelected = watchRegion === region.iso_3166_1;
