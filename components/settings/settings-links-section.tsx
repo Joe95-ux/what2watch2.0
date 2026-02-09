@@ -29,6 +29,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import Image from "next/image";
 import { Plus, Copy, Loader2, GripVertical, ChevronUp, ChevronDown, ImagePlus, X, ExternalLink, QrCode } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -113,6 +118,8 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
   const [ogTitle, setOgTitle] = useState("");
   const [ogDescription, setOgDescription] = useState("");
   const [ogImageUrl, setOgImageUrl] = useState("");
+  const [ogImageUploading, setOgImageUploading] = useState(false);
+  const [sharePreviewOpen, setSharePreviewOpen] = useState(false);
   const [openSaveBeforeDialog, setOpenSaveBeforeDialog] = useState(false);
   const lastSavedRef = useRef<SavedSnapshot | null>(null);
 
@@ -449,6 +456,37 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
     }
   };
 
+  const handleOgImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file (JPEG, PNG, GIF, WebP).");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB.");
+      return;
+    }
+    setOgImageUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/user/upload-link-og-image", { method: "POST", body: formData });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Upload failed");
+      }
+      const { url } = await res.json();
+      setOgImageUrl(url);
+      toast.success("Image uploaded");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to upload");
+    } finally {
+      setOgImageUploading(false);
+      e.target.value = "";
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -742,8 +780,22 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
               </div>
             </div>
           </div>
-          <div className="space-y-3 pt-2">
-            <Label className="text-sm font-medium">Share preview (optional)</Label>
+          <Collapsible open={sharePreviewOpen} onOpenChange={setSharePreviewOpen} className="space-y-3 pt-2">
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between rounded-md py-2 text-left text-sm font-medium hover:bg-muted/50 transition-colors cursor-pointer"
+                aria-expanded={sharePreviewOpen}
+              >
+                <span>Share preview (optional)</span>
+                {sharePreviewOpen ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                )}
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-3">
             <p className="text-xs text-muted-foreground">
               Customize how your link page looks when shared on socials (Twitter, Facebook, etc.). Leave blank to use your name, bio, or avatar.
             </p>
@@ -765,17 +817,89 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
                 className="max-w-md min-h-[60px] resize-y bg-muted"
                 rows={2}
               />
-              <Label htmlFor="og-image" className="text-xs font-normal text-muted-foreground">Image URL</Label>
+              <Label className="text-xs font-normal text-muted-foreground">Image</Label>
+              {ogImageUrl ? (
+                <div className="relative rounded-lg border overflow-hidden bg-muted w-full aspect-[1200/630] max-h-32">
+                  <Image
+                    src={ogImageUrl}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 28rem) 100vw, 28rem"
+                    unoptimized={ogImageUrl.includes("cloudinary") || ogImageUrl.startsWith("http")}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    className="absolute top-1 right-1 h-7 w-7 rounded-full cursor-pointer"
+                    onClick={() => setOgImageUrl("")}
+                    aria-label="Remove image"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <label className="flex items-center justify-center gap-2 h-20 rounded-lg border border-dashed cursor-pointer hover:bg-muted/50 transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={handleOgImageUpload}
+                    disabled={ogImageUploading}
+                  />
+                  {ogImageUploading ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  ) : (
+                    <ImagePlus className="h-5 w-5 text-muted-foreground" />
+                  )}
+                  <span className="text-sm text-muted-foreground">
+                    {ogImageUploading ? "Uploading…" : "Upload image"}
+                  </span>
+                </label>
+              )}
+              <p className="text-xs text-muted-foreground">Or paste a URL below to use an existing image.</p>
               <Input
                 id="og-image"
                 type="url"
-                placeholder="https://… (image for share card)"
+                placeholder="https://… (optional)"
                 value={ogImageUrl}
                 onChange={(e) => setOgImageUrl(e.target.value)}
                 className="bg-muted"
               />
             </div>
-          </div>
+            {/* Share card preview */}
+            <div className="rounded-lg border bg-muted/30 p-3 space-y-2 max-w-sm">
+              <p className="text-xs font-medium text-muted-foreground">How it looks when shared</p>
+              <div className="rounded border bg-card overflow-hidden flex flex-col shadow-sm">
+                <div className="relative w-full aspect-[1200/630] min-h-20 bg-muted">
+                  {ogImageUrl ? (
+                    <Image
+                      src={ogImageUrl}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      sizes="320px"
+                      unoptimized={ogImageUrl.includes("cloudinary") || ogImageUrl.startsWith("http")}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                      <ImagePlus className="h-10 w-10 opacity-50" />
+                    </div>
+                  )}
+                </div>
+                <div className="p-2.5 space-y-0.5">
+                  <p className="font-medium text-sm line-clamp-1">
+                    {ogTitle.trim() || (currentUser?.displayName ? `${currentUser.displayName} | Links` : "My links")}
+                  </p>
+                  <p className="text-xs text-muted-foreground line-clamp-2">
+                    {ogDescription.trim() || bio.trim() || "Link in bio – all my links in one place."}
+                  </p>
+                </div>
+              </div>
+            </div>
+            </CollapsibleContent>
+          </Collapsible>
           <Button onClick={() => handleSavePage()} disabled={saving} className="cursor-pointer">
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             Save page settings

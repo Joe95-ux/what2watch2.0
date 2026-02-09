@@ -44,6 +44,7 @@ import {
   MessageSquare,
   TrendingUp,
   Play,
+  Link2,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -119,6 +120,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: "/dashboard/diary/stats", label: "Diary Stats", icon: BarChart3 },
     { href: "/dashboard/my-stats", label: "My Stats", icon: BarChart3 },
     { href: "/dashboard/reports", label: "Reports", icon: MessageSquare },
+    { href: "/dashboard/links/analytics", label: "Link page analytics", icon: Link2 },
   ];
 
   // YouTube links
