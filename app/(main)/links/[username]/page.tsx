@@ -17,26 +17,45 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const user = await db.user.findUnique({
     where: { username: username.trim() },
-    select: { displayName: true, username: true },
+    select: {
+      displayName: true,
+      username: true,
+      avatarUrl: true,
+      linkPage: { select: { bio: true, ogTitle: true, ogDescription: true, ogImageUrl: true } },
+    },
   });
 
   if (!user) {
     return { title: "Page not found" };
   }
 
-  const title = user.displayName || (user.username ? `@${user.username}` : "Links");
-  const description = "Link in bio – all my links in one place.";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://what2watch2-0.vercel.app";
   const url = `${siteUrl}/links/${username}`;
+  const defaultTitle = user.displayName || (user.username ? `@${user.username}` : "Links");
+  const title = user.linkPage?.ogTitle?.trim() || `${defaultTitle} | Links`;
+  const description =
+    user.linkPage?.ogDescription?.trim() ||
+    user.linkPage?.bio?.trim() ||
+    "Link in bio – all my links in one place.";
+  const imageUrl =
+    user.linkPage?.ogImageUrl?.trim() ||
+    (user.avatarUrl?.trim() ? user.avatarUrl : undefined);
 
   return {
-    title: `${title} | Links`,
+    title,
     description,
     openGraph: {
-      title: `${title} | Links`,
+      title,
       description,
       url,
       siteName: "What2Watch",
+      ...(imageUrl && { images: [{ url: imageUrl }] }),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      ...(imageUrl && { images: [imageUrl] }),
     },
   };
 }

@@ -152,15 +152,18 @@ model User {
   @@map("users")
 }
 
-// Link-in-bio page (one per user): theme and bio
+// Link-in-bio page (one per user): theme, bio, and optional custom share preview (OG)
 model LinkPage {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String   @unique @db.ObjectId
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bio       String?
-  theme     Json?    // { buttonStyle?, backgroundColor?, fontFamily? }
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @unique @db.ObjectId
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio          String?
+  theme        Json?    // { buttonStyle?, backgroundColor?, fontFamily? }
+  ogTitle      String?  // custom title when shared on socials
+  ogDescription String? // custom description when shared
+  ogImageUrl   String?  // custom image URL when shared (absolute)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@map("link_pages")
 }

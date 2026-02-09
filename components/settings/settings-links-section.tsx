@@ -82,6 +82,9 @@ type SavedSnapshot = {
   buttonColor: string;
   backgroundColor: string;
   linkIds: string[];
+  ogTitle: string;
+  ogDescription: string;
+  ogImageUrl: string;
 };
 
 export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
@@ -107,6 +110,9 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
   const [buttonColor, setButtonColor] = useState("");
   const [backgroundColor, setBackgroundColor] = useState("");
   const [themeId, setThemeId] = useState<string>("default");
+  const [ogTitle, setOgTitle] = useState("");
+  const [ogDescription, setOgDescription] = useState("");
+  const [ogImageUrl, setOgImageUrl] = useState("");
   const [openSaveBeforeDialog, setOpenSaveBeforeDialog] = useState(false);
   const lastSavedRef = useRef<SavedSnapshot | null>(null);
 
@@ -137,12 +143,18 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
         setButtonColor(bc);
         setBackgroundColor(bg);
         setThemeId(getThemeIdForColors(bg, bc));
+        setOgTitle(data.linkPage?.ogTitle ?? "");
+        setOgDescription(data.linkPage?.ogDescription ?? "");
+        setOgImageUrl(data.linkPage?.ogImageUrl ?? "");
         lastSavedRef.current = {
           bio: data.linkPage?.bio ?? "",
           buttonStyle: theme?.buttonStyle ?? "rounded",
           buttonColor: bc,
           backgroundColor: bg,
           linkIds,
+          ogTitle: data.linkPage?.ogTitle ?? "",
+          ogDescription: data.linkPage?.ogDescription ?? "",
+          ogImageUrl: data.linkPage?.ogImageUrl ?? "",
         };
       }
     } catch (e) {
@@ -269,6 +281,9 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
             buttonColor: btnValue || null,
             backgroundColor: bgValue || null,
           },
+          ogTitle: ogTitle.trim() || null,
+          ogDescription: ogDescription.trim() || null,
+          ogImageUrl: ogImageUrl.trim() || null,
         }),
       });
       if (!res.ok) {
@@ -285,6 +300,9 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
         buttonColor,
         backgroundColor,
         linkIds: displayedLinks.map((l) => l.id),
+        ogTitle: ogTitle.trim(),
+        ogDescription: ogDescription.trim(),
+        ogImageUrl: ogImageUrl.trim(),
       };
       toast.success("Link page updated");
       onSuccess?.();
@@ -301,6 +319,9 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
     buttonColor,
     backgroundColor,
     linkIds: displayedLinks.map((l) => l.id),
+    ogTitle,
+    ogDescription,
+    ogImageUrl,
   };
   const lastSaved = lastSavedRef.current;
   const isDirty =
@@ -309,6 +330,9 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
     lastSaved.buttonStyle !== currentSnapshot.buttonStyle ||
     lastSaved.buttonColor !== currentSnapshot.buttonColor ||
     lastSaved.backgroundColor !== currentSnapshot.backgroundColor ||
+    lastSaved.ogTitle !== currentSnapshot.ogTitle ||
+    lastSaved.ogDescription !== currentSnapshot.ogDescription ||
+    lastSaved.ogImageUrl !== currentSnapshot.ogImageUrl ||
     (lastSaved.linkIds.length !== currentSnapshot.linkIds.length ||
       lastSaved.linkIds.some((id, i) => id !== currentSnapshot.linkIds[i]));
 
@@ -716,6 +740,40 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
                   </PopoverContent>
                 </Popover>
               </div>
+            </div>
+          </div>
+          <div className="space-y-3 pt-2">
+            <Label className="text-sm font-medium">Share preview (optional)</Label>
+            <p className="text-xs text-muted-foreground">
+              Customize how your link page looks when shared on socials (Twitter, Facebook, etc.). Leave blank to use your name, bio, or avatar.
+            </p>
+            <div className="space-y-2 max-w-md">
+              <Label htmlFor="og-title" className="text-xs font-normal text-muted-foreground">Title</Label>
+              <Input
+                id="og-title"
+                placeholder="e.g. My links | Jane"
+                value={ogTitle}
+                onChange={(e) => setOgTitle(e.target.value)}
+                className="bg-muted"
+              />
+              <Label htmlFor="og-description" className="text-xs font-normal text-muted-foreground">Description</Label>
+              <Textarea
+                id="og-description"
+                placeholder="Short description for the share card"
+                value={ogDescription}
+                onChange={(e) => setOgDescription(e.target.value)}
+                className="max-w-md min-h-[60px] resize-y bg-muted"
+                rows={2}
+              />
+              <Label htmlFor="og-image" className="text-xs font-normal text-muted-foreground">Image URL</Label>
+              <Input
+                id="og-image"
+                type="url"
+                placeholder="https://… (image for share card)"
+                value={ogImageUrl}
+                onChange={(e) => setOgImageUrl(e.target.value)}
+                className="bg-muted"
+              />
             </div>
           </div>
           <Button onClick={() => handleSavePage()} disabled={saving} className="cursor-pointer">
