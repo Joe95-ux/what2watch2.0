@@ -72,6 +72,11 @@ export function PublicLinksPage({
   const MAX_LINKS_DISPLAY = 10;
   const INITIAL_VISIBLE = 6;
   const [linksExpanded, setLinksExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!username?.trim()) return;
+    fetch(`/api/links/${encodeURIComponent(username)}/view`, { method: "POST" }).catch(() => {});
+  }, [username]);
   const displayedLinks = links.slice(0, MAX_LINKS_DISPLAY);
   const initialLinks = displayedLinks.slice(0, INITIAL_VISIBLE);
   const restLinks = displayedLinks.slice(INITIAL_VISIBLE);

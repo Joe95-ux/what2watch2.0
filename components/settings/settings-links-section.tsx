@@ -784,7 +784,7 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
             <CollapsibleTrigger asChild>
               <button
                 type="button"
-                className="flex w-full items-center justify-between rounded-md py-2 text-left text-sm font-medium hover:bg-muted/50 transition-colors cursor-pointer"
+                className="flex w-full items-center justify-between rounded-md p-2 text-left text-sm font-medium hover:bg-muted/50 transition-colors cursor-pointer"
                 aria-expanded={sharePreviewOpen}
               >
                 <span>Share preview (optional)</span>

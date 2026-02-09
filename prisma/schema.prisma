@@ -148,6 +148,8 @@ model User {
   trendAlerts TrendAlert[]
   userLinks   UserLink[]
   linkPage    LinkPage?
+  linkPageDailyStats LinkPageDailyStat[]
+  linkPagePeakNotifications LinkPagePeakNotification[]
 
   @@map("users")
 }
@@ -190,6 +192,38 @@ model UserLink {
   @@map("user_links")
   @@index([userId])
   @@index([userId, order])
+}
+
+// Daily aggregates for link page analytics (views, clicks per day)
+model LinkPageDailyStat {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        DateTime // day (store as start of day UTC)
+  pageViews   Int      @default(0)
+  totalClicks Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@map("link_page_daily_stats")
+  @@index([userId])
+}
+
+// When we sent a peak-activity notification (for showing "notification sent" on graph)
+model LinkPagePeakNotification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sentAt    DateTime @default(now())
+  date      DateTime // the day that had the peak
+  metric    String   // e.g. "views", "clicks"
+  value     Int      // value that triggered the notification
+  createdAt DateTime @default(now())
+
+  @@map("link_page_peak_notifications")
+  @@index([userId])
+  @@index([userId, date])
 }
 
 // User preferences from onboarding
