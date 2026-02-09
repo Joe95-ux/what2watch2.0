@@ -71,9 +71,10 @@ export function PublicLinkCard({ link, theme, isOwner }: PublicLinkCardProps) {
   const coverImageUrl = preview?.coverImageUrl ?? null;
   const isCustom = !!link.customPreview;
   const isSensitive = link.isSensitiveContent === true;
+  const clickUrl = `/api/links/click?linkId=${encodeURIComponent(link.id)}`;
 
   const openLink = () => {
-    window.open(link.url, "_blank", "noopener,noreferrer");
+    window.open(clickUrl, "_blank", "noopener,noreferrer");
     setConsentOpen(false);
   };
 
@@ -157,7 +158,7 @@ export function PublicLinkCard({ link, theme, isOwner }: PublicLinkCardProps) {
         </button>
       ) : (
         <a
-          href={link.url}
+          href={clickUrl}
           target="_blank"
           rel="noopener noreferrer"
           className={cn("block relative w-full h-40 bg-muted overflow-hidden", buttonStyle === "pill" ? "rounded-t-full" : buttonStyle === "rounded" ? "rounded-t-xl" : "rounded-t-md")}
@@ -199,7 +200,7 @@ export function PublicLinkCard({ link, theme, isOwner }: PublicLinkCardProps) {
           </button>
         ) : (
           <a
-            href={link.url}
+            href={clickUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="flex-1 min-w-0 flex flex-col text-left"

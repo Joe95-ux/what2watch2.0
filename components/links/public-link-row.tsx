@@ -57,8 +57,10 @@ export function PublicLinkRow({ link, theme, isOwner }: PublicLinkRowProps) {
   const showSocialIcon = network && network !== "sharethis";
   const isSensitive = link.isSensitiveContent === true;
 
+  const clickUrl = `/api/links/click?linkId=${encodeURIComponent(link.id)}`;
+
   const openLink = () => {
-    window.open(link.url, "_blank", "noopener,noreferrer");
+    window.open(clickUrl, "_blank", "noopener,noreferrer");
     setConsentOpen(false);
   };
 
@@ -141,7 +143,7 @@ export function PublicLinkRow({ link, theme, isOwner }: PublicLinkRowProps) {
         </button>
       ) : (
       <a
-        href={link.url}
+        href={clickUrl}
         target="_blank"
         rel="noopener noreferrer"
         className={cn(

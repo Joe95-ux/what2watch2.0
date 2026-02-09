@@ -30,7 +30,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import Image from "next/image";
-import { Plus, Copy, Loader2, GripVertical, ChevronUp, ChevronDown, ImagePlus, X, ExternalLink } from "lucide-react";
+import { Plus, Copy, Loader2, GripVertical, ChevronUp, ChevronDown, ImagePlus, X, ExternalLink, QrCode } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useAvatar } from "@/contexts/avatar-context";
 import { PublicLinksPage, type PublicLink } from "@/components/links/public-links-page";
@@ -364,6 +364,27 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
     );
   };
 
+  const [qrDownloading, setQrDownloading] = useState(false);
+  const handleDownloadQr = async () => {
+    if (!username) return;
+    const base = typeof window !== "undefined" ? window.location.origin : "";
+    const url = `${base}/links/${username}`;
+    setQrDownloading(true);
+    try {
+      const QRCode = (await import("qrcode")).default;
+      const dataUrl = await QRCode.toDataURL(url, { width: 256, margin: 2 });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = "link-page-qr.png";
+      a.click();
+      toast.success("QR code downloaded");
+    } catch {
+      toast.error("Failed to generate QR code");
+    } finally {
+      setQrDownloading(false);
+    }
+  };
+
   const openEdit = (link: UserLinkItem) => {
     setEditingId(link.id);
     setFormLabel(link.label);
@@ -434,12 +455,23 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
               value={`${typeof window !== "undefined" ? window.location.origin : ""}${pageUrl}`}
               className="bg-muted font-mono text-sm"
             />
-            <Button type="button" variant="outline" size="icon" onClick={copyPageUrl} className="cursor-pointer">
+            <Button type="button" variant="outline" size="icon" onClick={copyPageUrl} className="cursor-pointer" aria-label="Copy link">
               <Copy className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={handleDownloadQr}
+              disabled={qrDownloading}
+              className="cursor-pointer"
+              aria-label="Download QR code"
+            >
+              {qrDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Share this URL so people can see all your links in one place.
+            Share this URL so people can see all your links in one place. Download a QR code to print or share offline.
           </p>
         </div>
       )}
@@ -504,6 +536,11 @@ export function SettingsLinksSection({ username }: SettingsLinksSectionProps) {
                           <div className="flex-1 min-w-0">
                             <p className="font-medium truncate">{link.label}</p>
                             <p className="text-xs text-muted-foreground truncate">{link.url}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {(link.clicks ?? 0) === 0
+                                ? "No clicks yet"
+                                : `${link.clicks} click${(link.clicks ?? 0) === 1 ? "" : "s"}`}
+                            </p>
                           </div>
                           <div
                               className="flex items-center gap-0 shrink-0"
