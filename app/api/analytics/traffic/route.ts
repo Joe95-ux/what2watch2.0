@@ -1,21 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
+import { startOfDay, endOfDay, subDays } from "date-fns";
 
 export async function GET(request: NextRequest) {
   try {
     await requireAdmin();
     
     const { searchParams } = new URL(request.url);
-    const range = parseInt(searchParams.get("range") || "30", 10); // Days
+    const range = searchParams.get("range");
+    const fromParam = searchParams.get("from");
+    const toParam = searchParams.get("to");
     const startDateParam = searchParams.get("startDate");
     const endDateParam = searchParams.get("endDate");
     
     const now = new Date();
-    const startDate = startDateParam
-      ? new Date(startDateParam)
-      : new Date(now.getTime() - range * 24 * 60 * 60 * 1000);
-    const endDate = endDateParam ? new Date(endDateParam) : now;
+    let startDate: Date;
+    let endDate: Date;
+    
+    if (fromParam && toParam) {
+      startDate = startOfDay(new Date(fromParam));
+      endDate = endOfDay(new Date(toParam));
+    } else if (startDateParam && endDateParam) {
+      startDate = new Date(startDateParam);
+      endDate = new Date(endDateParam);
+    } else {
+      // Parse range as number (days) for backward compatibility
+      const days = parseInt(range || "30", 10);
+      startDate = startOfDay(subDays(now, days));
+      endDate = endOfDay(now);
+    }
     
     // Total page views
     const totalViews = await db.pageView.count({

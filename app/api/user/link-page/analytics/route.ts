@@ -35,9 +35,35 @@ export async function GET(request: NextRequest) {
       to = endOfDay(new Date(toParam));
     } else {
       const now = new Date();
-      to = endOfDay(now);
-      const days = range === "7" ? 7 : range === "90" ? 90 : range === "365" ? 365 : 30;
-      from = startOfDay(subDays(now, days));
+      switch (range) {
+        case "today":
+          from = startOfDay(now);
+          to = endOfDay(now);
+          break;
+        case "yesterday":
+          from = startOfDay(subDays(now, 1));
+          to = endOfDay(subDays(now, 1));
+          break;
+        case "3":
+          from = startOfDay(subDays(now, 3));
+          to = endOfDay(now);
+          break;
+        case "7":
+          from = startOfDay(subDays(now, 7));
+          to = endOfDay(now);
+          break;
+        case "15":
+          from = startOfDay(subDays(now, 15));
+          to = endOfDay(now);
+          break;
+        case "30":
+          from = startOfDay(subDays(now, 30));
+          to = endOfDay(now);
+          break;
+        default:
+          from = startOfDay(subDays(now, 7));
+          to = endOfDay(now);
+      }
     }
 
     const fromUTC = startOfDayUTC(from);

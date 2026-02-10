@@ -43,10 +43,13 @@ import {
   ChevronDown,
   ChevronUp,
   Bell,
+  Eye,
+  Clock,
+  TrendingUp,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 
-type DateFilter = "7" | "30" | "90" | "365" | "custom";
+type DateFilter = "today" | "yesterday" | "3" | "7" | "15" | "30" | "custom";
 
 type AnalyticsResponse = {
   totals: { views: number; clicks: number; ctr: number; avgTimeToClick: number | null };
@@ -80,7 +83,7 @@ const CHART_COLORS = {
 
 export function LinkPageAnalyticsContent() {
   const { data: currentUser } = useCurrentUser();
-  const [dateFilter, setDateFilter] = useState<DateFilter>("30");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("7");
   const [customDateRange, setCustomDateRange] = useState<{ from?: Date; to?: Date } | undefined>(undefined);
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
 
@@ -126,12 +129,14 @@ export function LinkPageAnalyticsContent() {
       return `${format(customDateRange.from, "MMM d")} - ${format(customDateRange.to, "MMM d, yyyy")}`;
     }
     const labels: Record<string, string> = {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "3": "Last 3 Days",
       "7": "Last 7 Days",
+      "15": "Last 15 Days",
       "30": "Last 30 Days",
-      "90": "Last 90 Days",
-      "365": "Last Year",
     };
-    return labels[dateFilter] || "Last 30 Days";
+    return labels[dateFilter] || "Last 7 Days";
   };
 
   const calendarSelectedRange =
@@ -146,14 +151,29 @@ export function LinkPageAnalyticsContent() {
           <Skeleton className="h-8 w-56" />
           <Skeleton className="h-10 w-[180px]" />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i}>
-              <CardContent className="pt-6">
-                <Skeleton className="h-16 w-full" />
-              </CardContent>
-            </Card>
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 border border-border rounded-lg overflow-hidden">
+          {[1, 2, 3, 4].map((i) => {
+            const columnsPerRow = 4;
+            const totalRows = Math.ceil(4 / columnsPerRow);
+            const currentRow = Math.floor((i - 1) / columnsPerRow) + 1;
+            const isLastRow = currentRow === totalRows;
+            const isLastColumn = i % columnsPerRow === 0;
+            
+            return (
+              <div
+                key={i}
+                className={cn(
+                  "p-4 sm:p-8 border-r border-b border-border",
+                  isLastColumn && "border-r-0",
+                  isLastRow && "border-b-0"
+                )}
+              >
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-8 w-16 mb-2" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+            );
+          })}
         </div>
         <Card>
           <CardHeader>
@@ -191,7 +211,7 @@ export function LinkPageAnalyticsContent() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground transition-colors cursor-pointer whitespace-nowrap rounded-sm px-2 py-1.5 border bg-background"
+                className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground transition-colors cursor-pointer whitespace-nowrap rounded-[10px] px-2 py-1.5 border bg-background"
               >
                 <span>Date:</span>
                 <span className="font-medium">{getDateFilterDisplay()}</span>
@@ -206,10 +226,12 @@ export function LinkPageAnalyticsContent() {
               <div className="flex flex-col sm:flex-row">
                 <div className="border-b sm:border-b-0 sm:border-r p-[10px] min-w-[180px]">
                   {[
+                    { value: "today" as const, label: "Today" },
+                    { value: "yesterday" as const, label: "Yesterday" },
+                    { value: "3" as const, label: "Last 3 Days" },
                     { value: "7" as const, label: "Last 7 Days" },
+                    { value: "15" as const, label: "Last 15 Days" },
                     { value: "30" as const, label: "Last 30 Days" },
-                    { value: "90" as const, label: "Last 90 Days" },
-                    { value: "365" as const, label: "Last Year" },
                     { value: "custom" as const, label: "Custom Range" },
                   ].map((option) => (
                     <DropdownMenuItem
@@ -269,43 +291,61 @@ export function LinkPageAnalyticsContent() {
         </div>
       </div>
 
-      {/* KPI Card */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className={cn("h-3 w-3 rounded-full shrink-0", KPI_COLORS.views.dot)} />
-                <span className="text-sm font-medium text-muted-foreground">{KPI_COLORS.views.label}</span>
+      {/* KPI Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 border border-border rounded-lg overflow-hidden">
+        {[
+          {
+            label: KPI_COLORS.views.label,
+            value: totals.views.toLocaleString(),
+            icon: <Eye className="h-5 w-5 text-blue-500" />,
+            helper: "Total page views",
+          },
+          {
+            label: KPI_COLORS.clicks.label,
+            value: totals.clicks.toLocaleString(),
+            icon: <MousePointer className="h-5 w-5 text-emerald-500" />,
+            helper: "Total link clicks",
+          },
+          {
+            label: KPI_COLORS.ctr.label,
+            value: `${totals.ctr.toFixed(1)}%`,
+            icon: <TrendingUp className="h-5 w-5 text-amber-500" />,
+            helper: "Click-through rate",
+          },
+          {
+            label: KPI_COLORS.avgTime.label,
+            value: totals.avgTimeToClick != null ? `${totals.avgTimeToClick}s` : "—",
+            icon: <Clock className="h-5 w-5 text-violet-500" />,
+            helper: "Average time to click",
+          },
+        ].map((stat, index) => {
+          const columnsPerRow = 4;
+          const totalRows = Math.ceil(4 / columnsPerRow);
+          const currentRow = Math.floor(index / columnsPerRow) + 1;
+          const isLastRow = currentRow === totalRows;
+          const isLastColumn = (index + 1) % columnsPerRow === 0;
+          
+          return (
+            <div
+              key={stat.label}
+              className={cn(
+                "p-4 sm:p-8 border-r border-b border-border",
+                isLastColumn && "border-r-0",
+                isLastRow && "border-b-0"
+              )}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-muted-foreground">
+                  {stat.label}
+                </span>
+                {stat.icon}
               </div>
-              <p className="text-2xl font-bold">{totals.views.toLocaleString()}</p>
+              <div className="text-2xl font-bold mb-1">{stat.value}</div>
+              <p className="text-[15px] text-muted-foreground">{stat.helper}</p>
             </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className={cn("h-3 w-3 rounded-full shrink-0", KPI_COLORS.clicks.dot)} />
-                <span className="text-sm font-medium text-muted-foreground">{KPI_COLORS.clicks.label}</span>
-              </div>
-              <p className="text-2xl font-bold">{totals.clicks.toLocaleString()}</p>
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className={cn("h-3 w-3 rounded-full shrink-0", KPI_COLORS.ctr.dot)} />
-                <span className="text-sm font-medium text-muted-foreground">{KPI_COLORS.ctr.label}</span>
-              </div>
-              <p className="text-2xl font-bold">{totals.ctr.toFixed(1)}%</p>
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className={cn("h-3 w-3 rounded-full shrink-0", KPI_COLORS.avgTime.dot)} />
-                <span className="text-sm font-medium text-muted-foreground">{KPI_COLORS.avgTime.label}</span>
-              </div>
-              <p className="text-2xl font-bold">
-                {totals.avgTimeToClick != null ? `${totals.avgTimeToClick}s` : "—"}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          );
+        })}
+      </div>
 
       {/* Combo chart */}
       <Card>
