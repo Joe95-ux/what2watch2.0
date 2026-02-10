@@ -95,10 +95,35 @@ export function LinkPageAnalyticsContent() {
       };
     }
     const now = new Date();
-    const days = dateFilter === "7" ? 7 : dateFilter === "90" ? 90 : dateFilter === "365" ? 365 : 30;
+    let from: Date;
+    let to: Date = endOfDay(now);
+    switch (dateFilter) {
+      case "today":
+        from = startOfDay(now);
+        to = endOfDay(now);
+        break;
+      case "yesterday":
+        from = startOfDay(subDays(now, 1));
+        to = endOfDay(subDays(now, 1));
+        break;
+      case "3":
+        from = startOfDay(subDays(now, 3));
+        break;
+      case "7":
+        from = startOfDay(subDays(now, 7));
+        break;
+      case "15":
+        from = startOfDay(subDays(now, 15));
+        break;
+      case "30":
+        from = startOfDay(subDays(now, 30));
+        break;
+      default:
+        from = startOfDay(subDays(now, 7));
+    }
     return {
-      from: startOfDay(subDays(now, days)).toISOString(),
-      to: endOfDay(now).toISOString(),
+      from: from.toISOString(),
+      to: to.toISOString(),
     };
   };
 
