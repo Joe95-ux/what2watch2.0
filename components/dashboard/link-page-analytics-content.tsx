@@ -139,10 +139,40 @@ export function LinkPageAnalyticsContent() {
     return labels[dateFilter] || "Last 7 Days";
   };
 
-  const calendarSelectedRange =
-    customDateRange?.from && customDateRange?.to
-      ? { from: customDateRange.from, to: customDateRange.to }
-      : undefined;
+  // Sync calendar with selected preset so the range is visible on the right
+  const calendarSelectedRange = (() => {
+    if (dateFilter === "custom" && customDateRange?.from && customDateRange?.to) {
+      return { from: customDateRange.from, to: customDateRange.to };
+    }
+    const now = new Date();
+    let from: Date;
+    let to: Date = endOfDay(now);
+    switch (dateFilter) {
+      case "today":
+        from = startOfDay(now);
+        to = endOfDay(now);
+        break;
+      case "yesterday":
+        from = startOfDay(subDays(now, 1));
+        to = endOfDay(subDays(now, 1));
+        break;
+      case "3":
+        from = startOfDay(subDays(now, 3));
+        break;
+      case "7":
+        from = startOfDay(subDays(now, 7));
+        break;
+      case "15":
+        from = startOfDay(subDays(now, 15));
+        break;
+      case "30":
+        from = startOfDay(subDays(now, 30));
+        break;
+      default:
+        return undefined;
+    }
+    return { from, to };
+  })();
 
   if (isLoading) {
     return (
@@ -211,7 +241,7 @@ export function LinkPageAnalyticsContent() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground transition-colors cursor-pointer whitespace-nowrap rounded-[10px] px-2 py-1.5 border bg-background"
+                className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground transition-colors cursor-pointer whitespace-nowrap rounded-[10px] px-2 py-1.5 border bg-background focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
               >
                 <span>Date:</span>
                 <span className="font-medium">{getDateFilterDisplay()}</span>

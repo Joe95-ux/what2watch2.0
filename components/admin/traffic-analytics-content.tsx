@@ -109,9 +109,32 @@ export function TrafficAnalyticsContent() {
     return labels[dateFilter] || "Last 30 Days";
   };
 
-  const calendarSelectedRange = customDateRange?.from && customDateRange?.to
-    ? { from: customDateRange.from, to: customDateRange.to }
-    : undefined;
+  // Sync calendar with selected preset so the range is visible on the right
+  const calendarSelectedRange = (() => {
+    if (dateFilter === "custom" && customDateRange?.from && customDateRange?.to) {
+      return { from: customDateRange.from, to: customDateRange.to };
+    }
+    if (dateFilter === "custom") return undefined;
+    const now = new Date();
+    let from: Date;
+    switch (dateFilter) {
+      case "7":
+        from = startOfDay(subDays(now, 7));
+        break;
+      case "30":
+        from = startOfDay(subDays(now, 30));
+        break;
+      case "90":
+        from = startOfDay(subDays(now, 90));
+        break;
+      case "365":
+        from = startOfDay(subDays(now, 365));
+        break;
+      default:
+        return undefined;
+    }
+    return { from, to: endOfDay(now) };
+  })();
 
   if (isLoading) {
     return (

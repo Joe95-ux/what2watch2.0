@@ -219,12 +219,15 @@ export function FeedbackManagementTable() {
     }
     const now = new Date();
     let from: Date;
+    let to: Date = endOfDay(now);
     switch (dateFilter) {
       case "today":
         from = startOfDay(now);
+        to = endOfDay(now);
         break;
       case "yesterday":
         from = startOfDay(subDays(now, 1));
+        to = endOfDay(subDays(now, 1));
         break;
       case "3days":
         from = startOfDay(subDays(now, 3));
@@ -241,10 +244,7 @@ export function FeedbackManagementTable() {
       default:
         return undefined;
     }
-    return {
-      from,
-      to: endOfDay(now),
-    };
+    return { from, to };
   }, [dateFilter, customDateRange]);
 
   // Calculate calendar selected range for display
