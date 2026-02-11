@@ -379,6 +379,9 @@ export function LinkPageAnalyticsContent() {
           const currentRow = Math.floor(index / columnsPerRow) + 1;
           const isLastRow = currentRow === totalRows;
           const isLastColumn = (index + 1) % columnsPerRow === 0;
+          // Row lines: always show border-b except last row. Responsive last row: 1col=index 3; 2col=index 2,3; 4col=all.
+          const isLastRowMobile = index === 3;
+          const isLastRowMd = index >= 2;
           
           return (
             <div
@@ -386,7 +389,9 @@ export function LinkPageAnalyticsContent() {
               className={cn(
                 "p-4 sm:p-8 border-r border-b border-border",
                 isLastColumn && "border-r-0",
-                isLastRow && "border-b-0"
+                isLastRow && "lg:border-b-0",
+                isLastRowMd && "md:border-b-0",
+                isLastRowMobile && "border-b-0"
               )}
             >
               <div className="flex items-center justify-between mb-2">
@@ -412,7 +417,7 @@ export function LinkPageAnalyticsContent() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <div style={{ minWidth: "600px" }}>
+            <div style={{ minWidth: `${Math.max(600, daily.length * 56)}px`, width: "max-content" }}>
               <ResponsiveContainer width="100%" height={320}>
                 <ComposedChart data={daily} margin={{ top: 10, right: 50, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" />
