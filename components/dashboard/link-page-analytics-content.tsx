@@ -416,8 +416,8 @@ export function LinkPageAnalyticsContent() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <div style={{ minWidth: `${Math.max(600, daily.length * 56)}px`, width: "max-content" }}>
+          <div className="overflow-x-auto w-full">
+            <div className="w-full" style={{ minWidth: `${Math.max(1000, daily.length * 56)}px` }}>
               <ResponsiveContainer width="100%" height={320}>
                 <ComposedChart data={daily} margin={{ top: 10, right: 50, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" />
