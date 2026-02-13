@@ -57,6 +57,8 @@ interface FiltersSheetProps {
   currentYear?: number;
   startYear?: number;
   hasActiveFilters?: boolean;
+  /** When true, render a plain header (no Sheet/Dialog components). Use when rendering outside a Sheet e.g. inline in search panel. */
+  inline?: boolean;
 }
 
 export function FiltersSheet({
@@ -76,6 +78,7 @@ export function FiltersSheet({
   currentYear: externalCurrentYear,
   startYear: externalStartYear,
   hasActiveFilters: externalHasActiveFilters,
+  inline = false,
 }: FiltersSheetProps) {
   // Internal state if not provided externally
   const [internalShowAllGenres, setInternalShowAllGenres] = useState(false);
@@ -127,12 +130,21 @@ export function FiltersSheet({
 
   return (
     <div className="flex flex-col h-full">
-      <SheetHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
-        <SheetTitle className="text-xl font-semibold">Filter</SheetTitle>
-        <SheetDescription className="text-sm text-muted-foreground mt-1">
-          Refine your search by genre, year, rating, and more to find exactly what you&apos;re looking for.
-        </SheetDescription>
-      </SheetHeader>
+      {inline ? (
+        <div className="px-6 pt-6 pb-4 border-b flex-shrink-0">
+          <h2 className="text-xl font-semibold">Filter</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Refine your search by genre, year, rating, and more to find exactly what you&apos;re looking for.
+          </p>
+        </div>
+      ) : (
+        <SheetHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
+          <SheetTitle className="text-xl font-semibold">Filter</SheetTitle>
+          <SheetDescription className="text-sm text-muted-foreground mt-1">
+            Refine your search by genre, year, rating, and more to find exactly what you&apos;re looking for.
+          </SheetDescription>
+        </SheetHeader>
+      )}
       
       <ScrollArea className="flex-1 min-h-0">
         <div className="px-6 py-4 space-y-6">
