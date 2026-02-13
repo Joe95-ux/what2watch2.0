@@ -327,8 +327,8 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
         ) : (
           <div
             className={cn(
-              "fixed left-0 right-0 z-[60] bg-background flex flex-col",
-              filtersOpen ? "top-0 bottom-0" : "top-0 border-b shadow-lg",
+              "fixed left-0 right-0 z-[60] bg-background flex flex-col min-h-0",
+              filtersOpen ? "top-0 bottom-0 h-[100dvh] sm:h-screen" : "top-0 border-b shadow-lg",
               "animate-in slide-in-from-top-2 duration-300"
             )}
             style={{ paddingTop: "env(safe-area-inset-top, 0)" }}
@@ -340,7 +340,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
                     <X className="h-5 w-5" />
                   </Button>
                 </div>
-                <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+                <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
                   <FiltersSheet
                     inline
                     filters={filters}

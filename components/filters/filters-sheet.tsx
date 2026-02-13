@@ -129,7 +129,7 @@ export function FiltersSheet({
   );
 
   return (
-    <div className="flex flex-col h-full">
+    <div className={cn("flex flex-col flex-1 min-h-0", !inline && "h-full")}>
       {inline ? (
         <div className="px-6 pt-6 pb-4 border-b flex-shrink-0">
           <h2 className="text-xl font-semibold">Filter</h2>
