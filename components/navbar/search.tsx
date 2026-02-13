@@ -393,7 +393,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
                     )} />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="bottom" className="h-[80vh]">
+                <SheetContent side="bottom" className="top-0 inset-x-0 h-full max-h-screen rounded-none z-[70]" overlayClassName="z-[70]">
                   <FiltersSheet
                     filters={filters}
                     setFilters={setFilters}
@@ -546,19 +546,10 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
                 )} />
               </Button>
             </SheetTrigger>
-            <SheetContent 
-              side="right" 
-              className="w-[400px] sm:w-[540px] flex flex-col p-0 !top-0 !inset-y-0 h-full max-h-screen gap-0"
-              onInteractOutside={(e) => {
-                // Only allow closing when clicking the overlay (outside), not inside the sheet
-                const target = e.target as HTMLElement;
-                // Check if click is actually on the overlay element
-                const isOverlay = target.hasAttribute('data-slot') && target.getAttribute('data-slot') === 'sheet-overlay';
-                // If not clicking the overlay, prevent close (clicks inside sheet shouldn't close it)
-                if (!isOverlay) {
-                  e.preventDefault();
-                }
-              }}
+            <SheetContent
+              side="right"
+              className="w-[400px] sm:w-[540px] flex flex-col p-0 gap-0 top-0 inset-y-0 h-full max-h-screen z-[70]"
+              overlayClassName="z-[70]"
             >
                 <FiltersSheet
                   filters={filters}
