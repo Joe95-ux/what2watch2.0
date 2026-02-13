@@ -191,6 +191,7 @@ export default function OverviewSection({
         </div>
 
         <div className="lg:col-span-5 space-y-4">
+          <StreamingChartRankSection availability={watchAvailability} />
           <WatchProvidersSection
             availability={watchAvailability}
             isLoading={isWatchLoading}
@@ -201,6 +202,58 @@ export default function OverviewSection({
         </div>
       </div>
     </section>
+  );
+}
+
+/** JustWatch Streaming Chart rank. Attribution: link to JustWatch with rank as anchor text. */
+function StreamingChartRankSection({
+  availability,
+}: {
+  availability?: JustWatchAvailabilityResponse | null;
+}) {
+  const ranks = availability?.ranks;
+  const fullPath = availability?.fullPath;
+  if (!ranks || !fullPath) return null;
+
+  const justwatchUrl = `https://www.justwatch.com${fullPath}`;
+  const week = ranks["7d"];
+  const month = ranks["30d"];
+  const primary = week ?? month ?? ranks["1d"];
+  if (!primary) return null;
+
+  const label = week ? "7 days" : month ? "30 days" : "24 hours";
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-2">Streaming chart</h2>
+      <p className="text-sm text-muted-foreground mb-2">
+        Real-time rank by streaming popularity on JustWatch
+      </p>
+      <a
+        href={justwatchUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-muted/50 hover:bg-muted transition-colors w-fit cursor-pointer"
+      >
+        <span className="text-lg font-semibold text-foreground">#{primary.rank}</span>
+        <span className="text-xs text-muted-foreground">({label})</span>
+        {primary.delta !== 0 && (
+          <span className={primary.delta > 0 ? "text-green-600 text-xs" : "text-red-600 text-xs"}>
+            {primary.delta > 0 ? "↑" : "↓"} {Math.abs(primary.delta)}
+          </span>
+        )}
+      </a>
+      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
+        <Image
+          src="https://widget.justwatch.com/assets/JW_logo_color_10px.svg"
+          alt="JustWatch"
+          width={66}
+          height={10}
+          unoptimized
+        />
+        <span>Rank data from JustWatch</span>
+      </div>
+    </div>
   );
 }
 

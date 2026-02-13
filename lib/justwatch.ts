@@ -1,8 +1,9 @@
 import "server-only";
 
-const JUSTWATCH_API_BASE_URL =
-  process.env.JUSTWATCH_API_BASE_URL ?? "https://apis.justwatch.com";
-const JUSTWATCH_API_KEY = process.env.JUSTWATCH_API_KEY;
+const CONTENT_PARTNER_BASE =
+  process.env.JUSTWATCH_API_BASE_URL ?? "https://apis.justwatch.com/contentpartner/v2/content";
+/** Partner token (query param). Prefer JUSTWATCH_TOKEN; fallback JUSTWATCH_API_KEY for legacy. */
+const getToken = () => process.env.JUSTWATCH_TOKEN ?? process.env.JUSTWATCH_API_KEY;
 
 export type JustWatchMonetization =
   | "flatrate"
@@ -25,11 +26,25 @@ export interface JustWatchOffer {
   deepLinkUrl?: string | null;
 }
 
+/** Streaming chart rank for a time window (1d, 7d, 30d). */
+export interface JustWatchRankWindow {
+  rank: number;
+  delta: number;
+}
+
 export interface JustWatchAvailabilityResponse {
   country: string;
   lastSyncedAt?: string | null;
   offersByType: Record<JustWatchMonetization, JustWatchOffer[]>;
   allOffers: JustWatchOffer[];
+  /** Streaming chart ranks when available. Link to JustWatch with rank as anchor per attribution. */
+  ranks?: {
+    "1d"?: JustWatchRankWindow;
+    "7d"?: JustWatchRankWindow;
+    "30d"?: JustWatchRankWindow;
+  } | null;
+  /** JustWatch full_path for this title (e.g. /us/movie/notting-hill) for attribution link. */
+  fullPath?: string | null;
   credits: {
     text: string;
     logoUrl: string;
@@ -43,19 +58,22 @@ interface JustWatchProviderResponse {
   icon_url: string | null;
 }
 
-interface JustWatchTitleResponse {
+/** Content Partner API: offers response (Movie/Show Offers by ID). */
+interface JustWatchOffersApiResponse {
   offers?: Array<{
-    provider_id: number;
     monetization_type: JustWatchMonetization;
+    provider_id: number;
+    presentation_type?: string;
     retail_price?: number;
     currency?: string;
-    presentation_type?: string;
-    urls?: {
-      standard_web?: string;
-      deeplink?: string;
-    };
+    urls?: { standard_web?: string; deeplink?: string };
   }>;
-  last_full_sync_at?: string;
+  full_path?: string;
+  ranks?: {
+    "1d"?: { rank: number; delta: number };
+    "7d"?: { rank: number; delta: number };
+    "30d"?: { rank: number; delta: number };
+  };
 }
 
 function buildImageUrl(path?: string | null) {
@@ -64,21 +82,41 @@ function buildImageUrl(path?: string | null) {
   return `https://images.justwatch.com${sanitized}`;
 }
 
-async function fetchFromJustWatch(path: string, init: RequestInit = {}) {
-  if (!JUSTWATCH_API_KEY) {
-    throw new Error("JUSTWATCH_API_KEY is not configured");
+/** Map country code to JustWatch locale (e.g. US -> en_US). */
+function countryToLocale(country: string): string {
+  const upper = country.toUpperCase().slice(0, 2);
+  const map: Record<string, string> = {
+    US: "en_US",
+    GB: "en_GB",
+    CA: "en_CA",
+    AU: "en_AU",
+    DE: "de_DE",
+    FR: "fr_FR",
+    ES: "es_ES",
+    IT: "it_IT",
+    BR: "pt_BR",
+    MX: "es_MX",
+    IN: "en_IN",
+    JP: "ja_JP",
+    KR: "ko_KR",
+  };
+  return map[upper] ?? "en_US";
+}
+
+async function fetchFromJustWatch(path: string, searchParams?: Record<string, string>) {
+  const token = getToken();
+  if (!token) {
+    throw new Error("JUSTWATCH_TOKEN (or JUSTWATCH_API_KEY) is not configured");
   }
 
-  const url = `${JUSTWATCH_API_BASE_URL}${path}`;
-  console.log(`[JustWatch] Fetching: ${url}`);
-  
-  const response = await fetch(url, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-Key": JUSTWATCH_API_KEY,
-      ...(init.headers || {}),
-    },
+  const url = new URL(CONTENT_PARTNER_BASE + path);
+  url.searchParams.set("token", token);
+  if (searchParams) {
+    Object.entries(searchParams).forEach(([k, v]) => url.searchParams.set(k, v));
+  }
+
+  const response = await fetch(url.toString(), {
+    headers: { "Content-Type": "application/json" },
     next: { revalidate: 60 * 30 },
   });
 
@@ -103,42 +141,33 @@ function emptyGroupedOffers(): Record<JustWatchMonetization, JustWatchOffer[]> {
   };
 }
 
+/**
+ * Fetch Where to Watch + Streaming Chart ranks using the JustWatch Content Partner API.
+ * @see https://apis.justwatch.com/docs/api/
+ */
 export async function getJustWatchAvailability(
   type: "movie" | "tv",
   tmdbId: number,
   country: string = "US"
 ): Promise<JustWatchAvailabilityResponse | null> {
   try {
-    const locale = country.toLowerCase();
-    const titlePath = `tmdb-${type === "movie" ? "movie" : "show"}-${tmdbId}`;
+    const locale = countryToLocale(country);
+    const objectType = type === "movie" ? "movie" : "show";
 
-    console.log(`[JustWatch] Fetching availability for ${type} ${tmdbId} in ${locale}`);
+    const token = getToken();
+    if (!token) return null;
 
-    const [rawTitleData, providersData] = await Promise.all([
-      fetchFromJustWatch(`/content/titles/${locale}/${titlePath}`),
-      fetchFromJustWatch(`/content/providers/locale/${locale}`),
+    const offersPath = `/offers/object_type/${objectType}/id_type/tmdb/locale/${locale}`;
+    const [rawOffersData, providersData] = await Promise.all([
+      fetchFromJustWatch(offersPath, { id: String(tmdbId) }),
+      fetchFromJustWatch(`/providers/all/locale/${locale}`),
     ]);
 
-    const titleData = rawTitleData as JustWatchTitleResponse;
-    const offers = titleData?.offers ?? [];
-    if (!offers.length) {
-      return {
-        country: country.toUpperCase(),
-        lastSyncedAt: titleData?.last_full_sync_at ?? null,
-        offersByType: emptyGroupedOffers(),
-        allOffers: [],
-        credits: {
-          text: "Data powered by JustWatch",
-          logoUrl: "https://widget.justwatch.com/assets/JW_logo_color_10px.svg",
-          url: "https://www.justwatch.com",
-        },
-      };
-    }
+    const offersData = rawOffersData as JustWatchOffersApiResponse;
+    const offers = offersData?.offers ?? [];
 
     const providerMap = new Map<number, JustWatchProviderResponse>();
-    (providersData as JustWatchProviderResponse[]).forEach((provider) => {
-      providerMap.set(provider.id, provider);
-    });
+    (providersData as JustWatchProviderResponse[]).forEach((p) => providerMap.set(p.id, p));
 
     const grouped = emptyGroupedOffers();
     const normalized: JustWatchOffer[] = [];
@@ -157,22 +186,30 @@ export async function getJustWatchAvailability(
         deepLinkUrl: offer.urls?.deeplink ?? null,
       };
       normalized.push(normalizedOffer);
-      if (!grouped[normalizedOffer.monetizationType]) {
-        grouped[normalizedOffer.monetizationType] = [];
-      }
-      grouped[normalizedOffer.monetizationType].push(normalizedOffer);
+      const key = normalizedOffer.monetizationType;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(normalizedOffer);
     }
 
-    // Ensure arrays exist even if empty
     (Object.keys(grouped) as JustWatchMonetization[]).forEach((key) => {
       grouped[key] = grouped[key] || [];
     });
 
+    const ranks = offersData?.ranks
+      ? {
+          "1d": offersData.ranks["1d"],
+          "7d": offersData.ranks["7d"],
+          "30d": offersData.ranks["30d"],
+        }
+      : null;
+
     return {
       country: country.toUpperCase(),
-      lastSyncedAt: titleData?.last_full_sync_at ?? null,
+      lastSyncedAt: null,
       offersByType: grouped,
       allOffers: normalized,
+      ranks: ranks ?? undefined,
+      fullPath: offersData?.full_path ?? null,
       credits: {
         text: "Data powered by JustWatch",
         logoUrl: "https://widget.justwatch.com/assets/JW_logo_color_10px.svg",
@@ -183,9 +220,7 @@ export async function getJustWatchAvailability(
     console.error("[JustWatch] Failed to load availability", error);
     if (error instanceof Error) {
       console.error("[JustWatch] Error message:", error.message);
-      console.error("[JustWatch] Error stack:", error.stack);
     }
     return null;
   }
 }
-

@@ -447,7 +447,7 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
             {/* Results Dropdown */}
             {(isExpanded && (query || displayResults.length > 0 || isLoadingDisplay)) && (
               <div className="h-auto overflow-hidden border-t">
-                <div className="p-2 max-h-[60vh] overflow-y-auto scrollbar-thin">
+                <div className="p-2 max-h-[80vh] sm:max-h-[60vh] overflow-y-auto scrollbar-thin">
                   {isLoadingDisplay && (
                     <div className="space-y-3">
                       {[...Array(3)].map((_, i) => (

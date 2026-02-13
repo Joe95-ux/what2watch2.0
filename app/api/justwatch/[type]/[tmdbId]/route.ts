@@ -35,11 +35,12 @@ export async function GET(
       return NextResponse.json({ error: "Invalid TMDB id" }, { status: 400 });
     }
 
-    // Check if API key is configured
-    if (!process.env.JUSTWATCH_API_KEY) {
-      console.error("[JustWatch API] JUSTWATCH_API_KEY is not configured");
+    // Check if partner token is configured (JUSTWATCH_TOKEN or legacy JUSTWATCH_API_KEY)
+    const token = process.env.JUSTWATCH_TOKEN ?? process.env.JUSTWATCH_API_KEY;
+    if (!token) {
+      console.error("[JustWatch API] JUSTWATCH_TOKEN is not configured");
       return NextResponse.json(
-        { error: "JustWatch API key not configured" },
+        { error: "JustWatch token not configured" },
         { status: 503 }
       );
     }
