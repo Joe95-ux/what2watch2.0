@@ -19,7 +19,8 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { getCountryFlagEmoji } from "@/hooks/use-watch-regions";
-import { ChevronsUpDown, Check } from "lucide-react";
+import { ChevronsUpDown, Check, ChevronUp, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface WatchBreakdownSectionProps {
   availability: JustWatchAvailabilityResponse | null | undefined;
@@ -153,28 +154,40 @@ export default function WatchBreakdownSection({
   const weekRank = ranks?.["7d"];
   const monthRank = ranks?.["30d"];
   const primaryRank = weekRank ?? monthRank ?? ranks?.["1d"];
-  const rankLabel = weekRank ? "7 days" : monthRank ? "30 days" : "24 hours";
 
   return (
     <section className="py-12 space-y-8" id="watch">
-      {/* Streaming chart rank - shown when available from JustWatch */}
+      {/* Streaming chart rank - hero-style, no descriptions */}
       {primaryRank && justwatchUrl && (
-        <div>
-          <h2 className="text-2xl font-bold mb-2">Streaming chart</h2>
-          <p className="text-sm text-muted-foreground mb-3">
-            Real-time rank by streaming popularity on JustWatch
-          </p>
+        <div className="flex items-center gap-2">
           <a
             href={justwatchUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-muted/50 hover:bg-muted transition-colors w-fit cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-foreground hover:opacity-90 transition-opacity"
           >
-            <span className="text-lg font-semibold text-foreground">#{primaryRank.rank}</span>
-            <span className="text-xs text-muted-foreground">({rankLabel})</span>
+            <Image
+              src="/jw-icon.png"
+              alt="JustWatch"
+              width={24}
+              height={24}
+              className="object-contain"
+              unoptimized
+            />
+            <span className="font-semibold text-[#F5C518]">#{primaryRank.rank}</span>
             {primaryRank.delta !== 0 && (
-              <span className={primaryRank.delta > 0 ? "text-green-600 text-xs" : "text-red-600 text-xs"}>
-                {primaryRank.delta > 0 ? "↑" : "↓"} {Math.abs(primaryRank.delta)}
+              <span
+                className={cn(
+                  "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium",
+                  primaryRank.delta > 0 ? "bg-green-600 text-white" : "bg-red-600 text-white"
+                )}
+              >
+                {primaryRank.delta > 0 ? (
+                  <ChevronUp className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                )}
+                {Math.abs(primaryRank.delta)}
               </span>
             )}
           </a>

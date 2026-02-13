@@ -238,16 +238,6 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
           <div className="flex flex-col sm:flex-row justify-start sm:justify-between sm:items-center gap-3">
             <h1 className="text-[1.3rem] sm:text-3xl font-semibold text-foreground">{title}</h1>
             <div className="inline-flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              {displayRating && displayRating > 0 && (
-                <div className="flex items-center gap-2 text-foreground">
-                  {ratingSource === "imdb" ? (
-                    <IMDBBadge size={24} />
-                  ) : (
-                    <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                  )}
-                  <span className="font-semibold">{displayRating.toFixed(1)}</span>
-                </div>
-              )}
               {jwPrimaryRank != null && (
                 <div className="flex items-center gap-2">
                   {jwRankUrl ? (
@@ -319,6 +309,16 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
                       )}
                     </span>
                   )}
+                </div>
+              )}
+              {displayRating && displayRating > 0 && (
+                <div className="flex items-center gap-2 text-foreground">
+                  {ratingSource === "imdb" ? (
+                    <IMDBBadge size={24} />
+                  ) : (
+                    <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                  )}
+                  <span className="font-semibold">{displayRating.toFixed(1)}</span>
                 </div>
               )}
               {releaseYear && <span>{releaseYear}</span>}

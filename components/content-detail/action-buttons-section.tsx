@@ -134,7 +134,7 @@ export default function ActionButtonsSection({ item, type, watchAvailability }: 
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
-                "inline-flex items-center overflow-hidden rounded-lg bg-transparent hover:bg-muted/30 transition-colors cursor-pointer",
+                "inline-flex items-stretch h-10 overflow-hidden rounded-lg bg-transparent hover:bg-muted/30 transition-colors cursor-pointer",
                 "border border-[rgba(0,0,0,0.2)] dark:border-[rgba(255,255,255,0.1)]"
               )}
             >
@@ -143,17 +143,17 @@ export default function ActionButtonsSection({ item, type, watchAvailability }: 
                   <Image
                     src={primaryOffer.iconUrl}
                     alt={primaryOffer.providerName}
-                    width={36}
-                    height={36}
-                    className="object-contain rounded-l-[7px] w-9 h-9 block flex-shrink-0"
+                    width={40}
+                    height={40}
+                    className="object-contain rounded-l-[7px] w-10 h-10 block flex-shrink-0"
                     unoptimized
                   />
-                  <span className="pl-3 pr-4 py-2 text-[15px] font-medium">
+                  <span className="pl-3 pr-4 flex items-center text-[15px] font-medium">
                     WATCH ON {primaryOffer.providerName.toUpperCase()}
                   </span>
                 </>
               ) : (
-                <span className="px-4 py-2 text-[15px] font-medium">
+                <span className="px-4 flex items-center text-[15px] font-medium">
                   WATCH ON {primaryOffer.providerName.toUpperCase()}
                 </span>
               )}
@@ -161,8 +161,8 @@ export default function ActionButtonsSection({ item, type, watchAvailability }: 
           </div>
         )}
 
-        {/* Action buttons - right on desktop, below on mobile */}
-        <div className="flex items-center justify-end gap-2 overflow-x-auto flex-shrink-0">
+        {/* Action buttons - right on desktop (ml-auto), below on mobile; scrollable when narrow, scrollbar hidden */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-shrink-0 min-w-0 sm:ml-auto">
           {/* Favorite Button */}
           <Button
           variant="outline"
