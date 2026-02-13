@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type ReactNode } from "react";
 import Image from "next/image";
-import { Play, Clapperboard, Images, Star, Eye, Plus, Check } from "lucide-react";
+import { Play, Clapperboard, Images, Star, Plus, Check, ChevronUp, ChevronDown } from "lucide-react";
 import { IoBookmarkSharp } from "react-icons/io5";
 import {
   TMDBMovie,
@@ -20,6 +20,7 @@ import TrailerModal from "@/components/browse/trailer-modal";
 import LogToDiaryDropdown from "@/components/browse/log-to-diary-dropdown";
 import MediaModal from "./media-modal";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { JustWatchAvailabilityResponse } from "@/lib/justwatch";
 
 interface DetailsType {
   release_date?: string;
@@ -235,6 +236,79 @@ export default function HeroSection({ item, type, details, trailer, videosData }
                     <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
                   )}
                   <span className="font-semibold">{displayRating.toFixed(1)}</span>
+                </div>
+              )}
+              {jwPrimaryRank != null && (
+                <div className="flex items-center gap-2">
+                  {jwRankUrl ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <a
+                          href={jwRankUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-foreground hover:opacity-90 transition-opacity"
+                        >
+                          <Image
+                            src="/jw-icon.png"
+                            alt="JustWatch"
+                            width={24}
+                            height={24}
+                            className="object-contain"
+                            unoptimized
+                          />
+                          <span className="font-semibold text-[#F5C518]">#{jwPrimaryRank.rank}</span>
+                          {jwPrimaryRank.delta !== 0 && (
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium",
+                                jwPrimaryRank.delta > 0
+                                  ? "bg-green-600 text-white"
+                                  : "bg-red-600 text-white"
+                              )}
+                            >
+                              {jwPrimaryRank.delta > 0 ? (
+                                <ChevronUp className="h-3.5 w-3.5" />
+                              ) : (
+                                <ChevronDown className="h-3.5 w-3.5" />
+                              )}
+                              {Math.abs(jwPrimaryRank.delta)}
+                            </span>
+                          )}
+                        </a>
+                      </TooltipTrigger>
+                      <TooltipContent>JustWatch streaming charts</TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Image
+                        src="/jw-icon.png"
+                        alt="JustWatch"
+                        width={24}
+                        height={24}
+                        className="object-contain"
+                        unoptimized
+                      />
+                      <span className="font-semibold text-[#F5C518]">#{jwPrimaryRank.rank}</span>
+                      {jwPrimaryRank.delta !== 0 && (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium",
+                            jwPrimaryRank.delta > 0
+                              ? "bg-green-600 text-white"
+                              : "bg-red-600 text-white"
+                          )}
+                        >
+                          {jwPrimaryRank.delta > 0 ? (
+                            <ChevronUp className="h-3.5 w-3.5" />
+                          ) : (
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          )}
+                          {Math.abs(jwPrimaryRank.delta)}
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </div>
               )}
               {releaseYear && <span>{releaseYear}</span>}

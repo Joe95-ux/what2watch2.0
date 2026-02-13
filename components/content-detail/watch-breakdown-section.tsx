@@ -147,14 +147,46 @@ export default function WatchBreakdownSection({
     );
   }
 
+  const ranks = availability.ranks;
+  const fullPath = availability.fullPath;
+  const justwatchUrl = fullPath ? `https://www.justwatch.com${fullPath}` : null;
+  const weekRank = ranks?.["7d"];
+  const monthRank = ranks?.["30d"];
+  const primaryRank = weekRank ?? monthRank ?? ranks?.["1d"];
+  const rankLabel = weekRank ? "7 days" : monthRank ? "30 days" : "24 hours";
+
   return (
     <section className="py-12 space-y-8" id="watch">
+      {/* Streaming chart rank - shown when available from JustWatch */}
+      {primaryRank && justwatchUrl && (
+        <div>
+          <h2 className="text-2xl font-bold mb-2">Streaming chart</h2>
+          <p className="text-sm text-muted-foreground mb-3">
+            Real-time rank by streaming popularity on JustWatch
+          </p>
+          <a
+            href={justwatchUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-muted/50 hover:bg-muted transition-colors w-fit cursor-pointer"
+          >
+            <span className="text-lg font-semibold text-foreground">#{primaryRank.rank}</span>
+            <span className="text-xs text-muted-foreground">({rankLabel})</span>
+            {primaryRank.delta !== 0 && (
+              <span className={primaryRank.delta > 0 ? "text-green-600 text-xs" : "text-red-600 text-xs"}>
+                {primaryRank.delta > 0 ? "↑" : "↓"} {Math.abs(primaryRank.delta)}
+              </span>
+            )}
+          </a>
+        </div>
+      )}
+
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold mb-2">Where to Watch</h2>
             <p className="text-sm text-muted-foreground">
-              Real-time availability for {availability.country}
+              Real-time availability in {justwatchCountries.find((c) => c.code === availability.country)?.name ?? availability.country}
               {availability.lastSyncedAt ? ` • Updated ${new Date(availability.lastSyncedAt).toLocaleDateString()}` : ""}
             </p>
           </div>

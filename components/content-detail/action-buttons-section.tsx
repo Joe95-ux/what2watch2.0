@@ -134,28 +134,26 @@ export default function ActionButtonsSection({ item, type, watchAvailability }: 
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
-                "inline-flex items-center overflow-hidden rounded-lg border border-border bg-transparent hover:bg-muted/30 transition-colors cursor-pointer",
-                "border-neutral-700 dark:border-neutral-600"
+                "inline-flex items-center overflow-hidden rounded-lg bg-transparent hover:bg-muted/30 transition-colors cursor-pointer",
+                "border border-[rgba(0,0,0,0.2)] dark:border-[rgba(255,255,255,0.1)]"
               )}
             >
               {primaryOffer.iconUrl ? (
                 <>
-                  <span className="flex items-center justify-center flex-shrink-0 p-0">
-                    <Image
-                      src={primaryOffer.iconUrl}
-                      alt={primaryOffer.providerName}
-                      width={36}
-                      height={36}
-                      className="object-contain rounded-l-[7px] w-9 h-9 block"
-                      unoptimized
-                    />
-                  </span>
-                  <span className="pl-3 pr-4 py-2 text-[1rem] font-medium">
+                  <Image
+                    src={primaryOffer.iconUrl}
+                    alt={primaryOffer.providerName}
+                    width={36}
+                    height={36}
+                    className="object-contain rounded-l-[7px] w-9 h-9 block flex-shrink-0"
+                    unoptimized
+                  />
+                  <span className="pl-3 pr-4 py-2 text-[15px] font-medium">
                     WATCH ON {primaryOffer.providerName.toUpperCase()}
                   </span>
                 </>
               ) : (
-                <span className="px-4 py-2 text-[1rem] font-medium">
+                <span className="px-4 py-2 text-[15px] font-medium">
                   WATCH ON {primaryOffer.providerName.toUpperCase()}
                 </span>
               )}

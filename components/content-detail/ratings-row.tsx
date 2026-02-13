@@ -56,11 +56,11 @@ export function RatingsRow({
   const rankContent = (
     <span className="inline-flex items-center gap-1.5 font-medium text-sm">
       <Image
-        src="https://widget.justwatch.com/assets/JW_logo_color_10px.svg"
+        src="/jw-icon.png"
         alt="JustWatch"
-        width={40}
-        height={14}
-        className="opacity-90"
+        width={24}
+        height={24}
+        className="object-contain opacity-90"
         unoptimized
       />
       #{justwatchRank}

@@ -262,6 +262,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
           details={details ?? null}
           trailer={trailer}
           videosData={videosData || null}
+          watchAvailability={watchAvailability}
         />
       </div>
 
