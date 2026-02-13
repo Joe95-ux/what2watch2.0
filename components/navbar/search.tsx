@@ -327,48 +327,11 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
         ) : (
           <div
             className={cn(
-              "fixed top-0 left-0 right-0 bottom-0 z-[60] bg-background flex flex-col",
+              "fixed top-0 left-0 right-0 z-[60] bg-background border-b shadow-lg",
               "animate-in slide-in-from-top-2 duration-300"
             )}
             style={{ paddingTop: "env(safe-area-inset-top, 0)" }}
           >
-            {filtersOpen ? (
-              <>
-                <div className="flex-shrink-0 flex items-center justify-end px-4 h-14 border-b">
-                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setFiltersOpen(false)}>
-                    <X className="h-5 w-5" />
-                  </Button>
-                </div>
-                <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-                  <FiltersSheet
-                    filters={filters}
-                    setFilters={setFilters}
-                    movieGenres={movieGenres}
-                    tvGenres={tvGenres}
-                    allGenres={allGenres}
-                    watchProviders={watchProviders}
-                    watchRegions={watchRegions}
-                    resetFilters={resetFilters}
-                    onApply={async () => {
-                      setFiltersOpen(false);
-                      const params = new URLSearchParams();
-                      if (query.trim()) params.set("query", query.trim());
-                      if (filters.type !== "all") params.set("type", filters.type);
-                      if (filters.genre.length > 0) params.set("genre", filters.genre.join(","));
-                      if (filters.year) params.set("year", filters.year);
-                      if (filters.minRating > 0) params.set("minRating", filters.minRating.toString());
-                      if (filters.sortBy) params.set("sortBy", filters.sortBy);
-                      if (filters.watchProvider !== undefined && filters.watchProvider > 0) params.set("watchProvider", filters.watchProvider.toString());
-                      if (filters.watchRegion && filters.watchRegion !== "US") params.set("watchRegion", filters.watchRegion);
-                      router.push(`/search?${params.toString()}`);
-                    }}
-                    isLoading={isLoading}
-                  />
-                </div>
-              </>
-            ) : (
-              <>
-            <div className="flex-shrink-0 border-b">
             <div className="flex items-center gap-2 px-4 py-3 h-16">
               <div className="relative flex-1">
                 <SearchIcon className={cn(
@@ -412,22 +375,54 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
                   </Button>
                 )}
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-10 w-10 cursor-pointer transition-colors duration-300",
-                  hasHeroSection 
-                    ? "hover:bg-black/20 text-white"
-                    : hasActiveFilters && "bg-primary/10 text-primary"
-                )}
-                onClick={() => setFiltersOpen(true)}
-              >
-                <SlidersHorizontal className={cn(
-                  "h-5 w-5 transition-colors duration-300",
-                  hasHeroSection && "text-white"
-                )} />
-              </Button>
+              <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "h-10 w-10 cursor-pointer transition-colors duration-300",
+                      hasHeroSection 
+                        ? "hover:bg-black/20 text-white"
+                        : hasActiveFilters && "bg-primary/10 text-primary"
+                    )}
+                  >
+                    <SlidersHorizontal className={cn(
+                      "h-5 w-5 transition-colors duration-300",
+                      hasHeroSection && "text-white"
+                    )} />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="top-0 inset-x-0 h-full max-h-screen rounded-none" forceAbove>
+                  <FiltersSheet
+                    filters={filters}
+                    setFilters={setFilters}
+                    movieGenres={movieGenres}
+                    tvGenres={tvGenres}
+                    allGenres={allGenres}
+                    watchProviders={watchProviders}
+                    watchRegions={watchRegions}
+                    resetFilters={resetFilters}
+                    onApply={async () => {
+                      setFiltersOpen(false);
+                      // Build search URL with filters
+                      const params = new URLSearchParams();
+                      if (query.trim()) params.set("query", query.trim());
+                      if (filters.type !== "all") params.set("type", filters.type);
+                      if (filters.genre.length > 0) params.set("genre", filters.genre.join(","));
+                      if (filters.year) params.set("year", filters.year);
+                      if (filters.minRating > 0) params.set("minRating", filters.minRating.toString());
+                      if (filters.sortBy) params.set("sortBy", filters.sortBy);
+                      if (filters.watchProvider !== undefined && filters.watchProvider > 0) params.set("watchProvider", filters.watchProvider.toString());
+                      if (filters.watchRegion && filters.watchRegion !== "US") params.set("watchRegion", filters.watchRegion);
+                      
+                      // Redirect to search page
+                      router.push(`/search?${params.toString()}`);
+                    }}
+                    isLoading={isLoading}
+                  />
+                </SheetContent>
+              </Sheet>
               <Button
                 variant="ghost"
                 size="icon"
@@ -440,7 +435,6 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
               >
                 <X className="h-5 w-5" />
               </Button>
-            </div>
             </div>
             {/* Results Dropdown */}
             {(isExpanded && (query || displayResults.length > 0 || isLoadingDisplay)) && (
@@ -482,8 +476,6 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
                   )}
                 </div>
               </div>
-            )}
-              </>
             )}
           </div>
         )}
