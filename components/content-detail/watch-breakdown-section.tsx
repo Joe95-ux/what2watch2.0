@@ -2,12 +2,23 @@
 
 import Image from "next/image";
 import { JustWatchAvailabilityResponse, JustWatchOffer } from "@/lib/justwatch";
+import type { JustWatchCountry } from "@/lib/justwatch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface WatchBreakdownSectionProps {
   availability: JustWatchAvailabilityResponse | null | undefined;
   isLoading: boolean;
+  watchCountry?: string;
+  onWatchCountryChange?: (code: string) => void;
+  justwatchCountries?: JustWatchCountry[];
 }
 
 const sections: Array<{
@@ -23,7 +34,13 @@ const sections: Array<{
   { key: "buy", title: "Buy", description: "Purchase to own", ctaLabel: "Buy" },
 ];
 
-export default function WatchBreakdownSection({ availability, isLoading }: WatchBreakdownSectionProps) {
+export default function WatchBreakdownSection({
+  availability,
+  isLoading,
+  watchCountry = "US",
+  onWatchCountryChange,
+  justwatchCountries = [],
+}: WatchBreakdownSectionProps) {
   if (isLoading) {
     return (
       <section className="py-12 space-y-6">
@@ -76,12 +93,33 @@ export default function WatchBreakdownSection({ availability, isLoading }: Watch
         </div>
       )}
 
-      <div>
-        <h2 className="text-2xl font-bold mb-2">Where to Watch</h2>
-        <p className="text-sm text-muted-foreground">
-          Real-time availability for {availability.country}
-          {availability.lastSyncedAt ? ` • Updated ${new Date(availability.lastSyncedAt).toLocaleDateString()}` : ""}
-        </p>
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold mb-2">Where to Watch</h2>
+            <p className="text-sm text-muted-foreground">
+              Real-time availability for {availability.country}
+              {availability.lastSyncedAt ? ` • Updated ${new Date(availability.lastSyncedAt).toLocaleDateString()}` : ""}
+            </p>
+          </div>
+          {justwatchCountries.length > 0 && onWatchCountryChange && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted-foreground whitespace-nowrap">Region</label>
+              <Select value={watchCountry} onValueChange={onWatchCountryChange}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Country" />
+                </SelectTrigger>
+                <SelectContent>
+                  {justwatchCountries.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
       </div>
 
       {sections.map((section) => {

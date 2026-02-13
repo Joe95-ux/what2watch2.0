@@ -7,7 +7,20 @@ import {
   TMDBTVSeasonDetails,
   TMDBWatchProvidersResponse,
 } from "@/lib/tmdb";
-import { JustWatchAvailabilityResponse, JustWatchOffer } from "@/lib/justwatch";
+import { JustWatchAvailabilityResponse, JustWatchOffer, JustWatchCountry } from "@/lib/justwatch";
+
+export function useJustWatchCountries() {
+  return useQuery({
+    queryKey: ["justwatch-countries"],
+    queryFn: async () => {
+      const res = await fetch("/api/justwatch/countries");
+      if (!res.ok) return [];
+      const data = (await res.json()) as JustWatchCountry[];
+      return data;
+    },
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+}
 
 interface MovieDetails extends TMDBMovie {
   genres: Array<{ id: number; name: string }>;

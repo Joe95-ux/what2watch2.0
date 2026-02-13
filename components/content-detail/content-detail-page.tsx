@@ -11,6 +11,7 @@ import {
   useRecommendedMovies,
   useRecommendedTV,
   useWatchProviders,
+  useJustWatchCountries,
 } from "@/hooks/use-content-details";
 import { useAddRecentlyViewed } from "@/hooks/use-recently-viewed";
 import HeroSection from "./hero-section";
@@ -61,6 +62,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
   const [activeTab, setActiveTab] = useState("overview");
   const [isScrolled, setIsScrolled] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
+  const [watchCountry, setWatchCountry] = useState("US");
   const heroRef = useRef<HTMLDivElement>(null);
 
   // Fetch details
@@ -81,7 +83,8 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
   const {
     data: watchAvailability,
     isLoading: isLoadingWatchAvailability,
-  } = useWatchProviders(type, item.id);
+  } = useWatchProviders(type, item.id, watchCountry);
+  const { data: justwatchCountries = [] } = useJustWatchCountries();
 
   // Track recently viewed
   const addRecentlyViewed = useAddRecentlyViewed();
@@ -263,7 +266,11 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
       </div>
 
       {/* Action Buttons Section */}
-      <ActionButtonsSection item={item} type={type} />
+      <ActionButtonsSection
+        item={item}
+        type={type}
+        watchAvailability={watchAvailability}
+      />
 
       {/* Sticky Navigation */}
       <StickyNav
@@ -316,6 +323,9 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
           <WatchBreakdownSection
             availability={watchAvailability}
             isLoading={isLoadingWatchAvailability}
+            watchCountry={watchCountry}
+            onWatchCountryChange={setWatchCountry}
+            justwatchCountries={justwatchCountries}
           />
         )}
         {activeTab === "reviews" && (

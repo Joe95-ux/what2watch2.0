@@ -4,6 +4,14 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { JustWatchAvailabilityResponse, JustWatchOffer } from "@/lib/justwatch";
+import type { JustWatchCountry } from "@/lib/justwatch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { createPersonSlug } from "@/lib/person-utils";
 import { useOMDBData } from "@/hooks/use-content-details";
 import { useState } from "react";
@@ -169,15 +177,33 @@ export default function OverviewSection({
               cast={topCast}
             />
             <OverviewInfoRow label="Country" value={countries} />
-            {/* Ratings Row - show in table for both movies and TV */}
+            {/* Ratings Row - show in table for both movies and TV: rank | imdb | year */}
             <div className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
               <span className="text-muted-foreground">Ratings</span>
               <RatingsRow
+                justwatchRank={
+                  watchAvailability?.ranks?.["7d"]?.rank ??
+                  watchAvailability?.ranks?.["30d"]?.rank ??
+                  watchAvailability?.ranks?.["1d"]?.rank ??
+                  null
+                }
+                justwatchRankUrl={
+                  watchAvailability?.fullPath
+                    ? `https://www.justwatch.com${watchAvailability.fullPath}`
+                    : null
+                }
                 imdbRating={omdbData?.imdbRating || null}
                 imdbVotes={omdbData?.imdbVotes || null}
                 metascore={omdbData?.metascore || null}
                 rottenTomatoes={omdbData?.rottenTomatoes || null}
                 tmdbRating={item.vote_average > 0 ? item.vote_average : null}
+                year={
+                  details?.release_date || details?.first_air_date
+                    ? new Date(
+                        (details.release_date || details.first_air_date) ?? ""
+                      ).getFullYear()
+                    : null
+                }
               />
             </div>
           </div>
@@ -190,201 +216,13 @@ export default function OverviewSection({
           <DetailsGrid type={type} details={details} omdbData={omdbData} />
         </div>
 
-        <div className="lg:col-span-5 space-y-4">
-          <StreamingChartRankSection availability={watchAvailability} />
-          <WatchProvidersSection
-            availability={watchAvailability}
-            isLoading={isWatchLoading}
-          />
-          <div className="hidden lg:flex h-52 border border-border rounded-2xl bg-muted/40 items-center justify-center text-sm text-muted-foreground">
+        <div className="lg:col-span-5">
+          <div className="hidden lg:flex h-72 border border-border rounded-2xl bg-muted/40 items-center justify-center text-sm text-muted-foreground">
             Ad placement
           </div>
         </div>
       </div>
     </section>
-  );
-}
-
-/** JustWatch Streaming Chart rank. Attribution: link to JustWatch with rank as anchor text. */
-function StreamingChartRankSection({
-  availability,
-}: {
-  availability?: JustWatchAvailabilityResponse | null;
-}) {
-  const ranks = availability?.ranks;
-  const fullPath = availability?.fullPath;
-  if (!ranks || !fullPath) return null;
-
-  const justwatchUrl = `https://www.justwatch.com${fullPath}`;
-  const week = ranks["7d"];
-  const month = ranks["30d"];
-  const primary = week ?? month ?? ranks["1d"];
-  if (!primary) return null;
-
-  const label = week ? "7 days" : month ? "30 days" : "24 hours";
-
-  return (
-    <div>
-      <h2 className="text-2xl font-bold mb-2">Streaming chart</h2>
-      <p className="text-sm text-muted-foreground mb-2">
-        Real-time rank by streaming popularity on JustWatch
-      </p>
-      <a
-        href={justwatchUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-muted/50 hover:bg-muted transition-colors w-fit cursor-pointer"
-      >
-        <span className="text-lg font-semibold text-foreground">#{primary.rank}</span>
-        <span className="text-xs text-muted-foreground">({label})</span>
-        {primary.delta !== 0 && (
-          <span className={primary.delta > 0 ? "text-green-600 text-xs" : "text-red-600 text-xs"}>
-            {primary.delta > 0 ? "↑" : "↓"} {Math.abs(primary.delta)}
-          </span>
-        )}
-      </a>
-      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
-        <Image
-          src="https://widget.justwatch.com/assets/JW_logo_color_10px.svg"
-          alt="JustWatch"
-          width={66}
-          height={10}
-          unoptimized
-        />
-        <span>Rank data from JustWatch</span>
-      </div>
-    </div>
-  );
-}
-
-function WatchProvidersSection({
-  availability,
-  isLoading,
-}: {
-  availability?: JustWatchAvailabilityResponse | null;
-  isLoading?: boolean;
-}) {
-  const streamingProviders = availability?.offersByType?.flatrate ?? [];
-  const buyProviders = availability?.offersByType?.buy ?? [];
-  const rentProviders = availability?.offersByType?.rent ?? [];
-
-  if (isLoading) {
-    return (
-      <div>
-        <h2 className="text-2xl font-bold mb-6">Where to Watch</h2>
-        <div className="space-y-4">
-          <Skeleton className="h-24 w-full rounded-lg" />
-          <Skeleton className="h-24 w-full rounded-lg" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!availability || (streamingProviders.length === 0 && buyProviders.length === 0 && rentProviders.length === 0)) {
-    return (
-      <div>
-        <h2 className="text-2xl font-bold mb-6">Where to Watch</h2>
-        <div className="text-center text-muted-foreground py-8 border border-border rounded-lg">
-          <p className="text-sm">Watch provider information not available</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6">Where to Watch</h2>
-      
-      <div className="space-y-6">
-        {streamingProviders.length > 0 && (
-          <ProviderRow
-            title="Streaming"
-            accentClass="bg-green-500"
-            providers={streamingProviders}
-          />
-        )}
-        {buyProviders.length > 0 && (
-          <ProviderRow
-            title="Buy"
-            accentClass="bg-blue-500"
-            providers={buyProviders}
-          />
-        )}
-        {rentProviders.length > 0 && (
-          <ProviderRow
-            title="Rent"
-            accentClass="bg-purple-500"
-            providers={rentProviders}
-          />
-        )}
-      </div>
-
-      <JustWatchCredit />
-    </div>
-  );
-}
-
-function ProviderRow({
-  title,
-  accentClass,
-  providers,
-}: {
-  title: string;
-  accentClass: string;
-  providers: JustWatchOffer[];
-}) {
-  return (
-    <div>
-      <div className="flex items-center gap-2 mb-3">
-        <div className={`w-1 h-6 rounded-full ${accentClass}`} />
-        <h3 className="text-base font-semibold text-foreground">{title}</h3>
-      </div>
-      <div className="flex flex-wrap gap-3">
-        {providers.map((provider) => (
-          <a
-            key={`${provider.providerId}-${provider.monetizationType}`}
-            href={provider.deepLinkUrl ?? provider.standardWebUrl ?? "#"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg border border-border transition-colors group w-fit cursor-pointer"
-          >
-            {provider.iconUrl ? (
-              <Image
-                src={provider.iconUrl}
-                alt={provider.providerName}
-                width={32}
-                height={32}
-                className="object-contain rounded group-hover:opacity-80 transition-opacity"
-                unoptimized
-              />
-            ) : (
-              <span className="text-xs font-medium">{provider.providerName}</span>
-            )}
-            <div className="flex flex-col text-left">
-              <span className="text-sm font-medium text-foreground">{provider.providerName}</span>
-              <span className="text-xs text-muted-foreground capitalize">
-                {provider.monetizationType}
-              </span>
-            </div>
-          </a>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function JustWatchCredit() {
-  return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-4">
-      <Image
-        src="https://widget.justwatch.com/assets/JW_logo_color_10px.svg"
-        alt="JustWatch"
-        width={66}
-        height={10}
-        unoptimized
-      />
-      <span>Data powered by JustWatch</span>
-    </div>
   );
 }
 

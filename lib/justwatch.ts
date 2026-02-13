@@ -78,6 +78,7 @@ interface JustWatchOffersApiResponse {
 
 function buildImageUrl(path?: string | null) {
   if (!path) return null;
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
   const sanitized = path.replace("{profile}", "s100");
   return `https://images.justwatch.com${sanitized}`;
 }
@@ -139,6 +140,37 @@ function emptyGroupedOffers(): Record<JustWatchMonetization, JustWatchOffer[]> {
     cinema: [],
     other: [],
   };
+}
+
+/** Country option for dropdown (from JustWatch Active Countries). */
+export interface JustWatchCountry {
+  code: string;
+  name: string;
+}
+
+/**
+ * Fetch active countries supported by the JustWatch API.
+ * @see https://apis.justwatch.com/docs/api/
+ */
+export async function getJustWatchCountries(): Promise<JustWatchCountry[]> {
+  try {
+    const token = getToken();
+    if (!token) return [];
+    const data = (await fetchFromJustWatch("/countries")) as Array<{
+      url_part: string;
+      country: string;
+      status?: string;
+    }>;
+    if (!Array.isArray(data)) return [];
+    return data
+      .filter((c) => c.status !== "inactive")
+      .map((c) => ({ code: (c.url_part ?? "").toUpperCase().slice(0, 2), name: c.country ?? c.url_part ?? "" }))
+      .filter((c) => c.code && c.name)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  } catch (error) {
+    console.error("[JustWatch] Failed to load countries", error);
+    return [];
+  }
 }
 
 /**

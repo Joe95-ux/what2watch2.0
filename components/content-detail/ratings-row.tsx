@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
-import { Star } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 interface RatingsRowProps {
@@ -14,6 +14,12 @@ interface RatingsRowProps {
     audience?: number | null;
   } | null;
   tmdbRating: number | null;
+  /** JustWatch streaming chart rank (e.g. 7d rank). Shown first with small JW logo. */
+  justwatchRank?: number | null;
+  /** Link to JustWatch title/streaming chart page. */
+  justwatchRankUrl?: string | null;
+  /** Release year (movie or TV). */
+  year?: number | null;
 }
 
 export function RatingsRow({
@@ -22,9 +28,12 @@ export function RatingsRow({
   metascore,
   rottenTomatoes,
   tmdbRating,
+  justwatchRank,
+  justwatchRankUrl,
+  year,
 }: RatingsRowProps) {
   const displayRating = imdbRating || tmdbRating;
-  
+
   const formatVotes = (votes: number | null) => {
     if (!votes) return null;
     if (votes >= 1000000) {
@@ -36,12 +45,53 @@ export function RatingsRow({
     return votes.toString();
   };
 
-  if (!displayRating && !metascore && !rottenTomatoes?.critic) {
-    return null;
-  }
+  const hasAny =
+    justwatchRank != null ||
+    year != null ||
+    displayRating ||
+    metascore ||
+    rottenTomatoes?.critic;
+  if (!hasAny) return null;
+
+  const rankContent = (
+    <span className="inline-flex items-center gap-1.5 font-medium text-sm">
+      <Image
+        src="https://widget.justwatch.com/assets/JW_logo_color_10px.svg"
+        alt="JustWatch"
+        width={40}
+        height={14}
+        className="opacity-90"
+        unoptimized
+      />
+      #{justwatchRank}
+    </span>
+  );
 
   return (
     <div className="flex items-center gap-4 flex-wrap">
+      {/* JustWatch streaming chart rank */}
+      {justwatchRank != null && (
+        <div className="flex items-center gap-1.5">
+          {justwatchRankUrl ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href={justwatchRankUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-foreground hover:opacity-80 transition-opacity"
+                >
+                  {rankContent}
+                </a>
+              </TooltipTrigger>
+              <TooltipContent>JustWatch streaming charts</TooltipContent>
+            </Tooltip>
+          ) : (
+            rankContent
+          )}
+        </div>
+      )}
+
       {/* IMDb Rating */}
       {displayRating && (
         <div className="flex items-center gap-1.5">
@@ -55,6 +105,11 @@ export function RatingsRow({
             )}
           </span>
         </div>
+      )}
+
+      {/* Year */}
+      {year != null && (
+        <span className="text-sm text-muted-foreground">{year}</span>
       )}
 
       {/* Rotten Tomatoes */}
@@ -76,12 +131,16 @@ export function RatingsRow({
       {/* Metascore */}
       {metascore && (
         <div className="flex items-center gap-1.5">
-          <div className={cn(
-            "w-6 h-6 rounded flex items-center justify-center text-xs font-bold",
-            metascore >= 60 ? "bg-green-500 text-white" :
-            metascore >= 40 ? "bg-yellow-500 text-white" :
-            "bg-red-500 text-white"
-          )}>
+          <div
+            className={cn(
+              "w-6 h-6 rounded flex items-center justify-center text-xs font-bold",
+              metascore >= 60
+                ? "bg-green-500 text-white"
+                : metascore >= 40
+                  ? "bg-yellow-500 text-white"
+                  : "bg-red-500 text-white"
+            )}
+          >
             {metascore}
           </div>
           <span className="text-xs text-muted-foreground">Metascore</span>
@@ -90,4 +149,3 @@ export function RatingsRow({
     </div>
   );
 }
-
