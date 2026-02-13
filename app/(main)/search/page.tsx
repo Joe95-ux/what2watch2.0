@@ -317,7 +317,7 @@ function SearchResultsContent() {
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[400px] sm:w-[540px] flex flex-col p-0">
+            <SheetContent side="right" className="w-[400px] sm:w-[540px] flex flex-col p-0 h-full max-h-screen">
               <FiltersSheet
                 filters={filters}
                 setFilters={setFilters}

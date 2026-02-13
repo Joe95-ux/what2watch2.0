@@ -228,7 +228,7 @@ export default function Navbar() {
                     </>
                   ) : (
                     <SignInButton mode="modal">
-                      <Button size="sm" className="hidden sm:inline-flex">
+                      <Button size="sm" className="cursor-pointer">
                         Sign In
                       </Button>
                     </SignInButton>
@@ -280,7 +280,7 @@ export default function Navbar() {
                   </>
                 ) : (
                   <SignInButton mode="modal">
-                    <Button size="sm" className="hidden sm:inline-flex">
+                    <Button size="sm" className="cursor-pointer">
                       Sign In
                     </Button>
                   </SignInButton>
