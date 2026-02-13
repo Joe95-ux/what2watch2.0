@@ -42,9 +42,10 @@ interface HeroSectionProps {
   details: DetailsType | null;
   trailer: TMDBVideo | null;
   videosData: { id: number; results: TMDBVideo[] } | null;
+  watchAvailability?: JustWatchAvailabilityResponse | null;
 }
 
-export default function HeroSection({ item, type, details, trailer, videosData }: HeroSectionProps) {
+export default function HeroSection({ item, type, details, trailer, videosData, watchAvailability }: HeroSectionProps) {
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [initialVideoId, setInitialVideoId] = useState<string | null>(null);
   const [isPhotosModalOpen, setIsPhotosModalOpen] = useState(false);
@@ -69,6 +70,15 @@ export default function HeroSection({ item, type, details, trailer, videosData }
   // Use IMDb rating if available, otherwise fall back to TMDB
   const displayRating = ratingData?.rating || tmdbRating;
   const ratingSource = ratingData?.source || (tmdbRating ? "tmdb" : null);
+
+  // JustWatch streaming chart rank for hero
+  const jwRanks = watchAvailability?.ranks;
+  const jwWeekRank = jwRanks?.["7d"];
+  const jwMonthRank = jwRanks?.["30d"];
+  const jwPrimaryRank = jwWeekRank ?? jwMonthRank ?? jwRanks?.["1d"];
+  const jwRankUrl = watchAvailability?.fullPath
+    ? `https://www.justwatch.com${watchAvailability.fullPath}`
+    : null;
 
   const formatRuntime = (minutes: number | number[] | undefined, isTV: boolean = false): string | null => {
     if (!minutes) return null;
