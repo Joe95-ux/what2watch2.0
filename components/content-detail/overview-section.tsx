@@ -217,7 +217,7 @@ export default function OverviewSection({
         </div>
 
         <div className="lg:col-span-5">
-          <div className="hidden lg:flex h-72 border border-border rounded-2xl bg-muted/40 items-center justify-center text-sm text-muted-foreground">
+          <div className="hidden lg:flex min-h-[420px] border border-border rounded-2xl bg-muted/40 items-center justify-center text-sm text-muted-foreground">
             Ad placement
           </div>
         </div>

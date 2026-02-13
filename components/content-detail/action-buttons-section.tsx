@@ -134,21 +134,31 @@ export default function ActionButtonsSection({ item, type, watchAvailability }: 
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
-                "inline-flex items-center gap-2 h-9 px-4 rounded-[25px] border border-border bg-muted hover:bg-muted/80 transition-colors cursor-pointer",
-                "text-sm font-medium"
+                "inline-flex items-center overflow-hidden rounded-lg border border-border bg-transparent hover:bg-muted/30 transition-colors cursor-pointer",
+                "border-neutral-700 dark:border-neutral-600"
               )}
             >
-              {primaryOffer.iconUrl && (
-                <Image
-                  src={primaryOffer.iconUrl}
-                  alt={primaryOffer.providerName}
-                  width={24}
-                  height={24}
-                  className="object-contain rounded flex-shrink-0"
-                  unoptimized
-                />
+              {primaryOffer.iconUrl ? (
+                <>
+                  <span className="flex items-center justify-center flex-shrink-0 p-0">
+                    <Image
+                      src={primaryOffer.iconUrl}
+                      alt={primaryOffer.providerName}
+                      width={36}
+                      height={36}
+                      className="object-contain rounded-l-[7px] w-9 h-9 block"
+                      unoptimized
+                    />
+                  </span>
+                  <span className="pl-3 pr-4 py-2 text-[1rem] font-medium">
+                    WATCH ON {primaryOffer.providerName.toUpperCase()}
+                  </span>
+                </>
+              ) : (
+                <span className="px-4 py-2 text-[1rem] font-medium">
+                  WATCH ON {primaryOffer.providerName.toUpperCase()}
+                </span>
               )}
-              <span>WATCH ON {primaryOffer.providerName.toUpperCase()}</span>
             </a>
           </div>
         )}

@@ -1,17 +1,25 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import Image from "next/image";
 import { JustWatchAvailabilityResponse, JustWatchOffer } from "@/lib/justwatch";
 import type { JustWatchCountry } from "@/lib/justwatch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { getCountryFlagEmoji } from "@/hooks/use-watch-regions";
+import { ChevronsUpDown, Check } from "lucide-react";
 
 interface WatchBreakdownSectionProps {
   availability: JustWatchAvailabilityResponse | null | undefined;
@@ -33,6 +41,85 @@ const sections: Array<{
   { key: "rent", title: "Rent", description: "Pay once, limited time access", ctaLabel: "Rent" },
   { key: "buy", title: "Buy", description: "Purchase to own", ctaLabel: "Buy" },
 ];
+
+function CountryCombobox({
+  countries,
+  value,
+  onValueChange,
+}: {
+  countries: JustWatchCountry[];
+  value: string;
+  onValueChange: (code: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const filtered = useMemo(() => {
+    if (!search.trim()) return countries;
+    const q = search.toLowerCase().trim();
+    return countries.filter(
+      (c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+    );
+  }, [countries, search]);
+  const selected = countries.find((c) => c.code === value);
+
+  return (
+    <div className="flex items-center gap-2">
+      <label className="text-sm text-muted-foreground whitespace-nowrap">Region</label>
+      <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-[180px] justify-between cursor-pointer"
+          >
+            <span className="flex items-center gap-2 truncate">
+              <span className="text-lg shrink-0">{getCountryFlagEmoji(value)}</span>
+              <span className="truncate">{selected?.name ?? value}</span>
+            </span>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="end">
+          <Command shouldFilter={false} className="rounded-lg border-0 bg-transparent">
+            <CommandInput
+              placeholder="Search country..."
+              value={search}
+              onValueChange={setSearch}
+            />
+            <CommandList className="max-h-[300px]">
+              {filtered.length === 0 && (
+                <div className="py-6 text-center text-sm text-muted-foreground">No country found.</div>
+              )}
+              <CommandGroup forceMount className="p-1">
+                {filtered.map((c) => {
+                  const isSelected = value === c.code;
+                  return (
+                    <CommandItem
+                      key={c.code}
+                      value={c.code}
+                      forceMount
+                      onSelect={() => {
+                        onValueChange(c.code);
+                        setOpen(false);
+                        setSearch("");
+                      }}
+                      className="cursor-pointer gap-2"
+                    >
+                      <span className="text-lg shrink-0">{getCountryFlagEmoji(c.code)}</span>
+                      <span className="flex-1 truncate">{c.name}</span>
+                      {isSelected && <Check className="size-4 shrink-0" />}
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
 
 export default function WatchBreakdownSection({
   availability,
@@ -60,39 +147,8 @@ export default function WatchBreakdownSection({
     );
   }
 
-  const ranks = availability.ranks;
-  const fullPath = availability.fullPath;
-  const justwatchUrl = fullPath ? `https://www.justwatch.com${fullPath}` : null;
-  const weekRank = ranks?.["7d"];
-  const monthRank = ranks?.["30d"];
-  const primaryRank = weekRank ?? monthRank ?? ranks?.["1d"];
-  const rankLabel = weekRank ? "7 days" : monthRank ? "30 days" : "24 hours";
-
   return (
     <section className="py-12 space-y-8" id="watch">
-      {primaryRank && justwatchUrl && (
-        <div>
-          <h2 className="text-2xl font-bold mb-2">Streaming chart</h2>
-          <p className="text-sm text-muted-foreground mb-3">
-            Real-time rank by streaming popularity on JustWatch
-          </p>
-          <a
-            href={justwatchUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-muted/50 hover:bg-muted transition-colors w-fit cursor-pointer"
-          >
-            <span className="text-lg font-semibold text-foreground">#{primaryRank.rank}</span>
-            <span className="text-xs text-muted-foreground">({rankLabel})</span>
-            {primaryRank.delta !== 0 && (
-              <span className={primaryRank.delta > 0 ? "text-green-600 text-xs" : "text-red-600 text-xs"}>
-                {primaryRank.delta > 0 ? "↑" : "↓"} {Math.abs(primaryRank.delta)}
-              </span>
-            )}
-          </a>
-        </div>
-      )}
-
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -103,21 +159,11 @@ export default function WatchBreakdownSection({
             </p>
           </div>
           {justwatchCountries.length > 0 && onWatchCountryChange && (
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground whitespace-nowrap">Region</label>
-              <Select value={watchCountry} onValueChange={onWatchCountryChange}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Country" />
-                </SelectTrigger>
-                <SelectContent>
-                  {justwatchCountries.map((c) => (
-                    <SelectItem key={c.code} value={c.code}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <CountryCombobox
+              countries={justwatchCountries}
+              value={watchCountry}
+              onValueChange={onWatchCountryChange}
+            />
           )}
         </div>
       </div>
