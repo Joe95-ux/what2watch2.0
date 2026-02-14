@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { usePersonalizedContent } from "@/hooks/use-movies";
 import { useUser } from "@clerk/nextjs";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
+import { useFavorites } from "@/hooks/use-favorites";
 import MoreLikeThisCard from "@/components/browse/more-like-this-card";
 import { MoreLikeThisCardSkeleton } from "@/components/skeletons/more-like-this-card-skeleton";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
@@ -15,8 +16,12 @@ const ITEMS_PER_PAGE = 24;
 
 export function TopPicksTab() {
   const { isSignedIn } = useUser();
+  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
+  const recalcTriggeredRef = useRef(false);
+  const [isRecalculating, setIsRecalculating] = useState(false);
   const { data: preferences } = useUserPreferences();
+  const { data: favorites = [] } = useFavorites();
 
   // Normalize favoriteGenres - handle Extended JSON format from MongoDB
   const normalizeGenres = (genres: unknown[]): number[] => {
@@ -52,6 +57,33 @@ export function TopPicksTab() {
     return (preferences?.preferredTypes || []) as ("movie" | "tv")[];
   }, [preferences]);
 
+  // When user has completed onboarding and has favorites but no genre preferences yet,
+  // recalculate preferences from their favorites so Top Picks can show content.
+  useEffect(() => {
+    if (
+      !isSignedIn ||
+      !preferences?.onboardingCompleted ||
+      favoriteGenres.length > 0 ||
+      favorites.length === 0 ||
+      recalcTriggeredRef.current
+    ) {
+      return;
+    }
+    recalcTriggeredRef.current = true;
+    setIsRecalculating(true);
+    fetch("/api/user/preferences/recalculate", { method: "POST" })
+      .then((res) => {
+        if (res.ok) return queryClient.invalidateQueries({ queryKey: ["user-preferences"] });
+      })
+      .finally(() => setIsRecalculating(false));
+  }, [
+    isSignedIn,
+    preferences?.onboardingCompleted,
+    favoriteGenres.length,
+    favorites.length,
+    queryClient,
+  ]);
+
   const { data: personalizedData, isLoading } = usePersonalizedContent(
     favoriteGenres,
     preferredTypes.length > 0 ? preferredTypes : ["movie", "tv"]
@@ -73,7 +105,7 @@ export function TopPicksTab() {
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const paginatedItems = allItems.slice(startIndex, endIndex);
 
-  if (isLoading) {
+  if (isLoading || isRecalculating) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {Array.from({ length: 24 }).map((_, i) => (

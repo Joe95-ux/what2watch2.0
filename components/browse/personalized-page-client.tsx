@@ -6,14 +6,14 @@ import { cn } from "@/lib/utils";
 import { TopPicksTab } from "./personalized-tabs/top-picks-tab";
 import { WatchGuideTab } from "./personalized-tabs/watch-guide-tab";
 import { FromYourWatchlistTab } from "./personalized-tabs/from-your-watchlist-tab";
-import { FanFavoritesTab } from "./personalized-tabs/fan-favorites-tab";
+import { RankChartsTab } from "./personalized-tabs/rank-charts-tab";
 import { MostPopularTab } from "./personalized-tabs/most-popular-tab";
 
 const tabs = [
   { id: "top-picks", label: "Top Picks" },
   { id: "watch-guide", label: "Watch Guide" },
   { id: "from-watchlist", label: "From Your Watchlist" },
-  { id: "fan-favorites", label: "Fan Favorites" },
+  { id: "rank-charts", label: "Rank Charts" },
   { id: "most-popular", label: "Most Popular" },
 ];
 
@@ -72,8 +72,8 @@ export function PersonalizedPageClient() {
           <TabsContent value="from-watchlist" className="mt-0">
             <FromYourWatchlistTab />
           </TabsContent>
-          <TabsContent value="fan-favorites" className="mt-0">
-            <FanFavoritesTab />
+          <TabsContent value="rank-charts" className="mt-0">
+            <RankChartsTab />
           </TabsContent>
           <TabsContent value="most-popular" className="mt-0">
             <MostPopularTab />

@@ -147,7 +147,7 @@ export default function ActionButtonsSection({ item, type, watchAvailability }: 
               rel="noopener noreferrer"
               className={cn(
                 "inline-flex items-stretch h-10 overflow-hidden rounded-lg bg-muted dark:bg-transparent hover:bg-muted/30 transition-colors cursor-pointer max-w-full",
-                "border-none dark:border dark:border-lg dark:border-[rgba(255,255,255,0.1)]"
+                "dark:border dark:border-[rgba(255,255,255,0.1)]"
               )}
             >
               {primaryOffer.iconUrl ? (
