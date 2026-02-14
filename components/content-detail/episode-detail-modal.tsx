@@ -164,6 +164,11 @@ export default function EpisodeDetailModal({
   const router = useRouter();
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const { isInWatchlist, toggle, isLoading: isWatchlistLoading } = useToggleWatchlist();
+  const { data: seasonAvailability, isLoading: isLoadingSeasonAvailability } = useSeasonWatchProviders(
+    tvShow?.id ?? null,
+    episode?.season_number ?? null,
+    "US"
+  );
 
   if (!episode) return null;
 

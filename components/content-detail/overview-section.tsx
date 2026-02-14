@@ -75,6 +75,7 @@ export default function OverviewSection({
 }: OverviewSectionProps) {
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
   const synopsis = item.overview || "";
   const shouldTruncate = synopsis.length > MAX_SYNOPSIS_LENGTH;
   const displaySynopsis = shouldTruncate && !isExpanded
@@ -128,6 +129,9 @@ export default function OverviewSection({
             )}
           </div>
 
+          <h2 className="text-2xl font-bold mb-4">
+            {type === "movie" ? "Movie Details" : "TV Show Details"}
+          </h2>
           <div className="divide-y divide-border">
             {details?.genres && details.genres.length > 0 && (
               <OverviewInfoRow
@@ -194,7 +198,34 @@ export default function OverviewSection({
                 }
               />
             </div>
-            <OverviewDetailsRows type={type} details={details} omdbData={omdbData} item={item} />
+            {!detailsExpanded ? (
+              <div className="px-4 py-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDetailsExpanded(true)}
+                  className="text-primary"
+                >
+                  <ChevronDown className="h-4 w-4 mr-1" />
+                  Show more
+                </Button>
+              </div>
+            ) : (
+              <>
+                <OverviewDetailsRows type={type} details={details} omdbData={omdbData} item={item} />
+                <div className="px-4 py-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDetailsExpanded(false)}
+                    className="text-primary"
+                  >
+                    <ChevronUp className="h-4 w-4 mr-1" />
+                    Show less
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
 
           {type === "movie" && omdbData?.awards && (
@@ -363,7 +394,10 @@ function OverviewDetailsRows({
   const language = details?.spoken_languages?.[0]?.english_name || "N/A";
   const status = details?.status || "N/A";
   const budget = type === "movie" && details?.budget ? `$${(details.budget / 1000000).toFixed(1)}M` : null;
-  const revenue = type === "movie" && details?.revenue ? `$${(details.revenue / 1000000).toFixed(1)}M` : null;
+  const revenue =
+    type === "movie" && details?.revenue != null && details.revenue > 0
+      ? `$${details.revenue.toLocaleString()} (Worldwide)`
+      : null;
   const seasons = type === "tv" && details?.number_of_seasons != null ? details.number_of_seasons : null;
   const episodes = type === "tv" && details?.number_of_episodes != null ? details.number_of_episodes : null;
   const networks = type === "tv" && details?.networks?.length ? details.networks.map((n) => n.name).join(", ") : null;
@@ -395,7 +429,7 @@ function OverviewDetailsRows({
     type === "movie" && omdbData?.production && { label: "Production", value: omdbData.production },
     type === "movie" && omdbData?.dvd && formatOMDBDate(omdbData.dvd) && { label: "DVD Release", value: formatOMDBDate(omdbData.dvd)! },
     budget && { label: "Budget", value: budget },
-    revenue && { label: "Revenue", value: revenue },
+    revenue && { label: "Box Office Gross", value: revenue },
     seasons != null && { label: "Seasons", value: String(seasons) },
     episodes != null && { label: "Episodes", value: String(episodes) },
   ].filter((r): r is { label: string; value: string; link?: string } => Boolean(r));

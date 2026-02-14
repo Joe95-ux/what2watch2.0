@@ -70,24 +70,21 @@ function SeasonSelect({
 }) {
   const regularSeasons = seasons.filter((s) => s.season_number >= 0);
   return (
-    <div className="flex items-center gap-2">
-      <label className="text-sm text-muted-foreground whitespace-nowrap">Season</label>
-      <Select
-        value={String(value)}
-        onValueChange={(v) => onValueChange(Number(v))}
-      >
-        <SelectTrigger className="w-[230px] cursor-pointer">
-          <SelectValue placeholder="Season" />
-        </SelectTrigger>
-        <SelectContent>
-          {regularSeasons.map((s) => (
-            <SelectItem key={s.season_number} value={String(s.season_number)} className="cursor-pointer">
-              {s.season_number === 0 ? "Specials" : s.name || `Season ${s.season_number}`}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+    <Select
+      value={String(value)}
+      onValueChange={(v) => onValueChange(Number(v))}
+    >
+      <SelectTrigger className="w-[230px] cursor-pointer">
+        <SelectValue placeholder="Season" />
+      </SelectTrigger>
+      <SelectContent>
+        {regularSeasons.map((s) => (
+          <SelectItem key={s.season_number} value={String(s.season_number)} className="cursor-pointer">
+            {s.season_number === 0 ? "Specials" : s.name || `Season ${s.season_number}`}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -302,13 +299,6 @@ export default function WatchBreakdownSection({
                 onValueChange={onWatchCountryChange}
               />
             )}
-            {seasons.length > 0 && onSeasonChange != null && seasonNumber != null && (
-              <SeasonSelect
-                seasons={seasons}
-                value={seasonNumber}
-                onValueChange={onSeasonChange}
-              />
-            )}
           </div>
         </div>
       </div>
@@ -331,25 +321,39 @@ export default function WatchBreakdownSection({
       )}
 
       {/* Season-specific availability (TV) */}
-      {seasonAvailability && seasonNumber != null && (
-        <div className="space-y-4">
-          <h3 className="text-xl font-semibold">Availability for Season {seasonNumber}</h3>
-          {sections.map((section) => {
-            const offers = seasonAvailability.offersByType[section.key] || [];
-            if (!offers.length) return null;
-            return (
-              <div key={`season-${section.key}`} className="space-y-2">
-                <h4 className="text-sm font-medium text-muted-foreground">{section.title}</h4>
-                <div className="divide-y divide-border rounded-2xl border border-border bg-card/30">
-                  {offers.map((offer) => (
-                    <OfferRow key={`${offer.providerId}-${offer.monetizationType}`} offer={offer} ctaLabel={section.ctaLabel} />
-                  ))}
+      {seasonAvailability && seasonNumber != null && (() => {
+        const sectionsWithOffers = sections.filter((s) => (seasonAvailability.offersByType[s.key] || []).length > 0);
+        return (
+          <div className="space-y-4">
+            {sectionsWithOffers.map((section, idx) => {
+              const offers = seasonAvailability.offersByType[section.key] || [];
+              const isFirst = idx === 0;
+              return (
+                <div key={`season-${section.key}`} className="space-y-2">
+                  <div className={cn(isFirst && "flex flex-wrap items-start justify-between gap-4")}>
+                    <div>
+                      <h3 className="text-xl font-semibold">{section.title}</h3>
+                      <p className="text-sm text-muted-foreground">{section.description}</p>
+                    </div>
+                    {isFirst && seasons.length > 0 && onSeasonChange != null && (
+                      <SeasonSelect
+                        seasons={seasons}
+                        value={seasonNumber}
+                        onValueChange={onSeasonChange}
+                      />
+                    )}
+                  </div>
+                  <div className="divide-y divide-border rounded-2xl border border-border bg-card/30">
+                    {offers.map((offer) => (
+                      <OfferRow key={`${offer.providerId}-${offer.monetizationType}`} offer={offer} ctaLabel={section.ctaLabel} />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {sections.map((section) => {
         const offers = availability.offersByType[section.key] || [];
