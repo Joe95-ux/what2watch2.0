@@ -1,19 +1,25 @@
 "use client";
 
-import { useRef, useState } from "react";
+import Image from "next/image";
+import { useRef, useState, useMemo } from "react";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
 import { useJustWatchChart, type ChartPeriod } from "@/hooks/use-justwatch-chart";
 import { StreamingChartRow } from "../streaming-chart-row";
 import { cn } from "@/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ChevronDown } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { ChevronsUpDown, Check } from "lucide-react";
 
 const RANK_PERIODS = [
   { id: "24h", label: "24h", apiPeriod: "1d" as ChartPeriod },
@@ -25,6 +31,117 @@ export type RankPeriodId = (typeof RANK_PERIODS)[number]["id"];
 
 const PROVIDERS_LIMIT = 20;
 const CHART_LIMIT = 15;
+
+interface WatchProvider {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string | null;
+}
+
+function ProviderCombobox({
+  providers,
+  focusedProviderId,
+  onSelect,
+  rowRefsMap,
+}: {
+  providers: WatchProvider[];
+  focusedProviderId: number | null;
+  onSelect: (providerId: number) => void;
+  rowRefsMap: React.RefObject<Record<number, HTMLDivElement | null>>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return providers;
+    const q = search.toLowerCase().trim();
+    return providers.filter((p) => p.provider_name.toLowerCase().includes(q));
+  }, [providers, search]);
+
+  const scrollToProvider = (providerId: number) => {
+    const el = rowRefsMap.current?.[providerId];
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const handleSelect = (providerId: number) => {
+    onSelect(providerId);
+    setOpen(false);
+    setSearch("");
+    // Scroll after popover closes so ref is still valid and viewport updates correctly
+    setTimeout(() => scrollToProvider(providerId), 0);
+  };
+
+  const selected = providers.find((p) => p.provider_id === focusedProviderId);
+
+  return (
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-[240px] sm:w-[260px] justify-between cursor-pointer"
+        >
+          <span className="flex items-center gap-2 truncate min-w-0">
+            {selected?.logo_path ? (
+              <img
+                src={`https://image.tmdb.org/t/p/w92${selected.logo_path}`}
+                alt=""
+                className="h-6 w-6 rounded object-cover shrink-0"
+              />
+            ) : (
+              <span className="h-6 w-6 rounded bg-muted shrink-0" />
+            )}
+            <span className="truncate">{selected?.provider_name ?? "Go to provider"}</span>
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+        <Command shouldFilter={false} className="rounded-lg border-0 bg-transparent">
+          <CommandInput
+            placeholder="Search provider..."
+            value={search}
+            onValueChange={setSearch}
+          />
+          <CommandList className="max-h-[300px]">
+            {filtered.length === 0 && (
+              <div className="py-6 text-center text-sm text-muted-foreground">No provider found.</div>
+            )}
+            <CommandGroup forceMount className="p-1">
+              {filtered.map((p) => {
+                const isSelected = focusedProviderId === p.provider_id;
+                return (
+                  <CommandItem
+                    key={p.provider_id}
+                    value={`${p.provider_id}-${p.provider_name}`}
+                    forceMount
+                    onSelect={() => handleSelect(p.provider_id)}
+                    className="cursor-pointer gap-2"
+                  >
+                    {p.logo_path ? (
+                      <img
+                        src={`https://image.tmdb.org/t/p/w92${p.logo_path}`}
+                        alt=""
+                        className="h-6 w-6 rounded object-cover shrink-0"
+                      />
+                    ) : (
+                      <span className="h-6 w-6 rounded bg-muted shrink-0" />
+                    )}
+                    <span className="flex-1 truncate">{p.provider_name}</span>
+                    {isSelected && <Check className="size-4 shrink-0" />}
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 function ProviderRow({
   provider,
@@ -76,7 +193,17 @@ export function RankChartsTab() {
     <div className="space-y-6">
       {/* Header: Streaming Charts (left) + Period picker (right) */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h2 className="text-2xl font-semibold text-foreground">Streaming Charts</h2>
+        <h2 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
+          <Image
+            src="/jw-icon.png"
+            alt="JustWatch"
+            width={24}
+            height={24}
+            className="object-contain"
+            unoptimized
+          />
+          JustWatch Streaming Charts
+        </h2>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Rank period:</span>
             <div className="inline-flex rounded-lg border border-border bg-muted/30 p-0.5">
@@ -99,30 +226,16 @@ export function RankChartsTab() {
         </div>
       </div>
 
-      {/* Jump to provider */}
+      {/* Go to provider: same pattern as country dropdown on details page */}
       {providers.length > 1 && (
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm text-muted-foreground">Go to provider:</span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2 cursor-pointer">
-                Choose provider
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="max-h-[60vh] overflow-y-auto">
-              <DropdownMenuLabel>Streaming services</DropdownMenuLabel>
-              {providers.map((p) => (
-                <DropdownMenuItem
-                  key={p.provider_id}
-                  onClick={() => scrollToProvider(p.provider_id)}
-                  className="cursor-pointer"
-                >
-                  {p.provider_name}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <ProviderCombobox
+            providers={providers}
+            focusedProviderId={focusedProviderId}
+            onSelect={setFocusedProviderId}
+            rowRefsMap={rowRefsMap}
+          />
         </div>
       )}
 

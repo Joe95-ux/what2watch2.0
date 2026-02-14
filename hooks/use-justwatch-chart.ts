@@ -43,6 +43,7 @@ async function fetchChart(
     type: e.type,
     position: e.position,
     delta: deltaToRankDelta(e.delta),
+    deltaNumber: e.delta,
   }));
 }
 

@@ -81,8 +81,8 @@ export async function GET(request: NextRequest) {
     const slice = combined.slice(0, limit);
 
     // 2. Enrich each with JustWatch rank/delta for the chosen period (same as details page)
-    const entries: ChartEntryResponse[] = await Promise.all(
-      slice.map(async ({ item, type }, index) => {
+    let entries: ChartEntryResponse[] = await Promise.all(
+      slice.map(async ({ item, type }) => {
         let rank: number | null = null;
         let delta: number | null = null;
         try {
@@ -99,12 +99,24 @@ export async function GET(request: NextRequest) {
         return {
           item,
           type,
-          position: index + 1,
+          position: 0, // set after sort
           rank,
           delta,
         };
       })
     );
+
+    // 3. Sort by JustWatch chart rank (ascending) so first item ranks #1, second #2, etc.
+    entries.sort((a, b) => {
+      const ar = a.rank ?? Infinity;
+      const br = b.rank ?? Infinity;
+      return ar - br;
+    });
+
+    // Display position = JustWatch rank when available, else sequential for unranked at end
+    entries.forEach((e, i) => {
+      e.position = e.rank ?? i + 1;
+    });
 
     return NextResponse.json(
       { entries, country: watchRegion, period },

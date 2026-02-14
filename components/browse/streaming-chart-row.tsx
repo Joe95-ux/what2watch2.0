@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { ChartRankCard, type RankDelta } from "./chart-rank-card";
-import ContentDetailModal from "./content-detail-modal";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import useEmblaCarousel from "embla-carousel-react";
@@ -15,6 +14,8 @@ export interface ChartEntry {
   type: "movie" | "tv";
   position: number;
   delta: RankDelta;
+  /** Numeric delta from JustWatch (for badge display, same as details page). */
+  deltaNumber?: number | null;
 }
 
 interface StreamingChartRowProps {
@@ -47,10 +48,6 @@ export function StreamingChartRow({
   );
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<{
-    item: TMDBMovie | TMDBSeries;
-    type: "movie" | "tv";
-  } | null>(null);
 
   useEffect(() => {
     if (!emblaApi) return;
@@ -119,49 +116,38 @@ export function StreamingChartRow({
           <button
             type="button"
             className={cn(
-              "absolute left-0 top-0 bottom-0 w-10 z-10 flex items-center justify-center",
-              "bg-gradient-to-r from-background/80 to-transparent opacity-0 group-hover/carousel:opacity-100 transition-opacity",
-              !canScrollPrev && "pointer-events-none opacity-0"
+              "absolute left-0 top-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10",
+              !canScrollPrev && "opacity-0 pointer-events-none"
             )}
             aria-label="Scroll left"
             onClick={() => emblaApi?.scrollPrev()}
           >
-            <ChevronLeft className="h-6 w-6 text-foreground" />
+            <ChevronLeft className="h-6 w-6 text-white" />
           </button>
           <button
             type="button"
             className={cn(
-              "absolute right-0 top-0 bottom-0 w-10 z-10 flex items-center justify-center",
-              "bg-gradient-to-l from-background/80 to-transparent opacity-0 group-hover/carousel:opacity-100 transition-opacity",
-              !canScrollNext && "pointer-events-none opacity-0"
+              "absolute right-0 top-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10",
+              !canScrollNext && "opacity-0 pointer-events-none"
             )}
             aria-label="Scroll right"
             onClick={() => emblaApi?.scrollNext()}
           />
-          <div ref={emblaRef} className="overflow-hidden" style={{ touchAction: "pan-x" }}>
+          <div ref={emblaRef} className="overflow-hidden w-full" style={{ touchAction: "pan-x" }}>
             <div className="flex gap-3">
-              {entries.map(({ item, type, position, delta }) => (
+              {entries.map(({ item, type, position, delta, deltaNumber }) => (
                 <ChartRankCard
                   key={`${type}-${item.id}`}
                   item={item}
                   type={type}
                   position={position}
                   delta={delta}
-                  onCardClick={(i, t) => setSelectedItem({ item: i, type: t })}
+                  deltaNumber={deltaNumber}
                 />
               ))}
             </div>
           </div>
         </div>
-      </div>
-      {selectedItem && (
-        <ContentDetailModal
-          item={selectedItem.item}
-          type={selectedItem.type}
-          isOpen={!!selectedItem}
-          onClose={() => setSelectedItem(null)}
-        />
-      )}
-    </>
+    </div>
   );
 }
