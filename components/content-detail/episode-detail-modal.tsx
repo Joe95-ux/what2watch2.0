@@ -227,7 +227,12 @@ export default function EpisodeDetailModal({
             <DialogTitle className="sr-only">Episode Details</DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto scrollbar-thin px-6">
+          <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
+            <TabsList className="w-full px-6">
+              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="watch">Where to Watch</TabsTrigger>
+            </TabsList>
+            <TabsContent value="details" className="flex-1 overflow-y-auto scrollbar-thin mt-0 px-6">
             <div className="space-y-6 pb-6">
               {/* First Div: TV Show Poster and Metadata */}
               <div className="flex flex-row gap-4">
