@@ -11,7 +11,8 @@ export type RankDelta = "up" | "down" | "same" | null;
 interface ChartRankCardProps {
   item: TMDBMovie | TMDBSeries;
   type: "movie" | "tv";
-  position: number;
+  /** JustWatch chart rank when available; null when not on chart. Shown as-is. */
+  position: number | null;
   delta: RankDelta;
   /** Numeric delta from JustWatch (for badge, same design as details page). */
   deltaNumber?: number | null;
@@ -52,15 +53,17 @@ export function ChartRankCard({ item, type, position, deltaNumber }: ChartRankCa
         />
       </div>
 
-      {/* Position number - right side, ~2/3 visible */}
-      <div
-        className="absolute right-0 top-0 bottom-0 w-2/3 flex items-center justify-end pr-2 pointer-events-none"
-        aria-hidden
-      >
-        <span className="text-4xl sm:text-5xl font-bold text-white/90 drop-shadow-md tabular-nums">
-          {position}
-        </span>
-      </div>
+      {/* JustWatch chart rank - right side, ~2/3 visible; only when we have a rank */}
+      {position != null && (
+        <div
+          className="absolute right-0 top-0 bottom-0 w-2/3 flex items-center justify-end pr-2 pointer-events-none"
+          aria-hidden
+        >
+          <span className="text-4xl sm:text-5xl font-bold text-white/90 drop-shadow-md tabular-nums">
+            {position}
+          </span>
+        </div>
+      )}
 
       {/* Rank delta indicator - top right, same design as movie details page hero */}
       {delta != null && deltaNumber != null && deltaNumber !== 0 && (

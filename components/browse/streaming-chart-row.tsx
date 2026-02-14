@@ -12,7 +12,8 @@ import { WheelGesturesPlugin } from "embla-carousel-wheel-gestures";
 export interface ChartEntry {
   item: TMDBMovie | TMDBSeries;
   type: "movie" | "tv";
-  position: number;
+  /** JustWatch chart rank when available; null when not on chart. Shown as-is (no forced 1,2,3). */
+  position: number | null;
   delta: RankDelta;
   /** Numeric delta from JustWatch (for badge display, same as details page). */
   deltaNumber?: number | null;
@@ -123,23 +124,33 @@ export function StreamingChartRow({
           <button
             type="button"
             className={cn(
-              "absolute left-0 top-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10",
-              !canScrollPrev && "opacity-0 pointer-events-none"
+              "absolute left-0 top-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 backdrop-blur-sm transition-opacity duration-200 hidden md:flex items-center justify-center z-10",
+              "opacity-0 group-hover/carousel:opacity-100",
+              canScrollPrev
+                ? "hover:bg-black/80 cursor-pointer"
+                : "group-hover/carousel:opacity-50 cursor-default pointer-events-none"
             )}
             aria-label="Scroll left"
+            aria-disabled={!canScrollPrev}
             onClick={() => emblaApi?.scrollPrev()}
           >
-            <ChevronLeft className="h-6 w-6 text-white" />
+            <ChevronLeft className="h-6 w-6 text-white shrink-0" />
           </button>
           <button
             type="button"
             className={cn(
-              "absolute right-0 top-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10",
-              !canScrollNext && "opacity-0 pointer-events-none"
+              "absolute right-0 top-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 backdrop-blur-sm transition-opacity duration-200 hidden md:flex items-center justify-center z-10",
+              "opacity-0 group-hover/carousel:opacity-100",
+              canScrollNext
+                ? "hover:bg-black/80 cursor-pointer"
+                : "group-hover/carousel:opacity-50 cursor-default pointer-events-none"
             )}
             aria-label="Scroll right"
+            aria-disabled={!canScrollNext}
             onClick={() => emblaApi?.scrollNext()}
-          />
+          >
+            <ChevronRight className="h-6 w-6 text-white shrink-0" />
+          </button>
           <div ref={emblaRef} className="overflow-hidden w-full min-w-0" style={{ touchAction: "pan-x" }}>
             <div className="flex gap-3 flex-nowrap">
               {entries.map(({ item, type, position, delta, deltaNumber }) => (

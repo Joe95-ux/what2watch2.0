@@ -32,11 +32,26 @@ export interface JustWatchRankWindow {
   delta: number;
 }
 
+/** Upcoming release when a title has no offers yet. See JustWatch Upcoming Release Dates. */
+export interface JustWatchUpcomingRelease {
+  country: string;
+  providerId: number;
+  providerName: string;
+  iconUrl: string | null;
+  releaseWindowFrom: string;
+  releaseWindowTo: string;
+  releaseType: "digital" | "re_release" | "theatrical" | string;
+  /** Human-readable label: exact date, month, season, year, or TBA. */
+  label: string;
+}
+
 export interface JustWatchAvailabilityResponse {
   country: string;
   lastSyncedAt?: string | null;
   offersByType: Record<JustWatchMonetization, JustWatchOffer[]>;
   allOffers: JustWatchOffer[];
+  /** Upcoming release dates when there are no offers. */
+  upcoming?: JustWatchUpcomingRelease[];
   /** Streaming chart ranks when available. Link to JustWatch with rank as anchor per attribution. */
   ranks?: {
     "1d"?: JustWatchRankWindow;
@@ -58,7 +73,16 @@ interface JustWatchProviderResponse {
   icon_url: string | null;
 }
 
-/** Content Partner API: offers response (Movie/Show Offers by ID). */
+/** Raw upcoming item from JustWatch API (when offers is null/empty). */
+interface JustWatchUpcomingApiItem {
+  country: string;
+  provider_id: number;
+  release_window_from: string;
+  release_window_to: string;
+  release_type: string;
+}
+
+/** Content Partner API: offers response (Movie/Show Offers by ID). Includes upcoming when no offers. */
 interface JustWatchOffersApiResponse {
   offers?: Array<{
     monetization_type: JustWatchMonetization;
@@ -74,6 +98,7 @@ interface JustWatchOffersApiResponse {
     "7d"?: { rank: number; delta: number };
     "30d"?: { rank: number; delta: number };
   };
+  upcoming?: JustWatchUpcomingApiItem[];
 }
 
 function buildImageUrl(path?: string | null) {
@@ -81,6 +106,47 @@ function buildImageUrl(path?: string | null) {
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
   const sanitized = path.replace("{profile}", "s100");
   return `https://images.justwatch.com${sanitized}`;
+}
+
+/** Format release window per JustWatch docs: Exact Date (+ weeks left), Year, Season, Month, or TBA. */
+function formatUpcomingReleaseLabel(from: string, to: string): string {
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+  if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) return "TBA";
+
+  const fromDay = fromDate.getUTCDate();
+  const fromMonth = fromDate.getUTCMonth();
+  const fromYear = fromDate.getUTCFullYear();
+  const toDay = toDate.getUTCDate();
+  const toMonth = toDate.getUTCMonth();
+  const toYear = toDate.getUTCFullYear();
+
+  const isSameDay = fromYear === toYear && fromMonth === toMonth && fromDay === toDay;
+  if (isSameDay) {
+    const options: Intl.DateTimeFormatOptions = { month: "long", day: "numeric", year: "numeric" };
+    const formatted = fromDate.toLocaleDateString(undefined, options);
+    const now = new Date();
+    const weeksLeft = Math.max(0, Math.ceil((fromDate.getTime() - now.getTime()) / (7 * 24 * 60 * 60 * 1000)));
+    return weeksLeft > 0 ? `${formatted} (${weeksLeft} week${weeksLeft === 1 ? "" : "s"} left)` : formatted;
+  }
+
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const monthLabel = months[fromMonth];
+
+  if (fromDay === 1 && toDay >= 28 && fromMonth === toMonth && fromYear === toYear) {
+    return monthLabel;
+  }
+  if (fromDay === 1 && fromMonth === 0 && toDay === 31 && toMonth === 11 && fromYear === toYear) {
+    return String(fromYear);
+  }
+  if (fromDay === 1 && fromMonth === 8 && toDay === 30 && toMonth === 10) return "Autumn";
+  if (fromDay === 1 && fromMonth === 11 && toDay === 28 && toMonth === 1) return "Winter";
+  if (fromDay === 1 && fromMonth === 2 && toDay === 31 && toMonth === 4) return "Spring";
+  if (fromDay === 1 && fromMonth === 5 && toDay === 30 && toMonth === 7) return "Summer";
+  if (fromDay === 1 && toDay >= 28 && fromMonth === toMonth && fromYear === toYear) return monthLabel;
+  if (fromDay === 1 && fromMonth === 0 && (toDay === 31 || toDay === 30 || toDay === 28) && toMonth === 11 && fromYear === toYear) return String(fromYear);
+
+  return "TBA";
 }
 
 /** Map country code to JustWatch locale (e.g. US -> en_US). */
@@ -235,11 +301,29 @@ export async function getJustWatchAvailability(
         }
       : null;
 
+    const countryUpper = country.toUpperCase();
+    const upcoming: JustWatchUpcomingRelease[] = (offersData?.upcoming ?? [])
+      .filter((u) => u.country === countryUpper)
+      .map((u) => {
+        const provider = providerMap.get(u.provider_id);
+        return {
+          country: u.country,
+          providerId: u.provider_id,
+          providerName: provider?.clear_name ?? `Provider ${u.provider_id}`,
+          iconUrl: buildImageUrl(provider?.icon_url ?? null),
+          releaseWindowFrom: u.release_window_from,
+          releaseWindowTo: u.release_window_to,
+          releaseType: u.release_type,
+          label: formatUpcomingReleaseLabel(u.release_window_from, u.release_window_to),
+        };
+      });
+
     return {
-      country: country.toUpperCase(),
+      country: countryUpper,
       lastSyncedAt: null,
       offersByType: grouped,
       allOffers: normalized,
+      upcoming: upcoming.length > 0 ? upcoming : undefined,
       ranks: ranks ?? undefined,
       fullPath: offersData?.full_path ?? null,
       credits: {
@@ -310,11 +394,29 @@ export async function getJustWatchSeasonAvailability(
       grouped[k] = grouped[k] || [];
     });
 
+    const countryUpper = country.toUpperCase();
+    const seasonUpcoming: JustWatchUpcomingRelease[] = (seasonData?.upcoming ?? [])
+      .filter((u) => u.country === countryUpper)
+      .map((u) => {
+        const provider = providerMap.get(u.provider_id);
+        return {
+          country: u.country,
+          providerId: u.provider_id,
+          providerName: provider?.clear_name ?? `Provider ${u.provider_id}`,
+          iconUrl: buildImageUrl(provider?.icon_url ?? null),
+          releaseWindowFrom: u.release_window_from,
+          releaseWindowTo: u.release_window_to,
+          releaseType: u.release_type,
+          label: formatUpcomingReleaseLabel(u.release_window_from, u.release_window_to),
+        };
+      });
+
     return {
-      country: country.toUpperCase(),
+      country: countryUpper,
       lastSyncedAt: null,
       offersByType: grouped,
       allOffers: normalized,
+      upcoming: seasonUpcoming.length > 0 ? seasonUpcoming : undefined,
       fullPath: seasonData?.full_path ?? null,
       credits: {
         text: "Data powered by JustWatch",

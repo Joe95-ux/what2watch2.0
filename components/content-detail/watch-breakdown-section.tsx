@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Image from "next/image";
-import { JustWatchAvailabilityResponse, JustWatchOffer } from "@/lib/justwatch";
+import { JustWatchAvailabilityResponse, JustWatchOffer, JustWatchUpcomingRelease } from "@/lib/justwatch";
 import type { JustWatchCountry } from "@/lib/justwatch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -340,7 +340,7 @@ export default function WatchBreakdownSection({
               </p>
             )}
             {sections.map((section, idx) => {
-              const offers = dataSource.offersByType[section.key] || [];
+              const offers = dataSource?.offersByType[section.key] || [];
               if (!offers.length) return null;
               const isFirst = idx === 0;
               return (
@@ -376,6 +376,21 @@ export default function WatchBreakdownSection({
                 </div>
               );
             })}
+            {dataSource && dataSource.allOffers.length === 0 && (dataSource.upcoming?.length ?? 0) > 0 && (
+              <div className="space-y-3">
+                <div>
+                  <h3 className="text-xl font-semibold">Upcoming</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Not available to watch yet. Release dates from JustWatch.
+                  </p>
+                </div>
+                <div className="divide-y divide-border rounded-2xl border border-border bg-card/30">
+                  {dataSource.upcoming!.map((release) => (
+                    <UpcomingReleaseRow key={`${release.providerId}-${release.releaseWindowFrom}`} release={release} />
+                  ))}
+                </div>
+              </div>
+            )}
             {showSeasonDropdown && isLoadingSeason && (
               <p className="text-sm text-muted-foreground mt-2">Loading season availability…</p>
             )}
@@ -385,6 +400,42 @@ export default function WatchBreakdownSection({
 
       <JustWatchCredit />
     </section>
+  );
+}
+
+function UpcomingReleaseRow({ release }: { release: JustWatchUpcomingRelease }) {
+  const releaseTypeLabel =
+    release.releaseType === "theatrical"
+      ? "In theaters"
+      : release.releaseType === "re_release"
+        ? "Re-release"
+        : release.releaseType === "digital"
+          ? "Streaming"
+          : release.releaseType;
+  return (
+    <div className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:gap-6">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        {release.iconUrl ? (
+          <Image
+            src={release.iconUrl}
+            alt={release.providerName}
+            width={32}
+            height={32}
+            className="rounded-md"
+            unoptimized
+          />
+        ) : (
+          <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground">
+            {release.providerName[0]}
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="font-medium truncate">{release.providerName}</p>
+          <p className="text-sm text-muted-foreground capitalize">{releaseTypeLabel}</p>
+        </div>
+      </div>
+      <span className="text-sm font-medium text-foreground shrink-0">{release.label}</span>
+    </div>
   );
 }
 

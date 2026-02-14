@@ -94,7 +94,7 @@ function ProviderCombobox({
             ) : (
               <span className="h-6 w-6 rounded bg-muted shrink-0" />
             )}
-            <span className="truncate">{selected?.provider_name ?? "Go to provider"}</span>
+            <span className="truncate">{selected?.provider_name ?? "Choose provider"}</span>
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -173,12 +173,28 @@ function ProviderRow({
   );
 }
 
+const NETFLIX_PROVIDER_ID = 8; // TMDB watch provider ID for Netflix (US)
+
 export function RankChartsTab() {
-  const [periodId, setPeriodId] = useState<RankPeriodId>("7d");
+  const [periodId, setPeriodId] = useState<RankPeriodId>("24h");
   const [focusedProviderId, setFocusedProviderId] = useState<number | null>(null);
-  const period: ChartPeriod = RANK_PERIODS.find((p) => p.id === periodId)?.apiPeriod ?? "7d";
+  const initialProviderSet = useRef(false);
+  const period: ChartPeriod = RANK_PERIODS.find((p) => p.id === periodId)?.apiPeriod ?? "1d";
   const { data: providers = [] } = useWatchProviders("US", { limit: PROVIDERS_LIMIT });
   const rowRefsMap = useRef<Record<number, HTMLDivElement | null>>({});
+
+  // Default selected provider to Netflix once providers load
+  useEffect(() => {
+    if (providers.length === 0 || initialProviderSet.current) return;
+    const netflix = providers.find(
+      (p) => p.provider_id === NETFLIX_PROVIDER_ID || p.provider_name.toLowerCase().includes("netflix")
+    );
+    if (netflix) {
+      setFocusedProviderId(netflix.provider_id);
+      initialProviderSet.current = true;
+    }
+  }, [providers]);
+
   const setRowRef = (providerId: number) => (el: HTMLDivElement | null) => {
     rowRefsMap.current[providerId] = el;
   };

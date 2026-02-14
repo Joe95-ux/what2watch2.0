@@ -52,7 +52,7 @@ export function useJustWatchChart(
   options?: { country?: string; period?: ChartPeriod; limit?: number }
 ) {
   const country = options?.country ?? "US";
-  const period = options?.period ?? "7d";
+  const period = options?.period ?? "1d";
   const limit = options?.limit ?? 15;
 
   return useQuery({

@@ -4,7 +4,7 @@ import { discoverMovies, discoverTV } from "@/lib/tmdb";
 import type { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 
 const DEFAULT_COUNTRY = "US";
-const DEFAULT_PERIOD = "7d";
+const DEFAULT_PERIOD = "1d"; // 24h default
 const MAX_LIMIT = 30;
 const DEFAULT_LIMIT = 20;
 
@@ -13,7 +13,8 @@ type Period = "1d" | "7d" | "30d";
 export interface ChartEntryResponse {
   item: TMDBMovie | TMDBSeries;
   type: "movie" | "tv";
-  position: number;
+  /** JustWatch chart rank when available; null when not on chart. Display as-is (no forcing 1,2,3). */
+  position: number | null;
   /** JustWatch streaming chart rank for the chosen period (same as on details page). */
   rank: number | null;
   /** JustWatch rank change: positive = moved up, negative = moved down. */
@@ -21,9 +22,15 @@ export interface ChartEntryResponse {
 }
 
 /**
- * GET /api/justwatch/charts?country=US&providerId=8&period=7d&limit=15
- * Returns chart entries for a provider: TMDB "popular on this provider" enriched with
- * JustWatch streaming chart rank and delta (1d/7d/30d) from the same API used on the details page.
+ * GET /api/justwatch/charts?country=US&providerId=8&period=1d|7d|30d&limit=20
+ *
+ * HOW RANK IS CALCULATED:
+ * 1. We get a list of titles "popular on this provider" from TMDB (discover with watch_provider + region),
+ *    and keep that TMDB popularity order (no re-sorting).
+ * 2. For each title we call JustWatch getJustWatchAvailability(), which returns that title's
+ *    global streaming chart rank (and delta) for the chosen period (1d/7d/30d).
+ * 3. We show that JustWatch rank as-is on each card (position = rank). No forcing 1, 2, 3 so users
+ *    don't interpret it as "provider chart rank"; when a title has no chart rank we pass null.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -99,24 +106,14 @@ export async function GET(request: NextRequest) {
         return {
           item,
           type,
-          position: 0, // set after sort
+          position: rank, // JustWatch chart rank as-is (no forcing 1,2,3); null when not on chart
           rank,
           delta,
         };
       })
     );
 
-    // 3. Sort by JustWatch chart rank (ascending): best rank first, unranked last
-    entries.sort((a, b) => {
-      const ar = a.rank ?? Infinity;
-      const br = b.rank ?? Infinity;
-      return ar - br;
-    });
-
-    // Position = row order (1, 2, 3...) so the first card is #1, second #2, etc.
-    entries.forEach((e, i) => {
-      e.position = i + 1;
-    });
+    // Keep TMDB popularity order; do not re-sort by JustWatch rank (position = actual JW rank per card)
 
     return NextResponse.json(
       { entries, country: watchRegion, period },
