@@ -125,18 +125,28 @@ export default function ActionButtonsSection({ item, type, watchAvailability }: 
 
   const isFavoriteLoading = toggleFavorite.isLoading;
 
+  const primaryLabel =
+    isMobile && primaryOffer?.deepLinkUrl
+      ? "Open in app"
+      : primaryOffer
+        ? `WATCH ON ${primaryOffer.providerName.toUpperCase()}`
+        : "";
+  const primaryLabelDisplay = isMobile && primaryLabel
+    ? primaryLabel.split(/\s+/).slice(0, 3).join(" ")
+    : primaryLabel;
+
   return (
-    <div className="max-w-[1216px] mx-auto px-4 sm:px-0 py-4 border-b">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 border-b">
+      <div className="flex flex-wrap items-center justify-start gap-4">
         {/* Primary streaming provider - left on desktop, top on mobile */}
         {primaryOffer && (
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 min-w-0">
             <a
               href={isMobile && primaryOffer.deepLinkUrl ? (primaryOffer.deepLinkUrl ?? primaryOffer.standardWebUrl ?? "#") : (primaryOffer.standardWebUrl ?? primaryOffer.deepLinkUrl ?? "#")}
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
-                "inline-flex items-stretch h-10 overflow-hidden rounded-lg bg-transparent hover:bg-muted/30 transition-colors cursor-pointer",
+                "inline-flex items-stretch h-10 overflow-hidden rounded-lg bg-transparent hover:bg-muted/30 transition-colors cursor-pointer max-w-full",
                 "border border-[rgba(0,0,0,0.2)] dark:border-[rgba(255,255,255,0.1)]"
               )}
             >
@@ -150,21 +160,21 @@ export default function ActionButtonsSection({ item, type, watchAvailability }: 
                     className="object-contain rounded-l-[7px] w-10 h-10 block flex-shrink-0"
                     unoptimized
                   />
-                  <span className="pl-3 pr-4 flex items-center text-[15px] font-medium">
-                    {isMobile && primaryOffer.deepLinkUrl ? "Open in app" : `WATCH ON ${primaryOffer.providerName.toUpperCase()}`}
+                  <span className="pl-3 pr-4 flex items-center text-[15px] font-medium truncate">
+                    {primaryLabelDisplay}
                   </span>
                 </>
               ) : (
-                <span className="px-4 flex items-center text-[15px] font-medium">
-                  {isMobile && primaryOffer.deepLinkUrl ? "Open in app" : `WATCH ON ${primaryOffer.providerName.toUpperCase()}`}
+                <span className="px-4 flex items-center text-[15px] font-medium truncate">
+                  {primaryLabelDisplay}
                 </span>
               )}
             </a>
           </div>
         )}
 
-        {/* Action buttons - right on desktop (ml-auto), below on mobile; scrollable when narrow, scrollbar hidden */}
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-shrink-0 min-w-0 sm:ml-auto">
+        {/* Action buttons - right on desktop (ml-auto when space), scrollable when narrow */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-shrink-0 min-w-0 md:ml-auto">
           {/* Favorite Button */}
           <Button
           variant="outline"
