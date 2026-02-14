@@ -310,6 +310,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
                 tvShow={item as TMDBSeries}
                 tvShowDetails={tvDetails || null}
                 trailer={trailer}
+                watchAvailability={watchAvailability}
               />
             )}
             {/* More Like This */}

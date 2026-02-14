@@ -61,22 +61,29 @@ interface TVShowDetails {
   imdb_id?: string | null;
 }
 
-const MODAL_WATCH_SECTIONS: Array<{ key: keyof JustWatchAvailabilityResponse["offersByType"]; title: string; ctaLabel: string }> = [
-  { key: "flatrate", title: "Streaming", ctaLabel: "Watch Now" },
-  { key: "ads", title: "With Ads", ctaLabel: "Watch Free" },
-  { key: "free", title: "Free to Watch", ctaLabel: "Start Watching" },
-  { key: "cinema", title: "In theaters", ctaLabel: "Find showtimes" },
-  { key: "rent", title: "Rent", ctaLabel: "Rent" },
-  { key: "buy", title: "Buy", ctaLabel: "Buy" },
+const MODAL_WATCH_SECTIONS: Array<{
+  key: keyof JustWatchAvailabilityResponse["offersByType"];
+  title: string;
+  description: string;
+  ctaLabel: string;
+}> = [
+  { key: "flatrate", title: "Streaming", description: "Included with subscription", ctaLabel: "Watch Now" },
+  { key: "ads", title: "With Ads", description: "Free with ads", ctaLabel: "Watch Free" },
+  { key: "free", title: "Free to Watch", description: "Completely free sources", ctaLabel: "Start Watching" },
+  { key: "cinema", title: "In theaters", description: "Watch in cinema", ctaLabel: "Find showtimes" },
+  { key: "rent", title: "Rent", description: "Pay once, limited time access", ctaLabel: "Rent" },
+  { key: "buy", title: "Buy", description: "Purchase to own", ctaLabel: "Buy" },
 ];
 
 function EpisodeModalWhereToWatch({
   seasonNumber,
   availability,
+  fallbackAvailability,
   isLoading,
 }: {
   seasonNumber: number;
   availability: JustWatchAvailabilityResponse | null;
+  fallbackAvailability?: JustWatchAvailabilityResponse | null;
   isLoading: boolean;
 }) {
   if (isLoading) {
@@ -86,14 +93,16 @@ function EpisodeModalWhereToWatch({
       </div>
     );
   }
-  if (!availability) {
+  const data = availability ?? fallbackAvailability ?? null;
+  if (!data) {
     return (
       <div className="py-8 text-center text-sm text-muted-foreground">
         No availability data for Season {seasonNumber} right now.
       </div>
     );
   }
-  const hasOffers = (availability.allOffers?.length ?? 0) > 0;
+  const hasOffers = (data.allOffers?.length ?? 0) > 0;
+  const isFallback = !availability && fallbackAvailability;
   if (!hasOffers) {
     return (
       <div className="py-8 text-center text-sm text-muted-foreground">
@@ -103,14 +112,21 @@ function EpisodeModalWhereToWatch({
   }
   return (
     <div className="space-y-6 pb-6">
-      <h4 className="text-lg font-semibold">Season {seasonNumber}</h4>
+      {isFallback ? (
+        <p className="text-sm text-muted-foreground">
+          Showing availability for the series.
+        </p>
+      ) : (
+        <h4 className="text-lg font-semibold">Season {seasonNumber}</h4>
+      )}
       {MODAL_WATCH_SECTIONS.map((section) => {
-        const offers = availability.offersByType[section.key] || [];
+        const offers = data.offersByType[section.key] || [];
         if (!offers.length) return null;
         return (
           <div key={section.key} className="space-y-2">
-            <h5 className="text-sm font-medium text-muted-foreground">{section.title}</h5>
-            <div className="divide-y divide-border rounded-lg border border-border bg-card/30">
+            <h5 className="text-xl font-semibold">{section.title}</h5>
+            <p className="text-sm text-muted-foreground">{section.description}</p>
+            <div className="divide-y divide-border rounded-2xl border border-border bg-card/30">
               {offers.map((offer) => (
                 <ModalOfferRow key={`${offer.providerId}-${offer.monetizationType}`} offer={offer} ctaLabel={section.ctaLabel} />
               ))}
@@ -159,6 +175,8 @@ interface EpisodeDetailModalProps {
   tvShow: TMDBSeries;
   tvShowDetails: TVShowDetails | null;
   trailer: TMDBVideo | null;
+  /** Show-level availability; used when season API returns no data so modal still shows something. */
+  fallbackAvailability?: JustWatchAvailabilityResponse | null;
 }
 
 export default function EpisodeDetailModal({
@@ -168,6 +186,7 @@ export default function EpisodeDetailModal({
   tvShow,
   tvShowDetails,
   trailer,
+  fallbackAvailability,
 }: EpisodeDetailModalProps) {
   const router = useRouter();
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
@@ -384,6 +403,7 @@ export default function EpisodeDetailModal({
               <EpisodeModalWhereToWatch
                 seasonNumber={episode.season_number}
                 availability={seasonAvailability}
+                fallbackAvailability={fallbackAvailability}
                 isLoading={isLoadingSeasonAvailability}
               />
             </TabsContent>

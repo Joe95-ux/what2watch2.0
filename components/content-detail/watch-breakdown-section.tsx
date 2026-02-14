@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { getCountryFlagEmoji } from "@/hooks/use-watch-regions";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ChevronsUpDown, Check, ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronsUpDown, Check, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface WatchBreakdownSectionProps {
@@ -320,73 +320,51 @@ export default function WatchBreakdownSection({
         </div>
       )}
 
-      {/* Season-specific availability (TV): header row (Streaming + dropdown) then content */}
-      {seasons.length > 0 && onSeasonChange != null && seasonNumber != null && (
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h3 className="text-xl font-semibold">{sections[0].title}</h3>
-              <p className="text-sm text-muted-foreground">{sections[0].description}</p>
-            </div>
-            <SeasonSelect
-              seasons={seasons}
-              value={seasonNumber}
-              onValueChange={onSeasonChange}
-            />
-          </div>
-          {seasonAvailability ? (
-            (() => {
-              const sectionsWithOffers = sections.filter((s) => (seasonAvailability.offersByType[s.key] || []).length > 0);
-              if (sectionsWithOffers.length === 0) {
-                return (
-                  <div className="py-6 text-center text-sm text-muted-foreground rounded-2xl border border-border bg-card/30">
-                    No offers for this season.
-                  </div>
-                );
-              }
-              return (
-                <div className="space-y-4">
-                  {sectionsWithOffers.map((section) => {
-                    const offers = seasonAvailability.offersByType[section.key] || [];
-                    return (
-                      <div key={`season-${section.key}`} className="space-y-2">
-                        <h4 className="text-sm font-medium text-muted-foreground">{section.title}</h4>
-                        <div className="divide-y divide-border rounded-2xl border border-border bg-card/30">
-                          {offers.map((offer) => (
-                            <OfferRow key={`${offer.providerId}-${offer.monetizationType}`} offer={offer} ctaLabel={section.ctaLabel} />
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()
-          ) : (
-            <div className="py-6 text-center text-sm text-muted-foreground rounded-2xl border border-border bg-card/30">
-              Loading availability…
-            </div>
-          )}
-        </div>
-      )}
+      {/* Single availability list: for TV use season data when available, else show-level; season dropdown only when multiple seasons */}
+      {(() => {
+        const dataSource =
+          seasonAvailability != null && seasonNumber != null ? seasonAvailability : availability;
+        const showSeasonDropdown =
+          seasons.length > 1 && onSeasonChange != null && seasonNumber != null;
 
-      {sections.map((section) => {
-        const offers = availability.offersByType[section.key] || [];
-        if (!offers.length) return null;
-        return (
-          <div key={section.key} className="space-y-3">
-            <div>
-              <h3 className="text-xl font-semibold">{section.title}</h3>
-              <p className="text-sm text-muted-foreground">{section.description}</p>
+        return sections.map((section, idx) => {
+          const offers = dataSource.offersByType[section.key] || [];
+          if (!offers.length) return null;
+          const isFirst = idx === 0;
+          return (
+            <div key={section.key} className="space-y-3">
+              <div
+                className={
+                  isFirst && showSeasonDropdown
+                    ? "flex flex-wrap items-start justify-between gap-4"
+                    : undefined
+                }
+              >
+                <div>
+                  <h3 className="text-xl font-semibold">{section.title}</h3>
+                  <p className="text-sm text-muted-foreground">{section.description}</p>
+                </div>
+                {isFirst && showSeasonDropdown && (
+                  <SeasonSelect
+                    seasons={seasons}
+                    value={seasonNumber}
+                    onValueChange={onSeasonChange}
+                  />
+                )}
+              </div>
+              <div className="divide-y divide-border rounded-2xl border border-border bg-card/30">
+                {offers.map((offer) => (
+                  <OfferRow
+                    key={`${offer.providerId}-${offer.monetizationType}`}
+                    offer={offer}
+                    ctaLabel={section.ctaLabel}
+                  />
+                ))}
+              </div>
             </div>
-            <div className="divide-y divide-border rounded-2xl border border-border bg-card/30">
-              {offers.map((offer) => (
-                <OfferRow key={`${offer.providerId}-${offer.monetizationType}`} offer={offer} ctaLabel={section.ctaLabel} />
-              ))}
-            </div>
-          </div>
-        );
-      })}
+          );
+        });
+      })()}
 
       <JustWatchCredit />
     </section>
@@ -437,7 +415,8 @@ function OfferRow({ offer, ctaLabel }: { offer: JustWatchOffer; ctaLabel: string
           asChild
           disabled={!offer.standardWebUrl && !offer.deepLinkUrl}
         >
-          <a href={href} target="_blank" rel="noopener noreferrer">
+          <a href={href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5">
+            {linkLabel === "Watch Now" && <Play className="h-4 w-4" />}
             {linkLabel}
           </a>
         </Button>

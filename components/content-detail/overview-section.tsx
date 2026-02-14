@@ -206,7 +206,7 @@ export default function OverviewSection({
                   variant="ghost"
                   size="sm"
                   onClick={() => setDetailsExpanded(true)}
-                  className="text-primary"
+                  className="text-primary cursor-pointer"
                 >
                   <ChevronDown className="h-4 w-4 mr-1" />
                   Show more
@@ -220,7 +220,7 @@ export default function OverviewSection({
                     variant="ghost"
                     size="sm"
                     onClick={() => setDetailsExpanded(false)}
-                    className="text-primary"
+                    className="text-primary cursor-pointer"
                   >
                     <ChevronUp className="h-4 w-4 mr-1" />
                     Show less
@@ -421,8 +421,8 @@ function OverviewDetailsRows({
     releaseDate && { label: type === "movie" ? "Release Date" : "First Air Date", value: releaseDate },
     lastAirDate && { label: "Last Air Date", value: lastAirDate },
     runtime && { label: type === "movie" ? "Runtime" : "Episode Runtime", value: runtime },
-    { label: "Country", value: country },
-    { label: "Language", value: language },
+    { label: "Production Country", value: country },
+    { label: "Original Language", value: language },
     { label: "Status", value: status },
     networks && { label: "Network", value: networks },
     productionCompanies && { label: "Production Companies", value: productionCompanies },

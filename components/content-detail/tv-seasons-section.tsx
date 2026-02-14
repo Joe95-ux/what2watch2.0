@@ -14,6 +14,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import EpisodeDetailModal from "./episode-detail-modal";
+import type { JustWatchAvailabilityResponse } from "@/lib/justwatch";
 
 interface TVSeasonsSectionProps {
   seasons: Array<{
@@ -75,6 +76,8 @@ interface TVSeasonsSectionProps {
     imdb_id?: string | null;
   } | null;
   trailer?: TMDBVideo | null;
+  /** Show-level availability; used as fallback in episode modal when season API has no data. */
+  watchAvailability?: JustWatchAvailabilityResponse | null;
 }
 
 export default function TVSeasonsSection({
@@ -86,6 +89,7 @@ export default function TVSeasonsSection({
   tvShow,
   tvShowDetails,
   trailer,
+  watchAvailability,
 }: TVSeasonsSectionProps) {
   const [selectedEpisode, setSelectedEpisode] = useState<{
     id: number;
@@ -158,13 +162,16 @@ export default function TVSeasonsSection({
                 <button
                   onClick={(e) => handleSeasonSelect(e, season.season_number)}
                   className={cn(
-                    "px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap cursor-pointer h-[42px]",
+                    "relative px-2 py-4 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer",
                     selectedSeason === season.season_number
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted hover:bg-muted/80"
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   {season.name || `Season ${season.season_number}`}
+                  {selectedSeason === season.season_number && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                  )}
                 </button>
               </CarouselItem>
             ))}
@@ -297,6 +304,7 @@ export default function TVSeasonsSection({
           tvShow={tvShow}
           tvShowDetails={tvShowDetails || null}
           trailer={trailer || null}
+          fallbackAvailability={watchAvailability}
         />
       )}
     </section>
