@@ -175,6 +175,7 @@ function ProviderRow({
 
 export function RankChartsTab() {
   const [periodId, setPeriodId] = useState<RankPeriodId>("7d");
+  const [focusedProviderId, setFocusedProviderId] = useState<number | null>(null);
   const period: ChartPeriod = RANK_PERIODS.find((p) => p.id === periodId)?.apiPeriod ?? "7d";
   const { data: providers = [] } = useWatchProviders("US", { limit: PROVIDERS_LIMIT });
   const rowRefsMap = useRef<Record<number, HTMLDivElement | null>>({});
