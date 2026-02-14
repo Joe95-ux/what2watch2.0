@@ -392,7 +392,6 @@ function OverviewDetailsRows({
   const runtime = type === "movie"
     ? (details?.runtime ? formatRuntime(details.runtime) : null)
     : (details?.episode_run_time?.[0] ? formatRuntime(details.episode_run_time[0]) : null);
-  const country = details?.production_countries?.[0]?.name || "N/A";
   const language =
     details?.spoken_languages?.[0]?.english_name ||
     details?.spoken_languages?.[0]?.name ||
@@ -424,7 +423,6 @@ function OverviewDetailsRows({
     releaseDate && { label: type === "movie" ? "Release Date" : "First Air Date", value: releaseDate },
     lastAirDate && { label: "Last Air Date", value: lastAirDate },
     runtime && { label: type === "movie" ? "Runtime" : "Episode Runtime", value: runtime },
-    { label: "Production Country", value: country },
     { label: "Original Language", value: language },
     { label: "Status", value: status },
     networks && { label: "Network", value: networks },

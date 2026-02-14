@@ -257,24 +257,11 @@ export async function getJustWatchAvailability(
   }
 }
 
-/** Season-level offers response (episode offers aggregated). */
-interface JustWatchSeasonOffersApiResponse {
-  episodes?: Array<{
-    episode_number?: number;
-    offers?: Array<{
-      monetization_type?: JustWatchMonetization;
-      provider_id?: number;
-      presentation_type?: string;
-      retail_price?: number;
-      currency?: string;
-      urls?: { standard_web?: string; deeplink?: string };
-    }>;
-  }>;
-}
-
 /**
- * Fetch Where to Watch for a specific TV season (offers aggregated across episodes).
- * @see https://apis.justwatch.com/docs/api/
+ * Fetch Where to Watch for a specific TV season.
+ * Uses the season dropdown value (season number); see JustWatch API:
+ * https://apis.justwatch.com/docs/api/
+ * Route: GET /offers/object_type/show/id_type/tmdb/season_number/{season_number}/locale/{locale}?id={showId}
  */
 export async function getJustWatchSeasonAvailability(
   showTmdbId: number,
@@ -286,44 +273,21 @@ export async function getJustWatchSeasonAvailability(
     const token = getToken();
     if (!token) return null;
 
-    const path = `/shows/tmdb/${showTmdbId}/season/${seasonNumber}/locale/${locale}`;
+    const path = `/offers/object_type/show/id_type/tmdb/season_number/${seasonNumber}/locale/${locale}`;
     const [rawData, providersData] = await Promise.all([
-      fetchFromJustWatch(path),
+      fetchFromJustWatch(path, { id: String(showTmdbId) }),
       fetchFromJustWatch(`/providers/all/locale/${locale}`),
     ]);
 
-    const seasonData = rawData as JustWatchSeasonOffersApiResponse;
+    const seasonData = rawData as JustWatchOffersApiResponse;
+    const offers = seasonData?.offers ?? [];
     const providerMap = new Map<number, JustWatchProviderResponse>();
     (providersData as JustWatchProviderResponse[]).forEach((p) => providerMap.set(p.id, p));
 
-    const allRawOffers: Array<{
-      monetization_type: JustWatchMonetization;
-      provider_id: number;
-      presentation_type?: string;
-      retail_price?: number;
-      currency?: string;
-      urls?: { standard_web?: string; deeplink?: string };
-    }> = [];
-    for (const ep of seasonData?.episodes ?? []) {
-      for (const o of ep?.offers ?? []) {
-        if (o?.provider_id != null) allRawOffers.push({
-          monetization_type: o.monetization_type ?? "other",
-          provider_id: o.provider_id,
-          presentation_type: o.presentation_type,
-          retail_price: o.retail_price,
-          currency: o.currency,
-          urls: o.urls,
-        });
-      }
-    }
-
-    const seen = new Set<string>();
-    const normalized: JustWatchOffer[] = [];
     const grouped = emptyGroupedOffers();
-    for (const offer of allRawOffers) {
-      const key = `${offer.provider_id}-${offer.monetization_type}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
+    const normalized: JustWatchOffer[] = [];
+
+    for (const offer of offers) {
       const provider = providerMap.get(offer.provider_id);
       const no: JustWatchOffer = {
         providerId: offer.provider_id,
@@ -351,6 +315,7 @@ export async function getJustWatchSeasonAvailability(
       lastSyncedAt: null,
       offersByType: grouped,
       allOffers: normalized,
+      fullPath: seasonData?.full_path ?? null,
       credits: {
         text: "Data powered by JustWatch",
         logoUrl: "https://widget.justwatch.com/assets/JW_logo_color_10px.svg",
