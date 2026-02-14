@@ -36,8 +36,10 @@ interface WatchBreakdownSectionProps {
   watchCountry?: string;
   onWatchCountryChange?: (code: string) => void;
   justwatchCountries?: JustWatchCountry[];
-  /** When set (TV), show "Availability for Season X" with this data. */
+  /** When set (TV), show season-specific availability. */
   seasonAvailability?: JustWatchAvailabilityResponse | null;
+  /** For TV: whether season availability is currently loading (so dropdown change shows feedback). */
+  isLoadingSeason?: boolean;
   seasonNumber?: number;
   /** For TV: list of seasons for the season dropdown (right of region). */
   seasons?: Array<{ season_number: number; name: string }>;
@@ -174,6 +176,7 @@ export default function WatchBreakdownSection({
   onWatchCountryChange,
   justwatchCountries = [],
   seasonAvailability,
+  isLoadingSeason = false,
   seasonNumber,
   seasons = [],
   onSeasonChange,
@@ -303,9 +306,9 @@ export default function WatchBreakdownSection({
         </div>
       </div>
 
-      {/* Cheapest to watch callout */}
+      {/* Cheapest to watch callout - border matches rank accent (#F5C518) for visibility */}
       {cheapestOffer && cheapestPrice && (
-        <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
+        <div className="rounded-xl border border-[#F5C518]/50 px-4 py-3">
           <p className="text-sm font-medium text-foreground">
             Cheapest to watch: {cheapestOffer.monetizationType === "rent" ? "Rent" : "Buy"} on {cheapestOffer.providerName} — {cheapestPrice}
           </p>
@@ -326,44 +329,58 @@ export default function WatchBreakdownSection({
           seasonAvailability != null && seasonNumber != null ? seasonAvailability : availability;
         const showSeasonDropdown =
           seasons.length > 1 && onSeasonChange != null && seasonNumber != null;
+        const isUsingSeriesFallback =
+          showSeasonDropdown && seasonNumber != null && seasonAvailability == null && !isLoadingSeason;
 
-        return sections.map((section, idx) => {
-          const offers = dataSource.offersByType[section.key] || [];
-          if (!offers.length) return null;
-          const isFirst = idx === 0;
-          return (
-            <div key={section.key} className="space-y-3">
-              <div
-                className={
-                  isFirst && showSeasonDropdown
-                    ? "flex flex-wrap items-start justify-between gap-4"
-                    : undefined
-                }
-              >
-                <div>
-                  <h3 className="text-xl font-semibold">{section.title}</h3>
-                  <p className="text-sm text-muted-foreground">{section.description}</p>
+        return (
+          <>
+            {isUsingSeriesFallback && (
+              <p className="text-sm text-muted-foreground mb-2">
+                Season {seasonNumber} availability not available; showing series availability.
+              </p>
+            )}
+            {sections.map((section, idx) => {
+              const offers = dataSource.offersByType[section.key] || [];
+              if (!offers.length) return null;
+              const isFirst = idx === 0;
+              return (
+                <div key={section.key} className="space-y-3">
+                  <div
+                    className={
+                      isFirst && showSeasonDropdown
+                        ? "flex flex-wrap items-start justify-between gap-4"
+                        : undefined
+                    }
+                  >
+                    <div>
+                      <h3 className="text-xl font-semibold">{section.title}</h3>
+                      <p className="text-sm text-muted-foreground">{section.description}</p>
+                    </div>
+                    {isFirst && showSeasonDropdown && (
+                      <SeasonSelect
+                        seasons={seasons}
+                        value={seasonNumber}
+                        onValueChange={onSeasonChange}
+                      />
+                    )}
+                  </div>
+                  <div className="divide-y divide-border rounded-2xl border border-border bg-card/30">
+                    {offers.map((offer) => (
+                      <OfferRow
+                        key={`${offer.providerId}-${offer.monetizationType}`}
+                        offer={offer}
+                        ctaLabel={section.ctaLabel}
+                      />
+                    ))}
+                  </div>
                 </div>
-                {isFirst && showSeasonDropdown && (
-                  <SeasonSelect
-                    seasons={seasons}
-                    value={seasonNumber}
-                    onValueChange={onSeasonChange}
-                  />
-                )}
-              </div>
-              <div className="divide-y divide-border rounded-2xl border border-border bg-card/30">
-                {offers.map((offer) => (
-                  <OfferRow
-                    key={`${offer.providerId}-${offer.monetizationType}`}
-                    offer={offer}
-                    ctaLabel={section.ctaLabel}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        });
+              );
+            })}
+            {showSeasonDropdown && isLoadingSeason && (
+              <p className="text-sm text-muted-foreground mt-2">Loading season availability…</p>
+            )}
+          </>
+        );
       })()}
 
       <JustWatchCredit />

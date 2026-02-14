@@ -170,7 +170,7 @@ export default function OverviewSection({
               value={topCast.length > 0 ? topCast.map((c) => c.name).join(", ") : "N/A"}
               cast={topCast}
             />
-            <OverviewInfoRow label="Country" value={countries} />
+            <OverviewInfoRow label="Production Country" value={countries} />
             <div className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
               <span className="text-muted-foreground">Ratings</span>
               <RatingsRow
@@ -393,7 +393,10 @@ function OverviewDetailsRows({
     ? (details?.runtime ? formatRuntime(details.runtime) : null)
     : (details?.episode_run_time?.[0] ? formatRuntime(details.episode_run_time[0]) : null);
   const country = details?.production_countries?.[0]?.name || "N/A";
-  const language = details?.spoken_languages?.[0]?.english_name || "N/A";
+  const language =
+    details?.spoken_languages?.[0]?.english_name ||
+    details?.spoken_languages?.[0]?.name ||
+    "N/A";
   const status = details?.status || "N/A";
   const budget = type === "movie" && details?.budget ? `$${(details.budget / 1000000).toFixed(1)}M` : null;
   const revenue =

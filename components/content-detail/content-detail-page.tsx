@@ -85,7 +85,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
     data: watchAvailability,
     isLoading: isLoadingWatchAvailability,
   } = useWatchProviders(type, item.id, watchCountry);
-  const { data: seasonAvailability } = useSeasonWatchProviders(
+  const { data: seasonAvailability, isLoading: isLoadingSeasonAvailability } = useSeasonWatchProviders(
     type === "tv" ? item.id : null,
     type === "tv" ? selectedSeason : null,
     watchCountry
@@ -204,16 +204,10 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
           </div>
         </div>
 
-        {/* Content Sections Skeleton */}
+        {/* Content Sections Skeleton - matches Overview: Storyline + Movie/TV Details table + sidebar */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-            <div className="lg:col-span-7 space-y-6">
-              {/* Genres Skeleton */}
-              <div className="flex gap-2">
-                <Skeleton className="h-8 w-20 rounded-full" />
-                <Skeleton className="h-8 w-24 rounded-full" />
-                <Skeleton className="h-8 w-28 rounded-full" />
-              </div>
+            <div className="lg:col-span-8 space-y-6">
               {/* Storyline Skeleton */}
               <div>
                 <Skeleton className="h-7 w-32 mb-4" />
@@ -222,35 +216,24 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
                 <Skeleton className="h-4 w-3/4 mb-2" />
                 <Skeleton className="h-4 w-1/2" />
               </div>
-              {/* Info Card Skeleton */}
-              <div className="rounded-2xl border border-border bg-card/50 divide-y divide-border">
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-14 w-full" />
-              </div>
-              {/* Details Grid Skeleton */}
+              {/* Movie/TV Details title + table (divide-y, no card) */}
               <div>
-                <Skeleton className="h-7 w-32 mb-6" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i}>
-                      <Skeleton className="h-4 w-24 mb-1" />
-                      <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-7 w-40 mb-4" />
+                <div className="divide-y divide-border">
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <div key={i} className="flex items-center justify-between gap-4 px-4 py-3">
+                      <Skeleton className="h-4 w-28" />
+                      <Skeleton className="h-4 w-36" />
                     </div>
                   ))}
                 </div>
-              </div>
-            </div>
-            <div className="lg:col-span-5 space-y-4">
-              {/* Watch Providers Skeleton */}
-              <div>
-                <Skeleton className="h-7 w-40 mb-6" />
-                <div className="space-y-4">
-                  <Skeleton className="h-24 w-full rounded-lg" />
-                  <Skeleton className="h-24 w-full rounded-lg" />
+                <div className="px-4 py-3">
+                  <Skeleton className="h-8 w-24" />
                 </div>
               </div>
+            </div>
+            <div className="lg:col-span-4">
+              <Skeleton className="min-h-[420px] w-full rounded-2xl" />
             </div>
           </div>
         </div>
@@ -335,6 +318,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
             onWatchCountryChange={setWatchCountry}
             justwatchCountries={justwatchCountries}
             seasonAvailability={type === "tv" ? seasonAvailability ?? undefined : undefined}
+            isLoadingSeason={type === "tv" ? isLoadingSeasonAvailability : undefined}
             seasonNumber={type === "tv" ? selectedSeason ?? undefined : undefined}
             seasons={type === "tv" ? seasonsData?.seasons ?? [] : []}
             onSeasonChange={type === "tv" ? setSelectedSeason : undefined}
