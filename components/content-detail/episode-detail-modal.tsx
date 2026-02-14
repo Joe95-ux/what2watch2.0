@@ -13,12 +13,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import TrailerModal from "@/components/browse/trailer-modal";
 import { format } from "date-fns";
 import { createPersonSlug } from "@/lib/person-utils";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
+import { useSeasonWatchProviders } from "@/hooks/use-content-details";
 import { toast } from "sonner";
+import type { JustWatchAvailabilityResponse, JustWatchOffer } from "@/lib/justwatch";
 
 interface Episode {
   id: number;
@@ -56,6 +59,89 @@ interface TVShowDetails {
     imdb_id?: string | null;
   };
   imdb_id?: string | null;
+}
+
+const MODAL_WATCH_SECTIONS: Array<{ key: keyof JustWatchAvailabilityResponse["offersByType"]; title: string; ctaLabel: string }> = [
+  { key: "flatrate", title: "Streaming", ctaLabel: "Watch Now" },
+  { key: "ads", title: "With Ads", ctaLabel: "Watch Free" },
+  { key: "free", title: "Free to Watch", ctaLabel: "Start Watching" },
+  { key: "cinema", title: "In theaters", ctaLabel: "Find showtimes" },
+  { key: "rent", title: "Rent", ctaLabel: "Rent" },
+  { key: "buy", title: "Buy", ctaLabel: "Buy" },
+];
+
+function EpisodeModalWhereToWatch({
+  seasonNumber,
+  availability,
+  isLoading,
+}: {
+  seasonNumber: number;
+  availability: JustWatchAvailabilityResponse | null;
+  isLoading: boolean;
+}) {
+  if (isLoading) {
+    return (
+      <div className="py-8 text-center text-sm text-muted-foreground">
+        Loading availability for Season {seasonNumber}…
+      </div>
+    );
+  }
+  if (!availability || !availability.allOffers?.length) {
+    return (
+      <div className="py-8 text-center text-sm text-muted-foreground">
+        No availability data for Season {seasonNumber} right now.
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-6 pb-6">
+      <h4 className="text-lg font-semibold">Season {seasonNumber}</h4>
+      {MODAL_WATCH_SECTIONS.map((section) => {
+        const offers = availability.offersByType[section.key] || [];
+        if (!offers.length) return null;
+        return (
+          <div key={section.key} className="space-y-2">
+            <h5 className="text-sm font-medium text-muted-foreground">{section.title}</h5>
+            <div className="divide-y divide-border rounded-lg border border-border bg-card/30">
+              {offers.map((offer) => (
+                <ModalOfferRow key={`${offer.providerId}-${offer.monetizationType}`} offer={offer} ctaLabel={section.ctaLabel} />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ModalOfferRow({ offer, ctaLabel }: { offer: JustWatchOffer; ctaLabel: string }) {
+  const displayPrice =
+    offer.retailPrice && offer.currency
+      ? new Intl.NumberFormat(undefined, { style: "currency", currency: offer.currency, maximumFractionDigits: 2 }).format(offer.retailPrice)
+      : null;
+  const href = offer.standardWebUrl ?? offer.deepLinkUrl ?? "#";
+  return (
+    <div className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <div className="flex items-center gap-2 min-w-0">
+        {offer.iconUrl ? (
+          <Image src={offer.iconUrl} alt={offer.providerName} width={24} height={24} className="rounded flex-shrink-0" unoptimized />
+        ) : (
+          <span className="text-xs font-medium text-muted-foreground w-6 h-6 flex items-center justify-center rounded bg-muted flex-shrink-0">
+            {offer.providerName[0]}
+          </span>
+        )}
+        <span className="font-medium truncate text-sm">{offer.providerName}</span>
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        {displayPrice ? <span className="text-sm text-muted-foreground">{displayPrice}</span> : <span className="text-sm text-muted-foreground">Included</span>}
+        <Button size="sm" variant="outline" asChild disabled={!href || href === "#"}>
+          <a href={href} target="_blank" rel="noopener noreferrer" className="text-sm">
+            {ctaLabel}
+          </a>
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 interface EpisodeDetailModalProps {
@@ -280,7 +366,16 @@ export default function EpisodeDetailModal({
                 </div>
               </div>
             </div>
-          </div>
+            </TabsContent>
+
+            <TabsContent value="watch" className="flex-1 overflow-y-auto scrollbar-thin mt-0">
+              <EpisodeModalWhereToWatch
+                seasonNumber={episode.season_number}
+                availability={seasonAvailability}
+                isLoading={isLoadingSeasonAvailability}
+              />
+            </TabsContent>
+          </Tabs>
 
           {/* Footer: Watch Trailer and Add to Watchlist */}
           <div className="border-t px-6 py-4 flex items-center justify-center gap-3 overflow-x-auto">

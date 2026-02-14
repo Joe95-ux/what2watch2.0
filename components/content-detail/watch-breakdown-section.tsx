@@ -18,6 +18,13 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { getCountryFlagEmoji } from "@/hooks/use-watch-regions";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ChevronsUpDown, Check, ChevronUp, ChevronDown } from "lucide-react";
@@ -32,6 +39,10 @@ interface WatchBreakdownSectionProps {
   /** When set (TV), show "Availability for Season X" with this data. */
   seasonAvailability?: JustWatchAvailabilityResponse | null;
   seasonNumber?: number;
+  /** For TV: list of seasons for the season dropdown (right of region). */
+  seasons?: Array<{ season_number: number; name: string }>;
+  /** For TV: called when user selects a season in the dropdown. */
+  onSeasonChange?: (seasonNumber: number) => void;
 }
 
 const sections: Array<{
@@ -40,13 +51,45 @@ const sections: Array<{
   description: string;
   ctaLabel: string;
 }> = [
-  { key: "flatrate", title: "Streaming", description: "Included with subscription", ctaLabel: "Open App" },
+  { key: "flatrate", title: "Streaming", description: "Included with subscription", ctaLabel: "Watch Now" },
   { key: "ads", title: "With Ads", description: "Free with ads", ctaLabel: "Watch Free" },
   { key: "free", title: "Free to Watch", description: "Completely free sources", ctaLabel: "Start Watching" },
   { key: "cinema", title: "In theaters", description: "Watch in cinema", ctaLabel: "Find showtimes" },
   { key: "rent", title: "Rent", description: "Pay once, limited time access", ctaLabel: "Rent" },
   { key: "buy", title: "Buy", description: "Purchase to own", ctaLabel: "Buy" },
 ];
+
+function SeasonSelect({
+  seasons,
+  value,
+  onValueChange,
+}: {
+  seasons: Array<{ season_number: number; name: string }>;
+  value: number;
+  onValueChange: (seasonNumber: number) => void;
+}) {
+  const regularSeasons = seasons.filter((s) => s.season_number >= 0);
+  return (
+    <div className="flex items-center gap-2">
+      <label className="text-sm text-muted-foreground whitespace-nowrap">Season</label>
+      <Select
+        value={String(value)}
+        onValueChange={(v) => onValueChange(Number(v))}
+      >
+        <SelectTrigger className="w-[230px] cursor-pointer">
+          <SelectValue placeholder="Season" />
+        </SelectTrigger>
+        <SelectContent>
+          {regularSeasons.map((s) => (
+            <SelectItem key={s.season_number} value={String(s.season_number)} className="cursor-pointer">
+              {s.season_number === 0 ? "Specials" : s.name || `Season ${s.season_number}`}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
 
 function CountryCombobox({
   countries,
@@ -77,7 +120,7 @@ function CountryCombobox({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-[180px] justify-between cursor-pointer"
+            className="w-[230px] justify-between cursor-pointer"
           >
             <span className="flex items-center gap-2 truncate">
               <span className="text-lg shrink-0">{getCountryFlagEmoji(value)}</span>
@@ -135,6 +178,8 @@ export default function WatchBreakdownSection({
   justwatchCountries = [],
   seasonAvailability,
   seasonNumber,
+  seasons = [],
+  onSeasonChange,
 }: WatchBreakdownSectionProps) {
   if (isLoading) {
     return (
@@ -159,7 +204,16 @@ export default function WatchBreakdownSection({
   const ranks = availability.ranks;
   const fullPath = availability.fullPath;
   const justwatchUrl = fullPath ? `https://www.justwatch.com${fullPath}` : null;
-  const primaryRank = ranks?.[rankWindow] ?? ranks?.["7d"] ?? ranks?.["30d"] ?? ranks?.["1d"];
+  const primaryRankRaw = ranks?.[rankWindow] ?? ranks?.["7d"] ?? ranks?.["30d"] ?? ranks?.["1d"];
+  const primaryRank =
+    primaryRankRaw != null &&
+    typeof primaryRankRaw.rank === "number" &&
+    Number.isFinite(primaryRankRaw.rank)
+      ? {
+          rank: primaryRankRaw.rank,
+          delta: typeof primaryRankRaw.delta === "number" && Number.isFinite(primaryRankRaw.delta) ? primaryRankRaw.delta : 0,
+        }
+      : null;
   const rankWindowLabels: Record<"1d" | "7d" | "30d", string> = { "1d": "24h", "7d": "7d", "30d": "30d" };
 
   const paidOffers = availability.allOffers.filter(
@@ -240,13 +294,22 @@ export default function WatchBreakdownSection({
               {availability.lastSyncedAt ? ` • Updated ${new Date(availability.lastSyncedAt).toLocaleDateString()}` : ""}
             </p>
           </div>
-          {justwatchCountries.length > 0 && onWatchCountryChange && (
-            <CountryCombobox
-              countries={justwatchCountries}
-              value={watchCountry}
-              onValueChange={onWatchCountryChange}
-            />
-          )}
+          <div className="flex flex-wrap items-center gap-3">
+            {justwatchCountries.length > 0 && onWatchCountryChange && (
+              <CountryCombobox
+                countries={justwatchCountries}
+                value={watchCountry}
+                onValueChange={onWatchCountryChange}
+              />
+            )}
+            {seasons.length > 0 && onSeasonChange != null && seasonNumber != null && (
+              <SeasonSelect
+                seasons={seasons}
+                value={seasonNumber}
+                onValueChange={onSeasonChange}
+              />
+            )}
+          </div>
         </div>
       </div>
 

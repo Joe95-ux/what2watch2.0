@@ -53,8 +53,16 @@ export function RatingsRow({
   };
 
   const primaryRankFromRanks = justwatchRanks?.[rankWindow] ?? justwatchRanks?.["7d"] ?? justwatchRanks?.["30d"] ?? justwatchRanks?.["1d"];
-  const displayRank = justwatchRanks ? primaryRankFromRanks?.rank ?? null : justwatchRank;
-  const displayRankDelta = justwatchRanks ? primaryRankFromRanks?.delta : undefined;
+  const rankNum =
+    primaryRankFromRanks != null && typeof primaryRankFromRanks.rank === "number" && Number.isFinite(primaryRankFromRanks.rank)
+      ? primaryRankFromRanks.rank
+      : null;
+  const displayRank = justwatchRanks ? rankNum : justwatchRank;
+  const deltaNum =
+    primaryRankFromRanks != null && typeof primaryRankFromRanks.delta === "number" && Number.isFinite(primaryRankFromRanks.delta)
+      ? primaryRankFromRanks.delta
+      : undefined;
+  const displayRankDelta = justwatchRanks ? deltaNum : undefined;
 
   const hasAny =
     displayRank != null ||

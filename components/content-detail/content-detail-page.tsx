@@ -335,6 +335,8 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
             justwatchCountries={justwatchCountries}
             seasonAvailability={type === "tv" ? seasonAvailability ?? undefined : undefined}
             seasonNumber={type === "tv" ? selectedSeason ?? undefined : undefined}
+            seasons={type === "tv" ? seasonsData?.seasons ?? [] : []}
+            onSeasonChange={type === "tv" ? setSelectedSeason : undefined}
           />
         )}
         {activeTab === "reviews" && (

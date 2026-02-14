@@ -3,15 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
-import { JustWatchAvailabilityResponse, JustWatchOffer } from "@/lib/justwatch";
-import type { JustWatchCountry } from "@/lib/justwatch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { JustWatchAvailabilityResponse } from "@/lib/justwatch";
 import { createPersonSlug } from "@/lib/person-utils";
 import { useOMDBData } from "@/hooks/use-content-details";
 import { useState } from "react";
@@ -24,9 +16,11 @@ import { Button } from "@/components/ui/button";
 interface DetailsType {
   release_date?: string;
   first_air_date?: string;
+  last_air_date?: string;
   runtime?: number;
   episode_run_time?: number[];
   production_countries?: Array<{ iso_3166_1: string; name: string }>;
+  production_companies?: Array<{ id: number; name: string; logo_path?: string | null }>;
   spoken_languages?: Array<{ english_name: string; iso_639_1: string; name: string }>;
   status?: string;
   budget?: number;
@@ -35,6 +29,14 @@ interface DetailsType {
   number_of_episodes?: number;
   genres?: Array<{ id: number; name: string }>;
   imdb_id?: string;
+  homepage?: string | null;
+  external_ids?: {
+    imdb_id?: string | null;
+    facebook_id?: string | null;
+    instagram_id?: string | null;
+    twitter_id?: string | null;
+  };
+  networks?: Array<{ id: number; name: string; logo_path?: string | null }>;
   created_by?: Array<{ id: number; name: string; profile_path?: string | null }>;
   credits?: {
     crew?: Array<{
@@ -98,29 +100,7 @@ export default function OverviewSection({
   return (
     <section className="py-12 space-y-12">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        <div className="lg:col-span-7 space-y-6">
-          {details?.genres && details.genres.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 -mx-2 px-2">
-              {details.genres.map((genre) => (
-                <button
-                  type="button"
-                  key={genre.id}
-                  onClick={() =>
-                    router.push(
-                      `/search?${new URLSearchParams({
-                        type,
-                        genre: genre.id.toString(),
-                      }).toString()}`
-                    )
-                  }
-                  className="px-3 py-2 text-sm rounded-full bg-muted text-foreground flex-shrink-0 transition hover:bg-primary/10 cursor-pointer"
-                >
-                  {genre.name}
-                </button>
-              ))}
-            </div>
-          )}
-
+        <div className="lg:col-span-8 space-y-6">
           <div>
             <h2 className="text-2xl font-bold mb-4">Storyline</h2>
             <p className="text-muted-foreground leading-relaxed text-base">
@@ -148,7 +128,15 @@ export default function OverviewSection({
             )}
           </div>
 
-          <div className="rounded-2xl border border-border bg-card/50 divide-y divide-border">
+          <div className="divide-y divide-border">
+            {details?.genres && details.genres.length > 0 && (
+              <OverviewInfoRow
+                label="Genre"
+                value=""
+                genres={details.genres}
+                type={type}
+              />
+            )}
             {type === "movie" ? (
               <OverviewInfoRow 
                 label="Director" 
@@ -177,7 +165,6 @@ export default function OverviewSection({
               cast={topCast}
             />
             <OverviewInfoRow label="Country" value={countries} />
-            {/* Ratings Row - show in table for both movies and TV: rank | imdb | year */}
             <div className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
               <span className="text-muted-foreground">Ratings</span>
               <RatingsRow
@@ -207,133 +194,21 @@ export default function OverviewSection({
                 }
               />
             </div>
+            <OverviewDetailsRows type={type} details={details} omdbData={omdbData} item={item} />
           </div>
 
-          {/* Awards Section */}
           {type === "movie" && omdbData?.awards && (
             <AwardsSection awards={omdbData.awards} />
           )}
-
-          <DetailsGrid type={type} details={details} omdbData={omdbData} />
         </div>
 
-        <div className="lg:col-span-5">
+        <div className="lg:col-span-4">
           <div className="hidden lg:flex min-h-[420px] border border-border rounded-2xl bg-muted/40 items-center justify-center text-sm text-muted-foreground">
             Ad placement
           </div>
         </div>
       </div>
     </section>
-  );
-}
-
-function DetailsGrid({ 
-  type, 
-  details,
-  omdbData,
-}: { 
-  type: "movie" | "tv"; 
-  details: DetailsType | null;
-  omdbData?: {
-    rated?: string | null;
-    boxOffice?: string | null;
-    production?: string | null;
-    dvd?: string | null;
-    website?: string | null;
-  } | null;
-}) {
-  const formatDate = (date: string | null | undefined): string => {
-    if (!date) return "N/A";
-    return new Date(date).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const formatRuntime = (minutes: number | number[] | undefined): string => {
-    if (!minutes) return "N/A";
-    if (Array.isArray(minutes)) {
-      return `${minutes[0]} min`;
-    }
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-  };
-
-  const releaseDate = type === "movie"
-    ? (details?.release_date ? formatDate(details.release_date) : null)
-    : (details?.first_air_date ? formatDate(details.first_air_date) : null);
-
-  const runtime = type === "movie"
-    ? (details?.runtime ? formatRuntime(details.runtime) : null)
-    : (details?.episode_run_time?.[0] ? formatRuntime(details.episode_run_time[0]) : null);
-
-  const country = details?.production_countries?.[0]?.name || "N/A";
-  const language = details?.spoken_languages?.[0]?.english_name || "N/A";
-  const status = details?.status || "N/A";
-  const budget = type === "movie" && details?.budget ? `$${(details.budget / 1000000).toFixed(1)}M` : null;
-  const revenue = type === "movie" && details?.revenue ? `$${(details.revenue / 1000000).toFixed(1)}M` : null;
-  const seasons = type === "tv" && details?.number_of_seasons ? details.number_of_seasons : null;
-  const episodes = type === "tv" && details?.number_of_episodes ? details.number_of_episodes : null;
-
-  const formatOMDBDate = (dateStr: string | null | undefined): string | null => {
-    if (!dateStr || dateStr === "N/A") return null;
-    try {
-      const date = new Date(dateStr);
-      if (isNaN(date.getTime())) return null;
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    } catch {
-      return null;
-    }
-  };
-
-  const detailItems: Array<{ label: string; value: string; link?: string }> = [
-    releaseDate && { label: type === "movie" ? "Release Date" : "First Air Date", value: releaseDate },
-    runtime && { label: type === "movie" ? "Runtime" : "Episode Runtime", value: runtime },
-    { label: "Country", value: country },
-    { label: "Language", value: language },
-    { label: "Status", value: status },
-    // OMDB data (movies only)
-    type === "movie" && omdbData?.rated && { label: "Rated", value: omdbData.rated },
-    type === "movie" && omdbData?.boxOffice && { label: "Box Office", value: omdbData.boxOffice },
-    type === "movie" && omdbData?.production && { label: "Production", value: omdbData.production },
-    type === "movie" && omdbData?.dvd && formatOMDBDate(omdbData.dvd) && { label: "DVD Release", value: formatOMDBDate(omdbData.dvd)! },
-    type === "movie" && omdbData?.website && { label: "Website", value: "Official Site", link: omdbData.website },
-    // TMDB data
-    budget && { label: "Budget", value: budget },
-    revenue && { label: "Revenue", value: revenue },
-    seasons && { label: "Seasons", value: seasons.toString() },
-    episodes && { label: "Episodes", value: episodes.toString() },
-  ].filter((item): item is { label: string; value: string; link?: string } => Boolean(item));
-
-  return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6">Details</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {detailItems.map((item, index) => (
-          <div key={index}>
-            <p className="text-sm text-muted-foreground mb-1">{item.label}</p>
-            {item.link ? (
-              <a
-                href={item.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-primary hover:underline cursor-pointer"
-              >
-                {item.value}
-              </a>
-            ) : (
-              <p className="font-medium">{item.value}</p>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -344,9 +219,11 @@ interface OverviewInfoRowProps {
   personName?: string;
   writers?: Array<{ id: number; name: string }>;
   cast?: Array<{ id: number; name: string }>;
+  genres?: Array<{ id: number; name: string }>;
+  type?: "movie" | "tv";
 }
 
-function OverviewInfoRow({ label, value, personId, personName, writers, cast }: OverviewInfoRowProps) {
+function OverviewInfoRow({ label, value, personId, personName, writers, cast, genres, type: mediaType }: OverviewInfoRowProps) {
   const router = useRouter();
 
   const handleClick = () => {
@@ -356,6 +233,29 @@ function OverviewInfoRow({ label, value, personId, personName, writers, cast }: 
   };
 
   const renderValue = () => {
+    if (genres && genres.length > 0 && mediaType) {
+      return (
+        <div className="font-medium text-right flex flex-wrap gap-1 justify-end">
+          {genres.map((genre, index) => (
+            <span key={genre.id}>
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(
+                    `/search?${new URLSearchParams({ type: mediaType, genre: genre.id.toString() }).toString()}`
+                  )
+                }
+                className="hover:text-primary transition-colors cursor-pointer"
+              >
+                {genre.name}
+              </button>
+              {index < genres.length - 1 && <span>, </span>}
+            </span>
+          ))}
+        </div>
+      );
+    }
+
     if (cast && cast.length > 0) {
       return (
         <div className="font-medium text-right flex flex-wrap gap-1 justify-end">
@@ -417,6 +317,136 @@ function OverviewInfoRow({ label, value, personId, personName, writers, cast }: 
       <span className="text-muted-foreground">{label}</span>
       {renderValue()}
     </div>
+  );
+}
+
+function OverviewDetailsRows({
+  type,
+  details,
+  omdbData,
+  item,
+}: {
+  type: "movie" | "tv";
+  details: DetailsType | null;
+  omdbData?: { rated?: string | null; boxOffice?: string | null; production?: string | null; dvd?: string | null; website?: string | null } | null;
+  item: TMDBMovie | TMDBSeries;
+}) {
+  const formatDate = (date: string | null | undefined): string => {
+    if (!date) return "N/A";
+    return new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  };
+  const formatRuntime = (minutes: number | number[] | undefined): string => {
+    if (!minutes) return "N/A";
+    if (Array.isArray(minutes)) return `${minutes[0]} min`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+  const formatOMDBDate = (dateStr: string | null | undefined): string | null => {
+    if (!dateStr || dateStr === "N/A") return null;
+    try {
+      const d = new Date(dateStr);
+      return isNaN(d.getTime()) ? null : d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+    } catch {
+      return null;
+    }
+  };
+
+  const releaseDate = type === "movie"
+    ? (details?.release_date ? formatDate(details.release_date) : null)
+    : (details?.first_air_date ? formatDate(details.first_air_date) : null);
+  const lastAirDate = type === "tv" && details?.last_air_date ? formatDate(details.last_air_date) : null;
+  const runtime = type === "movie"
+    ? (details?.runtime ? formatRuntime(details.runtime) : null)
+    : (details?.episode_run_time?.[0] ? formatRuntime(details.episode_run_time[0]) : null);
+  const country = details?.production_countries?.[0]?.name || "N/A";
+  const language = details?.spoken_languages?.[0]?.english_name || "N/A";
+  const status = details?.status || "N/A";
+  const budget = type === "movie" && details?.budget ? `$${(details.budget / 1000000).toFixed(1)}M` : null;
+  const revenue = type === "movie" && details?.revenue ? `$${(details.revenue / 1000000).toFixed(1)}M` : null;
+  const seasons = type === "tv" && details?.number_of_seasons != null ? details.number_of_seasons : null;
+  const episodes = type === "tv" && details?.number_of_episodes != null ? details.number_of_episodes : null;
+  const networks = type === "tv" && details?.networks?.length ? details.networks.map((n) => n.name).join(", ") : null;
+  const productionCompanies = details?.production_companies?.length
+    ? details.production_companies.map((p) => p.name).join(", ")
+    : null;
+
+  const ext = details?.external_ids;
+  const imdbId = details?.imdb_id ?? ext?.imdb_id;
+  const title = type === "movie" ? (item as TMDBMovie).title : (item as TMDBSeries).name;
+  const hasWebLinks =
+    details?.homepage ||
+    (imdbId && `https://www.imdb.com/title/${imdbId}`) ||
+    ext?.facebook_id ||
+    ext?.instagram_id ||
+    ext?.twitter_id;
+
+  const rows: Array<{ label: string; value: string; link?: string }> = [
+    releaseDate && { label: type === "movie" ? "Release Date" : "First Air Date", value: releaseDate },
+    lastAirDate && { label: "Last Air Date", value: lastAirDate },
+    runtime && { label: type === "movie" ? "Runtime" : "Episode Runtime", value: runtime },
+    { label: "Country", value: country },
+    { label: "Language", value: language },
+    { label: "Status", value: status },
+    networks && { label: "Network", value: networks },
+    productionCompanies && { label: "Production Companies", value: productionCompanies },
+    type === "movie" && omdbData?.rated && { label: "Rated", value: omdbData.rated },
+    type === "movie" && omdbData?.boxOffice && { label: "Box Office", value: omdbData.boxOffice },
+    type === "movie" && omdbData?.production && { label: "Production", value: omdbData.production },
+    type === "movie" && omdbData?.dvd && formatOMDBDate(omdbData.dvd) && { label: "DVD Release", value: formatOMDBDate(omdbData.dvd)! },
+    budget && { label: "Budget", value: budget },
+    revenue && { label: "Revenue", value: revenue },
+    seasons != null && { label: "Seasons", value: String(seasons) },
+    episodes != null && { label: "Episodes", value: String(episodes) },
+  ].filter((r): r is { label: string; value: string; link?: string } => Boolean(r));
+
+  return (
+    <>
+      {rows.map((row, index) => (
+        <div key={index} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
+          <span className="text-muted-foreground">{row.label}</span>
+          {row.link ? (
+            <a href={row.link} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
+              {row.value}
+            </a>
+          ) : (
+            <span className="font-medium text-right">{row.value}</span>
+          )}
+        </div>
+      ))}
+      {hasWebLinks && (
+        <div className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
+          <span className="text-muted-foreground">{title} on the web</span>
+          <div className="font-medium text-right flex flex-wrap gap-x-3 gap-y-1 justify-end">
+            {details?.homepage && (
+              <a href={details.homepage} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                Official website
+              </a>
+            )}
+            {imdbId && (
+              <a href={`https://www.imdb.com/title/${imdbId}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                IMDb
+              </a>
+            )}
+            {ext?.facebook_id && (
+              <a href={`https://www.facebook.com/${ext.facebook_id}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                Facebook
+              </a>
+            )}
+            {ext?.instagram_id && (
+              <a href={`https://www.instagram.com/${ext.instagram_id}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                Instagram
+              </a>
+            )}
+            {ext?.twitter_id && (
+              <a href={`https://twitter.com/${ext.twitter_id}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                X (Twitter)
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

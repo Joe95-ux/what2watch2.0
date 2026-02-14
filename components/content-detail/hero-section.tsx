@@ -74,7 +74,16 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
   // JustWatch streaming chart rank for hero (user can switch 1d / 7d / 30d)
   const [jwRankWindow, setJwRankWindow] = useState<"1d" | "7d" | "30d">("7d");
   const jwRanks = watchAvailability?.ranks;
-  const jwPrimaryRank = jwRanks?.[jwRankWindow] ?? jwRanks?.["7d"] ?? jwRanks?.["30d"] ?? jwRanks?.["1d"];
+  const jwPrimaryRankRaw = jwRanks?.[jwRankWindow] ?? jwRanks?.["7d"] ?? jwRanks?.["30d"] ?? jwRanks?.["1d"];
+  const jwPrimaryRank =
+    jwPrimaryRankRaw != null &&
+    typeof jwPrimaryRankRaw.rank === "number" &&
+    Number.isFinite(jwPrimaryRankRaw.rank)
+      ? {
+          rank: jwPrimaryRankRaw.rank,
+          delta: typeof jwPrimaryRankRaw.delta === "number" && Number.isFinite(jwPrimaryRankRaw.delta) ? jwPrimaryRankRaw.delta : 0,
+        }
+      : null;
   const jwRankUrl = watchAvailability?.fullPath
     ? `https://www.justwatch.com${watchAvailability.fullPath}`
     : null;
