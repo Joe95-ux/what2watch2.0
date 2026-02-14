@@ -20,7 +20,7 @@ export function TopPicksTab() {
   const [currentPage, setCurrentPage] = useState(1);
   const recalcTriggeredRef = useRef(false);
   const [isRecalculating, setIsRecalculating] = useState(false);
-  const { data: preferences } = useUserPreferences();
+  const { data: preferences, isLoading: isLoadingPreferences } = useUserPreferences();
   const { data: favorites = [] } = useFavorites();
 
   // Normalize favoriteGenres - handle Extended JSON format from MongoDB
@@ -105,7 +105,14 @@ export function TopPicksTab() {
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const paginatedItems = allItems.slice(startIndex, endIndex);
 
-  if (isLoading || isRecalculating) {
+  // Show skeleton until we know we have or don't have data (avoid flashing "no picks" while loading or recalculating)
+  const isWaitingForData =
+    isLoading ||
+    isRecalculating ||
+    isLoadingPreferences ||
+    (favoriteGenres.length === 0 && favorites.length > 0);
+
+  if (isWaitingForData) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {Array.from({ length: 24 }).map((_, i) => (

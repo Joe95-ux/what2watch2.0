@@ -57,11 +57,19 @@ export function StreamingChartRow({
     };
     emblaApi.on("select", update);
     emblaApi.on("reInit", update);
+    emblaApi.on("scroll", update);
+    update();
     return () => {
       emblaApi.off("select", update);
       emblaApi.off("reInit", update);
+      emblaApi.off("scroll", update);
     };
   }, [emblaApi]);
+
+  // Reinit carousel when entries change so scroll state and buttons are correct
+  useEffect(() => {
+    emblaApi?.reInit();
+  }, [emblaApi, entries.length]);
 
   const viewAllHref = `/search?watchProvider=${providerId}`;
 
@@ -132,8 +140,8 @@ export function StreamingChartRow({
             aria-label="Scroll right"
             onClick={() => emblaApi?.scrollNext()}
           />
-          <div ref={emblaRef} className="overflow-hidden w-full" style={{ touchAction: "pan-x" }}>
-            <div className="flex gap-3">
+          <div ref={emblaRef} className="overflow-hidden w-full min-w-0" style={{ touchAction: "pan-x" }}>
+            <div className="flex gap-3 flex-nowrap">
               {entries.map(({ item, type, position, delta, deltaNumber }) => (
                 <ChartRankCard
                   key={`${type}-${item.id}`}

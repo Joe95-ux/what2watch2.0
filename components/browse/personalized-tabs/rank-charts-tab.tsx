@@ -30,7 +30,7 @@ const RANK_PERIODS = [
 export type RankPeriodId = (typeof RANK_PERIODS)[number]["id"];
 
 const PROVIDERS_LIMIT = 20;
-const CHART_LIMIT = 15;
+const CHART_LIMIT = 20;
 
 interface WatchProvider {
   provider_id: number;

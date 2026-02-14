@@ -5,8 +5,8 @@ import type { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 
 const DEFAULT_COUNTRY = "US";
 const DEFAULT_PERIOD = "7d";
-const MAX_LIMIT = 20;
-const DEFAULT_LIMIT = 15;
+const MAX_LIMIT = 30;
+const DEFAULT_LIMIT = 20;
 
 type Period = "1d" | "7d" | "30d";
 
@@ -106,16 +106,16 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    // 3. Sort by JustWatch chart rank (ascending) so first item ranks #1, second #2, etc.
+    // 3. Sort by JustWatch chart rank (ascending): best rank first, unranked last
     entries.sort((a, b) => {
       const ar = a.rank ?? Infinity;
       const br = b.rank ?? Infinity;
       return ar - br;
     });
 
-    // Display position = JustWatch rank when available, else sequential for unranked at end
+    // Position = row order (1, 2, 3...) so the first card is #1, second #2, etc.
     entries.forEach((e, i) => {
-      e.position = e.rank ?? i + 1;
+      e.position = i + 1;
     });
 
     return NextResponse.json(

@@ -17,18 +17,36 @@ const tabs = [
   { id: "most-popular", label: "Most Popular" },
 ];
 
+const TAB_STORAGE_KEY = "personalized-page-tab";
+const validTabIds = new Set(tabs.map((t) => t.id));
+
+function getStoredTab(): string {
+  if (typeof window === "undefined") return "top-picks";
+  const stored = window.localStorage.getItem(TAB_STORAGE_KEY);
+  return stored && validTabIds.has(stored) ? stored : "top-picks";
+}
+
 export function PersonalizedPageClient() {
   const [activeTab, setActiveTab] = useState("top-picks");
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-  const handleTabClick = (tabId: string) => {
+  // Restore tab from localStorage on mount
+  useEffect(() => {
+    setActiveTab(getStoredTab());
+  }, []);
+
+  const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
-    // Scroll tab into view
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(TAB_STORAGE_KEY, tabId);
+    }
     const tabElement = tabRefs.current[tabId];
     if (tabElement) {
       tabElement.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
     }
   };
+
+  const handleTabClick = (tabId: string) => handleTabChange(tabId);
 
   return (
     <div className="min-h-screen bg-background">
@@ -62,7 +80,7 @@ export function PersonalizedPageClient() {
 
       {/* Content */}
       <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsContent value="top-picks" className="mt-0">
             <TopPicksTab />
           </TabsContent>
