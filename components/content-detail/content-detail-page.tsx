@@ -11,6 +11,7 @@ import {
   useRecommendedMovies,
   useRecommendedTV,
   useWatchProviders,
+  useSeasonWatchProviders,
   useJustWatchCountries,
 } from "@/hooks/use-content-details";
 import { useAddRecentlyViewed } from "@/hooks/use-recently-viewed";
@@ -84,6 +85,11 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
     data: watchAvailability,
     isLoading: isLoadingWatchAvailability,
   } = useWatchProviders(type, item.id, watchCountry);
+  const { data: seasonAvailability } = useSeasonWatchProviders(
+    type === "tv" ? item.id : null,
+    type === "tv" ? selectedSeason : null,
+    watchCountry
+  );
   const { data: justwatchCountries = [] } = useJustWatchCountries();
 
   // Track recently viewed
@@ -327,6 +333,8 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
             watchCountry={watchCountry}
             onWatchCountryChange={setWatchCountry}
             justwatchCountries={justwatchCountries}
+            seasonAvailability={type === "tv" ? seasonAvailability ?? undefined : undefined}
+            seasonNumber={type === "tv" ? selectedSeason ?? undefined : undefined}
           />
         )}
         {activeTab === "reviews" && (

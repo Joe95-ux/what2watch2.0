@@ -71,14 +71,14 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
   const displayRating = ratingData?.rating || tmdbRating;
   const ratingSource = ratingData?.source || (tmdbRating ? "tmdb" : null);
 
-  // JustWatch streaming chart rank for hero
+  // JustWatch streaming chart rank for hero (user can switch 1d / 7d / 30d)
+  const [jwRankWindow, setJwRankWindow] = useState<"1d" | "7d" | "30d">("7d");
   const jwRanks = watchAvailability?.ranks;
-  const jwWeekRank = jwRanks?.["7d"];
-  const jwMonthRank = jwRanks?.["30d"];
-  const jwPrimaryRank = jwWeekRank ?? jwMonthRank ?? jwRanks?.["1d"];
+  const jwPrimaryRank = jwRanks?.[jwRankWindow] ?? jwRanks?.["7d"] ?? jwRanks?.["30d"] ?? jwRanks?.["1d"];
   const jwRankUrl = watchAvailability?.fullPath
     ? `https://www.justwatch.com${watchAvailability.fullPath}`
     : null;
+  const rankWindowLabels: Record<"1d" | "7d" | "30d", string> = { "1d": "24h", "7d": "7d", "30d": "30d" };
 
   const formatRuntime = (minutes: number | number[] | undefined, isTV: boolean = false): string | null => {
     if (!minutes) return null;
@@ -239,7 +239,7 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
             <h1 className="text-[1.3rem] sm:text-3xl font-semibold text-foreground">{title}</h1>
             <div className="inline-flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               {jwPrimaryRank != null && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {jwRankUrl ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -309,6 +309,21 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
                       )}
                     </span>
                   )}
+                  <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+                    {(["1d", "7d", "30d"] as const).map((w) => (
+                      <button
+                        key={w}
+                        type="button"
+                        onClick={() => setJwRankWindow(w)}
+                        className={cn(
+                          "px-1.5 py-0.5 rounded cursor-pointer",
+                          jwRankWindow === w ? "bg-muted font-medium text-foreground" : "hover:text-foreground"
+                        )}
+                      >
+                        {rankWindowLabels[w]}
+                      </button>
+                    ))}
+                  </span>
                 </div>
               )}
               {displayRating && displayRating > 0 && (

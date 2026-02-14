@@ -19,6 +19,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { getCountryFlagEmoji } from "@/hooks/use-watch-regions";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { ChevronsUpDown, Check, ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +29,9 @@ interface WatchBreakdownSectionProps {
   watchCountry?: string;
   onWatchCountryChange?: (code: string) => void;
   justwatchCountries?: JustWatchCountry[];
+  /** When set (TV), show "Availability for Season X" with this data. */
+  seasonAvailability?: JustWatchAvailabilityResponse | null;
+  seasonNumber?: number;
 }
 
 const sections: Array<{
@@ -39,6 +43,7 @@ const sections: Array<{
   { key: "flatrate", title: "Streaming", description: "Included with subscription", ctaLabel: "Open App" },
   { key: "ads", title: "With Ads", description: "Free with ads", ctaLabel: "Watch Free" },
   { key: "free", title: "Free to Watch", description: "Completely free sources", ctaLabel: "Start Watching" },
+  { key: "cinema", title: "In theaters", description: "Watch in cinema", ctaLabel: "Find showtimes" },
   { key: "rent", title: "Rent", description: "Pay once, limited time access", ctaLabel: "Rent" },
   { key: "buy", title: "Buy", description: "Purchase to own", ctaLabel: "Buy" },
 ];
@@ -128,6 +133,8 @@ export default function WatchBreakdownSection({
   watchCountry = "US",
   onWatchCountryChange,
   justwatchCountries = [],
+  seasonAvailability,
+  seasonNumber,
 }: WatchBreakdownSectionProps) {
   if (isLoading) {
     return (
@@ -148,18 +155,33 @@ export default function WatchBreakdownSection({
     );
   }
 
+  const [rankWindow, setRankWindow] = useState<"1d" | "7d" | "30d">("7d");
   const ranks = availability.ranks;
   const fullPath = availability.fullPath;
   const justwatchUrl = fullPath ? `https://www.justwatch.com${fullPath}` : null;
-  const weekRank = ranks?.["7d"];
-  const monthRank = ranks?.["30d"];
-  const primaryRank = weekRank ?? monthRank ?? ranks?.["1d"];
+  const primaryRank = ranks?.[rankWindow] ?? ranks?.["7d"] ?? ranks?.["30d"] ?? ranks?.["1d"];
+  const rankWindowLabels: Record<"1d" | "7d" | "30d", string> = { "1d": "24h", "7d": "7d", "30d": "30d" };
+
+  const paidOffers = availability.allOffers.filter(
+    (o) => (o.monetizationType === "rent" || o.monetizationType === "buy") && o.retailPrice != null && o.retailPrice > 0
+  );
+  const cheapestRent = paidOffers
+    .filter((o) => o.monetizationType === "rent")
+    .sort((a, b) => (a.retailPrice ?? Infinity) - (b.retailPrice ?? Infinity))[0];
+  const cheapestBuy = paidOffers
+    .filter((o) => o.monetizationType === "buy")
+    .sort((a, b) => (a.retailPrice ?? Infinity) - (b.retailPrice ?? Infinity))[0];
+  const cheapestOffer = cheapestRent ?? cheapestBuy;
+  const cheapestPrice =
+    cheapestOffer?.retailPrice != null && cheapestOffer?.currency
+      ? new Intl.NumberFormat(undefined, { style: "currency", currency: cheapestOffer.currency, maximumFractionDigits: 2 }).format(cheapestOffer.retailPrice)
+      : null;
 
   return (
     <section className="py-12 space-y-8" id="watch">
       {/* Streaming chart rank - hero-style, no descriptions */}
       {primaryRank && justwatchUrl && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <a
             href={justwatchUrl}
             target="_blank"
@@ -191,6 +213,21 @@ export default function WatchBreakdownSection({
               </span>
             )}
           </a>
+          <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+            {(["1d", "7d", "30d"] as const).map((w) => (
+              <button
+                key={w}
+                type="button"
+                onClick={() => setRankWindow(w)}
+                className={cn(
+                  "px-1.5 py-0.5 rounded cursor-pointer",
+                  rankWindow === w ? "bg-muted font-medium text-foreground" : "hover:text-foreground"
+                )}
+              >
+                {rankWindowLabels[w]}
+              </button>
+            ))}
+          </span>
         </div>
       )}
 
@@ -212,6 +249,44 @@ export default function WatchBreakdownSection({
           )}
         </div>
       </div>
+
+      {/* Cheapest to watch callout */}
+      {cheapestOffer && cheapestPrice && (
+        <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
+          <p className="text-sm font-medium text-foreground">
+            Cheapest to watch: {cheapestOffer.monetizationType === "rent" ? "Rent" : "Buy"} on {cheapestOffer.providerName} — {cheapestPrice}
+          </p>
+          <a
+            href={cheapestOffer.deepLinkUrl ?? cheapestOffer.standardWebUrl ?? "#"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-primary hover:underline mt-1 inline-block"
+          >
+            Go to {cheapestOffer.providerName} →
+          </a>
+        </div>
+      )}
+
+      {/* Season-specific availability (TV) */}
+      {seasonAvailability && seasonNumber != null && (
+        <div className="space-y-4">
+          <h3 className="text-xl font-semibold">Availability for Season {seasonNumber}</h3>
+          {sections.map((section) => {
+            const offers = seasonAvailability.offersByType[section.key] || [];
+            if (!offers.length) return null;
+            return (
+              <div key={`season-${section.key}`} className="space-y-2">
+                <h4 className="text-sm font-medium text-muted-foreground">{section.title}</h4>
+                <div className="divide-y divide-border rounded-2xl border border-border bg-card/30">
+                  {offers.map((offer) => (
+                    <OfferRow key={`${offer.providerId}-${offer.monetizationType}`} offer={offer} ctaLabel={section.ctaLabel} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {sections.map((section) => {
         const offers = availability.offersByType[section.key] || [];
@@ -237,6 +312,7 @@ export default function WatchBreakdownSection({
 }
 
 function OfferRow({ offer, ctaLabel }: { offer: JustWatchOffer; ctaLabel: string }) {
+  const isMobile = useIsMobile();
   const displayPrice =
     offer.retailPrice && offer.currency
       ? new Intl.NumberFormat(undefined, {
@@ -245,6 +321,9 @@ function OfferRow({ offer, ctaLabel }: { offer: JustWatchOffer; ctaLabel: string
           maximumFractionDigits: 2,
         }).format(offer.retailPrice)
       : null;
+  const useDeepLink = isMobile && offer.deepLinkUrl;
+  const href = useDeepLink ? (offer.deepLinkUrl ?? offer.standardWebUrl ?? "#") : (offer.standardWebUrl ?? offer.deepLinkUrl ?? "#");
+  const linkLabel = useDeepLink ? "Open in app" : ctaLabel;
 
   return (
     <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6">
@@ -276,8 +355,8 @@ function OfferRow({ offer, ctaLabel }: { offer: JustWatchOffer; ctaLabel: string
           asChild
           disabled={!offer.standardWebUrl && !offer.deepLinkUrl}
         >
-          <a href={offer.deepLinkUrl ?? offer.standardWebUrl ?? "#"} target="_blank" rel="noopener noreferrer">
-            {ctaLabel}
+          <a href={href} target="_blank" rel="noopener noreferrer">
+            {linkLabel}
           </a>
         </Button>
       </div>

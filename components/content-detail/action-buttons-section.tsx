@@ -11,6 +11,7 @@ import { useToggleFavorite } from "@/hooks/use-favorites";
 import { useContentReactions, useLikeContent, useDislikeContent } from "@/hooks/use-content-reactions";
 import { toast } from "sonner";
 import { useUser, useClerk } from "@clerk/nextjs";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { JustWatchAvailabilityResponse } from "@/lib/justwatch";
 
 interface ActionButtonsSectionProps {
@@ -20,6 +21,7 @@ interface ActionButtonsSectionProps {
 }
 
 export default function ActionButtonsSection({ item, type, watchAvailability }: ActionButtonsSectionProps) {
+  const isMobile = useIsMobile();
   const primaryOffer =
     watchAvailability?.offersByType?.flatrate?.[0] ??
     watchAvailability?.offersByType?.buy?.[0] ??
@@ -130,7 +132,7 @@ export default function ActionButtonsSection({ item, type, watchAvailability }: 
         {primaryOffer && (
           <div className="flex-shrink-0">
             <a
-              href={primaryOffer.standardWebUrl ?? primaryOffer.deepLinkUrl ?? "#"}
+              href={isMobile && primaryOffer.deepLinkUrl ? (primaryOffer.deepLinkUrl ?? primaryOffer.standardWebUrl ?? "#") : (primaryOffer.standardWebUrl ?? primaryOffer.deepLinkUrl ?? "#")}
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
@@ -149,12 +151,12 @@ export default function ActionButtonsSection({ item, type, watchAvailability }: 
                     unoptimized
                   />
                   <span className="pl-3 pr-4 flex items-center text-[15px] font-medium">
-                    WATCH ON {primaryOffer.providerName.toUpperCase()}
+                    {isMobile && primaryOffer.deepLinkUrl ? "Open in app" : `WATCH ON ${primaryOffer.providerName.toUpperCase()}`}
                   </span>
                 </>
               ) : (
                 <span className="px-4 flex items-center text-[15px] font-medium">
-                  WATCH ON {primaryOffer.providerName.toUpperCase()}
+                  {isMobile && primaryOffer.deepLinkUrl ? "Open in app" : `WATCH ON ${primaryOffer.providerName.toUpperCase()}`}
                 </span>
               )}
             </a>

@@ -181,6 +181,7 @@ export default function OverviewSection({
             <div className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
               <span className="text-muted-foreground">Ratings</span>
               <RatingsRow
+                justwatchRanks={watchAvailability?.ranks ?? null}
                 justwatchRank={
                   watchAvailability?.ranks?.["7d"]?.rank ??
                   watchAvailability?.ranks?.["30d"]?.rank ??

@@ -249,6 +249,33 @@ export function useWatchProviders(type: "movie" | "tv", id: number | null, count
   });
 }
 
+/**
+ * Hook to fetch Where to Watch for a specific TV season.
+ */
+export function useSeasonWatchProviders(
+  showTmdbId: number | null,
+  seasonNumber: number | null,
+  countryCode: string = "US"
+) {
+  return useQuery({
+    queryKey: ["tv", showTmdbId, "season", seasonNumber, "watch-providers", countryCode.toUpperCase()],
+    queryFn: async () => {
+      if (showTmdbId == null || seasonNumber == null) return null;
+      const country = countryCode.toUpperCase();
+      const res = await fetch(
+        `/api/justwatch/tv/${showTmdbId}/season/${seasonNumber}?country=${country}`
+      );
+      if (!res.ok) return null;
+      const data = (await res.json()) as JustWatchAvailabilityResponse | null;
+      return data && data.allOffers?.length > 0 ? data : null;
+    },
+    enabled: showTmdbId != null && seasonNumber != null && seasonNumber >= 0,
+    staleTime: 60 * 60 * 1000,
+    gcTime: 2 * 60 * 60 * 1000,
+    retry: 1,
+  });
+}
+
 async function fetchTmdbProviders(
   type: "movie" | "tv",
   id: number,
