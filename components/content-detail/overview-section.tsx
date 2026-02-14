@@ -158,11 +158,13 @@ export default function OverviewSection({
                 writers={creators?.map((c) => ({ id: c.id, name: c.name }))}
               />
             )}
-            <OverviewInfoRow 
-              label="Writers" 
-              value={writers ? writers.map((w) => w.name).join(", ") : "N/A"}
-              writers={writers}
-            />
+            {type === "movie" && (
+              <OverviewInfoRow 
+                label="Writers" 
+                value={writers ? writers.map((w) => w.name).join(", ") : "N/A"}
+                writers={writers}
+              />
+            )}
             <OverviewInfoRow 
               label="Stars" 
               value={topCast.length > 0 ? topCast.map((c) => c.name).join(", ") : "N/A"}

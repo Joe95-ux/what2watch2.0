@@ -86,10 +86,18 @@ function EpisodeModalWhereToWatch({
       </div>
     );
   }
-  if (!availability || !availability.allOffers?.length) {
+  if (!availability) {
     return (
       <div className="py-8 text-center text-sm text-muted-foreground">
         No availability data for Season {seasonNumber} right now.
+      </div>
+    );
+  }
+  const hasOffers = (availability.allOffers?.length ?? 0) > 0;
+  if (!hasOffers) {
+    return (
+      <div className="py-8 text-center text-sm text-muted-foreground">
+        No offers found for Season {seasonNumber}.
       </div>
     );
   }
@@ -232,79 +240,73 @@ export default function EpisodeDetailModal({
             <DialogTitle className="sr-only">Episode Details</DialogTitle>
           </DialogHeader>
 
-          <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
-            <TabsList className="w-full px-6">
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="watch">Where to Watch</TabsTrigger>
-            </TabsList>
-            <TabsContent value="details" className="flex-1 overflow-y-auto scrollbar-thin mt-0 px-6">
-            <div className="space-y-6 pb-6">
-              {/* First Div: TV Show Poster and Metadata */}
-              <div className="flex flex-row gap-4">
-                {/* Poster */}
-                {posterPath ? (
-                  <div className="relative w-20 h-28 sm:w-24 sm:h-36 rounded overflow-hidden flex-shrink-0 bg-muted">
-                    <Image
-                      src={getPosterUrl(posterPath, "w500")}
-                      alt={tvShowTitle}
-                      fill
-                      className="object-cover"
-                      sizes="96px"
-                      unoptimized
-                    />
-                  </div>
-                ) : (
-                  <div className="w-20 h-28 sm:w-24 sm:h-36 rounded bg-muted flex-shrink-0 flex items-center justify-center">
-                    <Tv className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                )}
-
-                {/* Metadata */}
-                <div className="flex-1 min-w-0 flex flex-col">
-                  {/* Line 1: Title */}
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <h3 className="text-lg font-semibold truncate sm:truncate-none">
-                      {tvShowTitle}
-                    </h3>
-                  </div>
-
-                  {/* Line 2: Release year, runtime/episodes, genres */}
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
-                    {releaseYear && <span>{releaseYear}</span>}
-                    {formattedRuntime && (
-                      <>
-                        {releaseYear && <span>•</span>}
-                        <span>{formattedRuntime}</span>
-                      </>
-                    )}
-                    {genres.length > 0 && (
-                      <>
-                        {(releaseYear || formattedRuntime) && <span>•</span>}
-                        <span>{genres.slice(0, 2).map((g: { id: number; name: string }) => g.name).join(", ")}</span>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Line 3: Rating */}
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
-                    {rating > 0 && (
-                      <div className="flex items-center gap-1.5">
-                        {imdbId ? (
-                          <IMDBBadge size={16} />
-                        ) : (
-                          <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                        )}
-                        <span className="font-semibold">
-                          {rating.toFixed(1)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+          {/* First section: poster + film metadata */}
+          <div className="px-6 pt-4 pb-4 border-b border-border">
+            <div className="flex flex-row gap-4">
+              {posterPath ? (
+                <div className="relative w-20 h-28 sm:w-24 sm:h-36 rounded overflow-hidden flex-shrink-0 bg-muted">
+                  <Image
+                    src={getPosterUrl(posterPath, "w500")}
+                    alt={tvShowTitle}
+                    fill
+                    className="object-cover"
+                    sizes="96px"
+                    unoptimized
+                  />
+                </div>
+              ) : (
+                <div className="w-20 h-28 sm:w-24 sm:h-36 rounded bg-muted flex-shrink-0 flex items-center justify-center">
+                  <Tv className="h-8 w-8 text-muted-foreground" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0 flex flex-col">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <h3 className="text-lg font-semibold truncate sm:truncate-none">
+                    {tvShowTitle}
+                  </h3>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
+                  {releaseYear && <span>{releaseYear}</span>}
+                  {formattedRuntime && (
+                    <>
+                      {releaseYear && <span>•</span>}
+                      <span>{formattedRuntime}</span>
+                    </>
+                  )}
+                  {genres.length > 0 && (
+                    <>
+                      {(releaseYear || formattedRuntime) && <span>•</span>}
+                      <span>{genres.slice(0, 2).map((g: { id: number; name: string }) => g.name).join(", ")}</span>
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
+                  {rating > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      {imdbId ? (
+                        <IMDBBadge size={16} />
+                      ) : (
+                        <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                      )}
+                      <span className="font-semibold">{rating.toFixed(1)}</span>
+                    </div>
+                  )}
                 </div>
               </div>
+            </div>
+          </div>
 
-              {/* Second Div: Episode Synopsis, Creator, Stars */}
-              <div className="space-y-4 border-t pt-6">
+          <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
+            <div className="px-6 pt-3">
+              <TabsList className="w-fit">
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="watch">Where to Watch</TabsTrigger>
+              </TabsList>
+            </div>
+            <TabsContent value="details" className="flex-1 overflow-y-auto scrollbar-thin mt-0 px-6">
+              <div className="space-y-6 pb-6">
+              {/* Episode Synopsis, Creator, Stars */}
+              <div className="space-y-4 pt-4">
                 {/* Episode Title */}
                 <div>
                   <h4 className="text-xl font-bold mb-2">
@@ -378,7 +380,7 @@ export default function EpisodeDetailModal({
             </div>
             </TabsContent>
 
-            <TabsContent value="watch" className="flex-1 overflow-y-auto scrollbar-thin mt-0">
+            <TabsContent value="watch" className="flex-1 overflow-y-auto scrollbar-thin mt-0 px-6">
               <EpisodeModalWhereToWatch
                 seasonNumber={episode.season_number}
                 availability={seasonAvailability}

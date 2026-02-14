@@ -267,7 +267,7 @@ export function useSeasonWatchProviders(
       );
       if (!res.ok) return null;
       const data = (await res.json()) as JustWatchAvailabilityResponse | null;
-      return data && data.allOffers?.length > 0 ? data : null;
+      return data ?? null;
     },
     enabled: showTmdbId != null && seasonNumber != null && seasonNumber >= 0,
     staleTime: 60 * 60 * 1000,

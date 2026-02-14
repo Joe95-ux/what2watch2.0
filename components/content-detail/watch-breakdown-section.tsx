@@ -320,40 +320,55 @@ export default function WatchBreakdownSection({
         </div>
       )}
 
-      {/* Season-specific availability (TV) */}
-      {seasonAvailability && seasonNumber != null && (() => {
-        const sectionsWithOffers = sections.filter((s) => (seasonAvailability.offersByType[s.key] || []).length > 0);
-        return (
-          <div className="space-y-4">
-            {sectionsWithOffers.map((section, idx) => {
-              const offers = seasonAvailability.offersByType[section.key] || [];
-              const isFirst = idx === 0;
+      {/* Season-specific availability (TV): header row (Streaming + dropdown) then content */}
+      {seasons.length > 0 && onSeasonChange != null && seasonNumber != null && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h3 className="text-xl font-semibold">{sections[0].title}</h3>
+              <p className="text-sm text-muted-foreground">{sections[0].description}</p>
+            </div>
+            <SeasonSelect
+              seasons={seasons}
+              value={seasonNumber}
+              onValueChange={onSeasonChange}
+            />
+          </div>
+          {seasonAvailability ? (
+            (() => {
+              const sectionsWithOffers = sections.filter((s) => (seasonAvailability.offersByType[s.key] || []).length > 0);
+              if (sectionsWithOffers.length === 0) {
+                return (
+                  <div className="py-6 text-center text-sm text-muted-foreground rounded-2xl border border-border bg-card/30">
+                    No offers for this season.
+                  </div>
+                );
+              }
               return (
-                <div key={`season-${section.key}`} className="space-y-2">
-                  <div className={cn(isFirst && "flex flex-wrap items-start justify-between gap-4")}>
-                    <div>
-                      <h3 className="text-xl font-semibold">{section.title}</h3>
-                      <p className="text-sm text-muted-foreground">{section.description}</p>
-                    </div>
-                    {isFirst && seasons.length > 0 && onSeasonChange != null && (
-                      <SeasonSelect
-                        seasons={seasons}
-                        value={seasonNumber}
-                        onValueChange={onSeasonChange}
-                      />
-                    )}
-                  </div>
-                  <div className="divide-y divide-border rounded-2xl border border-border bg-card/30">
-                    {offers.map((offer) => (
-                      <OfferRow key={`${offer.providerId}-${offer.monetizationType}`} offer={offer} ctaLabel={section.ctaLabel} />
-                    ))}
-                  </div>
+                <div className="space-y-4">
+                  {sectionsWithOffers.map((section) => {
+                    const offers = seasonAvailability.offersByType[section.key] || [];
+                    return (
+                      <div key={`season-${section.key}`} className="space-y-2">
+                        <h4 className="text-sm font-medium text-muted-foreground">{section.title}</h4>
+                        <div className="divide-y divide-border rounded-2xl border border-border bg-card/30">
+                          {offers.map((offer) => (
+                            <OfferRow key={`${offer.providerId}-${offer.monetizationType}`} offer={offer} ctaLabel={section.ctaLabel} />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               );
-            })}
-          </div>
-        );
-      })()}
+            })()
+          ) : (
+            <div className="py-6 text-center text-sm text-muted-foreground rounded-2xl border border-border bg-card/30">
+              Loading availability…
+            </div>
+          )}
+        </div>
+      )}
 
       {sections.map((section) => {
         const offers = availability.offersByType[section.key] || [];
