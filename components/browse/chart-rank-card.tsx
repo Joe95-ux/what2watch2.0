@@ -19,7 +19,7 @@ interface ChartRankCardProps {
 }
 
 export function ChartRankCard({ item, type, position, deltaNumber }: ChartRankCardProps) {
-  const posterUrl = getPosterUrl(item.poster_path, "w342");
+  const posterUrl = getPosterUrl(item.poster_path, "w300");
   const title = "title" in item ? item.title : item.name;
   const href = type === "movie" ? `/movie/${item.id}` : `/tv/${item.id}`;
   const delta = deltaNumber != null && deltaNumber !== 0 ? (deltaNumber > 0 ? "up" : "down") : null;

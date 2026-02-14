@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState, useMemo } from "react";
+import { useRef, useState, useMemo, useEffect } from "react";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
 import { useJustWatchChart, type ChartPeriod } from "@/hooks/use-justwatch-chart";
 import { StreamingChartRow } from "../streaming-chart-row";
