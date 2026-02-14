@@ -171,7 +171,7 @@ export default function OverviewSection({
               cast={topCast}
             />
             <OverviewInfoRow label="Production Country" value={countries} />
-            <div className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
+            <div className="flex items-center justify-between gap-4 px-0 py-3 text-sm">
               <span className="text-muted-foreground">Ratings</span>
               <RatingsRow
                 justwatchRanks={watchAvailability?.ranks ?? null}
@@ -201,7 +201,7 @@ export default function OverviewSection({
               />
             </div>
             {!detailsExpanded ? (
-              <div className="px-4 py-3">
+              <div className="px-0 py-3">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -215,7 +215,7 @@ export default function OverviewSection({
             ) : (
               <>
                 <OverviewDetailsRows type={type} details={details} omdbData={omdbData} item={item} />
-                <div className="px-4 py-3">
+                <div className="px-0 py-3">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -346,7 +346,7 @@ function OverviewInfoRow({ label, value, personId, personName, writers, cast, ge
   };
 
   return (
-    <div className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
+    <div className="flex items-center justify-between gap-4 px-0 py-3 text-sm">
       <span className="text-muted-foreground">{label}</span>
       {renderValue()}
     </div>
@@ -440,7 +440,7 @@ function OverviewDetailsRows({
   return (
     <>
       {rows.map((row, index) => (
-        <div key={index} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
+        <div key={index} className="flex items-center justify-between gap-4 px-0 py-3 text-sm">
           <span className="text-muted-foreground">{row.label}</span>
           {row.link ? (
             <a href={row.link} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
@@ -452,7 +452,7 @@ function OverviewDetailsRows({
         </div>
       ))}
       {hasWebLinks && (
-        <div className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
+        <div className="flex items-center justify-between gap-4 px-0 py-3 text-sm">
           <span className="text-muted-foreground">{title} on the web</span>
           <div className="font-medium text-right flex flex-wrap gap-x-3 gap-y-1 justify-end">
             {details?.homepage && (
