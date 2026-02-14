@@ -89,8 +89,7 @@ export function StreamingChartRow({
   }
 
   return (
-    <>
-      <div ref={rowRef} className="mb-10 scroll-mt-28">
+    <div ref={rowRef} className="mb-10 scroll-mt-28">
         <div className="flex items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-3 min-w-0">
             {providerLogoUrl ? (

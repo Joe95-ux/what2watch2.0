@@ -111,11 +111,12 @@ const fetchPersonalizedContent = async (
     return [];
   }
 
-  // Use top 3-5 genres for better diversity
+  // Use top 5 genres for diversity; fetch enough per genre to get a large pool after dedupe
   const topGenres = favoriteGenres.slice(0, 5);
+  const resultsPerGenrePerType = 12;
+  const maxTopPicks = 60;
   console.log(`[PersonalizedContent] Fetching for genres:`, topGenres, `types:`, preferredTypes);
-  
-  // Fetch content for each genre and type
+
   const fetchPromises: Promise<(TMDBMovie | TMDBSeries)[]>[] = [];
 
   for (const genreId of topGenres) {
@@ -124,7 +125,7 @@ const fetchPersonalizedContent = async (
         fetch(`/api/search?genre=${genreId}&type=movie&sortBy=popularity.desc&page=1`)
           .then((res) => res.json())
           .then((data) => {
-            const results = (data.results || []).slice(0, 4);
+            const results = (data.results || []).slice(0, resultsPerGenrePerType);
             console.log(`[PersonalizedContent] Genre ${genreId} (movie): ${results.length} results`);
             return results;
           })
@@ -139,7 +140,7 @@ const fetchPersonalizedContent = async (
         fetch(`/api/search?genre=${genreId}&type=tv&sortBy=popularity.desc&page=1`)
           .then((res) => res.json())
           .then((data) => {
-            const results = (data.results || []).slice(0, 4);
+            const results = (data.results || []).slice(0, resultsPerGenrePerType);
             console.log(`[PersonalizedContent] Genre ${genreId} (tv): ${results.length} results`);
             return results;
           })
@@ -154,24 +155,18 @@ const fetchPersonalizedContent = async (
   const results = await Promise.all(fetchPromises);
   const combined = results.flat();
   console.log(`[PersonalizedContent] Combined results: ${combined.length} items`);
-  
-  // Remove duplicates by id and media type (movie vs tv)
-  // Movies have "title" property, TV shows have "name" property
+
   const seen = new Set<string>();
   const unique = combined.filter((item) => {
     const type = "title" in item ? "movie" : "tv";
     const key = `${type}-${item.id}`;
-    if (seen.has(key)) {
-      return false;
-    }
+    if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
 
-  // Sort by popularity (deterministic) instead of random shuffle to avoid hydration issues
-  // This ensures consistent ordering between server and client
   const sorted = unique.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
-  const final = sorted.slice(0, 20);
+  const final = sorted.slice(0, maxTopPicks);
   console.log(`[PersonalizedContent] Final unique results: ${final.length} items`);
   return final;
 };
