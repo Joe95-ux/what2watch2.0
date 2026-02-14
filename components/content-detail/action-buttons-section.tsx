@@ -146,8 +146,8 @@ export default function ActionButtonsSection({ item, type, watchAvailability }: 
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
-                "inline-flex items-stretch h-10 overflow-hidden rounded-lg bg-transparent hover:bg-muted/30 transition-colors cursor-pointer max-w-full",
-                "border border-[rgba(0,0,0,0.2)] dark:border-[rgba(255,255,255,0.1)]"
+                "inline-flex items-stretch h-10 overflow-hidden rounded-lg bg-muted dark:bg-transparent hover:bg-muted/30 transition-colors cursor-pointer max-w-full",
+                "border border-none dark:border-[rgba(255,255,255,0.1)]"
               )}
             >
               {primaryOffer.iconUrl ? (
@@ -174,7 +174,8 @@ export default function ActionButtonsSection({ item, type, watchAvailability }: 
         )}
 
         {/* Action buttons - right on desktop (ml-auto when space), scrollable when narrow */}
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-shrink-0 min-w-0 md:ml-auto">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide
+         min-w-0 md:ml-auto">
           {/* Favorite Button */}
           <Button
           variant="outline"
@@ -184,7 +185,7 @@ export default function ActionButtonsSection({ item, type, watchAvailability }: 
           }}
           disabled={isFavoriteLoading}
           className={cn(
-            "h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0",
+            "h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0 border-none",
             isFavoriteLoading && "opacity-50 cursor-not-allowed"
           )}
         >
@@ -204,7 +205,7 @@ export default function ActionButtonsSection({ item, type, watchAvailability }: 
         </Button>
 
         {/* Like/Dislike Button */}
-        <div className="flex items-center rounded-[25px] bg-muted border border-border overflow-hidden flex-shrink-0">
+        <div className="flex items-center rounded-[25px] bg-muted border border-border overflow-hidden flex-shrink-0 border-none">
           <button
             onClick={handleLike}
             disabled={isLoadingReactions || likeContent.isPending}
@@ -237,7 +238,7 @@ export default function ActionButtonsSection({ item, type, watchAvailability }: 
           item={item}
           type={type}
           trigger={
-            <Button variant="outline" size="sm" className="h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0">
+            <Button variant="outline" size="sm" className="h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0 border-none">
               <Plus className="h-4 w-4" />
               Add To
             </Button>
@@ -251,7 +252,7 @@ export default function ActionButtonsSection({ item, type, watchAvailability }: 
           onClick={handleMarkAsWatched}
           disabled={isWatchLoading}
           className={cn(
-            "h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0",
+            "h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0 border-none",
             isWatched && "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800",
             isWatchLoading && "opacity-50 cursor-not-allowed"
           )}
