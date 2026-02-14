@@ -136,8 +136,8 @@ export default function ActionButtonsSection({ item, type, watchAvailability }: 
     : primaryLabel;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 border-b">
-      <div className="flex flex-wrap items-center justify-start gap-4">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-wrap items-center justify-start gap-4 py-4 border-b">
         {/* Primary streaming provider - left on desktop, top on mobile */}
         {primaryOffer && (
           <div className="flex-shrink-0 min-w-0">
@@ -147,7 +147,7 @@ export default function ActionButtonsSection({ item, type, watchAvailability }: 
               rel="noopener noreferrer"
               className={cn(
                 "inline-flex items-stretch h-10 overflow-hidden rounded-lg bg-muted dark:bg-transparent hover:bg-muted/30 transition-colors cursor-pointer max-w-full",
-                "border border-none dark:border-[rgba(255,255,255,0.1)]"
+                "border-none dark:border dark:border-lg dark:border-[rgba(255,255,255,0.1)]"
               )}
             >
               {primaryOffer.iconUrl ? (
