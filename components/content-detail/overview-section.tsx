@@ -172,7 +172,7 @@ export default function OverviewSection({
             />
             <OverviewInfoRow label="Production Country" value={countries} />
             <div className="flex items-center justify-between gap-4 px-0 py-3 text-sm">
-              <span className="text-muted-foreground">Ratings</span>
+              <span className="text-muted-foreground uppercase">Ratings</span>
               <RatingsRow
                 justwatchRanks={watchAvailability?.ranks ?? null}
                 justwatchRank={
@@ -453,7 +453,7 @@ function OverviewDetailsRows({
       ))}
       {hasWebLinks && (
         <div className="flex items-center justify-between gap-4 px-0 py-3 text-sm">
-          <span className="text-muted-foreground">{title} on the web</span>
+          <span className="text-muted-foreground uppercase">{title} on the web</span>
           <div className="font-medium text-right flex flex-wrap gap-x-3 gap-y-1 justify-end">
             {details?.homepage && (
               <a href={details.homepage} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">

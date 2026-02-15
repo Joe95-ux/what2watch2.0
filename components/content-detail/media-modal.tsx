@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { TMDBVideo, getYouTubeEmbedUrl, getImageUrl } from "@/lib/tmdb";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -86,7 +86,9 @@ export default function MediaModal({
       <DialogContent
         showCloseButton={false}
         className="!max-w-[90vw] !w-full !h-[90vh] !max-h-[90vh] !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 overflow-hidden p-0 gap-0 bg-black !border-gray-800 dark:!border-gray-800"
+        aria-describedby={undefined}
       >
+        <DialogTitle className="sr-only">{title}</DialogTitle>
         {/* Close Button */}
         <button
           onClick={onClose}

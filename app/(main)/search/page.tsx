@@ -113,6 +113,22 @@ function SearchResultsContent() {
       : null;
   const streamingProviderName = streamingProvider?.provider_name ?? null;
 
+  // When viewing by watchProvider (e.g. from Rank Charts "View All"), fetch 24h chart to show rank on cards
+  const watchProviderForChart =
+    watchProvider !== undefined && !Number.isNaN(watchProvider) && watchProvider > 0 ? watchProvider : null;
+  const { data: chartEntries = [] } = useJustWatchChart(watchProviderForChart ?? 0, {
+    period: "1d",
+    limit: 30,
+  });
+  const justwatchRankMap = useMemo(() => {
+    const m = new Map<string, { position: number; delta: number | null }>();
+    chartEntries.forEach((e) => {
+      const key = `${e.type}-${e.item.id}`;
+      if (e.position != null) m.set(key, { position: e.position, delta: e.deltaNumber ?? null });
+    });
+    return m;
+  }, [chartEntries]);
+
   const updateURL = (newParams: Record<string, string | number | number[] | undefined>) => {
     const params = new URLSearchParams();
     

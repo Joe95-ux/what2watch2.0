@@ -277,7 +277,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
 
         {/* Navigation Links */}
         <div className="space-y-2">
-          {navLinks.map((link) => {
+          {navLinks.flatMap((link) => {
             const isActive = link.href === "/forum" 
               ? pathname === link.href || pathname?.startsWith(link.href + "/")
               : link.href === "/forum"
@@ -305,7 +305,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               }
             };
             
-            return (
+            const linkElement = (
               <Link
                 key={link.href}
                 href={link.href}
@@ -320,6 +320,27 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                 <span>{link.label}</span>
               </Link>
             );
+            // Guide comes right after Popular in the mobile menu
+            if (link.href === "/popular") {
+              return [
+                linkElement,
+                <Link
+                  key="/browse/personalized"
+                  href="/browse/personalized"
+                  onClick={onLinkClick}
+                  className={cn(
+                    "flex items-center rounded-md px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
+                    pathname === "/browse/personalized" || pathname?.startsWith("/browse/personalized")
+                      ? "bg-muted text-foreground font-medium"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  <Compass className="mr-3 h-4 w-4 text-foreground" />
+                  <span>Guide</span>
+                </Link>,
+              ];
+            }
+            return [linkElement];
           })}
           
           {/* YouTube: simple link or tools list */}
@@ -403,19 +424,6 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
             >
               <Settings className="mr-3 h-4 w-4 text-foreground" />
               <span>Settings</span>
-            </Link>
-            <Link
-              href="/browse/personalized"
-              onClick={onLinkClick}
-              className={cn(
-                "flex items-center rounded-md px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
-                pathname === "/browse/personalized" || pathname?.startsWith("/browse/personalized")
-                  ? "bg-muted text-foreground font-medium"
-                  : "text-muted-foreground"
-              )}
-            >
-              <Compass className="mr-3 h-4 w-4 text-foreground" />
-              <span>Guide</span>
             </Link>
             <button
               onClick={() => {
