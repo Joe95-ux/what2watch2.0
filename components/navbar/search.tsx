@@ -501,7 +501,7 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
       ref={containerRef}
       className={cn(
         "relative",
-        centered ? "w-full max-w-xl xl:max-w-2xl min-w-0" : "w-72 lg:w-80 2xl:w-96"
+        centered ? "w-full max-w-xl min-w-0" : "w-72 lg:w-80 2xl:w-96"
       )}
     >
       <div className="relative">
@@ -522,7 +522,7 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
           }}
           onFocus={() => setIsExpanded(true)}
           className={cn(
-            "pl-9 pr-20 h-9 transition-colors duration-300",
+            "pl-9 pr-20 h-10 transition-colors duration-300",
             hasHeroSection && "bg-white/10 border-[rgba(255,255,255,0.1)] text-white placeholder:text-white/60 focus:border-[rgba(255,255,255,0.2)] focus:ring-white/20"
           )}
         />
@@ -635,6 +635,7 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
                     key={`${result.type}-${result.id}`}
                     result={result}
                     onSelect={handleSelect}
+                    variant="desktop"
                   />
                 ))}
               </>
@@ -646,23 +647,26 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
   );
 }
 
-// Search Result Item Component
+// Search Result Item Component (variant=desktop for larger posters in navbar dropdown; mobile unchanged)
 function SearchResultItem({
   result,
   onSelect,
+  variant = "mobile",
 }: {
   result: SearchResult;
   onSelect: (result: SearchResult) => void;
+  variant?: "mobile" | "desktop";
 }) {
   const isPerson = result.type === "person";
+  const size = variant === "desktop" ? "w154" : "w92";
   const imageUrl = isPerson
     ? result.profile_path
-      ? `https://image.tmdb.org/t/p/w92${result.profile_path}`
+      ? `https://image.tmdb.org/t/p/${size}${result.profile_path}`
       : null
     : result.poster_path
-    ? `https://image.tmdb.org/t/p/w92${result.poster_path}`
+    ? `https://image.tmdb.org/t/p/${size}${result.poster_path}`
     : null;
-  
+
   const year = isPerson
     ? null
     : result.type === "movie"
@@ -679,6 +683,15 @@ function SearchResultItem({
 
   const href = isPerson ? `/person/${result.id}` : `/${result.type}/${result.id}`;
 
+  const posterClass =
+    variant === "desktop"
+      ? isPerson
+        ? "h-10 w-10 rounded-full"
+        : "h-16 w-11"
+      : isPerson
+      ? "h-8 w-8 rounded-full"
+      : "h-12 w-8";
+
   return (
     <Link
       href={href}
@@ -692,19 +705,18 @@ function SearchResultItem({
         <Image
           src={imageUrl}
           alt={result.title}
-          width={isPerson ? 32 : 32}
-          height={isPerson ? 32 : 48}
-          className={cn(
-            "object-cover rounded flex-shrink-0",
-            isPerson ? "h-8 w-8 rounded-full" : "h-12 w-8"
-          )}
+          width={variant === "desktop" ? (isPerson ? 40 : 44) : 32}
+          height={variant === "desktop" ? (isPerson ? 40 : 64) : isPerson ? 32 : 48}
+          className={cn("object-cover rounded flex-shrink-0", posterClass)}
           unoptimized
         />
       ) : (
-        <div className={cn(
-          "bg-muted rounded flex items-center justify-center flex-shrink-0",
-          isPerson ? "h-8 w-8 rounded-full" : "h-12 w-8"
-        )}>
+        <div
+          className={cn(
+            "bg-muted rounded flex items-center justify-center flex-shrink-0",
+            posterClass
+          )}
+        >
           <ImageIcon className="h-4 w-4 text-muted-foreground" />
         </div>
       )}

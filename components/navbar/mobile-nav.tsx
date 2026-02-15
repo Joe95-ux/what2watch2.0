@@ -136,7 +136,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
         </SheetClose>
       </SheetHeader>
 
-      <div className="flex-1 overflow-y-auto px-4 py-6 pb-20 space-y-6">
+      <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-6 pb-20 space-y-6">
         {/* First Section: Dashboard, Notifications, Feedback */}
         {isSignedIn && (
           <div className="space-y-3">

@@ -65,7 +65,11 @@ export default function Navbar() {
     !isDiscoverPage;
 
   const shouldUseMaxSearchNav =
-    pathname === "/search" || pathname?.startsWith("/search") || pathname === "/popular" || pathname?.startsWith("/popular") || pathname === "/lists" || pathname?.startsWith("/lists") || pathname === "/members" || pathname?.startsWith("/members") || pathname?.startsWith("/tv") || pathname?.startsWith("/movie");
+    pathname === "/search" || pathname?.startsWith("/search") || pathname === "/popular" || pathname?.startsWith("/popular") || pathname === "/members" || pathname?.startsWith("/members");
+
+  const isDetailsNav = pathname?.startsWith("/tv") || pathname?.startsWith("/movie") || pathname?.startsWith("/lists");
+
+  const isGuideNav = pathname === "/browse/personalized"
 
   // Check if we're on a page with hero section (dark navbar needed)
   const hasHeroSection =
@@ -91,7 +95,9 @@ export default function Navbar() {
           "w-full flex h-16 items-center px-4 sm:px-6 lg:px-8",
           shouldUseMaxSearchNav && "container mx-auto",
           "grid grid-cols-[auto_1fr_auto] gap-2 md:gap-4",
-          isDiscoverPage && "!grid"
+          isDiscoverPage && "!grid",
+          isDetailsNav && "max-w-7xl mx-aut",
+          isGuideNav && "max-w-[92rem] mx-auto",
         )}
       >
         {/* Left: Hamburger + Logo + (Lists, Popular when not dashboard/discover) */}
