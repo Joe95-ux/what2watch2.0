@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getJustWatchAvailability } from "@/lib/justwatch";
 
 const MAX_ITEMS = 50;
+const BATCH_SIZE = 5;
+const BATCH_DELAY_MS = 150;
+const RETRY_DELAY_MS = 250;
+const MAX_ATTEMPTS = 2;
+
 type Period = "1d" | "7d" | "30d";
 
 export interface RanksBatchBody {
@@ -14,15 +19,49 @@ export interface RanksBatchResponse {
   map: Record<string, { position: number; delta: number | null }>;
 }
 
+/** Fetch rank for one title with a single retry on failure. No extra work when the first attempt succeeds. */
+async function fetchRankOnce(
+  type: "movie" | "tv",
+  id: number,
+  country: string,
+  period: Period
+): Promise<{ position: number; delta: number | null } | null> {
+  const jw = await getJustWatchAvailability(type, id, country);
+  const window = jw?.ranks?.[period];
+  if (window && typeof window.rank === "number" && Number.isFinite(window.rank)) {
+    return {
+      position: window.rank,
+      delta:
+        typeof window.delta === "number" && Number.isFinite(window.delta) ? window.delta : null,
+    };
+  }
+  return null;
+}
+
+async function fetchRankWithRetry(
+  type: "movie" | "tv",
+  id: number,
+  country: string,
+  period: Period
+): Promise<{ position: number; delta: number | null } | null> {
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const result = await fetchRankOnce(type, id, country, period);
+      if (result !== null) return result;
+      break; // No rank in response; don't retry
+    } catch {
+      if (attempt === MAX_ATTEMPTS) return null;
+      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+    }
+  }
+  return null;
+}
+
 /**
  * POST /api/justwatch/charts/ranks-batch
  * Body: { country?, period?, items: [{ type: "movie"|"tv", id: number }] }
  * Returns JustWatch streaming chart rank (position) and delta for each title for the given period.
- * Used by /search?watchProvider=x to show rank on every result card.
- *
- * Cost: One JustWatch API call (getJustWatchAvailability) per item, up to MAX_ITEMS (50).
- * Requests are batched (5 at a time with 150ms delay) to avoid rate limits. Response is cached
- * 15min (staleTime on client). Only runs when watchProvider is in the URL and results exist.
+ * Failed requests are retried once after a short delay to recover from rate limits or transient errors.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -38,8 +77,6 @@ export async function POST(request: NextRequest) {
       .slice(0, MAX_ITEMS);
 
     const map: Record<string, { position: number; delta: number | null }> = {};
-    const BATCH_SIZE = 5;
-    const BATCH_DELAY_MS = 150;
 
     for (let i = 0; i < slice.length; i += BATCH_SIZE) {
       if (i > 0) await new Promise((r) => setTimeout(r, BATCH_DELAY_MS));
@@ -47,19 +84,8 @@ export async function POST(request: NextRequest) {
       await Promise.all(
         batch.map(async ({ type, id }) => {
           const key = `${type}-${id}`;
-          try {
-            const jw = await getJustWatchAvailability(type, id, country);
-            const window = jw?.ranks?.[period];
-            if (window && typeof window.rank === "number" && Number.isFinite(window.rank)) {
-              map[key] = {
-                position: window.rank,
-                delta:
-                  typeof window.delta === "number" && Number.isFinite(window.delta) ? window.delta : null,
-              };
-            }
-          } catch {
-            // Per-title failure (e.g. rate limit): skip
-          }
+          const result = await fetchRankWithRetry(type, id, country, period);
+          if (result) map[key] = result;
         })
       );
     }
