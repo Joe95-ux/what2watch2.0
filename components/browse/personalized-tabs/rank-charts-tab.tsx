@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRef, useState, useMemo, useEffect } from "react";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
-import { useJustWatchChart, type ChartPeriod } from "@/hooks/use-justwatch-chart";
+import { useJustWatchChartWithBatch, type ChartPeriod } from "@/hooks/use-justwatch-chart";
 import { StreamingChartRow } from "../streaming-chart-row";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -152,7 +152,7 @@ function ProviderRow({
   period: ChartPeriod;
   rowRef: React.Ref<HTMLDivElement | null>;
 }) {
-  const { data: entries = [], isLoading } = useJustWatchChart(provider.provider_id, {
+  const { data: entries = [], isLoading } = useJustWatchChartWithBatch(provider.provider_id, {
     country: "US",
     period,
     limit: CHART_LIMIT,
