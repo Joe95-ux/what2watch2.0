@@ -143,7 +143,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
             <div className="flex items-center justify-between gap-2">
               <Link href="/dashboard" onClick={onLinkClick} className="flex-1">
                 <div className="flex flex-col items-center gap-2">
-                    <div className="rounded-full bg-primary/10 p-2">
+                    <div className="rounded-full bg-muted/50 p-3">
                       <LayoutDashboard className="h-5 w-5 text-foreground" />
                     </div>
                   <span className="text-xs font-medium">Dashboard</span>
@@ -154,7 +154,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                 <SheetTrigger asChild>
                   <button className="flex-1">
                     <div className="flex flex-col items-center gap-2">
-                        <div className="rounded-full bg-primary/10 p-2 relative">
+                        <div className="rounded-full bg-muted/50 p-3 relative">
                           <Bell className="h-5 w-5 text-foreground" />
                           {totalUnreadCount > 0 && (
                             <Badge
@@ -178,7 +178,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                 <PopoverTrigger asChild>
                   <button className="flex-1">
                     <div className="flex flex-col items-center gap-2">
-                      <div className="rounded-full bg-primary/10 p-2">
+                      <div className="rounded-full bg-muted/50 p-3">
                         <Megaphone className="h-5 w-5 text-foreground" />
                       </div>
                       <span className="text-xs font-medium">Feedback</span>
@@ -403,6 +403,19 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
             >
               <Settings className="mr-3 h-4 w-4 text-foreground" />
               <span>Settings</span>
+            </Link>
+            <Link
+              href="/browse/personalized"
+              onClick={onLinkClick}
+              className={cn(
+                "flex items-center rounded-md px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
+                pathname === "/browse/personalized" || pathname?.startsWith("/browse/personalized")
+                  ? "bg-muted text-foreground font-medium"
+                  : "text-muted-foreground"
+              )}
+            >
+              <Compass className="mr-3 h-4 w-4 text-foreground" />
+              <span>Guide</span>
             </Link>
             <button
               onClick={() => {

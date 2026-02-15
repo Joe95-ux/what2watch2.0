@@ -78,8 +78,8 @@ export function RatingsRow({
       <Image
         src="/jw-icon.png"
         alt="JustWatch"
-        width={24}
-        height={24}
+        width={20}
+        height={20}
         className="object-contain opacity-90"
         unoptimized
       />

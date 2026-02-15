@@ -261,8 +261,8 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
                           <Image
                             src="/jw-icon.png"
                             alt="JustWatch"
-                            width={24}
-                            height={24}
+                            width={20}
+                            height={20}
                             className="object-contain"
                             unoptimized
                           />
@@ -293,8 +293,8 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
                       <Image
                         src="/jw-icon.png"
                         alt="JustWatch"
-                        width={24}
-                        height={24}
+                        width={20}
+                        height={20}
                         className="object-contain"
                         unoptimized
                       />

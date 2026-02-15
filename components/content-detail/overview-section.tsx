@@ -347,7 +347,7 @@ function OverviewInfoRow({ label, value, personId, personName, writers, cast, ge
 
   return (
     <div className="flex items-center justify-between gap-4 px-0 py-3 text-sm">
-      <span className="text-muted-foreground">{label}</span>
+      <span className="text-muted-foreground uppercase">{label}</span>
       {renderValue()}
     </div>
   );
@@ -441,7 +441,7 @@ function OverviewDetailsRows({
     <>
       {rows.map((row, index) => (
         <div key={index} className="flex items-center justify-between gap-4 px-0 py-3 text-sm">
-          <span className="text-muted-foreground">{row.label}</span>
+          <span className="text-muted-foreground uppercase">{row.label}</span>
           {row.link ? (
             <a href={row.link} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
               {row.value}

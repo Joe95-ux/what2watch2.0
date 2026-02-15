@@ -10,10 +10,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { FiltersSheet, type SearchFilters } from "@/components/filters/filters-sheet";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
 import { useWatchRegions } from "@/hooks/use-watch-regions";
+import { useJustWatchChart } from "@/hooks/use-justwatch-chart";
 
 function SearchResultsContent() {
   const searchParams = useSearchParams();
@@ -363,13 +364,19 @@ function SearchResultsContent() {
           <>
             {/* Results Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 mb-8">
-              {results.map((item) => (
-                <MoreLikeThisCard
-                  key={item.id}
-                  item={item}
-                  type={getContentType(item)}
-                />
-              ))}
+              {results.map((item) => {
+                const contentType = getContentType(item);
+                const rankInfo = watchProviderForChart != null ? justwatchRankMap.get(`${contentType}-${item.id}`) : undefined;
+                return (
+                  <MoreLikeThisCard
+                    key={item.id}
+                    item={item}
+                    type={contentType}
+                    justwatchRank={rankInfo?.position ?? null}
+                    justwatchRankDelta={rankInfo?.delta ?? null}
+                  />
+                );
+              })}
             </div>
 
             {/* Pagination */}

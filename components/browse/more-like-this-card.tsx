@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { Play, Plus, Heart, Bookmark, MoreVertical, Eye, ThumbsUp } from "lucide-react";
+import { FaCaretUp, FaCaretDown } from "react-icons/fa6";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
 import { CircleActionButton } from "./circle-action-button";
@@ -34,6 +35,10 @@ interface MoreLikeThisCardProps {
   showTypeBadge?: boolean; // Show TV/Movies badge when filter is "all"
   className?: string;
   onAddToPlaylist?: () => void;
+  /** When set (e.g. from /search?watchProvider=x), show JustWatch 24h rank instead of runtime in top-right. */
+  justwatchRank?: number | null;
+  /** Delta for rank badge (positive = up, negative = down). Used with justwatchRank. */
+  justwatchRankDelta?: number | null;
 }
 
 export default function MoreLikeThisCard({
@@ -45,6 +50,8 @@ export default function MoreLikeThisCard({
   showTypeBadge = false,
   className,
   onAddToPlaylist,
+  justwatchRank = null,
+  justwatchRankDelta = null,
 }: MoreLikeThisCardProps) {
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
@@ -376,12 +383,39 @@ export default function MoreLikeThisCard({
             </DropdownMenu>
           </div>
 
-          {/* Runtime - Top Right */}
-          {runtimeText && (
+          {/* Rank (24h) or Runtime - Top Right */}
+          {justwatchRank != null ? (
+            <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-sm text-white font-medium z-[5]">
+              <Image
+                src="/jw-icon.png"
+                alt=""
+                width={15}
+                height={15}
+                className="object-contain shrink-0"
+                unoptimized
+              />
+              <span className="tabular-nums">#{justwatchRank}</span>
+              {justwatchRankDelta != null && justwatchRankDelta !== 0 && (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[10px] font-medium",
+                    justwatchRankDelta > 0 ? "bg-green-600 text-white" : "bg-red-600 text-white"
+                  )}
+                >
+                  {justwatchRankDelta > 0 ? (
+                    <FaCaretUp className="h-3 w-3 fill-current" />
+                  ) : (
+                    <FaCaretDown className="h-3 w-3 fill-current" />
+                  )}
+                  {Math.abs(justwatchRankDelta)}
+                </span>
+              )}
+            </div>
+          ) : runtimeText ? (
             <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-sm text-white font-medium z-[5]">
               {runtimeText}
             </div>
-          )}
+          ) : null}
 
           {/* Type Badge - Bottom Left (when filter is "all") */}
           {showTypeBadge && (

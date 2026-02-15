@@ -140,7 +140,7 @@ export default function TVSeasonsSection({
   }, []);
 
   return (
-    <section className="py-12">
+    <section className="pb-12">
       <h2 className="text-2xl font-bold mb-6">Seasons & Episodes</h2>
 
       {/* Season Selector - Carousel */}
