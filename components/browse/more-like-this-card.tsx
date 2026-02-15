@@ -389,8 +389,8 @@ export default function MoreLikeThisCard({
               <Image
                 src="/jw-icon.png"
                 alt=""
-                width={15}
-                height={15}
+                width={13}
+                height={13}
                 className="object-contain shrink-0"
                 unoptimized
               />

@@ -14,7 +14,7 @@ import { useState, useEffect, useMemo } from "react";
 import { FiltersSheet, type SearchFilters } from "@/components/filters/filters-sheet";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
 import { useWatchRegions } from "@/hooks/use-watch-regions";
-import { useJustWatchChart } from "@/hooks/use-justwatch-chart";
+import { useQuery } from "@tanstack/react-query";
 
 function SearchResultsContent() {
   const searchParams = useSearchParams();
@@ -113,21 +113,42 @@ function SearchResultsContent() {
       : null;
   const streamingProviderName = streamingProvider?.provider_name ?? null;
 
-  // When viewing by watchProvider (e.g. from Rank Charts "View All"), fetch 24h chart to show rank on cards
+  // When viewing by watchProvider (e.g. from Rank Charts "View All"), fetch JustWatch rank for each result so all cards can show rank
   const watchProviderForChart =
     watchProvider !== undefined && !Number.isNaN(watchProvider) && watchProvider > 0 ? watchProvider : null;
-  const { data: chartEntries = [] } = useJustWatchChart(watchProviderForChart ?? 0, {
-    period: "1d",
-    limit: 30,
+  const rankBatchQuery = useQuery({
+    queryKey: [
+      "justwatch-ranks-batch",
+      watchProviderForChart,
+      currentPage,
+      results.map((r) => `${"title" in r ? "movie" : "tv"}-${r.id}`).join(","),
+    ],
+    queryFn: async () => {
+      const res = await fetch("/api/justwatch/charts/ranks-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          country: "US",
+          period: "1d",
+          items: results.map((item) => ({
+            type: "title" in item ? "movie" : "tv",
+            id: item.id,
+          })),
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to fetch ranks");
+      const data = await res.json();
+      return data.map as Record<string, { position: number; delta: number | null }>;
+    },
+    enabled: !!watchProviderForChart && results.length > 0,
+    staleTime: 1000 * 60 * 15,
+    gcTime: 1000 * 60 * 60,
   });
   const justwatchRankMap = useMemo(() => {
     const m = new Map<string, { position: number; delta: number | null }>();
-    chartEntries.forEach((e) => {
-      const key = `${e.type}-${e.item.id}`;
-      if (e.position != null) m.set(key, { position: e.position, delta: e.deltaNumber ?? null });
-    });
+    if (rankBatchQuery.data) Object.entries(rankBatchQuery.data).forEach(([k, v]) => m.set(k, v));
     return m;
-  }, [chartEntries]);
+  }, [rankBatchQuery.data]);
 
   const updateURL = (newParams: Record<string, string | number | number[] | undefined>) => {
     const params = new URLSearchParams();

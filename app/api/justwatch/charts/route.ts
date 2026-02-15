@@ -87,31 +87,41 @@ export async function GET(request: NextRequest) {
     combined.sort((a, b) => (b.item.popularity ?? 0) - (a.item.popularity ?? 0));
     const slice = combined.slice(0, limit);
 
-    // 2. Enrich each with JustWatch rank/delta for the chosen period (same as details page)
-    let entries: ChartEntryResponse[] = await Promise.all(
-      slice.map(async ({ item, type }) => {
-        let rank: number | null = null;
-        let delta: number | null = null;
-        try {
-          const jw = await getJustWatchAvailability(type, item.id, country);
-          const window = jw?.ranks?.[period];
-          if (window && typeof window.rank === "number" && Number.isFinite(window.rank)) {
-            rank = window.rank;
-            delta =
-              typeof window.delta === "number" && Number.isFinite(window.delta) ? window.delta : null;
+    // 2. Enrich each with JustWatch rank/delta for the chosen period (same as details page).
+    // Process in small batches with a short delay between batches to avoid rate-limiting the JustWatch API
+    // (which can drop or fail when hit with many concurrent requests; details page works because it does one call).
+    const BATCH_SIZE = 5;
+    const BATCH_DELAY_MS = 150;
+    const entries: ChartEntryResponse[] = [];
+    for (let i = 0; i < slice.length; i += BATCH_SIZE) {
+      if (i > 0) await new Promise((r) => setTimeout(r, BATCH_DELAY_MS));
+      const batch = slice.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batch.map(async ({ item, type }) => {
+          let rank: number | null = null;
+          let delta: number | null = null;
+          try {
+            const jw = await getJustWatchAvailability(type, item.id, country);
+            const window = jw?.ranks?.[period];
+            if (window && typeof window.rank === "number" && Number.isFinite(window.rank)) {
+              rank = window.rank;
+              delta =
+                typeof window.delta === "number" && Number.isFinite(window.delta) ? window.delta : null;
+            }
+          } catch (e) {
+            // Per-title failure (e.g. rate limit): keep rank/delta null
           }
-        } catch (e) {
-          // Per-title failure: keep rank/delta null
-        }
-        return {
-          item,
-          type,
-          position: rank, // JustWatch chart rank as-is (no forcing 1,2,3); null when not on chart
-          rank,
-          delta,
-        };
-      })
-    );
+          return {
+            item,
+            type,
+            position: rank,
+            rank,
+            delta,
+          };
+        })
+      );
+      entries.push(...batchResults);
+    }
 
     // Keep TMDB popularity order; do not re-sort by JustWatch rank (position = actual JW rank per card)
 
