@@ -96,7 +96,7 @@ export default function Navbar() {
           shouldUseMaxSearchNav && "container mx-auto",
           "grid grid-cols-[auto_1fr_auto] gap-2 md:gap-4",
           isDiscoverPage && "!grid",
-          isDetailsNav && "max-w-7xl mx-aut",
+          isDetailsNav && "max-w-7xl mx-auto",
           isGuideNav && "max-w-[92rem] mx-auto",
         )}
       >
