@@ -131,7 +131,6 @@ export default function DashboardContent() {
       watchlistCount: favorites.length,
       playlistCount: playlists.length,
       recentlyViewedCount: recentlyViewed?.pages ? recentlyViewed.pages.reduce((sum, page) => sum + page.items.length, 0) : 0,
-      totalItems: favorites.length + playlists.reduce((acc, p) => acc + (p._count?.items || 0), 0),
       playlistReach: {
         total: playlistAnalytics?.totals.totalEngagement ?? shares + visits,
         shares,
@@ -182,42 +181,88 @@ export default function DashboardContent() {
           </p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 md:mb-8 max-w-7xl">
-          <StatCard
-            icon={Heart}
-            label="Watchlist"
-            value={stats.watchlistCount}
-            isLoading={isLoadingFavorites}
-            href="/dashboard/my-list"
-          />
-          <StatCard
-            icon={BookOpen}
-            label="Playlists"
-            value={stats.playlistCount}
-            isLoading={isLoadingPlaylists}
-            href="/dashboard/playlists"
-          />
-          <StatCard
-            icon={Clock}
-            label="Recently Viewed"
-            value={stats.recentlyViewedCount}
-            isLoading={isLoadingRecentlyViewed}
-          />
-          <StatCard
-            icon={Film}
-            label="Total Items"
-            value={stats.totalItems}
-            isLoading={isLoadingFavorites || isLoadingPlaylists}
-          />
-          <StatCard
-            icon={Share2}
-            label="Playlist Reach"
-            value={stats.playlistReach.total}
-            helper={`${stats.playlistReach.visits.toLocaleString()} visits • ${stats.playlistReach.shares.toLocaleString()} shares`}
-            isLoading={isLoadingPlaylistAnalytics}
-            href="/dashboard/my-stats"
-          />
+        {/* KPI Stats Grid (link page analytics style) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 border border-border rounded-lg overflow-hidden mb-4 sm:mb-6 md:mb-8 max-w-7xl">
+          {[
+            {
+              label: "Watchlist",
+              value: stats.watchlistCount,
+              isLoading: isLoadingFavorites,
+              href: "/dashboard/my-list",
+              helper: "Saved titles",
+              icon: <Heart className="h-5 w-5 text-pink-500" />,
+            },
+            {
+              label: "Playlists",
+              value: stats.playlistCount,
+              isLoading: isLoadingPlaylists,
+              href: "/dashboard/playlists",
+              helper: "Curated lists",
+              icon: <BookOpen className="h-5 w-5 text-blue-500" />,
+            },
+            {
+              label: "Recently Viewed",
+              value: stats.recentlyViewedCount,
+              isLoading: isLoadingRecentlyViewed,
+              helper: "Items viewed",
+              icon: <Clock className="h-5 w-5 text-violet-500" />,
+            },
+            {
+              label: "Playlist Reach",
+              value: stats.playlistReach.total,
+              isLoading: isLoadingPlaylistAnalytics,
+              href: "/dashboard/my-stats",
+              helper: `${stats.playlistReach.visits.toLocaleString()} visits · ${stats.playlistReach.shares.toLocaleString()} shares`,
+              icon: <Share2 className="h-5 w-5 text-emerald-500" />,
+            },
+          ].map((stat, index) => {
+            const columnsPerRow = 4;
+            const totalRows = Math.ceil(4 / columnsPerRow);
+            const currentRow = Math.floor(index / columnsPerRow) + 1;
+            const isLastRow = currentRow === totalRows;
+            const isLastColumn = (index + 1) % columnsPerRow === 0;
+            const isLastRowMobile = index === 3;
+            const isLastRowMd = index >= 2;
+
+            const cellContent = (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-muted-foreground">{stat.label}</span>
+                  {stat.icon}
+                </div>
+                <div className="text-2xl font-bold mb-1">
+                  {stat.isLoading ? (
+                    <Skeleton className="h-8 w-16 !bg-muted" />
+                  ) : (
+                    (Number.isFinite(stat.value) ? stat.value : 0).toLocaleString()
+                  )}
+                </div>
+                <p className="text-[15px] text-muted-foreground">{stat.helper}</p>
+              </>
+            );
+
+            const cellClassName = cn(
+              "p-4 sm:p-8 border-r border-b border-border",
+              isLastColumn && "border-r-0",
+              isLastRow && "lg:border-b-0",
+              isLastRowMd && "md:border-b-0",
+              isLastRowMobile && "border-b-0",
+              stat.href && "hover:bg-accent/50 cursor-pointer transition-colors"
+            );
+
+            if (stat.href) {
+              return (
+                <Link key={stat.label} href={stat.href} className={cn("block h-full", cellClassName)}>
+                  {cellContent}
+                </Link>
+              );
+            }
+            return (
+              <div key={stat.label} className={cn("h-full", cellClassName)}>
+                {cellContent}
+              </div>
+            );
+          })}
         </div>
 
         {/* Continue Watching Section */}
@@ -443,83 +488,6 @@ export default function DashboardContent() {
       </div>
     </div>
   );
-}
-
-interface StatCardProps {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: number;
-  isLoading?: boolean;
-  href?: string;
-  helper?: string;
-}
-
-function StatCard({ icon: Icon, label, value, isLoading, href, helper }: StatCardProps) {
-  // Different gradient backgrounds for each icon type
-  // Use icon component reference for comparison
-  const isHeart = Icon === Heart;
-  const isBookOpen = Icon === BookOpen;
-  const isClock = Icon === Clock;
-  const isFilm = Icon === Film;
-
-  const bgClass = isHeart
-    ? "bg-gradient-to-br from-pink-500/20 to-rose-500/20 dark:from-pink-500/30 dark:to-rose-500/30"
-    : isBookOpen
-    ? "bg-gradient-to-br from-blue-500/20 to-cyan-500/20 dark:from-blue-500/30 dark:to-cyan-500/30"
-    : isClock
-    ? "bg-gradient-to-br from-purple-500/20 to-indigo-500/20 dark:from-purple-500/30 dark:to-indigo-500/30"
-    : isFilm
-    ? "bg-gradient-to-br from-orange-500/20 to-amber-500/20 dark:from-orange-500/30 dark:to-amber-500/30"
-    : "bg-gradient-to-br from-primary/20 to-primary/10";
-
-  const colorClass = isHeart
-    ? "text-pink-600 dark:text-pink-400"
-    : isBookOpen
-    ? "text-blue-600 dark:text-blue-400"
-    : isClock
-    ? "text-purple-600 dark:text-purple-400"
-    : isFilm
-    ? "text-orange-600 dark:text-orange-400"
-    : "text-primary";
-
-  const content = (
-    <div className={cn(
-      "bg-card border rounded-lg p-4 sm:p-6 transition-colors w-full h-full flex flex-col overflow-hidden",
-      href && "hover:bg-accent/50 cursor-pointer"
-    )}>
-      <div className="flex items-center justify-between mb-2">
-        <div className={cn("p-2 rounded-lg", bgClass)}>
-          <Icon className={cn("h-5 w-5", colorClass)} />
-        </div>
-        {href && (
-          <span className="text-xs text-muted-foreground flex-shrink-0 ml-auto">View →</span>
-        )}
-      </div>
-      {isLoading ? (
-        <Skeleton className="h-8 w-16 !bg-gray-200 dark:!bg-accent" />
-      ) : (
-        <div className="text-xl sm:text-2xl font-bold break-words">
-          {Number.isFinite(value) ? value.toLocaleString() : "0"}
-        </div>
-      )}
-      <div className="text-xs sm:text-sm text-muted-foreground mt-1 break-words flex-shrink-0">{label}</div>
-      {helper ? (
-        <div className="text-[0.7rem] sm:text-xs text-muted-foreground/80 mt-0.5 break-words flex-shrink-0">
-          {helper}
-        </div>
-      ) : null}
-    </div>
-  );
-
-  if (href) {
-    return (
-      <Link href={href} className="h-full">
-        {content}
-      </Link>
-    );
-  }
-
-  return content;
 }
 
 interface MiniYouTubeVideo {

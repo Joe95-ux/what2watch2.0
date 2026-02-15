@@ -54,7 +54,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import type { ListItem, List } from "@/hooks/use-lists";
+import type { ListItem, List, ListVisibility } from "@/hooks/use-lists";
 import { ShareDropdown } from "@/components/ui/share-dropdown";
 import { useListDragDrop } from "@/hooks/use-list-drag-drop";
 import { Droppable, Draggable } from "@hello-pangea/dnd";
@@ -216,7 +216,15 @@ export default function ListView({
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isLgScreen, setIsLgScreen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [optimisticVisibility, setOptimisticVisibility] = useState<ListVisibility | null>(null);
   const ITEMS_PER_PAGE = 24;
+
+  // Clear optimistic visibility when server state catches up
+  useEffect(() => {
+    if (list && optimisticVisibility !== null && list.visibility === optimisticVisibility) {
+      setOptimisticVisibility(null);
+    }
+  }, [list?.visibility, list?.id, optimisticVisibility]);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
@@ -764,7 +772,7 @@ export default function ListView({
                 )}
                 <span>•</span>
                 <span className="capitalize">
-                  {list.visibility.toLowerCase().replace("_", " ")}
+                  {(optimisticVisibility ?? list.visibility).toLowerCase().replace("_", " ")}
                 </span>
                 {activeFilterCount > 0 && (
                   <>
@@ -781,7 +789,7 @@ export default function ListView({
             {/* Actions */}
             <div className="overflow-x-auto max-w-full">
               <div className="flex items-center gap-2">
-                {showLikeFollow && !isOwner && list && list.visibility !== "PRIVATE" && (
+                {showLikeFollow && !isOwner && list && (optimisticVisibility ?? list.visibility) !== "PRIVATE" && (
                   <>
                     <Button
                       variant={isLiked ? "default" : "outline"}
@@ -813,10 +821,10 @@ export default function ListView({
                 {enablePublicToggle && onTogglePublic && isOwner && (
                   <div
                     className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-md border",
-                      list.visibility === "PUBLIC"
+                      "flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer",
+                      (optimisticVisibility ?? list.visibility) === "PUBLIC"
                         ? "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
-                        : list.visibility === "FOLLOWERS_ONLY"
+                        : (optimisticVisibility ?? list.visibility) === "FOLLOWERS_ONLY"
                         ? "bg-purple-500/20 border-purple-500/30 text-purple-700 dark:text-purple-400"
                         : "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
                     )}
@@ -824,14 +832,17 @@ export default function ListView({
                   >
                     <Switch
                       id="public-toggle"
-                      checked={list.visibility === "PUBLIC"}
+                      checked={(optimisticVisibility ?? list.visibility) === "PUBLIC"}
                       onCheckedChange={async (checked) => {
+                        const next = checked ? "PUBLIC" : "PRIVATE";
+                        setOptimisticVisibility(next);
                         try {
-                          await onTogglePublic(checked ? "PUBLIC" : "PRIVATE");
+                          await onTogglePublic(next);
                           toast.success(
                             checked ? "List is now public" : "List is now private"
                           );
                         } catch {
+                          setOptimisticVisibility(null);
                           toast.error("Failed to update list visibility");
                         }
                       }}
@@ -840,15 +851,15 @@ export default function ListView({
                       htmlFor="public-toggle"
                       className="text-sm cursor-pointer flex items-center gap-1.5"
                     >
-                      {list.visibility === "PUBLIC" ? (
+                      {(optimisticVisibility ?? list.visibility) === "PUBLIC" ? (
                         <Eye className="h-4 w-4" />
                       ) : (
                         <Lock className="h-4 w-4" />
                       )}
                       <span>
-                        {list.visibility === "PUBLIC"
+                        {(optimisticVisibility ?? list.visibility) === "PUBLIC"
                           ? "Public"
-                          : list.visibility === "FOLLOWERS_ONLY"
+                          : (optimisticVisibility ?? list.visibility) === "FOLLOWERS_ONLY"
                           ? "Followers"
                           : "Private"}
                       </span>
@@ -897,10 +908,24 @@ export default function ListView({
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
+                </div>
               </div>
+              {/* List activity */}
+              {list && (
+                <div className="text-sm text-muted-foreground flex items-center gap-4 flex-wrap">
+                  <span className="flex items-center gap-1.5">
+                    <Eye className="h-4 w-4" />
+                    {list.viewsCount ?? 0} {list.viewsCount === 1 ? "view" : "views"}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Heart className="h-4 w-4" />
+                    {list._count?.likedBy ?? 0} {list._count?.likedBy === 1 ? "like" : "likes"}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        
 
         {/* Bulk Actions Bar */}
         {isEditMode && enableRemove && (
@@ -1643,6 +1668,7 @@ export default function ListView({
         </div>
       </div>
 
+
       {/* Remove Confirmation Dialog */}
       {enableRemove && (
         <Dialog
@@ -1827,7 +1853,7 @@ export default function ListView({
           }}
         />
       )}
-    </>
+    </>      
   );
 }
 

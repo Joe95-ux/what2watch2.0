@@ -35,9 +35,11 @@ interface SearchResult {
 
 interface SearchProps {
   hasHeroSection?: boolean;
+  /** When true, search bar is in navbar center with wider max-width */
+  centered?: boolean;
 }
 
-export default function Search({ hasHeroSection = false }: SearchProps = {}) {
+export default function Search({ hasHeroSection = false, centered = false }: SearchProps = {}) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -495,7 +497,13 @@ export default function Search({ hasHeroSection = false }: SearchProps = {}) {
 
   // Desktop: Inline search with dropdown
   return (
-    <div ref={containerRef} className="relative w-72 lg:w-80 2xl:w-96">
+    <div
+      ref={containerRef}
+      className={cn(
+        "relative",
+        centered ? "w-full max-w-xl xl:max-w-2xl min-w-0" : "w-72 lg:w-80 2xl:w-96"
+      )}
+    >
       <div className="relative">
         <SearchIcon className={cn(
           "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none transition-colors duration-300",

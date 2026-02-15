@@ -9,7 +9,7 @@ export function MoreLikeThisCardSkeleton({ className }: MoreLikeThisCardSkeleton
   return (
     <div className={cn("relative bg-card rounded-lg overflow-hidden", className)}>
       {/* Section 1: Movie Poster - Square aspect ratio */}
-      <div className="relative aspect-square bg-muted overflow-hidden border-b border-border/50">
+      <div className="relative aspect-[3/4] bg-muted overflow-hidden border-b border-border/50">
         <Skeleton className="w-full h-full" />
       </div>
       {/* Section 2: Metadata and Title */}

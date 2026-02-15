@@ -217,7 +217,7 @@ export default function MoreLikeThisCard({
         onClick={handleCardClick}
       >
         {/* Section 1: Movie Poster - Square aspect ratio */}
-        <div className="relative aspect-square bg-muted overflow-hidden border-b border-border/50">
+        <div className="relative aspect-[3/4] bg-muted overflow-hidden border-b border-border/50">
           {posterPath ? (
             <Image
               src={getPosterUrl(posterPath, "w500")}

@@ -39,6 +39,7 @@ export interface Playlist {
     youtubeItems?: number;
     likedBy?: number;
   };
+  viewsCount?: number;
   isReadOnly?: boolean;
   createdBy?: {
     id: string;

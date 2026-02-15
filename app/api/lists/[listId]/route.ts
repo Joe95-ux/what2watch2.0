@@ -63,8 +63,12 @@ export async function GET(
       }
     }
 
-    return NextResponse.json({ 
-      list,
+    const viewsCount = await db.listEngagementEvent.count({
+      where: { listId, type: "VISIT" },
+    });
+
+    return NextResponse.json({
+      list: { ...list, viewsCount },
       currentUserId: user?.id || null,
     });
   } catch (error) {

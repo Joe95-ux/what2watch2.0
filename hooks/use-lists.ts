@@ -42,6 +42,7 @@ export interface List {
     likedBy: number;
     comments: number;
   };
+  viewsCount?: number;
 }
 
 interface CreateListParams {

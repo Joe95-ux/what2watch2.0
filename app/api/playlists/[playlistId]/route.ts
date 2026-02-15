@@ -72,8 +72,12 @@ export async function GET(
         );
       }
 
-      return NextResponse.json({ 
-        playlist,
+      const viewsCount = await db.playlistEngagementEvent.count({
+        where: { playlistId, type: "VISIT" },
+      });
+
+      return NextResponse.json({
+        playlist: { ...playlist, viewsCount },
         currentUserId, // Include current user ID if authenticated
       });
     }
@@ -140,8 +144,12 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ 
-      playlist,
+    const viewsCount = await db.playlistEngagementEvent.count({
+      where: { playlistId, type: "VISIT" },
+    });
+
+    return NextResponse.json({
+      playlist: { ...playlist, viewsCount },
       currentUserId: user.id, // Include current user's database ID for ownership checks
     });
   } catch (error) {

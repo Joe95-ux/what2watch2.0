@@ -239,6 +239,18 @@ export default function PlaylistView({
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isEditPlaylistModalOpen, setIsEditPlaylistModalOpen] = useState(false);
+  type PlaylistVisibility = "PUBLIC" | "FOLLOWERS_ONLY" | "PRIVATE";
+  const [optimisticVisibility, setOptimisticVisibility] = useState<PlaylistVisibility | null>(null);
+  const getPlaylistVisibility = (p: Playlist | null): PlaylistVisibility =>
+    !p ? "PRIVATE" : p.visibility === "PUBLIC" || p.isPublic ? "PUBLIC" : p.visibility === "FOLLOWERS_ONLY" ? "FOLLOWERS_ONLY" : "PRIVATE";
+  const effectiveVisibility = optimisticVisibility ?? (playlist ? getPlaylistVisibility(playlist) : "PRIVATE");
+
+  useEffect(() => {
+    if (playlist && optimisticVisibility !== null && getPlaylistVisibility(playlist) === optimisticVisibility) {
+      setOptimisticVisibility(null);
+    }
+  }, [playlist?.visibility, playlist?.isPublic, playlist?.id, optimisticVisibility]);
+
   const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false);
   const [addSearchQuery, setAddSearchQuery] = useState("");
   const [selectedItemsToAdd, setSelectedItemsToAdd] = useState<Set<string>>(new Set());
@@ -1014,9 +1026,9 @@ export default function PlaylistView({
                   <>
                     <span>•</span>
                     <span className="capitalize">
-                      {playlist.visibility === "PUBLIC" || (playlist.visibility === undefined && playlist.isPublic)
+                      {effectiveVisibility === "PUBLIC"
                         ? "public"
-                        : playlist.visibility === "FOLLOWERS_ONLY"
+                        : effectiveVisibility === "FOLLOWERS_ONLY"
                         ? "followers only"
                         : "private"}
                     </span>
@@ -1034,10 +1046,11 @@ export default function PlaylistView({
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="overflow-x-auto max-w-full">
-              <div className="flex items-center gap-2">
-                {showLikeFollow && !isOwner && playlist && (playlist.visibility === "PUBLIC" || playlist.isPublic || playlist.visibility === "FOLLOWERS_ONLY") && (
+            {/* Actions and List activity */}
+            <div className="flex flex-col gap-2">
+              <div className="overflow-x-auto max-w-full">
+                <div className="flex items-center gap-2">
+                {showLikeFollow && !isOwner && playlist && effectiveVisibility !== "PRIVATE" && (
                   <>
                     <Button
                       variant={isLiked ? "default" : "outline"}
@@ -1072,10 +1085,10 @@ export default function PlaylistView({
                 {enablePublicToggle && onTogglePublic && isOwner && (
                   <div
                     className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-md border",
-                      playlist.visibility === "PUBLIC" || playlist.isPublic
+                      "flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer",
+                      effectiveVisibility === "PUBLIC"
                         ? "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
-                        : playlist.visibility === "FOLLOWERS_ONLY"
+                        : effectiveVisibility === "FOLLOWERS_ONLY"
                         ? "bg-purple-500/20 border-purple-500/30 text-purple-700 dark:text-purple-400"
                         : "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
                     )}
@@ -1083,14 +1096,17 @@ export default function PlaylistView({
                   >
                     <Switch
                       id="public-toggle"
-                      checked={playlist.visibility === "PUBLIC" || playlist.isPublic}
+                      checked={effectiveVisibility === "PUBLIC"}
                       onCheckedChange={async (checked) => {
+                        const next = checked ? "PUBLIC" : "PRIVATE";
+                        setOptimisticVisibility(next);
                         try {
-                          await onTogglePublic(checked ? "PUBLIC" : "PRIVATE");
+                          await onTogglePublic(next);
                           toast.success(
                             checked ? "Playlist is now public" : "Playlist is now private"
                           );
                         } catch {
+                          setOptimisticVisibility(null);
                           toast.error("Failed to update playlist visibility");
                         }
                       }}
@@ -1099,15 +1115,15 @@ export default function PlaylistView({
                       htmlFor="public-toggle"
                       className="text-sm cursor-pointer flex items-center gap-1.5"
                     >
-                      {playlist.visibility === "PUBLIC" || playlist.isPublic ? (
+                      {effectiveVisibility === "PUBLIC" ? (
                         <Eye className="h-4 w-4" />
                       ) : (
                         <Lock className="h-4 w-4" />
                       )}
                       <span>
-                        {playlist.visibility === "PUBLIC" || playlist.isPublic
+                        {effectiveVisibility === "PUBLIC"
                           ? "Public"
-                          : playlist.visibility === "FOLLOWERS_ONLY"
+                          : effectiveVisibility === "FOLLOWERS_ONLY"
                           ? "Followers"
                           : "Private"}
                       </span>
@@ -1156,7 +1172,21 @@ export default function PlaylistView({
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
+                </div>
               </div>
+              {/* List activity */}
+              {playlist && (
+                <div className="text-sm text-muted-foreground flex items-center gap-4 flex-wrap">
+                  <span className="flex items-center gap-1.5">
+                    <Eye className="h-4 w-4" />
+                    {playlist.viewsCount ?? 0} {playlist.viewsCount === 1 ? "view" : "views"}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Heart className="h-4 w-4" />
+                    {playlist.likesCount ?? playlist._count?.likedBy ?? 0} {(playlist.likesCount ?? playlist._count?.likedBy ?? 0) === 1 ? "like" : "likes"}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
