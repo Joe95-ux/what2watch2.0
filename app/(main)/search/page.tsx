@@ -411,6 +411,7 @@ function SearchResultsContent() {
                     type={contentType}
                     justwatchRank={rankInfo?.position ?? null}
                     justwatchRankDelta={rankInfo?.delta ?? null}
+                    justwatchRankLoading={!!watchProviderForChart && rankBatchQuery.isLoading}
                   />
                 );
               })}

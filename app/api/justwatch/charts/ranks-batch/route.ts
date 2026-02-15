@@ -19,6 +19,10 @@ export interface RanksBatchResponse {
  * Body: { country?, period?, items: [{ type: "movie"|"tv", id: number }] }
  * Returns JustWatch streaming chart rank (position) and delta for each title for the given period.
  * Used by /search?watchProvider=x to show rank on every result card.
+ *
+ * Cost: One JustWatch API call (getJustWatchAvailability) per item, up to MAX_ITEMS (50).
+ * Requests are batched (5 at a time with 150ms delay) to avoid rate limits. Response is cached
+ * 15min (staleTime on client). Only runs when watchProvider is in the URL and results exist.
  */
 export async function POST(request: NextRequest) {
   try {

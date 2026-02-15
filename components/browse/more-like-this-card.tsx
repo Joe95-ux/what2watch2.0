@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-logs";
 import { useContentReactions, useLikeContent } from "@/hooks/use-content-reactions";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface MoreLikeThisCardProps {
   item: TMDBMovie | TMDBSeries;
@@ -39,6 +40,8 @@ interface MoreLikeThisCardProps {
   justwatchRank?: number | null;
   /** Delta for rank badge (positive = up, negative = down). Used with justwatchRank. */
   justwatchRankDelta?: number | null;
+  /** When true, show a skeleton in the rank/runtime slot until ranks are loaded (then rank or runtime). */
+  justwatchRankLoading?: boolean;
 }
 
 export default function MoreLikeThisCard({
@@ -52,6 +55,7 @@ export default function MoreLikeThisCard({
   onAddToPlaylist,
   justwatchRank = null,
   justwatchRankDelta = null,
+  justwatchRankLoading = false,
 }: MoreLikeThisCardProps) {
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
@@ -383,9 +387,13 @@ export default function MoreLikeThisCard({
             </DropdownMenu>
           </div>
 
-          {/* Rank (24h) or Runtime - Top Right */}
-          {justwatchRank != null ? (
-            <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-sm text-white font-medium z-[5]">
+          {/* Rank (24h), Runtime, or Skeleton - Top Right */}
+          {justwatchRankLoading ? (
+            <div className="absolute top-2 right-2 z-[5]">
+              <Skeleton className="h-6 w-16 rounded bg-white/20" />
+            </div>
+          ) : justwatchRank != null ? (
+            <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-[0.85rem] text-white font-medium z-[5]">
               <Image
                 src="/jw-icon.png"
                 alt=""
@@ -412,7 +420,7 @@ export default function MoreLikeThisCard({
               )}
             </div>
           ) : runtimeText ? (
-            <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-sm text-white font-medium z-[5]">
+            <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-[0.85rem] text-white font-medium z-[5]">
               {runtimeText}
             </div>
           ) : null}
