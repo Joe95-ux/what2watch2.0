@@ -501,7 +501,7 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
       ref={containerRef}
       className={cn(
         "relative",
-        centered ? "w-full max-w-xl min-w-0" : "w-72 lg:w-80 2xl:w-96"
+        centered ? "w-full max-w-[28rem] min-w-0" : "w-72 lg:w-80 2xl:w-96"
       )}
     >
       <div className="relative">
