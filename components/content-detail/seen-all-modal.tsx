@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -51,7 +51,7 @@ export default function SeenAllModal({
   const regularSeasons = seasons.filter((s) => s.season_number > 0);
 
   // Fetch which seasons are already seen
-  const { data: seenSeasonsData } = useQuery<{ seenSeasons: number[] }>({
+  const { data: seenSeasonsData, isLoading: isLoadingSeenSeasons } = useQuery<{ seenSeasons: number[] }>({
     queryKey: ["seen-seasons", tvShowId],
     queryFn: async () => {
       try {
@@ -70,24 +70,46 @@ export default function SeenAllModal({
   });
 
   const seenSeasons = seenSeasonsData?.seenSeasons || [];
+  const seenSeasonsKey = JSON.stringify(seenSeasons); // Stable key for comparison
+  const initializedRef = useRef<string | null>(null); // Track what we've initialized
 
   // Initialize selectedSeasons with already seen seasons when modal opens
   useEffect(() => {
-    console.log("[Seen All Modal] useEffect triggered:", { isOpen, seenSeasonsData, seenSeasons, isArray: Array.isArray(seenSeasons) });
+    console.log("[Seen All Modal] useEffect triggered:", { 
+      isOpen, 
+      isLoadingSeenSeasons,
+      seenSeasons,
+      seenSeasonsKey,
+      initializedKey: initializedRef.current
+    });
     
-    if (isOpen && seenSeasonsData !== undefined) {
-      // Wait for query to finish loading before initializing
-      if (Array.isArray(seenSeasons) && seenSeasons.length > 0) {
-        console.log("[Seen All Modal] Initializing with seen seasons:", seenSeasons);
-        setSelectedSeasons(new Set(seenSeasons));
-      } else {
-        console.log("[Seen All Modal] Initializing with empty set");
-        setSelectedSeasons(new Set());
-      }
-    } else {
-      console.log("[Seen All Modal] Skipping initialization - isOpen:", isOpen, "seenSeasonsData:", seenSeasonsData);
+    if (!isOpen) {
+      initializedRef.current = null; // Reset when modal closes
+      return;
     }
-  }, [isOpen, seenSeasons, seenSeasonsData]);
+    
+    if (isLoadingSeenSeasons) {
+      console.log("[Seen All Modal] Still loading, skipping");
+      return;
+    }
+    
+    // Only initialize once per seenSeasonsKey
+    if (initializedRef.current === seenSeasonsKey) {
+      console.log("[Seen All Modal] Already initialized with this data, skipping");
+      return;
+    }
+    
+    // Wait for query to finish loading before initializing
+    if (Array.isArray(seenSeasons) && seenSeasons.length > 0) {
+      console.log("[Seen All Modal] Initializing with seen seasons:", seenSeasons);
+      setSelectedSeasons(new Set(seenSeasons));
+      initializedRef.current = seenSeasonsKey;
+    } else {
+      console.log("[Seen All Modal] Initializing with empty set");
+      setSelectedSeasons(new Set());
+      initializedRef.current = seenSeasonsKey;
+    }
+  }, [isOpen, isLoadingSeenSeasons, seenSeasonsKey]);
 
   const handleSelectAll = () => {
     if (selectedSeasons.size === regularSeasons.length) {
