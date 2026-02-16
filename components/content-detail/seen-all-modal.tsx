@@ -54,22 +54,27 @@ export default function SeenAllModal({
   const { data: seenSeasonsData } = useQuery<{ seenSeasons: number[] }>({
     queryKey: ["seen-seasons", tvShowId],
     queryFn: async () => {
-      const res = await fetch(`/api/episodes/seasons/check?tvShowTmdbId=${tvShowId}`);
-      if (!res.ok) return { seenSeasons: [] };
-      const data = await res.json();
-      return { seenSeasons: Array.isArray(data.seenSeasons) ? data.seenSeasons : [] };
+      try {
+        const res = await fetch(`/api/episodes/seasons/check?tvShowTmdbId=${tvShowId}`);
+        if (!res.ok) return { seenSeasons: [] };
+        const data = await res.json();
+        return { seenSeasons: Array.isArray(data.seenSeasons) ? data.seenSeasons : [] };
+      } catch (error) {
+        console.error("Failed to fetch seen seasons:", error);
+        return { seenSeasons: [] };
+      }
     },
     enabled: isOpen && !!tvShowId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
     retry: 1,
   });
 
-  const seenSeasons = Array.isArray(seenSeasonsData?.seenSeasons) ? seenSeasonsData.seenSeasons : [];
+  const seenSeasons = seenSeasonsData?.seenSeasons || [];
 
   // Initialize selectedSeasons with already seen seasons when modal opens
   useEffect(() => {
-    if (isOpen && Array.isArray(seenSeasons)) {
-      if (seenSeasons.length > 0) {
+    if (isOpen) {
+      if (Array.isArray(seenSeasons) && seenSeasons.length > 0) {
         setSelectedSeasons(new Set(seenSeasons));
       } else {
         setSelectedSeasons(new Set());
@@ -107,13 +112,11 @@ export default function SeenAllModal({
 
       for (const season of regularSeasons) {
         const isSelected = selectedSeasons.has(season.season_number);
-        const wasSeen = Array.isArray(seenSeasons) && seenSeasons.includes(season.season_number);
+        const wasSeen = seenSeasons.includes(season.season_number);
 
         if (isSelected && !wasSeen) {
-          // Need to mark as seen
           seasonsToMark.push(season.season_number);
         } else if (!isSelected && wasSeen) {
-          // Need to unmark as seen
           seasonsToUnmark.push(season.season_number);
         }
       }
