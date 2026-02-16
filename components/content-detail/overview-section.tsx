@@ -718,13 +718,14 @@ function TVSeasonsContent({
       return;
     }
     const isSeen = isEpisodeSeen(episode.id);
+    // isSeen: true = currently seen (will unmark), false = not seen (will mark)
     await toggleEpisodeSeen.mutateAsync({
       tvShowTmdbId: tvShow.id,
       tvShowTitle: tvShow.name,
       episodeId: episode.id,
       seasonNumber: episode.season_number,
       episodeNumber: episode.episode_number,
-      isSeen: !isSeen,
+      isSeen: isSeen, // Pass current state
     });
   };
 

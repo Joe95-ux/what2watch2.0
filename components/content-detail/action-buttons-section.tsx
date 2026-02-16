@@ -69,21 +69,40 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
   // Check if all episodes are seen (for TV shows)
   // All regular seasons must be in the seen seasons list, and counts must match
   const allEpisodesSeen = (() => {
-    if (type !== "tv" || !seasons || !Array.isArray(seenSeasons)) return false;
+    console.log("[Seen All Check] Starting check:", { type, hasSeasons: !!seasons, seenSeasons, isArray: Array.isArray(seenSeasons) });
+    
+    if (type !== "tv" || !seasons || !Array.isArray(seenSeasons)) {
+      console.log("[Seen All Check] Early return - not TV or invalid data");
+      return false;
+    }
     
     const regularSeasons = seasons.filter(s => s.season_number > 0);
-    if (regularSeasons.length === 0) return false;
+    console.log("[Seen All Check] Regular seasons:", regularSeasons.map(s => s.season_number));
+    
+    if (regularSeasons.length === 0) {
+      console.log("[Seen All Check] No regular seasons");
+      return false;
+    }
     
     // If no seasons are seen, definitely not all seen
-    if (seenSeasons.length === 0) return false;
+    if (seenSeasons.length === 0) {
+      console.log("[Seen All Check] No seen seasons - returning false");
+      return false;
+    }
     
     const regularSeasonNumbers = regularSeasons.map(s => s.season_number);
+    console.log("[Seen All Check] Regular season numbers:", regularSeasonNumbers, "Seen seasons:", seenSeasons);
     
     // Must have exactly the same number of seen seasons as total seasons
-    if (regularSeasonNumbers.length !== seenSeasons.length) return false;
+    if (regularSeasonNumbers.length !== seenSeasons.length) {
+      console.log("[Seen All Check] Length mismatch:", regularSeasonNumbers.length, "!=", seenSeasons.length, "- returning false");
+      return false;
+    }
     
     // Every regular season must be in the seen seasons list
-    return regularSeasonNumbers.every(num => seenSeasons.includes(num));
+    const allSeen = regularSeasonNumbers.every(num => seenSeasons.includes(num));
+    console.log("[Seen All Check] All seasons seen?", allSeen);
+    return allSeen;
   })();
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
