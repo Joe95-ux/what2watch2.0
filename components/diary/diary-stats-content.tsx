@@ -30,13 +30,12 @@ import {
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Film, Tv, Star, Calendar, TrendingUp, Award, Clock } from "lucide-react";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Film, Tv, Star, TrendingUp, Award, Clock, ChevronDown, ChevronUp } from "lucide-react";
 import { format, startOfYear, endOfYear, eachDayOfInterval, parseISO, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +53,7 @@ const COLORS = {
 export default function DiaryStatsContent() {
   const { data: logs = [], isLoading } = useViewingLogs();
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+  const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
 
   // Get available years from logs
   const availableYears = useMemo(() => {
@@ -234,16 +234,16 @@ export default function DiaryStatsContent() {
 
   if (isLoading) {
     return (
-      <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Skeleton className="h-10 w-48 mb-6" />
         {/* Stats Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 border border-border rounded-lg overflow-hidden mb-8">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-32" />
           ))}
         </div>
         {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 gap-6 mb-8">
           <Skeleton className="h-[400px]" />
           <Skeleton className="h-[400px]" />
         </div>
@@ -255,143 +255,170 @@ export default function DiaryStatsContent() {
     );
   }
 
+  const mostActiveMonth = filmsByMonth.reduce((max, month) => month.total > max.total ? month : max, filmsByMonth[0] || { month: "—", total: 0 });
+
   return (
-    <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Diary Stats</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-semibold tracking-tight">Diary Stats</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             Visualize your viewing habits and statistics
           </p>
         </div>
-        <Select value={selectedYear} onValueChange={setSelectedYear}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {availableYears.map((year) => (
-              <SelectItem key={year} value={year.toString()}>
-                {year}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Stats Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Films</CardTitle>
-            <Film className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.movies} movies, {stats.tv} TV shows
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Average Rating</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.avgRating}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.ratedCount} of {stats.total} rated
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">5-Star Films</CardTitle>
-            <Award className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.fiveStars}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.ratedCount > 0 ? ((stats.fiveStars / stats.ratedCount) * 100).toFixed(0) : 0}% of rated
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Most Active Month</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {filmsByMonth.reduce((max, month) => month.total > max.total ? month : max, filmsByMonth[0] || { month: "—", total: 0 }).month}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {filmsByMonth.reduce((max, month) => month.total > max.total ? month : max, filmsByMonth[0] || { total: 0 }).total} films
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Films by Month */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Films by Month</CardTitle>
-            <CardDescription>Viewing activity throughout {selectedYear}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={monthChartConfig} className="h-[300px]">
-              <BarChart data={filmsByMonth}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Legend />
-                <Bar dataKey="movies" fill={COLORS.movie} name="Movies" />
-                <Bar dataKey="tv" fill={COLORS.tv} name="TV Shows" />
-              </BarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-
-        {/* Rating Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Rating Distribution</CardTitle>
-            <CardDescription>How you rated films in {selectedYear}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {ratingDistribution.length > 0 ? (
-              <ChartContainer config={{}} className="h-[300px]">
-                <PieChart>
-                  <Pie
-                    data={ratingDistribution}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    dataKey="value"
+        <DropdownMenu open={yearDropdownOpen} onOpenChange={setYearDropdownOpen}>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground dark:text-muted-foreground/80 hover:text-foreground transition-colors cursor-pointer whitespace-nowrap rounded-[10px] px-2 py-1.5 border bg-background focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+            >
+              <span>Year:</span>
+              <span className="font-medium">{selectedYear}</span>
+              {yearDropdownOpen ? (
+                <ChevronUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-auto p-0 rounded-[25px]">
+            <div className="flex flex-col sm:flex-row">
+              <div className="border-b sm:border-b-0 sm:border-r p-[10px] min-w-[180px]">
+                {availableYears.map((year) => (
+                  <DropdownMenuItem
+                    key={year}
+                    onClick={() => {
+                      setSelectedYear(year.toString());
+                      setYearDropdownOpen(false);
+                    }}
+                    className={cn(
+                      "cursor-pointer rounded-[12px]",
+                      selectedYear === year.toString() && "bg-accent"
+                    )}
                   >
-                    {ratingDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                </PieChart>
-              </ChartContainer>
-            ) : (
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                No ratings yet
+                    {year}
+                  </DropdownMenuItem>
+                ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+
+      {/* Stats Overview Cards - Link page analytics style */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 border border-border rounded-lg overflow-hidden mb-8">
+        {[
+          {
+            label: "Total Films",
+            value: stats.total.toString(),
+            icon: <Film className="h-5 w-5 text-blue-500" />,
+            helper: `${stats.movies} movies, ${stats.tv} TV shows`,
+          },
+          {
+            label: "Average Rating",
+            value: stats.avgRating,
+            icon: <Star className="h-5 w-5 text-amber-500" />,
+            helper: `${stats.ratedCount} of ${stats.total} rated`,
+          },
+          {
+            label: "5-Star Films",
+            value: stats.fiveStars.toString(),
+            icon: <Award className="h-5 w-5 text-emerald-500" />,
+            helper: `${stats.ratedCount > 0 ? ((stats.fiveStars / stats.ratedCount) * 100).toFixed(0) : 0}% of rated`,
+          },
+          {
+            label: "Most Active Month",
+            value: mostActiveMonth.month,
+            icon: <TrendingUp className="h-5 w-5 text-violet-500" />,
+            helper: `${mostActiveMonth.total} films`,
+          },
+        ].map((stat, index) => {
+          const columnsPerRow = 4;
+          const totalRows = Math.ceil(4 / columnsPerRow);
+          const currentRow = Math.floor(index / columnsPerRow) + 1;
+          const isLastRow = currentRow === totalRows;
+          const isLastColumn = (index + 1) % columnsPerRow === 0;
+          const isLastRowMobile = index === 3;
+          const isLastRowMd = index >= 2;
+          
+          return (
+            <div
+              key={stat.label}
+              className={cn(
+                "p-4 sm:p-8 border-r border-b border-border",
+                isLastColumn && "border-r-0",
+                isLastRow && "lg:border-b-0",
+                isLastRowMd && "md:border-b-0",
+                isLastRowMobile && "border-b-0"
+              )}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-muted-foreground">
+                  {stat.label}
+                </span>
+                {stat.icon}
+              </div>
+              <div className="text-2xl font-bold mb-1">{stat.value}</div>
+              <p className="text-[15px] text-muted-foreground">{stat.helper}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Films by Month - Full Width */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Films by Month</CardTitle>
+          <CardDescription>Viewing activity throughout {selectedYear}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={monthChartConfig} className="h-[300px] w-full">
+            <BarChart data={filmsByMonth}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Legend />
+              <Bar dataKey="movies" fill={COLORS.movie} name="Movies" />
+              <Bar dataKey="tv" fill={COLORS.tv} name="TV Shows" />
+            </BarChart>
+          </ChartContainer>
+        </CardContent>
+      </Card>
+
+      {/* Rating Distribution */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Rating Distribution</CardTitle>
+          <CardDescription>How you rated films in {selectedYear}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {ratingDistribution.length > 0 ? (
+            <ChartContainer config={{}} className="h-[400px]">
+              <PieChart>
+                <Pie
+                  data={ratingDistribution}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={120}
+                  dataKey="value"
+                >
+                  {ratingDistribution.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <ChartTooltip content={<ChartTooltipContent />} />
+              </PieChart>
+            </ChartContainer>
+          ) : (
+            <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+              No ratings yet
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Viewing Heatmap */}
       <Card className="mb-8">
@@ -401,14 +428,14 @@ export default function DiaryStatsContent() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <div className="flex gap-1 min-w-max">
+            <div className="flex gap-1.5 min-w-max">
               {heatmapData.map((week, weekIndex) => (
-                <div key={weekIndex} className="flex flex-col gap-1">
+                <div key={weekIndex} className="flex flex-col gap-1.5">
                   {week.map((day, dayIndex) => (
                     <div
                       key={dayIndex}
                       className={cn(
-                        "w-3 h-3 rounded-sm",
+                        "w-4 h-4 rounded-sm",
                         getHeatmapColor(day.count),
                         day.count > 0 && "cursor-pointer hover:ring-2 hover:ring-ring"
                       )}
@@ -421,11 +448,11 @@ export default function DiaryStatsContent() {
             <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground">
               <span>Less</span>
               <div className="flex gap-1">
-                <div className="w-3 h-3 rounded-sm bg-muted" />
-                <div className="w-3 h-3 rounded-sm bg-blue-500/20" />
-                <div className="w-3 h-3 rounded-sm bg-blue-500/40" />
-                <div className="w-3 h-3 rounded-sm bg-blue-500/60" />
-                <div className="w-3 h-3 rounded-sm bg-blue-500" />
+                <div className="w-4 h-4 rounded-sm bg-muted" />
+                <div className="w-4 h-4 rounded-sm bg-blue-500/20" />
+                <div className="w-4 h-4 rounded-sm bg-blue-500/40" />
+                <div className="w-4 h-4 rounded-sm bg-blue-500/60" />
+                <div className="w-4 h-4 rounded-sm bg-blue-500" />
               </div>
               <span>More</span>
             </div>

@@ -100,7 +100,7 @@ export default function Navbar() {
           isDiscoverPage && "!grid",
           isDetailsNav && "max-w-7xl mx-auto",
           isGuideNav && "max-w-[92rem] mx-auto",
-          isDashboardNav && "sm:px-2 lg:px-2",
+          isDashboardNav && "sm:px-4 lg:px-4",
         )}
       >
         {/* Left: Hamburger + Logo + (Lists, Popular when not dashboard/discover) */}

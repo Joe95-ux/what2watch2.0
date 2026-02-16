@@ -182,7 +182,7 @@ export default function DashboardContent() {
         </div>
 
         {/* KPI Stats Grid (link page analytics style) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 border border-border rounded-lg overflow-hidden mb-4 sm:mb-6 md:mb-8 max-w-7xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 border border-border rounded-lg overflow-hidden mb-4 sm:mb-6 md:mb-8">
           {[
             {
               label: "Watchlist",

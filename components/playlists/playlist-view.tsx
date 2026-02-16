@@ -1178,10 +1178,10 @@ export default function PlaylistView({
               {/* List activity */}
               {playlist && (
                 <div className="space-y-1">
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
                     List activity
                   </span>
-                  <div className="text-sm text-muted-foreground flex items-center gap-4 flex-wrap">
+                  <div className="text-sm text-primary flex items-center gap-4 flex-wrap">
                     <span className="flex items-center gap-1.5">
                       <Eye className="h-4 w-4" />
                       {playlist.viewsCount ?? 0} {playlist.viewsCount === 1 ? "view" : "views"}
