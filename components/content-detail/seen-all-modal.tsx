@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,7 +12,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
-import { useMarkSeasonsSeen } from "@/hooks/use-episode-tracking";
+import { useMarkSeasonsSeen, useUnmarkSeasonsSeen } from "@/hooks/use-episode-tracking";
+import { useQuery } from "@tanstack/react-query";
 
 interface Season {
   id: number;
@@ -43,10 +44,36 @@ export default function SeenAllModal({
 }: SeenAllModalProps) {
   const { isSignedIn } = useUser();
   const markSeasonsSeen = useMarkSeasonsSeen();
+  const unmarkSeasonsSeen = useUnmarkSeasonsSeen();
   const [selectedSeasons, setSelectedSeasons] = useState<Set<number>>(new Set());
   
   // Filter out season 0 (specials)
   const regularSeasons = seasons.filter((s) => s.season_number > 0);
+
+  // Fetch which seasons are already seen
+  const { data: seenSeasonsData } = useQuery<{ seenSeasons: number[] }>({
+    queryKey: ["seen-seasons", tvShowId],
+    queryFn: async () => {
+      const res = await fetch(`/api/episodes/seasons/check?tvShowTmdbId=${tvShowId}`);
+      if (!res.ok) return { seenSeasons: [] };
+      return res.json();
+    },
+    enabled: isOpen && !!tvShowId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  const seenSeasons = seenSeasonsData?.seenSeasons || [];
+
+  // Initialize selectedSeasons with already seen seasons when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      if (seenSeasons.length > 0) {
+        setSelectedSeasons(new Set(seenSeasons));
+      } else {
+        setSelectedSeasons(new Set());
+      }
+    }
+  }, [isOpen, seenSeasons]);
 
   const handleSelectAll = () => {
     if (selectedSeasons.size === regularSeasons.length) {
@@ -71,20 +98,51 @@ export default function SeenAllModal({
       return;
     }
     
-    if (selectedSeasons.size === 0) {
-      return;
-    }
-    
     try {
-      await markSeasonsSeen.mutateAsync({
-        tvShowTmdbId: tvShowId,
-        tvShowTitle: tvShowName,
-        seasonNumbers: Array.from(selectedSeasons),
-      });
-      onSeasonsSelected(Array.from(selectedSeasons));
-      onClose();
+      // Determine which seasons to mark and which to unmark
+      const seasonsToMark: number[] = [];
+      const seasonsToUnmark: number[] = [];
+
+      for (const season of regularSeasons) {
+        const isSelected = selectedSeasons.has(season.season_number);
+        const wasSeen = seenSeasons.includes(season.season_number);
+
+        if (isSelected && !wasSeen) {
+          // Need to mark as seen
+          seasonsToMark.push(season.season_number);
+        } else if (!isSelected && wasSeen) {
+          // Need to unmark as seen
+          seasonsToUnmark.push(season.season_number);
+        }
+      }
+
+      // Mark new seasons
+      if (seasonsToMark.length > 0) {
+        await markSeasonsSeen.mutateAsync({
+          tvShowTmdbId: tvShowId,
+          tvShowTitle: tvShowName,
+          seasonNumbers: seasonsToMark,
+        });
+      }
+
+      // Unmark removed seasons
+      if (seasonsToUnmark.length > 0) {
+        await unmarkSeasonsSeen.mutateAsync({
+          tvShowTmdbId: tvShowId,
+          seasonNumbers: seasonsToUnmark,
+        });
+      }
+
+      // Only call onSeasonsSelected and close if there were changes
+      if (seasonsToMark.length > 0 || seasonsToUnmark.length > 0) {
+        onSeasonsSelected(Array.from(selectedSeasons));
+        onClose();
+      } else {
+        // No changes, just close
+        onClose();
+      }
     } catch (error) {
-      // Error is handled by the hook
+      // Error is handled by the hooks
     }
   };
 
@@ -156,10 +214,10 @@ export default function SeenAllModal({
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={selectedSeasons.size === 0 || markSeasonsSeen.isPending}
+            disabled={markSeasonsSeen.isPending || unmarkSeasonsSeen.isPending}
             className="bg-primary text-primary-foreground cursor-pointer"
           >
-            {markSeasonsSeen.isPending ? "Saving..." : "Confirm"}
+            {(markSeasonsSeen.isPending || unmarkSeasonsSeen.isPending) ? "Saving..." : "Confirm"}
           </Button>
         </div>
       </DialogContent>

@@ -68,6 +68,8 @@ export function useToggleEpisodeSeen() {
       queryClient.invalidateQueries({ queryKey: ["seen-episodes", variables.tvShowTmdbId] });
       // Also invalidate watched status for the TV show
       queryClient.invalidateQueries({ queryKey: ["is-watched", variables.tvShowTmdbId, "tv"] });
+      // Invalidate seen seasons check
+      queryClient.invalidateQueries({ queryKey: ["seen-seasons", variables.tvShowTmdbId] });
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : "Failed to update episode status");
@@ -100,6 +102,8 @@ export function useMarkSeasonsSeen() {
       queryClient.invalidateQueries({ queryKey: ["seen-episodes", variables.tvShowTmdbId] });
       // Also invalidate watched status for the TV show
       queryClient.invalidateQueries({ queryKey: ["is-watched", variables.tvShowTmdbId, "tv"] });
+      // Invalidate seen seasons check
+      queryClient.invalidateQueries({ queryKey: ["seen-seasons", variables.tvShowTmdbId] });
       toast.success(`Marked ${variables.seasonNumbers.length} ${variables.seasonNumbers.length === 1 ? "season" : "seasons"} as seen`);
     },
     onError: (error) => {
@@ -133,10 +137,30 @@ export function useUnmarkSeasonsSeen() {
       queryClient.invalidateQueries({ queryKey: ["seen-episodes", variables.tvShowTmdbId] });
       // Also invalidate watched status for the TV show
       queryClient.invalidateQueries({ queryKey: ["is-watched", variables.tvShowTmdbId, "tv"] });
+      // Invalidate seen seasons check
+      queryClient.invalidateQueries({ queryKey: ["seen-seasons", variables.tvShowTmdbId] });
       toast.success(`Unmarked ${variables.seasonNumbers.length} ${variables.seasonNumbers.length === 1 ? "season" : "seasons"} as seen`);
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : "Failed to unmark seasons as seen");
     },
+  });
+}
+
+// Check which seasons have all episodes seen
+const checkSeenSeasons = async (tvShowTmdbId: number): Promise<number[]> => {
+  const res = await fetch(`/api/episodes/seasons/check?tvShowTmdbId=${tvShowTmdbId}`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.seenSeasons || [];
+};
+
+// Hook to get which seasons are fully seen
+export function useSeenSeasons(tvShowTmdbId: number | null) {
+  return useQuery<number[]>({
+    queryKey: ["seen-seasons", tvShowTmdbId],
+    queryFn: () => checkSeenSeasons(tvShowTmdbId!),
+    enabled: !!tvShowTmdbId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }

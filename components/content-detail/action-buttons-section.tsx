@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import AddToListDropdown from "./add-to-list-dropdown";
 import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-logs";
-import { useSeenEpisodes } from "@/hooks/use-episode-tracking";
+import { useSeenEpisodes, useUnmarkSeasonsSeen, useSeenSeasons } from "@/hooks/use-episode-tracking";
 import { useToggleFavorite } from "@/hooks/use-favorites";
 import { useContentReactions, useLikeContent, useDislikeContent } from "@/hooks/use-content-reactions";
 import { toast } from "sonner";
@@ -58,24 +58,25 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
   const { data: watchedData } = useIsWatched(item.id, type);
   const isWatched = watchedData?.isWatched || false;
   const watchedLogId = watchedData?.logId || null;
-  const isWatchLoading = quickWatch.isPending || unwatch.isPending;
   
   // Episode tracking for TV shows
   const { data: seenEpisodes = [] } = useSeenEpisodes(type === "tv" ? item.id : null);
+  const { data: seenSeasons = [] } = useSeenSeasons(type === "tv" ? item.id : null);
+  const unmarkSeasonsSeen = useUnmarkSeasonsSeen();
+  
+  const isWatchLoading = quickWatch.isPending || unwatch.isPending || (type === "tv" ? unmarkSeasonsSeen.isPending : false);
   
   // Check if all episodes are seen (for TV shows)
-  // This is a simple check - if we have seasons data, we can count total episodes
-  // For now, we'll use a heuristic: if there are seen episodes and the show is marked as watched,
-  // we'll consider it "seen all". A more accurate check would require fetching all season details.
-  const allEpisodesSeen = type === "tv" && seasons && seenEpisodes.length > 0 
+  // This accurately checks if all regular seasons (excluding season 0) have all their episodes seen
+  const allEpisodesSeen = type === "tv" && seasons
     ? (() => {
-        // Count total episodes from seasons (excluding season 0)
-        const totalEpisodes = seasons
-          .filter(s => s.season_number > 0)
-          .reduce((sum, s) => sum + s.episode_count, 0);
-        // If we have seen episodes and the count matches, assume all are seen
-        // Note: This is a heuristic. A proper check would require fetching all episode IDs.
-        return seenEpisodes.length >= totalEpisodes && totalEpisodes > 0;
+        // Get all regular seasons (excluding season 0)
+        const regularSeasons = seasons.filter(s => s.season_number > 0);
+        if (regularSeasons.length === 0) return false;
+        
+        // Check if all regular seasons are in the seen seasons list
+        const regularSeasonNumbers = regularSeasons.map(s => s.season_number);
+        return regularSeasonNumbers.every(seasonNum => seenSeasons.includes(seasonNum));
       })()
     : false;
   const { isSignedIn } = useUser();
@@ -92,10 +93,32 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
       return;
     }
     
-    // For TV shows, open the "Seen all" modal instead
-    if (type === "tv" && !isWatched && onSeenAllClick) {
-      onSeenAllClick();
-      return;
+    // For TV shows, handle seen/unseen logic
+    if (type === "tv") {
+      // If all episodes are seen, unmark all seasons
+      if (allEpisodesSeen && seasons) {
+        try {
+          const allSeasonNumbers = seasons
+            .filter(s => s.season_number > 0)
+            .map(s => s.season_number);
+          
+          if (allSeasonNumbers.length > 0) {
+            await unmarkSeasonsSeen.mutateAsync({
+              tvShowTmdbId: item.id,
+              seasonNumbers: allSeasonNumbers,
+            });
+          }
+        } catch {
+          toast.error("Failed to unmark episodes as seen");
+        }
+        return;
+      }
+      
+      // If not all episodes are seen, open the "Seen all" modal
+      if (onSeenAllClick) {
+        onSeenAllClick();
+        return;
+      }
     }
     
     try {
