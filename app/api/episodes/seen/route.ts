@@ -55,37 +55,27 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
       },
     });
 
-    // Also create/update a ViewingLog entry for the TV show so it appears in watched tab and diary
+    // Also create a new ViewingLog entry for the TV show when marking individual episodes
+    // Only create if this is the first episode being marked (to avoid spam)
     try {
-      // Fetch TV show details to get poster, backdrop, and first air date
-      const tvShowDetails = await getTVDetails(tvShowTmdbId);
-      
-      // Check if a ViewingLog already exists for this TV show
-      const existingLog = await db.viewingLog.findFirst({
+      // Check if there are any other episodes already marked for this TV show
+      const existingEpisodeLogs = await db.episodeViewingLog.findFirst({
         where: {
           userId: user.id,
-          tmdbId: tvShowTmdbId,
-          mediaType: "tv",
-        },
-        orderBy: {
-          watchedAt: "desc",
+          tvShowTmdbId,
+          episodeId: {
+            not: episodeId, // Exclude the current episode
+          },
         },
       });
 
-      const watchedAt = new Date();
-
-      if (existingLog) {
-        // Update the existing log's watchedAt to the current date
-        await db.viewingLog.update({
-          where: {
-            id: existingLog.id,
-          },
-          data: {
-            watchedAt,
-            updatedAt: new Date(),
-          },
-        });
-      } else {
+      // Only create ViewingLog if this is the first episode being marked
+      if (!existingEpisodeLogs) {
+        // Fetch TV show details to get poster, backdrop, and first air date
+        const tvShowDetails = await getTVDetails(tvShowTmdbId);
+        
+        const watchedAt = new Date();
+        
         // Create a new ViewingLog entry
         await db.viewingLog.create({
           data: {
@@ -104,7 +94,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
           },
         });
 
-        // Create LOGGED_FILM activity
+        // Create LOGGED_FILM activity (only for first episode to avoid spam)
         try {
           await db.activity.create({
             data: {
@@ -124,7 +114,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
       }
     } catch (error) {
       // Log error but don't fail the request - episode tracking is more important
-      console.error("Failed to create/update ViewingLog for TV show:", error);
+      console.error("Failed to create ViewingLog for TV show:", error);
     }
 
     return NextResponse.json({ success: true });

@@ -90,74 +90,50 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
       )
     );
 
-    // Also create/update a ViewingLog entry for the TV show so it appears in watched tab and diary
+    // Also create a new ViewingLog entry for the TV show (like movies, each viewing session is tracked separately)
+    // This ensures proper activity logging and diary tracking
     try {
       // Fetch TV show details to get poster, backdrop, and first air date
       const tvShowDetails = await getTVDetails(tvShowTmdbId);
       
-      // Check if a ViewingLog already exists for this TV show
-      const existingLog = await db.viewingLog.findFirst({
-        where: {
+      // Create a new ViewingLog entry (allows multiple viewings, like movies)
+      const viewingLog = await db.viewingLog.create({
+        data: {
           userId: user.id,
           tmdbId: tvShowTmdbId,
           mediaType: "tv",
-        },
-        orderBy: {
-          watchedAt: "desc",
+          title: tvShowTitle || tvShowDetails.name || `TV Show ${tvShowTmdbId}`,
+          posterPath: tvShowDetails.poster_path || null,
+          backdropPath: tvShowDetails.backdrop_path || null,
+          releaseDate: null,
+          firstAirDate: tvShowDetails.first_air_date || null,
+          watchedAt,
+          notes: null,
+          rating: null,
+          tags: [],
         },
       });
 
-      if (existingLog) {
-        // Update the existing log's watchedAt to the current date
-        await db.viewingLog.update({
-          where: {
-            id: existingLog.id,
-          },
-          data: {
-            watchedAt,
-            updatedAt: new Date(),
-          },
-        });
-      } else {
-        // Create a new ViewingLog entry
-        await db.viewingLog.create({
+      // Create LOGGED_FILM activity (always create, like movies)
+      try {
+        await db.activity.create({
           data: {
             userId: user.id,
+            type: "LOGGED_FILM",
             tmdbId: tvShowTmdbId,
             mediaType: "tv",
             title: tvShowTitle || tvShowDetails.name || `TV Show ${tvShowTmdbId}`,
             posterPath: tvShowDetails.poster_path || null,
-            backdropPath: tvShowDetails.backdrop_path || null,
-            releaseDate: null,
-            firstAirDate: tvShowDetails.first_air_date || null,
-            watchedAt,
-            notes: null,
             rating: null,
-            tags: [],
           },
         });
-
-        // Create LOGGED_FILM activity
-        try {
-          await db.activity.create({
-            data: {
-              userId: user.id,
-              type: "LOGGED_FILM",
-              tmdbId: tvShowTmdbId,
-              mediaType: "tv",
-              title: tvShowTitle || tvShowDetails.name || `TV Show ${tvShowTmdbId}`,
-              posterPath: tvShowDetails.poster_path || null,
-              rating: null,
-            },
-          });
-        } catch (error) {
-          // Silently fail - activity creation is not critical
-          console.error("Failed to create activity for viewing log:", error);
-        }
+      } catch (error) {
+        // Silently fail - activity creation is not critical
+        console.error("Failed to create activity for viewing log:", error);
       }
     } catch (error) {
       // Log error but don't fail the request - episode tracking is more important
-      console.error("Failed to create/update ViewingLog for TV show:", error);
+      console.error("Failed to create ViewingLog for TV show:", error);
     }
 
     return NextResponse.json({ success: true });
