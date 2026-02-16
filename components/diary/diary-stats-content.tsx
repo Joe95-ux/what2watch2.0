@@ -27,6 +27,7 @@ import {
   CartesianGrid,
   ResponsiveContainer,
   Legend,
+  Tooltip,
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -416,8 +417,7 @@ export default function DiaryStatsContent() {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <ChartTooltip 
-                        content={<ChartTooltipContent />}
+                      <Tooltip 
                         formatter={(value: number, name: string) => [
                           `${value} ${value === 1 ? "rating" : "ratings"}`,
                           name
