@@ -2,16 +2,24 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
+import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
 import { JustWatchAvailabilityResponse } from "@/lib/justwatch";
 import { createPersonSlug } from "@/lib/person-utils";
 import { useOMDBData } from "@/hooks/use-content-details";
-import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
+import { ChevronDown, ChevronUp, Star } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import AwardsSection from "./awards-section";
 import { RatingsRow } from "./ratings-row";
 import { Button } from "@/components/ui/button";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import { cn } from "@/lib/utils";
 
 interface DetailsType {
   release_date?: string;
@@ -61,6 +69,77 @@ interface OverviewSectionProps {
   cast?: CastMember[];
   watchAvailability?: JustWatchAvailabilityResponse | null;
   isWatchLoading?: boolean;
+  // TV Seasons props
+  seasons?: Array<{
+    id: number;
+    name: string;
+    overview: string;
+    season_number: number;
+    episode_count: number;
+    air_date: string | null;
+    poster_path: string | null;
+  }>;
+  selectedSeason?: number | null;
+  onSeasonSelect?: (seasonNumber: number) => void;
+  seasonDetails?: {
+    _id: string;
+    air_date: string | null;
+    episodes: Array<{
+      id: number;
+      name: string;
+      overview: string;
+      episode_number: number;
+      season_number: number;
+      air_date: string | null;
+      still_path: string | null;
+      runtime: number | null;
+      vote_average: number;
+      vote_count: number;
+    }>;
+    name: string;
+    overview: string;
+    id: number;
+    poster_path: string | null;
+    season_number: number;
+  } | null;
+  isLoadingSeasonDetails?: boolean;
+  tvShowDetails?: {
+    created_by?: Array<{ id: number; name: string; profile_path?: string | null }>;
+    credits?: {
+      cast?: Array<{
+        id: number;
+        name: string;
+        character: string;
+        profile_path: string | null;
+      }>;
+      crew?: Array<{
+        id: number;
+        name: string;
+        job: string;
+      }>;
+    };
+    genres?: Array<{ id: number; name: string }>;
+    first_air_date?: string;
+    episode_run_time?: number[];
+    vote_average?: number;
+    external_ids?: {
+      imdb_id?: string | null;
+    };
+    imdb_id?: string | null;
+  } | null;
+  trailer?: { id: string; key: string; name: string; site: string; type: string } | null;
+  onEpisodeClick?: (episode: {
+    id: number;
+    name: string;
+    overview: string;
+    episode_number: number;
+    season_number: number;
+    air_date: string | null;
+    still_path: string | null;
+    runtime: number | null;
+    vote_average: number;
+    vote_count: number;
+  }) => void;
 }
 
 const MAX_SYNOPSIS_LENGTH = 500;
@@ -72,6 +151,14 @@ export default function OverviewSection({
   cast,
   watchAvailability,
   isWatchLoading = false,
+  seasons,
+  selectedSeason,
+  onSeasonSelect,
+  seasonDetails,
+  isLoadingSeasonDetails = false,
+  tvShowDetails,
+  trailer,
+  onEpisodeClick,
 }: OverviewSectionProps) {
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -232,6 +319,21 @@ export default function OverviewSection({
 
           {type === "movie" && omdbData?.awards && (
             <AwardsSection awards={omdbData.awards} />
+          )}
+
+          {/* TV Seasons & Episodes - Inside left column */}
+          {type === "tv" && seasons && (
+            <TVSeasonsContent
+              seasons={seasons}
+              selectedSeason={selectedSeason}
+              onSeasonSelect={onSeasonSelect}
+              seasonDetails={seasonDetails}
+              isLoadingSeasonDetails={isLoadingSeasonDetails}
+              tvShow={item as TMDBSeries}
+              tvShowDetails={tvShowDetails}
+              trailer={trailer}
+              onEpisodeClick={onEpisodeClick}
+            />
           )}
         </div>
 
@@ -487,3 +589,255 @@ function OverviewDetailsRows({
   );
 }
 
+// TV Seasons Content Component
+function TVSeasonsContent({
+  seasons,
+  selectedSeason,
+  onSeasonSelect,
+  seasonDetails,
+  isLoadingSeasonDetails = false,
+  tvShow,
+  tvShowDetails,
+  trailer,
+  onEpisodeClick,
+}: {
+  seasons: Array<{
+    id: number;
+    name: string;
+    overview: string;
+    season_number: number;
+    episode_count: number;
+    air_date: string | null;
+    poster_path: string | null;
+  }>;
+  selectedSeason?: number | null;
+  onSeasonSelect?: (seasonNumber: number) => void;
+  seasonDetails?: {
+    _id: string;
+    air_date: string | null;
+    episodes: Array<{
+      id: number;
+      name: string;
+      overview: string;
+      episode_number: number;
+      season_number: number;
+      air_date: string | null;
+      still_path: string | null;
+      runtime: number | null;
+      vote_average: number;
+      vote_count: number;
+    }>;
+    name: string;
+    overview: string;
+    id: number;
+    poster_path: string | null;
+    season_number: number;
+  } | null;
+  isLoadingSeasonDetails?: boolean;
+  tvShow: TMDBSeries;
+  tvShowDetails?: {
+    created_by?: Array<{ id: number; name: string; profile_path?: string | null }>;
+    credits?: {
+      cast?: Array<{
+        id: number;
+        name: string;
+        character: string;
+        profile_path: string | null;
+      }>;
+      crew?: Array<{
+        id: number;
+        name: string;
+        job: string;
+      }>;
+    };
+    genres?: Array<{ id: number; name: string }>;
+    first_air_date?: string;
+    episode_run_time?: number[];
+    vote_average?: number;
+    external_ids?: {
+      imdb_id?: string | null;
+    };
+    imdb_id?: string | null;
+  } | null;
+  trailer?: { id: string; key: string; name: string; site: string; type: string } | null;
+  onEpisodeClick?: (episode: {
+    id: number;
+    name: string;
+    overview: string;
+    episode_number: number;
+    season_number: number;
+    air_date: string | null;
+    still_path: string | null;
+    runtime: number | null;
+    vote_average: number;
+    vote_count: number;
+  }) => void;
+}) {
+  // Filter out season 0 (specials)
+  const regularSeasons = seasons.filter((s) => s.season_number > 0);
+
+  // Auto-select first season if none selected
+  useEffect(() => {
+    if (regularSeasons.length > 0 && selectedSeason === null && onSeasonSelect) {
+      onSeasonSelect(regularSeasons[0].season_number);
+    }
+  }, [regularSeasons, selectedSeason, onSeasonSelect]);
+
+  const handleSeasonSelect = useCallback((e: React.MouseEvent, seasonNumber: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onSeasonSelect) {
+      onSeasonSelect(seasonNumber);
+    }
+  }, [onSeasonSelect]);
+
+  const handleEpisodeClick = useCallback((e: React.MouseEvent, episode: {
+    id: number;
+    name: string;
+    overview: string;
+    episode_number: number;
+    season_number: number;
+    air_date: string | null;
+    still_path: string | null;
+    runtime: number | null;
+    vote_average: number;
+    vote_count: number;
+  }) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onEpisodeClick) {
+      onEpisodeClick(episode);
+    }
+  }, [onEpisodeClick]);
+
+  return (
+    <div className="mt-8 space-y-6">
+      <h2 className="text-2xl font-bold">Seasons & Episodes</h2>
+
+      {/* Season Selector - Carousel */}
+      <div className="relative group/carousel">
+        <Carousel
+          opts={{
+            align: "start",
+            slidesToScroll: 3,
+            breakpoints: {
+              "(max-width: 640px)": { slidesToScroll: 2 },
+              "(max-width: 1024px)": { slidesToScroll: 3 },
+            },
+          }}
+          className="w-full"
+        >
+          <CarouselContent className="-ml-2 gap-2">
+            {regularSeasons.map((season) => (
+              <CarouselItem key={season.id} className="pl-2 basis-auto">
+                <button
+                  onClick={(e) => handleSeasonSelect(e, season.season_number)}
+                  className={cn(
+                    "relative px-2 py-4 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer",
+                    selectedSeason === season.season_number
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {season.name || `Season ${season.season_number}`}
+                  {selectedSeason === season.season_number && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                  )}
+                </button>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious 
+            className="left-0 h-[42px] w-[45px] rounded-l-md rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+          />
+          <CarouselNext 
+            className="right-0 h-[42px] w-[45px] rounded-r-md rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+          />
+        </Carousel>
+      </div>
+
+      {/* Episodes - Card Design */}
+      {selectedSeason !== null && (
+        <div className="space-y-4">
+          {isLoadingSeasonDetails ? (
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-32 w-full" />
+              ))}
+            </div>
+          ) : seasonDetails && seasonDetails.episodes && seasonDetails.episodes.length > 0 ? (
+            <div className="space-y-4">
+              {seasonDetails.episodes.map((episode) => (
+                <div
+                  key={episode.id}
+                  className="relative flex gap-4 p-4 rounded-lg border border-border bg-card transition-all group cursor-pointer hover:border-primary/50"
+                  onClick={(e) => handleEpisodeClick(e, episode)}
+                >
+                  <div className="flex flex-row gap-4 flex-1 min-w-0">
+                    {episode.still_path ? (
+                      <div className="relative w-20 h-28 sm:w-24 sm:h-36 rounded overflow-hidden flex-shrink-0 bg-muted">
+                        <Image
+                          src={getPosterUrl(episode.still_path, "w300")}
+                          alt={episode.name}
+                          fill
+                          className="object-cover"
+                          sizes="96px"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-20 h-28 sm:w-24 sm:h-36 rounded bg-muted flex-shrink-0 flex items-center justify-center">
+                        <span className="text-sm text-muted-foreground">No Image</span>
+                      </div>
+                    )}
+
+                    <div className="flex-1 min-w-0 flex flex-col">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <span className="text-sm text-muted-foreground">
+                          S{episode.season_number.toString().padStart(2, "0")}E{episode.episode_number.toString().padStart(2, "0")}
+                        </span>
+                        <h3 className="text-lg font-semibold group-hover:text-primary transition-colors truncate sm:truncate-none">
+                          {episode.name}
+                        </h3>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
+                        {episode.air_date && (
+                          <span>{new Date(episode.air_date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</span>
+                        )}
+                        {episode.runtime && (
+                          <>
+                            {episode.air_date && <span>•</span>}
+                            <span>{episode.runtime} min</span>
+                          </>
+                        )}
+                        {episode.vote_average > 0 && (
+                          <>
+                            {(episode.air_date || episode.runtime) && <span>•</span>}
+                            <div className="flex items-center gap-1.5">
+                              <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                              <span className="font-semibold">{episode.vote_average.toFixed(1)}</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {episode.overview && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {episode.overview}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="border border-border rounded-lg p-8 text-center text-muted-foreground">
+              No episodes available for this season.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

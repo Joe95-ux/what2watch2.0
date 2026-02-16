@@ -22,11 +22,11 @@ import CastSection from "./cast-section";
 import ReviewsSection from "./reviews-section";
 import VideosSection from "./videos-section";
 import PhotosSection from "./photos-section";
-import TVSeasonsSection from "./tv-seasons-section";
 import MoreLikeThisSection from "./more-like-this-section";
 import RecentlyViewedSection from "./recently-viewed-section";
 import WatchBreakdownSection from "./watch-breakdown-section";
 import ActionButtonsSection from "./action-buttons-section";
+import EpisodeDetailModal from "./episode-detail-modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsWatched } from "@/hooks/use-viewing-logs";
 
@@ -63,6 +63,19 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
   const [activeTab, setActiveTab] = useState("overview");
   const [isScrolled, setIsScrolled] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
+  const [selectedEpisode, setSelectedEpisode] = useState<{
+    id: number;
+    name: string;
+    overview: string;
+    episode_number: number;
+    season_number: number;
+    air_date: string | null;
+    still_path: string | null;
+    runtime: number | null;
+    vote_average: number;
+    vote_count: number;
+  } | null>(null);
+  const [isEpisodeModalOpen, setIsEpisodeModalOpen] = useState(false);
   const [watchCountry, setWatchCountry] = useState("US");
   const heroRef = useRef<HTMLDivElement>(null);
 
@@ -281,21 +294,18 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
               cast={cast}
               watchAvailability={watchAvailability}
               isWatchLoading={isLoadingWatchAvailability}
+              seasons={type === "tv" ? seasonsData?.seasons : undefined}
+              selectedSeason={type === "tv" ? selectedSeason : undefined}
+              onSeasonSelect={type === "tv" ? setSelectedSeason : undefined}
+              seasonDetails={type === "tv" ? seasonDetails : undefined}
+              isLoadingSeasonDetails={type === "tv" ? isLoadingSeasonDetails : undefined}
+              tvShowDetails={type === "tv" ? tvDetails || null : undefined}
+              trailer={type === "tv" ? trailer : undefined}
+              onEpisodeClick={type === "tv" ? (episode) => {
+                setSelectedEpisode(episode);
+                setIsEpisodeModalOpen(true);
+              } : undefined}
             />
-            {/* TV Seasons - Show in overview for TV */}
-            {type === "tv" && seasonsData && (
-              <TVSeasonsSection
-                seasons={seasonsData.seasons}
-                selectedSeason={selectedSeason}
-                onSeasonSelect={setSelectedSeason}
-                seasonDetails={seasonDetails}
-                isLoadingSeasonDetails={isLoadingSeasonDetails}
-                tvShow={item as TMDBSeries}
-                tvShowDetails={tvDetails || null}
-                trailer={trailer}
-                watchAvailability={watchAvailability}
-              />
-            )}
             {/* More Like This */}
             <MoreLikeThisSection
               items={moreLikeThisItems}
@@ -373,6 +383,22 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
           />
         )}
       </div>
+
+      {/* Episode Detail Modal */}
+      {type === "tv" && tvDetails && selectedEpisode && (
+        <EpisodeDetailModal
+          isOpen={isEpisodeModalOpen}
+          onClose={() => {
+            setIsEpisodeModalOpen(false);
+            setSelectedEpisode(null);
+          }}
+          episode={selectedEpisode}
+          tvShow={item as TMDBSeries}
+          tvShowDetails={tvDetails || null}
+          trailer={trailer || null}
+          fallbackAvailability={watchAvailability}
+        />
+      )}
     </div>
   );
 }
