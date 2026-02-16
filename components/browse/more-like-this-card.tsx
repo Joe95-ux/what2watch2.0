@@ -180,8 +180,12 @@ export default function MoreLikeThisCard({
       !target.closest('[data-radix-tooltip-trigger]') &&
       !target.closest('[data-radix-tooltip-content]')
     ) {
-      // Always navigate to the details page, regardless of callbacks
-      router.push(`/${type}/${item.id}`);
+      // Use callback if provided, otherwise navigate directly
+      if (onItemClick) {
+        onItemClick(item, type);
+      } else {
+        router.push(`/${type}/${item.id}`);
+      }
     }
   };
 

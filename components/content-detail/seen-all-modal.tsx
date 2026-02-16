@@ -73,14 +73,15 @@ export default function SeenAllModal({
 
   // Initialize selectedSeasons with already seen seasons when modal opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && seenSeasonsData !== undefined) {
+      // Wait for query to finish loading before initializing
       if (Array.isArray(seenSeasons) && seenSeasons.length > 0) {
         setSelectedSeasons(new Set(seenSeasons));
       } else {
         setSelectedSeasons(new Set());
       }
     }
-  }, [isOpen, seenSeasons]);
+  }, [isOpen, seenSeasons, seenSeasonsData]);
 
   const handleSelectAll = () => {
     if (selectedSeasons.size === regularSeasons.length) {
@@ -112,7 +113,7 @@ export default function SeenAllModal({
 
       for (const season of regularSeasons) {
         const isSelected = selectedSeasons.has(season.season_number);
-        const wasSeen = seenSeasons.includes(season.season_number);
+        const wasSeen = Array.isArray(seenSeasons) && seenSeasons.includes(season.season_number);
 
         if (isSelected && !wasSeen) {
           seasonsToMark.push(season.season_number);

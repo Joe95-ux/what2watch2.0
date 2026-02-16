@@ -105,8 +105,11 @@ export function useMarkSeasonsSeen() {
       queryClient.invalidateQueries({ queryKey: ["seen-episodes", variables.tvShowTmdbId] });
       // Also invalidate watched status for the TV show
       queryClient.invalidateQueries({ queryKey: ["is-watched", variables.tvShowTmdbId, "tv"] });
-      // Invalidate seen seasons check
-      queryClient.invalidateQueries({ queryKey: ["seen-seasons", variables.tvShowTmdbId] });
+      // Invalidate and refetch seen seasons check immediately
+      queryClient.invalidateQueries({ 
+        queryKey: ["seen-seasons", variables.tvShowTmdbId],
+        refetchType: "active"
+      });
       toast.success(`Marked ${variables.seasonNumbers.length} ${variables.seasonNumbers.length === 1 ? "season" : "seasons"} as seen`);
     },
     onError: (error) => {
@@ -140,8 +143,11 @@ export function useUnmarkSeasonsSeen() {
       queryClient.invalidateQueries({ queryKey: ["seen-episodes", variables.tvShowTmdbId] });
       // Also invalidate watched status for the TV show
       queryClient.invalidateQueries({ queryKey: ["is-watched", variables.tvShowTmdbId, "tv"] });
-      // Invalidate seen seasons check
-      queryClient.invalidateQueries({ queryKey: ["seen-seasons", variables.tvShowTmdbId] });
+      // Invalidate and refetch seen seasons check immediately
+      queryClient.invalidateQueries({ 
+        queryKey: ["seen-seasons", variables.tvShowTmdbId],
+        refetchType: "active"
+      });
       toast.success(`Unmarked ${variables.seasonNumbers.length} ${variables.seasonNumbers.length === 1 ? "season" : "seasons"} as seen`);
     },
     onError: (error) => {
