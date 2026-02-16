@@ -59,38 +59,36 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
       );
     }
 
-    // Create episode viewing logs
+    // Create or update episode viewing logs using upsert
+    // MongoDB doesn't support skipDuplicates in createMany, so we use upsert instead
     const watchedAt = new Date();
-    const episodeLogs = allEpisodes.map((ep) => ({
-      userId: user.id,
-      tvShowTmdbId,
-      tvShowTitle: tvShowTitle || `TV Show ${tvShowTmdbId}`,
-      episodeId: ep.episodeId,
-      seasonNumber: ep.seasonNumber,
-      episodeNumber: ep.episodeNumber,
-      watchedAt,
-    }));
-
-    // Use createMany with skipDuplicates to handle existing episodes
-    await db.episodeViewingLog.createMany({
-      data: episodeLogs,
-      skipDuplicates: true,
-    });
-
-    // Update existing episodes' watchedAt
-    for (const ep of allEpisodes) {
-      await db.episodeViewingLog.updateMany({
-        where: {
-          userId: user.id,
-          tvShowTmdbId,
-          episodeId: ep.episodeId,
-        },
-        data: {
-          watchedAt,
-          updatedAt: new Date(),
-        },
-      });
-    }
+    
+    await Promise.all(
+      allEpisodes.map((ep) =>
+        db.episodeViewingLog.upsert({
+          where: {
+            userId_tvShowTmdbId_episodeId: {
+              userId: user.id,
+              tvShowTmdbId,
+              episodeId: ep.episodeId,
+            },
+          },
+          create: {
+            userId: user.id,
+            tvShowTmdbId,
+            tvShowTitle: tvShowTitle || `TV Show ${tvShowTmdbId}`,
+            episodeId: ep.episodeId,
+            seasonNumber: ep.seasonNumber,
+            episodeNumber: ep.episodeNumber,
+            watchedAt,
+          },
+          update: {
+            watchedAt,
+            updatedAt: new Date(),
+          },
+        })
+      )
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

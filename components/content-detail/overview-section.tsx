@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import AwardsSection from "./awards-section";
 import { RatingsRow } from "./ratings-row";
 import { Button } from "@/components/ui/button";
-import { useSeenEpisodes, useToggleEpisodeSeen } from "@/hooks/use-episode-tracking";
+import { useSeenEpisodes, useToggleEpisodeSeen, useMarkSeasonsSeen } from "@/hooks/use-episode-tracking";
 import { useUser } from "@clerk/nextjs";
 import {
   Carousel,
@@ -21,6 +21,9 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 interface DetailsType {
@@ -681,6 +684,7 @@ function TVSeasonsContent({
   const { isSignedIn } = useUser();
   const { data: seenEpisodes = [] } = useSeenEpisodes(tvShow.id);
   const toggleEpisodeSeen = useToggleEpisodeSeen();
+  const markSeasonsSeen = useMarkSeasonsSeen();
 
   // Filter out season 0 (specials)
   const regularSeasons = seasons.filter((s) => s.season_number > 0);
@@ -694,6 +698,14 @@ function TVSeasonsContent({
 
   const isEpisodeSeen = (episodeId: number) => {
     return seenEpisodes.includes(episodeId);
+  };
+
+  // Check if all episodes in the current season are seen
+  const areAllSeasonEpisodesSeen = () => {
+    if (!seasonDetails || !seasonDetails.episodes || selectedSeason === null) {
+      return false;
+    }
+    return seasonDetails.episodes.every((episode) => isEpisodeSeen(episode.id));
   };
 
   const handleToggleEpisodeSeen = async (episode: {
@@ -713,6 +725,38 @@ function TVSeasonsContent({
       episodeNumber: episode.episode_number,
       isSeen: !isSeen,
     });
+  };
+
+  const handleToggleSeasonSeenAll = async (checked: boolean) => {
+    if (!isSignedIn || selectedSeason === null) {
+      return;
+    }
+    
+    if (checked) {
+      // Mark all episodes in the season as seen
+      await markSeasonsSeen.mutateAsync({
+        tvShowTmdbId: tvShow.id,
+        tvShowTitle: tvShow.name,
+        seasonNumbers: [selectedSeason],
+      });
+    } else {
+      // Unmark all episodes in the season
+      if (seasonDetails && seasonDetails.episodes) {
+        // Unmark each episode individually
+        for (const episode of seasonDetails.episodes) {
+          if (isEpisodeSeen(episode.id)) {
+            await toggleEpisodeSeen.mutateAsync({
+              tvShowTmdbId: tvShow.id,
+              tvShowTitle: tvShow.name,
+              episodeId: episode.id,
+              seasonNumber: episode.season_number,
+              episodeNumber: episode.episode_number,
+              isSeen: false,
+            });
+          }
+        }
+      }
+    }
   };
 
   const handleSeasonSelect = useCallback((e: React.MouseEvent, seasonNumber: number) => {
@@ -799,6 +843,23 @@ function TVSeasonsContent({
             </div>
           ) : seasonDetails && seasonDetails.episodes && seasonDetails.episodes.length > 0 ? (
             <div className="space-y-4">
+              {/* Seen All Checkbox */}
+              <div className="flex items-center space-x-2 pb-2">
+                <Checkbox
+                  id="seen-all-season"
+                  checked={areAllSeasonEpisodesSeen()}
+                  onCheckedChange={handleToggleSeasonSeenAll}
+                  disabled={!isSignedIn || markSeasonsSeen.isPending || toggleEpisodeSeen.isPending}
+                  className="cursor-pointer"
+                />
+                <Label
+                  htmlFor="seen-all-season"
+                  className="text-sm font-medium cursor-pointer"
+                >
+                  Seen All
+                </Label>
+              </div>
+              
               {seasonDetails.episodes.map((episode) => (
                 <div
                   key={episode.id}
@@ -830,16 +891,23 @@ function TVSeasonsContent({
                         <h3 className="text-lg font-semibold group-hover:text-primary transition-colors truncate sm:truncate-none">
                           {episode.name}
                         </h3>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleEpisodeSeen(episode);
-                          }}
-                          disabled={!isSignedIn || toggleEpisodeSeen.isPending}
-                          className="ml-auto flex-shrink-0 h-6 w-6 rounded-full border border-border bg-card hover:bg-muted transition-colors flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Check className={cn("h-4 w-4 font-bold", isEpisodeSeen(episode.id) ? "text-green-500" : "text-muted-foreground")} strokeWidth={3} />
-                        </button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleEpisodeSeen(episode);
+                              }}
+                              disabled={!isSignedIn || toggleEpisodeSeen.isPending}
+                              className="ml-auto flex-shrink-0 h-6 w-6 rounded-full border border-border bg-card hover:bg-muted transition-colors flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <Check className={cn("h-4 w-4 font-bold", isEpisodeSeen(episode.id) ? "text-green-500" : "text-muted-foreground")} strokeWidth={3} />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {isEpisodeSeen(episode.id) ? "Mark as not seen" : "Mark as seen"}
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
 
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
