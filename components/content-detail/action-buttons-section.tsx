@@ -293,21 +293,27 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
             isWatchLoading && "opacity-50 cursor-not-allowed"
           )}
         >
-          {isWatchLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (isWatched || (type === "tv" && allEpisodesSeen)) ? (
+          {(isWatched || (type === "tv" && allEpisodesSeen)) ? (
             <>
-              <Check className={cn("h-4 w-4 font-bold", (isWatched || allEpisodesSeen) && "text-green-500")} strokeWidth={3} />
-              <span className={cn("hidden sm:inline", (isWatched || allEpisodesSeen) && "text-green-500")}>
+              {isWatchLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin text-green-500" />
+              ) : (
+                <Check className={cn("h-4 w-4 font-bold text-green-500")} strokeWidth={3} />
+              )}
+              <span className={cn("hidden sm:inline text-green-500")}>
                 {type === "tv" ? "Seen all" : "Seen"}
               </span>
-              <span className={cn("sm:hidden", (isWatched || allEpisodesSeen) && "text-green-500")}>
+              <span className={cn("sm:hidden text-green-500")}>
                 {type === "tv" ? "Seen all" : "Seen"}
               </span>
             </>
           ) : (
             <>
-              <Check className="h-4 w-4 sm:mr-2 font-bold" strokeWidth={3} />
+              {isWatchLoading ? (
+                <Loader2 className="h-4 w-4 sm:mr-2 animate-spin" />
+              ) : (
+                <Check className="h-4 w-4 sm:mr-2 font-bold" strokeWidth={3} />
+              )}
               {type === "tv" ? "Seen all" : "Seen"}
             </>
           )}

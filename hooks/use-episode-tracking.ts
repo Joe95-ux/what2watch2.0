@@ -107,3 +107,36 @@ export function useMarkSeasonsSeen() {
     },
   });
 }
+
+// Hook to unmark seasons as seen
+export function useUnmarkSeasonsSeen() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: {
+      tvShowTmdbId: number;
+      seasonNumbers: number[];
+    }) => {
+      const res = await fetch(
+        `/api/episodes/seasons?tvShowTmdbId=${params.tvShowTmdbId}&seasonNumbers=${params.seasonNumbers.join(",")}`,
+        {
+          method: "DELETE",
+        }
+      );
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to unmark seasons as seen");
+      }
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate seen episodes query
+      queryClient.invalidateQueries({ queryKey: ["seen-episodes", variables.tvShowTmdbId] });
+      // Also invalidate watched status for the TV show
+      queryClient.invalidateQueries({ queryKey: ["is-watched", variables.tvShowTmdbId, "tv"] });
+      toast.success(`Unmarked ${variables.seasonNumbers.length} ${variables.seasonNumbers.length === 1 ? "season" : "seasons"} as seen`);
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to unmark seasons as seen");
+    },
+  });
+}

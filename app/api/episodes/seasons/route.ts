@@ -146,3 +146,82 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
     );
   }
 }
+
+// DELETE - Unmark seasons as seen (remove all episodes in those seasons)
+export async function DELETE(request: NextRequest): Promise<NextResponse<{ success: boolean } | { error: string }>> {
+  try {
+    const { userId: clerkUserId } = await auth();
+
+    if (!clerkUserId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await db.user.findUnique({
+      where: { clerkId: clerkUserId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const tvShowTmdbId = searchParams.get("tvShowTmdbId");
+    const seasonNumbersParam = searchParams.get("seasonNumbers");
+
+    if (!tvShowTmdbId || !seasonNumbersParam) {
+      return NextResponse.json(
+        { error: "tvShowTmdbId and seasonNumbers are required" },
+        { status: 400 }
+      );
+    }
+
+    const seasonNumbers = seasonNumbersParam.split(",").map(s => parseInt(s.trim(), 10)).filter(s => !isNaN(s));
+
+    if (seasonNumbers.length === 0) {
+      return NextResponse.json(
+        { error: "Invalid seasonNumbers" },
+        { status: 400 }
+      );
+    }
+
+    // Fetch episodes for each season from TMDB to get episode IDs
+    const allEpisodeIds: number[] = [];
+    
+    for (const seasonNumber of seasonNumbers) {
+      try {
+        const seasonDetails = await getTVSeasonDetails(parseInt(tvShowTmdbId, 10), seasonNumber);
+        if (seasonDetails.episodes) {
+          for (const episode of seasonDetails.episodes) {
+            allEpisodeIds.push(episode.id);
+          }
+        }
+      } catch (error) {
+        console.warn(`Failed to fetch season ${seasonNumber} details:`, error);
+        // Continue with other seasons
+      }
+    }
+
+    if (allEpisodeIds.length > 0) {
+      // Delete all episode viewing logs for these episodes
+      await db.episodeViewingLog.deleteMany({
+        where: {
+          userId: user.id,
+          tvShowTmdbId: parseInt(tvShowTmdbId, 10),
+          episodeId: {
+            in: allEpisodeIds,
+          },
+        },
+      });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Unmark seasons as seen API error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to unmark seasons as seen";
+    return NextResponse.json(
+      { error: errorMessage },
+      { status: 500 }
+    );
+  }
+}

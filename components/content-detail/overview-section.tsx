@@ -7,12 +7,12 @@ import { JustWatchAvailabilityResponse } from "@/lib/justwatch";
 import { createPersonSlug } from "@/lib/person-utils";
 import { useOMDBData } from "@/hooks/use-content-details";
 import { useState, useCallback, useEffect } from "react";
-import { ChevronDown, ChevronUp, Star, Check } from "lucide-react";
+import { ChevronDown, ChevronUp, Star, Check, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import AwardsSection from "./awards-section";
 import { RatingsRow } from "./ratings-row";
 import { Button } from "@/components/ui/button";
-import { useSeenEpisodes, useToggleEpisodeSeen, useMarkSeasonsSeen } from "@/hooks/use-episode-tracking";
+import { useSeenEpisodes, useToggleEpisodeSeen, useMarkSeasonsSeen, useUnmarkSeasonsSeen } from "@/hooks/use-episode-tracking";
 import { useUser } from "@clerk/nextjs";
 import {
   Carousel,
@@ -685,6 +685,7 @@ function TVSeasonsContent({
   const { data: seenEpisodes = [] } = useSeenEpisodes(tvShow.id);
   const toggleEpisodeSeen = useToggleEpisodeSeen();
   const markSeasonsSeen = useMarkSeasonsSeen();
+  const unmarkSeasonsSeen = useUnmarkSeasonsSeen();
 
   // Filter out season 0 (specials)
   const regularSeasons = seasons.filter((s) => s.season_number > 0);
@@ -740,22 +741,11 @@ function TVSeasonsContent({
         seasonNumbers: [selectedSeason],
       });
     } else {
-      // Unmark all episodes in the season
-      if (seasonDetails && seasonDetails.episodes) {
-        // Unmark each episode individually
-        for (const episode of seasonDetails.episodes) {
-          if (isEpisodeSeen(episode.id)) {
-            await toggleEpisodeSeen.mutateAsync({
-              tvShowTmdbId: tvShow.id,
-              tvShowTitle: tvShow.name,
-              episodeId: episode.id,
-              seasonNumber: episode.season_number,
-              episodeNumber: episode.episode_number,
-              isSeen: false,
-            });
-          }
-        }
-      }
+      // Unmark all episodes in the season using the API
+      await unmarkSeasonsSeen.mutateAsync({
+        tvShowTmdbId: tvShow.id,
+        seasonNumbers: [selectedSeason],
+      });
     }
   };
 
@@ -849,14 +839,17 @@ function TVSeasonsContent({
                   id="seen-all-season"
                   checked={areAllSeasonEpisodesSeen()}
                   onCheckedChange={handleToggleSeasonSeenAll}
-                  disabled={!isSignedIn || markSeasonsSeen.isPending || toggleEpisodeSeen.isPending}
+                  disabled={!isSignedIn || markSeasonsSeen.isPending || unmarkSeasonsSeen.isPending}
                   className="cursor-pointer"
                 />
                 <Label
                   htmlFor="seen-all-season"
-                  className="text-sm font-medium cursor-pointer"
+                  className="text-sm font-medium cursor-pointer flex items-center gap-2"
                 >
                   Seen All
+                  {(markSeasonsSeen.isPending || unmarkSeasonsSeen.isPending) && (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  )}
                 </Label>
               </div>
               
