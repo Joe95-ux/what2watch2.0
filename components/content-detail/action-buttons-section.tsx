@@ -67,7 +67,7 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
   const isWatchLoading = quickWatch.isPending || unwatch.isPending || (type === "tv" ? unmarkSeasonsSeen.isPending : false);
   
   // Check if all episodes are seen (for TV shows)
-  // All regular seasons must be in the seen seasons list, and counts must match
+  // All regular seasons must be in the seen seasons list
   const allEpisodesSeen = (() => {
     console.log("[Seen All Check] Starting check:", { type, hasSeasons: !!seasons, seenSeasons, isArray: Array.isArray(seenSeasons) });
     
@@ -93,17 +93,12 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
     const regularSeasonNumbers = regularSeasons.map(s => s.season_number);
     console.log("[Seen All Check] Regular season numbers:", regularSeasonNumbers, "Seen seasons:", seenSeasons);
     
-    // Must have exactly the same number of seen seasons as total seasons
-    if (regularSeasonNumbers.length !== seenSeasons.length) {
-      console.log("[Seen All Check] Length mismatch:", regularSeasonNumbers.length, "!=", seenSeasons.length, "- returning false");
-      return false;
-    }
-    
-    // Every regular season must be in the seen seasons list
+    // Every regular season must be in the seen seasons list (no length check needed)
     const allSeen = regularSeasonNumbers.every(num => seenSeasons.includes(num));
     console.log("[Seen All Check] All seasons seen?", allSeen);
     return allSeen;
   })();
+  
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
 
@@ -120,12 +115,12 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
     
     // For TV shows, handle seen/unseen logic
     if (type === "tv") {
-      // If all episodes are seen, unmark all seasons
-      if (allEpisodesSeen && seasons) {
+      if (allEpisodesSeen) {
+        // All episodes seen → unmark all seasons
         try {
           const allSeasonNumbers = seasons
-            .filter(s => s.season_number > 0)
-            .map(s => s.season_number);
+            ?.filter(s => s.season_number > 0)
+            .map(s => s.season_number) || [];
           
           if (allSeasonNumbers.length > 0) {
             await unmarkSeasonsSeen.mutateAsync({
@@ -137,12 +132,12 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
           toast.error("Failed to unmark episodes as seen");
         }
         return;
-      }
-      
-      // If not all episodes are seen, open the "Seen all" modal
-      if (onSeenAllClick) {
-        onSeenAllClick();
-        return;
+      } else {
+        // Not all episodes seen → open the "Seen all" modal
+        if (onSeenAllClick) {
+          onSeenAllClick();
+          return;
+        }
       }
     }
     
@@ -341,7 +336,7 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
             isWatchLoading && "opacity-50 cursor-not-allowed"
           )}
         >
-          {(isWatched || (type === "tv" && allEpisodesSeen)) ? (
+          {(type === "tv" ? allEpisodesSeen : isWatched) ? (
             <>
               {isWatchLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin text-green-500" />
