@@ -365,60 +365,91 @@ export default function DiaryStatsContent() {
         })}
       </div>
 
-      {/* Films by Month - Full Width */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Films by Month</CardTitle>
-          <CardDescription>Viewing activity throughout {selectedYear}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={monthChartConfig} className="h-[300px] w-full">
-            <BarChart data={filmsByMonth}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Legend />
-              <Bar dataKey="movies" fill={COLORS.movie} name="Movies" />
-              <Bar dataKey="tv" fill={COLORS.tv} name="TV Shows" />
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-
-      {/* Rating Distribution */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Rating Distribution</CardTitle>
-          <CardDescription>How you rated films in {selectedYear}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {ratingDistribution.length > 0 ? (
-            <ChartContainer config={{}} className="h-[400px]">
-              <PieChart>
-                <Pie
-                  data={ratingDistribution}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={120}
-                  dataKey="value"
-                >
-                  {ratingDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
+      {/* Charts Grid */}
+      <div className="flex flex-col lg:flex-row gap-6 mb-8">
+        {/* Films by Month */}
+        <Card className="flex-1">
+          <CardHeader>
+            <CardTitle>Films by Month</CardTitle>
+            <CardDescription>Viewing activity throughout {selectedYear}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={monthChartConfig} className="h-[300px] w-full">
+              <BarChart data={filmsByMonth}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
                 <ChartTooltip content={<ChartTooltipContent />} />
-              </PieChart>
+                <Legend />
+                <Bar dataKey="movies" fill={COLORS.movie} name="Movies" />
+                <Bar dataKey="tv" fill={COLORS.tv} name="TV Shows" />
+              </BarChart>
             </ChartContainer>
-          ) : (
-            <div className="h-[400px] flex items-center justify-center text-muted-foreground">
-              No ratings yet
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        {/* Rating Distribution */}
+        <Card className="flex-1">
+          <CardHeader>
+            <CardTitle>Rating Distribution</CardTitle>
+            <CardDescription>How you rated films in {selectedYear}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {ratingDistribution.length > 0 ? (
+              <div className="overflow-x-auto">
+                <div style={{ minWidth: "600px" }}>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <PieChart>
+                      <Pie
+                        data={ratingDistribution}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={80}
+                        outerRadius={140}
+                        cornerRadius={8}
+                        paddingAngle={4}
+                        stroke="none"
+                      >
+                        {ratingDistribution.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <ChartTooltip 
+                        content={<ChartTooltipContent />}
+                        formatter={(value: number, name: string) => [
+                          `${value} ${value === 1 ? "rating" : "ratings"}`,
+                          name
+                        ]}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                {/* Custom Legend */}
+                <div className="flex flex-wrap items-center justify-center gap-4 mt-6">
+                  {ratingDistribution.map((entry, index) => (
+                    <div key={entry.name} className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: entry.color }}
+                      />
+                      <span className="text-sm">{entry.name}</span>
+                      <span className="text-sm text-muted-foreground">
+                        ({entry.value})
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                No ratings yet
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Viewing Heatmap */}
       <Card className="mb-8">
