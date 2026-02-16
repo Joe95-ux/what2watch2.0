@@ -29,8 +29,10 @@ import WatchBreakdownSection from "./watch-breakdown-section";
 import ActionButtonsSection from "./action-buttons-section";
 import EpisodeDetailModal from "./episode-detail-modal";
 import CollectionSection from "./collection-section";
+import SeenAllModal from "./seen-all-modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsWatched } from "@/hooks/use-viewing-logs";
+import { toast } from "sonner";
 
 interface ContentDetailPageProps {
   item: TMDBMovie | TMDBSeries;
@@ -79,6 +81,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
   } | null>(null);
   const [isEpisodeModalOpen, setIsEpisodeModalOpen] = useState(false);
   const [isCollectionSectionOpen, setIsCollectionSectionOpen] = useState(false);
+  const [isSeenAllModalOpen, setIsSeenAllModalOpen] = useState(false);
   const [watchCountry, setWatchCountry] = useState("US");
   const heroRef = useRef<HTMLDivElement>(null);
 
@@ -287,6 +290,8 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
         item={item}
         type={type}
         watchAvailability={watchAvailability}
+        seasons={type === "tv" ? seasonsData?.seasons : undefined}
+        onSeenAllClick={type === "tv" ? () => setIsSeenAllModalOpen(true) : undefined}
       />
 
       {/* Collection Section */}
@@ -423,6 +428,22 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
           tvShowDetails={tvDetails || null}
           trailer={trailer || null}
           fallbackAvailability={watchAvailability}
+        />
+      )}
+
+      {/* Seen All Modal */}
+      {type === "tv" && seasonsData && (
+        <SeenAllModal
+          isOpen={isSeenAllModalOpen}
+          onClose={() => setIsSeenAllModalOpen(false)}
+          seasons={seasonsData.seasons}
+          tvShowId={item.id}
+          tvShowName={(item as TMDBSeries).name}
+          onSeasonsSelected={(selectedSeasons) => {
+            // TODO: Implement API call to mark seasons as seen
+            console.log("Mark seasons as seen:", selectedSeasons);
+            toast.success(`Marked ${selectedSeasons.length} ${selectedSeasons.length === 1 ? "season" : "seasons"} as seen`);
+          }}
         />
       )}
     </div>

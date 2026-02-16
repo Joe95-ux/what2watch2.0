@@ -522,7 +522,7 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
                       onCollectionClick();
                     }
                   }}
-                  className="bg-muted/20 backdrop-blur-sm border-t border-l border-white/10 rounded-tl-lg px-4 py-2 text-sm font-medium text-white hover:bg-muted/30 transition-colors"
+                  className="bg-muted/20 backdrop-blur-sm border-t border-l border-white/10 rounded-tl-lg px-4 py-2 text-sm font-medium text-white hover:bg-muted/30 transition-colors cursor-pointer"
                 >
                   Part of {details.belongs_to_collection.name}
                 </button>

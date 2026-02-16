@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ThumbsUp, ThumbsDown, Plus, Eye, Check, Heart, Loader2 } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Plus, CheckCircle2, Heart, Loader2 } from "lucide-react";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -18,9 +18,19 @@ interface ActionButtonsSectionProps {
   item: TMDBMovie | TMDBSeries;
   type: "movie" | "tv";
   watchAvailability?: JustWatchAvailabilityResponse | null;
+  seasons?: Array<{
+    id: number;
+    name: string;
+    overview: string;
+    season_number: number;
+    episode_count: number;
+    air_date: string | null;
+    poster_path: string | null;
+  }>;
+  onSeenAllClick?: () => void;
 }
 
-export default function ActionButtonsSection({ item, type, watchAvailability }: ActionButtonsSectionProps) {
+export default function ActionButtonsSection({ item, type, watchAvailability, seasons, onSeenAllClick }: ActionButtonsSectionProps) {
   const isMobile = useIsMobile();
   const primaryOffer =
     watchAvailability?.offersByType?.flatrate?.[0] ??
@@ -61,6 +71,13 @@ export default function ActionButtonsSection({ item, type, watchAvailability }: 
       }
       return;
     }
+    
+    // For TV shows, open the "Seen all" modal instead
+    if (type === "tv" && !isWatched && onSeenAllClick) {
+      onSeenAllClick();
+      return;
+    }
+    
     try {
       if (isWatched && watchedLogId) {
         await unwatch.mutateAsync(watchedLogId);
@@ -261,14 +278,18 @@ export default function ActionButtonsSection({ item, type, watchAvailability }: 
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : isWatched ? (
             <>
-              <Check className="h-4 w-4 text-green-500" />
-              <span className="hidden sm:inline">Watched</span>
-              <span className="sm:hidden">Seen</span>
+              <CheckCircle2 className={cn("h-4 w-4", type === "tv" ? "text-green-500 fill-green-500" : "text-green-500 fill-green-500")} strokeWidth={2.5} />
+              <span className={cn("hidden sm:inline", isWatched && "text-green-500")}>
+                {type === "tv" ? "Seen all" : "Seen"}
+              </span>
+              <span className={cn("sm:hidden", isWatched && "text-green-500")}>
+                {type === "tv" ? "Seen all" : "Seen"}
+              </span>
             </>
           ) : (
             <>
-              <Eye className="h-4 w-4 sm:mr-2" />
-              Watch
+              <CheckCircle2 className="h-4 w-4 sm:mr-2" strokeWidth={2.5} />
+              {type === "tv" ? "Seen all" : "Seen"}
             </>
           )}
         </Button>

@@ -7,7 +7,7 @@ import { JustWatchAvailabilityResponse } from "@/lib/justwatch";
 import { createPersonSlug } from "@/lib/person-utils";
 import { useOMDBData } from "@/hooks/use-content-details";
 import { useState, useCallback, useEffect } from "react";
-import { ChevronDown, ChevronUp, Star } from "lucide-react";
+import { ChevronDown, ChevronUp, Star, CheckCircle2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import AwardsSection from "./awards-section";
 import { RatingsRow } from "./ratings-row";
@@ -784,6 +784,7 @@ function TVSeasonsContent({
                         fill
                         className="object-cover"
                         sizes="96px"
+                        unoptimized
                       />
                     </div>
                   ) : (
@@ -800,6 +801,16 @@ function TVSeasonsContent({
                         <h3 className="text-lg font-semibold group-hover:text-primary transition-colors truncate sm:truncate-none">
                           {episode.name}
                         </h3>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // TODO: Toggle episode watched status
+                            console.log("Toggle episode watched:", episode.id);
+                          }}
+                          className="ml-auto flex-shrink-0 h-6 w-6 rounded-full border border-border bg-card hover:bg-muted transition-colors flex items-center justify-center cursor-pointer"
+                        >
+                          <CheckCircle2 className={cn("h-4 w-4", false ? "text-green-500 fill-green-500" : "text-muted-foreground")} strokeWidth={2.5} />
+                        </button>
                       </div>
 
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">

@@ -27,7 +27,7 @@ export default function CollectionSection({ collectionName, movies, isLoading, o
 
   if (isLoading) {
     return (
-      <section className="py-12">
+      <section className="py-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold">{collectionName}</h2>
         </div>
@@ -45,14 +45,14 @@ export default function CollectionSection({ collectionName, movies, isLoading, o
   }
 
   return (
-    <section className="py-12">
+    <section className="py-8">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">{collectionName}</h2>
         <Button
           variant="ghost"
           size="icon"
           onClick={onClose}
-          className="h-8 w-8 rounded-full hover:bg-muted"
+          className="h-8 w-8 rounded-full hover:bg-muted transition-colors duration-200 cursor-pointer"
           aria-label="Close collection section"
         >
           <X className="h-4 w-4" />
