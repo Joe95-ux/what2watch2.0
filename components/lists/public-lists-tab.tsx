@@ -341,7 +341,7 @@ export default function PublicListsTab() {
                     <tr
                       key={item.id}
                       className="border-t hover:bg-muted/50 cursor-pointer"
-                      onClick={() => router.push(`/playlists/${item.id}/public`)}
+                      onClick={() => router.push(`/playlists/${item.id}?public=true`)}
                     >
                       <td className="p-4">
                         <div className="font-medium">{item.name}</div>

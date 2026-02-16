@@ -11,7 +11,7 @@ export interface ParsedResource {
  * Extract playlist ID from URL or direct ID
  * Supports:
  * - /playlists/[id]
- * - /playlists/[id]/public
+ * - /playlists/[id]?public=true
  * - Direct ObjectId
  */
 export function extractPlaylistId(urlOrId: string): string | null {

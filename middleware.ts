@@ -6,7 +6,7 @@ const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/links/(.*)', // Link-in-bio pages (e.g. /links/username) are public
-  '/playlists/(.*)/public',
+  '/playlists/(.*)',
   '/lists/(.*)',
   '/api/webhooks(.*)',
   '/api/links/(.*)', // Public API for link page data (optional, page is server-rendered)

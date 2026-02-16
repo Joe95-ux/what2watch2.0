@@ -30,7 +30,7 @@ export default function SharePlaylistDialog({ playlist, isOpen, onClose, isOwnPl
   const updatePlaylist = useUpdatePlaylist();
   
   const shareUrl = typeof window !== "undefined" 
-    ? `${window.location.origin}/playlists/${playlist.id}/public`
+    ? `${window.location.origin}/playlists/${playlist.id}?public=true`
     : "";
 
   useEffect(() => {

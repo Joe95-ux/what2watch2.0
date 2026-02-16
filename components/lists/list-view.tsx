@@ -786,9 +786,10 @@ export default function ListView({
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="overflow-x-auto max-w-full">
-              <div className="flex items-center gap-2">
+            {/* Actions and List activity */}
+            <div className="flex flex-col gap-2">
+              <div className="overflow-x-auto max-w-full">
+                <div className="flex items-center gap-2">
                 {showLikeFollow && !isOwner && list && (optimisticVisibility ?? list.visibility) !== "PRIVATE" && (
                   <>
                     <Button
@@ -821,7 +822,7 @@ export default function ListView({
                 {enablePublicToggle && onTogglePublic && isOwner && (
                   <div
                     className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer",
+                      "flex items-center gap-2 px-3 py-2 rounded-md border",
                       (optimisticVisibility ?? list.visibility) === "PUBLIC"
                         ? "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
                         : (optimisticVisibility ?? list.visibility) === "FOLLOWERS_ONLY"
@@ -832,6 +833,7 @@ export default function ListView({
                   >
                     <Switch
                       id="public-toggle"
+                      className="cursor-pointer"
                       checked={(optimisticVisibility ?? list.visibility) === "PUBLIC"}
                       onCheckedChange={async (checked) => {
                         const next = checked ? "PUBLIC" : "PRIVATE";
@@ -912,20 +914,25 @@ export default function ListView({
               </div>
               {/* List activity */}
               {list && (
-                <div className="text-sm text-muted-foreground flex items-center gap-4 flex-wrap">
-                  <span className="flex items-center gap-1.5">
-                    <Eye className="h-4 w-4" />
-                    {list.viewsCount ?? 0} {list.viewsCount === 1 ? "view" : "views"}
+                <div className="space-y-1">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    List activity
                   </span>
-                  <span className="flex items-center gap-1.5">
-                    <Heart className="h-4 w-4" />
-                    {list._count?.likedBy ?? 0} {list._count?.likedBy === 1 ? "like" : "likes"}
-                  </span>
+                  <div className="text-sm text-muted-foreground flex items-center gap-4 flex-wrap">
+                    <span className="flex items-center gap-1.5">
+                      <Eye className="h-4 w-4" />
+                      {list.viewsCount ?? 0} {list.viewsCount === 1 ? "view" : "views"}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Heart className="h-4 w-4" />
+                      {list._count?.likedBy ?? 0} {list._count?.likedBy === 1 ? "like" : "likes"}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
           </div>
-        
+        </div>
 
         {/* Bulk Actions Bar */}
         {isEditMode && enableRemove && (
@@ -1853,6 +1860,7 @@ export default function ListView({
           }}
         />
       )}
+
     </>      
   );
 }

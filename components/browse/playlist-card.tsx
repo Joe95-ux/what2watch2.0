@@ -30,12 +30,12 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
   const canLike = showLikeButton && !isOwner && playlist.user;
 
   const handleCardClick = () => {
-    // If user is the owner, route to the regular playlist page (works for both public and private)
-    // Otherwise, route to the public page
+    // If user is the owner, route to the dashboard playlist page
+    // Otherwise, route to the public playlist page with ?public=true
     if (isOwner) {
-      router.push(`/playlists/${playlist.id}`);
+      router.push(`/dashboard/playlists/${playlist.id}`);
     } else {
-      router.push(`/playlists/${playlist.id}/public`);
+      router.push(`/playlists/${playlist.id}?public=true`);
     }
   };
 

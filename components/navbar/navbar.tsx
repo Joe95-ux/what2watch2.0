@@ -69,7 +69,9 @@ export default function Navbar() {
 
   const isDetailsNav = pathname?.startsWith("/tv") || pathname?.startsWith("/movie");
 
-  const isGuideNav = pathname === "/browse/personalized" || pathname?.startsWith("/lists");
+  const isGuideNav = pathname === "/browse/personalized" || pathname?.startsWith("/lists") || pathname?.startsWith("/playlists");
+
+  const isDashboardNav = pathname === "/dashboard" || pathname?.startsWith("/dashboard");
 
   // Check if we're on a page with hero section (dark navbar needed)
   const hasHeroSection =
@@ -98,6 +100,7 @@ export default function Navbar() {
           isDiscoverPage && "!grid",
           isDetailsNav && "max-w-7xl mx-auto",
           isGuideNav && "max-w-[92rem] mx-auto",
+          isDashboardNav && "sm:px-2 lg:px-2",
         )}
       >
         {/* Left: Hamburger + Logo + (Lists, Popular when not dashboard/discover) */}
