@@ -32,7 +32,6 @@ import CollectionSection from "./collection-section";
 import SeenAllModal from "./seen-all-modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsWatched } from "@/hooks/use-viewing-logs";
-import { toast } from "sonner";
 
 interface ContentDetailPageProps {
   item: TMDBMovie | TMDBSeries;
@@ -440,9 +439,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
           tvShowId={item.id}
           tvShowName={(item as TMDBSeries).name}
           onSeasonsSelected={(selectedSeasons) => {
-            // TODO: Implement API call to mark seasons as seen
-            console.log("Mark seasons as seen:", selectedSeasons);
-            toast.success(`Marked ${selectedSeasons.length} ${selectedSeasons.length === 1 ? "season" : "seasons"} as seen`);
+            // Handled by the modal
           }}
         />
       )}

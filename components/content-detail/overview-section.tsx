@@ -7,11 +7,13 @@ import { JustWatchAvailabilityResponse } from "@/lib/justwatch";
 import { createPersonSlug } from "@/lib/person-utils";
 import { useOMDBData } from "@/hooks/use-content-details";
 import { useState, useCallback, useEffect } from "react";
-import { ChevronDown, ChevronUp, Star, CheckCircle2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Star, Check } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import AwardsSection from "./awards-section";
 import { RatingsRow } from "./ratings-row";
 import { Button } from "@/components/ui/button";
+import { useSeenEpisodes, useToggleEpisodeSeen } from "@/hooks/use-episode-tracking";
+import { useUser } from "@clerk/nextjs";
 import {
   Carousel,
   CarouselContent,
@@ -676,6 +678,10 @@ function TVSeasonsContent({
     vote_count: number;
   }) => void;
 }) {
+  const { isSignedIn } = useUser();
+  const { data: seenEpisodes = [] } = useSeenEpisodes(tvShow.id);
+  const toggleEpisodeSeen = useToggleEpisodeSeen();
+
   // Filter out season 0 (specials)
   const regularSeasons = seasons.filter((s) => s.season_number > 0);
 
@@ -685,6 +691,29 @@ function TVSeasonsContent({
       onSeasonSelect(regularSeasons[0].season_number);
     }
   }, [regularSeasons, selectedSeason, onSeasonSelect]);
+
+  const isEpisodeSeen = (episodeId: number) => {
+    return seenEpisodes.includes(episodeId);
+  };
+
+  const handleToggleEpisodeSeen = async (episode: {
+    id: number;
+    season_number: number;
+    episode_number: number;
+  }) => {
+    if (!isSignedIn) {
+      return;
+    }
+    const isSeen = isEpisodeSeen(episode.id);
+    await toggleEpisodeSeen.mutateAsync({
+      tvShowTmdbId: tvShow.id,
+      tvShowTitle: tvShow.name,
+      episodeId: episode.id,
+      seasonNumber: episode.season_number,
+      episodeNumber: episode.episode_number,
+      isSeen: !isSeen,
+    });
+  };
 
   const handleSeasonSelect = useCallback((e: React.MouseEvent, seasonNumber: number) => {
     e.preventDefault();
@@ -777,9 +806,9 @@ function TVSeasonsContent({
                   onClick={(e) => handleEpisodeClick(e, episode)}
                 >
                   {episode.still_path ? (
-                    <div className="relative w-20 sm:w-24 rounded-l-lg overflow-hidden flex-shrink-0 bg-muted h-full">
+                    <div className="relative w-28 sm:w-34 rounded-l-lg overflow-hidden flex-shrink-0 bg-muted">
                       <Image
-                        src={getPosterUrl(episode.still_path, "w500")}
+                        src={getPosterUrl(episode.still_path, "w300")}
                         alt={episode.name}
                         fill
                         className="object-cover"
@@ -788,7 +817,7 @@ function TVSeasonsContent({
                       />
                     </div>
                   ) : (
-                    <div className="w-20 sm:w-24 rounded-l-lg bg-muted flex-shrink-0 flex items-center justify-center h-full">
+                    <div className="w-28 sm:w-34 rounded-l-lg bg-muted flex-shrink-0 flex items-center justify-center">
                       <span className="text-sm text-muted-foreground">No Image</span>
                     </div>
                   )}
@@ -804,12 +833,12 @@ function TVSeasonsContent({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            // TODO: Toggle episode watched status
-                            console.log("Toggle episode watched:", episode.id);
+                            handleToggleEpisodeSeen(episode);
                           }}
-                          className="ml-auto flex-shrink-0 h-6 w-6 rounded-full border border-border bg-card hover:bg-muted transition-colors flex items-center justify-center cursor-pointer"
+                          disabled={!isSignedIn || toggleEpisodeSeen.isPending}
+                          className="ml-auto flex-shrink-0 h-6 w-6 rounded-full border border-border bg-card hover:bg-muted transition-colors flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <CheckCircle2 className={cn("h-4 w-4", false ? "text-green-500 fill-green-500" : "text-muted-foreground")} strokeWidth={2.5} />
+                          <Check className={cn("h-4 w-4 font-bold", isEpisodeSeen(episode.id) ? "text-green-500" : "text-muted-foreground")} strokeWidth={3} />
                         </button>
                       </div>
 

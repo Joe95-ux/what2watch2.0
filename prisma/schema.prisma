@@ -104,6 +104,7 @@ model User {
   sharedPlaylists SharedPlaylist[]
   recentlyViewed RecentlyViewed[]
   viewingLogs   ViewingLog[]
+  episodeViewingLogs EpisodeViewingLog[]
   playlistEngagements PlaylistEngagementEvent[] @relation("UserPlaylistEngagementOwnership")
   playlistEngagementActions PlaylistEngagementEvent[] @relation("UserPlaylistEngagementActor")
   listEngagements ListEngagementEvent[] @relation("UserListEngagementOwnership")
@@ -978,6 +979,34 @@ model ViewingLog {
   @@index([userId])
   @@index([userId, watchedAt])
   @@index([tmdbId, mediaType])
+}
+
+// Episode Viewing Log - tracks individual TV episodes watched
+model EpisodeViewingLog {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // TV Show data
+  tvShowTmdbId  Int      // TV show ID from TMDB
+  tvShowTitle   String   // TV show title (cached)
+  
+  // Episode data
+  episodeId     Int      // Episode ID from TMDB
+  seasonNumber  Int      // Season number
+  episodeNumber Int      // Episode number within season
+  
+  // Viewing data
+  watchedAt     DateTime @default(now()) // When the user watched it
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@unique([userId, tvShowTmdbId, episodeId])
+  @@map("episode_viewing_logs")
+  @@index([userId])
+  @@index([userId, tvShowTmdbId])
+  @@index([tvShowTmdbId, seasonNumber, episodeNumber])
 }
 
 // Comments on viewing logs (reviews)

@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,8 +11,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 import { useUser } from "@clerk/nextjs";
+import { useMarkSeasonsSeen } from "@/hooks/use-episode-tracking";
 
 interface Season {
   id: number;
@@ -43,6 +42,7 @@ export default function SeenAllModal({
   onSeasonsSelected,
 }: SeenAllModalProps) {
   const { isSignedIn } = useUser();
+  const markSeasonsSeen = useMarkSeasonsSeen();
   const [selectedSeasons, setSelectedSeasons] = useState<Set<number>>(new Set());
   
   // Filter out season 0 (specials)
@@ -66,19 +66,26 @@ export default function SeenAllModal({
     setSelectedSeasons(newSelected);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!isSignedIn) {
-      toast.error("Sign in to mark episodes as seen.");
       return;
     }
     
     if (selectedSeasons.size === 0) {
-      toast.error("Please select at least one season.");
       return;
     }
     
-    onSeasonsSelected(Array.from(selectedSeasons));
-    onClose();
+    try {
+      await markSeasonsSeen.mutateAsync({
+        tvShowTmdbId: tvShowId,
+        tvShowTitle: tvShowName,
+        seasonNumbers: Array.from(selectedSeasons),
+      });
+      onSeasonsSelected(Array.from(selectedSeasons));
+      onClose();
+    } catch (error) {
+      // Error is handled by the hook
+    }
   };
 
   const allSelected = selectedSeasons.size === regularSeasons.length && regularSeasons.length > 0;
@@ -97,7 +104,7 @@ export default function SeenAllModal({
           </div>
           
           <div className="space-y-3">
-            <div className="flex items-center space-x-2 pb-2 border-b">
+            <div className="flex items-center space-x-2">
               <Checkbox
                 id="select-all"
                 checked={allSelected}
@@ -143,16 +150,16 @@ export default function SeenAllModal({
           </div>
         </div>
         
-        <div className="flex justify-end gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={onClose}>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button variant="outline" onClick={onClose} className="cursor-pointer">
             Cancel
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={selectedSeasons.size === 0}
-            className="bg-primary text-primary-foreground"
+            disabled={selectedSeasons.size === 0 || markSeasonsSeen.isPending}
+            className="bg-primary text-primary-foreground cursor-pointer"
           >
-            Confirm
+            {markSeasonsSeen.isPending ? "Saving..." : "Confirm"}
           </Button>
         </div>
       </DialogContent>

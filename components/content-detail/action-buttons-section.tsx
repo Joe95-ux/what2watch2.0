@@ -1,12 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { ThumbsUp, ThumbsDown, Plus, CheckCircle2, Heart, Loader2 } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Plus, Check, Heart, Loader2 } from "lucide-react";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import AddToListDropdown from "./add-to-list-dropdown";
 import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-logs";
+import { useSeenEpisodes } from "@/hooks/use-episode-tracking";
 import { useToggleFavorite } from "@/hooks/use-favorites";
 import { useContentReactions, useLikeContent, useDislikeContent } from "@/hooks/use-content-reactions";
 import { toast } from "sonner";
@@ -58,6 +59,25 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
   const isWatched = watchedData?.isWatched || false;
   const watchedLogId = watchedData?.logId || null;
   const isWatchLoading = quickWatch.isPending || unwatch.isPending;
+  
+  // Episode tracking for TV shows
+  const { data: seenEpisodes = [] } = useSeenEpisodes(type === "tv" ? item.id : null);
+  
+  // Check if all episodes are seen (for TV shows)
+  // This is a simple check - if we have seasons data, we can count total episodes
+  // For now, we'll use a heuristic: if there are seen episodes and the show is marked as watched,
+  // we'll consider it "seen all". A more accurate check would require fetching all season details.
+  const allEpisodesSeen = type === "tv" && seasons && seenEpisodes.length > 0 
+    ? (() => {
+        // Count total episodes from seasons (excluding season 0)
+        const totalEpisodes = seasons
+          .filter(s => s.season_number > 0)
+          .reduce((sum, s) => sum + s.episode_count, 0);
+        // If we have seen episodes and the count matches, assume all are seen
+        // Note: This is a heuristic. A proper check would require fetching all episode IDs.
+        return seenEpisodes.length >= totalEpisodes && totalEpisodes > 0;
+      })()
+    : false;
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
 
@@ -270,25 +290,24 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
           disabled={isWatchLoading}
           className={cn(
             "h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0 border-none",
-            isWatched && "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800",
             isWatchLoading && "opacity-50 cursor-not-allowed"
           )}
         >
           {isWatchLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
-          ) : isWatched ? (
+          ) : (isWatched || (type === "tv" && allEpisodesSeen)) ? (
             <>
-              <CheckCircle2 className={cn("h-4 w-4", type === "tv" ? "text-green-500 fill-green-500" : "text-green-500 fill-green-500")} strokeWidth={2.5} />
-              <span className={cn("hidden sm:inline", isWatched && "text-green-500")}>
+              <Check className={cn("h-4 w-4 font-bold", (isWatched || allEpisodesSeen) && "text-green-500")} strokeWidth={3} />
+              <span className={cn("hidden sm:inline", (isWatched || allEpisodesSeen) && "text-green-500")}>
                 {type === "tv" ? "Seen all" : "Seen"}
               </span>
-              <span className={cn("sm:hidden", isWatched && "text-green-500")}>
+              <span className={cn("sm:hidden", (isWatched || allEpisodesSeen) && "text-green-500")}>
                 {type === "tv" ? "Seen all" : "Seen"}
               </span>
             </>
           ) : (
             <>
-              <CheckCircle2 className="h-4 w-4 sm:mr-2" strokeWidth={2.5} />
+              <Check className="h-4 w-4 sm:mr-2 font-bold" strokeWidth={3} />
               {type === "tv" ? "Seen all" : "Seen"}
             </>
           )}
