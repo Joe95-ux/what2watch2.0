@@ -56,13 +56,15 @@ export default function SeenAllModal({
     queryFn: async () => {
       const res = await fetch(`/api/episodes/seasons/check?tvShowTmdbId=${tvShowId}`);
       if (!res.ok) return { seenSeasons: [] };
-      return res.json();
+      const data = await res.json();
+      return { seenSeasons: Array.isArray(data.seenSeasons) ? data.seenSeasons : [] };
     },
     enabled: isOpen && !!tvShowId,
     staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 1,
   });
 
-  const seenSeasons = seenSeasonsData?.seenSeasons || [];
+  const seenSeasons = Array.isArray(seenSeasonsData?.seenSeasons) ? seenSeasonsData.seenSeasons : [];
 
   // Initialize selectedSeasons with already seen seasons when modal opens
   useEffect(() => {
@@ -105,7 +107,7 @@ export default function SeenAllModal({
 
       for (const season of regularSeasons) {
         const isSelected = selectedSeasons.has(season.season_number);
-        const wasSeen = seenSeasons.includes(season.season_number);
+        const wasSeen = Array.isArray(seenSeasons) && seenSeasons.includes(season.season_number);
 
         if (isSelected && !wasSeen) {
           // Need to mark as seen

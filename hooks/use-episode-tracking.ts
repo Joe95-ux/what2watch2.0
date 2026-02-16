@@ -159,8 +159,17 @@ const checkSeenSeasons = async (tvShowTmdbId: number): Promise<number[]> => {
 export function useSeenSeasons(tvShowTmdbId: number | null) {
   return useQuery<number[]>({
     queryKey: ["seen-seasons", tvShowTmdbId],
-    queryFn: () => checkSeenSeasons(tvShowTmdbId!),
+    queryFn: async () => {
+      if (!tvShowTmdbId) return [];
+      try {
+        return await checkSeenSeasons(tvShowTmdbId);
+      } catch (error) {
+        console.error("Failed to check seen seasons:", error);
+        return [];
+      }
+    },
     enabled: !!tvShowTmdbId,
     staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 1,
   });
 }

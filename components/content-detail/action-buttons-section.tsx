@@ -68,7 +68,7 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
   
   // Check if all episodes are seen (for TV shows)
   // This accurately checks if all regular seasons (excluding season 0) have all their episodes seen
-  const allEpisodesSeen = type === "tv" && seasons
+  const allEpisodesSeen = type === "tv" && seasons && Array.isArray(seenSeasons) && seenSeasons.length > 0
     ? (() => {
         // Get all regular seasons (excluding season 0)
         const regularSeasons = seasons.filter(s => s.season_number > 0);
