@@ -68,8 +68,11 @@ export function useToggleEpisodeSeen() {
       queryClient.invalidateQueries({ queryKey: ["seen-episodes", variables.tvShowTmdbId] });
       // Also invalidate watched status for the TV show
       queryClient.invalidateQueries({ queryKey: ["is-watched", variables.tvShowTmdbId, "tv"] });
-      // Invalidate seen seasons check
-      queryClient.invalidateQueries({ queryKey: ["seen-seasons", variables.tvShowTmdbId] });
+      // Invalidate and refetch seen seasons check immediately
+      queryClient.invalidateQueries({ 
+        queryKey: ["seen-seasons", variables.tvShowTmdbId],
+        refetchType: "active"
+      });
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : "Failed to update episode status");
@@ -169,7 +172,7 @@ export function useSeenSeasons(tvShowTmdbId: number | null) {
       }
     },
     enabled: !!tvShowTmdbId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 0, // Always refetch when invalidated
     retry: 1,
   });
 }

@@ -67,16 +67,24 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
   const isWatchLoading = quickWatch.isPending || unwatch.isPending || (type === "tv" ? unmarkSeasonsSeen.isPending : false);
   
   // Check if all episodes are seen (for TV shows)
-  // Simple check: all regular seasons must be in the seen seasons list
-  const allEpisodesSeen = type === "tv" && seasons && Array.isArray(seenSeasons)
-    ? (() => {
-        const regularSeasons = seasons.filter(s => s.season_number > 0);
-        if (regularSeasons.length === 0) return false;
-        const regularSeasonNumbers = regularSeasons.map(s => s.season_number);
-        return regularSeasonNumbers.every(num => seenSeasons.includes(num)) && 
-               regularSeasonNumbers.length === seenSeasons.length;
-      })()
-    : false;
+  // All regular seasons must be in the seen seasons list, and counts must match
+  const allEpisodesSeen = (() => {
+    if (type !== "tv" || !seasons || !Array.isArray(seenSeasons)) return false;
+    
+    const regularSeasons = seasons.filter(s => s.season_number > 0);
+    if (regularSeasons.length === 0) return false;
+    
+    // If no seasons are seen, definitely not all seen
+    if (seenSeasons.length === 0) return false;
+    
+    const regularSeasonNumbers = regularSeasons.map(s => s.season_number);
+    
+    // Must have exactly the same number of seen seasons as total seasons
+    if (regularSeasonNumbers.length !== seenSeasons.length) return false;
+    
+    // Every regular season must be in the seen seasons list
+    return regularSeasonNumbers.every(num => seenSeasons.includes(num));
+  })();
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
 
