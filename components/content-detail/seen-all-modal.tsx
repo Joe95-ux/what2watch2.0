@@ -12,8 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
-import { useMarkSeasonsSeen, useUnmarkSeasonsSeen } from "@/hooks/use-episode-tracking";
-import { useQuery } from "@tanstack/react-query";
+import { useMarkSeasonsSeen, useUnmarkSeasonsSeen, useSeenSeasons } from "@/hooks/use-episode-tracking";
 
 interface Season {
   id: number;
@@ -50,26 +49,8 @@ export default function SeenAllModal({
   // Filter out season 0 (specials)
   const regularSeasons = seasons.filter((s) => s.season_number > 0);
 
-  // Fetch which seasons are already seen
-  const { data: seenSeasonsData, isLoading: isLoadingSeenSeasons } = useQuery<{ seenSeasons: number[] }>({
-    queryKey: ["seen-seasons", tvShowId],
-    queryFn: async () => {
-      try {
-        const res = await fetch(`/api/episodes/seasons/check?tvShowTmdbId=${tvShowId}`);
-        if (!res.ok) return { seenSeasons: [] };
-        const data = await res.json();
-        return { seenSeasons: Array.isArray(data.seenSeasons) ? data.seenSeasons : [] };
-      } catch (error) {
-        console.error("Failed to fetch seen seasons:", error);
-        return { seenSeasons: [] };
-      }
-    },
-    enabled: isOpen && !!tvShowId,
-    staleTime: 1000 * 60 * 5,
-    retry: 1,
-  });
-
-  const seenSeasons = seenSeasonsData?.seenSeasons || [];
+  // Fetch which seasons are already seen - use the same hook as parent component
+  const { data: seenSeasons = [], isLoading: isLoadingSeenSeasons } = useSeenSeasons(isOpen && tvShowId ? tvShowId : null);
   const seenSeasonsKey = JSON.stringify(seenSeasons); // Stable key for comparison
   const initializedRef = useRef<string | null>(null); // Track what we've initialized
 
