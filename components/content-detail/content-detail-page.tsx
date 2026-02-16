@@ -13,6 +13,7 @@ import {
   useWatchProviders,
   useSeasonWatchProviders,
   useJustWatchCountries,
+  useCollectionDetails,
 } from "@/hooks/use-content-details";
 import { useAddRecentlyViewed } from "@/hooks/use-recently-viewed";
 import HeroSection from "./hero-section";
@@ -27,6 +28,7 @@ import RecentlyViewedSection from "./recently-viewed-section";
 import WatchBreakdownSection from "./watch-breakdown-section";
 import ActionButtonsSection from "./action-buttons-section";
 import EpisodeDetailModal from "./episode-detail-modal";
+import CollectionSection from "./collection-section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsWatched } from "@/hooks/use-viewing-logs";
 
@@ -76,6 +78,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
     vote_count: number;
   } | null>(null);
   const [isEpisodeModalOpen, setIsEpisodeModalOpen] = useState(false);
+  const [isCollectionSectionOpen, setIsCollectionSectionOpen] = useState(false);
   const [watchCountry, setWatchCountry] = useState("US");
   const heroRef = useRef<HTMLDivElement>(null);
 
@@ -104,6 +107,16 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
     watchCountry
   );
   const { data: justwatchCountries = [] } = useJustWatchCountries();
+
+  // Get collection ID from movie details
+  const collectionId = type === "movie" && movieDetails?.belongs_to_collection?.id 
+    ? movieDetails.belongs_to_collection.id 
+    : null;
+  
+  // Fetch collection details when section is open
+  const { data: collectionData, isLoading: isLoadingCollection } = useCollectionDetails(
+    isCollectionSectionOpen ? collectionId : null
+  );
 
   // Track recently viewed
   const addRecentlyViewed = useAddRecentlyViewed();
@@ -265,6 +278,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
           trailer={trailer}
           videosData={videosData || null}
           watchAvailability={watchAvailability}
+          onCollectionClick={() => setIsCollectionSectionOpen(!isCollectionSectionOpen)}
         />
       </div>
 
@@ -274,6 +288,18 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
         type={type}
         watchAvailability={watchAvailability}
       />
+
+      {/* Collection Section */}
+      {type === "movie" && movieDetails?.belongs_to_collection && isCollectionSectionOpen && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <CollectionSection
+            collectionName={movieDetails.belongs_to_collection.name}
+            movies={collectionData?.parts || []}
+            isLoading={isLoadingCollection}
+            onClose={() => setIsCollectionSectionOpen(false)}
+          />
+        </div>
+      )}
 
       {/* Sticky Navigation */}
       <StickyNav

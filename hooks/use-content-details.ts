@@ -33,6 +33,12 @@ interface MovieDetails extends TMDBMovie {
   release_date: string;
   imdb_id?: string;
   tagline?: string;
+  belongs_to_collection?: {
+    id: number;
+    name: string;
+    poster_path: string | null;
+    backdrop_path: string | null;
+  } | null;
 }
 
 interface TVDetails extends TMDBSeries {
@@ -81,6 +87,33 @@ export function useTVDetails(tvId: number | null) {
       return response.json() as Promise<TVDetails>;
     },
     enabled: !!tvId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  });
+}
+
+/**
+ * Hook to fetch collection details
+ */
+interface CollectionDetails {
+  id: number;
+  name: string;
+  overview: string;
+  poster_path: string | null;
+  backdrop_path: string | null;
+  parts: TMDBMovie[];
+}
+
+export function useCollectionDetails(collectionId: number | null) {
+  return useQuery({
+    queryKey: ["collection", collectionId, "details"],
+    queryFn: async () => {
+      if (!collectionId) return null;
+      const response = await fetch(`/api/collections/${collectionId}`);
+      if (!response.ok) throw new Error("Failed to fetch collection details");
+      return response.json() as Promise<CollectionDetails>;
+    },
+    enabled: !!collectionId,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   });

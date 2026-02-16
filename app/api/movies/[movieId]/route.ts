@@ -15,6 +15,12 @@ interface MovieDetails extends TMDBMovie {
   spoken_languages?: Array<{ english_name: string; iso_639_1: string; name: string }>;
   release_date: string;
   imdb_id?: string;
+  belongs_to_collection?: {
+    id: number;
+    name: string;
+    poster_path: string | null;
+    backdrop_path: string | null;
+  } | null;
 }
 
 export async function GET(

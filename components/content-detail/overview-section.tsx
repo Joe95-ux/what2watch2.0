@@ -337,7 +337,10 @@ export default function OverviewSection({
           )}
         </div>
 
-        <div className="lg:col-span-4">
+        <div className="lg:col-span-4 space-y-6">
+          <div className="flex min-h-[420px] border border-border rounded-2xl bg-muted/40 items-center justify-center text-sm text-muted-foreground">
+            Ad placement
+          </div>
           <div className="hidden lg:flex min-h-[420px] border border-border rounded-2xl bg-muted/40 items-center justify-center text-sm text-muted-foreground">
             Ad placement
           </div>
@@ -733,7 +736,7 @@ function TVSeasonsContent({
                 <button
                   onClick={(e) => handleSeasonSelect(e, season.season_number)}
                   className={cn(
-                    "relative px-2 py-4 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer",
+                    "relative py-4 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer",
                     selectedSeason === season.season_number
                       ? "text-foreground"
                       : "text-muted-foreground hover:text-foreground"
@@ -770,27 +773,26 @@ function TVSeasonsContent({
               {seasonDetails.episodes.map((episode) => (
                 <div
                   key={episode.id}
-                  className="relative flex gap-4 p-4 rounded-lg border border-border bg-card transition-all group cursor-pointer hover:border-primary/50"
+                  className="relative flex rounded-lg border border-border transition-all group cursor-pointer hover:border-primary/50 overflow-hidden"
                   onClick={(e) => handleEpisodeClick(e, episode)}
                 >
-                  <div className="flex flex-row gap-4 flex-1 min-w-0">
-                    {episode.still_path ? (
-                      <div className="relative w-20 h-28 sm:w-24 sm:h-36 rounded overflow-hidden flex-shrink-0 bg-muted">
-                        <Image
-                          src={getPosterUrl(episode.still_path, "w300")}
-                          alt={episode.name}
-                          fill
-                          className="object-cover"
-                          sizes="96px"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-20 h-28 sm:w-24 sm:h-36 rounded bg-muted flex-shrink-0 flex items-center justify-center">
-                        <span className="text-sm text-muted-foreground">No Image</span>
-                      </div>
-                    )}
+                  {episode.still_path ? (
+                    <div className="relative w-20 sm:w-24 rounded-l-lg overflow-hidden flex-shrink-0 bg-muted h-full">
+                      <Image
+                        src={getPosterUrl(episode.still_path, "w500")}
+                        alt={episode.name}
+                        fill
+                        className="object-cover"
+                        sizes="96px"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-20 sm:w-24 rounded-l-lg bg-muted flex-shrink-0 flex items-center justify-center h-full">
+                      <span className="text-sm text-muted-foreground">No Image</span>
+                    </div>
+                  )}
 
-                    <div className="flex-1 min-w-0 flex flex-col">
+                    <div className="flex-1 min-w-0 flex flex-col p-6">
                       <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <span className="text-sm text-muted-foreground">
                           S{episode.season_number.toString().padStart(2, "0")}E{episode.episode_number.toString().padStart(2, "0")}
@@ -828,7 +830,8 @@ function TVSeasonsContent({
                       )}
                     </div>
                   </div>
-                </div>
+                
+
               ))}
             </div>
           ) : (

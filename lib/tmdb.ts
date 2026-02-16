@@ -401,6 +401,22 @@ export async function getTVDetails(tvId: number): Promise<TMDBSeries & { genres:
 }
 
 /**
+ * Get collection details
+ */
+export interface TMDBCollection {
+  id: number;
+  name: string;
+  overview: string;
+  poster_path: string | null;
+  backdrop_path: string | null;
+  parts: TMDBMovie[];
+}
+
+export async function getCollectionDetails(collectionId: number): Promise<TMDBCollection> {
+  return fetchTMDB(`/collection/${collectionId}`);
+}
+
+/**
  * Watch Provider interfaces
  */
 export interface TMDBWatchProvider {

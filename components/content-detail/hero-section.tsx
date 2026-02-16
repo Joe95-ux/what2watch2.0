@@ -34,6 +34,12 @@ interface DetailsType {
     posters?: Array<{ file_path: string }>;
     stills?: Array<{ file_path: string }>;
   };
+  belongs_to_collection?: {
+    id: number;
+    name: string;
+    poster_path: string | null;
+    backdrop_path: string | null;
+  } | null;
 }
 
 interface HeroSectionProps {
@@ -43,9 +49,10 @@ interface HeroSectionProps {
   trailer: TMDBVideo | null;
   videosData: { id: number; results: TMDBVideo[] } | null;
   watchAvailability?: JustWatchAvailabilityResponse | null;
+  onCollectionClick?: () => void;
 }
 
-export default function HeroSection({ item, type, details, trailer, videosData, watchAvailability }: HeroSectionProps) {
+export default function HeroSection({ item, type, details, trailer, videosData, watchAvailability, onCollectionClick }: HeroSectionProps) {
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [initialVideoId, setInitialVideoId] = useState<string | null>(null);
   const [isPhotosModalOpen, setIsPhotosModalOpen] = useState(false);
@@ -505,6 +512,22 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
                 </div>
               </div>
             </div>
+
+            {/* Collection Button - Bottom Right */}
+            {type === "movie" && details?.belongs_to_collection && (
+              <div className="absolute bottom-0 right-0">
+                <button
+                  onClick={() => {
+                    if (onCollectionClick) {
+                      onCollectionClick();
+                    }
+                  }}
+                  className="bg-muted/20 backdrop-blur-sm border-t border-l border-white/10 rounded-tl-lg px-4 py-2 text-sm font-medium text-white hover:bg-muted/30 transition-colors"
+                >
+                  Part of {details.belongs_to_collection.name}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Stats Column */}
