@@ -68,15 +68,19 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
   
   // Check if all episodes are seen (for TV shows)
   // This accurately checks if all regular seasons (excluding season 0) have all their episodes seen
-  const allEpisodesSeen = type === "tv" && seasons && Array.isArray(seenSeasons) && seenSeasons.length > 0
+  const allEpisodesSeen = type === "tv" && seasons && Array.isArray(seenSeasons)
     ? (() => {
         // Get all regular seasons (excluding season 0)
         const regularSeasons = seasons.filter(s => s.season_number > 0);
         if (regularSeasons.length === 0) return false;
         
-        // Check if all regular seasons are in the seen seasons list
+        // Must have at least one seen season to proceed with the check
+        if (seenSeasons.length === 0) return false;
+        
+        // Check if ALL regular seasons are in the seen seasons list
         const regularSeasonNumbers = regularSeasons.map(s => s.season_number);
-        return regularSeasonNumbers.every(seasonNum => seenSeasons.includes(seasonNum));
+        return regularSeasonNumbers.length === seenSeasons.length && 
+               regularSeasonNumbers.every(seasonNum => seenSeasons.includes(seasonNum));
       })()
     : false;
   const { isSignedIn } = useUser();
@@ -96,7 +100,7 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
     // For TV shows, handle seen/unseen logic
     if (type === "tv") {
       // If all episodes are seen, unmark all seasons
-      if (allEpisodesSeen && seasons) {
+      if (allEpisodesSeen && seasons && Array.isArray(seenSeasons) && seenSeasons.length > 0) {
         try {
           const allSeasonNumbers = seasons
             .filter(s => s.season_number > 0)
@@ -115,7 +119,8 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
       }
       
       // If not all episodes are seen, open the "Seen all" modal
-      if (onSeenAllClick) {
+      // Only open if we have seasons data and the callback is available
+      if (seasons && onSeenAllClick) {
         onSeenAllClick();
         return;
       }

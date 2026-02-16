@@ -68,7 +68,7 @@ export default function SeenAllModal({
 
   // Initialize selectedSeasons with already seen seasons when modal opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && Array.isArray(seenSeasons)) {
       if (seenSeasons.length > 0) {
         setSelectedSeasons(new Set(seenSeasons));
       } else {
