@@ -14,7 +14,6 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { FiltersSheet, type SearchFilters } from "@/components/filters/filters-sheet";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
 import { useWatchRegions } from "@/hooks/use-watch-regions";
-import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function PopularContentInner() {
@@ -25,7 +24,6 @@ function PopularContentInner() {
   const [tvGenres, setTVGenres] = useState<Array<{ id: number; name: string }>>([]);
   const [allGenres, setAllGenres] = useState<Array<{ id: number; name: string }>>([]);
   const [showAllGenres, setShowAllGenres] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
   const GENRES_TO_SHOW = 8;
 
   // Get params from URL - normalize "movies" to "movie"
@@ -309,7 +307,7 @@ function PopularContentInner() {
   };
 
   const handleCardClick = (item: TMDBMovie | TMDBSeries, itemType: "movie" | "tv") => {
-    setSelectedItem({ item, type: itemType });
+    router.push(`/${itemType}/${item.id}`);
   };
 
   return (
@@ -455,16 +453,6 @@ function PopularContentInner() {
           </>
         )}
       </div>
-
-      {/* Content Detail Modal */}
-      {selectedItem && (
-        <ContentDetailModal
-          item={selectedItem.item}
-          type={selectedItem.type}
-          isOpen={!!selectedItem}
-          onClose={() => setSelectedItem(null)}
-        />
-      )}
     </div>
   );
 }

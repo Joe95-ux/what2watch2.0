@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Plus, ListChecks, ChevronRight } from "lucide-react";
+import { Plus, ListCheck, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import CreatePlaylistModal from "@/components/playlists/create-playlist-modal";
@@ -235,9 +235,9 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
                               e.stopPropagation();
                               await handleTogglePlaylist(playlist.id);
                             }}
-                            className="flex items-center gap-2 flex-1 min-w-0 pr-2 py-2 hover:bg-muted rounded transition-colors"
+                            className="flex items-center gap-2 flex-1 min-w-0 px-2 py-2 hover:bg-muted rounded transition-colors cursor-pointer"
                           >
-                            <ListChecks 
+                            <ListCheck 
                               className={cn(
                                 "h-4 w-4 flex-shrink-0",
                                 isInPlaylist ? "text-green-500" : "text-muted-foreground"
@@ -252,7 +252,7 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
                               router.push(`/dashboard/playlists/${playlist.id}`);
                               setIsDropdownOpen(false);
                             }}
-                            className="p-2 hover:bg-muted rounded transition-colors flex-shrink-0"
+                            className="p-2 hover:bg-muted rounded transition-colors flex-shrink-0 cursor-pointer"
                           >
                             <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           </button>
@@ -285,9 +285,9 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
                               e.stopPropagation();
                               await handleToggleList(list.id);
                             }}
-                            className="flex items-center gap-2 flex-1 min-w-0 pr-2 py-2 hover:bg-muted rounded transition-colors"
+                            className="flex items-center gap-2 flex-1 min-w-0 px-2 py-2 hover:bg-muted rounded transition-colors cursor-pointer"
                           >
-                            <ListChecks 
+                            <ListCheck 
                               className={cn(
                                 "h-4 w-4 flex-shrink-0",
                                 isInList ? "text-green-500" : "text-muted-foreground"
@@ -302,7 +302,7 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
                               router.push(`/dashboard/lists/${list.id}`);
                               setIsDropdownOpen(false);
                             }}
-                            className="p-2 hover:bg-muted rounded transition-colors flex-shrink-0"
+                            className="p-2 hover:bg-muted rounded transition-colors flex-shrink-0 cursor-pointer"
                           >
                             <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           </button>

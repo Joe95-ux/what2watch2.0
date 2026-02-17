@@ -1949,7 +1949,7 @@ export default function WatchlistView({
                                   if (isEditMode) {
                                     toggleItemSelection(watchlistItem.id);
                                   } else {
-                                    setSelectedItem({ item, type });
+                                    router.push(`/${type}/${item.id}`);
                                   }
                                 }}
                                 isLgScreen={isLgScreen}

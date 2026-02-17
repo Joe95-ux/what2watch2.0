@@ -1835,7 +1835,7 @@ export default function PlaylistView({
                                           if (isEditMode) {
                                             toggleItemSelection(playlistItem.id);
                                           } else {
-                                            setSelectedItem({ item, type });
+                                            router.push(`/${type}/${item.id}`);
                                           }
                                         }}
                                         isLgScreen={isLgScreen}

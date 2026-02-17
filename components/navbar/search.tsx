@@ -4,6 +4,7 @@ import { Search as SearchIcon, X, SlidersHorizontal, Image as ImageIcon } from "
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Sheet,
   SheetContent,
@@ -454,7 +455,13 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
                   {isLoadingDisplay && (
                     <div className="space-y-4">
                       {[...Array(3)].map((_, i) => (
-                        <Skeleton key={i} className="h-32 w-full rounded-lg" />
+                        <div key={i} className="relative flex rounded-lg border border-border overflow-hidden px-2 py-2">
+                          <Skeleton className="h-12 w-8 rounded-l-lg flex-shrink-0" />
+                          <div className="flex-1 min-w-0 flex flex-col gap-1 px-3">
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-3.5 w-1/2" />
+                          </div>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -605,7 +612,13 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
             {isLoadingDisplay && (
               <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
-                  <Skeleton key={i} className="h-32 w-full rounded-lg" />
+                  <div key={i} className="relative flex rounded-lg border border-border overflow-hidden px-2 py-2">
+                    <Skeleton className="h-16 w-11 rounded-l-lg flex-shrink-0" />
+                    <div className="flex-1 min-w-0 flex flex-col gap-1 px-3">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3.5 w-1/2" />
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
@@ -716,14 +729,16 @@ function SearchResultItem({
         <div className="text-sm font-medium truncate group-hover:text-primary transition-colors">
           {result.title}
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+        <div className="flex items-center gap-2 text-[14px] text-muted-foreground flex-wrap">
           {formattedDate && (
             <span>{formattedDate}</span>
           )}
           {formattedDate && (
             <span>•</span>
           )}
-          <span>{typeTag}</span>
+          <Badge variant="secondary" className="text-[14px] font-normal">
+            {typeTag}
+          </Badge>
         </div>
       </div>
     </Link>

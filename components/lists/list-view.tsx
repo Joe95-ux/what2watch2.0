@@ -1645,7 +1645,7 @@ export default function ListView({
                                       if (isEditMode) {
                                         toggleItemSelection(listItem.id);
                                       } else {
-                                        setSelectedItem({ item, type });
+                                        router.push(`/${type}/${item.id}`);
                                       }
                                     }}
                                     isLgScreen={isLgScreen}
