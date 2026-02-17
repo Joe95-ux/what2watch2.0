@@ -89,7 +89,6 @@ export default function MoreLikeThisCard({
     const totalCount = regularSeasons.length;
     
     if (seenCount === 0) return null; // Not started
-    if (seenCount === totalCount) return null; // Fully watched (100%)
     
     return Math.round((seenCount / totalCount) * 100);
   })();
