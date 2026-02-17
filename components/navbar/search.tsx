@@ -678,6 +678,14 @@ function SearchResultItem({
 
   const href = isPerson ? `/person/${result.id}` : `/${result.type}/${result.id}`;
 
+  const posterClass = variant === "desktop"
+    ? isPerson
+      ? "h-10 w-10 rounded-full"
+      : "h-16 w-11"
+    : isPerson
+    ? "h-8 w-8 rounded-full"
+    : "h-12 w-8";
+
   return (
     <Link
       href={href}
@@ -685,33 +693,30 @@ function SearchResultItem({
         e.preventDefault();
         onSelect(result);
       }}
-      className="relative flex rounded-lg border border-border transition-all group cursor-pointer hover:border-primary/50 overflow-hidden"
+      className="relative flex rounded-lg border border-border transition-all group cursor-pointer hover:border-primary/50 overflow-hidden px-2 py-2"
     >
       {imageUrl ? (
-        <div className="relative w-28 sm:w-[136px] rounded-l-lg overflow-hidden flex-shrink-0 bg-muted">
+        <div className={cn("relative rounded-l-lg overflow-hidden flex-shrink-0 bg-muted", isPerson ? "rounded-full" : "", posterClass)}>
           <Image
             src={imageUrl}
             alt={result.title}
-            fill
-            className="object-cover"
-            sizes="112px"
+            width={variant === "desktop" ? (isPerson ? 40 : 44) : 32}
+            height={variant === "desktop" ? (isPerson ? 40 : 64) : isPerson ? 32 : 48}
+            className={cn("object-cover", isPerson ? "rounded-full" : "rounded-l-lg")}
             unoptimized
           />
         </div>
       ) : (
-        <div className="w-28 sm:w-[136px] rounded-l-lg bg-muted flex-shrink-0 flex items-center justify-center">
-          <ImageIcon className="h-6 w-6 text-muted-foreground" />
+        <div className={cn("bg-muted rounded flex items-center justify-center flex-shrink-0", isPerson ? "rounded-full" : "rounded-l-lg", posterClass)}>
+          <ImageIcon className="h-4 w-4 text-muted-foreground" />
         </div>
       )}
 
-      <div className="flex-1 min-w-0 flex flex-col p-6">
-        <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <h3 className="text-lg font-semibold group-hover:text-primary transition-colors truncate sm:truncate-none">
-            {result.title}
-          </h3>
+      <div className="flex-1 min-w-0 flex flex-col gap-1 px-3">
+        <div className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+          {result.title}
         </div>
-
-        <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
           {formattedDate && (
             <span>{formattedDate}</span>
           )}

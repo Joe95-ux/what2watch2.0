@@ -313,13 +313,13 @@ function DetailedPlaylistItem({
               </div>
             )}
             {playlistItem.posterPath ? (
-              <div className="relative w-20 h-28 sm:w-24 sm:h-36 rounded overflow-hidden flex-shrink-0 bg-muted">
+              <div className="relative w-24 h-32 sm:w-28 sm:h-40 rounded overflow-hidden flex-shrink-0 bg-muted">
                 <Image
                   src={getPosterUrl(playlistItem.posterPath)}
                   alt={playlistItem.title}
                   fill
                   className="object-cover"
-                  sizes="96px"
+                  sizes="112px"
                 />
                 {/* Primary Provider Button - Bottom of Poster */}
                 {primaryOffer && (
@@ -330,8 +330,7 @@ function DetailedPlaylistItem({
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
                       className={cn(
-                        "flex items-center h-7 w-full overflow-hidden rounded bg-muted dark:bg-transparent hover:bg-muted/30 transition-colors cursor-pointer",
-                        "dark:border dark:border-[rgba(255,255,255,0.1)]"
+                        "flex items-center h-7 w-full overflow-hidden rounded bg-black/70 hover:bg-black/80 transition-colors cursor-pointer"
                       )}
                     >
                       {primaryOffer.iconUrl ? (
@@ -344,13 +343,13 @@ function DetailedPlaylistItem({
                             className="object-contain rounded-l w-7 h-7 block flex-shrink-0"
                             unoptimized
                           />
-                          <span className="pl-2 pr-2 flex items-center text-[0.8rem] font-medium truncate">
-                            WATCH NOW
+                          <span className="pl-2 pr-2 flex items-center text-[12px] font-medium truncate text-white">
+                            Watch Now
                           </span>
                         </>
                       ) : (
-                        <span className="px-2 flex items-center text-[0.8rem] font-medium truncate">
-                          WATCH NOW
+                        <span className="px-2 flex items-center text-[12px] font-medium truncate text-white">
+                          Watch Now
                         </span>
                       )}
                     </a>
@@ -358,7 +357,7 @@ function DetailedPlaylistItem({
                 )}
               </div>
             ) : (
-              <div className="w-20 h-28 sm:w-24 sm:h-36 rounded bg-muted flex-shrink-0 flex items-center justify-center">
+              <div className="w-24 h-32 sm:w-28 sm:h-40 rounded bg-muted flex-shrink-0 flex items-center justify-center">
                 {type === "movie" ? (
                   <Film className="h-8 w-8 text-muted-foreground" />
                 ) : (
