@@ -120,6 +120,14 @@ async function processWhat2WatchPlaylistImport(
 ) {
   const mapping = parsed.columnMapping;
 
+  // Get initial max order to start our counter
+  const initialMaxOrderItem = await db.playlistItem.findFirst({
+    where: { playlistId },
+    orderBy: { order: "desc" },
+    select: { order: true },
+  });
+  let orderCounter = initialMaxOrderItem?.order ? initialMaxOrderItem.order : 0;
+
   for (let i = 0; i < parsed.rows.length; i++) {
     const row = parsed.rows[i];
     const rowNum = i + 2;
@@ -160,8 +168,7 @@ async function processWhat2WatchPlaylistImport(
         continue;
       }
 
-      const order = orderStr ? parseInt(orderStr, 10) : null;
-      if (orderStr && isNaN(order!)) {
+      if (orderStr && isNaN(parseInt(orderStr, 10))) {
         results.warnings.push({
           row: rowNum,
           warning: `Invalid order value: ${orderStr}. Will be assigned automatically.`,
@@ -182,6 +189,7 @@ async function processWhat2WatchPlaylistImport(
           results.skipped++;
           continue;
         } else if (duplicateAction === "update") {
+          // For updates, keep existing order to avoid duplicates
           await db.playlistItem.update({
             where: { id: existing.id },
             data: {
@@ -189,7 +197,6 @@ async function processWhat2WatchPlaylistImport(
               note,
               releaseDate: mediaType === "movie" ? row[mapping.releaseDate!]?.trim() || null : null,
               firstAirDate: mediaType === "tv" ? row[mapping.releaseDate!]?.trim() || null : null,
-              order: order || existing.order,
             },
           });
           results.imported++;
@@ -197,13 +204,9 @@ async function processWhat2WatchPlaylistImport(
         }
       }
 
-      // Get current max order
-      const maxOrderItem = await db.playlistItem.findFirst({
-        where: { playlistId },
-        orderBy: { order: "desc" },
-        select: { order: true },
-      });
-      const nextOrder = order || (maxOrderItem?.order ? maxOrderItem.order + 1 : 1);
+      // Increment counter for each new item to ensure unique orders
+      orderCounter++;
+      const nextOrder = orderCounter;
 
       // Fetch poster/backdrop from TMDB
       let posterPath: string | null = null;
@@ -263,6 +266,14 @@ async function processIMDbPlaylistImport(
   results: ImportResult
 ) {
   const mapping = parsed.columnMapping;
+
+  // Get initial max order to start our counter
+  const initialMaxOrderItem = await db.playlistItem.findFirst({
+    where: { playlistId },
+    orderBy: { order: "desc" },
+    select: { order: true },
+  });
+  let orderCounter = initialMaxOrderItem?.order ? initialMaxOrderItem.order : 0;
 
   for (let i = 0; i < parsed.rows.length; i++) {
     const row = parsed.rows[i];
@@ -350,12 +361,12 @@ async function processIMDbPlaylistImport(
           results.skipped++;
           continue;
         } else if (duplicateAction === "update") {
+          // For updates, keep existing order to avoid duplicates
           await db.playlistItem.update({
             where: { id: existing.id },
             data: {
               title,
               note,
-              order: orderStr ? parseInt(orderStr, 10) : existing.order,
             },
           });
           results.imported++;
@@ -363,13 +374,9 @@ async function processIMDbPlaylistImport(
         }
       }
 
-      // Get current max order
-      const maxOrderItem = await db.playlistItem.findFirst({
-        where: { playlistId },
-        orderBy: { order: "desc" },
-        select: { order: true },
-      });
-      const nextOrder = orderStr ? parseInt(orderStr, 10) : (maxOrderItem?.order ? maxOrderItem.order + 1 : 1);
+      // Increment counter for each new item to ensure unique orders
+      orderCounter++;
+      const nextOrder = orderCounter;
 
       // Create playlist item
       await db.playlistItem.create({
@@ -409,6 +416,14 @@ async function processGenericPlaylistImport(
   results: ImportResult
 ) {
   const mapping = parsed.columnMapping;
+
+  // Get initial max order to start our counter
+  const initialMaxOrderItem = await db.playlistItem.findFirst({
+    where: { playlistId },
+    orderBy: { order: "desc" },
+    select: { order: true },
+  });
+  let orderCounter = initialMaxOrderItem?.order ? initialMaxOrderItem.order : 0;
 
   for (let i = 0; i < parsed.rows.length; i++) {
     const row = parsed.rows[i];
@@ -560,12 +575,12 @@ async function processGenericPlaylistImport(
           results.skipped++;
           continue;
         } else if (duplicateAction === "update") {
+          // For updates, keep existing order to avoid duplicates
           await db.playlistItem.update({
             where: { id: existing.id },
             data: {
               title,
               note,
-              order: orderStr ? parseInt(orderStr, 10) : existing.order,
             },
           });
           results.imported++;
@@ -573,13 +588,9 @@ async function processGenericPlaylistImport(
         }
       }
 
-      // Get current max order
-      const maxOrderItem = await db.playlistItem.findFirst({
-        where: { playlistId },
-        orderBy: { order: "desc" },
-        select: { order: true },
-      });
-      const nextOrder = orderStr ? parseInt(orderStr, 10) : (maxOrderItem?.order ? maxOrderItem.order + 1 : 1);
+      // Increment counter for each new item to ensure unique orders
+      orderCounter++;
+      const nextOrder = orderCounter;
 
       // Create playlist item
       await db.playlistItem.create({

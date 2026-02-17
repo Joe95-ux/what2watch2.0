@@ -12,7 +12,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { TMDBMovie, TMDBSeries, TMDBResponse } from "@/lib/tmdb";
+import { TMDBMovie, TMDBSeries, TMDBResponse, getPosterUrl } from "@/lib/tmdb";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTrendingMovies, useTrendingTV } from "@/hooks/use-movies";
@@ -21,6 +21,7 @@ import Link from "next/link";
 import { FiltersSheet, type SearchFilters } from "@/components/filters/filters-sheet";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
 import { useWatchRegions } from "@/hooks/use-watch-regions";
+import { format } from "date-fns";
 
 interface SearchResult {
   id: number;
@@ -451,15 +452,9 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
               <div className="h-auto overflow-hidden border-t">
                 <div className="p-2 max-h-[80vh] sm:max-h-[60vh] overflow-y-auto scrollbar-thin">
                   {isLoadingDisplay && (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {[...Array(3)].map((_, i) => (
-                        <div key={i} className="flex items-center gap-3 px-2">
-                          <Skeleton className="h-12 w-8 rounded flex-shrink-0" />
-                          <div className="flex-1 space-y-2">
-                            <Skeleton className="h-4 w-3/4" />
-                            <Skeleton className="h-3 w-1/2" />
-                          </div>
-                        </div>
+                        <Skeleton key={i} className="h-32 w-full rounded-lg" />
                       ))}
                     </div>
                   )}
@@ -475,13 +470,15 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
                           Trending Now
                         </div>
                       )}
-                      {displayResults.map((result) => (
-                        <SearchResultItem
-                          key={`${result.type}-${result.id}`}
-                          result={result}
-                          onSelect={handleSelect}
-                        />
-                      ))}
+                      <div className="space-y-4">
+                        {displayResults.map((result) => (
+                          <SearchResultItem
+                            key={`${result.type}-${result.id}`}
+                            result={result}
+                            onSelect={handleSelect}
+                          />
+                        ))}
+                      </div>
                     </>
                   )}
                 </div>
@@ -606,15 +603,9 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
         <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-50 h-auto overflow-hidden">
           <div className="p-2 max-h-[400px] overflow-y-auto scrollbar-thin">
             {isLoadingDisplay && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="flex items-center gap-3 px-2">
-                    <Skeleton className="h-12 w-8 rounded flex-shrink-0" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-3 w-1/2" />
-                    </div>
-                  </div>
+                  <Skeleton key={i} className="h-32 w-full rounded-lg" />
                 ))}
               </div>
             )}
@@ -630,14 +621,16 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
                     Trending Now
                   </div>
                 )}
-                {displayResults.map((result) => (
-                  <SearchResultItem
-                    key={`${result.type}-${result.id}`}
-                    result={result}
-                    onSelect={handleSelect}
-                    variant="desktop"
-                  />
-                ))}
+                <div className="space-y-4">
+                  {displayResults.map((result) => (
+                    <SearchResultItem
+                      key={`${result.type}-${result.id}`}
+                      result={result}
+                      onSelect={handleSelect}
+                      variant="desktop"
+                    />
+                  ))}
+                </div>
               </>
             )}
           </div>
@@ -647,7 +640,7 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
   );
 }
 
-// Search Result Item Component (variant=desktop for larger posters in navbar dropdown; mobile unchanged)
+// Search Result Item Component - Matches episode card design
 function SearchResultItem({
   result,
   onSelect,
@@ -658,39 +651,32 @@ function SearchResultItem({
   variant?: "mobile" | "desktop";
 }) {
   const isPerson = result.type === "person";
-  const size = variant === "desktop" ? "w154" : "w92";
   const imageUrl = isPerson
     ? result.profile_path
-      ? `https://image.tmdb.org/t/p/${size}${result.profile_path}`
+      ? getPosterUrl(result.profile_path, "w300")
       : null
     : result.poster_path
-    ? `https://image.tmdb.org/t/p/${size}${result.poster_path}`
+    ? getPosterUrl(result.poster_path, "w300")
     : null;
 
-  const year = isPerson
+  // Format release date
+  const releaseDate = isPerson
     ? null
     : result.type === "movie"
     ? result.release_date
-      ? new Date(result.release_date).getFullYear()
-      : "N/A"
-    : result.first_air_date
-    ? new Date(result.first_air_date).getFullYear()
-    : "N/A";
+    : result.first_air_date;
 
-  const subtitle = isPerson
+  const formattedDate = releaseDate
+    ? format(new Date(releaseDate), "MMM d, yyyy")
+    : null;
+
+  const typeTag = isPerson
     ? result.known_for_department || "Actor"
-    : year;
+    : result.type === "movie"
+    ? "Movie"
+    : "TV Show";
 
   const href = isPerson ? `/person/${result.id}` : `/${result.type}/${result.id}`;
-
-  const posterClass =
-    variant === "desktop"
-      ? isPerson
-        ? "h-10 w-10 rounded-full"
-        : "h-16 w-11"
-      : isPerson
-      ? "h-8 w-8 rounded-full"
-      : "h-12 w-8";
 
   return (
     <Link
@@ -699,32 +685,41 @@ function SearchResultItem({
         e.preventDefault();
         onSelect(result);
       }}
-      className="flex items-center gap-3 w-full px-2 py-2 rounded-md hover:bg-accent cursor-pointer transition-colors"
+      className="relative flex rounded-lg border border-border transition-all group cursor-pointer hover:border-primary/50 overflow-hidden"
     >
       {imageUrl ? (
-        <Image
-          src={imageUrl}
-          alt={result.title}
-          width={variant === "desktop" ? (isPerson ? 40 : 44) : 32}
-          height={variant === "desktop" ? (isPerson ? 40 : 64) : isPerson ? 32 : 48}
-          className={cn("object-cover rounded flex-shrink-0", posterClass)}
-          unoptimized
-        />
+        <div className="relative w-28 sm:w-[136px] rounded-l-lg overflow-hidden flex-shrink-0 bg-muted">
+          <Image
+            src={imageUrl}
+            alt={result.title}
+            fill
+            className="object-cover"
+            sizes="112px"
+            unoptimized
+          />
+        </div>
       ) : (
-        <div
-          className={cn(
-            "bg-muted rounded flex items-center justify-center flex-shrink-0",
-            posterClass
-          )}
-        >
-          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+        <div className="w-28 sm:w-[136px] rounded-l-lg bg-muted flex-shrink-0 flex items-center justify-center">
+          <ImageIcon className="h-6 w-6 text-muted-foreground" />
         </div>
       )}
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium truncate">{result.title}</div>
-        {subtitle && (
-          <div className="text-xs text-muted-foreground">{subtitle}</div>
-        )}
+
+      <div className="flex-1 min-w-0 flex flex-col p-6">
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <h3 className="text-lg font-semibold group-hover:text-primary transition-colors truncate sm:truncate-none">
+            {result.title}
+          </h3>
+        </div>
+
+        <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+          {formattedDate && (
+            <span>{formattedDate}</span>
+          )}
+          {formattedDate && (
+            <span>•</span>
+          )}
+          <span>{typeTag}</span>
+        </div>
       </div>
     </Link>
   );

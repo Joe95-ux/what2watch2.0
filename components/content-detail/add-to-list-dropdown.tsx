@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { usePlaylists, useAddItemToPlaylist, type Playlist } from "@/hooks/use-playlists";
-import { useLists, useUpdateList, type List } from "@/hooks/use-lists";
+import { usePlaylists, useAddItemToPlaylist, useRemoveItemFromPlaylist, type Playlist } from "@/hooks/use-playlists";
+import { useLists, useUpdateList, useRemoveItemFromList, type List } from "@/hooks/use-lists";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import {
   DropdownMenu,
@@ -12,7 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Plus, Check } from "lucide-react";
+import { Plus, ListChecks, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import CreatePlaylistModal from "@/components/playlists/create-playlist-modal";
 import CreateListModal from "@/components/lists/create-list-modal";
@@ -28,10 +29,13 @@ interface AddToListDropdownProps {
 }
 
 export default function AddToListDropdown({ item, type, trigger, onOpenChange, onAddSuccess }: AddToListDropdownProps) {
+  const router = useRouter();
   const { data: playlists = [], isLoading: isLoadingPlaylists } = usePlaylists();
   const { data: lists = [], isLoading: isLoadingLists } = useLists();
   const addItemToPlaylist = useAddItemToPlaylist();
+  const removeItemFromPlaylist = useRemoveItemFromPlaylist();
   const updateList = useUpdateList();
+  const removeItemFromList = useRemoveItemFromList();
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
   const [isCreateListModalOpen, setIsCreateListModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -43,78 +47,102 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
     onOpenChange?.(open);
   };
 
-  const handleAddToPlaylist = async (playlistId: string) => {
+  const handleTogglePlaylist = async (playlistId: string) => {
     try {
-      const title = "title" in item ? item.title : item.name;
-      const releaseDate = type === "movie" ? (item as TMDBMovie).release_date : undefined;
-      const firstAirDate = type === "tv" ? (item as TMDBSeries).first_air_date : undefined;
+      const playlist = playlists.find((p) => p.id === playlistId);
+      if (!playlist) return;
 
-      await addItemToPlaylist.mutateAsync({
-        playlistId,
-        item: {
-          tmdbId: item.id,
-          mediaType: type,
-          title,
-          posterPath: item.poster_path,
-          backdropPath: item.backdrop_path,
-          releaseDate,
-          firstAirDate,
-        },
-      });
-      toast.success(`Added to "${playlists.find((p) => p.id === playlistId)?.name}"`);
+      const isInPlaylist = isItemInPlaylist(playlist);
+      
+      if (isInPlaylist) {
+        // Remove from playlist
+        const playlistItem = playlist.items?.find(
+          (playlistItem) => playlistItem.tmdbId === item.id && playlistItem.mediaType === type
+        );
+        if (playlistItem?.id) {
+          await removeItemFromPlaylist.mutateAsync({
+            playlistId,
+            itemId: playlistItem.id,
+          });
+          toast.success(`Removed from "${playlist.name}"`);
+        }
+      } else {
+        // Add to playlist
+        const title = "title" in item ? item.title : item.name;
+        const releaseDate = type === "movie" ? (item as TMDBMovie).release_date : undefined;
+        const firstAirDate = type === "tv" ? (item as TMDBSeries).first_air_date : undefined;
+
+        await addItemToPlaylist.mutateAsync({
+          playlistId,
+          item: {
+            tmdbId: item.id,
+            mediaType: type,
+            title,
+            posterPath: item.poster_path,
+            backdropPath: item.backdrop_path,
+            releaseDate,
+            firstAirDate,
+          },
+        });
+        toast.success(`Added to "${playlist.name}"`);
+      }
       onAddSuccess?.();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to add to playlist";
-      if (errorMessage.includes("already in playlist")) {
-        toast.error("Item is already in this playlist");
-      } else {
-        toast.error("Failed to add to playlist");
-      }
+      const errorMessage = error instanceof Error ? error.message : "Failed to update playlist";
+      toast.error(errorMessage);
       console.error(error);
     }
   };
 
-  const handleAddToList = async (listId: string) => {
+  const handleToggleList = async (listId: string) => {
     try {
       const list = lists.find((l) => l.id === listId);
       if (!list) return;
 
-      const title = "title" in item ? item.title : item.name;
       const existingItems = list.items || [];
-      const isInList = existingItems.some(
+      const listItem = existingItems.find(
         (listItem) => listItem.tmdbId === item.id && listItem.mediaType === type
       );
+      const isInList = !!listItem;
 
       if (isInList) {
-        toast.error("Item is already in this list");
-        return;
+        // Remove from list
+        if (listItem.id) {
+          await removeItemFromList.mutateAsync({
+            listId,
+            itemId: listItem.id,
+          });
+          toast.success(`Removed from "${list.name}"`);
+        }
+      } else {
+        // Add to list
+        const title = "title" in item ? item.title : item.name;
+        const newItems = [
+          ...existingItems.map((i) => ({
+            ...i,
+            position: i.position,
+          })),
+          {
+            tmdbId: item.id,
+            mediaType: type,
+            title,
+            posterPath: item.poster_path || null,
+            backdropPath: item.backdrop_path || null,
+            releaseDate: type === "movie" ? (item as TMDBMovie).release_date || null : null,
+            firstAirDate: type === "tv" ? (item as TMDBSeries).first_air_date || null : null,
+            position: existingItems.length + 1,
+          },
+        ];
+
+        await updateList.mutateAsync({
+          listId,
+          items: newItems,
+        });
+        toast.success(`Added to "${list.name}"`);
       }
-
-      const newItems = [
-        ...existingItems.map((i) => ({
-          ...i,
-          position: i.position,
-        })),
-        {
-          tmdbId: item.id,
-          mediaType: type,
-          title,
-          posterPath: item.poster_path || null,
-          backdropPath: item.backdrop_path || null,
-          releaseDate: type === "movie" ? (item as TMDBMovie).release_date || null : null,
-          firstAirDate: type === "tv" ? (item as TMDBSeries).first_air_date || null : null,
-          position: existingItems.length + 1,
-        },
-      ];
-
-      await updateList.mutateAsync({
-        listId,
-        items: newItems,
-      });
-      toast.success(`Added to "${list.name}"`);
       onAddSuccess?.();
     } catch (error) {
-      toast.error("Failed to add to list");
+      toast.error("Failed to update list");
       console.error(error);
     }
   };
@@ -196,25 +224,39 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
                     return (
                       <DropdownMenuItem
                         key={playlist.id}
-                        onClick={async (e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (!isInPlaylist) {
-                            await handleAddToPlaylist(playlist.id);
-                            setIsDropdownOpen(false);
-                          }
-                        }}
-                        disabled={isInPlaylist || addItemToPlaylist.isPending}
+                        disabled={addItemToPlaylist.isPending || removeItemFromPlaylist.isPending}
+                        className="p-0"
+                        onSelect={(e) => e.preventDefault()}
                       >
-                        {isInPlaylist ? (
-                          <>
-                            <Check className="h-4 w-4 mr-2" />
-                            <span className="flex-1">{playlist.name}</span>
-                            <span className="text-xs text-muted-foreground">Added</span>
-                          </>
-                        ) : (
-                          <span>{playlist.name}</span>
-                        )}
+                        <div className="flex items-center w-full">
+                          <button
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              await handleTogglePlaylist(playlist.id);
+                            }}
+                            className="flex items-center gap-2 flex-1 min-w-0 pr-2 py-2 hover:bg-muted rounded transition-colors"
+                          >
+                            <ListChecks 
+                              className={cn(
+                                "h-4 w-4 flex-shrink-0",
+                                isInPlaylist ? "text-green-500" : "text-muted-foreground"
+                              )} 
+                            />
+                            <span className="truncate text-left">{playlist.name}</span>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              router.push(`/dashboard/playlists/${playlist.id}`);
+                              setIsDropdownOpen(false);
+                            }}
+                            className="p-2 hover:bg-muted rounded transition-colors flex-shrink-0"
+                          >
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          </button>
+                        </div>
                       </DropdownMenuItem>
                     );
                   })
@@ -232,25 +274,39 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
                     return (
                       <DropdownMenuItem
                         key={list.id}
-                        onClick={async (e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (!isInList) {
-                            await handleAddToList(list.id);
-                            setIsDropdownOpen(false);
-                          }
-                        }}
-                        disabled={isInList || updateList.isPending}
+                        disabled={updateList.isPending || removeItemFromList.isPending}
+                        className="p-0"
+                        onSelect={(e) => e.preventDefault()}
                       >
-                        {isInList ? (
-                          <>
-                            <Check className="h-4 w-4 mr-2" />
-                            <span className="flex-1">{list.name}</span>
-                            <span className="text-xs text-muted-foreground">Added</span>
-                          </>
-                        ) : (
-                          <span>{list.name}</span>
-                        )}
+                        <div className="flex items-center w-full">
+                          <button
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              await handleToggleList(list.id);
+                            }}
+                            className="flex items-center gap-2 flex-1 min-w-0 pr-2 py-2 hover:bg-muted rounded transition-colors"
+                          >
+                            <ListChecks 
+                              className={cn(
+                                "h-4 w-4 flex-shrink-0",
+                                isInList ? "text-green-500" : "text-muted-foreground"
+                              )} 
+                            />
+                            <span className="truncate text-left">{list.name}</span>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              router.push(`/dashboard/lists/${list.id}`);
+                              setIsDropdownOpen(false);
+                            }}
+                            className="p-2 hover:bg-muted rounded transition-colors flex-shrink-0"
+                          >
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          </button>
+                        </div>
                       </DropdownMenuItem>
                     );
                   })

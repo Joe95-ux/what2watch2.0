@@ -80,6 +80,7 @@ import {
   useTVDetails,
   useIMDBRating,
   useOMDBData,
+  useWatchProviders,
 } from "@/hooks/use-content-details";
 import {
   useIsWatched,
@@ -2206,6 +2207,15 @@ function DetailedWatchlistItem({
   const isWatched = watchedData?.isWatched || false;
   const watchedLogId = watchedData?.logId || null;
   
+  // Fetch watch providers
+  const { data: watchAvailability } = useWatchProviders(type, item.id, "US");
+  const primaryOffer =
+    watchAvailability?.offersByType?.flatrate?.[0] ??
+    watchAvailability?.offersByType?.buy?.[0] ??
+    watchAvailability?.offersByType?.rent?.[0] ??
+    watchAvailability?.allOffers?.[0] ??
+    null;
+  
   // Note editing state
   const [isEditingNote, setIsEditingNote] = useState(false);
   const [noteValue, setNoteValue] = useState(watchlistItem.note || "");
@@ -2451,6 +2461,41 @@ function DetailedWatchlistItem({
                 className="object-cover"
                 sizes="96px"
               />
+              {/* Primary Provider Button - Bottom of Poster */}
+              {primaryOffer && (
+                <div className="absolute bottom-0 left-0 right-0 p-1">
+                  <a
+                    href={primaryOffer.standardWebUrl ?? primaryOffer.deepLinkUrl ?? "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className={cn(
+                      "flex items-center h-7 w-full overflow-hidden rounded bg-muted dark:bg-transparent hover:bg-muted/30 transition-colors cursor-pointer",
+                      "dark:border dark:border-[rgba(255,255,255,0.1)]"
+                    )}
+                  >
+                    {primaryOffer.iconUrl ? (
+                      <>
+                        <Image
+                          src={primaryOffer.iconUrl}
+                          alt={primaryOffer.providerName}
+                          width={28}
+                          height={28}
+                          className="object-contain rounded-l w-7 h-7 block flex-shrink-0"
+                          unoptimized
+                        />
+                        <span className="pl-2 pr-2 flex items-center text-[0.8rem] font-medium truncate">
+                          WATCH NOW
+                        </span>
+                      </>
+                    ) : (
+                      <span className="px-2 flex items-center text-[0.8rem] font-medium truncate">
+                        WATCH NOW
+                      </span>
+                    )}
+                  </a>
+                </div>
+              )}
             </div>
           ) : (
             <div className="w-20 h-28 sm:w-24 sm:h-36 rounded bg-muted flex-shrink-0 flex items-center justify-center">

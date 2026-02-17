@@ -120,6 +120,14 @@ async function processWhat2WatchListImport(
 ) {
   const mapping = parsed.columnMapping;
 
+  // Get initial max position to start our counter
+  const initialMaxPositionItem = await db.listItem.findFirst({
+    where: { listId },
+    orderBy: { position: "desc" },
+    select: { position: true },
+  });
+  let positionCounter = initialMaxPositionItem?.position ? initialMaxPositionItem.position : 0;
+
   for (let i = 0; i < parsed.rows.length; i++) {
     const row = parsed.rows[i];
     const rowNum = i + 2;
@@ -159,8 +167,7 @@ async function processWhat2WatchListImport(
         continue;
       }
 
-      const position = positionStr ? parseInt(positionStr, 10) : null;
-      if (positionStr && isNaN(position!)) {
+      if (positionStr && isNaN(parseInt(positionStr, 10))) {
         results.warnings.push({
           row: rowNum,
           warning: `Invalid position value: ${positionStr}. Will be assigned automatically.`,
@@ -181,13 +188,13 @@ async function processWhat2WatchListImport(
           results.skipped++;
           continue;
         } else if (duplicateAction === "update") {
+          // For updates, keep existing position to avoid duplicates
           await db.listItem.update({
             where: { id: existing.id },
             data: {
               title,
               releaseDate: mediaType === "movie" ? row[mapping.releaseDate!]?.trim() || null : null,
               firstAirDate: mediaType === "tv" ? row[mapping.releaseDate!]?.trim() || null : null,
-              position: position || existing.position,
             },
           });
           results.imported++;
@@ -195,13 +202,9 @@ async function processWhat2WatchListImport(
         }
       }
 
-      // Get current max position
-      const maxPositionItem = await db.listItem.findFirst({
-        where: { listId },
-        orderBy: { position: "desc" },
-        select: { position: true },
-      });
-      const nextPosition = position || (maxPositionItem?.position ? maxPositionItem.position + 1 : 1);
+      // Increment counter for each new item to ensure unique positions
+      positionCounter++;
+      const nextPosition = positionCounter;
 
       // Fetch poster/backdrop from TMDB
       let posterPath: string | null = null;
@@ -260,6 +263,14 @@ async function processIMDbListImport(
   results: ImportResult
 ) {
   const mapping = parsed.columnMapping;
+
+  // Get initial max position to start our counter
+  const initialMaxPositionItem = await db.listItem.findFirst({
+    where: { listId },
+    orderBy: { position: "desc" },
+    select: { position: true },
+  });
+  let positionCounter = initialMaxPositionItem?.position ? initialMaxPositionItem.position : 0;
 
   for (let i = 0; i < parsed.rows.length; i++) {
     const row = parsed.rows[i];
@@ -346,12 +357,11 @@ async function processIMDbListImport(
           results.skipped++;
           continue;
         } else if (duplicateAction === "update") {
-          const position = positionStr ? parseInt(positionStr, 10) : existing.position;
+          // For updates, keep existing position to avoid duplicates
           await db.listItem.update({
             where: { id: existing.id },
             data: {
               title,
-              position: isNaN(position) ? existing.position : position,
             },
           });
           results.imported++;
@@ -359,13 +369,9 @@ async function processIMDbListImport(
         }
       }
 
-      // Get current max position
-      const maxPositionItem = await db.listItem.findFirst({
-        where: { listId },
-        orderBy: { position: "desc" },
-        select: { position: true },
-      });
-      const nextPosition = positionStr ? parseInt(positionStr, 10) : (maxPositionItem?.position ? maxPositionItem.position + 1 : 1);
+      // Increment counter for each new item to ensure unique positions
+      positionCounter++;
+      const nextPosition = positionCounter;
 
       // Create list item
       await db.listItem.create({
@@ -378,7 +384,7 @@ async function processIMDbListImport(
           backdropPath,
           releaseDate,
           firstAirDate,
-          position: isNaN(nextPosition) ? (maxPositionItem?.position ? maxPositionItem.position + 1 : 1) : nextPosition,
+          position: nextPosition,
         },
       });
 
@@ -404,6 +410,14 @@ async function processGenericListImport(
   results: ImportResult
 ) {
   const mapping = parsed.columnMapping;
+
+  // Get initial max position to start our counter
+  const initialMaxPositionItem = await db.listItem.findFirst({
+    where: { listId },
+    orderBy: { position: "desc" },
+    select: { position: true },
+  });
+  let positionCounter = initialMaxPositionItem?.position ? initialMaxPositionItem.position : 0;
 
   for (let i = 0; i < parsed.rows.length; i++) {
     const row = parsed.rows[i];
@@ -554,12 +568,11 @@ async function processGenericListImport(
           results.skipped++;
           continue;
         } else if (duplicateAction === "update") {
-          const position = positionStr ? parseInt(positionStr, 10) : existing.position;
+          // For updates, keep existing position to avoid duplicates
           await db.listItem.update({
             where: { id: existing.id },
             data: {
               title,
-              position: isNaN(position) ? existing.position : position,
             },
           });
           results.imported++;
@@ -567,13 +580,9 @@ async function processGenericListImport(
         }
       }
 
-      // Get current max position
-      const maxPositionItem = await db.listItem.findFirst({
-        where: { listId },
-        orderBy: { position: "desc" },
-        select: { position: true },
-      });
-      const nextPosition = positionStr ? parseInt(positionStr, 10) : (maxPositionItem?.position ? maxPositionItem.position + 1 : 1);
+      // Increment counter for each new item to ensure unique positions
+      positionCounter++;
+      const nextPosition = positionCounter;
 
       // Create list item
       await db.listItem.create({
@@ -586,7 +595,7 @@ async function processGenericListImport(
           backdropPath,
           releaseDate,
           firstAirDate,
-          position: isNaN(nextPosition) ? (maxPositionItem?.position ? maxPositionItem.position + 1 : 1) : nextPosition,
+          position: nextPosition,
         },
       });
 
