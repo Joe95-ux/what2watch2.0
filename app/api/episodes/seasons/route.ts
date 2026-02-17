@@ -96,13 +96,27 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
       // Fetch TV show details to get poster, backdrop, and first air date
       const tvShowDetails = await getTVDetails(tvShowTmdbId);
       
+      // Format title with season info
+      const baseTitle = tvShowTitle || tvShowDetails.name || `TV Show ${tvShowTmdbId}`;
+      const sortedSeasons = [...seasonNumbers].sort((a, b) => a - b);
+      let formattedTitle: string;
+      
+      if (sortedSeasons.length === 1) {
+        // Single season: "Foundation S1"
+        formattedTitle = `${baseTitle} S${sortedSeasons[0]}`;
+      } else {
+        // Multiple seasons: "Foundation S1, S2, S3"
+        const seasonList = sortedSeasons.map(s => `S${s}`).join(", ");
+        formattedTitle = `${baseTitle} ${seasonList}`;
+      }
+      
       // Create a new ViewingLog entry (allows multiple viewings, like movies)
       const viewingLog = await db.viewingLog.create({
         data: {
           userId: user.id,
           tmdbId: tvShowTmdbId,
           mediaType: "tv",
-          title: tvShowTitle || tvShowDetails.name || `TV Show ${tvShowTmdbId}`,
+          title: formattedTitle,
           posterPath: tvShowDetails.poster_path || null,
           backdropPath: tvShowDetails.backdrop_path || null,
           releaseDate: null,
@@ -122,7 +136,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
             type: "LOGGED_FILM",
             tmdbId: tvShowTmdbId,
             mediaType: "tv",
-            title: tvShowTitle || tvShowDetails.name || `TV Show ${tvShowTmdbId}`,
+            title: formattedTitle,
             posterPath: tvShowDetails.poster_path || null,
             rating: null,
           },

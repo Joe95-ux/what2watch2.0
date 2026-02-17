@@ -26,6 +26,8 @@ import {
 import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-logs";
 import { useContentReactions, useLikeContent } from "@/hooks/use-content-reactions";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSeenSeasons } from "@/hooks/use-episode-tracking";
+import { useTVSeasons } from "@/hooks/use-content-details";
 
 interface MoreLikeThisCardProps {
   item: TMDBMovie | TMDBSeries;
@@ -71,6 +73,26 @@ export default function MoreLikeThisCard({
   const watchedLogId = watchedData?.logId || null;
   const isMobile = useIsMobile();
   const { isSignedIn } = useUser();
+  
+  // For TV shows: calculate progress percentage
+  const { data: seenSeasons = [] } = useSeenSeasons(type === "tv" ? item.id : null);
+  const { data: tvSeasonsData } = useTVSeasons(type === "tv" ? item.id : null);
+  
+  // Calculate progress percentage for TV shows
+  const watchProgress = (() => {
+    if (type !== "tv" || !tvSeasonsData?.seasons) return null;
+    
+    const regularSeasons = tvSeasonsData.seasons.filter(s => s.season_number > 0);
+    if (regularSeasons.length === 0) return null;
+    
+    const seenCount = seenSeasons.length;
+    const totalCount = regularSeasons.length;
+    
+    if (seenCount === 0) return null; // Not started
+    if (seenCount === totalCount) return null; // Fully watched (100%)
+    
+    return Math.round((seenCount / totalCount) * 100);
+  })();
   const { openSignIn } = useClerk();
   const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
   
@@ -433,6 +455,56 @@ export default function MoreLikeThisCard({
           {showTypeBadge && (
             <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-sm text-white font-medium z-[5]">
               {type === "movie" ? "Movie" : "TV"}
+            </div>
+          )}
+
+          {/* Progress Ring - Center (for TV shows with partial progress) */}
+          {watchProgress != null && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[4]">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="pointer-events-auto">
+                    <div className="relative w-16 h-16">
+                      {/* Background circle */}
+                      <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 64 64">
+                        {/* Background circle */}
+                        <circle
+                          cx="32"
+                          cy="32"
+                          r="28"
+                          fill="none"
+                          stroke="rgba(0, 0, 0, 0.3)"
+                          strokeWidth="4"
+                        />
+                        {/* Progress circle */}
+                        <circle
+                          cx="32"
+                          cy="32"
+                          r="28"
+                          fill="none"
+                          stroke="rgb(34, 197, 94)" // green-500
+                          strokeWidth="4"
+                          strokeDasharray={`${2 * Math.PI * 28}`}
+                          strokeDashoffset={`${2 * Math.PI * 28 * (1 - watchProgress / 100)}`}
+                          strokeLinecap="round"
+                          className="transition-all duration-300"
+                        />
+                      </svg>
+                      {/* Percentage text */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-[0.75rem] font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                          {watchProgress}%
+                        </span>
+                      </div>
+                      {/* Badge background overlay */}
+                      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm rounded-full -z-10" />
+                    </div>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{watchProgress}% watched</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           )}
 

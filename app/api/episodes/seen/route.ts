@@ -75,6 +75,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
         const tvShowDetails = await getTVDetails(tvShowTmdbId);
         
         const watchedAt = new Date();
+        const baseTitle = tvShowTitle || tvShowDetails.name || `TV Show ${tvShowTmdbId}`;
+        // Format title with episode info: "Foundation S1E1"
+        const formattedTitle = `${baseTitle} S${seasonNumber}E${episodeNumber}`;
         
         // Create a new ViewingLog entry
         await db.viewingLog.create({
@@ -82,7 +85,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
             userId: user.id,
             tmdbId: tvShowTmdbId,
             mediaType: "tv",
-            title: tvShowTitle || tvShowDetails.name || `TV Show ${tvShowTmdbId}`,
+            title: formattedTitle,
             posterPath: tvShowDetails.poster_path || null,
             backdropPath: tvShowDetails.backdrop_path || null,
             releaseDate: null,
@@ -102,7 +105,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
               type: "LOGGED_FILM",
               tmdbId: tvShowTmdbId,
               mediaType: "tv",
-              title: tvShowTitle || tvShowDetails.name || `TV Show ${tvShowTmdbId}`,
+              title: formattedTitle,
               posterPath: tvShowDetails.poster_path || null,
               rating: null,
             },

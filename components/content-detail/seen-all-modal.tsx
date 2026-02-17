@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -51,46 +51,12 @@ export default function SeenAllModal({
 
   // Fetch which seasons are already seen - use the same hook as parent component
   const { data: seenSeasons = [], isLoading: isLoadingSeenSeasons } = useSeenSeasons(isOpen && tvShowId ? tvShowId : null);
-  const seenSeasonsKey = JSON.stringify(seenSeasons); // Stable key for comparison
-  const initializedRef = useRef<string | null>(null); // Track what we've initialized
 
-  // Initialize selectedSeasons with already seen seasons when modal opens
+  // Sync selectedSeasons with seenSeasons when modal opens or data changes
   useEffect(() => {
-    console.log("[Seen All Modal] useEffect triggered:", { 
-      isOpen, 
-      isLoadingSeenSeasons,
-      seenSeasons,
-      seenSeasonsKey,
-      initializedKey: initializedRef.current
-    });
-    
-    if (!isOpen) {
-      initializedRef.current = null; // Reset when modal closes
-      return;
-    }
-    
-    if (isLoadingSeenSeasons) {
-      console.log("[Seen All Modal] Still loading, skipping");
-      return;
-    }
-    
-    // Only initialize once per seenSeasonsKey
-    if (initializedRef.current === seenSeasonsKey) {
-      console.log("[Seen All Modal] Already initialized with this data, skipping");
-      return;
-    }
-    
-    // Wait for query to finish loading before initializing
-    if (Array.isArray(seenSeasons) && seenSeasons.length > 0) {
-      console.log("[Seen All Modal] Initializing with seen seasons:", seenSeasons);
-      setSelectedSeasons(new Set(seenSeasons));
-      initializedRef.current = seenSeasonsKey;
-    } else {
-      console.log("[Seen All Modal] Initializing with empty set");
-      setSelectedSeasons(new Set());
-      initializedRef.current = seenSeasonsKey;
-    }
-  }, [isOpen, isLoadingSeenSeasons, seenSeasonsKey]);
+    if (!isOpen || isLoadingSeenSeasons) return;
+    setSelectedSeasons(new Set(seenSeasons));
+  }, [isOpen, isLoadingSeenSeasons, seenSeasons]);
 
   const handleSelectAll = () => {
     if (selectedSeasons.size === regularSeasons.length) {
