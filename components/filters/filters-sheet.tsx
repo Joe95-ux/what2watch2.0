@@ -234,7 +234,6 @@ export function FiltersSheet({
                     setCountryOpen(open);
                     if (!open) setCountrySearch("");
                   }}
-                  modal={false}
                 >
                   <PopoverTrigger asChild>
                     <Button
@@ -250,14 +249,17 @@ export function FiltersSheet({
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="end">
+                  <PopoverContent 
+                    className="w-[var(--radix-popover-trigger-width)] p-0 z-[100]" 
+                    align="end"
+                  >
                     <Command shouldFilter={false} className="rounded-lg border-0 bg-transparent">
                       <CommandInput
                         placeholder="Search country..."
                         value={countrySearch}
                         onValueChange={setCountrySearch}
                       />
-                      <CommandList className="max-h-[300px]">
+                      <CommandList className="max-h-[300px] scroll-smooth">
                         {filteredWatchRegions.length === 0 && (
                           <div className="py-6 text-center text-sm text-muted-foreground">No country found.</div>
                         )}
