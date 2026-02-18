@@ -16,7 +16,6 @@ import { useYouTubeNotifications } from "@/hooks/use-youtube-notifications";
 import { useGeneralNotifications } from "@/hooks/use-general-notifications";
 import { useYouTubeToolsVisibility } from "@/hooks/use-youtube-tools-visibility";
 import { UnifiedNotificationCenterMobile } from "@/components/notifications/unified-notification-center-mobile";
-import { AvatarPickerDialog } from "@/components/avatar/avatar-picker-dialog";
 import Logo from "@/components/Logo";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +27,8 @@ interface MobileNavProps {
   navLinks: Array<{ href: string; label: string }>;
   pathname: string;
   onLinkClick: () => void;
+  isAvatarEditorOpen?: boolean;
+  setIsAvatarEditorOpen?: (open: boolean) => void;
 }
 
 const YOUTUBE_URL = "https://www.youtube.com";
@@ -45,8 +46,8 @@ const youtubeNavItems = [
   { href: "/youtube/insights", label: "Content Insights", icon: Sparkles },
 ];
 
-export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNavProps) {
-  const { isSignedIn, user } = useUser();
+export default function MobileNav({ navLinks, pathname, onLinkClick, isAvatarEditorOpen, setIsAvatarEditorOpen }: MobileNavProps) {
+  const { isSignedIn } = useUser();
   const [youtubeExpanded, setYoutubeExpanded] = useState(false);
   const { data: youtubeVisibility } = useYouTubeToolsVisibility();
   const showSimpleYouTubeLink =
@@ -57,7 +58,6 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
   const { setTheme, theme } = useTheme();
   const [isThemeOpen, setIsThemeOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [isAvatarEditorOpen, setIsAvatarEditorOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackReason, setFeedbackReason] = useState("");
   const [feedbackPriority, setFeedbackPriority] = useState("");
@@ -427,7 +427,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
             </Link>
             <button
               onClick={() => {
-                setIsAvatarEditorOpen(true);
+                setIsAvatarEditorOpen?.(true);
                 onLinkClick();
               }}
               className="flex items-center w-full rounded-md px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors text-[0.95rem] text-muted-foreground"
@@ -543,14 +543,6 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
         </div>
       )}
 
-      {/* Avatar Picker Dialog */}
-      {isSignedIn && (
-        <AvatarPickerDialog
-          isOpen={isAvatarEditorOpen}
-          onClose={() => setIsAvatarEditorOpen(false)}
-          currentAvatarUrl={user?.imageUrl}
-        />
-      )}
     </div>
   );
 }

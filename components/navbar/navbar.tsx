@@ -16,6 +16,7 @@ import MobileNav from "./mobile-nav";
 import { HamburgerButton } from "./hamburger-button";
 import { useYouTubeToolsVisibility } from "@/hooks/use-youtube-tools-visibility";
 import { cn } from "@/lib/utils";
+import { AvatarPickerDialog } from "@/components/avatar/avatar-picker-dialog";
 
 interface NavLink {
   href: string;
@@ -37,10 +38,11 @@ const leftNavLinks: NavLink[] = [
 ];
 
 export default function Navbar() {
-  const { isSignedIn, isLoaded } = useUser();
+  const { isSignedIn, isLoaded, user } = useUser();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSheetMounted, setIsSheetMounted] = useState(false);
+  const [isAvatarEditorOpen, setIsAvatarEditorOpen] = useState(false);
 
   // Delay content rendering until Sheet animation completes to prevent flicker
   useEffect(() => {
@@ -121,6 +123,8 @@ export default function Navbar() {
                 navLinks={navLinks}
                 pathname={pathname}
                 onLinkClick={() => setMobileMenuOpen(false)}
+                isAvatarEditorOpen={isAvatarEditorOpen}
+                setIsAvatarEditorOpen={setIsAvatarEditorOpen}
               />
             </SheetContent>
           </Sheet>
@@ -203,6 +207,15 @@ export default function Navbar() {
           )}
         </div>
       </div>
+
+      {/* Avatar Picker Dialog - rendered here so it persists when sheet closes */}
+      {isSignedIn && (
+        <AvatarPickerDialog
+          isOpen={isAvatarEditorOpen}
+          onClose={() => setIsAvatarEditorOpen(false)}
+          currentAvatarUrl={user?.imageUrl}
+        />
+      )}
     </nav>
   );
 }

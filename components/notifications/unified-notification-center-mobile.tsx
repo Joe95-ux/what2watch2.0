@@ -237,7 +237,7 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
         </TabsList>
 
         <TabsContent value="youtube" className="m-0 flex-1 flex flex-col min-h-0 overflow-hidden">
-          <ScrollArea className="h-full">
+          <ScrollArea className="h-full min-h-0">
             {isLoadingYoutube ? (
               <div className="p-4 space-y-4">
                 {Array.from({ length: 3 }).map((_, i) => (
@@ -332,7 +332,7 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
         </TabsContent>
 
         <TabsContent value="general" className="m-0 flex-1 flex flex-col min-h-0 overflow-hidden">
-          <ScrollArea className="h-full">
+          <ScrollArea className="h-full min-h-0">
             {isLoadingGeneral ? (
               <div className="p-4 space-y-4">
                 {Array.from({ length: 3 }).map((_, i) => (
@@ -410,7 +410,7 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
         </TabsContent>
 
         <TabsContent value="forum" className="m-0 flex-1 flex flex-col min-h-0 overflow-hidden">
-          <ScrollArea className="h-full">
+          <ScrollArea className="h-full min-h-0">
             {isLoadingForum ? (
               <div className="p-4 space-y-4">
                 {Array.from({ length: 3 }).map((_, i) => (
