@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -88,13 +88,15 @@ export function FiltersSheet({
   const [countryOpen, setCountryOpen] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
   const WATCH_PROVIDERS_TO_SHOW = 13;
-  const filteredWatchRegions = countrySearch.trim()
-    ? watchRegions.filter(
-        (r) =>
-          r.english_name.toLowerCase().includes(countrySearch.toLowerCase()) ||
-          r.iso_3166_1.toLowerCase().includes(countrySearch.toLowerCase())
-      )
-    : watchRegions;
+  const filteredWatchRegions = useMemo(() => {
+    if (!countrySearch.trim()) return watchRegions;
+    const q = countrySearch.toLowerCase().trim();
+    return watchRegions.filter(
+      (r) =>
+        r.english_name.toLowerCase().includes(q) ||
+        r.iso_3166_1.toLowerCase().includes(q)
+    );
+  }, [watchRegions, countrySearch]);
   const first13 = watchProviders.slice(0, WATCH_PROVIDERS_TO_SHOW);
   const selectedInFirst13 = filters.watchProvider != null && first13.some((p) => p.provider_id === filters.watchProvider);
   const watchProvidersToShow = showAllWatchProviders
@@ -232,6 +234,7 @@ export function FiltersSheet({
                     setCountryOpen(open);
                     if (!open) setCountrySearch("");
                   }}
+                  modal={false}
                 >
                   <PopoverTrigger asChild>
                     <Button
@@ -240,14 +243,14 @@ export function FiltersSheet({
                       aria-expanded={countryOpen}
                       className="w-full justify-between cursor-pointer"
                     >
-                      <span className="flex items-center gap-2">
-                        <span>{getCountryFlagEmoji(watchRegion)}</span>
-                        <span>{watchRegions.find((r) => r.iso_3166_1 === watchRegion)?.english_name ?? watchRegion}</span>
+                      <span className="flex items-center gap-2 truncate">
+                        <span className="text-lg shrink-0">{getCountryFlagEmoji(watchRegion)}</span>
+                        <span className="truncate">{watchRegions.find((r) => r.iso_3166_1 === watchRegion)?.english_name ?? watchRegion}</span>
                       </span>
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="end">
                     <Command shouldFilter={false} className="rounded-lg border-0 bg-transparent">
                       <CommandInput
                         placeholder="Search country..."
@@ -273,7 +276,7 @@ export function FiltersSheet({
                                 }}
                                 className="cursor-pointer gap-2"
                               >
-                                <span className="text-lg">{getCountryFlagEmoji(region.iso_3166_1)}</span>
+                                <span className="text-lg shrink-0">{getCountryFlagEmoji(region.iso_3166_1)}</span>
                                 <span className="flex-1 truncate">{region.english_name}</span>
                                 {isSelected && <Check className="size-4 shrink-0" />}
                               </CommandItem>
