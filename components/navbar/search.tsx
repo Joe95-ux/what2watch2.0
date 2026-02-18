@@ -729,14 +729,14 @@ function SearchResultItem({
         <div className="text-sm font-medium truncate group-hover:text-primary transition-colors">
           {result.title}
         </div>
-        <div className="flex items-center gap-2 text-[14px] text-muted-foreground flex-wrap">
+        <div className="flex items-center gap-2 text-[13px] text-muted-foreground flex-wrap">
           {formattedDate && (
             <span>{formattedDate}</span>
           )}
           {formattedDate && (
             <span>•</span>
           )}
-          <Badge variant="secondary" className="text-[14px] font-normal">
+          <Badge variant="secondary" className="text-[13px] font-normal py-0 rounded-[4px]">
             {typeTag}
           </Badge>
         </div>
