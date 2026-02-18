@@ -148,57 +148,62 @@ export default function PersonKnownFor({
   return (
     <section>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <h2 className="text-2xl font-bold whitespace-nowrap">
-            Known For ({filteredKnownFor.length})
-          </h2>
-          
-          {/* Search Icon Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 flex-shrink-0"
-            onClick={() => {
-              setIsSearchOpen(!isSearchOpen);
-              if (isSearchOpen) {
-                setSearchQuery("");
-              }
-            }}
+        <div className="flex items-center gap-3 flex-1 min-w-0 relative">
+          {/* Heading and Search Icon - hidden when search is open */}
+          <div
+            className={cn(
+              "flex items-center gap-3 transition-all duration-300 ease-in-out",
+              isSearchOpen
+                ? "opacity-0 -translate-x-full pointer-events-none absolute"
+                : "opacity-100 translate-x-0"
+            )}
           >
-            <Search className="h-4 w-4" />
-          </Button>
-          
-          {/* Search Bar */}
-          <div className="relative flex-1 max-w-md min-w-0">
-            <div
-              className={cn(
-                "absolute left-0 top-0 w-full transition-all duration-300 ease-in-out z-10",
-                isSearchOpen
-                  ? "opacity-100 translate-x-0"
-                  : "opacity-0 -translate-x-full pointer-events-none"
-              )}
+            <h2 className="text-2xl font-bold whitespace-nowrap">
+              Known For ({filteredKnownFor.length})
+            </h2>
+            
+            {/* Search Icon Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 flex-shrink-0"
+              onClick={() => {
+                setIsSearchOpen(true);
+              }}
             >
-              <div className="relative">
-                <Input
-                  type="text"
-                  placeholder="Search movies or TV shows..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-8"
-                  autoFocus={isSearchOpen}
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full w-8"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setIsSearchOpen(false);
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+              <Search className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {/* Search Bar - replaces heading when open */}
+          <div
+            className={cn(
+              "flex-1 max-w-md transition-all duration-300 ease-in-out",
+              isSearchOpen
+                ? "opacity-100 translate-x-0"
+                : "opacity-0 translate-x-full pointer-events-none absolute left-0"
+            )}
+          >
+            <div className="relative">
+              <Input
+                type="text"
+                placeholder="Search movies or TV shows..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pr-8"
+                autoFocus={isSearchOpen}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-full w-8"
+                onClick={() => {
+                  setSearchQuery("");
+                  setIsSearchOpen(false);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
