@@ -14,6 +14,7 @@ import { RatingsRow } from "./ratings-row";
 import { Button } from "@/components/ui/button";
 import { useSeenEpisodes, useToggleEpisodeSeen, useMarkSeasonsSeen, useUnmarkSeasonsSeen } from "@/hooks/use-episode-tracking";
 import { useUser } from "@clerk/nextjs";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Carousel,
   CarouselContent,
@@ -682,6 +683,7 @@ function TVSeasonsContent({
   }) => void;
 }) {
   const { isSignedIn } = useUser();
+  const isMobile = useIsMobile();
   const { data: seenEpisodes = [] } = useSeenEpisodes(tvShow.id);
   const toggleEpisodeSeen = useToggleEpisodeSeen();
   const markSeasonsSeen = useMarkSeasonsSeen();
@@ -857,11 +859,17 @@ function TVSeasonsContent({
               {seasonDetails.episodes.map((episode) => (
                 <div
                   key={episode.id}
-                  className="relative flex rounded-lg border border-border transition-all group cursor-pointer hover:border-primary/50 overflow-hidden"
+                  className={cn(
+                    "relative flex rounded-lg border border-border transition-all group cursor-pointer hover:border-primary/50 overflow-hidden",
+                    isMobile && "flex-col"
+                  )}
                   onClick={(e) => handleEpisodeClick(e, episode)}
                 >
                   {episode.still_path ? (
-                    <div className="relative w-28 sm:w-34 rounded-l-lg overflow-hidden flex-shrink-0 bg-muted">
+                    <div className={cn(
+                      "relative w-28 sm:w-34 rounded-l-lg overflow-hidden flex-shrink-0 bg-muted",
+                      isMobile && "w-full h-[220px] rounded-t-lg rounded-l-none"
+                    )}>
                       <Image
                         src={getPosterUrl(episode.still_path, "w300")}
                         alt={episode.name}
@@ -872,12 +880,18 @@ function TVSeasonsContent({
                       />
                     </div>
                   ) : (
-                    <div className="w-28 sm:w-34 rounded-l-lg bg-muted flex-shrink-0 flex items-center justify-center">
+                    <div className={cn(
+                      "w-28 sm:w-34 rounded-l-lg bg-muted flex-shrink-0 flex items-center justify-center",
+                      isMobile && "w-full h-[220px] rounded-t-lg rounded-l-none"
+                    )}>
                       <span className="text-sm text-muted-foreground">No Image</span>
                     </div>
                   )}
 
-                    <div className="flex-1 min-w-0 flex flex-col p-6">
+                    <div className={cn(
+                      "flex-1 min-w-0 flex flex-col p-6",
+                      isMobile && "p-4"
+                    )}>
                       <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <span className="text-sm text-muted-foreground">
                           S{episode.season_number.toString().padStart(2, "0")}E{episode.episode_number.toString().padStart(2, "0")}
