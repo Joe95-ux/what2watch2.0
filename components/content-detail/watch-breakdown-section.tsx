@@ -27,7 +27,8 @@ import {
 } from "@/components/ui/select";
 import { getCountryFlagEmoji } from "@/hooks/use-watch-regions";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ChevronDown, ChevronUp, ChevronsUpDown, Check, Play } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronsUpDown, Check } from "lucide-react";
+import { FaPlay } from "react-icons/fa";
 import { cn } from "@/lib/utils";
 
 interface WatchBreakdownSectionProps {
@@ -484,7 +485,7 @@ function OfferRow({ offer, ctaLabel }: { offer: JustWatchOffer; ctaLabel: string
           disabled={!offer.standardWebUrl && !offer.deepLinkUrl}
         >
           <a href={href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5">
-            {linkLabel === "Watch Now" && <Play className="h-4 w-4" />}
+            {linkLabel === "Watch Now" && <FaPlay className="h-4 w-4 fill-current" />}
             {linkLabel}
           </a>
         </Button>
