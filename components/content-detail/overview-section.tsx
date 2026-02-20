@@ -284,13 +284,13 @@ export default function OverviewSection({
                 metascore={omdbData?.metascore || null}
                 rottenTomatoes={omdbData?.rottenTomatoes || null}
                 tmdbRating={item.vote_average > 0 ? item.vote_average : null}
-                year={
-                  details?.release_date || details?.first_air_date
-                    ? new Date(
-                        (details.release_date || details.first_air_date) ?? ""
-                      ).getFullYear()
-                    : null
-                }
+                // year={
+                //   details?.release_date || details?.first_air_date
+                //     ? new Date(
+                //         (details.release_date || details.first_air_date) ?? ""
+                //       ).getFullYear()
+                //     : null
+                // }
               />
             </div>
             {!detailsExpanded ? (
