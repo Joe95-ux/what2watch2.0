@@ -99,7 +99,7 @@ export function RatingsRow({
   );
 
   return (
-    <div className="flex items-center gap-4 flex-wrap">
+    <div className="flex items-center gap-4 flex-wrap justify-end">
       {/* JustWatch streaming chart rank */}
       {displayRank != null && (
         <div className="flex items-center gap-1.5 flex-wrap">

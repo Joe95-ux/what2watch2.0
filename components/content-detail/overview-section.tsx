@@ -264,7 +264,7 @@ export default function OverviewSection({
               cast={topCast}
             />
             <OverviewInfoRow label="Production Country" value={countries} />
-            <div className="flex items-center justify-between gap-4 px-0 py-3 text-sm">
+            <div className="flex justify-between gap-4 px-0 py-3 text-sm">
               <span className="text-muted-foreground uppercase">Ratings</span>
               <RatingsRow
                 justwatchRanks={watchAvailability?.ranks ?? null}

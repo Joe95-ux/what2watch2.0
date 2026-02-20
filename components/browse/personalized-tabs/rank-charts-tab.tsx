@@ -51,7 +51,6 @@ function ProviderCombobox({
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [pendingScrollId, setPendingScrollId] = useState<number | null>(null);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return providers;
@@ -59,50 +58,25 @@ function ProviderCombobox({
     return providers.filter((p) => p.provider_name.toLowerCase().includes(q));
   }, [providers, search]);
 
-  // Effect to handle scrolling when popover closes and refs are ready
-  useEffect(() => {
-    if (!open && pendingScrollId !== null) {
-      // Use requestAnimationFrame to ensure layout is complete
-      const scrollFrame = requestAnimationFrame(() => {
-        const el = rowRefsMap.current?.[pendingScrollId];
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "start" });
-          setPendingScrollId(null);
-        } else {
-          // If element not found, retry after a short delay
-          const timeoutId = setTimeout(() => {
-            const retryEl = rowRefsMap.current?.[pendingScrollId];
-            if (retryEl) {
-              retryEl.scrollIntoView({ behavior: "smooth", block: "start" });
-            }
-            setPendingScrollId(null);
-          }, 100);
-
-          return () => clearTimeout(timeoutId);
-        }
-      });
-
-      return () => cancelAnimationFrame(scrollFrame);
+  const scrollToProvider = (providerId: number) => {
+    const el = rowRefsMap.current?.[providerId];
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-  }, [open, pendingScrollId, rowRefsMap]);
+  };
 
   const handleSelect = (providerId: number) => {
     onSelect(providerId);
-    setPendingScrollId(providerId);
     setOpen(false);
     setSearch("");
+    // Scroll after popover closes so ref is still valid and viewport updates correctly
+    setTimeout(() => scrollToProvider(providerId), 0);
   };
 
   const selected = providers.find((p) => p.provider_id === focusedProviderId);
 
   return (
-    <Popover 
-      open={open} 
-      onOpenChange={(o) => { 
-        setOpen(o); 
-        if (!o) setSearch(""); 
-      }}
-    >
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -134,9 +108,7 @@ function ProviderCombobox({
           />
           <CommandList className="max-h-[300px]">
             {filtered.length === 0 && (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                No provider found.
-              </div>
+              <div className="py-6 text-center text-sm text-muted-foreground">No provider found.</div>
             )}
             <CommandGroup forceMount className="p-1">
               {filtered.map((p) => {
@@ -227,6 +199,13 @@ export function RankChartsTab() {
     rowRefsMap.current[providerId] = el;
   };
 
+  const scrollToProvider = (providerId: number) => {
+    const el = rowRefsMap.current[providerId];
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header: Streaming Charts (left) + Period picker (right) */}
@@ -244,7 +223,7 @@ export function RankChartsTab() {
         </h2>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Rank period:</span>
-          <div className="inline-flex rounded-lg border border-border bg-muted/30 p-0.5">
+            <div className="inline-flex rounded-lg border border-border bg-muted/30 p-0.5">
             {RANK_PERIODS.map((p) => (
               <button
                 key={p.id}
