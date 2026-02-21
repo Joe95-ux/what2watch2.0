@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BarChart3, Table2 } from "lucide-react";
+import { BarChart3, Table2, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -14,8 +14,13 @@ interface RatingsBreakdownProps {
   reviews: Review[];
 }
 
+type SortField = "rating" | "count" | "percentage";
+type SortDirection = "asc" | "desc";
+
 export default function RatingsBreakdown({ reviews }: RatingsBreakdownProps) {
   const [viewMode, setViewMode] = useState<"chart" | "table">("chart");
+  const [sortField, setSortField] = useState<SortField>("rating");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   // Calculate rating distribution
   const ratingDistribution = useMemo(() => {
@@ -43,6 +48,32 @@ export default function RatingsBreakdown({ reviews }: RatingsBreakdownProps) {
   }, [reviews]);
 
   const maxCount = Math.max(...ratingDistribution.map((r) => r.count), 1);
+
+  // Sort table data
+  const sortedDistribution = useMemo(() => {
+    const sorted = [...ratingDistribution];
+    sorted.sort((a, b) => {
+      let comparison = 0;
+      if (sortField === "rating") {
+        comparison = a.rating - b.rating;
+      } else if (sortField === "count") {
+        comparison = a.count - b.count;
+      } else if (sortField === "percentage") {
+        comparison = a.percentage - b.percentage;
+      }
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+    return sorted;
+  }, [ratingDistribution, sortField, sortDirection]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("desc");
+    }
+  };
 
   return (
     <div className="space-y-4 mb-8">
@@ -73,7 +104,7 @@ export default function RatingsBreakdown({ reviews }: RatingsBreakdownProps) {
 
       {/* Chart View */}
       {viewMode === "chart" && (
-        <div className="border rounded-lg p-6 bg-card">
+        <div className="p-6">
           <div className="flex items-end justify-between gap-1">
             {ratingDistribution.map((item) => {
               const height = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
@@ -84,7 +115,7 @@ export default function RatingsBreakdown({ reviews }: RatingsBreakdownProps) {
                   <TooltipTrigger asChild>
                     <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0 cursor-pointer group">
                       {/* Bar container - grows upward from number */}
-                      <div className="w-full flex flex-col items-center justify-end min-h-[100px]">
+                      <div className="w-full flex flex-col items-center justify-end min-h-[150px]">
                         <div
                           className={cn(
                             "w-full rounded-t transition-all",
@@ -93,7 +124,7 @@ export default function RatingsBreakdown({ reviews }: RatingsBreakdownProps) {
                               : "bg-muted"
                           )}
                           style={{
-                            height: hasRating ? `${Math.max(height, 2)}%` : "2%",
+                            height: hasRating ? `${height}%` : "2px",
                             minHeight: hasRating ? "4px" : "2px",
                           }}
                         />
@@ -122,24 +153,51 @@ export default function RatingsBreakdown({ reviews }: RatingsBreakdownProps) {
           <table className="w-full">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="text-left px-4 py-3 text-sm font-semibold">Rating</th>
-                <th className="text-right px-4 py-3 text-sm font-semibold">Count</th>
-                <th className="text-right px-4 py-3 text-sm font-semibold">Percentage</th>
+                <th className="text-left px-4 py-3 text-sm font-semibold">
+                  <button
+                    onClick={() => handleSort("rating")}
+                    className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
+                  >
+                    Rating
+                    {sortField === "rating" && (
+                      sortDirection === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                    )}
+                  </button>
+                </th>
+                <th className="text-right px-4 py-3 text-sm font-semibold">
+                  <button
+                    onClick={() => handleSort("count")}
+                    className="flex items-center gap-1 justify-end w-full hover:text-foreground transition-colors cursor-pointer"
+                  >
+                    Count
+                    {sortField === "count" && (
+                      sortDirection === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                    )}
+                  </button>
+                </th>
+                <th className="text-right px-4 py-3 text-sm font-semibold">
+                  <button
+                    onClick={() => handleSort("percentage")}
+                    className="flex items-center gap-1 justify-end w-full hover:text-foreground transition-colors cursor-pointer"
+                  >
+                    Percentage
+                    {sortField === "percentage" && (
+                      sortDirection === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                    )}
+                  </button>
+                </th>
               </tr>
             </thead>
             <tbody>
-              {ratingDistribution
-                .slice()
-                .reverse()
-                .map((item) => (
-                  <tr key={item.rating} className="border-b last:border-b-0 hover:bg-muted/50">
-                    <td className="px-4 py-3 text-sm font-medium">{item.rating}/10</td>
-                    <td className="px-4 py-3 text-sm text-right">{item.count}</td>
-                    <td className="px-4 py-3 text-sm text-right text-muted-foreground">
-                      {item.percentage.toFixed(1)}%
-                    </td>
-                  </tr>
-                ))}
+              {sortedDistribution.map((item) => (
+                <tr key={item.rating} className="border-b last:border-b-0 hover:bg-muted/50">
+                  <td className="px-4 py-3 text-sm font-medium">{item.rating}/10</td>
+                  <td className="px-4 py-3 text-sm text-right">{item.count}</td>
+                  <td className="px-4 py-3 text-sm text-right text-muted-foreground">
+                    {item.percentage.toFixed(1)}%
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
