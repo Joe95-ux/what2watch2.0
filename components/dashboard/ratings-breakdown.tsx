@@ -107,7 +107,10 @@ export default function RatingsBreakdown({ reviews }: RatingsBreakdownProps) {
         <div className="p-6">
           <div className="flex items-end justify-between gap-1">
             {ratingDistribution.map((item) => {
-              const height = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
+              // Fixed container height in pixels
+              const containerHeight = 150;
+              // Calculate bar height: (value / maxValue) * containerHeight
+              const barHeight = maxCount > 0 ? (item.count / maxCount) * containerHeight : 0;
               const hasRating = item.count > 0;
 
               return (
@@ -115,7 +118,10 @@ export default function RatingsBreakdown({ reviews }: RatingsBreakdownProps) {
                   <TooltipTrigger asChild>
                     <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0 cursor-pointer group">
                       {/* Bar container - grows upward from number */}
-                      <div className="w-full flex flex-col items-center justify-end min-h-[150px]">
+                      <div 
+                        className="w-full flex flex-col items-center justify-end"
+                        style={{ height: `${containerHeight}px` }}
+                      >
                         <div
                           className={cn(
                             "w-full rounded-t transition-all",
@@ -124,7 +130,7 @@ export default function RatingsBreakdown({ reviews }: RatingsBreakdownProps) {
                               : "bg-muted"
                           )}
                           style={{
-                            height: hasRating ? `${height}%` : "2px",
+                            height: hasRating ? `${barHeight}px` : "2px",
                             minHeight: hasRating ? "4px" : "2px",
                           }}
                         />
