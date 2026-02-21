@@ -74,7 +74,7 @@ export default function RatingsBreakdown({ reviews }: RatingsBreakdownProps) {
       {/* Chart View */}
       {viewMode === "chart" && (
         <div className="border rounded-lg p-6 bg-card">
-          <div className="flex items-start justify-between gap-1">
+          <div className="flex items-end justify-between gap-1">
             {ratingDistribution.map((item) => {
               const height = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
               const hasRating = item.count > 0;
@@ -83,11 +83,11 @@ export default function RatingsBreakdown({ reviews }: RatingsBreakdownProps) {
                 <Tooltip key={item.rating}>
                   <TooltipTrigger asChild>
                     <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0 cursor-pointer group">
-                      {/* Bar on top */}
-                      <div className="w-full flex flex-col items-center justify-start min-h-[100px]">
+                      {/* Bar container - grows upward from number */}
+                      <div className="w-full flex flex-col items-center justify-end min-h-[100px]">
                         <div
                           className={cn(
-                            "w-full rounded-b transition-all",
+                            "w-full rounded-t transition-all",
                             hasRating
                               ? "bg-blue-500 hover:bg-blue-600"
                               : "bg-muted"
@@ -98,7 +98,7 @@ export default function RatingsBreakdown({ reviews }: RatingsBreakdownProps) {
                           }}
                         />
                       </div>
-                      {/* Number below */}
+                      {/* Number at bottom */}
                       <span className="text-sm font-medium text-foreground">
                         {item.rating}
                       </span>
