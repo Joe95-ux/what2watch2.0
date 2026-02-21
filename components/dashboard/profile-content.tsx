@@ -36,6 +36,7 @@ import { useWatchlist } from "@/hooks/use-watchlist";
 import { useUserReviews } from "@/hooks/use-reviews";
 import ReviewCard from "@/components/reviews/review-card";
 import ProfileStickyNav from "@/components/dashboard/profile-sticky-nav";
+import RatingsBreakdown from "@/components/dashboard/ratings-breakdown";
 import BannerSelector from "@/components/social/banner-selector";
 import { BANNER_GRADIENTS } from "@/components/social/banner-gradient-selector";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
@@ -730,6 +731,9 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
             </div>
           ) : (
             <>
+              {/* Ratings Breakdown */}
+              <RatingsBreakdown reviews={reviews} />
+              
               <div className="space-y-4">
                 {reviews.map((review) => (
                   <ReviewCard key={review.id} review={review} showFullContent />

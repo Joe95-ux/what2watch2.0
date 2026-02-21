@@ -264,7 +264,7 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
             />
           </div>
 
-          <div className="flex flex-col sm:flex-row justify-start sm:justify-between sm:items-start gap-3">
+          <div className="flex flex-col sm:flex-row justify-start sm:justify-between sm:items-end gap-3">
             {/* Title Section - Flex Column */}
             <div className="flex flex-col gap-2">
               <h1 className="text-[1.3rem] sm:text-3xl font-semibold text-foreground">{title}</h1>

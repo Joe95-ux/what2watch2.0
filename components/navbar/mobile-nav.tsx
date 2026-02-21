@@ -27,8 +27,6 @@ interface MobileNavProps {
   navLinks: Array<{ href: string; label: string }>;
   pathname: string;
   onLinkClick: () => void;
-  isAvatarEditorOpen?: boolean;
-  setIsAvatarEditorOpen?: (open: boolean) => void;
 }
 
 const YOUTUBE_URL = "https://www.youtube.com";
@@ -46,7 +44,7 @@ const youtubeNavItems = [
   { href: "/youtube/insights", label: "Content Insights", icon: Sparkles },
 ];
 
-export default function MobileNav({ navLinks, pathname, onLinkClick, isAvatarEditorOpen, setIsAvatarEditorOpen }: MobileNavProps) {
+export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNavProps) {
   const { isSignedIn } = useUser();
   const [youtubeExpanded, setYoutubeExpanded] = useState(false);
   const { data: youtubeVisibility } = useYouTubeToolsVisibility();
@@ -425,16 +423,19 @@ export default function MobileNav({ navLinks, pathname, onLinkClick, isAvatarEdi
               <Settings className="mr-3 h-4 w-4 text-foreground" />
               <span>Settings</span>
             </Link>
-            <button
-              onClick={() => {
-                setIsAvatarEditorOpen?.(true);
-                onLinkClick();
-              }}
-              className="flex items-center w-full rounded-md px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors text-[0.95rem] text-muted-foreground"
+            <Link
+              href="/dashboard/profile"
+              onClick={onLinkClick}
+              className={cn(
+                "flex items-center w-full rounded-md px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
+                pathname === "/dashboard/profile"
+                  ? "bg-muted text-foreground font-medium"
+                  : "text-muted-foreground"
+              )}
             >
               <UserRound className="mr-3 h-4 w-4 text-foreground" />
-              <span>Edit Avatar</span>
-            </button>
+              <span>Your Profile</span>
+            </Link>
 
             {/* Theme Toggle - Collapsible */}
             <div>

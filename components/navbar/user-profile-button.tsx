@@ -16,8 +16,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
-import { AvatarPickerDialog } from "@/components/avatar/avatar-picker-dialog";
-import { UserCircle, LogOut, Settings, Moon, Sun, Monitor, Link2 } from "lucide-react";
+import { UserRound, LogOut, Settings, Moon, Sun, Monitor, Link2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -34,7 +33,6 @@ export function UserProfileButton({ hasHeroSection = false }: UserProfileButtonP
   const { setTheme, theme } = useTheme();
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isAvatarEditorOpen, setIsAvatarEditorOpen] = useState(false);
 
   // Get full name (firstname + lastname) or fallback to username
   const fullName = currentUser?.displayName || 
@@ -104,17 +102,18 @@ export function UserProfileButton({ hasHeroSection = false }: UserProfileButtonP
             <span>Manage Account</span>
           </DropdownMenuItem>
 
-          <DropdownMenuItem
-            className="cursor-pointer"
-            onSelect={(e) => {
-              e.preventDefault();
-              setIsAvatarEditorOpen(true);
-              setIsDropdownOpen(false);
-            }}
-          >
-            <UserCircle className="mr-2 h-4 w-4" />
-            <span>Edit Avatar</span>
-          </DropdownMenuItem>
+          <Link href="/dashboard/profile">
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onSelect={(e) => {
+                e.preventDefault();
+                setTimeout(() => setIsDropdownOpen(false), 100);
+              }}
+            >
+              <UserRound className="mr-2 h-4 w-4" />
+              <span>Your Profile</span>
+            </DropdownMenuItem>
+          </Link>
 
           <DropdownMenuSeparator />
 
@@ -211,11 +210,6 @@ export function UserProfileButton({ hasHeroSection = false }: UserProfileButtonP
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <AvatarPickerDialog
-        isOpen={isAvatarEditorOpen}
-        onClose={() => setIsAvatarEditorOpen(false)}
-        currentAvatarUrl={avatarUrl}
-      />
     </>
   );
 }

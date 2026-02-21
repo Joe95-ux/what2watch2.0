@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { getCountryFlagEmoji } from "@/hooks/use-watch-regions";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ChevronDown, ChevronUp, ChevronsUpDown, Check } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronsUpDown, Check, Clock } from "lucide-react";
 import { FaPlay } from "react-icons/fa";
 import { cn } from "@/lib/utils";
 
@@ -324,45 +324,6 @@ export default function WatchBreakdownSection({
         </div>
       )}
 
-      {/* Leaving Soon Section */}
-      {(() => {
-        const dataSource = seasonAvailability != null && seasonNumber != null ? seasonAvailability : availability;
-        const leavingSoon = dataSource?.leavingSoon;
-        if (!leavingSoon || leavingSoon.length === 0) return null;
-
-        return (
-          <div className="space-y-3">
-            <div>
-              <h3 className="text-xl font-semibold text-orange-500">Leaving Soon</h3>
-              <p className="text-sm text-muted-foreground">Content that will be removed from platforms</p>
-            </div>
-            <div className="divide-y divide-border rounded-2xl border border-orange-500/30 bg-card/30">
-              {leavingSoon.map((item: JustWatchLeavingSoon) => (
-                <div
-                  key={`${item.providerId}-${item.expiresAt}`}
-                  className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors"
-                >
-                  {item.iconUrl && (
-                    <div className="relative h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                      <Image
-                        src={item.iconUrl}
-                        alt={item.providerName}
-                        fill
-                        className="object-contain p-1"
-                        unoptimized
-                      />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{item.providerName}</p>
-                    <p className="text-xs text-muted-foreground">{item.label}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
 
       {/* Single availability list: for TV use season data when available, else show-level; season dropdown only when multiple seasons */}
       {(() => {
@@ -406,13 +367,33 @@ export default function WatchBreakdownSection({
                     )}
                   </div>
                   <div className="divide-y divide-border rounded-2xl border border-border bg-card/30">
-                    {offers.map((offer) => (
-                      <OfferRow
-                        key={`${offer.providerId}-${offer.monetizationType}`}
-                        offer={offer}
-                        ctaLabel={section.ctaLabel}
-                      />
-                    ))}
+                    {offers.map((offer) => {
+                      const dataSource = seasonAvailability != null && seasonNumber != null ? seasonAvailability : availability;
+                      const leavingSoon = dataSource?.leavingSoon;
+                      const isLeavingSoon = leavingSoon?.some(
+                        (item) => item.providerId === offer.providerId
+                      );
+                      const leavingSoonInfo = leavingSoon?.find(
+                        (item) => item.providerId === offer.providerId
+                      );
+                      
+                      return (
+                        <div key={`${offer.providerId}-${offer.monetizationType}`}>
+                          {isLeavingSoon && leavingSoonInfo && (
+                            <div className="px-4 pt-4 pb-2">
+                              <div className="flex items-center gap-2 text-sm bg-red-500/10 text-red-600 dark:text-red-400 px-3 py-2 rounded-md">
+                                <Clock className="h-4 w-4 flex-shrink-0" />
+                                <span>{leavingSoonInfo.label}</span>
+                              </div>
+                            </div>
+                          )}
+                          <OfferRow
+                            offer={offer}
+                            ctaLabel={section.ctaLabel}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
