@@ -306,7 +306,7 @@ export default function CreatePlaylistModal({ isOpen, onClose, playlist }: Creat
                 </div>
                 <div className="flex items-center justify-between border rounded-xl p-4">
                   <div>
-                    <Label htmlFor="public">Public Playlist</Label>
+                    <Label htmlFor="public">{isPublic ? "Public Playlist" : "Private Playlist"}</Label>
                     <p className="text-sm text-muted-foreground">
                       {isPublic ? "Anyone can view this playlist" : "Only you can view this playlist"}
                     </p>

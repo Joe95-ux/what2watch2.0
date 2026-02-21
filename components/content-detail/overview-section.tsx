@@ -11,6 +11,7 @@ import { ChevronDown, ChevronUp, Star, Check, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import AwardsSection from "./awards-section";
 import { RatingsRow } from "./ratings-row";
+import WhyToWatchSection from "./why-to-watch-section";
 import { Button } from "@/components/ui/button";
 import { useSeenEpisodes, useToggleEpisodeSeen, useMarkSeasonsSeen, useUnmarkSeasonsSeen } from "@/hooks/use-episode-tracking";
 import { useUser } from "@clerk/nextjs";
@@ -226,6 +227,31 @@ export default function OverviewSection({
             {type === "movie" ? "Movie Details" : "TV Show Details"}
           </h2>
           <div className="divide-y divide-border">
+            {/* Ratings - First entry on mobile (sm and below) */}
+            <div className="sm:hidden">
+              <div className="flex justify-between gap-4 px-0 py-3 text-sm">
+                <span className="text-muted-foreground uppercase">Ratings</span>
+                <RatingsRow
+                  justwatchRanks={watchAvailability?.ranks ?? null}
+                  justwatchRank={
+                    watchAvailability?.ranks?.["7d"]?.rank ??
+                    watchAvailability?.ranks?.["30d"]?.rank ??
+                    watchAvailability?.ranks?.["1d"]?.rank ??
+                    null
+                  }
+                  justwatchRankUrl={
+                    watchAvailability?.fullPath
+                      ? `https://www.justwatch.com${watchAvailability.fullPath}`
+                      : null
+                  }
+                  imdbRating={omdbData?.imdbRating || null}
+                  imdbVotes={omdbData?.imdbVotes || null}
+                  metascore={omdbData?.metascore || null}
+                  rottenTomatoes={omdbData?.rottenTomatoes || null}
+                  tmdbRating={item.vote_average > 0 ? item.vote_average : null}
+                />
+              </div>
+            </div>
             {details?.genres && details.genres.length > 0 && (
               <OverviewInfoRow
                 label="Genre"
@@ -264,7 +290,8 @@ export default function OverviewSection({
               cast={topCast}
             />
             <OverviewInfoRow label="Production Country" value={countries} />
-            <div className="flex justify-between gap-4 px-0 py-3 text-sm">
+            {/* Ratings - Hidden on mobile (shown above), visible on sm and up */}
+            <div className="hidden sm:flex justify-between gap-4 px-0 py-3 text-sm">
               <span className="text-muted-foreground uppercase">Ratings</span>
               <RatingsRow
                 justwatchRanks={watchAvailability?.ranks ?? null}
@@ -284,13 +311,6 @@ export default function OverviewSection({
                 metascore={omdbData?.metascore || null}
                 rottenTomatoes={omdbData?.rottenTomatoes || null}
                 tmdbRating={item.vote_average > 0 ? item.vote_average : null}
-                // year={
-                //   details?.release_date || details?.first_air_date
-                //     ? new Date(
-                //         (details.release_date || details.first_air_date) ?? ""
-                //       ).getFullYear()
-                //     : null
-                // }
               />
             </div>
             {!detailsExpanded ? (
@@ -326,6 +346,9 @@ export default function OverviewSection({
           {type === "movie" && omdbData?.awards && (
             <AwardsSection awards={omdbData.awards} />
           )}
+
+          {/* Why to Watch Section */}
+          <WhyToWatchSection type={type} tmdbId={item.id} country={watchAvailability?.country} />
 
           {/* TV Seasons & Episodes - Inside left column */}
           {type === "tv" && seasons && (

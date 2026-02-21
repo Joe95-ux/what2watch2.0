@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Image from "next/image";
-import { JustWatchAvailabilityResponse, JustWatchOffer, JustWatchUpcomingRelease } from "@/lib/justwatch";
+import { JustWatchAvailabilityResponse, JustWatchOffer, JustWatchUpcomingRelease, JustWatchLeavingSoon } from "@/lib/justwatch";
 import type { JustWatchCountry } from "@/lib/justwatch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -323,6 +323,46 @@ export default function WatchBreakdownSection({
           </a>
         </div>
       )}
+
+      {/* Leaving Soon Section */}
+      {(() => {
+        const dataSource = seasonAvailability != null && seasonNumber != null ? seasonAvailability : availability;
+        const leavingSoon = dataSource?.leavingSoon;
+        if (!leavingSoon || leavingSoon.length === 0) return null;
+
+        return (
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-xl font-semibold text-orange-500">Leaving Soon</h3>
+              <p className="text-sm text-muted-foreground">Content that will be removed from platforms</p>
+            </div>
+            <div className="divide-y divide-border rounded-2xl border border-orange-500/30 bg-card/30">
+              {leavingSoon.map((item: JustWatchLeavingSoon) => (
+                <div
+                  key={`${item.providerId}-${item.expiresAt}`}
+                  className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors"
+                >
+                  {item.iconUrl && (
+                    <div className="relative h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                      <Image
+                        src={item.iconUrl}
+                        alt={item.providerName}
+                        fill
+                        className="object-contain p-1"
+                        unoptimized
+                      />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{item.providerName}</p>
+                    <p className="text-xs text-muted-foreground">{item.label}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Single availability list: for TV use season data when available, else show-level; season dropdown only when multiple seasons */}
       {(() => {

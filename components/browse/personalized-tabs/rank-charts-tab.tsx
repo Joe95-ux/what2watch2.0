@@ -58,19 +58,33 @@ function ProviderCombobox({
     return providers.filter((p) => p.provider_name.toLowerCase().includes(q));
   }, [providers, search]);
 
-  const scrollToProvider = (providerId: number) => {
+  const scrollToProvider = (providerId: number, retries = 0) => {
     const el = rowRefsMap.current?.[providerId];
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (el && el.isConnected) {
+      // Use requestAnimationFrame to ensure DOM is ready
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      return true;
     }
+    // Retry if element not found (might still be loading)
+    if (retries < 10) {
+      setTimeout(() => scrollToProvider(providerId, retries + 1), 100);
+    }
+    return false;
   };
 
   const handleSelect = (providerId: number) => {
     onSelect(providerId);
     setOpen(false);
     setSearch("");
-    // Scroll after popover closes so ref is still valid and viewport updates correctly
-    setTimeout(() => scrollToProvider(providerId), 0);
+    // Wait for popover to close and DOM to update before scrolling
+    // Use requestAnimationFrame + setTimeout to ensure layout is stable
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        scrollToProvider(providerId);
+      }, 150);
+    });
   };
 
   const selected = providers.find((p) => p.provider_id === focusedProviderId);
@@ -196,14 +210,28 @@ export function RankChartsTab() {
   }, [providers]);
 
   const setRowRef = (providerId: number) => (el: HTMLDivElement | null) => {
-    rowRefsMap.current[providerId] = el;
+    if (el) {
+      rowRefsMap.current[providerId] = el;
+    } else {
+      // Clean up ref when element is removed
+      delete rowRefsMap.current[providerId];
+    }
   };
 
-  const scrollToProvider = (providerId: number) => {
+  const scrollToProvider = (providerId: number, retries = 0) => {
     const el = rowRefsMap.current[providerId];
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (el && el.isConnected) {
+      // Use requestAnimationFrame to ensure DOM is ready
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      return true;
     }
+    // Retry if element not found (might still be loading)
+    if (retries < 10) {
+      setTimeout(() => scrollToProvider(providerId, retries + 1), 100);
+    }
+    return false;
   };
 
   return (

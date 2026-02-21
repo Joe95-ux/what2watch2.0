@@ -93,8 +93,25 @@ export function StreamingChartRow({
     );
   }
 
+  // Always render a div with ref, even when empty, so scroll-to works
   if (entries.length === 0) {
-    return null;
+    return (
+      <div ref={rowRef} className="mb-10 scroll-mt-28">
+        <div className="flex items-center gap-3 mb-4">
+          {providerLogoUrl ? (
+            <img
+              src={providerLogoUrl}
+              alt=""
+              className="h-8 w-8 rounded-lg object-cover shrink-0"
+            />
+          ) : (
+            <div className="h-8 w-8 rounded-lg bg-muted shrink-0" />
+          )}
+          <h3 className="text-xl font-medium text-foreground truncate">{providerName}</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">No chart data available</p>
+      </div>
+    );
   }
 
   return (

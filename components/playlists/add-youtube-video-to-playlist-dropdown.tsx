@@ -13,10 +13,12 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Plus, Check } from "lucide-react";
+import { Plus, ListCheck, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import CreatePlaylistModal from "./create-playlist-modal";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 interface AddYouTubeVideoToPlaylistDropdownProps {
   video: YouTubeVideo;
@@ -32,10 +34,12 @@ export default function AddYouTubeVideoToPlaylistDropdown({
   onAddSuccess,
 }: AddYouTubeVideoToPlaylistDropdownProps) {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const { data: playlists = [], isLoading } = usePlaylists();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isAdding, setIsAdding] = useState<string | null>(null);
+  const [isRemoving, setIsRemoving] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   const handleOpenChange = (open: boolean) => {
@@ -43,39 +47,71 @@ export default function AddYouTubeVideoToPlaylistDropdown({
     onOpenChange?.(open);
   };
 
-  const handleAddToPlaylist = async (playlistId: string) => {
+  const handleTogglePlaylist = async (playlistId: string) => {
     try {
-      setIsAdding(playlistId);
-      const response = await fetch(`/api/youtube/videos/${video.id}/playlist`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ playlistId }),
-      });
+      const playlist = playlists.find((p) => p.id === playlistId);
+      if (!playlist) return;
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to add video to playlist");
+      const isInPlaylist = playlistsWithVideo.has(playlistId);
+      
+      if (isInPlaylist) {
+        // Remove from playlist
+        setIsRemoving(playlistId);
+        const youtubeItem = playlist.youtubeItems?.find((item) => item.videoId === video.id);
+        if (!youtubeItem?.id) {
+          toast.error("Item not found in playlist");
+          setIsRemoving(null);
+          return;
+        }
+
+        const response = await fetch(
+          `/api/youtube/videos/${video.id}/playlist?playlistId=${playlistId}&itemId=${youtubeItem.id}`,
+          {
+            method: "DELETE",
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to remove video from playlist");
+        }
+
+        toast.success(`Removed from "${playlist.name}"`);
+      } else {
+        // Add to playlist
+        setIsAdding(playlistId);
+        const response = await fetch(`/api/youtube/videos/${video.id}/playlist`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ playlistId }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to add video to playlist");
+        }
+
+        toast.success(`Added to "${playlist.name}"`);
       }
 
-      await response.json();
-      toast.success(`Added to "${playlists.find((p) => p.id === playlistId)?.name}"`);
       // Invalidate playlists query to refresh the UI
       await queryClient.invalidateQueries({ queryKey: ["playlists"] });
       // Also invalidate the specific playlist query
       await queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
       onAddSuccess?.();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to add to playlist";
+      const errorMessage = error instanceof Error ? error.message : "Failed to update playlist";
       if (errorMessage.includes("already in playlist")) {
         toast.error("Video is already in this playlist");
       } else {
-        toast.error("Failed to add video to playlist");
+        toast.error(errorMessage);
       }
       console.error(error);
     } finally {
       setIsAdding(null);
+      setIsRemoving(null);
     }
   };
 
@@ -105,15 +141,8 @@ export default function AddYouTubeVideoToPlaylistDropdown({
           align="end"
           alignOffset={isMobile ? -12 : 0}
           sideOffset={4}
-          className="ml-2w-80 z-[110] p-0 flex flex-col max-h-[400px]"
+          className="w-72 z-[110] p-0 flex flex-col max-h-[400px]"
           onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-          }}
-          onPointerDown={(e) => {
-            e.stopPropagation();
-          }}
-          onMouseDown={(e) => {
             e.stopPropagation();
           }}
         >
@@ -123,7 +152,7 @@ export default function AddYouTubeVideoToPlaylistDropdown({
           </div>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto scrollbar-thin min-h-0 px-2">
+          <div className="flex-1 overflow-y-auto scrollbar-thin min-h-0 px-2 pt-1">
             {isLoading ? (
               <DropdownMenuItem disabled>Loading playlists...</DropdownMenuItem>
             ) : playlists.length === 0 ? (
@@ -131,29 +160,43 @@ export default function AddYouTubeVideoToPlaylistDropdown({
             ) : (
               playlists.map((playlist) => {
                 const isInPlaylist = playlistsWithVideo.has(playlist.id);
-                const isAddingToThis = isAdding === playlist.id;
+                const isProcessing = isAdding === playlist.id || isRemoving === playlist.id;
                 return (
                   <DropdownMenuItem
                     key={playlist.id}
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (!isInPlaylist && !isAddingToThis) {
-                        await handleAddToPlaylist(playlist.id);
-                        setIsDropdownOpen(false);
-                      }
-                    }}
-                    disabled={isInPlaylist || isAddingToThis}
+                    disabled={isProcessing}
+                    className="p-0"
+                    onSelect={(e) => e.preventDefault()}
                   >
-                    {isInPlaylist ? (
-                      <>
-                        <Check className="h-4 w-4 mr-2" />
-                        <span className="flex-1">{playlist.name}</span>
-                        <span className="text-xs text-muted-foreground">Added</span>
-                      </>
-                    ) : (
-                      <span>{playlist.name}</span>
-                    )}
+                    <div className="flex items-center w-full">
+                      <button
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          await handleTogglePlaylist(playlist.id);
+                        }}
+                        className="flex items-center gap-2 flex-1 min-w-0 px-2 py-2 hover:bg-muted rounded transition-colors cursor-pointer"
+                      >
+                        <ListCheck
+                          className={cn(
+                            "h-4 w-4 flex-shrink-0",
+                            isInPlaylist ? "text-green-500" : "text-muted-foreground"
+                          )}
+                        />
+                        <span className="truncate text-left">{playlist.name}</span>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          router.push(`/dashboard/playlists/${playlist.id}`);
+                          setIsDropdownOpen(false);
+                        }}
+                        className="p-2 hover:bg-muted rounded transition-colors flex-shrink-0 cursor-pointer"
+                      >
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      </button>
+                    </div>
                   </DropdownMenuItem>
                 );
               })

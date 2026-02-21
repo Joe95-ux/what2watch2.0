@@ -13,7 +13,7 @@ import {
 } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
-import { useIMDBRating } from "@/hooks/use-content-details";
+import { useIMDBRating, useOMDBData } from "@/hooks/use-content-details";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { cn } from "@/lib/utils";
 import TrailerModal from "@/components/browse/trailer-modal";
@@ -73,10 +73,12 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
   const imdbId = details?.imdb_id || null;
   const tmdbRating = item.vote_average > 0 ? item.vote_average : null;
   const { data: ratingData } = useIMDBRating(imdbId, tmdbRating);
+  const { data: omdbData } = useOMDBData(imdbId);
   
   // Use IMDb rating if available, otherwise fall back to TMDB
   const displayRating = ratingData?.rating || tmdbRating;
   const ratingSource = ratingData?.source || (tmdbRating ? "tmdb" : null);
+  const imdbVotes = ratingData?.votes || omdbData?.imdbVotes || null;
 
   // JustWatch streaming chart rank for hero (user can switch 1d / 7d / 30d)
   const [jwRankWindow, setJwRankWindow] = useState<"1d" | "7d" | "30d">("7d");
@@ -131,10 +133,21 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
       ? formatYear(details?.release_date)
       : formatYear(details?.first_air_date);
 
+  const releaseDateFormatted =
+    type === "movie"
+      ? details?.release_date
+        ? new Date(details.release_date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+        : null
+      : details?.first_air_date
+      ? new Date(details.first_air_date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+      : null;
+
   const runtimeText =
     type === "movie"
       ? formatRuntime(details?.runtime, false)
       : formatRuntime(details?.episode_run_time, true);
+
+  const rated = type === "movie" ? (omdbData?.rated || null) : null;
 
   // Fetch trailer duration from YouTube if available
   useEffect(() => {
@@ -251,109 +264,140 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
             />
           </div>
 
-          <div className="flex flex-col sm:flex-row justify-start sm:justify-between sm:items-center gap-3">
-            <h1 className="text-[1.3rem] sm:text-3xl font-semibold text-foreground">{title}</h1>
-            <div className="inline-flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row justify-start sm:justify-between sm:items-start gap-3">
+            {/* Title Section - Flex Column */}
+            <div className="flex flex-col gap-2">
+              <h1 className="text-[1.3rem] sm:text-3xl font-semibold text-foreground">{title}</h1>
+              {/* Release Date . Rated . Runtime */}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+                {releaseDateFormatted && <span>{releaseDateFormatted}</span>}
+                {rated && (
+                  <>
+                    {releaseDateFormatted && <span>•</span>}
+                    <span>Rated {rated}</span>
+                  </>
+                )}
+                {runtimeText && (
+                  <>
+                    {(releaseDateFormatted || rated) && <span>•</span>}
+                    <span>{runtimeText}</span>
+                  </>
+                )}
+              </div>
+            </div>
+            {/* Ratings Section - Only visible on sm and up */}
+            <div className="hidden sm:flex items-center gap-4">
               {jwPrimaryRank != null && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  {jwRankUrl ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <a
-                          href={jwRankUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-foreground hover:opacity-90 transition-opacity"
-                        >
-                          <Image
-                            src="/jw-icon.png"
-                            alt="JustWatch"
-                            width={20}
-                            height={20}
-                            className="object-contain"
-                            unoptimized
-                          />
-                          <span className="font-semibold text-[#F5C518]">#{jwPrimaryRank.rank}</span>
-                          {jwPrimaryRank.delta !== 0 && (
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium",
-                                jwPrimaryRank.delta > 0
-                                  ? "bg-green-600 text-white"
-                                  : "bg-red-600 text-white"
-                              )}
-                            >
-                              {jwPrimaryRank.delta > 0 ? (
-                                <ChevronUp className="h-3.5 w-3.5" />
-                              ) : (
-                                <ChevronDown className="h-3.5 w-3.5" />
-                              )}
-                              {Math.abs(jwPrimaryRank.delta)}
-                            </span>
-                          )}
-                        </a>
-                      </TooltipTrigger>
-                      <TooltipContent>JustWatch streaming charts</TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5">
-                      <Image
-                        src="/jw-icon.png"
-                        alt="JustWatch"
-                        width={20}
-                        height={20}
-                        className="object-contain"
-                        unoptimized
-                      />
-                      <span className="font-semibold text-[#F5C518]">#{jwPrimaryRank.rank}</span>
-                      {jwPrimaryRank.delta !== 0 && (
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium",
-                            jwPrimaryRank.delta > 0
-                              ? "bg-green-600 text-white"
-                              : "bg-red-600 text-white"
-                          )}
-                        >
-                          {jwPrimaryRank.delta > 0 ? (
-                            <ChevronUp className="h-3.5 w-3.5" />
-                          ) : (
-                            <ChevronDown className="h-3.5 w-3.5" />
-                          )}
-                          {Math.abs(jwPrimaryRank.delta)}
-                        </span>
-                      )}
-                    </span>
-                  )}
-                  <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
-                    {(["1d", "7d", "30d"] as const).map((w) => (
-                      <button
-                        key={w}
-                        type="button"
-                        onClick={() => setJwRankWindow(w)}
-                        className={cn(
-                          "px-1.5 py-0.5 rounded cursor-pointer",
-                          jwRankWindow === w ? "bg-muted font-medium text-foreground" : "hover:text-foreground"
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-xs text-muted-foreground uppercase">JustWatch Rank</span>
+                  <div className="flex items-center gap-2">
+                    {jwRankUrl ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <a
+                            href={jwRankUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-foreground hover:opacity-90 transition-opacity"
+                          >
+                            <Image
+                              src="/jw-icon.png"
+                              alt="JustWatch"
+                              width={20}
+                              height={20}
+                              className="object-contain"
+                              unoptimized
+                            />
+                            <span className="font-semibold text-[#F5C518]">#{jwPrimaryRank.rank}</span>
+                            {jwPrimaryRank.delta !== 0 && (
+                              <span
+                                className={cn(
+                                  "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium",
+                                  jwPrimaryRank.delta > 0
+                                    ? "bg-green-600 text-white"
+                                    : "bg-red-600 text-white"
+                                )}
+                              >
+                                {jwPrimaryRank.delta > 0 ? (
+                                  <ChevronUp className="h-3.5 w-3.5" />
+                                ) : (
+                                  <ChevronDown className="h-3.5 w-3.5" />
+                                )}
+                                {Math.abs(jwPrimaryRank.delta)}
+                              </span>
+                            )}
+                          </a>
+                        </TooltipTrigger>
+                        <TooltipContent>JustWatch streaming charts</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5">
+                        <Image
+                          src="/jw-icon.png"
+                          alt="JustWatch"
+                          width={20}
+                          height={20}
+                          className="object-contain"
+                          unoptimized
+                        />
+                        <span className="font-semibold text-[#F5C518]">#{jwPrimaryRank.rank}</span>
+                        {jwPrimaryRank.delta !== 0 && (
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium",
+                              jwPrimaryRank.delta > 0
+                                ? "bg-green-600 text-white"
+                                : "bg-red-600 text-white"
+                            )}
+                          >
+                            {jwPrimaryRank.delta > 0 ? (
+                              <ChevronUp className="h-3.5 w-3.5" />
+                            ) : (
+                              <ChevronDown className="h-3.5 w-3.5" />
+                            )}
+                            {Math.abs(jwPrimaryRank.delta)}
+                          </span>
                         )}
-                      >
-                        {rankWindowLabels[w]}
-                      </button>
-                    ))}
-                  </span>
+                      </span>
+                    )}
+                    <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+                      {(["1d", "7d", "30d"] as const).map((w) => (
+                        <button
+                          key={w}
+                          type="button"
+                          onClick={() => setJwRankWindow(w)}
+                          className={cn(
+                            "px-1.5 py-0.5 rounded cursor-pointer",
+                            jwRankWindow === w ? "bg-muted font-medium text-foreground" : "hover:text-foreground"
+                          )}
+                        >
+                          {rankWindowLabels[w]}
+                        </button>
+                      ))}
+                    </span>
+                  </div>
                 </div>
               )}
               {displayRating && displayRating > 0 && (
-                <div className="flex items-center gap-2 text-foreground">
-                  {ratingSource === "imdb" ? (
-                    <IMDBBadge size={24} />
-                  ) : (
-                    <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                  )}
-                  <span className="font-semibold">{displayRating.toFixed(1)}</span>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-xs text-muted-foreground uppercase">
+                    {ratingSource === "imdb" ? "IMDB Rating" : "TMDB Rating"}
+                  </span>
+                  <div className="flex items-center gap-2 text-foreground">
+                    {ratingSource === "imdb" ? (
+                      <IMDBBadge size={24} />
+                    ) : (
+                      <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                    )}
+                    <span className="font-semibold">{displayRating.toFixed(1)}</span>
+                    {ratingSource === "imdb" && imdbVotes && (
+                      <span className="text-xs text-muted-foreground">
+                        ({imdbVotes >= 1000 ? `${(imdbVotes / 1000).toFixed(1)}k` : imdbVotes.toLocaleString()})
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
-              {releaseYear && <span>{releaseYear}</span>}
-              {runtimeText && <span>{runtimeText}</span>}
             </div>
           </div>
         </div>

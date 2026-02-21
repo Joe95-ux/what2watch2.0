@@ -45,6 +45,25 @@ export interface JustWatchUpcomingRelease {
   label: string;
 }
 
+/** Content leaving a platform soon. */
+export interface JustWatchLeavingSoon {
+  providerId: number;
+  providerName: string;
+  iconUrl: string | null;
+  expiresAt: string; // ISO date
+  /** Human-readable label: "Leaving in X days" or "Leaving on [date]" */
+  label: string;
+}
+
+/** Why to Watch recommendation from JustWatch. */
+export interface JustWatchRecommendation {
+  id: string;
+  text: string;
+  author?: string;
+  authorRole?: string; // e.g., "Editor", "Celebrity"
+  source?: string;
+}
+
 export interface JustWatchAvailabilityResponse {
   country: string;
   lastSyncedAt?: string | null;
@@ -52,6 +71,8 @@ export interface JustWatchAvailabilityResponse {
   allOffers: JustWatchOffer[];
   /** Upcoming release dates when there are no offers. */
   upcoming?: JustWatchUpcomingRelease[];
+  /** Content leaving platforms soon. */
+  leavingSoon?: JustWatchLeavingSoon[];
   /** Streaming chart ranks when available. Link to JustWatch with rank as anchor per attribution. */
   ranks?: {
     "1d"?: JustWatchRankWindow;
@@ -91,6 +112,21 @@ interface JustWatchOffersApiResponse {
     retail_price?: number;
     currency?: string;
     urls?: { standard_web?: string; deeplink?: string };
+    // Additional fields that may be available but not currently used:
+    package_short_name?: string; // e.g., "netflix_basic", "netflix_premium"
+    package_id?: number;
+    expires_at?: string; // ISO date when content leaves platform
+    valid_until?: string; // Alternative field for expiration
+    element_count?: number; // Number of episodes/seasons
+    hd_price?: number; // Separate HD pricing
+    sd_price?: number; // Separate SD pricing
+    uhd_price?: number; // Separate 4K pricing
+    quality?: string; // Quality/resolution info
+    audio_qualities?: string[]; // Audio format (e.g., "dolby_atmos")
+    subtitle_languages?: string[]; // Available subtitle languages
+    audio_languages?: string[]; // Available audio tracks
+    retail_price_type?: string; // Price type (SD/HD/4K)
+    [key: string]: any; // Allow for other fields we haven't discovered yet
   }>;
   full_path?: string;
   ranks?: {
@@ -99,6 +135,13 @@ interface JustWatchOffersApiResponse {
     "30d"?: { rank: number; delta: number };
   };
   upcoming?: JustWatchUpcomingApiItem[];
+  // Additional top-level fields that may be available:
+  leaving?: Array<{
+    provider_id: number;
+    expires_at: string;
+    country: string;
+  }>; // Content leaving platforms soon
+  [key: string]: any; // Allow for other top-level fields
 }
 
 function buildImageUrl(path?: string | null) {
@@ -264,6 +307,50 @@ export async function getJustWatchAvailability(
     const offersData = rawOffersData as JustWatchOffersApiResponse;
     const offers = offersData?.offers ?? [];
 
+    // DEBUG: Log raw response structure in development to identify unused fields
+    if (process.env.NODE_ENV === "development" && offers.length > 0) {
+      console.log("[JustWatch DEBUG] Sample offer structure:", JSON.stringify(offers[0], null, 2));
+      console.log("[JustWatch DEBUG] Full response keys:", Object.keys(offersData));
+      if (offersData && typeof offersData === "object") {
+        const allKeys = new Set<string>();
+        offers.forEach((offer: any) => {
+          if (offer && typeof offer === "object") {
+            Object.keys(offer).forEach(k => allKeys.add(k));
+          }
+        });
+        console.log("[JustWatch DEBUG] All offer field keys found:", Array.from(allKeys).sort());
+      }
+    }
+
+    // Extract leaving soon offers (offers with expires_at or valid_until)
+    const leavingSoon: JustWatchLeavingSoon[] = [];
+    const now = new Date();
+    offers.forEach((offer: any) => {
+      const expiresAt = offer.expires_at || offer.valid_until;
+      if (expiresAt) {
+        const expireDate = new Date(expiresAt);
+        if (!Number.isNaN(expireDate.getTime()) && expireDate > now) {
+          const provider = providerMap.get(offer.provider_id);
+          const daysLeft = Math.ceil((expireDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          const label = daysLeft === 1 
+            ? "Leaving tomorrow"
+            : daysLeft <= 7
+            ? `Leaving in ${daysLeft} days`
+            : expireDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+          
+          leavingSoon.push({
+            providerId: offer.provider_id,
+            providerName: provider?.clear_name ?? `Provider ${offer.provider_id}`,
+            iconUrl: buildImageUrl(provider?.icon_url),
+            expiresAt: expiresAt,
+            label: label,
+          });
+        }
+      }
+    });
+    // Sort by expiration date (soonest first)
+    leavingSoon.sort((a, b) => new Date(a.expiresAt).getTime() - new Date(b.expiresAt).getTime());
+
     const providerMap = new Map<number, JustWatchProviderResponse>();
     (providersData as JustWatchProviderResponse[]).forEach((p) => providerMap.set(p.id, p));
 
@@ -324,6 +411,7 @@ export async function getJustWatchAvailability(
       offersByType: grouped,
       allOffers: normalized,
       upcoming: upcoming.length > 0 ? upcoming : undefined,
+      leavingSoon: leavingSoon.length > 0 ? leavingSoon : undefined,
       ranks: ranks ?? undefined,
       fullPath: offersData?.full_path ?? null,
       credits: {
@@ -411,12 +499,41 @@ export async function getJustWatchSeasonAvailability(
         };
       });
 
+    // Extract leaving soon for season offers
+    const seasonLeavingSoon: JustWatchLeavingSoon[] = [];
+    const now = new Date();
+    offers.forEach((offer: any) => {
+      const expiresAt = offer.expires_at || offer.valid_until;
+      if (expiresAt) {
+        const expireDate = new Date(expiresAt);
+        if (!Number.isNaN(expireDate.getTime()) && expireDate > now) {
+          const provider = providerMap.get(offer.provider_id);
+          const daysLeft = Math.ceil((expireDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          const label = daysLeft === 1 
+            ? "Leaving tomorrow"
+            : daysLeft <= 7
+            ? `Leaving in ${daysLeft} days`
+            : expireDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+          
+          seasonLeavingSoon.push({
+            providerId: offer.provider_id,
+            providerName: provider?.clear_name ?? `Provider ${offer.provider_id}`,
+            iconUrl: buildImageUrl(provider?.icon_url),
+            expiresAt: expiresAt,
+            label: label,
+          });
+        }
+      }
+    });
+    seasonLeavingSoon.sort((a, b) => new Date(a.expiresAt).getTime() - new Date(b.expiresAt).getTime());
+
     return {
       country: countryUpper,
       lastSyncedAt: null,
       offersByType: grouped,
       allOffers: normalized,
       upcoming: seasonUpcoming.length > 0 ? seasonUpcoming : undefined,
+      leavingSoon: seasonLeavingSoon.length > 0 ? seasonLeavingSoon : undefined,
       fullPath: seasonData?.full_path ?? null,
       credits: {
         text: "Data powered by JustWatch",
@@ -427,5 +544,45 @@ export async function getJustWatchSeasonAvailability(
   } catch (error) {
     console.error("[JustWatch] Failed to load season availability", error);
     return null;
+  }
+}
+
+/**
+ * Fetch "Why to Watch" recommendations from JustWatch.
+ * @see https://apis.justwatch.com/docs/api/
+ * Route: GET /recommendations/object_type/{object_type}/id_type/tmdb/locale/{locale}?id={tmdbId}
+ */
+export async function getJustWatchRecommendations(
+  type: "movie" | "tv",
+  tmdbId: number,
+  country: string = "US"
+): Promise<JustWatchRecommendation[]> {
+  try {
+    const locale = countryToLocale(country);
+    const objectType = type === "movie" ? "movie" : "show";
+    const token = getToken();
+    if (!token) return [];
+
+    const path = `/recommendations/object_type/${objectType}/id_type/tmdb/locale/${locale}`;
+    const data = await fetchFromJustWatch(path, { id: String(tmdbId) }) as Array<{
+      id?: string;
+      text: string;
+      author?: string;
+      author_role?: string;
+      source?: string;
+    }>;
+
+    if (!Array.isArray(data)) return [];
+
+    return data.slice(0, 40).map((rec) => ({
+      id: rec.id || `${tmdbId}-${rec.text.slice(0, 20)}`,
+      text: rec.text,
+      author: rec.author,
+      authorRole: rec.author_role,
+      source: rec.source,
+    }));
+  } catch (error) {
+    console.error("[JustWatch] Failed to load recommendations", error);
+    return [];
   }
 }
