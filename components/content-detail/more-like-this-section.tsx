@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/carousel";
 import MoreLikeThisCard from "@/components/browse/more-like-this-card";
 import { MoreLikeThisCardSkeleton } from "@/components/skeletons/more-like-this-card-skeleton";
+import { createContentUrl } from "@/lib/content-slug";
 
 interface MoreLikeThisSectionProps {
   items: (TMDBMovie | TMDBSeries)[];
@@ -62,7 +63,8 @@ export default function MoreLikeThisSection({ items, isLoading, type }: MoreLike
                   item={item}
                   type={type}
                   onItemClick={(item, itemType) => {
-                    router.push(`/${itemType}/${item.id}`);
+                    const title = "title" in item ? item.title : item.name;
+                    router.push(createContentUrl(itemType, item.id, title));
                   }}
                 />
               </CarouselItem>

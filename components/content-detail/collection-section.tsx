@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/carousel";
 import MoreLikeThisCard from "@/components/browse/more-like-this-card";
 import { MoreLikeThisCardSkeleton } from "@/components/skeletons/more-like-this-card-skeleton";
+import { createContentUrl } from "@/lib/content-slug";
 
 interface CollectionSectionProps {
   collectionName: string;
@@ -78,7 +79,8 @@ export default function CollectionSection({ collectionName, movies, isLoading, o
                   item={item}
                   type="movie"
                   onItemClick={(item, itemType) => {
-                    router.push(`/${itemType}/${item.id}`);
+                    const title = "title" in item ? item.title : item.name;
+                    router.push(createContentUrl(itemType, item.id, title));
                   }}
                 />
               </CarouselItem>

@@ -186,18 +186,29 @@ export default function WatchBreakdownSection({
   // The API response doesn't include expires_at/valid_until fields or a top-level "leaving" array
   // This feature is kept in the code structure for future API support, but will gracefully handle missing data
 
-  // Filter state - all selected by default
+  // Filter state - "all" selected by default
   const [selectedFilters, setSelectedFilters] = useState<Set<string>>(
-    () => new Set(sections.map(s => s.key))
+    () => new Set(["all"])
   );
 
   const toggleFilter = (key: string) => {
     setSelectedFilters(prev => {
       const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
+      if (key === "all") {
+        // If clicking "All", clear all other filters and select "all"
+        return new Set(["all"]);
       } else {
-        next.add(key);
+        // Remove "all" if it exists
+        next.delete("all");
+        if (next.has(key)) {
+          next.delete(key);
+          // If no filters selected, select "all"
+          if (next.size === 0) {
+            return new Set(["all"]);
+          }
+        } else {
+          next.add(key);
+        }
       }
       return next;
     });
@@ -355,8 +366,18 @@ export default function WatchBreakdownSection({
         const isUsingSeriesFallback =
           showSeasonDropdown && seasonNumber != null && seasonAvailability == null && !isLoadingSeason;
 
+        // Get sections that have offers
+        const sectionsWithOffers = sections.filter(section => {
+          const offers = dataSource?.offersByType[section.key] || [];
+          return offers.length > 0;
+        });
+
         // Filter sections based on selected filters
-        const filteredSections = sections.filter(section => selectedFilters.has(section.key));
+        const filteredSections = selectedFilters.has("all")
+          ? sectionsWithOffers
+          : sectionsWithOffers.filter(section => selectedFilters.has(section.key));
+
+        const isAllSelected = selectedFilters.has("all");
 
         return (
           <>
@@ -369,9 +390,21 @@ export default function WatchBreakdownSection({
             {/* Filter Row */}
             <div className="overflow-x-auto scrollbar-hide">
               <div className="flex items-center gap-2 pb-2">
-                {sections.map((section) => {
+                {/* All button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => toggleFilter("all")}
+                  className={cn(
+                    "h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0 border-none px-4",
+                    isAllSelected ? "bg-primary text-primary-foreground" : "text-foreground"
+                  )}
+                >
+                  All
+                </Button>
+                {/* Individual filter buttons - only show sections with offers */}
+                {sectionsWithOffers.map((section) => {
                   const isSelected = selectedFilters.has(section.key);
-                  const hasOffers = (dataSource?.offersByType[section.key] || []).length > 0;
                   return (
                     <Button
                       key={section.key}
@@ -379,10 +412,9 @@ export default function WatchBreakdownSection({
                       size="sm"
                       onClick={() => toggleFilter(section.key)}
                       className={cn(
-                        "h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0 border-none",
-                        isSelected ? "bg-primary text-primary-foreground" : ""
+                        "h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0 border-none px-4",
+                        isSelected ? "bg-primary text-primary-foreground" : "text-foreground"
                       )}
-                      disabled={!hasOffers}
                     >
                       {section.title}
                     </Button>
