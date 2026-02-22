@@ -107,8 +107,9 @@ export default function RatingsBreakdown({ reviews }: RatingsBreakdownProps) {
         <div className="p-6">
           <div className="flex items-end justify-between gap-1">
             {ratingDistribution.map((item) => {
-              // Fixed container height in pixels
-              const containerHeight = 150;
+              // Fixed container height in pixels - this ensures all bars are in the same visual space
+              // The tallest bar (with maxCount) will be 250px, all others scale proportionally
+              const containerHeight = 250;
               // Calculate bar height: (value / maxValue) * containerHeight
               const barHeight = maxCount > 0 ? (item.count / maxCount) * containerHeight : 0;
               const hasRating = item.count > 0;

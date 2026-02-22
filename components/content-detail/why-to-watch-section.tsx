@@ -1,5 +1,5 @@
 "use client";
-
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Carousel,
@@ -61,13 +61,28 @@ function RecommendationCard({ recommendation }: { recommendation: JustWatchRecom
 }
 
 export default function WhyToWatchSection({ type, tmdbId, country = "US" }: WhyToWatchSectionProps) {
-  const { data: recommendations = [], isLoading } = useQuery({
+  const { data: recommendations = [], isLoading, error } = useQuery({
     queryKey: ["justwatch-recommendations", type, tmdbId, country],
     queryFn: () => fetchRecommendations(type, tmdbId, country),
     enabled: !!tmdbId,
     staleTime: 60 * 60 * 1000, // 1 hour
     gcTime: 2 * 60 * 60 * 1000, // 2 hours
   });
+
+  // Debug logging for why to watch (client-side)
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development") {
+      if (isLoading) {
+        console.log("[Why to Watch] Loading recommendations for", type, tmdbId);
+      } else if (error) {
+        console.error("[Why to Watch] Error loading recommendations:", error);
+      } else if (recommendations.length > 0) {
+        console.log("[Why to Watch] Found", recommendations.length, "recommendations");
+      } else {
+        console.log("[Why to Watch] No recommendations found for", type, tmdbId);
+      }
+    }
+  }, [isLoading, error, recommendations.length, type, tmdbId]);
 
   if (isLoading) {
     return (

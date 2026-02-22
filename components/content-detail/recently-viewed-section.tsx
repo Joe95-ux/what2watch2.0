@@ -3,6 +3,7 @@
 import { useRecentlyViewed, useClearRecentlyViewed, recentlyViewedToTMDBItem } from "@/hooks/use-recently-viewed";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import { createContentUrl } from "@/lib/content-slug";
 import {
   Carousel,
   CarouselContent,
@@ -126,7 +127,8 @@ export default function RecentlyViewedSection({ currentItemId, currentType }: Re
                     item={item}
                     type={itemType}
                     onItemClick={(item, itemType) => {
-                      router.push(`/${itemType}/${item.id}`);
+                      const title = "title" in item ? item.title : item.name;
+                      router.push(createContentUrl(itemType, item.id, title));
                     }}
                   />
                 </CarouselItem>

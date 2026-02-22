@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import { JustWatchAvailabilityResponse, JustWatchOffer, JustWatchUpcomingRelease, JustWatchLeavingSoon } from "@/lib/justwatch";
 import type { JustWatchCountry } from "@/lib/justwatch";
@@ -182,6 +182,21 @@ export default function WatchBreakdownSection({
   seasons = [],
   onSeasonChange,
 }: WatchBreakdownSectionProps) {
+  // Debug logging for leaving soon (client-side)
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development" && availability) {
+      const dataSource = seasonAvailability != null && seasonNumber != null ? seasonAvailability : availability;
+      const leavingSoon = dataSource?.leavingSoon;
+      if (leavingSoon && leavingSoon.length > 0) {
+        console.log("[Watch Breakdown] Found leaving soon items:", leavingSoon);
+        console.log("[Watch Breakdown] Total offers:", dataSource?.allOffers?.length ?? 0);
+      } else {
+        console.log("[Watch Breakdown] No leaving soon items found in availability data");
+        console.log("[Watch Breakdown] Availability keys:", Object.keys(availability || {}));
+      }
+    }
+  }, [availability, seasonAvailability, seasonNumber]);
+
   if (isLoading) {
     return (
       <section className="py-12 space-y-6">
