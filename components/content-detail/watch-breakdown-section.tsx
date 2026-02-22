@@ -184,16 +184,26 @@ export default function WatchBreakdownSection({
 }: WatchBreakdownSectionProps) {
   // Debug logging for leaving soon (client-side)
   useEffect(() => {
-    if (process.env.NODE_ENV === "development" && availability) {
+    if (availability) {
       const dataSource = seasonAvailability != null && seasonNumber != null ? seasonAvailability : availability;
       const leavingSoon = dataSource?.leavingSoon;
+      console.log("[Watch Breakdown] Availability data:", {
+        hasAvailability: !!availability,
+        hasSeasonAvailability: !!seasonAvailability,
+        seasonNumber,
+        leavingSoonCount: leavingSoon?.length ?? 0,
+        leavingSoon: leavingSoon,
+        allOffersCount: dataSource?.allOffers?.length ?? 0,
+        availabilityKeys: Object.keys(availability || {}),
+      });
       if (leavingSoon && leavingSoon.length > 0) {
         console.log("[Watch Breakdown] Found leaving soon items:", leavingSoon);
         console.log("[Watch Breakdown] Total offers:", dataSource?.allOffers?.length ?? 0);
       } else {
         console.log("[Watch Breakdown] No leaving soon items found in availability data");
-        console.log("[Watch Breakdown] Availability keys:", Object.keys(availability || {}));
       }
+    } else {
+      console.log("[Watch Breakdown] No availability data provided");
     }
   }, [availability, seasonAvailability, seasonNumber]);
 

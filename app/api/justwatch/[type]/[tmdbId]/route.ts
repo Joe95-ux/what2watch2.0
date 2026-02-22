@@ -65,6 +65,10 @@ export async function GET(
       offerTypes: Object.keys(data.offersByType).filter(
         (key) => data.offersByType[key as keyof typeof data.offersByType].length > 0
       ),
+      leavingSoonCount: data.leavingSoon?.length ?? 0,
+      leavingSoon: data.leavingSoon,
+      hasRanks: !!data.ranks,
+      hasUpcoming: !!data.upcoming && data.upcoming.length > 0,
     });
 
     return NextResponse.json(data, {

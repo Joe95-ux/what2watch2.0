@@ -19,6 +19,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useTrendingMovies, useTrendingTV } from "@/hooks/use-movies";
 import Image from "next/image";
 import Link from "next/link";
+import { createContentUrl } from "@/lib/content-slug";
 import { FiltersSheet, type SearchFilters } from "@/components/filters/filters-sheet";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
 import { useWatchRegions } from "@/hooks/use-watch-regions";
@@ -247,7 +248,7 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
     if (result.type === "person") {
       router.push(`/person/${result.id}`);
     } else {
-      router.push(`/${result.type}/${result.id}`);
+      router.push(createContentUrl(result.type, result.id, result.title));
     }
   };
 
@@ -689,7 +690,7 @@ function SearchResultItem({
     ? "Movie"
     : "TV Show";
 
-  const href = isPerson ? `/person/${result.id}` : `/${result.type}/${result.id}`;
+  const href = isPerson ? `/person/${result.id}` : createContentUrl(result.type, result.id, result.title);
 
   const posterClass = variant === "desktop"
     ? isPerson

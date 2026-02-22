@@ -47,17 +47,40 @@ interface YouTubeChannelPageClientProps {
 }
 
 const VALID_TABS = new Set(["home", "videos", "shorts", "playlists", "posts", "reviews"]);
+const DEFAULT_TAB = "home";
+const STORAGE_KEY = "youtube-channel-tab";
 
 export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPageClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isInitialMount = useRef(true);
   const { data: channel, isLoading: isLoadingChannel } = useYouTubeChannel(channelId);
   const [pageToken, setPageToken] = useState<string | undefined>();
   const [playlistsPageToken, setPlaylistsPageToken] = useState<string | undefined>();
+  
+  // Initialize activeTab from localStorage (or URL on first load, or default)
   const [activeTab, setActiveTab] = useState(() => {
-    const tab = searchParams.get("tab");
-    return tab && VALID_TABS.has(tab) ? tab : "home";
+    if (typeof window === "undefined") {
+      const tabFromUrl = searchParams.get("tab");
+      return tabFromUrl && VALID_TABS.has(tabFromUrl) ? tabFromUrl : DEFAULT_TAB;
+    }
+    
+    // On first load, prioritize URL (for sharing/bookmarking), then localStorage, then default
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl && VALID_TABS.has(tabFromUrl)) {
+      // Save URL tab to localStorage
+      localStorage.setItem(STORAGE_KEY, tabFromUrl);
+      return tabFromUrl;
+    }
+    
+    const savedTab = localStorage.getItem(STORAGE_KEY);
+    if (savedTab && VALID_TABS.has(savedTab)) {
+      return savedTab;
+    }
+    
+    return DEFAULT_TAB;
   });
+  
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("channel");
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
@@ -82,31 +105,78 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
     recommendations: "Recommendations",
   };
 
-  // Update URL when tab changes
-  useEffect(() => {
-    const currentTab = searchParams.get("tab");
-    const expectedTab = activeTab === "home" ? null : activeTab;
+  // Handle tab change (only called on user clicks)
+  const handleTabChange = (newTab: string) => {
+    // Update localStorage (source of truth)
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_KEY, newTab);
+    }
     
-    // Only update if URL doesn't match current state
-    if (currentTab !== expectedTab) {
-      const params = new URLSearchParams(searchParams.toString());
-      if (activeTab === "home") {
-        params.delete("tab");
-      } else {
-        params.set("tab", activeTab);
-      }
-      const newUrl = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
+    // Update state
+    setActiveTab(newTab);
+    
+    // Update URL (for sharing/bookmarking)
+    const params = new URLSearchParams(searchParams.toString());
+    if (newTab === DEFAULT_TAB) {
+      params.delete("tab");
+    } else {
+      params.set("tab", newTab);
+    }
+    
+    const newUrl = params.toString() 
+      ? `${window.location.pathname}?${params.toString()}` 
+      : window.location.pathname;
+    
+    // Use replace() when switching between tabs (no history entry)
+    // Use push() when going to/from base URL (creates history entry)
+    const currentTabFromUrl = searchParams.get("tab") || DEFAULT_TAB;
+    const isGoingToBase = newTab === DEFAULT_TAB;
+    const isGoingFromBase = !currentTabFromUrl || currentTabFromUrl === DEFAULT_TAB;
+    const isSwitchingTabs = !isGoingToBase && !isGoingFromBase;
+    
+    if (isSwitchingTabs) {
+      router.replace(newUrl);
+    } else {
       router.push(newUrl);
     }
-  }, [activeTab, router, searchParams]);
+    
+    // Reset search when switching away from home
+    if (newTab !== "home") {
+      setShowSearch(false);
+      setSearchQuery("");
+    }
+  };
 
   // Sync with URL changes (browser back/forward)
   useEffect(() => {
-    const tab = searchParams.get("tab");
-    if (tab && VALID_TABS.has(tab)) {
-      setActiveTab(tab);
-    } else if (!tab) {
-      setActiveTab("home");
+    const tabFromUrl = searchParams.get("tab");
+    
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      // On initial mount, we already handled URL in useState initializer
+      return;
+    }
+    
+    // When URL changes (browser back/forward):
+    if (tabFromUrl && VALID_TABS.has(tabFromUrl)) {
+      // URL has a tab - use it and save to localStorage
+      if (typeof window !== "undefined") {
+        localStorage.setItem(STORAGE_KEY, tabFromUrl);
+      }
+      setActiveTab(tabFromUrl);
+    } else {
+      // URL is base - keep current tab from localStorage (don't reset to default)
+      // This allows tab to persist when navigating back from tab URL to base URL
+      if (typeof window !== "undefined") {
+        const savedTab = localStorage.getItem(STORAGE_KEY);
+        if (savedTab && VALID_TABS.has(savedTab)) {
+          // Use functional update to avoid dependency on activeTab
+          setActiveTab((currentTab) => {
+            // Only update if different to avoid unnecessary re-renders
+            return savedTab !== currentTab ? savedTab : currentTab;
+          });
+        }
+      }
     }
   }, [searchParams]);
 
@@ -304,7 +374,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
   };
 
   const handleSearchClick = () => {
-    setActiveTab("home");
+    handleTabChange("home");
     setShowSearch(true);
   };
 
@@ -669,13 +739,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
         <div className="mb-4">
           <YouTubeChannelStickyNav
             activeTab={activeTab}
-            onTabChange={(tab) => {
-              setActiveTab(tab);
-              if (tab !== "home") {
-                setShowSearch(false);
-                setSearchQuery("");
-              }
-            }}
+            onTabChange={handleTabChange}
             onSearchClick={handleSearchClick}
             isScrolled={isScrolled}
           />
