@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
+import { createContentUrl } from "@/lib/content-slug";
 import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { MovieCardSkeleton } from "@/components/skeletons/movie-card-skeleton";
@@ -1717,6 +1718,8 @@ export default function WatchlistView({
                             if (isEditMode) {
                               toggleItemSelection(watchlistItem.id);
                             } else {
+                              // Note: We don't have the title here, so we'll use the ID-only URL
+                              // The redirect route will handle adding the slug
                               router.push(`/${type}/${watchlistItem.tmdbId}`);
                             }
                           }}
@@ -1949,7 +1952,8 @@ export default function WatchlistView({
                                   if (isEditMode) {
                                     toggleItemSelection(watchlistItem.id);
                                   } else {
-                                    router.push(`/${type}/${item.id}`);
+                                    const title = "title" in item ? item.title : item.name;
+                                    router.push(createContentUrl(type, item.id, title));
                                   }
                                 }}
                                 isLgScreen={isLgScreen}

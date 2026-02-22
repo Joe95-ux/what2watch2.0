@@ -114,17 +114,17 @@ export default function RatingsBreakdown({ reviews }: RatingsBreakdownProps) {
               const hasRating = item.count > 0;
 
               return (
-                <Tooltip key={item.rating}>
-                  <TooltipTrigger asChild>
-                    <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0 cursor-pointer group">
-                      {/* Bar container - grows upward from number */}
-                      <div 
-                        className="w-full flex flex-col items-center justify-end"
-                        style={{ height: `${containerHeight}px` }}
-                      >
+                <div key={item.rating} className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                  {/* Bar container - grows upward from number */}
+                  <div 
+                    className="w-full flex flex-col items-center justify-end"
+                    style={{ height: `${containerHeight}px` }}
+                  >
+                    <Tooltip>
+                      <TooltipTrigger asChild>
                         <div
                           className={cn(
-                            "w-full rounded-t transition-all",
+                            "w-full rounded-t transition-all cursor-pointer",
                             hasRating
                               ? "bg-blue-500 hover:bg-blue-600"
                               : "bg-muted"
@@ -134,19 +134,19 @@ export default function RatingsBreakdown({ reviews }: RatingsBreakdownProps) {
                             minHeight: hasRating ? "4px" : "2px",
                           }}
                         />
-                      </div>
-                      {/* Number at bottom */}
-                      <span className="text-sm font-medium text-foreground">
-                        {item.rating}
-                      </span>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent className="bg-black/70 backdrop-blur-sm text-white text-[0.8rem] font-medium">
-                    <p>
-                      {item.count} {item.count === 1 ? "rating" : "ratings"} ({item.percentage.toFixed(1)}%)
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-black/70 backdrop-blur-sm text-white text-[0.8rem] font-medium">
+                        <p>
+                          {item.count} {item.count === 1 ? "rating" : "ratings"} ({item.percentage.toFixed(1)}%)
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  {/* Number at bottom */}
+                  <span className="text-sm font-medium text-foreground">
+                    {item.rating}
+                  </span>
+                </div>
               );
             })}
           </div>

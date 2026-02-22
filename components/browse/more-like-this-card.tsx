@@ -6,6 +6,7 @@ import { Play, Plus, Heart, Bookmark, MoreVertical, Eye, ThumbsUp } from "lucide
 import { FaCaretUp, FaCaretDown } from "react-icons/fa6";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
+import { createContentUrl } from "@/lib/content-slug";
 import { CircleActionButton } from "./circle-action-button";
 import { useToggleFavorite } from "@/hooks/use-favorites";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
@@ -205,7 +206,8 @@ export default function MoreLikeThisCard({
       if (onItemClick) {
         onItemClick(item, type);
       } else {
-        router.push(`/${type}/${item.id}`);
+        const title = "title" in item ? item.title : item.name;
+        router.push(createContentUrl(type, item.id, title));
       }
     }
   };
@@ -520,7 +522,8 @@ export default function MoreLikeThisCard({
                 e.preventDefault();
                 e.stopPropagation();
                 // Navigate to details page
-                router.push(`/${type}/${item.id}`);
+                const title = "title" in item ? item.title : item.name;
+                router.push(createContentUrl(type, item.id, title));
               }}
               className="pointer-events-auto z-[5]"
             >

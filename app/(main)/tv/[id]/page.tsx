@@ -1,43 +1,30 @@
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { getTVDetails } from "@/lib/tmdb";
-import ContentDetailPage from "@/components/content-detail/content-detail-page";
-import { TMDBSeries } from "@/lib/tmdb";
+import { createContentSlug } from "@/lib/content-slug";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function TVDetailPage({ params }: PageProps) {
+/**
+ * This route handles /tv/[id] and redirects to the SEO-friendly /tv/[id]/[slug] format
+ * This ensures backward compatibility while always using SEO-friendly URLs
+ */
+export default async function TVDetailPageRedirect({ params }: PageProps) {
   const { id } = await params;
   const tvId = parseInt(id, 10);
 
   if (isNaN(tvId)) {
-    notFound();
+    redirect("/");
   }
 
   try {
     const tv = await getTVDetails(tvId);
-    
-    // Convert to TMDBSeries format for the component
-    const item: TMDBSeries = {
-      id: tv.id,
-      name: tv.name,
-      overview: tv.overview,
-      poster_path: tv.poster_path,
-      backdrop_path: tv.backdrop_path,
-      first_air_date: tv.first_air_date,
-      vote_average: tv.vote_average,
-      vote_count: tv.vote_count,
-      genre_ids: tv.genres?.map((g) => g.id) || [],
-      popularity: tv.popularity || 0,
-      original_language: tv.original_language || "",
-      original_name: tv.original_name || tv.name,
-    };
-
-    return <ContentDetailPage item={item} type="tv" />;
+    const slug = createContentSlug(tv.name);
+    redirect(`/tv/${tvId}/${slug}`);
   } catch (error) {
-    console.error("Error fetching TV details:", error);
-    notFound();
+    console.error("Error fetching TV details for redirect:", error);
+    redirect("/");
   }
 }
 

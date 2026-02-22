@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, Fragment, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
+import { createContentUrl } from "@/lib/content-slug";
 import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { MovieCardSkeleton } from "@/components/skeletons/movie-card-skeleton";
@@ -1835,7 +1836,8 @@ export default function PlaylistView({
                                           if (isEditMode) {
                                             toggleItemSelection(playlistItem.id);
                                           } else {
-                                            router.push(`/${type}/${item.id}`);
+                                            const title = "title" in item ? item.title : item.name;
+                                            router.push(createContentUrl(type, item.id, title));
                                           }
                                         }}
                                         isLgScreen={isLgScreen}

@@ -322,12 +322,50 @@ export async function getJustWatchAvailability(
       }
     }
 
-    // Extract leaving soon offers (offers with expires_at or valid_until)
+    // Build provider map first (needed for leavingSoon extraction and offer normalization)
+    const providerMap = new Map<number, JustWatchProviderResponse>();
+    (providersData as JustWatchProviderResponse[]).forEach((p) => providerMap.set(p.id, p));
+
+    // Extract leaving soon offers
+    // Check both: 1) top-level "leaving" array, 2) individual offers with expires_at/valid_until
     const leavingSoon: JustWatchLeavingSoon[] = [];
     const now = new Date();
+    const processedProviderIds = new Set<number>(); // Avoid duplicates
+    
+    // First, check top-level "leaving" array if available
+    if (offersData?.leaving && Array.isArray(offersData.leaving)) {
+      offersData.leaving.forEach((leavingItem: any) => {
+        if (leavingItem.provider_id && leavingItem.expires_at) {
+          const expireDate = new Date(leavingItem.expires_at);
+          if (!Number.isNaN(expireDate.getTime()) && expireDate > now) {
+            const providerId = leavingItem.provider_id;
+            if (!processedProviderIds.has(providerId)) {
+              const provider = providerMap.get(providerId);
+              const daysLeft = Math.ceil((expireDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+              const label = daysLeft === 1 
+                ? "Leaving tomorrow"
+                : daysLeft <= 7
+                ? `Leaving in ${daysLeft} days`
+                : expireDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+              
+              leavingSoon.push({
+                providerId: providerId,
+                providerName: provider?.clear_name ?? `Provider ${providerId}`,
+                iconUrl: buildImageUrl(provider?.icon_url),
+                expiresAt: leavingItem.expires_at,
+                label: label,
+              });
+              processedProviderIds.add(providerId);
+            }
+          }
+        }
+      });
+    }
+    
+    // Also check individual offers for expires_at or valid_until
     offers.forEach((offer: any) => {
       const expiresAt = offer.expires_at || offer.valid_until;
-      if (expiresAt) {
+      if (expiresAt && !processedProviderIds.has(offer.provider_id)) {
         const expireDate = new Date(expiresAt);
         if (!Number.isNaN(expireDate.getTime()) && expireDate > now) {
           const provider = providerMap.get(offer.provider_id);
@@ -345,14 +383,33 @@ export async function getJustWatchAvailability(
             expiresAt: expiresAt,
             label: label,
           });
+          processedProviderIds.add(offer.provider_id);
         }
       }
     });
+    
     // Sort by expiration date (soonest first)
     leavingSoon.sort((a, b) => new Date(a.expiresAt).getTime() - new Date(b.expiresAt).getTime());
-
-    const providerMap = new Map<number, JustWatchProviderResponse>();
-    (providersData as JustWatchProviderResponse[]).forEach((p) => providerMap.set(p.id, p));
+    
+    // Debug logging in development
+    if (process.env.NODE_ENV === "development") {
+      if (leavingSoon.length > 0) {
+        console.log("[JustWatch] Found leaving soon items:", leavingSoon);
+      } else {
+        console.log("[JustWatch] No leaving soon items found. Top-level leaving array:", offersData?.leaving);
+        // Log sample offers to check for expires_at/valid_until
+        if (offers.length > 0) {
+          const sampleOffer = offers[0];
+          console.log("[JustWatch] Sample offer fields:", {
+            provider_id: sampleOffer.provider_id,
+            expires_at: sampleOffer.expires_at,
+            valid_until: sampleOffer.valid_until,
+            hasExpiresAt: !!sampleOffer.expires_at,
+            hasValidUntil: !!sampleOffer.valid_until,
+          });
+        }
+      }
+    }
 
     const grouped = emptyGroupedOffers();
     const normalized: JustWatchOffer[] = [];
@@ -500,11 +557,45 @@ export async function getJustWatchSeasonAvailability(
       });
 
     // Extract leaving soon for season offers
+    // Check both: 1) top-level "leaving" array, 2) individual offers with expires_at/valid_until
     const seasonLeavingSoon: JustWatchLeavingSoon[] = [];
     const now = new Date();
+    const processedProviderIds = new Set<number>(); // Avoid duplicates
+    
+    // First, check top-level "leaving" array if available
+    if (seasonData?.leaving && Array.isArray(seasonData.leaving)) {
+      seasonData.leaving.forEach((leavingItem: any) => {
+        if (leavingItem.provider_id && leavingItem.expires_at) {
+          const expireDate = new Date(leavingItem.expires_at);
+          if (!Number.isNaN(expireDate.getTime()) && expireDate > now) {
+            const providerId = leavingItem.provider_id;
+            if (!processedProviderIds.has(providerId)) {
+              const provider = providerMap.get(providerId);
+              const daysLeft = Math.ceil((expireDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+              const label = daysLeft === 1 
+                ? "Leaving tomorrow"
+                : daysLeft <= 7
+                ? `Leaving in ${daysLeft} days`
+                : expireDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+              
+              seasonLeavingSoon.push({
+                providerId: providerId,
+                providerName: provider?.clear_name ?? `Provider ${providerId}`,
+                iconUrl: buildImageUrl(provider?.icon_url),
+                expiresAt: leavingItem.expires_at,
+                label: label,
+              });
+              processedProviderIds.add(providerId);
+            }
+          }
+        }
+      });
+    }
+    
+    // Also check individual offers for expires_at or valid_until
     offers.forEach((offer: any) => {
       const expiresAt = offer.expires_at || offer.valid_until;
-      if (expiresAt) {
+      if (expiresAt && !processedProviderIds.has(offer.provider_id)) {
         const expireDate = new Date(expiresAt);
         if (!Number.isNaN(expireDate.getTime()) && expireDate > now) {
           const provider = providerMap.get(offer.provider_id);
@@ -522,6 +613,7 @@ export async function getJustWatchSeasonAvailability(
             expiresAt: expiresAt,
             label: label,
           });
+          processedProviderIds.add(offer.provider_id);
         }
       }
     });

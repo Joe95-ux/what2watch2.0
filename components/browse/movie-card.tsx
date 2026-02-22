@@ -6,6 +6,7 @@ import { Play, Plus, Heart, Maximize2, Bookmark, Volume2, VolumeX, BookCheck, Mo
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries, getPosterUrl, TMDBVideo, getYouTubeEmbedUrl } from "@/lib/tmdb";
+import { createContentUrl } from "@/lib/content-slug";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { CircleActionButton } from "./circle-action-button";
@@ -298,7 +299,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
             !isTrailerModalOpen
           ) {
             // Navigate to details page when clicking on the card
-            router.push(`/${type}/${item.id}`);
+            const title = "title" in item ? item.title : item.name;
+            router.push(createContentUrl(type, item.id, title));
           }
         }}
       >

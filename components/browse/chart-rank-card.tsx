@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
+import { createContentUrl } from "@/lib/content-slug";
 
 export type RankDelta = "up" | "down" | "same" | null;
 
@@ -21,7 +22,7 @@ interface ChartRankCardProps {
 export function ChartRankCard({ item, type, position, deltaNumber }: ChartRankCardProps) {
   const posterUrl = getPosterUrl(item.poster_path, "w300");
   const title = "title" in item ? item.title : item.name;
-  const href = type === "movie" ? `/movie/${item.id}` : `/tv/${item.id}`;
+  const href = createContentUrl(type, item.id, title);
   const delta = deltaNumber != null && deltaNumber !== 0 ? (deltaNumber > 0 ? "up" : "down") : null;
 
   return (
