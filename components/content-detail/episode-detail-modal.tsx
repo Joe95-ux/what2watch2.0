@@ -88,31 +88,10 @@ function EpisodeModalWhereToWatch({
   isLoading: boolean;
 }) {
   // Filter state - "all" selected by default
-  const [selectedFilters, setSelectedFilters] = useState<Set<string>>(
-    () => new Set(["all"])
-  );
+  const [selectedFilter, setSelectedFilter] = useState<string>("all");
 
-  const toggleFilter = (key: string) => {
-    setSelectedFilters(prev => {
-      const next = new Set(prev);
-      if (key === "all") {
-        // If clicking "All", clear all other filters and select "all"
-        return new Set(["all"]);
-      } else {
-        // Remove "all" if it exists
-        next.delete("all");
-        if (next.has(key)) {
-          next.delete(key);
-          // If no filters selected, select "all"
-          if (next.size === 0) {
-            return new Set(["all"]);
-          }
-        } else {
-          next.add(key);
-        }
-      }
-      return next;
-    });
+  const handleFilterClick = (key: string) => {
+    setSelectedFilter(key);
   };
 
   if (isLoading) {
@@ -146,12 +125,10 @@ function EpisodeModalWhereToWatch({
     return offers.length > 0;
   });
 
-  // Filter sections based on selected filters
-  const filteredSections = selectedFilters.has("all")
+  // Filter sections based on selected filter
+  const filteredSections = selectedFilter === "all"
     ? sectionsWithOffers
-    : sectionsWithOffers.filter(section => selectedFilters.has(section.key));
-
-  const isAllSelected = selectedFilters.has("all");
+    : sectionsWithOffers.filter(section => section.key === selectedFilter);
 
   return (
     <div className="space-y-6 pb-6">
@@ -170,26 +147,26 @@ function EpisodeModalWhereToWatch({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => toggleFilter("all")}
+            onClick={() => handleFilterClick("all")}
             className={cn(
-              "h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0 border-none px-4",
-              isAllSelected ? "bg-primary text-primary-foreground" : "text-foreground"
+              "h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0 border-none px-4 transition-colors hover:bg-muted/80",
+              selectedFilter === "all" ? "text-foreground" : "text-muted-foreground"
             )}
           >
             All
           </Button>
           {/* Individual filter buttons - only show sections with offers */}
           {sectionsWithOffers.map((section) => {
-            const isSelected = selectedFilters.has(section.key);
+            const isSelected = selectedFilter === section.key;
             return (
               <Button
                 key={section.key}
                 variant="outline"
                 size="sm"
-                onClick={() => toggleFilter(section.key)}
+                onClick={() => handleFilterClick(section.key)}
                 className={cn(
-                  "h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0 border-none px-4",
-                  isSelected ? "bg-primary text-primary-foreground" : "text-foreground"
+                  "h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0 border-none px-4 transition-colors hover:bg-muted/80",
+                  isSelected ? "text-foreground" : "text-muted-foreground"
                 )}
               >
                 {section.title}
