@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Star, Tv } from "lucide-react";
 import { FaBookmark, FaPlay } from "react-icons/fa";
+import { cn } from "@/lib/utils";
 import { TMDBSeries, TMDBVideo, getPosterUrl } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import {
@@ -86,6 +87,23 @@ function EpisodeModalWhereToWatch({
   fallbackAvailability?: JustWatchAvailabilityResponse | null;
   isLoading: boolean;
 }) {
+  // Filter state - all selected by default
+  const [selectedFilters, setSelectedFilters] = useState<Set<string>>(
+    () => new Set(MODAL_WATCH_SECTIONS.map(s => s.key))
+  );
+
+  const toggleFilter = (key: string) => {
+    setSelectedFilters(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="py-8 text-center text-sm text-muted-foreground">
@@ -110,6 +128,10 @@ function EpisodeModalWhereToWatch({
       </div>
     );
   }
+
+  // Filter sections based on selected filters
+  const filteredSections = MODAL_WATCH_SECTIONS.filter(section => selectedFilters.has(section.key));
+
   return (
     <div className="space-y-6 pb-6">
       {isFallback ? (
@@ -119,7 +141,33 @@ function EpisodeModalWhereToWatch({
       ) : (
         <h4 className="text-lg font-semibold">Season {seasonNumber}</h4>
       )}
-      {MODAL_WATCH_SECTIONS.map((section) => {
+      
+      {/* Filter Row */}
+      <div className="overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-2 pb-2">
+          {MODAL_WATCH_SECTIONS.map((section) => {
+            const isSelected = selectedFilters.has(section.key);
+            const hasOffers = (data.offersByType[section.key] || []).length > 0;
+            return (
+              <Button
+                key={section.key}
+                variant="outline"
+                size="sm"
+                onClick={() => toggleFilter(section.key)}
+                className={cn(
+                  "h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0 border-none",
+                  isSelected ? "bg-primary text-primary-foreground" : ""
+                )}
+                disabled={!hasOffers}
+              >
+                {section.title}
+              </Button>
+            );
+          })}
+        </div>
+      </div>
+
+      {filteredSections.map((section) => {
         const offers = data.offersByType[section.key] || [];
         if (!offers.length) return null;
         return (
@@ -159,7 +207,8 @@ function ModalOfferRow({ offer, ctaLabel }: { offer: JustWatchOffer; ctaLabel: s
       <div className="flex items-center justify-between gap-2">
         {displayPrice ? <span className="text-sm text-muted-foreground">{displayPrice}</span> : <span className="text-sm text-muted-foreground">Included</span>}
         <Button size="sm" variant="outline" asChild disabled={!href || href === "#"}>
-          <a href={href} target="_blank" rel="noopener noreferrer" className="text-sm">
+          <a href={href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm">
+            {ctaLabel === "Watch Now" && <FaPlay className="h-4 w-4 fill-current" />}
             {ctaLabel}
           </a>
         </Button>

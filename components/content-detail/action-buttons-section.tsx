@@ -69,33 +69,25 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
   // Check if all episodes are seen (for TV shows)
   // All regular seasons must be in the seen seasons list
   const allEpisodesSeen = (() => {
-    console.log("[Seen All Check] Starting check:", { type, hasSeasons: !!seasons, seenSeasons, isArray: Array.isArray(seenSeasons) });
-    
     if (type !== "tv" || !seasons || !Array.isArray(seenSeasons)) {
-      console.log("[Seen All Check] Early return - not TV or invalid data");
       return false;
     }
     
     const regularSeasons = seasons.filter(s => s.season_number > 0);
-    console.log("[Seen All Check] Regular seasons:", regularSeasons.map(s => s.season_number));
     
     if (regularSeasons.length === 0) {
-      console.log("[Seen All Check] No regular seasons");
       return false;
     }
     
     // If no seasons are seen, definitely not all seen
     if (seenSeasons.length === 0) {
-      console.log("[Seen All Check] No seen seasons - returning false");
       return false;
     }
     
     const regularSeasonNumbers = regularSeasons.map(s => s.season_number);
-    console.log("[Seen All Check] Regular season numbers:", regularSeasonNumbers, "Seen seasons:", seenSeasons);
     
     // Every regular season must be in the seen seasons list (no length check needed)
     const allSeen = regularSeasonNumbers.every(num => seenSeasons.includes(num));
-    console.log("[Seen All Check] All seasons seen?", allSeen);
     return allSeen;
   })();
   

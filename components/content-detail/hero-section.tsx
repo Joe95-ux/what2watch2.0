@@ -164,43 +164,22 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
 
     // If not, try to fetch from YouTube API
     const fetchTrailerDuration = async () => {
-      console.log('[Hero Section] Fetching trailer duration for videoId:', trailer.key);
       try {
         const url = `/api/youtube/duration?videoId=${trailer.key}`;
-        console.log('[Hero Section] Request URL:', url);
-        
         const response = await fetch(url);
-        console.log('[Hero Section] Response status:', response.status, response.statusText);
         
         if (response.ok) {
           const data = await response.json();
-          console.log('[Hero Section] Response data:', data);
           
           if (data.duration && data.duration > 0) {
-            console.log('[Hero Section] Successfully got trailer duration:', data.duration, 'seconds');
             setTrailerDuration(data.duration);
           } else {
-            console.warn('[Hero Section] No duration in response or duration is 0');
-            if (data.debug) {
-              console.warn('[Hero Section] Debug info:', data.debug);
-            }
             setTrailerDuration(null);
           }
         } else {
-          const errorData = await response.json().catch(() => ({}));
-          console.error('[Hero Section] API request failed:', {
-            status: response.status,
-            statusText: response.statusText,
-            error: errorData
-          });
           setTrailerDuration(null);
         }
       } catch (error) {
-        console.error('[Hero Section] Error fetching trailer duration:', error);
-        if (error instanceof Error) {
-          console.error('[Hero Section] Error message:', error.message);
-          console.error('[Hero Section] Error stack:', error.stack);
-        }
         setTrailerDuration(null);
       }
     };

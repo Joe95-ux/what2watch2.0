@@ -182,30 +182,26 @@ export default function WatchBreakdownSection({
   seasons = [],
   onSeasonChange,
 }: WatchBreakdownSectionProps) {
-  // Debug logging for leaving soon (client-side)
-  useEffect(() => {
-    if (availability) {
-      const dataSource = seasonAvailability != null && seasonNumber != null ? seasonAvailability : availability;
-      const leavingSoon = dataSource?.leavingSoon;
-      console.log("[Watch Breakdown] Availability data:", {
-        hasAvailability: !!availability,
-        hasSeasonAvailability: !!seasonAvailability,
-        seasonNumber,
-        leavingSoonCount: leavingSoon?.length ?? 0,
-        leavingSoon: leavingSoon,
-        allOffersCount: dataSource?.allOffers?.length ?? 0,
-        availabilityKeys: Object.keys(availability || {}),
-      });
-      if (leavingSoon && leavingSoon.length > 0) {
-        console.log("[Watch Breakdown] Found leaving soon items:", leavingSoon);
-        console.log("[Watch Breakdown] Total offers:", dataSource?.allOffers?.length ?? 0);
+  // Note: Leaving soon data is not currently available in the JustWatch Content Partner API
+  // The API response doesn't include expires_at/valid_until fields or a top-level "leaving" array
+  // This feature is kept in the code structure for future API support, but will gracefully handle missing data
+
+  // Filter state - all selected by default
+  const [selectedFilters, setSelectedFilters] = useState<Set<string>>(
+    () => new Set(sections.map(s => s.key))
+  );
+
+  const toggleFilter = (key: string) => {
+    setSelectedFilters(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
       } else {
-        console.log("[Watch Breakdown] No leaving soon items found in availability data");
+        next.add(key);
       }
-    } else {
-      console.log("[Watch Breakdown] No availability data provided");
-    }
-  }, [availability, seasonAvailability, seasonNumber]);
+      return next;
+    });
+  };
 
   if (isLoading) {
     return (
@@ -359,6 +355,9 @@ export default function WatchBreakdownSection({
         const isUsingSeriesFallback =
           showSeasonDropdown && seasonNumber != null && seasonAvailability == null && !isLoadingSeason;
 
+        // Filter sections based on selected filters
+        const filteredSections = sections.filter(section => selectedFilters.has(section.key));
+
         return (
           <>
             {isUsingSeriesFallback && (
@@ -366,7 +365,33 @@ export default function WatchBreakdownSection({
                 Season {seasonNumber} availability not available; showing series availability.
               </p>
             )}
-            {sections.map((section, idx) => {
+            
+            {/* Filter Row */}
+            <div className="overflow-x-auto scrollbar-hide">
+              <div className="flex items-center gap-2 pb-2">
+                {sections.map((section) => {
+                  const isSelected = selectedFilters.has(section.key);
+                  const hasOffers = (dataSource?.offersByType[section.key] || []).length > 0;
+                  return (
+                    <Button
+                      key={section.key}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleFilter(section.key)}
+                      className={cn(
+                        "h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0 border-none",
+                        isSelected ? "bg-primary text-primary-foreground" : ""
+                      )}
+                      disabled={!hasOffers}
+                    >
+                      {section.title}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {filteredSections.map((section, idx) => {
               const offers = dataSource?.offersByType[section.key] || [];
               if (!offers.length) return null;
               const isFirst = idx === 0;

@@ -391,25 +391,9 @@ export async function getJustWatchAvailability(
     // Sort by expiration date (soonest first)
     leavingSoon.sort((a, b) => new Date(a.expiresAt).getTime() - new Date(b.expiresAt).getTime());
     
-    // Debug logging in development
-    if (process.env.NODE_ENV === "development") {
-      if (leavingSoon.length > 0) {
-        console.log("[JustWatch] Found leaving soon items:", leavingSoon);
-      } else {
-        console.log("[JustWatch] No leaving soon items found. Top-level leaving array:", offersData?.leaving);
-        // Log sample offers to check for expires_at/valid_until
-        if (offers.length > 0) {
-          const sampleOffer = offers[0];
-          console.log("[JustWatch] Sample offer fields:", {
-            provider_id: sampleOffer.provider_id,
-            expires_at: sampleOffer.expires_at,
-            valid_until: sampleOffer.valid_until,
-            hasExpiresAt: !!sampleOffer.expires_at,
-            hasValidUntil: !!sampleOffer.valid_until,
-          });
-        }
-      }
-    }
+    // Note: The JustWatch Content Partner API doesn't currently provide leaving soon data
+    // (no expires_at/valid_until in offers, no top-level "leaving" array)
+    // This code is kept for future API support but will gracefully return empty array
 
     const grouped = emptyGroupedOffers();
     const normalized: JustWatchOffer[] = [];

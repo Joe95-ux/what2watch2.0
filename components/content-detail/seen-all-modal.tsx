@@ -77,10 +77,7 @@ export default function SeenAllModal({
   };
 
   const handleConfirm = async () => {
-    console.log("[Seen All Modal] handleConfirm called");
-    
     if (!isSignedIn) {
-      console.log("[Seen All Modal] User not signed in");
       return;
     }
     
@@ -89,17 +86,9 @@ export default function SeenAllModal({
       const seasonsToMark: number[] = [];
       const seasonsToUnmark: number[] = [];
 
-      console.log("[Seen All Modal] Processing seasons:", {
-        selectedSeasons: Array.from(selectedSeasons),
-        seenSeasons,
-        regularSeasons: regularSeasons.map(s => s.season_number)
-      });
-
       for (const season of regularSeasons) {
         const isSelected = selectedSeasons.has(season.season_number);
         const wasSeen = Array.isArray(seenSeasons) && seenSeasons.includes(season.season_number);
-
-        console.log("[Seen All Modal] Season", season.season_number, "isSelected:", isSelected, "wasSeen:", wasSeen);
 
         if (isSelected && !wasSeen) {
           seasonsToMark.push(season.season_number);
@@ -108,40 +97,31 @@ export default function SeenAllModal({
         }
       }
 
-      console.log("[Seen All Modal] Seasons to mark:", seasonsToMark, "Seasons to unmark:", seasonsToUnmark);
-
       // Mark new seasons
       if (seasonsToMark.length > 0) {
-        console.log("[Seen All Modal] Marking seasons:", seasonsToMark);
         await markSeasonsSeen.mutateAsync({
           tvShowTmdbId: tvShowId,
           tvShowTitle: tvShowName,
           seasonNumbers: seasonsToMark,
         });
-        console.log("[Seen All Modal] Marked seasons successfully");
       }
 
       // Unmark removed seasons
       if (seasonsToUnmark.length > 0) {
-        console.log("[Seen All Modal] Unmarking seasons:", seasonsToUnmark);
         await unmarkSeasonsSeen.mutateAsync({
           tvShowTmdbId: tvShowId,
           seasonNumbers: seasonsToUnmark,
         });
-        console.log("[Seen All Modal] Unmarked seasons successfully");
       }
 
       // Only call onSeasonsSelected and close if there were changes
       if (seasonsToMark.length > 0 || seasonsToUnmark.length > 0) {
-        console.log("[Seen All Modal] Changes made, closing modal");
         onSeasonsSelected(Array.from(selectedSeasons));
         onClose();
       } else {
-        console.log("[Seen All Modal] No changes, just closing");
         onClose();
       }
     } catch (error) {
-      console.error("[Seen All Modal] Error in handleConfirm:", error);
       // Error is handled by the hooks
     }
   };
