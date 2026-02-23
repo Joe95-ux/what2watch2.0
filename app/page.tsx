@@ -147,7 +147,7 @@ export default function LandingPage() {
       <Navbar />
 
       {/* Hero Section with Modern Image Card */}
-      <section className="relative overflow-visible border-b pb-0 pt-20 sm:pt-28 lg:pt-32">
+      <section className="relative overflow-visible border-b pb-24 pt-20 sm:pt-28 lg:pt-32">
         <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-4xl text-center mb-12">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border bg-muted/50 px-4 py-1.5 text-sm font-medium text-muted-foreground">
@@ -189,7 +189,7 @@ export default function LandingPage() {
           </div>
           
           {/* Image Card - Sinks into bottom */}
-          <div className="relative mx-auto max-w-5xl -mb-16">
+          <div className="relative mx-auto max-w-5xl -mb-8">
             <div className="relative rounded-2xl overflow-hidden shadow-2xl">
               {/* Image with overlay */}
               <div className="relative aspect-[16/9] w-full">
@@ -207,14 +207,14 @@ export default function LandingPage() {
               </div>
             </div>
             {/* Bottom sink effect - extends below section */}
-            <div className="absolute -bottom-12 left-0 right-0 h-24 bg-background rounded-t-3xl" />
+            <div className="absolute -bottom-6 left-0 right-0 h-12 bg-background rounded-t-3xl" />
           </div>
         </div>
       </section>
 
 
       {/* Stats Section */}
-      <section className="border-b bg-muted/30 py-12">
+      <section className="border-b bg-muted/30 pt-20 pb-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
             {stats.map((stat, index) => (

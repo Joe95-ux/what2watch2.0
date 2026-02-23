@@ -439,9 +439,10 @@ export default function WatchBreakdownSection({
                       const leavingSoonInfo = leavingSoon?.find(
                         (item) => item.providerId === offer.providerId
                       );
+                      const isLast = index === offers.length - 1;
                       
                       return (
-                        <div key={`${offer.providerId}-${offer.monetizationType}`}>
+                        <div key={`${offer.providerId}-${offer.monetizationType}`} className={cn(isLast && "rounded-b-2xl overflow-hidden")}>
                           {isLeavingSoon && leavingSoonInfo && (
                             <div className="px-4 pt-4 pb-2">
                               <div className="flex items-center gap-2 text-sm bg-red-500/10 text-red-600 dark:text-red-400 px-3 py-2 rounded-md">
@@ -454,6 +455,7 @@ export default function WatchBreakdownSection({
                             offer={offer}
                             ctaLabel={section.ctaLabel}
                             index={index}
+                            isLast={isLast}
                           />
                         </div>
                       );
@@ -525,7 +527,7 @@ function UpcomingReleaseRow({ release }: { release: JustWatchUpcomingRelease }) 
   );
 }
 
-function OfferRow({ offer, ctaLabel, index }: { offer: JustWatchOffer; ctaLabel: string; index: number }) {
+function OfferRow({ offer, ctaLabel, index, isLast }: { offer: JustWatchOffer; ctaLabel: string; index: number; isLast: boolean }) {
   const isMobile = useIsMobile();
   const displayPrice =
     offer.retailPrice && offer.currency
@@ -543,7 +545,8 @@ function OfferRow({ offer, ctaLabel, index }: { offer: JustWatchOffer; ctaLabel:
   return (
     <div className={cn(
       "flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6",
-      isEven ? "" : "bg-[#f5f5f5] dark:bg-muted/50"
+      isEven ? "" : "bg-[#f5f5f5] dark:bg-muted/50",
+      isLast && "rounded-b-2xl"
     )}>
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {offer.iconUrl ? (

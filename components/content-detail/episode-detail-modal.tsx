@@ -188,9 +188,18 @@ function EpisodeModalWhereToWatch({
             <h5 className="text-xl font-semibold">{section.title}</h5>
             <p className="text-sm text-muted-foreground">{section.description}</p>
             <div className="divide-y divide-border rounded-2xl border border-border bg-card/30">
-              {offers.map((offer, index) => (
-                <ModalOfferRow key={`${offer.providerId}-${offer.monetizationType}`} offer={offer} ctaLabel={section.ctaLabel} index={index} />
-              ))}
+              {offers.map((offer, index) => {
+                const isLast = index === offers.length - 1;
+                return (
+                  <ModalOfferRow 
+                    key={`${offer.providerId}-${offer.monetizationType}`} 
+                    offer={offer} 
+                    ctaLabel={section.ctaLabel} 
+                    index={index}
+                    isLast={isLast}
+                  />
+                );
+              })}
             </div>
           </div>
         );
@@ -199,7 +208,7 @@ function EpisodeModalWhereToWatch({
   );
 }
 
-function ModalOfferRow({ offer, ctaLabel, index }: { offer: JustWatchOffer; ctaLabel: string; index: number }) {
+function ModalOfferRow({ offer, ctaLabel, index, isLast }: { offer: JustWatchOffer; ctaLabel: string; index: number; isLast: boolean }) {
   const displayPrice =
     offer.retailPrice && offer.currency
       ? new Intl.NumberFormat(undefined, { style: "currency", currency: offer.currency, maximumFractionDigits: 2 }).format(offer.retailPrice)
@@ -209,7 +218,8 @@ function ModalOfferRow({ offer, ctaLabel, index }: { offer: JustWatchOffer; ctaL
   return (
     <div className={cn(
       "flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
-      isEven ? "" : "bg-[#f5f5f5] dark:bg-muted/50"
+      isEven ? "" : "bg-[#f5f5f5] dark:bg-muted/50",
+      isLast && "rounded-b-2xl"
     )}>
       <div className="flex items-center gap-2 min-w-0">
         {offer.iconUrl ? (
