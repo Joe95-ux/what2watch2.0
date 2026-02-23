@@ -137,7 +137,12 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
 
   const handleVote = async (type: "upvote" | "downvote") => {
     if (!isSignedIn) {
-      toast.error("Sign in to vote on posts");
+      toast.info("Sign in to vote on posts.");
+      if (openSignIn) {
+        openSignIn({
+          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        });
+      }
       return;
     }
     if (!toggleReaction.mutate) return;
@@ -504,12 +509,12 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
               e.stopPropagation();
               handleVote("upvote");
             }}
-            disabled={toggleReaction.isPending}
+            disabled={toggleReaction.isPending || !isSignedIn}
             className={cn(
               "flex items-center justify-center px-2 py-2 transition-colors cursor-pointer",
               "hover:bg-[#6B7280]/30 dark:hover:bg-muted",
               isUpvoted && "text-orange-500 hover:bg-orange-500/20",
-              toggleReaction.isPending && "opacity-50 cursor-not-allowed"
+              (toggleReaction.isPending || !isSignedIn) && "opacity-50 cursor-not-allowed"
             )}
           >
             <BiSolidUpvote className={cn(
@@ -531,12 +536,12 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
               e.stopPropagation();
               handleVote("downvote");
             }}
-            disabled={toggleReaction.isPending}
+            disabled={toggleReaction.isPending || !isSignedIn}
             className={cn(
               "flex items-center justify-center px-2 py-2 transition-colors cursor-pointer",
               "hover:bg-[#6B7280]/30 dark:hover:bg-muted",
               isDownvoted && "text-blue-500 hover:bg-blue-500/20",
-              toggleReaction.isPending && "opacity-50 cursor-not-allowed"
+              (toggleReaction.isPending || !isSignedIn) && "opacity-50 cursor-not-allowed"
             )}
           >
             <BiSolidDownvote className={cn(

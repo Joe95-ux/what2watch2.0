@@ -357,6 +357,16 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                if (!isSignedIn) {
+                  toast.info(`Sign in to create ${activeTab === "playlist" ? "playlists" : "lists"}.`);
+                  if (openSignIn) {
+                    openSignIn({
+                      afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                    });
+                  }
+                  setIsDropdownOpen(false);
+                  return;
+                }
                 setIsDropdownOpen(false);
                 if (activeTab === "playlist") {
                   setIsCreatePlaylistModalOpen(true);
@@ -364,6 +374,8 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
                   setIsCreateListModalOpen(true);
                 }
               }}
+              disabled={!isSignedIn}
+              className={cn("cursor-pointer", !isSignedIn && "opacity-50 cursor-not-allowed")}
             >
               <Plus className="h-4 w-4 mr-2" />
               {activeTab === "playlist" 

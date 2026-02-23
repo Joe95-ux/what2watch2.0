@@ -47,11 +47,11 @@ import { getChannelProfilePath } from "@/lib/channel-path";
 import StreamingServiceRow from "./streaming-service-row";
 
 interface BrowseContentProps {
-  favoriteGenres: number[];
-  preferredTypes: ("movie" | "tv")[];
+  favoriteGenres?: number[];
+  preferredTypes?: ("movie" | "tv")[];
 }
 
-export default function BrowseContent({ favoriteGenres, preferredTypes }: BrowseContentProps) {
+export default function BrowseContent({ favoriteGenres = [], preferredTypes = ["movie", "tv"] }: BrowseContentProps = {}) {
   const { user } = useUser();
   const displayName = user?.username || user?.fullName || user?.firstName || "You";
   

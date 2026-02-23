@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +25,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function ListsContent() {
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const router = useRouter();
   const { data: lists = [], isLoading } = useLists();
   const deleteList = useDeleteList();
@@ -77,10 +81,22 @@ export default function ListsContent() {
                 <Table2 className="h-4 w-4" />
               </Button>
             </div>
-            <Button onClick={() => {
-              setEditingList(undefined);
-              setIsCreateModalOpen(true);
-            }}>
+            <Button 
+              onClick={() => {
+                if (!isSignedIn) {
+                  toast.info("Sign in to create lists.");
+                  if (openSignIn) {
+                    openSignIn({
+                      afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                    });
+                  }
+                  return;
+                }
+                setEditingList(undefined);
+                setIsCreateModalOpen(true);
+              }}
+              disabled={!isSignedIn}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Create List
             </Button>

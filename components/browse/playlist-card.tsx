@@ -10,6 +10,8 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { Heart, Youtube, List as ListIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useUser } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
 
 interface PlaylistCardProps {
   playlist: Playlist;
@@ -20,6 +22,8 @@ interface PlaylistCardProps {
 
 export default function PlaylistCard({ playlist, className, showLikeButton = true, variant = "carousel" }: PlaylistCardProps) {
   const router = useRouter();
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const { data: currentUser } = useCurrentUser();
   const { data: likeStatus } = useIsLiked(playlist.id);
   const likeMutation = useLikePlaylist();
@@ -199,6 +203,15 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
               className="h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm border-0 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
+                if (!isSignedIn) {
+                  toast.info("Sign in to like playlists.");
+                  if (openSignIn) {
+                    openSignIn({
+                      afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                    });
+                  }
+                  return;
+                }
                 if (isLiked) {
                   unlikeMutation.mutate(playlist.id, {
                     onSuccess: () => toast.success("Removed from your library"),
@@ -211,6 +224,7 @@ export default function PlaylistCard({ playlist, className, showLikeButton = tru
                   });
                 }
               }}
+              disabled={!isSignedIn}
             >
               <Heart
                 className={cn(

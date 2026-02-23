@@ -14,6 +14,8 @@ import PlaylistCard from "@/components/browse/playlist-card";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +34,8 @@ const ITEMS_PER_PAGE = 24;
 type TabType = "lists" | "playlists";
 
 export default function MyListsListsTab() {
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: lists = [], isLoading: isLoadingLists } = useLists();
@@ -173,14 +177,27 @@ export default function MyListsListsTab() {
               <Table2 className="h-4 w-4" />
             </Button>
           </div>
-          <Button onClick={() => {
-            if (activeTab === "lists") {
-              setEditingList(undefined);
-              setIsCreateListModalOpen(true);
-            } else {
-              setIsCreatePlaylistModalOpen(true);
-            }
-          }} className="cursor-pointer">
+          <Button 
+            onClick={() => {
+              if (!isSignedIn) {
+                toast.info(`Sign in to create ${activeTab === "lists" ? "lists" : "playlists"}.`);
+                if (openSignIn) {
+                  openSignIn({
+                    afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                  });
+                }
+                return;
+              }
+              if (activeTab === "lists") {
+                setEditingList(undefined);
+                setIsCreateListModalOpen(true);
+              } else {
+                setIsCreatePlaylistModalOpen(true);
+              }
+            }} 
+            className="cursor-pointer"
+            disabled={!isSignedIn}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Create {activeTab === "lists" ? "List" : "Playlist"}
           </Button>

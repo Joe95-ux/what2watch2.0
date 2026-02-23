@@ -10,6 +10,8 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { useIsListLiked, useLikeList, useUnlikeList } from "@/hooks/use-list-likes";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useUser } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
 
 interface ListCardProps {
   list: List;
@@ -19,6 +21,8 @@ interface ListCardProps {
 
 export default function ListCard({ list, className, variant = "carousel" }: ListCardProps) {
   const router = useRouter();
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const { data: currentUser } = useCurrentUser();
   const { data: likeStatus } = useIsListLiked(list.id);
   const likeMutation = useLikeList();
@@ -143,6 +147,15 @@ export default function ListCard({ list, className, variant = "carousel" }: List
               className="h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm border-0 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
+                if (!isSignedIn) {
+                  toast.info("Sign in to like lists.");
+                  if (openSignIn) {
+                    openSignIn({
+                      afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                    });
+                  }
+                  return;
+                }
                 if (isLiked) {
                   unlikeMutation.mutate(list.id, {
                     onSuccess: () => toast.success("Removed from your library"),
@@ -155,6 +168,7 @@ export default function ListCard({ list, className, variant = "carousel" }: List
                   });
                 }
               }}
+              disabled={!isSignedIn}
             >
               <Heart
                 className={cn(

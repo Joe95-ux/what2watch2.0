@@ -739,7 +739,7 @@ export function ForumPostDetailClient() {
               <CreateReplyForm postId={postId} />
             </div>
           ) : (
-            <div className="mb-4">
+            <div className="mt-8 mb-8">
               <Input
                 readOnly
                 placeholder="Join the conversation"
@@ -751,7 +751,8 @@ export function ForumPostDetailClient() {
                     });
                   }
                 }}
-                className="h-12 rounded-lg border-dashed border-2 cursor-pointer"
+                className="h-12 rounded-lg border-dashed border-2 cursor-pointer caret-transparent"
+                onFocus={(e) => e.target.blur()}
               />
             </div>
           )}

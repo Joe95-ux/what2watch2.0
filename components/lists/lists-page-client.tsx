@@ -2,15 +2,14 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { List, Globe } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import MyListsTab from "./my-lists-tab";
 import PublicListsTab from "./public-lists-tab";
 
 const mainTabs = [
-  { id: "my-lists", label: "My Lists", icon: List },
-  { id: "public-lists", label: "Public Lists", icon: Globe },
+  { id: "my-lists", label: "My Lists" },
+  { id: "public-lists", label: "Public Lists" },
 ];
 
 const VALID_TABS = new Set(mainTabs.map((tab) => tab.id));
@@ -116,37 +115,20 @@ export function ListsPageClient() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Sticky Nav */}
-      <div className="sticky top-[65px] z-40 bg-background/95 backdrop-blur-md border-b border-border shadow-sm">
+      <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-[64px] z-30">
         <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-8 overflow-x-auto scrollbar-hide">
-            {mainTabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={cn(
-                    "relative py-4 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2",
-                    activeTab === tab.id
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {tab.label}
-                  {activeTab === tab.id && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                  )}
-                </button>
-              );
-            })}
+          <div className="flex items-center justify-between py-4">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+              <TabsList>
+                <TabsTrigger value="my-lists" className="cursor-pointer">My Lists</TabsTrigger>
+                <TabsTrigger value="public-lists" className="cursor-pointer">Public Lists</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsContent value="my-lists" className="mt-0">
             <MyListsTab />
