@@ -131,12 +131,12 @@ export default function MyListsListsTab() {
 
         {/* View Toggle and CTA - Desktop: right side, Mobile: above tabs */}
         <div className="flex items-center gap-2 order-1 sm:order-2">
-          <div className="flex items-center gap-1 border rounded-lg p-1">
+          <div className="flex items-center gap-1 border rounded-[20px] px-[5px] py-[3px]">
             <Button
               variant={viewMode === "grid" ? "default" : "ghost"}
               size="sm"
               onClick={() => setViewMode("grid")}
-              className="h-8 cursor-pointer"
+              className="h-8 cursor-pointer rounded-[20px]"
             >
               <Grid3x3 className="h-4 w-4" />
             </Button>
@@ -144,7 +144,7 @@ export default function MyListsListsTab() {
               variant={viewMode === "table" ? "default" : "ghost"}
               size="sm"
               onClick={() => setViewMode("table")}
-              className="h-8 cursor-pointer"
+              className="h-8 cursor-pointer rounded-[20px]"
             >
               <Table2 className="h-4 w-4" />
             </Button>
@@ -167,7 +167,7 @@ export default function MyListsListsTab() {
                 setIsCreatePlaylistModalOpen(true);
               }
             }} 
-            className="cursor-pointer"
+            className="cursor-pointer rounded-[20px]"
             disabled={!isSignedIn}
           >
             <Plus className="h-4 w-4 mr-2" />
