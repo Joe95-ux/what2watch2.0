@@ -714,6 +714,7 @@ function TVSeasonsContent({
   const toggleEpisodeSeen = useToggleEpisodeSeen();
   const markSeasonsSeen = useMarkSeasonsSeen();
   const unmarkSeasonsSeen = useUnmarkSeasonsSeen();
+  const [showAllEpisodes, setShowAllEpisodes] = useState(false);
 
   const promptSignIn = (message?: string) => {
     toast.info(message ?? "Please sign in to perform this action.");
@@ -733,6 +734,11 @@ function TVSeasonsContent({
       onSeasonSelect(regularSeasons[0].season_number);
     }
   }, [regularSeasons, selectedSeason, onSeasonSelect]);
+
+  // Reset showAllEpisodes when season changes
+  useEffect(() => {
+    setShowAllEpisodes(false);
+  }, [selectedSeason]);
 
   const isEpisodeSeen = (episodeId: number) => {
     return seenEpisodes.includes(episodeId);
@@ -896,15 +902,23 @@ function TVSeasonsContent({
                 </Label>
               </div>
               
-              {seasonDetails.episodes.map((episode) => (
-                <div
-                  key={episode.id}
-                  className={cn(
-                    "relative flex rounded-lg border border-border transition-all group cursor-pointer hover:border-primary/50 overflow-hidden",
-                    isMobile && "flex-col"
-                  )}
-                  onClick={(e) => handleEpisodeClick(e, episode)}
-                >
+              {/* Display first 10 episodes or all based on toggle */}
+              {(() => {
+                const allEpisodes = seasonDetails.episodes;
+                const displayedEpisodes = showAllEpisodes ? allEpisodes : allEpisodes.slice(0, 10);
+                const hasMoreEpisodes = allEpisodes.length > 10;
+                
+                return (
+                  <>
+                    {displayedEpisodes.map((episode) => (
+                      <div
+                        key={episode.id}
+                        className={cn(
+                          "relative flex rounded-lg border border-border transition-all group cursor-pointer hover:border-primary/50 overflow-hidden",
+                          isMobile && "flex-col"
+                        )}
+                        onClick={(e) => handleEpisodeClick(e, episode)}
+                      >
                   {episode.still_path ? (
                     <div className={cn(
                       "relative w-28 sm:w-34 rounded-l-lg overflow-hidden flex-shrink-0 bg-muted",
@@ -986,9 +1000,30 @@ function TVSeasonsContent({
                       )}
                     </div>
                   </div>
-                
+                    ))}
 
-              ))}
+                    {/* Show More/Less Toggle */}
+                    {hasMoreEpisodes && (
+                      <button
+                        onClick={() => setShowAllEpisodes(!showAllEpisodes)}
+                        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer w-full justify-center py-2"
+                      >
+                        {showAllEpisodes ? (
+                          <>
+                            Show Less
+                            <ChevronUp className="h-4 w-4" />
+                          </>
+                        ) : (
+                          <>
+                            Show More ({allEpisodes.length - 10} more)
+                            <ChevronDown className="h-4 w-4" />
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           ) : (
             <div className="border border-border rounded-lg p-8 text-center text-muted-foreground">

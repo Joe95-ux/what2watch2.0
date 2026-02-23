@@ -80,7 +80,7 @@ function SeasonSelect({
       <SelectTrigger className="w-[230px] cursor-pointer">
         <SelectValue placeholder="Season" />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="[&>div]:max-h-[300px]">
         {regularSeasons.map((s) => (
           <SelectItem key={s.season_number} value={String(s.season_number)} className="cursor-pointer">
             {s.season_number === 0 ? "Specials" : s.name || `Season ${s.season_number}`}
