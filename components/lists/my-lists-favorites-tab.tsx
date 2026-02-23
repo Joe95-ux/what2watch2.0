@@ -6,9 +6,10 @@ import { useFavorites } from "@/hooks/use-favorites";
 import MoreLikeThisCard from "@/components/browse/more-like-this-card";
 import { MoreLikeThisCardSkeleton } from "@/components/skeletons/more-like-this-card-skeleton";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
-import { Heart, Film, Tv } from "lucide-react";
+import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SimplePagination as Pagination } from "@/components/ui/pagination";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const ITEMS_PER_PAGE = 24;
 
@@ -100,39 +101,17 @@ export default function MyListsFavoritesTab() {
 
   return (
     <div className="space-y-6">
-      {/* Filter Tabs */}
-      <div className="border-b border-border max-w-fit">
-        <div className="flex items-center gap-6 overflow-x-auto scrollbar-hide">
-          {[
-            { id: "all" as FilterType, label: "All", icon: null },
-            { id: "movie" as FilterType, label: "Movies", icon: Film },
-            { id: "tv" as FilterType, label: "TV", icon: Tv },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setFilterType(tab.id);
-                  setCurrentPage(1);
-                }}
-                className={cn(
-                  "relative py-3 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2",
-                  filterType === tab.id
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {Icon && <Icon className="h-4 w-4" />}
-                {tab.label}
-                {filterType === tab.id && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* Filter Tabs - Popular page style */}
+      <Tabs value={filterType} onValueChange={(v) => {
+        setFilterType(v as FilterType);
+        setCurrentPage(1);
+      }} className="w-full">
+        <TabsList>
+          <TabsTrigger value="all" className="cursor-pointer">All</TabsTrigger>
+          <TabsTrigger value="movie" className="cursor-pointer">Movies</TabsTrigger>
+          <TabsTrigger value="tv" className="cursor-pointer">TV Shows</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {/* Content */}
       {isLoading ? (

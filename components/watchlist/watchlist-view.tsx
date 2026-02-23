@@ -658,8 +658,15 @@ export default function WatchlistView({
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="relative -mt-[65px] h-[30vh] min-h-[200px] max-h-[300px] sm:h-[40vh] sm:min-h-[250px] md:h-[50vh] md:min-h-[300px] overflow-hidden">
-          <div className="w-full h-full bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30" />
+        <div className={cn(
+          "relative h-[30vh] min-h-[200px] max-h-[300px] sm:h-[40vh] sm:min-h-[250px] md:h-[50vh] md:min-h-[300px] overflow-hidden",
+          !isInListsPage && "-mt-[65px]",
+          isInListsPage && "rounded-lg mb-6"
+        )}>
+          <div className={cn(
+            "w-full h-full bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30",
+            isInListsPage && "rounded-lg"
+          )} />
         </div>
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Skeleton className="h-10 w-48 mb-8" />

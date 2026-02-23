@@ -91,45 +91,47 @@ export default function PublicListsTab() {
 
   return (
     <div className="space-y-6">
-      {/* View Toggle and Create Button - Only for authenticated users */}
-      {isSignedIn && (
-        <div className="flex items-center justify-end gap-2">
-          <div className="flex items-center gap-1 border rounded-lg p-1">
-            <Button
-              variant={viewMode === "grid" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("grid")}
-              className="h-8 cursor-pointer"
-            >
-              <Grid3x3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "table" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("table")}
-              className="h-8 cursor-pointer"
-            >
-              <Table2 className="h-4 w-4" />
-            </Button>
-          </div>
-          <Button onClick={() => setIsCreateModalOpen(true)} className="cursor-pointer">
-            <Plus className="h-4 w-4 mr-2" />
-            Create List
-          </Button>
-        </div>
-      )}
-
-      {/* Tabs - Popular page style */}
+      {/* Tabs, View Toggle and Create Button */}
       <Tabs value={activeTab} onValueChange={(v) => {
         setActiveTab(v as TabType);
         setCurrentPage(1);
       }} className="w-full">
-        <TabsList>
-          <TabsTrigger value="lists" className="cursor-pointer">Lists</TabsTrigger>
-          <TabsTrigger value="playlists" className="cursor-pointer">Playlists</TabsTrigger>
-        </TabsList>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-6">
+          <TabsList>
+            <TabsTrigger value="lists" className="cursor-pointer">Lists</TabsTrigger>
+            <TabsTrigger value="playlists" className="cursor-pointer">Playlists</TabsTrigger>
+          </TabsList>
+          
+          {/* View Toggle and Create Button - Only for authenticated users */}
+          {isSignedIn && (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 border rounded-lg p-1">
+                <Button
+                  variant={viewMode === "grid" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("grid")}
+                  className="h-8 cursor-pointer"
+                >
+                  <Grid3x3 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "table" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("table")}
+                  className="h-8 cursor-pointer"
+                >
+                  <Table2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <Button onClick={() => setIsCreateModalOpen(true)} className="cursor-pointer">
+                <Plus className="h-4 w-4 mr-2" />
+                Create List
+              </Button>
+            </div>
+          )}
+        </div>
         
-        <TabsContent value="lists" className="mt-6">
+        <TabsContent value="lists" className="mt-0">
           {isLoadingLists ? (
             <div className={viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-4"}>
               {Array.from({ length: 12 }).map((_, i) => (
@@ -229,7 +231,7 @@ export default function PublicListsTab() {
           )}
         </TabsContent>
         
-        <TabsContent value="playlists" className="mt-6">
+        <TabsContent value="playlists" className="mt-0">
           {isLoadingPlaylists ? (
             <div className={viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-4"}>
               {Array.from({ length: 12 }).map((_, i) => (

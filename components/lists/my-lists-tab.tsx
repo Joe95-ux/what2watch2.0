@@ -89,7 +89,7 @@ export default function MyListsTab() {
     <div className="space-y-6">
       <div className="border-b border-border">
         <div className="overflow-x-auto scrollbar-hide">
-          <div className="flex items-center gap-2 pb-2">
+          <div className="flex items-center gap-2 py-4">
             {subTabs.map((tab) => (
               <Button
                 key={tab.id}

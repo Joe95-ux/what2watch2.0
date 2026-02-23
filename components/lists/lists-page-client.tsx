@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import MyListsTab from "./my-lists-tab";
 import PublicListsTab from "./public-lists-tab";
@@ -115,15 +115,27 @@ export function ListsPageClient() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-[64px] z-30">
+      {/* Sticky Nav */}
+      <div className="sticky top-[65px] z-40 bg-background/95 backdrop-blur-md border-b border-border shadow-sm">
         <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4">
-            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-              <TabsList>
-                <TabsTrigger value="my-lists" className="cursor-pointer">My Lists</TabsTrigger>
-                <TabsTrigger value="public-lists" className="cursor-pointer">Public Lists</TabsTrigger>
-              </TabsList>
-            </Tabs>
+          <div className="flex items-center gap-8 overflow-x-auto scrollbar-hide">
+            {mainTabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={cn(
+                  "relative py-4 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer",
+                  activeTab === tab.id
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {tab.label}
+                {activeTab === tab.id && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                )}
+              </button>
+            ))}
           </div>
         </div>
       </div>

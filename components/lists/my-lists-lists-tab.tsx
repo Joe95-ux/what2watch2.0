@@ -6,7 +6,8 @@ import { useLists, useDeleteList, type List } from "@/hooks/use-lists";
 import { usePlaylists, useDeletePlaylist, type Playlist } from "@/hooks/use-playlists";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Plus, List as ListIcon, Grid3x3, Table2, Trash2, Edit, Music } from "lucide-react";
+import { Plus, Grid3x3, Table2, Trash2, Edit } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CreateListModal from "./create-list-modal";
 import CreatePlaylistModal from "@/components/playlists/create-playlist-modal";
 import ListCard from "@/components/browse/list-card";
@@ -115,46 +116,17 @@ export default function MyListsListsTab() {
     <div className="space-y-6">
       {/* Header with Tabs - Desktop: same row, Mobile: toggle/CTA above tabs */}
       <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-        {/* Tabs - Desktop: left side, Mobile: below toggle/CTA */}
-        <div className="border-b border-border max-w-fit sm:border-b-0 sm:border-0 order-2 sm:order-1">
-          <div className="flex items-center gap-6 overflow-x-auto scrollbar-hide">
-            <button
-              onClick={() => {
-                setActiveTab("lists");
-                setCurrentPage(1);
-              }}
-              className={cn(
-                "relative py-3 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2",
-                activeTab === "lists"
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <ListIcon className="h-4 w-4" />
-              Curated Lists
-              {activeTab === "lists" && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-              )}
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab("playlists");
-                setCurrentPage(1);
-              }}
-              className={cn(
-                "relative py-3 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2",
-                activeTab === "playlists"
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Music className="h-4 w-4" />
-              Playlists
-              {activeTab === "playlists" && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-              )}
-            </button>
-          </div>
+        {/* Tabs - Popular page style */}
+        <div className="order-2 sm:order-1">
+          <Tabs value={activeTab} onValueChange={(v) => {
+            setActiveTab(v as TabType);
+            setCurrentPage(1);
+          }} className="w-full">
+            <TabsList>
+              <TabsTrigger value="lists" className="cursor-pointer">Curated Lists</TabsTrigger>
+              <TabsTrigger value="playlists" className="cursor-pointer">Playlists</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         {/* View Toggle and CTA - Desktop: right side, Mobile: above tabs */}
