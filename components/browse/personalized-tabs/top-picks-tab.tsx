@@ -4,6 +4,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePersonalizedContent } from "@/hooks/use-movies";
 import { useUser } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { useFavorites } from "@/hooks/use-favorites";
 import MoreLikeThisCard from "@/components/browse/more-like-this-card";
@@ -11,11 +12,13 @@ import { MoreLikeThisCardSkeleton } from "@/components/skeletons/more-like-this-
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
+import { toast } from "sonner";
 
 const ITEMS_PER_PAGE = 24;
 
 export function TopPicksTab() {
   const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const recalcTriggeredRef = useRef(false);
@@ -104,6 +107,31 @@ export function TopPicksTab() {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const paginatedItems = allItems.slice(startIndex, endIndex);
+
+  // Show message for unauthenticated users
+  if (!isSignedIn) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-lg font-medium mb-2">Get Personalized Top Picks</p>
+        <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+          Sign in and complete your profile preferences to receive personalized movie and TV show recommendations based on your favorite genres and content types.
+        </p>
+        <Button
+          onClick={() => {
+            toast.info("Sign in to get personalized top picks.");
+            if (openSignIn) {
+              openSignIn({
+                afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+              });
+            }
+          }}
+          className="cursor-pointer"
+        >
+          Sign In
+        </Button>
+      </div>
+    );
+  }
 
   // Show skeleton until we know we have or don't have data (avoid flashing "no picks" while loading or recalculating)
   const isWaitingForData =

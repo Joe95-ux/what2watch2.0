@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ShareDropdown } from "@/components/ui/share-dropdown";
 import { useUser } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
@@ -69,6 +70,7 @@ interface ForumPostCardProps {
 
 export function ForumPostCardReddit({ post }: ForumPostCardProps) {
   const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const { data: currentUser } = useCurrentUser();
   const { avatarUrl: contextAvatarUrl } = useAvatar();
   const router = useRouter();
@@ -148,6 +150,15 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
   };
 
   const handleReport = async (reason: string, description?: string) => {
+    if (!isSignedIn) {
+      toast.info("Sign in to report posts.");
+      if (openSignIn) {
+        openSignIn({
+          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        });
+      }
+      return;
+    }
     setIsReporting(true);
     try {
       const reportPostId = post.slug || post.id;
@@ -409,9 +420,19 @@ export function ForumPostCardReddit({ post }: ForumPostCardProps) {
             <DropdownMenuItem
               onClick={(e) => {
                 e.stopPropagation();
+                if (!isSignedIn) {
+                  toast.info("Sign in to report posts.");
+                  if (openSignIn) {
+                    openSignIn({
+                      afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                    });
+                  }
+                  return;
+                }
                 setIsReportDialogOpen(true);
               }}
               className="cursor-pointer"
+              disabled={!isSignedIn}
             >
               <Flag className="h-4 w-4 mr-2" />
               Report Post

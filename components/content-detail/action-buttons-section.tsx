@@ -96,7 +96,7 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
 
   const handleMarkAsWatched = async () => {
     if (!isSignedIn) {
-      toast.error("Sign in to mark films as watched.");
+      toast.info("Sign in to mark films as watched.");
       if (openSignIn) {
         openSignIn({
           afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
@@ -157,7 +157,7 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
 
   const handleLike = async () => {
     if (!isSignedIn) {
-      toast.error("Sign in to like content.");
+      toast.info("Sign in to like content.");
       if (openSignIn) {
         openSignIn({
           afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
@@ -177,7 +177,7 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
 
   const handleDislike = async () => {
     if (!isSignedIn) {
-      toast.error("Sign in to dislike content.");
+      toast.info("Sign in to dislike content.");
       if (openSignIn) {
         openSignIn({
           afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
@@ -253,6 +253,15 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
           variant="outline"
           size="sm"
           onClick={async () => {
+            if (!isSignedIn) {
+              toast.info("Sign in to add favorites.");
+              if (openSignIn) {
+                openSignIn({
+                  afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                });
+              }
+              return;
+            }
             await toggleFavorite.toggle(item, type);
           }}
           disabled={isFavoriteLoading}
@@ -310,7 +319,23 @@ export default function ActionButtonsSection({ item, type, watchAvailability, se
           item={item}
           type={type}
           trigger={
-            <Button variant="outline" size="sm" className="h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0 border-none">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-9 rounded-[25px] bg-muted cursor-pointer flex-shrink-0 border-none"
+              onClick={(e) => {
+                if (!isSignedIn) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toast.info("Sign in to add items to lists or playlists.");
+                  if (openSignIn) {
+                    openSignIn({
+                      afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                    });
+                  }
+                }
+              }}
+            >
               <Plus className="h-4 w-4" />
               Add To
             </Button>

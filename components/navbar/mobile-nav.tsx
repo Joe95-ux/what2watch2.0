@@ -345,9 +345,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
           <div className="space-y-1">
             {showSimpleYouTubeLink ? (
               <a
-                href={YOUTUBE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/youtube"
                 className="flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem] text-muted-foreground"
                 onClick={onLinkClick}
               >

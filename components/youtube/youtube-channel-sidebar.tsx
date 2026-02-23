@@ -29,6 +29,9 @@ import Image from "next/image";
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { FeedCustomizeModal } from "@/components/youtube/feed-customize-modal";
+import { useUser } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
+import { toast } from "sonner";
 
 interface YouTubeChannelSidebarProps {
   currentChannelId?: string;
@@ -48,6 +51,8 @@ export function YouTubeChannelSidebar({
   onCollapsedChange
 }: YouTubeChannelSidebarProps) {
   const router = useRouter();
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
@@ -467,8 +472,20 @@ export function YouTubeChannelSidebar({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setIsCustomizeFeedOpen(true)}
+              onClick={() => {
+                if (!isSignedIn) {
+                  toast.info("Sign in to customize your feed.");
+                  if (openSignIn) {
+                    openSignIn({
+                      afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                    });
+                  }
+                  return;
+                }
+                setIsCustomizeFeedOpen(true);
+              }}
               className="h-7 px-2 text-xs cursor-pointer"
+              disabled={!isSignedIn}
             >
               <Edit className="h-3 w-3 mr-1" />
               Customize
@@ -494,8 +511,20 @@ export function YouTubeChannelSidebar({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setIsCustomizeFeedOpen(true)}
+                onClick={() => {
+                  if (!isSignedIn) {
+                    toast.info("Sign in to customize your feed.");
+                    if (openSignIn) {
+                      openSignIn({
+                        afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                      });
+                    }
+                    return;
+                  }
+                  setIsCustomizeFeedOpen(true);
+                }}
                 className="cursor-pointer"
+                disabled={!isSignedIn}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Channels

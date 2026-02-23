@@ -202,7 +202,7 @@ export default function YouTubeVideoCard({
 
   const requireAuth = async (action: () => Promise<void> | void, message?: string) => {
     if (!isSignedIn) {
-      toast.error(message ?? "Please sign in to perform this action.");
+      toast.info(message ?? "Please sign in to perform this action.");
       if (openSignIn) {
         openSignIn({
           afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,

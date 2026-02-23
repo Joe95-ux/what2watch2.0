@@ -87,7 +87,7 @@ export function YouTubeReviewDetailClient({ reviewId }: YouTubeReviewDetailClien
 
   const handleVote = async (voteType: "UP" | "DOWN") => {
     if (!isSignedIn) {
-      toast.error("Sign in to vote");
+      toast.info("Sign in to vote");
       if (openSignIn) {
         openSignIn({
           afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,

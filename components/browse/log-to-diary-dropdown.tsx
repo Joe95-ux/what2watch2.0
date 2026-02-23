@@ -22,6 +22,8 @@ import { useToggleFavorite } from "@/hooks/use-favorites";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import { toast } from "sonner";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
+import { useUser } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
 
 interface LogToDiaryDropdownProps {
   item: TMDBMovie | TMDBSeries;
@@ -37,12 +39,27 @@ export default function LogToDiaryDropdown({ item, type, trigger }: LogToDiaryDr
   const [tags, setTags] = useState("");
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const logViewing = useLogViewing();
   const toggleFavorite = useToggleFavorite();
   const toggleWatchlist = useToggleWatchlist();
   
   const isLiked = toggleFavorite.isFavorite(item.id, type);
   const isInWatchlist = toggleWatchlist.isInWatchlist(item.id, type);
+
+  const handleOpenChange = (open: boolean) => {
+    if (open && !isSignedIn) {
+      toast.info("Sign in to log films to your diary.");
+      if (openSignIn) {
+        openSignIn({
+          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        });
+      }
+      return;
+    }
+    setIsOpen(open);
+  };
 
   const handleLogFilm = async () => {
     if (logViewing.isPending) return;
@@ -86,7 +103,7 @@ export default function LogToDiaryDropdown({ item, type, trigger }: LogToDiaryDr
   };
 
   return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+    <DropdownMenu open={isOpen} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
         {trigger}
       </DropdownMenuTrigger>

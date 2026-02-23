@@ -66,7 +66,7 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
 
   const promptSignIn = useCallback(
     (message?: string) => {
-      toast.error(message ?? "Please sign in to perform this action.");
+      toast.info(message ?? "Please sign in to perform this action.");
       if (openSignIn) {
         openSignIn({
           afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
@@ -260,6 +260,18 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
                   variant="outline"
                   size="sm"
                   className="h-9 inline-flex items-center gap-2 rounded-[25px] cursor-pointer"
+                  onClick={(e) => {
+                    if (!isSignedIn) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toast.info("Sign in to log films to your diary.");
+                      if (openSignIn) {
+                        openSignIn({
+                          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                        });
+                      }
+                    }
+                  }}
                 >
                   <Clapperboard className="h-4 w-4" />
                   {type === "movie" ? "Log movie" : "Log TV show"}

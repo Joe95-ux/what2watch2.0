@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ForumReplyList } from "./forum-reply-list";
 import { CreateReplyForm } from "./create-reply-form";
 import { useUser } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -90,6 +91,7 @@ interface ForumReply {
 export function ForumPostDetailClient() {
   const params = useParams();
   const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const { data: currentUser } = useCurrentUser();
   const { avatarUrl: contextAvatarUrl } = useAvatar();
   const router = useRouter();
@@ -186,7 +188,12 @@ export function ForumPostDetailClient() {
 
   const handleVote = async (type: "upvote" | "downvote") => {
     if (!isSignedIn) {
-      toast.error("Sign in to vote on posts");
+      toast.info("Sign in to vote on posts.");
+      if (openSignIn) {
+        openSignIn({
+          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        });
+      }
       return;
     }
     if (!toggleReaction.mutate || !post) return;
@@ -201,6 +208,15 @@ export function ForumPostDetailClient() {
   const isAuthor = currentUser?.id === post?.author.id;
 
   const handleReport = async (reason: string, description?: string) => {
+    if (!isSignedIn) {
+      toast.info("Sign in to report posts.");
+      if (openSignIn) {
+        openSignIn({
+          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        });
+      }
+      return;
+    }
     setIsReporting(true);
     try {
       if (!post) return;
@@ -416,19 +432,42 @@ export function ForumPostDetailClient() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    {isAuthor && (
+                    {isAuthor && isSignedIn && (
                       <>
                         <DropdownMenuItem
-                          onClick={() => setIsEditDialogOpen(true)}
+                          onClick={() => {
+                            if (!isSignedIn) {
+                              toast.info("Sign in to edit posts.");
+                              if (openSignIn) {
+                                openSignIn({
+                                  afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                                });
+                              }
+                              return;
+                            }
+                            setIsEditDialogOpen(true);
+                          }}
                           className="cursor-pointer"
+                          disabled={!isSignedIn}
                         >
                           <Edit className="h-4 w-4 mr-2" />
                           Edit Post
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={handleDelete}
+                          onClick={() => {
+                            if (!isSignedIn) {
+                              toast.info("Sign in to delete posts.");
+                              if (openSignIn) {
+                                openSignIn({
+                                  afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                                });
+                              }
+                              return;
+                            }
+                            handleDelete();
+                          }}
                           className="cursor-pointer text-destructive"
-                          disabled={deletePost.isPending}
+                          disabled={deletePost.isPending || !isSignedIn}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
                           Delete Post
@@ -440,6 +479,15 @@ export function ForumPostDetailClient() {
                       <>
                         <DropdownMenuItem
                           onClick={() => {
+                            if (!isSignedIn) {
+                              toast.info("Sign in to subscribe to posts.");
+                              if (openSignIn) {
+                                openSignIn({
+                                  afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                                });
+                              }
+                              return;
+                            }
                             if (isSubscribed) {
                               unsubscribeFromPost.mutate();
                             } else {
@@ -447,7 +495,7 @@ export function ForumPostDetailClient() {
                             }
                           }}
                           className="cursor-pointer"
-                          disabled={subscribeToPost.isPending || unsubscribeFromPost.isPending}
+                          disabled={subscribeToPost.isPending || unsubscribeFromPost.isPending || !isSignedIn}
                         >
                           {isSubscribed ? (
                             <>
@@ -463,6 +511,15 @@ export function ForumPostDetailClient() {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
+                            if (!isSignedIn) {
+                              toast.info("Sign in to save posts.");
+                              if (openSignIn) {
+                                openSignIn({
+                                  afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                                });
+                              }
+                              return;
+                            }
                             if (isBookmarked) {
                               unbookmarkPost.mutate();
                             } else {
@@ -470,7 +527,7 @@ export function ForumPostDetailClient() {
                             }
                           }}
                           className="cursor-pointer"
-                          disabled={bookmarkPost.isPending || unbookmarkPost.isPending}
+                          disabled={bookmarkPost.isPending || unbookmarkPost.isPending || !isSignedIn}
                         >
                           {isBookmarked ? (
                             <>
@@ -488,8 +545,20 @@ export function ForumPostDetailClient() {
                       </>
                     )}
                     <DropdownMenuItem
-                      onClick={() => setIsReportDialogOpen(true)}
+                      onClick={() => {
+                        if (!isSignedIn) {
+                          toast.info("Sign in to report posts.");
+                          if (openSignIn) {
+                            openSignIn({
+                              afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                            });
+                          }
+                          return;
+                        }
+                        setIsReportDialogOpen(true);
+                      }}
                       className="cursor-pointer"
+                      disabled={!isSignedIn}
                     >
                       <Flag className="h-4 w-4 mr-2" />
                       Report Post
@@ -545,12 +614,12 @@ export function ForumPostDetailClient() {
                 )}>
                   <button
                     onClick={() => handleVote("upvote")}
-                    disabled={toggleReaction.isPending}
+                    disabled={toggleReaction.isPending || !isSignedIn}
                     className={cn(
                       "flex items-center justify-center px-2 py-2 transition-colors cursor-pointer",
                       "hover:bg-[#6B7280]/30 dark:hover:bg-muted",
                       isUpvoted && "text-orange-500 hover:bg-orange-500/20",
-                      toggleReaction.isPending && "opacity-50 cursor-not-allowed"
+                      (toggleReaction.isPending || !isSignedIn) && "opacity-50 cursor-not-allowed"
                     )}
                   >
                     <BiSolidUpvote className={cn(
@@ -569,12 +638,12 @@ export function ForumPostDetailClient() {
                   </span>
                   <button
                     onClick={() => handleVote("downvote")}
-                    disabled={toggleReaction.isPending}
+                    disabled={toggleReaction.isPending || !isSignedIn}
                     className={cn(
                       "flex items-center justify-center px-2 py-2 transition-colors cursor-pointer",
                       "hover:bg-[#6B7280]/30 dark:hover:bg-muted",
                       isDownvoted && "text-blue-500 hover:bg-blue-500/20",
-                      toggleReaction.isPending && "opacity-50 cursor-not-allowed"
+                      (toggleReaction.isPending || !isSignedIn) && "opacity-50 cursor-not-allowed"
                     )}
                   >
                     <BiSolidDownvote className={cn(
@@ -616,56 +685,74 @@ export function ForumPostDetailClient() {
             <h2 className="text-lg font-semibold">
               {post.replyCount} {post.replyCount === 1 ? "Comment" : "Comments"}
             </h2>
-            <div className="flex items-center gap-2">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search comments..."
-                  value={replySearch}
-                  onChange={(e) => setReplySearch(e.target.value)}
-                  className="pl-8 h-9 w-full sm:w-[20rem]"
-                />
+            {isSignedIn && (
+              <div className="flex items-center gap-2">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search comments..."
+                    value={replySearch}
+                    onChange={(e) => setReplySearch(e.target.value)}
+                    className="pl-8 h-9 w-full sm:w-[20rem]"
+                  />
+                </div>
+                
+                {/* Sort */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-9 gap-2">
+                      <ArrowUpDown className="h-4 w-4" />
+                      Sort
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => setReplySort("newest")}
+                      className={cn("cursor-pointer", replySort === "newest" && "bg-accent")}
+                    >
+                      Newest First
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setReplySort("oldest")}
+                      className={cn("cursor-pointer", replySort === "oldest" && "bg-accent")}
+                    >
+                      Oldest First
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setReplySort("top")}
+                      className={cn("cursor-pointer", replySort === "top" && "bg-accent")}
+                    >
+                      Top Rated
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-              
-              {/* Sort */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9 gap-2">
-                    <ArrowUpDown className="h-4 w-4" />
-                    Sort
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Sort by</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => setReplySort("newest")}
-                    className={cn("cursor-pointer", replySort === "newest" && "bg-accent")}
-                  >
-                    Newest First
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setReplySort("oldest")}
-                    className={cn("cursor-pointer", replySort === "oldest" && "bg-accent")}
-                  >
-                    Oldest First
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setReplySort("top")}
-                    className={cn("cursor-pointer", replySort === "top" && "bg-accent")}
-                  >
-                    Top Rated
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            )}
           </div>
 
           {/* Create Reply Form */}
-          {isSignedIn && (
+          {isSignedIn ? (
             <div className="mb-4">
               <CreateReplyForm postId={postId} />
+            </div>
+          ) : (
+            <div className="mb-4">
+              <Input
+                readOnly
+                placeholder="Join the conversation"
+                onClick={() => {
+                  toast.info("Sign in to join the conversation.");
+                  if (openSignIn) {
+                    openSignIn({
+                      afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                    });
+                  }
+                }}
+                className="h-12 rounded-lg border-dashed border-2 cursor-pointer"
+              />
             </div>
           )}
 

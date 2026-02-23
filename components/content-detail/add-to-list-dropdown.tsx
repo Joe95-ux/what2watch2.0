@@ -48,7 +48,7 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
 
   const promptSignIn = useCallback(
     (message?: string) => {
-      toast.error(message ?? "Please sign in to perform this action.");
+      toast.info(message ?? "Please sign in to perform this action.");
       if (openSignIn) {
         openSignIn({
           afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
@@ -70,6 +70,10 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
   );
 
   const handleOpenChange = (open: boolean) => {
+    if (open && !isSignedIn) {
+      promptSignIn("Sign in to add items to lists or playlists.");
+      return;
+    }
     setIsDropdownOpen(open);
     onOpenChange?.(open);
   };

@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { CreateReplyForm } from "./create-reply-form";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useClerk } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 import { useForumReplyReaction, useToggleForumReplyLike } from "@/hooks/use-forum-reactions";
 import { useReplySubscription, useSubscribeToReply, useUnsubscribeFromReply } from "@/hooks/use-forum-reply-subscription";
@@ -55,6 +55,7 @@ interface ForumReplyItemProps {
 
 export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps) {
   const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const { data: currentUser } = useCurrentUser();
   const { avatarUrl: contextAvatarUrl } = useAvatar();
   const router = useRouter();
@@ -86,7 +87,12 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
 
   const handleVote = async (type: "upvote" | "downvote") => {
     if (!isSignedIn) {
-      toast.error("Sign in to vote on replies");
+      toast.info("Sign in to vote on replies.");
+      if (openSignIn) {
+        openSignIn({
+          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        });
+      }
       return;
     }
     if (!toggleReaction.mutate) return;
@@ -108,6 +114,15 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
   };
 
   const handleReport = async (reason: string, description?: string) => {
+    if (!isSignedIn) {
+      toast.info("Sign in to report replies.");
+      if (openSignIn) {
+        openSignIn({
+          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        });
+      }
+      return;
+    }
     setIsReporting(true);
     try {
       const response = await fetch(`/api/forum/replies/${reply.id}/report`, {
@@ -150,6 +165,15 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
   });
 
   const handleDelete = async () => {
+    if (!isSignedIn) {
+      toast.info("Sign in to delete replies.");
+      if (openSignIn) {
+        openSignIn({
+          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        });
+      }
+      return;
+    }
     if (!confirm("Are you sure you want to delete this reply? This action cannot be undone.")) {
       return;
     }
@@ -157,6 +181,15 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
   };
 
   const handleEdit = () => {
+    if (!isSignedIn) {
+      toast.info("Sign in to edit replies.");
+      if (openSignIn) {
+        openSignIn({
+          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        });
+      }
+      return;
+    }
     setIsEditDialogOpen(true);
   };
 
@@ -222,11 +255,11 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
           <div className="flex items-center rounded-[25px] overflow-hidden">
             <button
               onClick={() => handleVote("upvote")}
-              disabled={toggleReaction.isPending}
+              disabled={toggleReaction.isPending || !isSignedIn}
               className={cn(
                 "flex items-center justify-center px-2 py-2 transition-colors cursor-pointer",
                 "hover:bg-[#6B7280]/30 dark:hover:bg-muted",
-                toggleReaction.isPending && "opacity-50 cursor-not-allowed"
+                (toggleReaction.isPending || !isSignedIn) && "opacity-50 cursor-not-allowed"
               )}
             >
               <BiSolidUpvote className={cn(
@@ -245,11 +278,11 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
             </span>
             <button
               onClick={() => handleVote("downvote")}
-              disabled={toggleReaction.isPending}
+              disabled={toggleReaction.isPending || !isSignedIn}
               className={cn(
                 "flex items-center justify-center px-2 py-2 transition-colors cursor-pointer",
                 "hover:bg-[#6B7280]/30 dark:hover:bg-muted",
-                toggleReaction.isPending && "opacity-50 cursor-not-allowed"
+                (toggleReaction.isPending || !isSignedIn) && "opacity-50 cursor-not-allowed"
               )}
             >
               <BiSolidDownvote className={cn(
@@ -302,6 +335,15 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (!isSignedIn) {
+                        toast.info("Sign in to follow comments.");
+                        if (openSignIn) {
+                          openSignIn({
+                            afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                          });
+                        }
+                        return;
+                      }
                       if (isSubscribed) {
                         unsubscribeFromReply.mutate();
                       } else {
@@ -309,7 +351,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
                       }
                     }}
                     className="cursor-pointer"
-                    disabled={subscribeToReply.isPending || unsubscribeFromReply.isPending}
+                    disabled={subscribeToReply.isPending || unsubscribeFromReply.isPending || !isSignedIn}
                   >
                     {isSubscribed ? (
                       <>
@@ -326,6 +368,15 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (!isSignedIn) {
+                        toast.info("Sign in to save comments.");
+                        if (openSignIn) {
+                          openSignIn({
+                            afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                          });
+                        }
+                        return;
+                      }
                       if (isBookmarked) {
                         unbookmarkReply.mutate();
                       } else {
@@ -333,7 +384,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
                       }
                     }}
                     className="cursor-pointer"
-                    disabled={bookmarkReply.isPending || unbookmarkReply.isPending}
+                    disabled={bookmarkReply.isPending || unbookmarkReply.isPending || !isSignedIn}
                   >
                     {isBookmarked ? (
                       <>
@@ -350,7 +401,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
                   <DropdownMenuSeparator />
                 </>
               )}
-              {isAuthor && (
+              {isAuthor && isSignedIn && (
                 <>
                   <DropdownMenuItem
                     onClick={(e) => {
@@ -358,6 +409,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
                       handleEdit();
                     }}
                     className="cursor-pointer"
+                    disabled={!isSignedIn}
                   >
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Reply
@@ -368,7 +420,7 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
                       handleDelete();
                     }}
                     className="cursor-pointer text-destructive"
-                    disabled={deleteReply.isPending}
+                    disabled={deleteReply.isPending || !isSignedIn}
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete Reply
@@ -379,9 +431,19 @@ export function ForumReplyItem({ reply, postId, depth = 0 }: ForumReplyItemProps
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (!isSignedIn) {
+                    toast.info("Sign in to report replies.");
+                    if (openSignIn) {
+                      openSignIn({
+                        afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                      });
+                    }
+                    return;
+                  }
                   setIsReportDialogOpen(true);
                 }}
-                className="cursor-pointer"
+                className={cn("cursor-pointer", !isSignedIn && "opacity-50 cursor-not-allowed")}
+                disabled={!isSignedIn}
               >
                 <Flag className="h-4 w-4 mr-2" />
                 Report Reply

@@ -69,7 +69,7 @@ export function ChannelReviewCard({
 
   const handleRequireAuth = async (action: () => Promise<void> | void) => {
     if (!isSignedIn) {
-      toast.error("Sign in to continue.");
+      toast.info("Sign in to continue.");
       if (openSignIn) {
         openSignIn({
           afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,

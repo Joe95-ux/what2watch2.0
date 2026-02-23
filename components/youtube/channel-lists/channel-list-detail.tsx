@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 import { YouTubeChannelCardPage, YouTubeChannelCardPageSkeleton } from "../youtube-channel-card-page";
 import { YouTubeChannelCardHorizontal, YouTubeChannelCardHorizontalSkeleton } from "../youtube-channel-card-horizontal";
 import { useYouTubeCardStyle } from "@/hooks/use-youtube-card-style";
+import { useUser } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
 
 interface ChannelListDetailProps {
   listId: string;
@@ -192,6 +194,8 @@ function ChannelListChannelsGrid({ items, listId }: { items: YouTubeChannelListI
 
 export function ChannelListDetail({ listId }: ChannelListDetailProps) {
   const router = useRouter();
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const [builderOpen, setBuilderOpen] = useState(false);
   const { data: list, isLoading, refetch } = useYouTubeChannelList(listId);
   const { data: availableChannels = [] } = useYouTubeChannels();
@@ -263,6 +267,15 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
   }
 
   const handleFollowToggle = async () => {
+    if (!isSignedIn) {
+      toast.info("Sign in to follow channel lists.");
+      if (openSignIn) {
+        openSignIn({
+          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        });
+      }
+      return;
+    }
     try {
       await toggleFollow.mutateAsync(list.id);
       refetch();
@@ -390,7 +403,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
               )}
               variant={list.viewerState.isFollowing ? "outline" : "default"}
               onClick={handleFollowToggle}
-              disabled={toggleFollow.isPending}
+              disabled={toggleFollow.isPending || !isSignedIn}
             >
               <Users className="h-4 w-4" />
               {list.viewerState.isFollowing ? "Following" : "Follow list"}

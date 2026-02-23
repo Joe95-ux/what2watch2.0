@@ -214,7 +214,7 @@ export default function MoreLikeThisCard({
 
   const promptSignIn = useCallback(
     (message?: string) => {
-      toast.error(message ?? "Please sign in to perform this action.");
+      toast.info(message ?? "Please sign in to perform this action.");
       if (openSignIn) {
         openSignIn({
           afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,

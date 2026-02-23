@@ -33,6 +33,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import Link from "next/link";
 import { CategoryCustomizeModal } from "./category-customize-modal";
 import { useUser } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
+import { toast } from "sonner";
 
 interface ForumSidebarProps {
   mobileOpen?: boolean;
@@ -500,7 +502,19 @@ export function ForumSidebar({
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 cursor-pointer"
-                onClick={() => setIsCustomizeModalOpen(true)}
+                onClick={() => {
+                  if (!isSignedIn) {
+                    toast.info("Sign in to customize categories.");
+                    if (openSignIn) {
+                      openSignIn({
+                        afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                      });
+                    }
+                    return;
+                  }
+                  setIsCustomizeModalOpen(true);
+                }}
+                disabled={!isSignedIn}
               >
                 <Pencil className="h-3.5 w-3.5" />
               </Button>
