@@ -170,7 +170,7 @@ export default function MyListsListsTab() {
             className="cursor-pointer rounded-[20px] h-10"
             disabled={!isSignedIn}
           >
-            <Plus className="h-6 w-6" />
+            <Plus className="size-6" />
             Create {activeTab === "lists" ? "List" : "Playlist"}
           </Button>
         </div>
@@ -201,7 +201,7 @@ export default function MyListsListsTab() {
                 Create and manage your ranked lists of favorite films
               </p>
               <Button onClick={() => setIsCreateListModalOpen(true)} className="cursor-pointer h-10">
-                <Plus className="h-6 w-6" />
+                <Plus className="size-6" />
                 Create List
               </Button>
             </>
@@ -213,7 +213,7 @@ export default function MyListsListsTab() {
                 Create and manage your playlists of movies, TV shows, and YouTube videos
               </p>
               <Button onClick={() => setIsCreatePlaylistModalOpen(true)} className="cursor-pointer h-10">
-                <Plus className="h-6 w-6" />
+                <Plus className="size-6" />
                 Create Playlist
               </Button>
             </>
