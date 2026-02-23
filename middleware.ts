@@ -1,5 +1,10 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
+// Define routes that require authentication (only dashboard pages)
+const isProtectedRoute = createRouteMatcher([
+  '/dashboard(.*)', // All dashboard pages require authentication
+]);
+
 // Define public routes that don't require authentication
 const isPublicRoute = createRouteMatcher([
   '/',
@@ -24,7 +29,8 @@ const isPublicRoute = createRouteMatcher([
 
 
 export default clerkMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)) {
+  // Only protect dashboard routes - all other routes are accessible without authentication
+  if (isProtectedRoute(req)) {
     await auth.protect();
   }
 });

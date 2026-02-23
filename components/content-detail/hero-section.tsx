@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useCallback, type ReactNode } from "react";
 import Image from "next/image";
 import { Play, Clapperboard, Images, Star, Plus, Check, ChevronUp, ChevronDown } from "lucide-react";
 import { IoBookmarkSharp } from "react-icons/io5";
@@ -21,6 +21,9 @@ import LogToDiaryDropdown from "@/components/browse/log-to-diary-dropdown";
 import MediaModal from "./media-modal";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { JustWatchAvailabilityResponse } from "@/lib/justwatch";
+import { useUser } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
+import { toast } from "sonner";
 
 interface DetailsType {
   release_date?: string;
@@ -58,6 +61,28 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
   const [isPhotosModalOpen, setIsPhotosModalOpen] = useState(false);
   const [trailerDuration, setTrailerDuration] = useState<number | null>(null);
   const toggleWatchlist = useToggleWatchlist();
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
+
+  const promptSignIn = useCallback(
+    (message?: string) => {
+      toast.error(message ?? "Please sign in to perform this action.");
+      if (openSignIn) {
+        openSignIn({
+          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        });
+      }
+    },
+    [openSignIn]
+  );
+
+  const handleWatchlistToggle = useCallback(async () => {
+    if (!isSignedIn) {
+      promptSignIn("Sign in to manage your watchlist.");
+      return;
+    }
+    await toggleWatchlist.toggle(item, type);
+  }, [isSignedIn, promptSignIn, toggleWatchlist, item, type]);
 
   const title = type === "movie" ? (item as TMDBMovie).title : (item as TMDBSeries).name;
   const posterPath = item.poster_path || item.backdrop_path;
@@ -404,9 +429,7 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
             <Tooltip>
               <TooltipTrigger asChild>
                 <div
-                  onClick={async () => {
-                    await toggleWatchlist.toggle(item, type);
-                  }}
+                  onClick={handleWatchlistToggle}
                   role="button"
                   tabIndex={0}
                   aria-label={toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
@@ -414,7 +437,7 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      toggleWatchlist.toggle(item, type);
+                      handleWatchlistToggle();
                     }
                   }}
                 >
@@ -461,9 +484,7 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
             <Tooltip>
               <TooltipTrigger asChild>
                 <div
-                  onClick={async () => {
-                    await toggleWatchlist.toggle(item, type);
-                  }}
+                  onClick={handleWatchlistToggle}
                   role="button"
                   tabIndex={0}
                   aria-label={toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
@@ -471,7 +492,7 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      toggleWatchlist.toggle(item, type);
+                      handleWatchlistToggle();
                     }
                   }}
                 >

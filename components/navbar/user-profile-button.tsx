@@ -49,7 +49,7 @@ export function UserProfileButton({ hasHeroSection = false }: UserProfileButtonP
 
   const handleSignOut = async () => {
     await signOut();
-    router.push("/");
+    router.push("/browse");
   };
 
   return (

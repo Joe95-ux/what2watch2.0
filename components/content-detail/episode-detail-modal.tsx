@@ -151,7 +151,7 @@ function EpisodeModalWhereToWatch({
             className={cn(
               "h-9 rounded-[25px] cursor-pointer flex-shrink-0 px-4 transition-colors",
               selectedFilter === "all"
-                ? "bg-blue-50 dark:bg-blue-900 border-blue-200 dark:border-blue-700 text-foreground"
+                ? "bg-blue-50 dark:bg-muted border-blue-200 dark:border-border text-foreground"
                 : "bg-muted border-none text-muted-foreground hover:bg-muted/80"
             )}
           >
@@ -169,7 +169,7 @@ function EpisodeModalWhereToWatch({
                 className={cn(
                   "h-9 rounded-[25px] cursor-pointer flex-shrink-0 px-4 transition-colors",
                   isSelected
-                    ? "bg-blue-50 dark:bg-blue-900 border-blue-200 dark:border-blue-700 text-foreground"
+                    ? "bg-blue-50 dark:bg-muted border-blue-200 dark:border-border text-foreground"
                     : "bg-muted border-none text-muted-foreground hover:bg-muted/80"
                 )}
               >

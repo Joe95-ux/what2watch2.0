@@ -15,6 +15,8 @@ import WhyToWatchSection from "./why-to-watch-section";
 import { Button } from "@/components/ui/button";
 import { useSeenEpisodes, useToggleEpisodeSeen, useMarkSeasonsSeen, useUnmarkSeasonsSeen } from "@/hooks/use-episode-tracking";
 import { useUser } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
+import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Carousel,
@@ -706,11 +708,21 @@ function TVSeasonsContent({
   }) => void;
 }) {
   const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const isMobile = useIsMobile();
   const { data: seenEpisodes = [] } = useSeenEpisodes(tvShow.id);
   const toggleEpisodeSeen = useToggleEpisodeSeen();
   const markSeasonsSeen = useMarkSeasonsSeen();
   const unmarkSeasonsSeen = useUnmarkSeasonsSeen();
+
+  const promptSignIn = (message?: string) => {
+    toast.error(message ?? "Please sign in to perform this action.");
+    if (openSignIn) {
+      openSignIn({
+        afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+      });
+    }
+  };
 
   // Filter out season 0 (specials)
   const regularSeasons = seasons.filter((s) => s.season_number > 0);
@@ -740,6 +752,7 @@ function TVSeasonsContent({
     episode_number: number;
   }) => {
     if (!isSignedIn) {
+      promptSignIn("Sign in to track episodes you've watched.");
       return;
     }
     const isSeen = isEpisodeSeen(episode.id);
@@ -755,7 +768,11 @@ function TVSeasonsContent({
   };
 
   const handleToggleSeasonSeenAll = async (checked: boolean) => {
-    if (!isSignedIn || selectedSeason === null) {
+    if (selectedSeason === null) {
+      return;
+    }
+    if (!isSignedIn) {
+      promptSignIn("Sign in to track seasons you've watched.");
       return;
     }
     

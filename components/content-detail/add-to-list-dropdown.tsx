@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { usePlaylists, useAddItemToPlaylist, useRemoveItemFromPlaylist, type Playlist } from "@/hooks/use-playlists";
 import { useLists, useUpdateList, useRemoveItemFromList, type List } from "@/hooks/use-lists";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
@@ -19,6 +19,8 @@ import CreatePlaylistModal from "@/components/playlists/create-playlist-modal";
 import CreateListModal from "@/components/lists/create-list-modal";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useUser } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
 
 interface AddToListDropdownProps {
   item: TMDBMovie | TMDBSeries;
@@ -30,6 +32,8 @@ interface AddToListDropdownProps {
 
 export default function AddToListDropdown({ item, type, trigger, onOpenChange, onAddSuccess }: AddToListDropdownProps) {
   const router = useRouter();
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const { data: playlists = [], isLoading: isLoadingPlaylists } = usePlaylists();
   const { data: lists = [], isLoading: isLoadingLists } = useLists();
   const addItemToPlaylist = useAddItemToPlaylist();
@@ -42,109 +46,136 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
   const [activeTab, setActiveTab] = useState<"playlist" | "list">("playlist");
   const isMobile = useIsMobile();
 
+  const promptSignIn = useCallback(
+    (message?: string) => {
+      toast.error(message ?? "Please sign in to perform this action.");
+      if (openSignIn) {
+        openSignIn({
+          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        });
+      }
+    },
+    [openSignIn]
+  );
+
+  const requireAuth = useCallback(
+    async (action: () => Promise<void> | void, message?: string) => {
+      if (!isSignedIn) {
+        promptSignIn(message);
+        return;
+      }
+      return action();
+    },
+    [isSignedIn, promptSignIn]
+  );
+
   const handleOpenChange = (open: boolean) => {
     setIsDropdownOpen(open);
     onOpenChange?.(open);
   };
 
   const handleTogglePlaylist = async (playlistId: string) => {
-    try {
-      const playlist = playlists.find((p) => p.id === playlistId);
-      if (!playlist) return;
+    await requireAuth(async () => {
+      try {
+        const playlist = playlists.find((p) => p.id === playlistId);
+        if (!playlist) return;
 
-      const isInPlaylist = isItemInPlaylist(playlist);
-      
-      if (isInPlaylist) {
-        // Remove from playlist
-        const playlistItem = playlist.items?.find(
-          (playlistItem) => playlistItem.tmdbId === item.id && playlistItem.mediaType === type
-        );
-        if (playlistItem?.id) {
-          await removeItemFromPlaylist.mutateAsync({
+        const isInPlaylist = isItemInPlaylist(playlist);
+        
+        if (isInPlaylist) {
+          // Remove from playlist
+          const playlistItem = playlist.items?.find(
+            (playlistItem) => playlistItem.tmdbId === item.id && playlistItem.mediaType === type
+          );
+          if (playlistItem?.id) {
+            await removeItemFromPlaylist.mutateAsync({
+              playlistId,
+              itemId: playlistItem.id,
+            });
+            toast.success(`Removed from "${playlist.name}"`);
+          }
+        } else {
+          // Add to playlist
+          const title = "title" in item ? item.title : item.name;
+          const releaseDate = type === "movie" ? (item as TMDBMovie).release_date : undefined;
+          const firstAirDate = type === "tv" ? (item as TMDBSeries).first_air_date : undefined;
+
+          await addItemToPlaylist.mutateAsync({
             playlistId,
-            itemId: playlistItem.id,
+            item: {
+              tmdbId: item.id,
+              mediaType: type,
+              title,
+              posterPath: item.poster_path,
+              backdropPath: item.backdrop_path,
+              releaseDate,
+              firstAirDate,
+            },
           });
-          toast.success(`Removed from "${playlist.name}"`);
+          toast.success(`Added to "${playlist.name}"`);
         }
-      } else {
-        // Add to playlist
-        const title = "title" in item ? item.title : item.name;
-        const releaseDate = type === "movie" ? (item as TMDBMovie).release_date : undefined;
-        const firstAirDate = type === "tv" ? (item as TMDBSeries).first_air_date : undefined;
-
-        await addItemToPlaylist.mutateAsync({
-          playlistId,
-          item: {
-            tmdbId: item.id,
-            mediaType: type,
-            title,
-            posterPath: item.poster_path,
-            backdropPath: item.backdrop_path,
-            releaseDate,
-            firstAirDate,
-          },
-        });
-        toast.success(`Added to "${playlist.name}"`);
+        onAddSuccess?.();
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Failed to update playlist";
+        toast.error(errorMessage);
+        console.error(error);
       }
-      onAddSuccess?.();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to update playlist";
-      toast.error(errorMessage);
-      console.error(error);
-    }
+    }, "Sign in to manage playlists.");
   };
 
   const handleToggleList = async (listId: string) => {
-    try {
-      const list = lists.find((l) => l.id === listId);
-      if (!list) return;
+    await requireAuth(async () => {
+      try {
+        const list = lists.find((l) => l.id === listId);
+        if (!list) return;
 
-      const existingItems = list.items || [];
-      const listItem = existingItems.find(
-        (listItem) => listItem.tmdbId === item.id && listItem.mediaType === type
-      );
-      const isInList = !!listItem;
+        const existingItems = list.items || [];
+        const listItem = existingItems.find(
+          (listItem) => listItem.tmdbId === item.id && listItem.mediaType === type
+        );
+        const isInList = !!listItem;
 
-      if (isInList) {
-        // Remove from list
-        if (listItem.id) {
-          await removeItemFromList.mutateAsync({
+        if (isInList) {
+          // Remove from list
+          if (listItem.id) {
+            await removeItemFromList.mutateAsync({
+              listId,
+              itemId: listItem.id,
+            });
+            toast.success(`Removed from "${list.name}"`);
+          }
+        } else {
+          // Add to list
+          const title = "title" in item ? item.title : item.name;
+          const newItems = [
+            ...existingItems.map((i) => ({
+              ...i,
+              position: i.position,
+            })),
+            {
+              tmdbId: item.id,
+              mediaType: type,
+              title,
+              posterPath: item.poster_path || null,
+              backdropPath: item.backdrop_path || null,
+              releaseDate: type === "movie" ? (item as TMDBMovie).release_date || null : null,
+              firstAirDate: type === "tv" ? (item as TMDBSeries).first_air_date || null : null,
+              position: existingItems.length + 1,
+            },
+          ];
+
+          await updateList.mutateAsync({
             listId,
-            itemId: listItem.id,
+            items: newItems,
           });
-          toast.success(`Removed from "${list.name}"`);
+          toast.success(`Added to "${list.name}"`);
         }
-      } else {
-        // Add to list
-        const title = "title" in item ? item.title : item.name;
-        const newItems = [
-          ...existingItems.map((i) => ({
-            ...i,
-            position: i.position,
-          })),
-          {
-            tmdbId: item.id,
-            mediaType: type,
-            title,
-            posterPath: item.poster_path || null,
-            backdropPath: item.backdrop_path || null,
-            releaseDate: type === "movie" ? (item as TMDBMovie).release_date || null : null,
-            firstAirDate: type === "tv" ? (item as TMDBSeries).first_air_date || null : null,
-            position: existingItems.length + 1,
-          },
-        ];
-
-        await updateList.mutateAsync({
-          listId,
-          items: newItems,
-        });
-        toast.success(`Added to "${list.name}"`);
+        onAddSuccess?.();
+      } catch (error) {
+        toast.error("Failed to update list");
+        console.error(error);
       }
-      onAddSuccess?.();
-    } catch (error) {
-      toast.error("Failed to update list");
-      console.error(error);
-    }
+    }, "Sign in to manage lists.");
   };
 
   const isItemInPlaylist = (playlist: Playlist) => {
