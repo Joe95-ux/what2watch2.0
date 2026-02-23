@@ -23,7 +23,7 @@ const subTabs = [
 ];
 
 export default function MyListsTab() {
-  const { isSignedIn } = useUser();
+  const { isSignedIn, isLoaded } = useUser();
   const { openSignIn } = useClerk();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -60,7 +60,12 @@ export default function MyListsTab() {
     }
   }, [searchParams]);
 
-  // Show sign-in prompt for unauthenticated users
+  // Show loading state while auth is being checked
+  if (!isLoaded) {
+    return null; // Or you could return a loading skeleton here
+  }
+
+  // Show sign-in prompt for unauthenticated users (only after auth is loaded)
   if (!isSignedIn) {
     return (
       <div className="text-center py-12 space-y-4">
