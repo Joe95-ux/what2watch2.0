@@ -90,16 +90,16 @@ export default function PublicListsTab() {
   }, [allPlaylists, currentPage]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       {/* Tabs, View Toggle and Create Button */}
       <Tabs value={activeTab} onValueChange={(v) => {
         setActiveTab(v as TabType);
         setCurrentPage(1);
       }} className="w-full">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-6">
-          <TabsList>
-            <TabsTrigger value="lists" className="cursor-pointer">Lists</TabsTrigger>
-            <TabsTrigger value="playlists" className="cursor-pointer">Playlists</TabsTrigger>
+          <TabsList className="py-[10px] px-[3px] rounded-[20px]">
+            <TabsTrigger value="lists" className="cursor-pointer p-[15px] rounded-[20px]">Lists</TabsTrigger>
+            <TabsTrigger value="playlists" className="cursor-pointer p-[15px] rounded-[20px]">Playlists</TabsTrigger>
           </TabsList>
           
           {/* View Toggle and Create Button - Only for authenticated users */}

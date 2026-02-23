@@ -100,16 +100,16 @@ export default function MyListsFavoritesTab() {
   }, [filteredItems, currentPage]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       {/* Filter Tabs - Popular page style */}
       <Tabs value={filterType} onValueChange={(v) => {
         setFilterType(v as FilterType);
         setCurrentPage(1);
       }} className="w-full">
-        <TabsList>
-          <TabsTrigger value="all" className="cursor-pointer">All</TabsTrigger>
-          <TabsTrigger value="movie" className="cursor-pointer">Movies</TabsTrigger>
-          <TabsTrigger value="tv" className="cursor-pointer">TV Shows</TabsTrigger>
+        <TabsList className="py-[10px] px-[3px] rounded-[20px]">
+          <TabsTrigger value="all" className="cursor-pointer p-[15px] rounded-[20px]">All</TabsTrigger>
+          <TabsTrigger value="movie" className="cursor-pointer p-[15px] rounded-[20px]">Movies</TabsTrigger>
+          <TabsTrigger value="tv" className="cursor-pointer p-[15px] rounded-[20px]">TV Shows</TabsTrigger>
         </TabsList>
       </Tabs>
 

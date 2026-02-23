@@ -430,7 +430,7 @@ export default function WatchBreakdownSection({
                     )}
                   </div>
                   <div className="divide-y divide-border rounded-2xl border border-border bg-card/30">
-                    {offers.map((offer) => {
+                    {offers.map((offer, index) => {
                       const dataSource = seasonAvailability != null && seasonNumber != null ? seasonAvailability : availability;
                       const leavingSoon = dataSource?.leavingSoon;
                       const isLeavingSoon = leavingSoon?.some(
@@ -453,6 +453,7 @@ export default function WatchBreakdownSection({
                           <OfferRow
                             offer={offer}
                             ctaLabel={section.ctaLabel}
+                            index={index}
                           />
                         </div>
                       );
@@ -524,7 +525,7 @@ function UpcomingReleaseRow({ release }: { release: JustWatchUpcomingRelease }) 
   );
 }
 
-function OfferRow({ offer, ctaLabel }: { offer: JustWatchOffer; ctaLabel: string }) {
+function OfferRow({ offer, ctaLabel, index }: { offer: JustWatchOffer; ctaLabel: string; index: number }) {
   const isMobile = useIsMobile();
   const displayPrice =
     offer.retailPrice && offer.currency
@@ -537,9 +538,13 @@ function OfferRow({ offer, ctaLabel }: { offer: JustWatchOffer; ctaLabel: string
   const useDeepLink = isMobile && offer.deepLinkUrl;
   const href = useDeepLink ? (offer.deepLinkUrl ?? offer.standardWebUrl ?? "#") : (offer.standardWebUrl ?? offer.deepLinkUrl ?? "#");
   const linkLabel = useDeepLink ? "Open in app" : ctaLabel;
+  const isEven = index % 2 === 0;
 
   return (
-    <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6">
+    <div className={cn(
+      "flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6",
+      isEven ? "" : "bg-[#f5f5f5] dark:bg-muted/50"
+    )}>
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {offer.iconUrl ? (
           <Image src={offer.iconUrl} alt={offer.providerName} width={32} height={32} className="rounded-md" unoptimized />

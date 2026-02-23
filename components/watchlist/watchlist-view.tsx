@@ -668,7 +668,10 @@ export default function WatchlistView({
             isInListsPage && "rounded-lg"
           )} />
         </div>
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className={cn(
+          "py-8",
+          isInListsPage ? "w-full" : "container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+        )}>
           <Skeleton className="h-10 w-48 mb-8" />
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {Array.from({ length: 12 }).map((_, i) => (
@@ -683,7 +686,10 @@ export default function WatchlistView({
   if (!watchlist || (watchlist.length === 0 && !isLoading)) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className={cn(
+          "py-16",
+          isInListsPage ? "w-full" : "container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+        )}>
           <div className="text-center">
             <h2 className="text-2xl font-semibold mb-2">{errorTitle}</h2>
             <p className="text-muted-foreground mb-4">{errorDescription}</p>
@@ -735,7 +741,10 @@ export default function WatchlistView({
         </div>
 
         {/* Info Section */}
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
+        <div className={cn(
+          "pt-6 sm:pt-8",
+          isInListsPage ? "w-full" : "container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+        )}>
           <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
             <div className="flex-1">
               {user ? (
@@ -918,7 +927,10 @@ export default function WatchlistView({
 
         {/* Bulk Actions Bar */}
         {isEditMode && enableRemove && (
-          <div className="container max-w-7xl mx-auto mt-[1rem] px-4 sm:px-6 lg:px-8">
+          <div className={cn(
+            "mt-[1rem]",
+            isInListsPage ? "w-full" : "container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+          )}>
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 py-4 border-b border-border bg-muted/30 rounded-lg px-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
                 <Button
@@ -1181,7 +1193,10 @@ export default function WatchlistView({
         )}
 
         {/* Content */}
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className={cn(
+          "py-8",
+          isInListsPage ? "w-full" : "container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+        )}>
           {/* View Mode Toggle and Filters / Edit Mode Actions */}
           <div className="mb-6 flex flex-col md:flex-row items-start justify-between gap-4">
             {isEditMode && enableEdit ? (

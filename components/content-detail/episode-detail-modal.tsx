@@ -188,8 +188,8 @@ function EpisodeModalWhereToWatch({
             <h5 className="text-xl font-semibold">{section.title}</h5>
             <p className="text-sm text-muted-foreground">{section.description}</p>
             <div className="divide-y divide-border rounded-2xl border border-border bg-card/30">
-              {offers.map((offer) => (
-                <ModalOfferRow key={`${offer.providerId}-${offer.monetizationType}`} offer={offer} ctaLabel={section.ctaLabel} />
+              {offers.map((offer, index) => (
+                <ModalOfferRow key={`${offer.providerId}-${offer.monetizationType}`} offer={offer} ctaLabel={section.ctaLabel} index={index} />
               ))}
             </div>
           </div>
@@ -199,14 +199,18 @@ function EpisodeModalWhereToWatch({
   );
 }
 
-function ModalOfferRow({ offer, ctaLabel }: { offer: JustWatchOffer; ctaLabel: string }) {
+function ModalOfferRow({ offer, ctaLabel, index }: { offer: JustWatchOffer; ctaLabel: string; index: number }) {
   const displayPrice =
     offer.retailPrice && offer.currency
       ? new Intl.NumberFormat(undefined, { style: "currency", currency: offer.currency, maximumFractionDigits: 2 }).format(offer.retailPrice)
       : null;
   const href = offer.standardWebUrl ?? offer.deepLinkUrl ?? "#";
+  const isEven = index % 2 === 0;
   return (
-    <div className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+    <div className={cn(
+      "flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
+      isEven ? "" : "bg-[#f5f5f5] dark:bg-muted/50"
+    )}>
       <div className="flex items-center gap-2 min-w-0">
         {offer.iconUrl ? (
           <Image src={offer.iconUrl} alt={offer.providerName} width={24} height={24} className="rounded flex-shrink-0" unoptimized />

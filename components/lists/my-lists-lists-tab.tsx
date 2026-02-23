@@ -113,7 +113,7 @@ export default function MyListsListsTab() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       {/* Header with Tabs - Desktop: same row, Mobile: toggle/CTA above tabs */}
       <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         {/* Tabs - Popular page style */}
@@ -122,9 +122,9 @@ export default function MyListsListsTab() {
             setActiveTab(v as TabType);
             setCurrentPage(1);
           }} className="w-full">
-            <TabsList>
-              <TabsTrigger value="lists" className="cursor-pointer">Curated Lists</TabsTrigger>
-              <TabsTrigger value="playlists" className="cursor-pointer">Playlists</TabsTrigger>
+            <TabsList className="py-[10px] px-[3px] rounded-[20px]">
+              <TabsTrigger value="lists" className="cursor-pointer p-[15px] rounded-[20px]">Curated Lists</TabsTrigger>
+              <TabsTrigger value="playlists" className="cursor-pointer p-[15px] rounded-[20px]">Playlists</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
