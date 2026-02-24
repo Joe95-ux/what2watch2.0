@@ -276,7 +276,7 @@ export function UnifiedNotificationCenter() {
                       key={notification.id}
                       className={cn(
                         "p-4 hover:bg-muted/50 transition-colors",
-                        !notification.isRead && "border-l-[3px] border-l-primary bg-primary/10 dark:bg-primary/20"
+                        !notification.isRead && "border-l-[3px] border-l-primary bg-blue-50 dark:[background:var(--unread-notification-bg)]"
                       )}
                     >
                       <div className="flex gap-3">
@@ -371,7 +371,7 @@ export function UnifiedNotificationCenter() {
                       onClick={() => handleGeneralNotificationClick(notification)}
                       className={cn(
                         "p-4 hover:bg-muted/50 transition-colors cursor-pointer",
-                        !notification.isRead && "border-l-[3px] border-l-primary bg-primary/10 dark:bg-primary/20"
+                        !notification.isRead && "border-l-[3px] border-l-primary bg-blue-50 dark:[background:var(--unread-notification-bg)]"
                       )}
                     >
                       <div className="flex gap-3">
@@ -457,7 +457,7 @@ export function UnifiedNotificationCenter() {
                       <div
                         className={cn(
                           "p-4 hover:bg-muted/50 transition-colors",
-                          !notification.isRead && "border-l-[3px] border-l-primary bg-primary/10 dark:bg-primary/20"
+                          !notification.isRead && "border-l-[3px] border-l-primary bg-blue-50 dark:[background:var(--unread-notification-bg)]"
                         )}
                       >
                         <div className="flex gap-3">

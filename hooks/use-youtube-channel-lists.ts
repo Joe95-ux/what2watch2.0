@@ -26,6 +26,7 @@ export interface YouTubeChannelList {
   isPublic: boolean;
   tags: string[];
   followersCount: number;
+  viewsCount?: number;
   items: YouTubeChannelListItem[];
   user: {
     id: string;

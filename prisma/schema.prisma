@@ -109,6 +109,8 @@ model User {
   playlistEngagementActions PlaylistEngagementEvent[] @relation("UserPlaylistEngagementActor")
   listEngagements ListEngagementEvent[] @relation("UserListEngagementOwnership")
   listEngagementActions ListEngagementEvent[] @relation("UserListEngagementActor")
+  youtubeListEngagements YouTubeChannelListEngagementEvent[] @relation("UserYouTubeListEngagementOwnership")
+  youtubeListEngagementActions YouTubeChannelListEngagementEvent[] @relation("UserYouTubeListEngagementActor")
   aiChatEvents AiChatEvent[]
   aiChatSessions AiChatSession[]
   pageViews     PageView[]
@@ -1658,6 +1660,7 @@ model YouTubeChannelList {
 
   items          YouTubeChannelListItem[]
   followedBy     YouTubeChannelListFollow[]
+  engagementEvents YouTubeChannelListEngagementEvent[]
 
   createdAt      DateTime                  @default(now())
   updatedAt      DateTime                  @updatedAt
@@ -1702,6 +1705,31 @@ model YouTubeChannelListFollow {
   @@unique([listId, userId])
   @@index([listId])
   @@index([userId])
+}
+
+enum YouTubeChannelListEngagementType {
+  SHARE
+  VISIT
+}
+
+model YouTubeChannelListEngagementEvent {
+  id           String                           @id @default(auto()) @map("_id") @db.ObjectId
+  listId       String                           @db.ObjectId
+  list         YouTubeChannelList               @relation(fields: [listId], references: [id], onDelete: Cascade)
+  ownerId      String                           @db.ObjectId
+  owner        User                             @relation("UserYouTubeListEngagementOwnership", fields: [ownerId], references: [id], onDelete: Cascade)
+  actorId      String?                          @db.ObjectId
+  actor        User?                            @relation("UserYouTubeListEngagementActor", fields: [actorId], references: [id])
+  type         YouTubeChannelListEngagementType
+  source       String?
+  visitorToken String?
+  metadata     Json?
+  createdAt    DateTime                         @default(now())
+
+  @@map("youtube_channel_list_engagement_events")
+  @@index([listId])
+  @@index([ownerId, type])
+  @@index([visitorToken])
 }
 
 model YouTubeBadge {

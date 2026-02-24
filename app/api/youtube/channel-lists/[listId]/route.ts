@@ -29,8 +29,13 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // Calculate viewsCount from engagement events
+    const viewsCount = await db.youTubeChannelListEngagementEvent.count({
+      where: { listId, type: "VISIT" },
+    });
+
     const [hydrated] = await attachViewerStateToLists([list], currentUserId);
-    return NextResponse.json({ list: hydrated });
+    return NextResponse.json({ list: { ...hydrated, viewsCount } });
   } catch (error) {
     console.error("[YouTubeChannelLists] GET detail error", error);
     return NextResponse.json(

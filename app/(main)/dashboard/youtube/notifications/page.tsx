@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { CheckCheck, ExternalLink, MoreVertical, Trash2, Search, Filter, X, ArrowUpDown, ArrowDown, ArrowUp, ChevronDown, ChevronUp } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { CheckCheck, ExternalLink, MoreVertical, Trash2, Search, Filter, X, ArrowUpDown, ArrowDown, ArrowUp, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -48,6 +48,8 @@ export default function YouTubeNotificationsPage() {
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
   const [sortField, setSortField] = useState<"date" | "channel">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
   
   const { data, isLoading } = useYouTubeNotifications(filter === "unread");
   const markAsRead = useMarkNotificationsAsRead();
@@ -106,6 +108,19 @@ export default function YouTubeNotificationsPage() {
     
     return filtered;
   }, [allNotifications, filter, debouncedSearchQuery, channelFilter, sortField, sortOrder]);
+
+  // Paginate notifications
+  const paginatedNotifications = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return notifications.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [notifications, currentPage]);
+
+  const totalPages = Math.ceil(notifications.length / ITEMS_PER_PAGE);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, debouncedSearchQuery, channelFilter, sortField, sortOrder]);
 
   const handleMarkAsRead = (notificationId?: string) => {
     if (notificationId) {
@@ -372,29 +387,31 @@ export default function YouTubeNotificationsPage() {
                       )}
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56 max-h-[300px] overflow-y-auto">
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setChannelFilter("all");
-                        setOpenDropdowns((prev) => ({ ...prev, Channel: false }));
-                      }}
-                      className={cn("cursor-pointer", channelFilter === "all" && "bg-accent")}
-                    >
-                      All Channels
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    {uniqueChannels.map((channel) => (
+                  <DropdownMenuContent align="start" className="w-56">
+                    <div className="max-h-[300px] overflow-y-auto">
                       <DropdownMenuItem
-                        key={channel.title}
                         onClick={() => {
-                          setChannelFilter(channel.title);
+                          setChannelFilter("all");
                           setOpenDropdowns((prev) => ({ ...prev, Channel: false }));
                         }}
-                        className={cn("cursor-pointer", channelFilter === channel.title && "bg-accent")}
+                        className={cn("cursor-pointer", channelFilter === "all" && "bg-accent")}
                       >
-                        {channel.title}
+                        All Channels
                       </DropdownMenuItem>
-                    ))}
+                      <DropdownMenuSeparator />
+                      {uniqueChannels.map((channel) => (
+                        <DropdownMenuItem
+                          key={channel.title}
+                          onClick={() => {
+                            setChannelFilter(channel.title);
+                            setOpenDropdowns((prev) => ({ ...prev, Channel: false }));
+                          }}
+                          className={cn("cursor-pointer", channelFilter === channel.title && "bg-accent")}
+                        >
+                          {channel.title}
+                        </DropdownMenuItem>
+                      ))}
+                    </div>
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -431,8 +448,9 @@ export default function YouTubeNotificationsPage() {
           <p>No notifications</p>
         </div>
       ) : (
-        <div className="bg-card border rounded-lg divide-y">
-          {notifications.map((notification) => (
+        <>
+          <div className="bg-card border rounded-lg divide-y">
+            {paginatedNotifications.map((notification) => (
             <div
               key={notification.id}
               className={`p-4 hover:bg-muted/50 transition-colors ${
@@ -530,7 +548,62 @@ export default function YouTubeNotificationsPage() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="cursor-pointer"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((page) => {
+                    // Show first page, last page, current page, and pages around current
+                    if (page === 1 || page === totalPages) return true;
+                    if (Math.abs(page - currentPage) <= 1) return true;
+                    return false;
+                  })
+                  .map((page, index, array) => {
+                    // Add ellipsis if there's a gap
+                    const showEllipsisBefore = index > 0 && page - array[index - 1] > 1;
+                    return (
+                      <div key={page} className="flex items-center gap-1">
+                        {showEllipsisBefore && (
+                          <span className="px-2 text-muted-foreground">...</span>
+                        )}
+                        <Button
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className="cursor-pointer min-w-[40px]"
+                        >
+                          {page}
+                        </Button>
+                      </div>
+                    );
+                  })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="cursor-pointer"
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

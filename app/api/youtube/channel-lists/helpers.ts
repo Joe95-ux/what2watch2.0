@@ -171,8 +171,26 @@ export async function attachViewerStateToLists(
     followingIds = new Set(follows.map((follow) => follow.listId));
   }
 
+  // Calculate viewsCount for all lists in a single query
+  const listIds = lists.map((list) => list.id);
+  const viewsCounts = await db.youTubeChannelListEngagementEvent.groupBy({
+    by: ["listId"],
+    where: {
+      listId: { in: listIds },
+      type: "VISIT",
+    },
+    _count: {
+      id: true,
+    },
+  });
+
+  const viewsCountMap = new Map(
+    viewsCounts.map((item) => [item.listId, item._count.id])
+  );
+
   return lists.map((list) => ({
     ...list,
+    viewsCount: viewsCountMap.get(list.id) ?? 0,
     viewerState: {
       isOwner: currentUserId ? list.userId === currentUserId : false,
       isFollowing: currentUserId ? followingIds.has(list.id) : false,

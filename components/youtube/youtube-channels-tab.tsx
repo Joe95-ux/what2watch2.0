@@ -48,7 +48,7 @@ export function YouTubeChannelsTab() {
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: "30",
+        limit: "32",
       });
       if (categoryFilter !== "all") {
         params.append("category", categoryFilter);
@@ -127,7 +127,7 @@ export function YouTubeChannelsTab() {
       {/* Channels Grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 30 }).map((_, index) => 
+          {Array.from({ length: 32 }).map((_, index) => 
             (cardStyle || "centered") === "horizontal" ? (
               <YouTubeChannelCardHorizontalSkeleton key={index} />
             ) : (
@@ -159,6 +159,7 @@ export function YouTubeChannelsTab() {
                 size="sm"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
+                className="cursor-pointer"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -182,7 +183,7 @@ export function YouTubeChannelsTab() {
                           variant={page === pageNum ? "default" : "outline"}
                           size="sm"
                           onClick={() => setPage(pageNum)}
-                          className="min-w-[2.5rem]"
+                          className="min-w-[2.5rem] cursor-pointer"
                         >
                           {pageNum}
                         </Button>
@@ -195,6 +196,7 @@ export function YouTubeChannelsTab() {
                 size="sm"
                 onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
                 disabled={page >= pagination.totalPages}
+                className="cursor-pointer"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { Share2, Pencil, Trash2, ArrowLeftCircle, Users, Facebook, Twitter, MessageCircle, Mail, Link2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Share2, Pencil, Trash2, ArrowLeftCircle, Users, Facebook, Twitter, MessageCircle, Mail, Link2, Eye, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -201,6 +201,40 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
   const { data: availableChannels = [] } = useYouTubeChannels();
   const deleteList = useDeleteYouTubeChannelList();
   const toggleFollow = useToggleYouTubeChannelListFollow();
+  const [hasLoggedVisit, setHasLoggedVisit] = useState(false);
+
+  // Track visit event when viewing a YouTube list
+  useEffect(() => {
+    if (!list || hasLoggedVisit || list.viewerState.isOwner) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const logVisit = async () => {
+      try {
+        await fetch("/api/analytics/youtube-list-events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            listId: list.id,
+            type: "VISIT",
+            source: "youtube_list_view",
+          }),
+          signal: controller.signal,
+        });
+        setHasLoggedVisit(true);
+      } catch (logError) {
+        if ((logError as Error).name !== "AbortError") {
+          console.error("Failed to log YouTube list visit", logError);
+        }
+      }
+    };
+
+    logVisit();
+
+    return () => controller.abort();
+  }, [list, hasLoggedVisit]);
 
   if (isLoading) {
     return (
@@ -298,10 +332,25 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
   const ownerName = list.user?.username || list.user?.displayName || "Curator";
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
 
-  const handleSocialShare = (platform: "facebook" | "twitter" | "whatsapp" | "email" | "link") => {
+  const handleSocialShare = async (platform: "facebook" | "twitter" | "whatsapp" | "email" | "link") => {
     const encodedUrl = encodeURIComponent(shareUrl);
     const encodedTitle = encodeURIComponent(list.name);
     const encodedDescription = encodeURIComponent(list.description || "");
+
+    // Track share event
+    try {
+      await fetch("/api/analytics/youtube-list-events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          listId: list.id,
+          type: "SHARE",
+          source: platform,
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to log share event", error);
+    }
 
     if (platform === "link") {
       navigator.clipboard.writeText(shareUrl);
@@ -373,6 +422,25 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
               ))}
             </div>
           ) : null}
+
+          {/* List activity */}
+          {list && (
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                List activity
+              </span>
+              <div className="text-sm text-primary flex items-center gap-4 flex-wrap">
+                <span className="flex items-center gap-1.5">
+                  <Eye className="h-4 w-4" />
+                  {list.viewsCount ?? 0} {list.viewsCount === 1 ? "view" : "views"}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Users className="h-4 w-4" />
+                  {list.followersCount ?? list._count?.followedBy ?? 0} {list.followersCount === 1 ? "follower" : "followers"}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Vertical Divider - Hidden on mobile */}

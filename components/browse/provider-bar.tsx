@@ -143,7 +143,7 @@ export function ProviderBar({
                   : "bg-transparent text-muted-foreground hover:text-foreground"
               )}
             >
-              Subscriptions ({providerCounts.subscriptions})
+              Subscriptions
             </button>
             <button
               onClick={() => handleFilterChange("buy-rent")}
@@ -154,7 +154,7 @@ export function ProviderBar({
                   : "bg-transparent text-muted-foreground hover:text-foreground"
               )}
             >
-              Buy/Rent ({providerCounts["buy-rent"]})
+              Buy/Rent
             </button>
             <button
               onClick={() => handleFilterChange("free")}
@@ -165,7 +165,7 @@ export function ProviderBar({
                   : "bg-transparent text-muted-foreground hover:text-foreground"
               )}
             >
-              Free ({providerCounts.free})
+              Free
             </button>
           </div>
 
@@ -210,10 +210,7 @@ export function ProviderBar({
                         <button
                           onClick={() => onProviderClick(provider.provider_id)}
                           className={cn(
-                            "cursor-pointer rounded-lg p-0 h-10 w-10 transition-colors flex items-center justify-center overflow-hidden relative",
-                            isSelected
-                              ? "bg-primary border-0"
-                              : "bg-background hover:bg-accent border border-black/10 dark:border-border"
+                            "cursor-pointer rounded-lg p-0 h-10 w-10 transition-colors flex items-center justify-center overflow-hidden relative bg-background hover:bg-accent border border-black/10 dark:border-border"
                           )}
                         >
                           {provider.logo_path ? (
