@@ -139,7 +139,17 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
         {isSignedIn && (
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <Link href="/dashboard" onClick={onLinkClick} className="flex-1">
+              <Link 
+                href="/dashboard" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  onLinkClick();
+                  setTimeout(() => {
+                    router.push("/dashboard");
+                  }, 100);
+                }} 
+                className="flex-1"
+              >
                 <div className="flex flex-col items-center gap-2">
                     <div className="rounded-full bg-muted/85 dark:bg-muted/50 p-3">
                       <LayoutDashboard className="h-5 w-5 text-foreground" />
@@ -245,25 +255,61 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
         {isSignedIn && (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
-              <Link href="/dashboard/watchlist" onClick={onLinkClick}>
+              <Link 
+                href="/dashboard/watchlist" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  onLinkClick();
+                  setTimeout(() => {
+                    router.push("/dashboard/watchlist");
+                  }, 100);
+                }}
+              >
                 <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors">
                   <Bookmark className="h-5 w-5 text-foreground" />
                   <span className="text-xs font-medium">Watchlist</span>
                 </div>
               </Link>
-              <Link href="/dashboard/lists" onClick={onLinkClick}>
+              <Link 
+                href="/dashboard/lists" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  onLinkClick();
+                  setTimeout(() => {
+                    router.push("/dashboard/lists");
+                  }, 100);
+                }}
+              >
                 <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors">
                   <ClipboardList className="h-5 w-5 text-foreground" />
                   <span className="text-xs font-medium">Lists</span>
                 </div>
               </Link>
-              <Link href="/dashboard/playlists" onClick={onLinkClick}>
+              <Link 
+                href="/dashboard/playlists" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  onLinkClick();
+                  setTimeout(() => {
+                    router.push("/dashboard/playlists");
+                  }, 100);
+                }}
+              >
                 <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors">
                   <List className="h-5 w-5 text-foreground" />
                   <span className="text-xs font-medium">Playlists</span>
                 </div>
               </Link>
-              <Link href="/dashboard/diary" onClick={onLinkClick}>
+              <Link 
+                href="/dashboard/diary" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  onLinkClick();
+                  setTimeout(() => {
+                    router.push("/dashboard/diary");
+                  }, 100);
+                }}
+              >
                 <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors">
                   <BookOpen className="h-5 w-5 text-foreground" />
                   <span className="text-xs font-medium">Diary</span>
@@ -307,7 +353,13 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               <Link
                 key={link.href}
                 href={link.href}
-                onClick={onLinkClick}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onLinkClick();
+                  setTimeout(() => {
+                    router.push(link.href);
+                  }, 100);
+                }}
                 className={cn(
                   "flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors",
                   "text-[0.95rem]",
@@ -325,7 +377,13 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                 <Link
                   key="/browse/personalized"
                   href="/browse/personalized"
-                  onClick={onLinkClick}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onLinkClick();
+                    setTimeout(() => {
+                      router.push("/browse/personalized");
+                    }, 100);
+                  }}
                   className={cn(
                     "flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
                     pathname === "/browse/personalized" || pathname?.startsWith("/browse/personalized")
@@ -347,7 +405,13 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               <a
                 href="/youtube"
                 className="flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem] text-muted-foreground"
-                onClick={onLinkClick}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onLinkClick();
+                  setTimeout(() => {
+                    router.push("/youtube");
+                  }, 100);
+                }}
               >
                 <YoutubeIcon className="mr-3 h-4 w-4 text-foreground" />
                 <span>YouTube</span>
@@ -385,7 +449,13 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                         <Link
                           key={item.href}
                           href={item.href}
-                          onClick={onLinkClick}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            onLinkClick();
+                            setTimeout(() => {
+                              router.push(item.href);
+                            }, 100);
+                          }}
                           className={cn(
                             "flex items-center rounded-md px-3 py-2 bg-muted/60 dark:bg-muted/40 hover:bg-muted/50 transition-colors text-[0.9rem]",
                             isActive
@@ -410,7 +480,13 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
           <div className="space-y-2">
             <Link
               href="/settings"
-              onClick={onLinkClick}
+              onClick={(e) => {
+                e.preventDefault();
+                onLinkClick();
+                setTimeout(() => {
+                  router.push("/settings");
+                }, 100);
+              }}
               className={cn(
                 "flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
                 pathname === "/settings"
@@ -423,7 +499,13 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
             </Link>
             <Link
               href="/dashboard/profile"
-              onClick={onLinkClick}
+              onClick={(e) => {
+                e.preventDefault();
+                onLinkClick();
+                setTimeout(() => {
+                  router.push("/dashboard/profile");
+                }, 100);
+              }}
               className={cn(
                 "flex items-center w-full rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
                 pathname === "/dashboard/profile"

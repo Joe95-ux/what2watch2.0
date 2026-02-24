@@ -321,7 +321,7 @@ export default function DashboardContent() {
                   onClick={() => setSelectServicesModalOpen(true)}
                   className="h-16 w-16 sm:h-20 sm:w-20 flex-shrink-0 cursor-pointer rounded-lg"
                 >
-                  <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
+                  <Plus className="size-6 sm:size-8" />
                 </Button>
                 
                 {/* Carousel */}
@@ -338,16 +338,16 @@ export default function DashboardContent() {
                     }}
                     className="w-full"
                   >
-                    <CarouselContent className="-ml-2 md:-ml-4 gap-3">
+                    <CarouselContent className="-ml-2 sm:-ml-3 md:-ml-4">
                       {selectedProviderObjects.map((provider) => (
-                        <CarouselItem key={provider.provider_id} className="pl-2 md:pl-4 basis-[80px] sm:basis-[100px]">
+                        <CarouselItem key={provider.provider_id} className="pl-2 sm:pl-3 md:pl-4 basis-[80px] sm:basis-[100px]">
                           <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-lg border border-border overflow-hidden bg-muted hover:border-primary transition-colors cursor-pointer">
                             {provider.logo_path ? (
                               <Image
                                 src={`https://image.tmdb.org/t/p/w154${provider.logo_path}`}
                                 alt={provider.provider_name}
                                 fill
-                                className="object-contain p-2"
+                                className="object-contain rounded-lg"
                                 unoptimized
                               />
                             ) : (

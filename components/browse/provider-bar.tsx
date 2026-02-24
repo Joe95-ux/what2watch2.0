@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import Image from "next/image";
@@ -29,26 +29,6 @@ export function ProviderBar({
 }: ProviderBarProps) {
   const [selectedFilter, setSelectedFilter] = useState<FilterType>("all");
 
-  // Get provider counts by type
-  const providerCounts = useMemo(() => {
-    // This would need to be calculated based on actual provider data
-    // For now, using placeholder logic
-    const allCount = providers.length;
-    const myServicesCount = selectedProviders.length;
-    // These would need actual data from JustWatch or TMDB to determine provider types
-    const subscriptionsCount = providers.length; // Placeholder
-    const buyRentCount = providers.length; // Placeholder
-    const freeCount = providers.length; // Placeholder
-
-    return {
-      all: allCount,
-      "my-services": myServicesCount,
-      subscriptions: subscriptionsCount,
-      "buy-rent": buyRentCount,
-      free: freeCount,
-    };
-  }, [providers, selectedProviders]);
-
   // Filter providers based on selected filter
   const filteredProviders = useMemo(() => {
     if (selectedFilter === "all") {
@@ -60,81 +40,87 @@ export function ProviderBar({
     return providers;
   }, [providers, selectedFilter, selectedProviders]);
 
+  // Get provider counts by type based on filtered results
+  const providerCounts = useMemo(() => {
+    const allCount = providers.length;
+    const myServicesCount = selectedProviders.length;
+    // For other filters, show count of filtered providers (which will be all for now)
+    const filteredCount = filteredProviders.length;
+
+    return {
+      all: allCount,
+      "my-services": myServicesCount,
+      subscriptions: filteredCount,
+      "buy-rent": filteredCount,
+      free: filteredCount,
+    };
+  }, [providers, selectedProviders, filteredProviders]);
+
   return (
-    <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div className="w-full bg-background/95 backdrop-blur-sm">
+      <div className="container mx-auto py-4">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           {/* Filter Buttons */}
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-shrink-0 px-4 sm:px-6 lg:px-8">
+            <button
               onClick={() => setSelectedFilter("all")}
               className={cn(
-                "h-9 rounded-[25px] border-none flex-shrink-0",
+                "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
                 selectedFilter === "all"
-                  ? "bg-blue-50 text-foreground border-blue-200 dark:bg-blue-900 dark:border-blue-700"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  ? "bg-blue-50 text-foreground dark:bg-accent"
+                  : "bg-transparent text-muted-foreground hover:text-foreground"
               )}
             >
               All ({providerCounts.all})
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
+            </button>
+            <button
               onClick={() => setSelectedFilter("my-services")}
               className={cn(
-                "h-9 rounded-[25px] border-none flex-shrink-0",
+                "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
                 selectedFilter === "my-services"
-                  ? "bg-blue-50 text-foreground border-blue-200 dark:bg-blue-900 dark:border-blue-700"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  ? "bg-blue-50 text-foreground dark:bg-accent"
+                  : "bg-transparent text-muted-foreground hover:text-foreground"
               )}
             >
               My Services ({providerCounts["my-services"]})
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
+            </button>
+            <button
               onClick={() => setSelectedFilter("subscriptions")}
               className={cn(
-                "h-9 rounded-[25px] border-none flex-shrink-0",
+                "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
                 selectedFilter === "subscriptions"
-                  ? "bg-blue-50 text-foreground border-blue-200 dark:bg-blue-900 dark:border-blue-700"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  ? "bg-blue-50 text-foreground dark:bg-accent"
+                  : "bg-transparent text-muted-foreground hover:text-foreground"
               )}
             >
               Subscriptions ({providerCounts.subscriptions})
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
+            </button>
+            <button
               onClick={() => setSelectedFilter("buy-rent")}
               className={cn(
-                "h-9 rounded-[25px] border-none flex-shrink-0",
+                "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
                 selectedFilter === "buy-rent"
-                  ? "bg-blue-50 text-foreground border-blue-200 dark:bg-blue-900 dark:border-blue-700"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  ? "bg-blue-50 text-foreground dark:bg-accent"
+                  : "bg-transparent text-muted-foreground hover:text-foreground"
               )}
             >
               Buy/Rent ({providerCounts["buy-rent"]})
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
+            </button>
+            <button
               onClick={() => setSelectedFilter("free")}
               className={cn(
-                "h-9 rounded-[25px] border-none flex-shrink-0",
+                "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
                 selectedFilter === "free"
-                  ? "bg-blue-50 text-foreground border-blue-200 dark:bg-blue-900 dark:border-blue-700"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  ? "bg-blue-50 text-foreground dark:bg-accent"
+                  : "bg-transparent text-muted-foreground hover:text-foreground"
               )}
             >
               Free ({providerCounts.free})
-            </Button>
+            </button>
           </div>
 
           {/* Plus Button and Provider Carousel */}
-          <div className="relative group/carousel flex-1 min-w-0">
+          <div className="relative group/carousel flex-1 min-w-0 px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-2">
               {/* Plus Button (only shown when My Services is selected) */}
               {selectedFilter === "my-services" && (
@@ -164,38 +150,40 @@ export function ProviderBar({
                 className="flex-1 min-w-0"
               >
                 <CarouselContent className="-ml-2 sm:-ml-3 md:-ml-4">
-                  {filteredProviders.map((provider) => (
-                    <CarouselItem
-                      key={provider.provider_id}
-                      className="pl-2 sm:pl-3 md:pl-4 basis-auto"
-                    >
-                      <button
-                        onClick={() => onProviderClick(provider.provider_id)}
-                        className={cn(
-                          "relative h-16 w-16 rounded-lg border overflow-hidden bg-muted hover:border-primary transition-colors cursor-pointer",
-                          activeProvider === provider.provider_id
-                            ? "border-primary border-2"
-                            : selectedProviders.includes(provider.provider_id)
-                            ? "border-green-500 border-2"
-                            : "border-border"
-                        )}
+                  {filteredProviders.map((provider) => {
+                    const isSelected = activeProvider === provider.provider_id;
+                    return (
+                      <CarouselItem
+                        key={provider.provider_id}
+                        className="pl-2 sm:pl-3 md:pl-4 basis-auto"
                       >
-                        {provider.logo_path ? (
-                          <Image
-                            src={`https://image.tmdb.org/t/p/w154${provider.logo_path}`}
-                            alt={provider.provider_name}
-                            fill
-                            className="object-contain p-2"
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="h-full w-full flex items-center justify-center text-xs text-center p-2">
-                            {provider.provider_name}
-                          </div>
-                        )}
-                      </button>
-                    </CarouselItem>
-                  ))}
+                        <button
+                          onClick={() => onProviderClick(provider.provider_id)}
+                          className={cn(
+                            "cursor-pointer rounded-lg border-0 p-0 h-10 w-10 transition-colors flex items-center justify-center overflow-hidden relative",
+                            isSelected
+                              ? "bg-primary"
+                              : "bg-background hover:bg-accent"
+                          )}
+                        >
+                          {provider.logo_path ? (
+                            <img
+                              src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
+                              alt={provider.provider_name}
+                              className="h-full w-full object-cover rounded-lg"
+                            />
+                          ) : (
+                            <span className="text-xs font-medium truncate">{provider.provider_name.slice(0, 2)}</span>
+                          )}
+                          {isSelected && (
+                            <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50">
+                              <Check className="h-5 w-5 text-white shrink-0" />
+                            </span>
+                          )}
+                        </button>
+                      </CarouselItem>
+                    );
+                  })}
                 </CarouselContent>
                 <CarouselPrevious className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10" />
                 <CarouselNext className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10" />

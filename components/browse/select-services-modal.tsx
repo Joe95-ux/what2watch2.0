@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, X } from "lucide-react";
+import { Search, X, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import Image from "next/image";
@@ -83,7 +83,7 @@ export function SelectServicesModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+      <DialogContent className="max-w-full sm:max-w-[38rem] max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle>Select Your Services</DialogTitle>
         </DialogHeader>
@@ -111,23 +111,23 @@ export function SelectServicesModal({
                       key={provider.provider_id}
                       className="pl-2 sm:pl-3 basis-auto"
                     >
-                      <div className="relative h-20 w-20 rounded-lg border-2 border-green-500 overflow-hidden bg-muted">
-                        {provider.logo_path ? (
-                          <Image
-                            src={`https://image.tmdb.org/t/p/w154${provider.logo_path}`}
-                            alt={provider.provider_name}
-                            fill
-                            className="object-contain p-2"
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="h-full w-full flex items-center justify-center text-xs text-center p-2">
-                            {provider.provider_name}
-                          </div>
-                        )}
+                      <div className="relative">
+                        <button
+                          className="cursor-pointer rounded-lg border-0 p-0 h-10 w-10 transition-colors flex items-center justify-center overflow-hidden relative bg-primary"
+                        >
+                          {provider.logo_path ? (
+                            <img
+                              src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
+                              alt={provider.provider_name}
+                              className="h-full w-full object-cover rounded-lg"
+                            />
+                          ) : (
+                            <span className="text-xs font-medium truncate">{provider.provider_name.slice(0, 2)}</span>
+                          )}
+                        </button>
                         <button
                           onClick={() => handleRemoveFromPreview(provider.provider_id)}
-                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors cursor-pointer z-10"
+                          className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors cursor-pointer z-10"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -149,71 +149,61 @@ export function SelectServicesModal({
               <>
                 {/* Quick Filter Buttons */}
                 <div className="flex items-center gap-2 flex-1 overflow-x-auto scrollbar-hide">
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <button
                     onClick={() => setProviderTypeFilter("all")}
                     className={cn(
-                      "h-9 rounded-[25px] border-none flex-shrink-0",
+                      "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
                       providerTypeFilter === "all"
-                        ? "bg-blue-50 text-foreground border-blue-200 dark:bg-blue-900 dark:border-blue-700"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                        ? "bg-blue-50 text-foreground dark:bg-accent"
+                        : "bg-transparent text-muted-foreground hover:text-foreground"
                     )}
                   >
                     All
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  </button>
+                  <button
                     onClick={() => setProviderTypeFilter("flatrate")}
                     className={cn(
-                      "h-9 rounded-[25px] border-none flex-shrink-0",
+                      "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
                       providerTypeFilter === "flatrate"
-                        ? "bg-blue-50 text-foreground border-blue-200 dark:bg-blue-900 dark:border-blue-700"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                        ? "bg-blue-50 text-foreground dark:bg-accent"
+                        : "bg-transparent text-muted-foreground hover:text-foreground"
                     )}
                   >
                     Subscriptions
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  </button>
+                  <button
                     onClick={() => setProviderTypeFilter("buy")}
                     className={cn(
-                      "h-9 rounded-[25px] border-none flex-shrink-0",
+                      "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
                       providerTypeFilter === "buy"
-                        ? "bg-blue-50 text-foreground border-blue-200 dark:bg-blue-900 dark:border-blue-700"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                        ? "bg-blue-50 text-foreground dark:bg-accent"
+                        : "bg-transparent text-muted-foreground hover:text-foreground"
                     )}
                   >
                     Buy
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  </button>
+                  <button
                     onClick={() => setProviderTypeFilter("rent")}
                     className={cn(
-                      "h-9 rounded-[25px] border-none flex-shrink-0",
+                      "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
                       providerTypeFilter === "rent"
-                        ? "bg-blue-50 text-foreground border-blue-200 dark:bg-blue-900 dark:border-blue-700"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                        ? "bg-blue-50 text-foreground dark:bg-accent"
+                        : "bg-transparent text-muted-foreground hover:text-foreground"
                     )}
                   >
                     Rent
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  </button>
+                  <button
                     onClick={() => setProviderTypeFilter("free")}
                     className={cn(
-                      "h-9 rounded-[25px] border-none flex-shrink-0",
+                      "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
                       providerTypeFilter === "free"
-                        ? "bg-blue-50 text-foreground border-blue-200 dark:bg-blue-900 dark:border-blue-700"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                        ? "bg-blue-50 text-foreground dark:bg-accent"
+                        : "bg-transparent text-muted-foreground hover:text-foreground"
                     )}
                   >
                     Free
-                  </Button>
+                  </button>
                 </div>
                 {/* Search Icon */}
                 <Button
@@ -278,7 +268,7 @@ export function SelectServicesModal({
                   <Checkbox
                     checked={selectedProviders.includes(provider.provider_id)}
                     onCheckedChange={() => handleToggleProvider(provider.provider_id)}
-                    className="cursor-pointer data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                    className="cursor-pointer data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 data-[state=checked]:text-white"
                   />
                 </div>
                 {index < filteredProviders.length - 1 && (

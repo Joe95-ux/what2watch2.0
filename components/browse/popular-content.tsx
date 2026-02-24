@@ -22,6 +22,7 @@ import { ProviderBar } from "@/components/browse/provider-bar";
 import { SelectServicesModal } from "@/components/browse/select-services-modal";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 function PopularContentInner() {
   const searchParams = useSearchParams();
@@ -375,7 +376,10 @@ function PopularContentInner() {
   return (
     <div className="min-h-screen bg-background">
       {/* Fixed Filter Nav */}
-      <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-[64px] z-30">
+      <div className={cn(
+        "w-full bg-background/95 backdrop-blur-sm sticky top-[64px] z-30",
+        providerBarOpen && isSignedIn && "border-b border-border/50"
+      )}>
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">
