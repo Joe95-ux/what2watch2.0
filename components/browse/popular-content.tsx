@@ -469,10 +469,10 @@ function PopularContentInner() {
           <div className="flex items-center justify-between py-8">
             {/* Tabs */}
             <Tabs value={type === "movie" ? "movies" : type} onValueChange={(v) => handleTypeChange(v === "movies" ? "movie" : v as "all" | "movie" | "tv")}>
-              <TabsList>
-                <TabsTrigger value="all" className="cursor-pointer">All</TabsTrigger>
-                <TabsTrigger value="movies" className="cursor-pointer">Movies</TabsTrigger>
-                <TabsTrigger value="tv" className="cursor-pointer">TV Shows</TabsTrigger>
+              <TabsList className="bg-background h-auto p-0 gap-2">
+                <TabsTrigger value="all" className="cursor-pointer h-10 border border-border">All</TabsTrigger>
+                <TabsTrigger value="movies" className="cursor-pointer h-10 border border-border">Movies</TabsTrigger>
+                <TabsTrigger value="tv" className="cursor-pointer h-10 border border-border">TV Shows</TabsTrigger>
               </TabsList>
             </Tabs>
 
