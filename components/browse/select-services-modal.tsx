@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,13 @@ export function SelectServicesModal({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  // Sync selectedProviders when initialSelected changes (e.g., when modal opens with updated user preferences)
+  useEffect(() => {
+    if (open) {
+      setSelectedProviders(initialSelected);
+    }
+  }, [initialSelected, open]);
 
   // Filter providers based on type and search
   const filteredProviders = useMemo(() => {
@@ -135,8 +142,8 @@ export function SelectServicesModal({
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                <CarouselPrevious className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10" />
-                <CarouselNext className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10" />
+                <CarouselPrevious className="left-0 h-full w-[45px] rounded-l-md rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10" />
+                <CarouselNext className="right-0 h-full w-[45px] rounded-r-md rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10" />
               </Carousel>
             </div>
           </div>
@@ -268,7 +275,7 @@ export function SelectServicesModal({
                   <Checkbox
                     checked={selectedProviders.includes(provider.provider_id)}
                     onCheckedChange={() => handleToggleProvider(provider.provider_id)}
-                    className="cursor-pointer data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500 data-[state=checked]:text-white"
+                    className="cursor-pointer data-[state=checked]:!bg-red-500 data-[state=checked]:!border-red-500 data-[state=checked]:text-white"
                   />
                 </div>
                 {index < filteredProviders.length - 1 && (

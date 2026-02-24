@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Plus, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Image from "next/image";
 import type { WatchProvider } from "@/hooks/use-watch-providers";
+import { useProviderTypes } from "@/hooks/use-provider-types";
 
 interface ProviderBarProps {
   providers: WatchProvider[];
@@ -28,6 +30,7 @@ export function ProviderBar({
   watchRegion,
 }: ProviderBarProps) {
   const [selectedFilter, setSelectedFilter] = useState<FilterType>("all");
+  const { data: providerTypes } = useProviderTypes(watchRegion);
 
   // Filter providers based on selected filter
   const filteredProviders = useMemo(() => {
@@ -35,22 +38,53 @@ export function ProviderBar({
       return providers;
     } else if (selectedFilter === "my-services") {
       return providers.filter((p) => selectedProviders.includes(p.provider_id));
+    } else if (selectedFilter === "subscriptions" && providerTypes) {
+      return providers.filter((p) => providerTypes.flatrate.has(p.provider_id));
+    } else if (selectedFilter === "buy-rent" && providerTypes) {
+      return providers.filter((p) => 
+        providerTypes.buy.has(p.provider_id) || providerTypes.rent.has(p.provider_id)
+      );
+    } else if (selectedFilter === "free" && providerTypes) {
+      // Free includes both free and ads providers
+      return providers.filter((p) => 
+        providerTypes.free.has(p.provider_id) || providerTypes.ads.has(p.provider_id)
+      );
     }
-    // For other filters, we'd need provider type data
     return providers;
-  }, [providers, selectedFilter, selectedProviders]);
+  }, [providers, selectedFilter, selectedProviders, providerTypes]);
 
   // Get provider counts by type - each count is independent and not affected by selected filter
   const providerCounts = useMemo(() => {
     const allCount = providers.length;
     const myServicesCount = selectedProviders.length;
     
-    // For other filters, we'd need provider type data from JustWatch/TMDB
-    // For now, show total provider count for each (they would be filtered by type when that data is available)
-    // These counts should NOT be affected by the currently selected filter
-    const subscriptionsCount = providers.length; // Placeholder - would filter by subscription type
-    const buyRentCount = providers.length; // Placeholder - would filter by buy/rent type
-    const freeCount = providers.length; // Placeholder - would filter by free type
+    // Calculate counts based on provider types
+    let subscriptionsCount = 0;
+    let buyRentCount = 0;
+    let freeCount = 0;
+
+    if (providerTypes) {
+      // Count unique providers in each category
+      subscriptionsCount = Array.from(providerTypes.flatrate).filter((id) =>
+        providers.some((p) => p.provider_id === id)
+      ).length;
+      
+      const buyRentIds = new Set([...providerTypes.buy, ...providerTypes.rent]);
+      buyRentCount = Array.from(buyRentIds).filter((id) =>
+        providers.some((p) => p.provider_id === id)
+      ).length;
+      
+      // Free includes both free and ads providers
+      const freeIds = new Set([...providerTypes.free, ...providerTypes.ads]);
+      freeCount = Array.from(freeIds).filter((id) =>
+        providers.some((p) => p.provider_id === id)
+      ).length;
+    } else {
+      // Fallback to showing all providers if types aren't loaded yet
+      subscriptionsCount = providers.length;
+      buyRentCount = providers.length;
+      freeCount = providers.length;
+    }
 
     return {
       all: allCount,
@@ -59,69 +93,42 @@ export function ProviderBar({
       "buy-rent": buyRentCount,
       free: freeCount,
     };
-  }, [providers, selectedProviders]);
+  }, [providers, selectedProviders, providerTypes]);
 
   return (
-    <div className="w-full bg-background/95 backdrop-blur-sm">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div className="w-full bg-background/95 backdrop-blur-sm rounded-lg">
+      <div className="container mx-auto px-2 py-4">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
-          {/* Filter Buttons */}
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-shrink-0">
-            <button
-              onClick={() => setSelectedFilter("all")}
-              className={cn(
-                "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
-                selectedFilter === "all"
-                  ? "bg-blue-50 text-foreground dark:bg-accent"
-                  : "bg-transparent text-muted-foreground hover:text-foreground"
-              )}
-            >
-              All ({providerCounts.all})
-            </button>
-            <button
-              onClick={() => setSelectedFilter("my-services")}
-              className={cn(
-                "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
-                selectedFilter === "my-services"
-                  ? "bg-blue-50 text-foreground dark:bg-accent"
-                  : "bg-transparent text-muted-foreground hover:text-foreground"
-              )}
-            >
-              My Services ({providerCounts["my-services"]})
-            </button>
-            <button
-              onClick={() => setSelectedFilter("subscriptions")}
-              className={cn(
-                "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
-                selectedFilter === "subscriptions"
-                  ? "bg-blue-50 text-foreground dark:bg-accent"
-                  : "bg-transparent text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Subscriptions ({providerCounts.subscriptions})
-            </button>
-            <button
-              onClick={() => setSelectedFilter("buy-rent")}
-              className={cn(
-                "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
-                selectedFilter === "buy-rent"
-                  ? "bg-blue-50 text-foreground dark:bg-accent"
-                  : "bg-transparent text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Buy/Rent ({providerCounts["buy-rent"]})
-            </button>
-            <button
-              onClick={() => setSelectedFilter("free")}
-              className={cn(
-                "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
-                selectedFilter === "free"
-                  ? "bg-blue-50 text-foreground dark:bg-accent"
-                  : "bg-transparent text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Free ({providerCounts.free})
-            </button>
+          {/* Filter Dropdown */}
+          <div className="flex-shrink-0">
+            <Select value={selectedFilter} onValueChange={(value) => setSelectedFilter(value as FilterType)}>
+              <SelectTrigger className="w-[180px] h-9 text-[0.95rem] cursor-pointer">
+                <SelectValue>
+                  {selectedFilter === "all" && `All (${providerCounts.all})`}
+                  {selectedFilter === "my-services" && `My Services (${providerCounts["my-services"]})`}
+                  {selectedFilter === "subscriptions" && `Subscriptions (${providerCounts.subscriptions})`}
+                  {selectedFilter === "buy-rent" && `Buy/Rent (${providerCounts["buy-rent"]})`}
+                  {selectedFilter === "free" && `Free (${providerCounts.free})`}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="cursor-pointer">
+                  All ({providerCounts.all})
+                </SelectItem>
+                <SelectItem value="my-services" className="cursor-pointer">
+                  My Services ({providerCounts["my-services"]})
+                </SelectItem>
+                <SelectItem value="subscriptions" className="cursor-pointer">
+                  Subscriptions ({providerCounts.subscriptions})
+                </SelectItem>
+                <SelectItem value="buy-rent" className="cursor-pointer">
+                  Buy/Rent ({providerCounts["buy-rent"]})
+                </SelectItem>
+                <SelectItem value="free" className="cursor-pointer">
+                  Free ({providerCounts.free})
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Plus Button and Provider Carousel */}
@@ -190,8 +197,8 @@ export function ProviderBar({
                     );
                   })}
                 </CarouselContent>
-                <CarouselPrevious className="left-0 h-full w-[45px] rounded-lg border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10" />
-                <CarouselNext className="right-0 h-full w-[45px] rounded-lg border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10" />
+                <CarouselPrevious className="left-0 h-full w-[45px] rounded-l-md rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10" />
+                <CarouselNext className="right-0 h-full w-[45px] rounded-r-md rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10" />
               </Carousel>
             </div>
           </div>
