@@ -168,7 +168,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
     if (onCardClick) {
       onCardClick(item, type);
     } else {
-      router.push(`/${type}/${item.id}`);
+      const title = "title" in item ? item.title : item.name;
+      router.push(createContentUrl(type, item.id, title || ""));
     }
   }, [item, router, type, onCardClick]);
 

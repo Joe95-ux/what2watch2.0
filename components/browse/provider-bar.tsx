@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Plus, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Image from "next/image";
 import type { WatchProvider } from "@/hooks/use-watch-providers";
 import { useProviderTypes } from "@/hooks/use-provider-types";
@@ -99,36 +98,63 @@ export function ProviderBar({
     <div className="w-full bg-background/95 backdrop-blur-sm rounded-lg">
       <div className="container mx-auto px-2 py-4">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
-          {/* Filter Dropdown */}
-          <div className="flex-shrink-0">
-            <Select value={selectedFilter} onValueChange={(value) => setSelectedFilter(value as FilterType)}>
-              <SelectTrigger className="w-[180px] h-9 text-[0.95rem] cursor-pointer">
-                <SelectValue>
-                  {selectedFilter === "all" && `All (${providerCounts.all})`}
-                  {selectedFilter === "my-services" && `My Services (${providerCounts["my-services"]})`}
-                  {selectedFilter === "subscriptions" && `Subscriptions (${providerCounts.subscriptions})`}
-                  {selectedFilter === "buy-rent" && `Buy/Rent (${providerCounts["buy-rent"]})`}
-                  {selectedFilter === "free" && `Free (${providerCounts.free})`}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="cursor-pointer">
-                  All ({providerCounts.all})
-                </SelectItem>
-                <SelectItem value="my-services" className="cursor-pointer">
-                  My Services ({providerCounts["my-services"]})
-                </SelectItem>
-                <SelectItem value="subscriptions" className="cursor-pointer">
-                  Subscriptions ({providerCounts.subscriptions})
-                </SelectItem>
-                <SelectItem value="buy-rent" className="cursor-pointer">
-                  Buy/Rent ({providerCounts["buy-rent"]})
-                </SelectItem>
-                <SelectItem value="free" className="cursor-pointer">
-                  Free ({providerCounts.free})
-                </SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Filter Buttons */}
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide flex-shrink-0">
+            <button
+              onClick={() => setSelectedFilter("all")}
+              className={cn(
+                "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors text-[0.95rem]",
+                selectedFilter === "all"
+                  ? "bg-blue-50 text-foreground dark:bg-accent"
+                  : "bg-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              All ({providerCounts.all})
+            </button>
+            <button
+              onClick={() => setSelectedFilter("my-services")}
+              className={cn(
+                "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors text-[0.95rem]",
+                selectedFilter === "my-services"
+                  ? "bg-blue-50 text-foreground dark:bg-accent"
+                  : "bg-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              My Services ({providerCounts["my-services"]})
+            </button>
+            <button
+              onClick={() => setSelectedFilter("subscriptions")}
+              className={cn(
+                "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors text-[0.95rem]",
+                selectedFilter === "subscriptions"
+                  ? "bg-blue-50 text-foreground dark:bg-accent"
+                  : "bg-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Subscriptions ({providerCounts.subscriptions})
+            </button>
+            <button
+              onClick={() => setSelectedFilter("buy-rent")}
+              className={cn(
+                "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors text-[0.95rem]",
+                selectedFilter === "buy-rent"
+                  ? "bg-blue-50 text-foreground dark:bg-accent"
+                  : "bg-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Buy/Rent ({providerCounts["buy-rent"]})
+            </button>
+            <button
+              onClick={() => setSelectedFilter("free")}
+              className={cn(
+                "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors text-[0.95rem]",
+                selectedFilter === "free"
+                  ? "bg-blue-50 text-foreground dark:bg-accent"
+                  : "bg-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Free ({providerCounts.free})
+            </button>
           </div>
 
           {/* Plus Button and Provider Carousel */}

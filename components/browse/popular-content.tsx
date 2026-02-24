@@ -23,6 +23,7 @@ import { SelectServicesModal } from "@/components/browse/select-services-modal";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { createContentUrl } from "@/lib/content-slug";
 
 function PopularContentInner() {
   const searchParams = useSearchParams();
@@ -149,6 +150,10 @@ function PopularContentInner() {
   // Check if we have active filters (excluding type, as type is handled by tabs)
   const hasActiveFilters = filters.genre.length > 0 || !!filters.year || filters.minRating > 0 || (filters.watchProvider !== undefined && filters.watchProvider > 0);
 
+  // Constants for pagination
+  const ITEMS_PER_PAGE = 24;
+  const API_ITEMS_PER_PAGE = 42;
+
   // Fetch popular movies when no filters and type is movie or all
   const shouldFetchMovies = !hasActiveFilters && (type === "movie" || type === "all");
   const { data: popularMoviesData, isLoading: isLoadingPopularMovies } = useQuery<TMDBResponse<TMDBMovie>>({
@@ -176,13 +181,20 @@ function PopularContentInner() {
   });
 
   // Fetch filtered content when filters are active (genre, year, rating, or watch provider)
+  // Calculate which API page to request to get 24 items per page
+  // API supports pageSize=42, which returns 42 items per page
+  // For our page N, we need items (N-1)*24+1 to N*24
+  // These items are in API page = Math.ceil(((N-1)*24+1) / 42)
+  const apiPage = hasActiveFilters ? Math.ceil(((page - 1) * ITEMS_PER_PAGE + 1) / API_ITEMS_PER_PAGE) : page;
+  
   const { data: filteredData, isLoading: isLoadingFiltered } = useSearch({
     type: hasActiveFilters ? (type === "all" ? undefined : type) : undefined,
     genre: hasActiveFilters && genre.length > 0 ? genre : undefined,
     year: hasActiveFilters && year ? year : undefined,
     minRating: hasActiveFilters && minRating > 0 ? minRating : undefined,
     sortBy: hasActiveFilters ? sortBy : undefined,
-    page,
+    page: apiPage,
+    pageSize: hasActiveFilters ? 42 : undefined, // Request 42 items so we can slice to 24
     watchProvider: hasActiveFilters && filters.watchProvider !== undefined && filters.watchProvider > 0 ? filters.watchProvider : undefined,
     watchRegion: filters.watchRegion || watchRegion,
   });
@@ -195,10 +207,18 @@ function PopularContentInner() {
   let isLoading = false;
 
   if (hasActiveFilters) {
-    results = filteredData?.results || [];
-    totalPages = filteredData?.total_pages || 0;
-    totalResults = filteredData?.total_results || 0;
-    currentPage = filteredData?.page || 1;
+    const filteredResults = filteredData?.results || [];
+    // Slice to 24 items per page to match the "all" type behavior
+    // When pageSize=42, API returns 42 items per page
+    // For our page N, we need items (N-1)*24+1 to N*24 from the API response
+    // Calculate which slice to take from the 42-item response
+    const startIndex = ((page - 1) * ITEMS_PER_PAGE) % API_ITEMS_PER_PAGE;
+    results = filteredResults.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    // Adjust total pages based on 24 items per page
+    const totalFilteredResults = filteredData?.total_results || 0;
+    totalPages = Math.ceil(totalFilteredResults / ITEMS_PER_PAGE);
+    totalResults = totalFilteredResults;
+    currentPage = page;
     isLoading = isLoadingFiltered;
   } else {
     // Use popular content based on type
@@ -370,7 +390,8 @@ function PopularContentInner() {
   };
 
   const handleCardClick = (item: TMDBMovie | TMDBSeries, itemType: "movie" | "tv") => {
-    router.push(`/${itemType}/${item.id}`);
+    const title = "title" in item ? item.title : item.name;
+    router.push(createContentUrl(itemType, item.id, title || ""));
   };
 
   return (
