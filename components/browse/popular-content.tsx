@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearch } from "@/hooks/use-search";
 import { TMDBMovie, TMDBSeries, TMDBResponse } from "@/lib/tmdb";
@@ -14,12 +14,24 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { FiltersSheet, type SearchFilters } from "@/components/filters/filters-sheet";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
 import { useWatchRegions } from "@/hooks/use-watch-regions";
+import { useUserPreferences } from "@/hooks/use-user-preferences";
+import { useUser } from "@clerk/nextjs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ProviderButton } from "@/components/browse/provider-button";
+import { ProviderBar } from "@/components/browse/provider-bar";
+import { SelectServicesModal } from "@/components/browse/select-services-modal";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 function PopularContentInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { isSignedIn } = useUser();
+  const { data: userPreferences } = useUserPreferences();
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [providerBarOpen, setProviderBarOpen] = useState(false);
+  const [selectServicesModalOpen, setSelectServicesModalOpen] = useState(false);
   const [movieGenres, setMovieGenres] = useState<Array<{ id: number; name: string }>>([]);
   const [tvGenres, setTVGenres] = useState<Array<{ id: number; name: string }>>([]);
   const [allGenres, setAllGenres] = useState<Array<{ id: number; name: string }>>([]);
@@ -71,6 +83,55 @@ function PopularContentInner() {
 
   const { data: watchRegions = [] } = useWatchRegions();
   const { data: watchProviders = [] } = useWatchProviders(filters.watchRegion || "US", { all: true });
+  
+  // Get user's selected providers
+  const selectedProviders = userPreferences?.selectedProviders || [];
+  
+  // Get providers for the provider button (first 4 selected, or first 4 available)
+  const providerButtonProviders = useMemo(() => {
+    if (selectedProviders.length > 0) {
+      return watchProviders.filter((p) => selectedProviders.includes(p.provider_id)).slice(0, 4);
+    }
+    return watchProviders.slice(0, 4);
+  }, [watchProviders, selectedProviders]);
+  
+  // Handle saving selected providers
+  const handleSaveProviders = async (providerIds: number[]) => {
+    try {
+      const response = await fetch("/api/user/preferences", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          selectedProviders: providerIds,
+          favoriteGenres: userPreferences?.favoriteGenres || [],
+          preferredTypes: userPreferences?.preferredTypes || [],
+          onboardingCompleted: userPreferences?.onboardingCompleted ?? false,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to save providers");
+      }
+      
+      await queryClient.invalidateQueries({ queryKey: ["user-preferences"] });
+      toast.success("Services saved successfully");
+    } catch (error) {
+      toast.error("Failed to save services");
+      throw error;
+    }
+  };
+  
+  // Handle provider click in provider bar
+  const handleProviderClick = (providerId: number) => {
+    const newProvider = filters.watchProvider === providerId ? undefined : providerId;
+    // Update the watch provider filter
+    setFilters((prev) => ({
+      ...prev,
+      watchProvider: newProvider,
+    }));
+    // Update URL
+    updateURL({ watchProvider: newProvider });
+  };
 
   // Fetch genres
   useEffect(() => {
@@ -121,8 +182,8 @@ function PopularContentInner() {
     minRating: hasActiveFilters && minRating > 0 ? minRating : undefined,
     sortBy: hasActiveFilters ? sortBy : undefined,
     page,
-    watchProvider: hasActiveFilters && watchProvider !== undefined && !Number.isNaN(watchProvider) ? watchProvider : undefined,
-    watchRegion,
+    watchProvider: hasActiveFilters && filters.watchProvider !== undefined && filters.watchProvider > 0 ? filters.watchProvider : undefined,
+    watchRegion: filters.watchRegion || watchRegion,
   });
 
   // Determine which data to use
@@ -163,7 +224,7 @@ function PopularContentInner() {
         if (i < movies.length) combined.push(movies[i]);
         if (i < tv.length) combined.push(tv[i]);
       }
-      results = combined.slice(0, 20); // Limit to 20 per page for "all"
+      results = combined.slice(0, 24); // Limit to 24 per page for "all"
       // Estimate pagination for "all" - use average of both
       const avgTotalPages = Math.max(
         popularMoviesData?.total_pages || 0,
@@ -273,6 +334,7 @@ function PopularContentInner() {
       sortBy: filters.sortBy,
       page: 1,
       watchProvider: filters.watchProvider,
+      watchRegion: filters.watchRegion,
     });
     setFiltersOpen(false);
   };
@@ -314,6 +376,7 @@ function PopularContentInner() {
     <div className="min-h-screen bg-background">
       {/* Fixed Filter Nav */}
       <div className="w-full border-b border-border/50 bg-background/95 backdrop-blur-sm sticky top-[64px] z-30">
+
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">
             {/* Tabs */}
@@ -325,24 +388,31 @@ function PopularContentInner() {
               </TabsList>
             </Tabs>
 
-            {/* Filters Button */}
-            <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" className="gap-2 cursor-pointer">
-                  <SlidersHorizontal className="h-4 w-4" />
-                  Filters
-                  {hasActiveFilters && (
-                    <span className="ml-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
-                      {[
-                        filters.genre.length > 0,
-                        !!filters.year,
-                        filters.minRating > 0,
-                        (filters.watchProvider !== undefined && filters.watchProvider > 0),
-                      ].filter(Boolean).length}
-                    </span>
-                  )}
-                </Button>
-              </SheetTrigger>
+            {/* Provider Button and Filters Button */}
+            <div className="flex items-center gap-2">
+              {isSignedIn && providerButtonProviders.length > 0 && (
+                <ProviderButton
+                  providers={providerButtonProviders}
+                  onClick={() => setProviderBarOpen(!providerBarOpen)}
+                />
+              )}
+              <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" className="gap-2 cursor-pointer">
+                    <SlidersHorizontal className="h-4 w-4" />
+                    Filters
+                    {hasActiveFilters && (
+                      <span className="ml-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                        {[
+                          filters.genre.length > 0,
+                          !!filters.year,
+                          filters.minRating > 0,
+                          (filters.watchProvider !== undefined && filters.watchProvider > 0),
+                        ].filter(Boolean).length}
+                      </span>
+                    )}
+                  </Button>
+                </SheetTrigger>
               <SheetContent side="right" className="w-[400px] sm:w-[540px] flex flex-col p-0">
                 <FiltersSheet
                   filters={filters}
@@ -366,14 +436,37 @@ function PopularContentInner() {
             </Sheet>
           </div>
         </div>
+        
+        {/* Provider Bar */}
+        {providerBarOpen && isSignedIn && (
+          <ProviderBar
+            providers={watchProviders}
+            selectedProviders={selectedProviders}
+            activeProvider={filters.watchProvider}
+            onProviderClick={handleProviderClick}
+            onAddServices={() => setSelectServicesModalOpen(true)}
+            watchRegion={filters.watchRegion || "US"}
+          />
+        )}
       </div>
+      
+      {/* Select Services Modal */}
+      {isSignedIn && (
+        <SelectServicesModal
+          open={selectServicesModalOpen}
+          onOpenChange={setSelectServicesModalOpen}
+          providers={watchProviders}
+          selectedProviders={selectedProviders}
+          onSave={handleSaveProviders}
+        />
+      )}
 
       {/* Content Section */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Results */}
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {[...Array(20)].map((_, i) => (
+            {[...Array(24)].map((_, i) => (
               <MoreLikeThisCardSkeleton key={i} />
             ))}
           </div>
@@ -401,18 +494,18 @@ function PopularContentInner() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex w-full items-center justify-center gap-2 overflow-auto px-2 py-1">
+              <div className="flex w-full items-center justify-center gap-2 overflow-auto scrollbar-hide px-2 py-1">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => updateURL({ page: currentPage - 1 })}
                   disabled={currentPage === 1 || isLoading}
-                  className="cursor-pointer"
+                  className="cursor-pointer sm:gap-1"
                 >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
+                  <ChevronLeft className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Previous</span>
                 </Button>
-                <div className="flex items-center gap-1 overflow-auto">
+                <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     let pageNum: number;
                     if (totalPages <= 5) {
@@ -443,15 +536,16 @@ function PopularContentInner() {
                   size="sm"
                   onClick={() => updateURL({ page: currentPage + 1 })}
                   disabled={currentPage === totalPages || isLoading}
-                  className="cursor-pointer"
+                  className="cursor-pointer sm:gap-1"
                 >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
+                  <span className="hidden sm:inline">Next</span>
+                  <ChevronRight className="h-4 w-4 sm:ml-1" />
                 </Button>
               </div>
             )}
           </>
         )}
+      </div>
       </div>
     </div>
   );
@@ -477,7 +571,7 @@ export default function PopularContent() {
         </div>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {[...Array(20)].map((_, i) => (
+            {[...Array(24)].map((_, i) => (
               <MoreLikeThisCardSkeleton key={i} />
             ))}
           </div>

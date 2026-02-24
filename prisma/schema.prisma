@@ -249,6 +249,9 @@ model UserPreferences {
   // Forum category preferences (array of category IDs user wants to see in sidebar)
   forumCategoryIds  String[] @default([]) // Array of ForumCategory IDs
   
+  // Selected streaming providers/services (array of provider IDs)
+  selectedProviders Int[] @default([]) // Array of watch provider IDs
+  
   // Onboarding completed flag
   onboardingCompleted Boolean @default(false)
   

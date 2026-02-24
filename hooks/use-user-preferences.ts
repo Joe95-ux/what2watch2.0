@@ -8,6 +8,7 @@ interface UserPreferences {
   preferredLanguages?: string[];
   minYear?: number;
   maxYear?: number;
+  selectedProviders?: number[];
   onboardingCompleted: boolean;
 }
 

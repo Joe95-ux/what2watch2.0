@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
@@ -28,10 +28,16 @@ import { useFavoriteYouTubeVideos } from "@/hooks/use-favorite-youtube-videos";
 import { useYouTubeVideoWatchlist } from "@/hooks/use-youtube-video-watchlist";
 import { useUserYouTubePlaylists } from "@/hooks/use-user-youtube-playlists";
 import { TrendAlertsWidget } from "@/components/dashboard/trend-alerts-widget";
+import { useWatchProviders } from "@/hooks/use-watch-providers";
+import { SelectServicesModal } from "@/components/browse/select-services-modal";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function DashboardContent() {
   const { user } = useUser();
+  const queryClient = useQueryClient();
   const { data: favorites = [], isLoading: isLoadingFavorites } = useFavorites();
   const { data: playlists = [], isLoading: isLoadingPlaylists } = usePlaylists();
   const { data: recentlyViewed, isLoading: isLoadingRecentlyViewed } = useRecentlyViewed();
@@ -40,6 +46,8 @@ export default function DashboardContent() {
   const { data: favoriteYouTubeVideos = [], isLoading: isLoadingYouTubeFavorites } = useFavoriteYouTubeVideos();
   const { data: youtubeWatchlist = [], isLoading: isLoadingYouTubeWatchlist } = useYouTubeVideoWatchlist();
   const { data: youtubePlaylists = [], isLoading: isLoadingYouTubePlaylists } = useUserYouTubePlaylists();
+  const [selectServicesModalOpen, setSelectServicesModalOpen] = useState(false);
+  const { data: watchProviders = [] } = useWatchProviders("US", { all: true });
   
   // Normalize favoriteGenres - handle Extended JSON format from MongoDB
   const normalizeGenres = (genres: unknown[]): number[] => {
@@ -168,6 +176,40 @@ export default function DashboardContent() {
 
   const isLoadingYouTubeSection = isLoadingYouTubeFavorites || isLoadingYouTubeWatchlist || isLoadingYouTubePlaylists;
 
+  // Get user's selected providers
+  const selectedProviders = preferences?.selectedProviders || [];
+  
+  // Get selected provider objects for carousel
+  const selectedProviderObjects = useMemo(() => {
+    return watchProviders.filter((p) => selectedProviders.includes(p.provider_id));
+  }, [watchProviders, selectedProviders]);
+
+  // Handle saving selected providers
+  const handleSaveProviders = async (providerIds: number[]) => {
+    try {
+      const response = await fetch("/api/user/preferences", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          selectedProviders: providerIds,
+          favoriteGenres: preferences?.favoriteGenres || [],
+          preferredTypes: preferences?.preferredTypes || [],
+          onboardingCompleted: preferences?.onboardingCompleted ?? false,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to save providers");
+      }
+      
+      await queryClient.invalidateQueries({ queryKey: ["user-preferences"] });
+      toast.success("Services saved successfully");
+    } catch (error) {
+      toast.error("Failed to save services");
+      throw error;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
@@ -263,6 +305,84 @@ export default function DashboardContent() {
               </div>
             );
           })}
+        </div>
+
+        {/* Your Services Section */}
+        <div className="mb-12">
+          <h2 className="text-2xl font-medium mb-6">Your Services</h2>
+          
+          {selectedProviderObjects.length > 0 ? (
+            <div className="relative group/carousel">
+              <div className="flex items-center gap-3">
+                {/* Plus Button */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setSelectServicesModalOpen(true)}
+                  className="h-16 w-16 sm:h-20 sm:w-20 flex-shrink-0 cursor-pointer rounded-lg"
+                >
+                  <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
+                </Button>
+                
+                {/* Carousel */}
+                <div className="flex-1">
+                  <Carousel
+                    opts={{
+                      align: "start",
+                      slidesToScroll: 5,
+                      breakpoints: {
+                        "(max-width: 640px)": { slidesToScroll: 2 },
+                        "(max-width: 1024px)": { slidesToScroll: 3 },
+                        "(max-width: 1280px)": { slidesToScroll: 4 },
+                      },
+                    }}
+                    className="w-full"
+                  >
+                    <CarouselContent className="-ml-2 md:-ml-4 gap-3">
+                      {selectedProviderObjects.map((provider) => (
+                        <CarouselItem key={provider.provider_id} className="pl-2 md:pl-4 basis-[80px] sm:basis-[100px]">
+                          <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-lg border border-border overflow-hidden bg-muted hover:border-primary transition-colors cursor-pointer">
+                            {provider.logo_path ? (
+                              <Image
+                                src={`https://image.tmdb.org/t/p/w154${provider.logo_path}`}
+                                alt={provider.provider_name}
+                                fill
+                                className="object-contain p-2"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                                {provider.provider_name[0]}
+                              </div>
+                            )}
+                          </div>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    <CarouselPrevious 
+                      className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+                    />
+                    <CarouselNext 
+                      className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+                    />
+                  </Carousel>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 border border-dashed rounded-lg">
+              <p className="text-muted-foreground mb-2">No services selected</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectServicesModalOpen(true)}
+                className="cursor-pointer"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Services
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Continue Watching Section */}
@@ -486,6 +606,15 @@ export default function DashboardContent() {
           <TrendAlertsWidget />
         </div>
       </div>
+
+      {/* Select Services Modal */}
+      <SelectServicesModal
+        open={selectServicesModalOpen}
+        onOpenChange={setSelectServicesModalOpen}
+        providers={watchProviders}
+        selectedProviders={selectedProviders}
+        onSave={handleSaveProviders}
+      />
     </div>
   );
 }
