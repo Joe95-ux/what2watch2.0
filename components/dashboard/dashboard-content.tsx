@@ -309,7 +309,7 @@ export default function DashboardContent() {
 
         {/* Your Services Section */}
         <div className="mb-12">
-          <h2 className="text-2xl font-medium mb-6">Your Services</h2>
+          <h2 className="text-2xl font-medium mb-6">Your Streaming Services</h2>
           
           {selectedProviderObjects.length > 0 ? (
             <div className="relative group/carousel">

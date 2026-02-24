@@ -30,7 +30,7 @@ export function ProviderButton({ providers, onClick }: ProviderButtonProps) {
           <div
             key={provider.provider_id}
             className={cn(
-              "relative rounded-full border-2 border-background overflow-hidden",
+              "relative rounded-lg overflow-hidden",
               "h-8 w-8 flex-shrink-0"
             )}
             style={{ zIndex: displayProviders.length - index }}
@@ -40,7 +40,7 @@ export function ProviderButton({ providers, onClick }: ProviderButtonProps) {
                 src={`https://image.tmdb.org/t/p/w45${provider.logo_path}`}
                 alt={provider.provider_name}
                 fill
-                className="object-contain p-1"
+                className="object-contain rounded-lg"
                 unoptimized
               />
             ) : (

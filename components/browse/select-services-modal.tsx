@@ -83,7 +83,7 @@ export function SelectServicesModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-full sm:max-w-[38rem] max-h-[90vh] flex flex-col p-0">
+      <DialogContent className="max-w-full sm:max-w-[38rem] max-h-[90vh] flex flex-col p-0 gap-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle>Select Your Services</DialogTitle>
         </DialogHeader>
@@ -105,7 +105,7 @@ export function SelectServicesModal({
                 }}
                 className="w-full"
               >
-                <CarouselContent className="-ml-2 sm:-ml-3">
+                <CarouselContent className="-ml-2 sm:-ml-3 py-2.5">
                   {selectedProviderObjects.map((provider) => (
                     <CarouselItem
                       key={provider.provider_id}
@@ -113,7 +113,7 @@ export function SelectServicesModal({
                     >
                       <div className="relative">
                         <button
-                          className="cursor-pointer rounded-lg border-0 p-0 h-10 w-10 transition-colors flex items-center justify-center overflow-hidden relative bg-primary"
+                          className="cursor-pointer rounded-lg p-0 h-10 w-10 transition-colors flex items-center justify-center overflow-hidden relative bg-background border border-black/10 dark:border-border"
                         >
                           {provider.logo_path ? (
                             <img
@@ -254,7 +254,7 @@ export function SelectServicesModal({
                           src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
                           alt={provider.provider_name}
                           fill
-                          className="object-contain p-1.5"
+                          className="object-contain rounded-lg"
                           unoptimized
                         />
                       </div>
@@ -268,7 +268,7 @@ export function SelectServicesModal({
                   <Checkbox
                     checked={selectedProviders.includes(provider.provider_id)}
                     onCheckedChange={() => handleToggleProvider(provider.provider_id)}
-                    className="cursor-pointer data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 data-[state=checked]:text-white"
+                    className="cursor-pointer data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500 data-[state=checked]:text-white"
                   />
                 </div>
                 {index < filteredProviders.length - 1 && (
@@ -280,13 +280,13 @@ export function SelectServicesModal({
         </div>
 
         {/* Footer with Save Button */}
-        <div className="px-6 py-4 border-t flex justify-end">
+        <div className="px-6 py-4 border-t">
           <Button
             onClick={handleSave}
             disabled={isSaving}
-            className="cursor-pointer"
+            className="w-full h-10 font-bold text-base cursor-pointer"
           >
-            {isSaving ? "Saving..." : "Save"}
+            {isSaving ? "Saving..." : "Save Changes"}
           </Button>
         </div>
       </DialogContent>

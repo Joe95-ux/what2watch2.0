@@ -40,28 +40,33 @@ export function ProviderBar({
     return providers;
   }, [providers, selectedFilter, selectedProviders]);
 
-  // Get provider counts by type based on filtered results
+  // Get provider counts by type - each count is independent and not affected by selected filter
   const providerCounts = useMemo(() => {
     const allCount = providers.length;
     const myServicesCount = selectedProviders.length;
-    // For other filters, show count of filtered providers (which will be all for now)
-    const filteredCount = filteredProviders.length;
+    
+    // For other filters, we'd need provider type data from JustWatch/TMDB
+    // For now, show total provider count for each (they would be filtered by type when that data is available)
+    // These counts should NOT be affected by the currently selected filter
+    const subscriptionsCount = providers.length; // Placeholder - would filter by subscription type
+    const buyRentCount = providers.length; // Placeholder - would filter by buy/rent type
+    const freeCount = providers.length; // Placeholder - would filter by free type
 
     return {
       all: allCount,
       "my-services": myServicesCount,
-      subscriptions: filteredCount,
-      "buy-rent": filteredCount,
-      free: filteredCount,
+      subscriptions: subscriptionsCount,
+      "buy-rent": buyRentCount,
+      free: freeCount,
     };
-  }, [providers, selectedProviders, filteredProviders]);
+  }, [providers, selectedProviders]);
 
   return (
     <div className="w-full bg-background/95 backdrop-blur-sm">
-      <div className="container mx-auto py-4">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           {/* Filter Buttons */}
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-shrink-0 px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-shrink-0">
             <button
               onClick={() => setSelectedFilter("all")}
               className={cn(
@@ -120,7 +125,7 @@ export function ProviderBar({
           </div>
 
           {/* Plus Button and Provider Carousel */}
-          <div className="relative group/carousel flex-1 min-w-0 px-4 sm:px-6 lg:px-8">
+          <div className="relative group/carousel flex-1 min-w-0">
             <div className="flex items-center gap-2">
               {/* Plus Button (only shown when My Services is selected) */}
               {selectedFilter === "my-services" && (
@@ -149,21 +154,21 @@ export function ProviderBar({
                 }}
                 className="flex-1 min-w-0"
               >
-                <CarouselContent className="-ml-2 sm:-ml-3 md:-ml-4">
+                <CarouselContent className="-ml-1 sm:-ml-1.5 md:-ml-2">
                   {filteredProviders.map((provider) => {
                     const isSelected = activeProvider === provider.provider_id;
                     return (
                       <CarouselItem
                         key={provider.provider_id}
-                        className="pl-2 sm:pl-3 md:pl-4 basis-auto"
+                        className="pl-1 sm:pl-1.5 md:pl-2 basis-auto"
                       >
                         <button
                           onClick={() => onProviderClick(provider.provider_id)}
                           className={cn(
-                            "cursor-pointer rounded-lg border-0 p-0 h-10 w-10 transition-colors flex items-center justify-center overflow-hidden relative",
+                            "cursor-pointer rounded-lg p-0 h-10 w-10 transition-colors flex items-center justify-center overflow-hidden relative",
                             isSelected
-                              ? "bg-primary"
-                              : "bg-background hover:bg-accent"
+                              ? "bg-primary border-0"
+                              : "bg-background hover:bg-accent border border-black/10 dark:border-border"
                           )}
                         >
                           {provider.logo_path ? (
@@ -185,8 +190,8 @@ export function ProviderBar({
                     );
                   })}
                 </CarouselContent>
-                <CarouselPrevious className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10" />
-                <CarouselNext className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10" />
+                <CarouselPrevious className="left-0 h-full w-[45px] rounded-lg border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10" />
+                <CarouselNext className="right-0 h-full w-[45px] rounded-lg border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10" />
               </Carousel>
             </div>
           </div>

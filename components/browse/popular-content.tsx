@@ -382,7 +382,7 @@ function PopularContentInner() {
       )}>
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4">
+          <div className="flex items-center justify-between py-8">
             {/* Tabs */}
             <Tabs value={type === "movie" ? "movies" : type} onValueChange={(v) => handleTypeChange(v === "movies" ? "movie" : v as "all" | "movie" | "tv")}>
               <TabsList>
