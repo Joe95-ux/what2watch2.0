@@ -14,6 +14,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { FiltersSheet, type SearchFilters } from "@/components/filters/filters-sheet";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
 import { useWatchRegions } from "@/hooks/use-watch-regions";
+import { useProviderTypes } from "@/hooks/use-provider-types";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { useUser } from "@clerk/nextjs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,6 +35,7 @@ function PopularContentInner() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [providerBarOpen, setProviderBarOpen] = useState(false);
   const [selectServicesModalOpen, setSelectServicesModalOpen] = useState(false);
+  const [providerTypeFilter, setProviderTypeFilter] = useState<"all" | "my-services" | "subscriptions" | "buy-rent" | "free">("all");
   const [movieGenres, setMovieGenres] = useState<Array<{ id: number; name: string }>>([]);
   const [tvGenres, setTVGenres] = useState<Array<{ id: number; name: string }>>([]);
   const [allGenres, setAllGenres] = useState<Array<{ id: number; name: string }>>([]);
@@ -85,9 +87,69 @@ function PopularContentInner() {
 
   const { data: watchRegions = [] } = useWatchRegions();
   const { data: watchProviders = [] } = useWatchProviders(filters.watchRegion || "US", { all: true });
+  const { data: providerTypes } = useProviderTypes(filters.watchRegion || "US");
   
   // Get user's selected providers
   const selectedProviders = userPreferences?.selectedProviders || [];
+  
+  // Calculate which provider to use based on provider type filter
+  const getProviderForFilter = useMemo(() => {
+    if (providerTypeFilter === "all") {
+      return undefined;
+    } else if (providerTypeFilter === "my-services") {
+      // Use first selected provider, or undefined if none selected
+      return selectedProviders.length > 0 ? selectedProviders[0] : undefined;
+    } else if (providerTypes) {
+      if (providerTypeFilter === "subscriptions") {
+        const subscriptionProviders = watchProviders.filter((p) => providerTypes.flatrate.has(p.provider_id));
+        return subscriptionProviders.length > 0 ? subscriptionProviders[0].provider_id : undefined;
+      } else if (providerTypeFilter === "buy-rent") {
+        const buyRentProviders = watchProviders.filter((p) => 
+          providerTypes.buy.has(p.provider_id) || providerTypes.rent.has(p.provider_id)
+        );
+        return buyRentProviders.length > 0 ? buyRentProviders[0].provider_id : undefined;
+      } else if (providerTypeFilter === "free") {
+        const freeProviders = watchProviders.filter((p) => 
+          providerTypes.free.has(p.provider_id) || providerTypes.ads.has(p.provider_id)
+        );
+        return freeProviders.length > 0 ? freeProviders[0].provider_id : undefined;
+      }
+    }
+    return undefined;
+  }, [providerTypeFilter, selectedProviders, providerTypes, watchProviders]);
+  
+  // Handle provider type filter change
+  const handleProviderTypeFilterChange = (filter: "all" | "my-services" | "subscriptions" | "buy-rent" | "free") => {
+    setProviderTypeFilter(filter);
+    
+    // Calculate which provider to use based on the new filter
+    let providerId: number | undefined = undefined;
+    if (filter !== "all" && providerTypes) {
+      if (filter === "my-services") {
+        providerId = selectedProviders.length > 0 ? selectedProviders[0] : undefined;
+      } else if (filter === "subscriptions") {
+        const subscriptionProviders = watchProviders.filter((p) => providerTypes.flatrate.has(p.provider_id));
+        providerId = subscriptionProviders.length > 0 ? subscriptionProviders[0].provider_id : undefined;
+      } else if (filter === "buy-rent") {
+        const buyRentProviders = watchProviders.filter((p) => 
+          providerTypes.buy.has(p.provider_id) || providerTypes.rent.has(p.provider_id)
+        );
+        providerId = buyRentProviders.length > 0 ? buyRentProviders[0].provider_id : undefined;
+      } else if (filter === "free") {
+        const freeProviders = watchProviders.filter((p) => 
+          providerTypes.free.has(p.provider_id) || providerTypes.ads.has(p.provider_id)
+        );
+        providerId = freeProviders.length > 0 ? freeProviders[0].provider_id : undefined;
+      }
+    }
+    
+    // Update the watch provider filter
+    setFilters((prev) => ({
+      ...prev,
+      watchProvider: providerId,
+    }));
+    updateURL({ watchProvider: providerId });
+  };
   
   // Get providers for the provider button (first 4 selected, or first 4 available)
   const providerButtonProviders = useMemo(() => {
@@ -148,7 +210,8 @@ function PopularContentInner() {
   }, []);
 
   // Check if we have active filters (excluding type, as type is handled by tabs)
-  const hasActiveFilters = filters.genre.length > 0 || !!filters.year || filters.minRating > 0 || (filters.watchProvider !== undefined && filters.watchProvider > 0);
+  // Include provider type filter as an active filter
+  const hasActiveFilters = filters.genre.length > 0 || !!filters.year || filters.minRating > 0 || (filters.watchProvider !== undefined && filters.watchProvider > 0) || providerTypeFilter !== "all";
 
   // Constants for pagination
   const ITEMS_PER_PAGE = 24;
@@ -195,7 +258,7 @@ function PopularContentInner() {
     sortBy: hasActiveFilters ? sortBy : undefined,
     page: apiPage,
     pageSize: hasActiveFilters ? 42 : undefined, // Request 42 items so we can slice to 24
-    watchProvider: hasActiveFilters && filters.watchProvider !== undefined && filters.watchProvider > 0 ? filters.watchProvider : undefined,
+    watchProvider: hasActiveFilters && (filters.watchProvider !== undefined && filters.watchProvider > 0) ? filters.watchProvider : (providerTypeFilter !== "all" ? getProviderForFilter : undefined),
     watchRegion: filters.watchRegion || watchRegion,
   });
 
@@ -471,6 +534,8 @@ function PopularContentInner() {
             onProviderClick={handleProviderClick}
             onAddServices={() => setSelectServicesModalOpen(true)}
             watchRegion={filters.watchRegion || "US"}
+            onFilterChange={handleProviderTypeFilterChange}
+            selectedFilter={providerTypeFilter}
           />
         )}
       </div>
@@ -483,6 +548,7 @@ function PopularContentInner() {
           providers={watchProviders}
           selectedProviders={selectedProviders}
           onSave={handleSaveProviders}
+          watchRegion={filters.watchRegion || "US"}
         />
       )}
 

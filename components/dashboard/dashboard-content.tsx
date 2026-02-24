@@ -338,9 +338,9 @@ export default function DashboardContent() {
                     }}
                     className="w-full"
                   >
-                    <CarouselContent className="-ml-2 sm:-ml-3 md:-ml-4">
+                    <CarouselContent className="-ml-1 sm:-ml-1.5 md:-ml-2">
                       {selectedProviderObjects.map((provider) => (
-                        <CarouselItem key={provider.provider_id} className="pl-2 sm:pl-3 md:pl-4 basis-[80px] sm:basis-[100px]">
+                        <CarouselItem key={provider.provider_id} className="pl-1 sm:pl-1.5 md:pl-2 basis-[80px] sm:basis-[100px]">
                           <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-lg border border-border overflow-hidden bg-muted hover:border-primary transition-colors cursor-pointer">
                             {provider.logo_path ? (
                               <Image

@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import Image from "next/image";
 import type { WatchProvider } from "@/hooks/use-watch-providers";
+import { useProviderTypes } from "@/hooks/use-provider-types";
 
 interface SelectServicesModalProps {
   open: boolean;
@@ -17,6 +18,7 @@ interface SelectServicesModalProps {
   providers: WatchProvider[];
   selectedProviders: number[];
   onSave: (providerIds: number[]) => Promise<void>;
+  watchRegion?: string;
 }
 
 type ProviderTypeFilter = "all" | "flatrate" | "buy" | "rent" | "free" | "ads";
@@ -27,12 +29,14 @@ export function SelectServicesModal({
   providers,
   selectedProviders: initialSelected,
   onSave,
+  watchRegion = "US",
 }: SelectServicesModalProps) {
   const [selectedProviders, setSelectedProviders] = useState<number[]>(initialSelected);
   const [providerTypeFilter, setProviderTypeFilter] = useState<ProviderTypeFilter>("all");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const { data: providerTypes } = useProviderTypes(watchRegion);
 
   // Sync selectedProviders when initialSelected changes (e.g., when modal opens with updated user preferences)
   useEffect(() => {
@@ -45,6 +49,23 @@ export function SelectServicesModal({
   const filteredProviders = useMemo(() => {
     let filtered = providers;
 
+    // Filter by provider type
+    if (providerTypeFilter !== "all" && providerTypes) {
+      if (providerTypeFilter === "flatrate") {
+        filtered = filtered.filter((p) => providerTypes.flatrate.has(p.provider_id));
+      } else if (providerTypeFilter === "buy") {
+        filtered = filtered.filter((p) => providerTypes.buy.has(p.provider_id));
+      } else if (providerTypeFilter === "rent") {
+        filtered = filtered.filter((p) => providerTypes.rent.has(p.provider_id));
+      } else if (providerTypeFilter === "free") {
+        filtered = filtered.filter((p) => 
+          providerTypes.free.has(p.provider_id) || providerTypes.ads.has(p.provider_id)
+        );
+      } else if (providerTypeFilter === "ads") {
+        filtered = filtered.filter((p) => providerTypes.ads.has(p.provider_id));
+      }
+    }
+
     // Filter by search query
     if (searchQuery.trim()) {
       filtered = filtered.filter((p) =>
@@ -52,10 +73,8 @@ export function SelectServicesModal({
       );
     }
 
-    // Note: Provider type filtering would require additional data from JustWatch/TMDB
-    // For now, we'll just return all providers
     return filtered;
-  }, [providers, searchQuery, providerTypeFilter]);
+  }, [providers, searchQuery, providerTypeFilter, providerTypes]);
 
   // Get selected provider objects for preview
   const selectedProviderObjects = useMemo(() => {

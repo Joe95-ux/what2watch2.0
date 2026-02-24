@@ -16,6 +16,8 @@ interface ProviderBarProps {
   onProviderClick: (providerId: number) => void;
   onAddServices: () => void;
   watchRegion: string;
+  onFilterChange?: (filter: FilterType) => void;
+  selectedFilter?: FilterType;
 }
 
 type FilterType = "all" | "my-services" | "subscriptions" | "buy-rent" | "free";
@@ -27,9 +29,19 @@ export function ProviderBar({
   onProviderClick,
   onAddServices,
   watchRegion,
+  onFilterChange,
+  selectedFilter: externalSelectedFilter,
 }: ProviderBarProps) {
-  const [selectedFilter, setSelectedFilter] = useState<FilterType>("all");
+  const [internalSelectedFilter, setInternalSelectedFilter] = useState<FilterType>("all");
+  const selectedFilter = externalSelectedFilter ?? internalSelectedFilter;
   const { data: providerTypes } = useProviderTypes(watchRegion);
+
+  const handleFilterChange = (filter: FilterType) => {
+    if (externalSelectedFilter === undefined) {
+      setInternalSelectedFilter(filter);
+    }
+    onFilterChange?.(filter);
+  };
 
   // Filter providers based on selected filter
   const filteredProviders = useMemo(() => {
@@ -101,7 +113,7 @@ export function ProviderBar({
           {/* Filter Buttons */}
           <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide flex-shrink-0">
             <button
-              onClick={() => setSelectedFilter("all")}
+              onClick={() => handleFilterChange("all")}
               className={cn(
                 "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors text-[0.95rem]",
                 selectedFilter === "all"
@@ -112,7 +124,7 @@ export function ProviderBar({
               All ({providerCounts.all})
             </button>
             <button
-              onClick={() => setSelectedFilter("my-services")}
+              onClick={() => handleFilterChange("my-services")}
               className={cn(
                 "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors text-[0.95rem]",
                 selectedFilter === "my-services"
@@ -123,7 +135,7 @@ export function ProviderBar({
               My Services ({providerCounts["my-services"]})
             </button>
             <button
-              onClick={() => setSelectedFilter("subscriptions")}
+              onClick={() => handleFilterChange("subscriptions")}
               className={cn(
                 "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors text-[0.95rem]",
                 selectedFilter === "subscriptions"
@@ -134,7 +146,7 @@ export function ProviderBar({
               Subscriptions ({providerCounts.subscriptions})
             </button>
             <button
-              onClick={() => setSelectedFilter("buy-rent")}
+              onClick={() => handleFilterChange("buy-rent")}
               className={cn(
                 "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors text-[0.95rem]",
                 selectedFilter === "buy-rent"
@@ -145,7 +157,7 @@ export function ProviderBar({
               Buy/Rent ({providerCounts["buy-rent"]})
             </button>
             <button
-              onClick={() => setSelectedFilter("free")}
+              onClick={() => handleFilterChange("free")}
               className={cn(
                 "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors text-[0.95rem]",
                 selectedFilter === "free"
