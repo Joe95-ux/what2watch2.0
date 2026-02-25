@@ -28,6 +28,7 @@ import Link from "next/link";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { decodeHtmlEntities } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 function NotificationSkeleton() {
   return (
