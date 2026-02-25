@@ -447,7 +447,7 @@ export default function ContentDetailModal({
                               <Button
                                 size="lg"
                                 variant="outline"
-                                className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-10 w-10 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close pointer-events-auto"
+                                className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 p-5 rounded-[20px] backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close pointer-events-auto"
                                 type="button"
                               >
                                 <Plus className="size-5 md:size-6 text-white dark:text-white" />
@@ -468,7 +468,7 @@ export default function ContentDetailModal({
                         <Button
                           size="lg"
                           variant="outline"
-                          className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-10 w-10 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
+                          className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 p-5 rounded-[20px] backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
                           onClick={async (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -495,7 +495,7 @@ export default function ContentDetailModal({
                         <Button
                           size="lg"
                           variant="outline"
-                          className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-10 w-10 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
+                          className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 p-5 rounded-[20px] backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
                           onClick={(e) => handleButtonClick(e, () => {})}
                         >
                           <BookOpen className="size-5 md:size-6 text-white dark:text-white" />
@@ -509,7 +509,7 @@ export default function ContentDetailModal({
                           <Button
                             size="lg"
                             variant="outline"
-                          className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-10 w-10 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 ml-auto cursor-pointer no-close"
+                          className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 p-5 rounded-[20px] backdrop-blur-sm transition-all duration-300 hover:scale-105 ml-auto cursor-pointer no-close"
                             onClick={(e) => handleButtonClick(e, () => setIsMuted(!isMuted))}
                             aria-label={isMuted ? "Unmute" : "Mute"}
                           >
@@ -539,7 +539,7 @@ export default function ContentDetailModal({
                   <Button
                     size="lg"
                     variant="outline"
-                    className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-10 w-10 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer pointer-events-auto no-close"
+                    className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 p-5 rounded-[20px] backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer pointer-events-auto no-close"
                     onClick={(e) => handleButtonClick(e, () => setIsMuted(true))}
                     aria-label="Clear"
                   >
@@ -625,8 +625,10 @@ export default function ContentDetailModal({
                     />
                   )}
 
-                  {/* Additional Details */}
-                  <ContentDetailDetailsGrid type={type} details={details} />
+                  {/* Where to Watch */}
+                  {watchAvailability && (
+                    <ContentDetailWhereToWatch watchAvailability={watchAvailability} />
+                  )}
                 </div>
 
                 {/* Sidebar */}
@@ -643,10 +645,8 @@ export default function ContentDetailModal({
                     </div>
                   )}
                   
-                  {/* Where to Watch */}
-                  {watchAvailability && (
-                    <ContentDetailWhereToWatch watchAvailability={watchAvailability} />
-                  )}
+                  {/* Details */}
+                  <ContentDetailDetailsGrid type={type} details={details} />
                  
                 </div>
               </div>

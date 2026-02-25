@@ -40,77 +40,56 @@ export default function ContentDetailDetailsGrid({
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
+  // Build entries array
+  const entries: Array<{ label: string; value: string }> = [];
+
+  if (type === "movie" && "release_date" in details && details.release_date) {
+    entries.push({ label: "Release Date", value: formatDate(details.release_date) });
+  }
+  if (type === "tv" && "first_air_date" in details && details.first_air_date) {
+    entries.push({ label: "First Air Date", value: formatDate(details.first_air_date) });
+  }
+  if (type === "movie" && "runtime" in details && details.runtime) {
+    entries.push({ label: "Runtime", value: formatRuntime(details.runtime) });
+  }
+  if (type === "tv" && "episode_run_time" in details && details.episode_run_time?.[0]) {
+    entries.push({ label: "Episode Runtime", value: formatRuntime(details.episode_run_time[0]) });
+  }
+  if (type === "tv" && "number_of_seasons" in details && "number_of_episodes" in details) {
+    const seasons = details.number_of_seasons;
+    const episodes = details.number_of_episodes;
+    entries.push({ label: "Seasons & Episodes", value: `${seasons} seasons, ${episodes} episodes` });
+  }
+  if (details.production_countries && details.production_countries.length > 0) {
+    entries.push({
+      label: "Country",
+      value: details.production_countries.map((c) => c.name).join(", "),
+    });
+  }
+  if (details.production_companies && details.production_companies.length > 0) {
+    entries.push({
+      label: "Production",
+      value: details.production_companies.slice(0, 3).map((c) => c.name).join(", "),
+    });
+  }
+
+  if (entries.length === 0) return null;
+
   return (
     <div>
       <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
         Details
       </h3>
-      <div className="grid grid-cols-2 gap-4 text-sm">
-        {type === "movie" && "release_date" in details && details.release_date && (
-          <div>
-            <span className="text-muted-foreground block mb-1">Release Date</span>
-            <p className="font-medium text-foreground">{formatDate(details.release_date)}</p>
+      <div className="space-y-0 text-sm">
+        {entries.map((entry, index) => (
+          <div key={entry.label}>
+            <div className="py-3">
+              <span className="text-muted-foreground block mb-1">{entry.label}</span>
+              <p className="font-medium text-foreground">{entry.value}</p>
+            </div>
+            {index < entries.length - 1 && <div className="border-t border-border" />}
           </div>
-        )}
-        {type === "tv" && "first_air_date" in details && details.first_air_date && (
-          <div>
-            <span className="text-muted-foreground block mb-1">First Air Date</span>
-            <p className="font-medium text-foreground">{formatDate(details.first_air_date)}</p>
-          </div>
-        )}
-        {type === "movie" && "runtime" in details && details.runtime && (
-          <div>
-            <span className="text-muted-foreground block mb-1">Runtime</span>
-            <p className="font-medium text-foreground">{formatRuntime(details.runtime)}</p>
-          </div>
-        )}
-        {type === "tv" && "episode_run_time" in details && details.episode_run_time?.[0] && (
-          <div>
-            <span className="text-muted-foreground block mb-1">Episode Runtime</span>
-            <p className="font-medium text-foreground">
-              {formatRuntime(details.episode_run_time[0])}
-            </p>
-          </div>
-        )}
-        {type === "tv" && "number_of_seasons" in details && (
-          <div>
-            <span className="text-muted-foreground block mb-1">Seasons</span>
-            <p className="font-medium text-foreground">{details.number_of_seasons}</p>
-          </div>
-        )}
-        {type === "tv" && "number_of_episodes" in details && (
-          <div>
-            <span className="text-muted-foreground block mb-1">Episodes</span>
-            <p className="font-medium text-foreground">{details.number_of_episodes}</p>
-          </div>
-        )}
-        {details.production_countries && details.production_countries.length > 0 && (
-          <div>
-            <span className="text-muted-foreground block mb-1">Country</span>
-            <p className="font-medium text-foreground">
-              {details.production_countries.map((c) => c.name).join(", ")}
-            </p>
-          </div>
-        )}
-        {details.spoken_languages && details.spoken_languages.length > 0 && (
-          <div>
-            <span className="text-muted-foreground block mb-1">Language</span>
-            <p className="font-medium text-foreground">
-              {details.spoken_languages.map((l) => l.english_name).join(", ")}
-            </p>
-          </div>
-        )}
-        {details.production_companies && details.production_companies.length > 0 && (
-          <div>
-            <span className="text-muted-foreground block mb-1">Production</span>
-            <p className="font-medium text-foreground">
-              {details.production_companies
-                .slice(0, 3)
-                .map((c) => c.name)
-                .join(", ")}
-            </p>
-          </div>
-        )}
+        ))}
       </div>
     </div>
   );

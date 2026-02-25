@@ -285,7 +285,7 @@ export default function TVSeasonsSection({
                       <div
                         key={episode.id}
                         className={cn(
-                          "relative flex rounded-lg border border-border transition-all group cursor-pointer hover:border-primary/50 overflow-hidden",
+                          "relative flex rounded-lg border border-border transition-all group cursor-pointer overflow-hidden",
                           isMobile && "flex-col"
                         )}
                         onClick={(e) => handleEpisodeClick(e, episode)}
@@ -321,7 +321,7 @@ export default function TVSeasonsSection({
                             <span className="text-sm text-muted-foreground">
                               S{episode.season_number.toString().padStart(2, "0")}E{episode.episode_number.toString().padStart(2, "0")}
                             </span>
-                            <h3 className="text-lg font-semibold group-hover:text-primary transition-colors truncate sm:truncate-none">
+                            <h3 className="text-lg font-semibold truncate sm:truncate-none">
                               {episode.name}
                             </h3>
                             {tvShow && (

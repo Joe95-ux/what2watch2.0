@@ -39,41 +39,42 @@ export default function VideosCarousel({ videos, onVideoSelect }: VideosCarousel
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Videos</h3>
-      <Carousel
-        opts={{
-          align: "start",
-          slidesToScroll: 1,
-        }}
-        className="w-full"
-      >
-        <CarouselContent className="-ml-2 md:-ml-4">
-          {youtubeVideos.map((video) => (
-            <CarouselItem key={video.id} className="pl-2 md:pl-4 basis-[280px]">
+      <div className="relative group/carousel">
+        <Carousel
+          opts={{
+            align: "start",
+            slidesToScroll: 1,
+          }}
+          className="w-full"
+        >
+          <CarouselContent className="-ml-2 md:-ml-4">
+            {youtubeVideos.map((video) => (
+              <CarouselItem key={video.id} className="pl-2 md:pl-4 basis-[280px]">
               <button
                 onClick={() => onVideoSelect(video)}
                 className={cn(
                   "group relative w-full h-[158px] rounded-lg overflow-hidden",
                   "bg-muted hover:scale-105 transition-transform duration-300",
-                  "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                  "focus:outline-none"
                 )}
               >
-                {/* Thumbnail */}
-                <div className="absolute inset-0">
-                  <Image
-                    src={getYouTubeThumbnailUrl(video.key, "hqdefault")}
-                    alt={video.name}
-                    fill
-                    className="object-cover"
-                    unoptimized
-                    onError={(e) => {
-                      // Fallback to lower quality thumbnail
-                      const target = e.target as HTMLImageElement;
-                      target.src = getYouTubeThumbnailUrl(video.key, "mqdefault");
-                    }}
-                  />
-                  {/* Gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                </div>
+                  {/* Thumbnail */}
+                  <div className="absolute inset-0">
+                    <Image
+                      src={getYouTubeThumbnailUrl(video.key, "hqdefault")}
+                      alt={video.name}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                      onError={(e) => {
+                        // Fallback to lower quality thumbnail
+                        const target = e.target as HTMLImageElement;
+                        target.src = getYouTubeThumbnailUrl(video.key, "mqdefault");
+                      }}
+                    />
+                    {/* Gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                  </div>
 
                 {/* Play Button */}
                 <div className="absolute inset-0 flex items-center justify-center z-10">
@@ -82,29 +83,34 @@ export default function VideosCarousel({ videos, onVideoSelect }: VideosCarousel
                   </div>
                 </div>
 
-                {/* Video Info */}
-                <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
-                  <p className="text-white text-sm font-medium line-clamp-1 drop-shadow-lg">
-                    {video.name}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    {video.official && (
-                      <span className="text-xs text-white/80 bg-white/20 px-2 py-0.5 rounded">
-                        Official
+                  {/* Video Info */}
+                  <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
+                    <p className="text-white text-sm font-medium line-clamp-1 drop-shadow-lg">
+                      {video.name}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      {video.official && (
+                        <span className="text-xs text-white/80 bg-white/20 px-2 py-0.5 rounded">
+                          Official
+                        </span>
+                      )}
+                      <span className="text-xs text-white/70 capitalize">
+                        {video.type}
                       </span>
-                    )}
-                    <span className="text-xs text-white/70 capitalize">
-                      {video.type}
-                    </span>
+                    </div>
                   </div>
-                </div>
-              </button>
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-        <CarouselPrevious />
-        <CarouselNext />
-      </Carousel>
+                </button>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious 
+            className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10"
+          />
+          <CarouselNext 
+            className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10"
+          />
+        </Carousel>
+      </div>
     </div>
   );
 }
