@@ -469,7 +469,7 @@ function PopularContentInner() {
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className={cn(
-            "flex items-center justify-between py-8",
+            "flex items-center justify-between py-6",
             isMobile && "flex-col gap-3 pb-0"
           )}>
             {/* Tabs */}

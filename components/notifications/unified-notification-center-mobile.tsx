@@ -1,9 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCheck, MessageCircle, Reply, ExternalLink, Settings, X, Megaphone, Bell } from "lucide-react";
+import { CheckCheck, MessageCircle, Reply, ExternalLink, Settings, X, Megaphone, Bell, MoreVertical, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -255,7 +262,7 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
                     key={notification.id}
                     className={cn(
                       "p-4 hover:bg-muted/50 transition-colors",
-                      !notification.isRead && "border-l-[3px] border-l-primary bg-blue-50 dark:[background:var(--unread-notification-bg)]"
+                      !notification.isRead && "border-l-[3px] border-l-[#1447E6] bg-blue-50 dark:[background:var(--unread-notification-bg)]"
                     )}
                   >
                     <div className="flex gap-3">
@@ -285,35 +292,53 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
                               })}
                             </p>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteYouTubeNotifications.mutate({ notificationIds: [notification.id] });
-                              }}
-                              disabled={deleteYouTubeNotifications.isPending}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              asChild
-                            >
-                              <Link
-                                href={notification.videoUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={onClose}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {!notification.isRead && (
+                                <DropdownMenuItem
+                                  onClick={() => handleMarkYouTubeAsRead(notification.id)}
+                                  className="cursor-pointer"
+                                >
+                                  <CheckCheck className="h-4 w-4 mr-2" />
+                                  Mark as read
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem asChild>
+                                <Link
+                                  href={notification.videoUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="cursor-pointer"
+                                  onClick={() => {
+                                    if (!notification.isRead) {
+                                      handleMarkYouTubeAsRead(notification.id);
+                                    }
+                                    onClose?.();
+                                  }}
+                                >
+                                  <ExternalLink className="h-4 w-4 mr-2" />
+                                  Watch on YouTube
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteYouTubeNotifications.mutate({ notificationIds: [notification.id] });
+                                }}
+                                className="cursor-pointer text-destructive focus:text-destructive"
+                                disabled={deleteYouTubeNotifications.isPending}
                               >
-                                <ExternalLink className="h-3 w-3" />
-                              </Link>
-                            </Button>
-                          </div>
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                     </div>
@@ -351,7 +376,7 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
                     onClick={() => handleGeneralNotificationClick(notification)}
                     className={cn(
                       "p-4 hover:bg-muted/50 transition-colors cursor-pointer",
-                      !notification.isRead && "border-l-[3px] border-l-primary bg-blue-50 dark:[background:var(--unread-notification-bg)]"
+                      !notification.isRead && "border-l-[3px] border-l-[#1447E6] bg-blue-50 dark:[background:var(--unread-notification-bg)]"
                     )}
                   >
                     <div className="flex gap-3">
@@ -380,18 +405,36 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
                               })}
                             </p>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteGeneralNotifications.mutate({ notificationIds: [notification.id] });
-                            }}
-                            disabled={deleteGeneralNotifications.isPending}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {!notification.isRead && (
+                                <DropdownMenuItem
+                                  onClick={() => handleMarkGeneralAsRead(notification.id)}
+                                  className="cursor-pointer"
+                                >
+                                  <CheckCheck className="h-4 w-4 mr-2" />
+                                  Mark as read
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteGeneralNotifications.mutate({ notificationIds: [notification.id] });
+                                }}
+                                className="cursor-pointer text-destructive focus:text-destructive"
+                                disabled={deleteGeneralNotifications.isPending}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                     </div>
@@ -437,7 +480,7 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
                     <div
                       className={cn(
                         "p-4 hover:bg-muted/50 transition-colors",
-                        !notification.isRead && "border-l-[3px] border-l-primary bg-blue-50 dark:[background:var(--unread-notification-bg)]"
+                        !notification.isRead && "border-l-[3px] border-l-[#1447E6] bg-blue-50 dark:[background:var(--unread-notification-bg)]"
                       )}
                     >
                       <div className="flex gap-3">
@@ -475,19 +518,41 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
                                 })}
                               </p>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                deleteForumNotifications.mutate({ notificationIds: [notification.id] });
-                              }}
-                              disabled={deleteForumNotifications.isPending}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {!notification.isRead && (
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleMarkForumAsRead(notification.id);
+                                    }}
+                                    className="cursor-pointer"
+                                  >
+                                    <CheckCheck className="h-4 w-4 mr-2" />
+                                    Mark as read
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    deleteForumNotifications.mutate({ notificationIds: [notification.id] });
+                                  }}
+                                  className="cursor-pointer text-destructive focus:text-destructive"
+                                  disabled={deleteForumNotifications.isPending}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
                       </div>

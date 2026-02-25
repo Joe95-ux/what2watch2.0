@@ -454,9 +454,10 @@ export default function YouTubeNotificationsPage() {
             {paginatedNotifications.map((notification) => (
             <div
               key={notification.id}
-              className={`p-4 hover:bg-muted/50 transition-colors ${
-                !notification.isRead ? "bg-muted/30" : ""
-              }`}
+              className={cn(
+                "p-4 hover:bg-muted/50 transition-colors",
+                !notification.isRead && "border-l-[3px] border-l-[#1447E6] bg-blue-50 dark:[background:var(--unread-notification-bg)]"
+              )}
             >
               <div className="flex gap-3">
                 {/* Channel Avatar */}

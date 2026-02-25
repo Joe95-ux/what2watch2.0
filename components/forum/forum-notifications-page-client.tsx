@@ -179,7 +179,7 @@ export function ForumNotificationsPageClient() {
               key={notification.id}
               className={cn(
                 "p-4 hover:bg-muted/50 transition-colors",
-                !notification.isRead && "bg-muted/30"
+                !notification.isRead && "border-l-[3px] border-l-[#1447E6] bg-blue-50 dark:[background:var(--unread-notification-bg)]"
               )}
             >
               <div className="flex gap-3">

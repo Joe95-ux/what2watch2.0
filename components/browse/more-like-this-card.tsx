@@ -533,7 +533,7 @@ export default function MoreLikeThisCard({
         </div>
 
         {/* Section 2: Movie Details */}
-        <div className="bg-muted/60 dark:bg-card border-t border-border/50 p-3 space-y-2">
+        <div className="bg-muted dark:bg-card border-t border-border/50 p-3 space-y-2">
           {/* Top Row: Release Date + Rating + Add Button */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -581,7 +581,7 @@ export default function MoreLikeThisCard({
                 )}
               </TooltipTrigger>
               <TooltipContent>
-                <p>Add to Playlist</p>
+                <p>Add to List</p>
               </TooltipContent>
             </Tooltip>
           </div>
