@@ -129,16 +129,16 @@
 }
 
 :root[data-primary-color="blue"] {
-  --primary: oklch(0.488 0.243 264.376);
+  --primary: oklch(0.45 0.25 264);
   --primary-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary: oklch(0.45 0.25 264);
   --sidebar-primary-foreground: oklch(0.985 0 0);
 }
 
 .dark[data-primary-color="blue"] {
-  --primary: oklch(0.6 0.2 264.376);
+  --primary: oklch(0.55 0.25 264);
   --primary-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.6 0.2 264.376);
+  --sidebar-primary: oklch(0.55 0.25 264);
   --sidebar-primary-foreground: oklch(0.985 0 0);
 }
 
@@ -156,14 +156,18 @@
   --sidebar-primary-foreground: oklch(0.985 0 0);
 }
 
-/* Link color always #2572C4 regardless of primary color - only apply to default links without explicit color classes */
+/* Primary color only applies to buttons */
 @layer base {
-  a[href]:not([class*="text-primary"]):not([class*="text-destructive"]):not([class*="text-muted"]):not([class*="text-foreground"]):not([class*="text-secondary"]):not([class*="text-accent"]) {
-    color: #2572C4;
+  /* Override text-primary to use foreground color for non-button elements */
+  /* Only buttons should use primary color for text */
+  :not(button):not([role="button"]).text-primary {
+    color: hsl(var(--foreground)) !important;
   }
   
-  a[href]:not([class*="text-primary"]):not([class*="text-destructive"]):not([class*="text-muted"]):not([class*="text-foreground"]):not([class*="text-secondary"]):not([class*="text-accent"]):hover {
-    color: #1e5aa3;
+  /* Buttons with text-primary should still use primary color */
+  button.text-primary,
+  [role="button"].text-primary {
+    color: hsl(var(--primary)) !important;
   }
 }
 

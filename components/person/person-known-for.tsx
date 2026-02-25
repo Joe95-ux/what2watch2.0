@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { TMDBPersonMovieCredits, TMDBPersonTVCredits, TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import MoreLikeThisCard from "@/components/browse/more-like-this-card";
+import { createContentUrl } from "@/lib/content-slug";
 import {
   Select,
   SelectContent,
@@ -231,7 +232,8 @@ export default function PersonKnownFor({
               item={item}
               type={itemType}
               onItemClick={(item, itemType) => {
-                router.push(`/${itemType}/${item.id}`);
+                const title = "title" in item ? item.title : item.name;
+                router.push(createContentUrl(itemType, item.id, title));
               }}
               showTypeBadge={true}
             />

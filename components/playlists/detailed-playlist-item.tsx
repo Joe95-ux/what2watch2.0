@@ -576,7 +576,7 @@ function DetailedPlaylistItem({
                                     )}`
                                   );
                                 }}
-                                className="text-primary underline hover:text-primary/80 transition-colors"
+                                className="underline transition-colors text-[#2572C4] hover:text-[#1e5aa3]"
                               >
                                 {directorOrCreator.name}
                               </button>
@@ -602,7 +602,7 @@ function DetailedPlaylistItem({
                                         )}`
                                       );
                                     }}
-                                    className="text-primary underline hover:text-primary/80 transition-colors"
+                                    className="underline transition-colors text-[#2572C4] hover:text-[#1e5aa3]"
                                   >
                                     {actor.name}
                                   </button>
@@ -750,7 +750,7 @@ function DetailedPlaylistItem({
                                     )}`
                                   );
                                 }}
-                                className="text-primary underline hover:text-primary/80 transition-colors"
+                                className="underline transition-colors text-[#2572C4] hover:text-[#1e5aa3]"
                               >
                                 {actor.name}
                               </button>
