@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { X, Play, Plus, Heart, Star, Clock, Volume2, VolumeX, ArrowLeft, BookOpen, BookCheck, CalendarIcon } from "lucide-react";
+import { X, Play, Plus, Heart, Star, Clock, Volume2, VolumeX, ArrowLeft, BookOpen, BookCheck, CalendarIcon, Check, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import Script from "next/script";
 import { TMDBMovie, TMDBSeries, getBackdropUrl, getPosterUrl, getYouTubeEmbedUrl, TMDBVideo } from "@/lib/tmdb";
@@ -37,10 +37,19 @@ import {
 } from "@/components/ui/carousel";
 import { useAddRecentlyViewed } from "@/hooks/use-recently-viewed";
 import { useToggleFavorite } from "@/hooks/use-favorites";
-import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useSeenEpisodes, useToggleEpisodeSeen, useMarkSeasonsSeen, useUnmarkSeasonsSeen } from "@/hooks/use-episode-tracking";
+import { useUser, useClerk } from "@clerk/nextjs";
+import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { useIsMobile } from "@/hooks/use-mobile";
+import AddToListDropdown from "@/components/content-detail/add-to-list-dropdown";
 import LogToDiaryDropdown from "./log-to-diary-dropdown";
-import { JustWatchWidget } from "@/components/ui/justwatch-widget";
+import { useWatchProviders } from "@/hooks/use-content-details";
+import ContentDetailWhereToWatch from "./content-detail-where-to-watch";
+import ContentDetailDetailsGrid from "./content-detail-details-grid";
+import TVSeasonsSection from "./content-detail-tv-seasons-section";
 
 interface ContentDetailModalProps {
   item: TMDBMovie | TMDBSeries;
@@ -132,8 +141,7 @@ export default function ContentDetailModal({
   const [isEpisodeModalOpen, setIsEpisodeModalOpen] = useState(false);
   const isClosingRef = useRef(false);
   const [isSheetMounted, setIsSheetMounted] = useState(false);
-  const [heroPlaylistTooltipOpen, setHeroPlaylistTooltipOpen] = useState(false);
-  const [isHeroPlaylistDropdownOpen, setIsHeroPlaylistDropdownOpen] = useState(false);
+  const [isHeroListDropdownOpen, setIsHeroListDropdownOpen] = useState(false);
   
   // Track recently viewed
   const addRecentlyViewed = useAddRecentlyViewed();
@@ -162,6 +170,7 @@ export default function ContentDetailModal({
     callback();
   }, []);
   const { data: videosData } = useContentVideos(type, item.id);
+  const { data: watchAvailability } = useWatchProviders(type, item.id, "US");
   const { data: seasonsData } = useTVSeasons(type === "tv" ? item.id : null);
   const { data: seasonDetails, isLoading: isLoadingSeasonDetails } = useTVSeasonDetails(
     type === "tv" ? item.id : null,
@@ -417,7 +426,7 @@ export default function ContentDetailModal({
                   <div className="flex items-center gap-3">
                     <Button
                       size="lg"
-                      className="bg-white dark:bg-white text-black dark:text-black hover:bg-white/90 dark:hover:bg-white/90 h-12 px-6 text-sm md:h-14 md:px-10 md:text-base font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg rounded-md no-close"
+                      className="bg-white dark:bg-white text-black dark:text-black hover:bg-white/90 dark:hover:bg-white/90 h-10 px-6 text-sm font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg rounded-md no-close"
                       asChild
                     >
                       <Link 
@@ -428,36 +437,30 @@ export default function ContentDetailModal({
                         View More
                       </Link>
                     </Button>
-                    <Tooltip
-                      open={heroPlaylistTooltipOpen && !isHeroPlaylistDropdownOpen}
-                      onOpenChange={(open) => setHeroPlaylistTooltipOpen(open)}
-                    >
+                    <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="inline-block pointer-events-none">
-                          <AddToPlaylistDropdown
+                          <AddToListDropdown
                             item={item}
                             type={type}
                             trigger={
                               <Button
                                 size="lg"
                                 variant="outline"
-                                className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-12 w-12 md:h-14 md:w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close pointer-events-auto"
+                                className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-10 w-10 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close pointer-events-auto"
                                 type="button"
                               >
                                 <Plus className="size-5 md:size-6 text-white dark:text-white" />
                               </Button>
                             }
                             onOpenChange={(open) => {
-                              setIsHeroPlaylistDropdownOpen(open);
-                              if (open) {
-                                setHeroPlaylistTooltipOpen(false);
-                              }
+                              setIsHeroListDropdownOpen(open);
                             }}
                           />
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Add to Playlist</p>
+                        <p>Add to List</p>
                       </TooltipContent>
                     </Tooltip>
                     <Tooltip>
@@ -465,7 +468,7 @@ export default function ContentDetailModal({
                         <Button
                           size="lg"
                           variant="outline"
-                          className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-12 w-12 md:h-14 md:w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
+                          className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-10 w-10 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
                           onClick={async (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -492,7 +495,7 @@ export default function ContentDetailModal({
                         <Button
                           size="lg"
                           variant="outline"
-                          className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-12 w-12 md:h-14 md:w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
+                          className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-10 w-10 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
                           onClick={(e) => handleButtonClick(e, () => {})}
                         >
                           <BookOpen className="size-5 md:size-6 text-white dark:text-white" />
@@ -506,7 +509,7 @@ export default function ContentDetailModal({
                           <Button
                             size="lg"
                             variant="outline"
-                          className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-12 w-12 md:h-14 md:w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 ml-auto cursor-pointer no-close"
+                          className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-10 w-10 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 ml-auto cursor-pointer no-close"
                             onClick={(e) => handleButtonClick(e, () => setIsMuted(!isMuted))}
                             aria-label={isMuted ? "Unmute" : "Mute"}
                           >
@@ -536,7 +539,7 @@ export default function ContentDetailModal({
                   <Button
                     size="lg"
                     variant="outline"
-                    className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-14 w-14 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer pointer-events-auto no-close"
+                    className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 h-10 w-10 p-0 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer pointer-events-auto no-close"
                     onClick={(e) => handleButtonClick(e, () => setIsMuted(true))}
                     aria-label="Clear"
                   >
@@ -623,53 +626,7 @@ export default function ContentDetailModal({
                   )}
 
                   {/* Additional Details */}
-                  {details && (
-                    <div>
-                      <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Details</h3>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        {type === "movie" && "release_date" in details && details.release_date && (
-                          <div>
-                            <span className="text-muted-foreground block mb-1">Release Date</span>
-                            <p className="font-medium text-foreground">{formatDate(details.release_date)}</p>
-                          </div>
-                        )}
-                        {type === "tv" && "first_air_date" in details && details.first_air_date && (
-                          <div>
-                            <span className="text-muted-foreground block mb-1">First Air Date</span>
-                            <p className="font-medium text-foreground">{formatDate(details.first_air_date)}</p>
-                          </div>
-                        )}
-                        {type === "movie" && "runtime" in details && details.runtime && (
-                          <div>
-                            <span className="text-muted-foreground block mb-1">Runtime</span>
-                            <p className="font-medium text-foreground">{formatRuntime(details.runtime)}</p>
-                          </div>
-                        )}
-                        {type === "tv" && "episode_run_time" in details && details.episode_run_time?.[0] && (
-                          <div>
-                            <span className="text-muted-foreground block mb-1">Episode Runtime</span>
-                            <p className="font-medium text-foreground">{formatRuntime(details.episode_run_time[0])}</p>
-                          </div>
-                        )}
-                        {details.production_countries && details.production_countries.length > 0 && (
-                          <div>
-                            <span className="text-muted-foreground block mb-1">Country</span>
-                            <p className="font-medium text-foreground">
-                              {details.production_countries.map((c) => c.name).join(", ")}
-                            </p>
-                          </div>
-                        )}
-                        {details.spoken_languages && details.spoken_languages.length > 0 && (
-                          <div>
-                            <span className="text-muted-foreground block mb-1">Language</span>
-                            <p className="font-medium text-foreground">
-                              {details.spoken_languages.map((l) => l.english_name).join(", ")}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                  <ContentDetailDetailsGrid type={type} details={details} />
                 </div>
 
                 {/* Sidebar */}
@@ -685,43 +642,11 @@ export default function ContentDetailModal({
                       />
                     </div>
                   )}
-                  {details && (
-                    <div className="space-y-3 text-sm">
-                      {type === "tv" && "number_of_seasons" in details && (
-                        <div>
-                          <span className="text-muted-foreground">Seasons</span>
-                          <p className="font-medium">{details.number_of_seasons}</p>
-                        </div>
-                      )}
-                      {type === "tv" && "number_of_episodes" in details && (
-                        <div>
-                          <span className="text-muted-foreground">Episodes</span>
-                          <p className="font-medium">{details.number_of_episodes}</p>
-                        </div>
-                      )}
-                      {details.production_companies && details.production_companies.length > 0 && (
-                        <div>
-                          <span className="text-muted-foreground">Production</span>
-                          <p className="font-medium">
-                            {details.production_companies
-                              .slice(0, 3)
-                              .map((c) => c.name)
-                              .join(", ")}
-                          </p>
-                        </div>
-                      )}
-                    </div>
+                  
+                  {/* Where to Watch */}
+                  {watchAvailability && (
+                    <ContentDetailWhereToWatch watchAvailability={watchAvailability} />
                   )}
-
-                  {/* JustWatch Widget */}
-                  <div className="mt-6">
-                    <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Where to Watch</h3>
-                    <JustWatchWidget
-                      imdbId={imdbId}
-                      title={title}
-                      mediaType={type}
-                    />
-                  </div>
                  
                 </div>
               </div>
@@ -730,15 +655,12 @@ export default function ContentDetailModal({
               {type === "tv" && seasonsData && (
                 <div className="w-full mt-8">
                   <TVSeasonsSection
-                    tvId={item.id}
                     seasons={seasonsData.seasons}
                     selectedSeason={selectedSeason}
                     onSeasonSelect={setSelectedSeason}
                     seasonDetails={seasonDetails}
                     isLoadingSeasonDetails={isLoadingSeasonDetails}
                     tvShow={item as TMDBSeries}
-                    tvShowDetails={tvDetails || null}
-                    trailer={trailer}
                     onEpisodeClick={(episode: {
                       id: number;
                       name: string;
@@ -808,270 +730,5 @@ export default function ContentDetailModal({
       />
     )}
     </>
-  );
-}
-
-// TV Seasons & Episodes Section Component
-interface TVSeasonsSectionProps {
-  tvId: number;
-  seasons: Array<{
-    id: number;
-    name: string;
-    overview: string;
-    season_number: number;
-    episode_count: number;
-    air_date: string | null;
-    poster_path: string | null;
-  }>;
-  selectedSeason: number | null;
-  onSeasonSelect: (seasonNumber: number) => void;
-  seasonDetails: {
-    _id: string;
-    air_date: string | null;
-    episodes: Array<{
-      id: number;
-      name: string;
-      overview: string;
-      episode_number: number;
-      season_number: number;
-      air_date: string | null;
-      still_path: string | null;
-      runtime: number | null;
-      vote_average: number;
-      vote_count: number;
-    }>;
-    name: string;
-    overview: string;
-    id: number;
-    poster_path: string | null;
-    season_number: number;
-  } | null | undefined;
-  isLoadingSeasonDetails?: boolean;
-  tvShow?: TMDBSeries;
-  tvShowDetails?: {
-    created_by?: Array<{ id: number; name: string; profile_path?: string | null }>;
-    credits?: {
-      cast?: Array<{
-        id: number;
-        name: string;
-        character: string;
-        profile_path: string | null;
-      }>;
-      crew?: Array<{
-        id: number;
-        name: string;
-        job: string;
-      }>;
-    };
-    genres?: Array<{ id: number; name: string }>;
-    first_air_date?: string;
-    episode_run_time?: number[];
-    vote_average?: number;
-    external_ids?: {
-      imdb_id?: string | null;
-    };
-    imdb_id?: string | null;
-  } | null;
-  trailer?: TMDBVideo | null;
-  onEpisodeClick?: (episode: {
-    id: number;
-    name: string;
-    overview: string;
-    episode_number: number;
-    season_number: number;
-    air_date: string | null;
-    still_path: string | null;
-    runtime: number | null;
-    vote_average: number;
-    vote_count: number;
-  }) => void;
-}
-
-function TVSeasonsSection({
-  seasons,
-  selectedSeason,
-  onSeasonSelect,
-  seasonDetails,
-  isLoadingSeasonDetails = false,
-  onEpisodeClick,
-}: TVSeasonsSectionProps) {
-  // Filter out season 0 (specials)
-  const regularSeasons = seasons.filter((s) => s.season_number > 0);
-
-  // Handle season selection with propagation prevention
-  const handleSeasonSelect = useCallback((e: React.MouseEvent, seasonNumber: number) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onSeasonSelect(seasonNumber);
-  }, [onSeasonSelect]);
-
-  // Handle episode row click with propagation prevention
-  const handleEpisodeClick = useCallback((e: React.MouseEvent, episode: {
-    id: number;
-    name: string;
-    overview: string;
-    episode_number: number;
-    season_number: number;
-    air_date: string | null;
-    still_path: string | null;
-    runtime: number | null;
-    vote_average: number;
-    vote_count: number;
-  }) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (onEpisodeClick) {
-      onEpisodeClick(episode);
-    }
-  }, [onEpisodeClick]);
-
-  return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Seasons & Episodes</h3>
-      
-      {/* Season Selector - Carousel */}
-      <div className="relative group/carousel mb-6">
-        <Carousel
-          opts={{
-            align: "start",
-            slidesToScroll: 3,
-            breakpoints: {
-              "(max-width: 640px)": { slidesToScroll: 2 },
-              "(max-width: 1024px)": { slidesToScroll: 3 },
-            },
-          }}
-          className="w-full"
-        >
-          <CarouselContent className="-ml-2 gap-2">
-            {regularSeasons.map((season) => (
-              <CarouselItem key={season.id} className="pl-2 basis-auto">
-                <button
-                  onClick={(e) => handleSeasonSelect(e, season.season_number)}
-                  className={cn(
-                    "px-4 py-2 rounded-md text-sm font-medium transition-all no-close whitespace-nowrap cursor-pointer h-[42px]",
-                    selectedSeason === season.season_number
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted hover:bg-muted/80"
-                  )}
-                >
-                  {season.name || `Season ${season.season_number}`}
-                </button>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          <CarouselPrevious 
-            className="left-0 h-[42px] w-[45px] rounded-l-md rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
-          />
-          <CarouselNext 
-            className="right-0 h-[42px] w-[45px] rounded-r-md rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
-          />
-        </Carousel>
-      </div>
-
-      {/* Episodes Table */}
-      {selectedSeason !== null && (
-        <div className="mt-6">
-          {isLoadingSeasonDetails ? (
-            <div className="border border-border rounded-lg p-8 text-center text-muted-foreground">
-              Loading episodes...
-            </div>
-          ) : seasonDetails && seasonDetails.episodes && seasonDetails.episodes.length > 0 ? (
-            <div className="border border-border rounded-lg overflow-hidden bg-card">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                <thead className="bg-muted/30 border-b border-border">
-                  <tr>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      #
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider min-w-[300px]">
-                      Title
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Air Date
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Runtime
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Rating
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {seasonDetails.episodes.map((episode) => (
-                    <tr
-                      key={episode.id}
-                      className="hover:bg-muted/20 transition-colors cursor-pointer group no-close"
-                      onClick={(e) => handleEpisodeClick(e, episode)}
-                    >
-                      <td className="px-4 py-4 text-sm font-medium text-muted-foreground">
-                        {episode.episode_number}
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-3">
-                          {episode.still_path ? (
-                            <div className="relative w-20 h-12 rounded overflow-hidden flex-shrink-0 bg-muted">
-                              <Image
-                                src={getPosterUrl(episode.still_path, "w300")}
-                                alt={episode.name}
-                                fill
-                                className="object-cover group-hover:scale-105 transition-transform duration-300"
-                                unoptimized
-                              />
-                            </div>
-                          ) : (
-                            <div className="w-20 h-12 rounded bg-muted flex-shrink-0 flex items-center justify-center">
-                              <span className="text-xs text-muted-foreground">No Image</span>
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-sm group-hover:text-primary transition-colors">
-                              {episode.name}
-                            </p>
-                            {episode.overview && (
-                              <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                                {episode.overview}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 text-sm text-muted-foreground whitespace-nowrap">
-                        {episode.air_date
-                          ? new Date(episode.air_date).toLocaleDateString("en-US", {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            })
-                          : "TBA"}
-                      </td>
-                      <td className="px-4 py-4 text-sm text-muted-foreground whitespace-nowrap">
-                        {episode.runtime ? `${episode.runtime} min` : "N/A"}
-                      </td>
-                      <td className="px-4 py-4">
-                        {episode.vote_average > 0 ? (
-                          <div className="flex items-center gap-1.5">
-                            <Star className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
-                            <span className="text-sm font-medium">{episode.vote_average.toFixed(1)}</span>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">N/A</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          ) : (
-            <div className="border border-border rounded-lg p-8 text-center text-muted-foreground">
-              No episodes available for this season.
-            </div>
-          )}
-        </div>
-      )}
-    </div>
   );
 }
