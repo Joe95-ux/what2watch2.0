@@ -50,6 +50,7 @@
     "@tiptap/react": "^3.13.0",
     "@tiptap/starter-kit": "^3.13.0",
     "@uiw/react-color": "^2.9.3",
+    "@vercel/analytics": "^1.6.1",
     "bad-words": "^4.0.0",
     "bson": "^7.0.0",
     "class-variance-authority": "^0.7.1",

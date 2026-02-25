@@ -5,6 +5,7 @@ import { dark } from "@clerk/themes";
 import RootProviders from "@/components/providers/root-providers";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -40,6 +41,7 @@ export default function RootLayout({
         >
           <Toaster richColors position="bottom-right" />
           <RootProviders>{children}</RootProviders>
+          <Analytics />
         </body>
       </html>
     </ClerkProvider>
