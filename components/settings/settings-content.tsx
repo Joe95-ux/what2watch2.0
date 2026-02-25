@@ -43,6 +43,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { SettingsLinksSection } from "@/components/settings/settings-links-section";
 import { SettingsYoutubeVisibilitySection } from "@/components/settings/settings-youtube-visibility-section";
+import { useUserPreferences } from "@/hooks/use-user-preferences";
 
 interface SettingsContentProps {
   user: {
@@ -152,6 +153,7 @@ export default function SettingsContent({
   const [accountLastName, setAccountLastName] = useState("");
 
   const { user: clerkUser } = useUser();
+  const { data: userPreferences } = useUserPreferences();
   const accountUpdatePayloadRef = useRef<{
     username?: string | null;
     firstName?: string | null;
@@ -569,6 +571,66 @@ export default function SettingsContent({
                 <div>
                   <h2 className="text-2xl font-semibold mb-2">Theme</h2>
                   <p className="text-muted-foreground">Customize the appearance of the application</p>
+                </div>
+                <Separator />
+                <div className="space-y-4">
+                  <Label className="text-sm font-medium">Primary Color</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {[
+                      { value: "neutral", label: "Neutral", color: "oklch(0.12 0 0)" },
+                      { value: "blue", label: "Blue", color: "oklch(0.488 0.243 264.376)" },
+                      { value: "red", label: "Red", color: "oklch(0.28 0.18 25)" },
+                    ].map(({ value, label, color }) => (
+                      <button
+                        key={value}
+                        onClick={async () => {
+                          try {
+                            setIsLoading(true);
+                            const response = await fetch("/api/user/preferences", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                primaryColor: value,
+                                favoriteGenres: userPreferences?.favoriteGenres || [],
+                                preferredTypes: userPreferences?.preferredTypes || [],
+                                selectedProviders: userPreferences?.selectedProviders || [],
+                                onboardingCompleted: userPreferences?.onboardingCompleted ?? false,
+                              }),
+                            });
+                            if (!response.ok) throw new Error("Failed to save");
+                            await queryClient.invalidateQueries({ queryKey: ["user-preferences"] });
+                            // Apply the color immediately
+                            document.documentElement.setAttribute("data-primary-color", value);
+                            toast.success("Primary color updated");
+                          } catch (error) {
+                            toast.error("Failed to update primary color");
+                          } finally {
+                            setIsLoading(false);
+                          }
+                        }}
+                        className={cn(
+                          "flex flex-col items-center gap-3 p-4 rounded-lg border-2 transition-all",
+                          "hover:border-primary/50 hover:bg-accent/50",
+                          (userPreferences?.primaryColor || "neutral") === value
+                            ? "border-primary bg-accent"
+                            : "border-border"
+                        )}
+                        disabled={isLoading}
+                      >
+                        <div
+                          className="h-8 w-8 rounded-full border-2 border-border"
+                          style={{ backgroundColor: color }}
+                        />
+                        <span className="text-sm font-medium">{label}</span>
+                        {(userPreferences?.primaryColor || "neutral") === value && (
+                          <CheckCircle2 className="h-4 w-4 text-primary" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Choose your preferred primary color theme for the application.
+                  </p>
                 </div>
                 <Separator />
                 <div className="space-y-4">

@@ -14,7 +14,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
     }
 
     const body = await request.json();
-    const { favoriteGenres, preferredTypes, onboardingCompleted, selectedProviders } = body;
+    const { favoriteGenres, preferredTypes, onboardingCompleted, selectedProviders, primaryColor } = body;
 
     // Find or create user
     let user = await db.user.findUnique({
@@ -49,12 +49,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
         preferredTypes: preferredTypes || [],
         onboardingCompleted: onboardingCompleted ?? false,
         selectedProviders: selectedProviders || [],
+        primaryColor: primaryColor || "neutral",
       },
       update: {
         favoriteGenres: favoriteGenres || [],
         preferredTypes: preferredTypes || [],
         onboardingCompleted: onboardingCompleted ?? false,
         selectedProviders: selectedProviders !== undefined ? selectedProviders : undefined,
+        primaryColor: primaryColor !== undefined ? primaryColor : undefined,
         updatedAt: new Date(),
       },
     });

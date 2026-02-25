@@ -519,7 +519,7 @@ export function FiltersSheet({
           </Button>
           <Button
             onClick={onApply}
-            className="flex-1 h-10 text-sm cursor-pointer bg-[#E50914] hover:bg-[#E50914]/90 text-white"
+            className="flex-1 h-10 text-sm cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground"
             disabled={isLoading}
           >
             {isLoading ? (

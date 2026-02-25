@@ -507,6 +507,11 @@ export default function YouTubeNotificationsPage() {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="cursor-pointer"
+                            onClick={() => {
+                              if (!notification.isRead) {
+                                handleMarkAsRead(notification.id);
+                              }
+                            }}
                           >
                             <ExternalLink className="h-4 w-4 mr-2" />
                             Watch on YouTube
@@ -531,6 +536,11 @@ export default function YouTubeNotificationsPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="block"
+                      onClick={() => {
+                        if (!notification.isRead) {
+                          handleMarkAsRead(notification.id);
+                        }
+                      }}
                     >
                       <div className="relative h-32 w-full max-w-md rounded overflow-hidden bg-muted group">
                         {notification.videoThumbnail ? (

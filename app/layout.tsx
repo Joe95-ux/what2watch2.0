@@ -34,7 +34,7 @@ export default function RootLayout({
         },
       }}
     >
-      <html lang="en" style={{ height: "100%" }}>
+      <html lang="en" style={{ height: "100%" }} data-primary-color="neutral">
         <body
           className={`${inter.variable} font-sans antialiased h-full`}
         >

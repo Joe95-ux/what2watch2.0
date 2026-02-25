@@ -254,6 +254,9 @@ model UserPreferences {
   // Selected streaming providers/services (array of provider IDs)
   selectedProviders Int[] @default([]) // Array of watch provider IDs
   
+  // Primary color theme preference
+  primaryColor String? @default("neutral") // "neutral", "blue", or "red"
+  
   // Onboarding completed flag
   onboardingCompleted Boolean @default(false)
   
