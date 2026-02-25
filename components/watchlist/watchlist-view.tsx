@@ -2410,7 +2410,7 @@ function DetailedWatchlistItem({
       className={cn(
         "relative flex gap-4 p-4 rounded-lg border border-border bg-card transition-all group",
         isEditMode && isSelected && "bg-primary/10 border-primary",
-        !isEditMode && "cursor-pointer hover:border-primary/50"
+        !isEditMode && "cursor-pointer"
       )}
       onClick={(e) => {
         // Don't trigger item click if clicking on interactive elements
@@ -2541,7 +2541,7 @@ function DetailedWatchlistItem({
                   {(order && order > 0) ? order : index + 1}.
                 </span>
               )}
-              <h3 className="text-lg font-semibold group-hover:text-primary transition-colors truncate sm:truncate-none">
+              <h3 className="text-lg font-semibold truncate sm:truncate-none">
                 {watchlistItem.title}
               </h3>
               {isEditMode && (
@@ -2715,7 +2715,7 @@ function DetailedWatchlistItem({
                         setIsEditingNote(true);
                       }}
                       className={cn(
-                        "border-l-4 border-primary/50 pl-4 py-2 text-sm text-muted-foreground cursor-text hover:border-primary/80 transition-colors rounded-r",
+                        "border-l-4 border-[#E0B416] pl-4 py-2 text-sm text-muted-foreground cursor-text hover:border-[#E0B416] transition-colors rounded-r",
                         "bg-muted/50 hover:bg-muted/70",
                         !watchlistItem.note && "text-muted-foreground/50 italic"
                       )}

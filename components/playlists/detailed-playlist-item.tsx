@@ -254,7 +254,7 @@ function DetailedPlaylistItem({
         className={cn(
           "relative flex gap-4 p-4 rounded-lg border border-border bg-card transition-all group",
           isEditMode && isSelected && "bg-primary/10 border-primary",
-          !isEditMode && "cursor-pointer hover:border-primary/50"
+          !isEditMode && "cursor-pointer"
         )}
         onClick={(e) => {
           const target = e.target as HTMLElement;
@@ -373,7 +373,7 @@ function DetailedPlaylistItem({
                     {order}.
                   </span>
                 )}
-                <h3 className="text-lg font-semibold group-hover:text-primary transition-colors truncate sm:truncate-none">
+                <h3 className="text-lg font-semibold truncate sm:truncate-none">
                   {playlistItem.title}
                 </h3>
                 {isEditMode && (
@@ -544,7 +544,7 @@ function DetailedPlaylistItem({
                           setIsEditingNote(true);
                         }}
                         className={cn(
-                          "border-l-4 border-primary/50 pl-4 py-2 text-sm text-muted-foreground cursor-text hover:border-primary/80 transition-colors rounded-r",
+                          "border-l-4 border-[#E0B416] pl-4 py-2 text-sm text-muted-foreground cursor-text hover:border-[#E0B416] transition-colors rounded-r",
                           "bg-muted/50 hover:bg-muted/70",
                           !playlistItem.note && "text-muted-foreground/50 italic"
                         )}

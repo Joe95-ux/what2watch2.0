@@ -95,7 +95,7 @@ export function DetailedYouTubePlaylistItem({
         className={cn(
           "relative flex gap-4 p-4 rounded-lg border border-border bg-card transition-all group",
           isEditMode && isSelected && "bg-primary/10 border-primary",
-          !isEditMode && "cursor-pointer hover:border-primary/50"
+          !isEditMode && "cursor-pointer"
         )}
         onClick={(e) => {
           const target = e.target as HTMLElement;
@@ -194,7 +194,7 @@ export function DetailedYouTubePlaylistItem({
                     {order}.
                   </span>
                 )}
-                <h3 className="text-lg font-semibold group-hover:text-primary transition-colors truncate sm:truncate-none">
+                <h3 className="text-lg font-semibold truncate sm:truncate-none">
                   {youtubeItem.title}
                 </h3>
                 {isEditMode && (
