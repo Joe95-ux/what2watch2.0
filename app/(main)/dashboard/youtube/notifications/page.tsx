@@ -25,6 +25,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { decodeHtmlEntities } from "@/lib/utils";
 
 function NotificationSkeleton() {
   return (
@@ -462,10 +463,10 @@ export default function YouTubeNotificationsPage() {
                 <Avatar className="h-12 w-12 flex-shrink-0">
                   <AvatarImage 
                     src={notification.channelThumbnail || undefined} 
-                    alt={notification.channelTitle || "Channel"} 
+                    alt={decodeHtmlEntities(notification.channelTitle || "Channel")} 
                   />
                   <AvatarFallback>
-                    {(notification.channelTitle || "C")[0].toUpperCase()}
+                    {(decodeHtmlEntities(notification.channelTitle || "C"))[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
 
@@ -474,8 +475,8 @@ export default function YouTubeNotificationsPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium line-clamp-2 mb-1">
-                        <span className="font-semibold">{notification.channelTitle}</span>
-                        {" "}uploaded a new video: {notification.videoTitle}
+                        <span className="font-semibold">{decodeHtmlEntities(notification.channelTitle || "")}</span>
+                        {" "}uploaded a new video: {decodeHtmlEntities(notification.videoTitle || "")}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {formatDistanceToNow(parseISO(notification.publishedAt), {
@@ -534,7 +535,7 @@ export default function YouTubeNotificationsPage() {
                         {notification.videoThumbnail ? (
                           <Image
                             src={notification.videoThumbnail}
-                            alt={notification.videoTitle}
+                            alt={decodeHtmlEntities(notification.videoTitle || "")}
                             fill
                             className="object-cover group-hover:scale-105 transition-transform"
                             unoptimized

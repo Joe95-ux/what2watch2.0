@@ -271,12 +271,12 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                 </div>
               </Link>
               <Link 
-                href="/dashboard/lists" 
+                href="/lists" 
                 onClick={(e) => {
                   e.preventDefault();
                   onLinkClick();
                   setTimeout(() => {
-                    router.push("/dashboard/lists");
+                    router.push("/lists");
                   }, 100);
                 }}
               >

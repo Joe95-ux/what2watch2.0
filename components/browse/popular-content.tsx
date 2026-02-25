@@ -25,6 +25,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { createContentUrl } from "@/lib/content-slug";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 function PopularContentInner() {
   const searchParams = useSearchParams();
@@ -32,6 +33,7 @@ function PopularContentInner() {
   const queryClient = useQueryClient();
   const { isSignedIn } = useUser();
   const { data: userPreferences } = useUserPreferences();
+  const isMobile = useIsMobile();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [providerBarOpen, setProviderBarOpen] = useState(false);
   const [selectServicesModalOpen, setSelectServicesModalOpen] = useState(false);
@@ -466,9 +468,12 @@ function PopularContentInner() {
       )}>
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-8">
+          <div className={cn(
+            "flex items-center justify-between py-8",
+            isMobile && "flex-col gap-3 pb-0"
+          )}>
             {/* Tabs */}
-            <Tabs value={type === "movie" ? "movies" : type} onValueChange={(v) => handleTypeChange(v === "movies" ? "movie" : v as "all" | "movie" | "tv")}>
+            <Tabs value={type === "movie" ? "movies" : type} onValueChange={(v) => handleTypeChange(v === "movies" ? "movie" : v as "all" | "movie" | "tv")} className={cn(isMobile && "self-start")}>
               <TabsList className="bg-background h-10 border border-border">
                 <TabsTrigger value="all" className="cursor-pointer">All</TabsTrigger>
                 <TabsTrigger value="movies" className="cursor-pointer">Movies</TabsTrigger>
@@ -477,7 +482,7 @@ function PopularContentInner() {
             </Tabs>
 
             {/* Provider Button and Filters Button */}
-            <div className="flex items-center gap-2">
+            <div className={cn("flex items-center gap-2", isMobile && "self-start")}>
               {isSignedIn && providerButtonProviders.length > 0 && (
                 <ProviderButton
                   providers={providerButtonProviders}

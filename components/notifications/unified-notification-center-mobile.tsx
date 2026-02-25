@@ -15,7 +15,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { useAvatar } from "@/contexts/avatar-context";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, decodeHtmlEntities } from "@/lib/utils";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
@@ -263,7 +263,7 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
                         {notification.videoThumbnail ? (
                           <Image
                             src={notification.videoThumbnail}
-                            alt={notification.videoTitle}
+                            alt={decodeHtmlEntities(notification.videoTitle || "")}
                             fill
                             className="object-cover"
                             unoptimized
@@ -274,10 +274,10 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium line-clamp-2">
-                              {notification.videoTitle}
+                              {decodeHtmlEntities(notification.videoTitle || "")}
                             </p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              {notification.channelTitle}
+                              {decodeHtmlEntities(notification.channelTitle || "")}
                             </p>
                             <p className="text-xs text-muted-foreground mt-1">
                               {formatDistanceToNow(new Date(notification.publishedAt), {

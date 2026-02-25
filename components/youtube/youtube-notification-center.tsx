@@ -15,6 +15,7 @@ import { useYouTubeNotifications, useMarkNotificationsAsRead } from "@/hooks/use
 import Image from "next/image";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
+import { decodeHtmlEntities } from "@/lib/utils";
 
 export function YouTubeNotificationCenter() {
   const [open, setOpen] = useState(false);
@@ -87,7 +88,7 @@ export function YouTubeNotificationCenter() {
                       {notification.videoThumbnail ? (
                         <Image
                           src={notification.videoThumbnail}
-                          alt={notification.videoTitle}
+                          alt={decodeHtmlEntities(notification.videoTitle || "")}
                           fill
                           className="object-cover"
                           unoptimized
@@ -98,10 +99,10 @@ export function YouTubeNotificationCenter() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium line-clamp-2">
-                            {notification.videoTitle}
+                            {decodeHtmlEntities(notification.videoTitle || "")}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {notification.channelTitle}
+                            {decodeHtmlEntities(notification.channelTitle || "")}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
                             {formatDistanceToNow(new Date(notification.publishedAt), {

@@ -27,6 +27,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { decodeHtmlEntities } from "@/lib/utils";
 
 function NotificationSkeleton() {
   return (
@@ -216,8 +217,8 @@ export function YouTubeNotificationsTab() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium line-clamp-2 mb-1">
-                        <span className="font-semibold">{notification.channelTitle}</span>
-                        {" "}uploaded a new video: {notification.videoTitle}
+                        <span className="font-semibold">{decodeHtmlEntities(notification.channelTitle || "")}</span>
+                        {" "}uploaded a new video: {decodeHtmlEntities(notification.videoTitle || "")}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {formatDistanceToNow(parseISO(notification.publishedAt), {
