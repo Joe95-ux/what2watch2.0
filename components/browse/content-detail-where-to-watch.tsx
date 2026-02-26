@@ -21,10 +21,11 @@ import { ChevronsUpDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ContentDetailWhereToWatchProps {
-  watchAvailability: JustWatchAvailabilityResponse;
+  watchAvailability: JustWatchAvailabilityResponse | null | undefined;
   watchCountry?: string;
   onWatchCountryChange?: (code: string) => void;
   justwatchCountries?: JustWatchCountry[];
+  isLoading?: boolean;
 }
 
 function CountryCombobox({
@@ -108,6 +109,7 @@ export default function ContentDetailWhereToWatch({
   watchCountry = "US",
   onWatchCountryChange,
   justwatchCountries = [],
+  isLoading = false,
 }: ContentDetailWhereToWatchProps) {
   // Build rows array with alternating backgrounds
   const rows: Array<{ key: string; label: string; offers: JustWatchAvailabilityResponse["allOffers"] }> = [];
@@ -160,9 +162,11 @@ export default function ContentDetailWhereToWatch({
     return presentationType.toUpperCase();
   };
 
+  if (!watchAvailability && !isLoading) return null;
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <h3 className="text-lg font-semibold">Where to Watch</h3>
         {justwatchCountries.length > 0 && onWatchCountryChange && (
           <CountryCombobox
@@ -172,7 +176,29 @@ export default function ContentDetailWhereToWatch({
           />
         )}
       </div>
-      <div className="space-y-0">
+      {isLoading ? (
+        <div className="space-y-0">
+          {[1, 2].map((i) => (
+            <div key={i} className={cn(i === 1 && "border-b border-border")}>
+              <div className="flex items-center gap-2 h-[100px]">
+                <div className={cn("flex-shrink-0 w-10 h-full flex items-center justify-center", i % 2 === 0 ? "bg-muted" : "bg-muted/50")}>
+                  <div className="h-4 w-4 bg-muted-foreground/20 rounded animate-pulse" />
+                </div>
+                <div className="flex-1 min-w-0 h-full overflow-x-auto scrollbar-thin">
+                  <div className="flex items-center gap-2 h-full py-4">
+                    {Array.from({ length: 5 }).map((_, j) => (
+                      <div key={j} className="flex-shrink-0">
+                        <div className="h-[50px] w-[50px] rounded-lg bg-muted animate-pulse" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : watchAvailability ? (
+        <div className="space-y-0">
         {rows.map((row, index) => {
           const isEven = index % 2 === 0;
           const labelBgColor = isEven ? "bg-muted" : "bg-muted/50";
@@ -257,7 +283,22 @@ export default function ContentDetailWhereToWatch({
             </div>
           );
         })}
-      </div>
+        </div>
+      ) : null}
+      
+      {/* JustWatch Attribution */}
+      {watchAvailability && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Image
+            src="https://widget.justwatch.com/assets/JW_logo_color_10px.svg"
+            alt="JustWatch"
+            width={66}
+            height={10}
+            unoptimized
+          />
+          <span>Data powered by JustWatch</span>
+        </div>
+      )}
     </div>
   );
 }

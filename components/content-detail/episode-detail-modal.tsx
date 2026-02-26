@@ -23,6 +23,8 @@ import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import { useSeasonWatchProviders } from "@/hooks/use-content-details";
 import { toast } from "sonner";
 import type { JustWatchAvailabilityResponse, JustWatchOffer } from "@/lib/justwatch";
+import { List, Table2 } from "lucide-react";
+import WatchListView from "./watch-list-view";
 
 interface Episode {
   id: number;
@@ -76,6 +78,41 @@ const MODAL_WATCH_SECTIONS: Array<{
   { key: "buy", title: "Buy", description: "Purchase to own", ctaLabel: "Buy" },
 ];
 
+function ViewSwitcher({
+  viewMode,
+  onViewModeChange,
+}: {
+  viewMode: "table" | "list";
+  onViewModeChange: (mode: "table" | "list") => void;
+}) {
+  return (
+    <div className="flex items-center gap-1 border border-border rounded-md p-1 bg-background">
+      <Button
+        variant={viewMode === "table" ? "default" : "ghost"}
+        size="sm"
+        onClick={() => onViewModeChange("table")}
+        className={cn(
+          "h-8 px-3 cursor-pointer",
+          viewMode === "table" ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+        )}
+      >
+        <Table2 className="h-4 w-4" />
+      </Button>
+      <Button
+        variant={viewMode === "list" ? "default" : "ghost"}
+        size="sm"
+        onClick={() => onViewModeChange("list")}
+        className={cn(
+          "h-8 px-3 cursor-pointer",
+          viewMode === "list" ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+        )}
+      >
+        <List className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
 function EpisodeModalWhereToWatch({
   seasonNumber,
   availability,
@@ -89,6 +126,8 @@ function EpisodeModalWhereToWatch({
 }) {
   // Filter state - "all" selected by default
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
+  // View mode state - "table" is default
+  const [viewMode, setViewMode] = useState<"table" | "list">("table");
 
   const handleFilterClick = (key: string) => {
     setSelectedFilter(key);
@@ -132,13 +171,16 @@ function EpisodeModalWhereToWatch({
 
   return (
     <div className="space-y-6 pb-6">
-      {isFallback ? (
-        <p className="text-sm text-muted-foreground">
-          Showing availability for the series.
-        </p>
-      ) : (
-        <h4 className="text-lg font-semibold">Season {seasonNumber}</h4>
-      )}
+      <div className="flex items-center justify-between gap-3">
+        {isFallback ? (
+          <p className="text-sm text-muted-foreground">
+            Showing availability for the series.
+          </p>
+        ) : (
+          <h4 className="text-lg font-semibold">Season {seasonNumber}</h4>
+        )}
+        <ViewSwitcher viewMode={viewMode} onViewModeChange={setViewMode} />
+      </div>
       
       {/* Filter Row */}
       <div className="overflow-x-auto scrollbar-hide">
@@ -180,7 +222,12 @@ function EpisodeModalWhereToWatch({
         </div>
       </div>
 
-      {filteredSections.map((section) => {
+      {/* Render based on view mode */}
+      {viewMode === "list" ? (
+        <WatchListView watchAvailability={data} selectedFilter={selectedFilter} />
+      ) : (
+        <>
+          {filteredSections.map((section) => {
         const offers = data.offersByType[section.key] || [];
         if (!offers.length) return null;
         return (
@@ -204,6 +251,8 @@ function EpisodeModalWhereToWatch({
           </div>
         );
       })}
+        </>
+      )}
     </div>
   );
 }

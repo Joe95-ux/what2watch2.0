@@ -27,9 +27,10 @@ import {
 } from "@/components/ui/select";
 import { getCountryFlagEmoji } from "@/hooks/use-watch-regions";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ChevronDown, ChevronUp, ChevronsUpDown, Check, Clock } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronsUpDown, Check, Clock, List, Table2 } from "lucide-react";
 import { FaPlay } from "react-icons/fa";
 import { cn } from "@/lib/utils";
+import WatchListView from "./watch-list-view";
 
 interface WatchBreakdownSectionProps {
   availability: JustWatchAvailabilityResponse | null | undefined;
@@ -112,9 +113,7 @@ function CountryCombobox({
   const selected = countries.find((c) => c.code === value);
 
   return (
-    <div className="flex items-center gap-2">
-      <label className="text-sm text-muted-foreground whitespace-nowrap">Region</label>
-      <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
@@ -182,12 +181,15 @@ export default function WatchBreakdownSection({
   seasons = [],
   onSeasonChange,
 }: WatchBreakdownSectionProps) {
+  // Filter state - "all" selected by default
+  const [selectedFilter, setSelectedFilter] = useState<string>("all");
+  // View mode state - "table" is default
+  const [viewMode, setViewMode] = useState<"table" | "list">("table");
+  const [rankWindow, setRankWindow] = useState<"1d" | "7d" | "30d">("7d");
+  
   // Note: Leaving soon data is not currently available in the JustWatch Content Partner API
   // The API response doesn't include expires_at/valid_until fields or a top-level "leaving" array
   // This feature is kept in the code structure for future API support, but will gracefully handle missing data
-
-  // Filter state - "all" selected by default
-  const [selectedFilter, setSelectedFilter] = useState<string>("all");
 
   const handleFilterClick = (key: string) => {
     setSelectedFilter(key);
@@ -212,9 +214,9 @@ export default function WatchBreakdownSection({
     );
   }
 
-  const [rankWindow, setRankWindow] = useState<"1d" | "7d" | "30d">("7d");
-  const ranks = availability.ranks;
-  const fullPath = availability.fullPath;
+  // Safely access availability properties
+  const ranks = availability?.ranks;
+  const fullPath = availability?.fullPath;
   const justwatchUrl = fullPath ? `https://www.justwatch.com${fullPath}` : null;
   const primaryRankRaw = ranks?.[rankWindow] ?? ranks?.["7d"] ?? ranks?.["30d"] ?? ranks?.["1d"];
   const primaryRank =
@@ -228,7 +230,7 @@ export default function WatchBreakdownSection({
       : null;
   const rankWindowLabels: Record<"1d" | "7d" | "30d", string> = { "1d": "24h", "7d": "7d", "30d": "30d" };
 
-  const paidOffers = availability.allOffers.filter(
+  const paidOffers = (availability?.allOffers || []).filter(
     (o) => (o.monetizationType === "rent" || o.monetizationType === "buy") && o.retailPrice != null && o.retailPrice > 0
   );
   const cheapestRent = paidOffers
@@ -302,11 +304,12 @@ export default function WatchBreakdownSection({
           <div>
             <h2 className="text-2xl font-bold mb-2">Where to Watch</h2>
             <p className="text-sm text-muted-foreground">
-              Real-time availability in {justwatchCountries.find((c) => c.code === availability.country)?.name ?? availability.country}
-              {availability.lastSyncedAt ? ` • Updated ${new Date(availability.lastSyncedAt).toLocaleDateString()}` : ""}
+              Real-time availability in {justwatchCountries.find((c) => c.code === availability?.country)?.name ?? availability?.country ?? watchCountry}
+              {availability?.lastSyncedAt ? ` • Updated ${new Date(availability.lastSyncedAt).toLocaleDateString()}` : ""}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <ViewSwitcher viewMode={viewMode} onViewModeChange={setViewMode} />
             {justwatchCountries.length > 0 && onWatchCountryChange && (
               <CountryCombobox
                 countries={justwatchCountries}
@@ -404,7 +407,12 @@ export default function WatchBreakdownSection({
               </div>
             </div>
 
-            {filteredSections.map((section, idx) => {
+            {/* Render based on view mode */}
+            {viewMode === "list" ? (
+              <WatchListView watchAvailability={dataSource} selectedFilter={selectedFilter} />
+            ) : (
+              <>
+                {filteredSections.map((section, idx) => {
               const offers = dataSource?.offersByType[section.key] || [];
               if (!offers.length) return null;
               const isFirst = idx === 0;
@@ -481,6 +489,8 @@ export default function WatchBreakdownSection({
             )}
             {showSeasonDropdown && isLoadingSeason && (
               <p className="text-sm text-muted-foreground mt-2">Loading season availability…</p>
+            )}
+              </>
             )}
           </>
         );

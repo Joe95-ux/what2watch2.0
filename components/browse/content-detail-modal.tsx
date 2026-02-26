@@ -50,6 +50,7 @@ import { useWatchProviders, useJustWatchCountries } from "@/hooks/use-content-de
 import ContentDetailWhereToWatch from "./content-detail-where-to-watch";
 import ContentDetailDetailsGrid from "./content-detail-details-grid";
 import TVSeasonsSection from "./content-detail-tv-seasons-section";
+import ImagesSection from "./content-detail-images-section";
 
 interface ContentDetailModalProps {
   item: TMDBMovie | TMDBSeries;
@@ -171,7 +172,7 @@ export default function ContentDetailModal({
     callback();
   }, []);
   const { data: videosData } = useContentVideos(type, item.id);
-  const { data: watchAvailability } = useWatchProviders(type, item.id, watchCountry);
+  const { data: watchAvailability, isLoading: isLoadingWatchAvailability } = useWatchProviders(type, item.id, watchCountry);
   const { data: justwatchCountries = [] } = useJustWatchCountries();
   const { data: seasonsData } = useTVSeasons(type === "tv" ? item.id : null);
   const { data: seasonDetails, isLoading: isLoadingSeasonDetails } = useTVSeasonDetails(
@@ -425,10 +426,10 @@ export default function ContentDetailModal({
                       </>
                     )}
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide">
                     <Button
                       size="lg"
-                      className="bg-white dark:bg-white text-black dark:text-black hover:bg-white/90 dark:hover:bg-white/90 h-10 px-6 text-sm font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg rounded-md no-close"
+                      className="bg-white dark:bg-white text-black dark:text-black hover:bg-white/90 dark:hover:bg-white/90 h-10 px-6 text-sm font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg rounded-md no-close flex-shrink-0"
                       asChild
                     >
                       <Link 
@@ -449,7 +450,7 @@ export default function ContentDetailModal({
                               <Button
                                 size="lg"
                                 variant="outline"
-                                className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 p-5 rounded-[20px] backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close pointer-events-auto"
+                                className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 p-5 rounded-[20px] backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close pointer-events-auto flex-shrink-0"
                                 type="button"
                               >
                                 <Plus className="size-5 md:size-6 text-white dark:text-white" />
@@ -470,7 +471,7 @@ export default function ContentDetailModal({
                         <Button
                           size="lg"
                           variant="outline"
-                          className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 p-5 rounded-[20px] backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
+                          className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 p-5 rounded-[20px] backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close flex-shrink-0"
                           onClick={async (e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -497,7 +498,7 @@ export default function ContentDetailModal({
                         <Button
                           size="lg"
                           variant="outline"
-                          className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 p-5 rounded-[20px] backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close"
+                          className="bg-white/10 dark:bg-white/10 border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 p-5 rounded-[20px] backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer no-close flex-shrink-0"
                           onClick={(e) => handleButtonClick(e, () => {})}
                         >
                           <BookOpen className="size-5 md:size-6 text-white dark:text-white" />
@@ -511,7 +512,7 @@ export default function ContentDetailModal({
                           <Button
                             size="lg"
                             variant="outline"
-                          className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 p-5 rounded-[20px] backdrop-blur-sm transition-all duration-300 hover:scale-105 ml-auto cursor-pointer no-close"
+                          className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 p-5 rounded-[20px] backdrop-blur-sm transition-all duration-300 hover:scale-105 ml-auto cursor-pointer no-close flex-shrink-0"
                             onClick={(e) => handleButtonClick(e, () => setIsMuted(!isMuted))}
                             aria-label={isMuted ? "Unmute" : "Mute"}
                           >
@@ -627,13 +628,22 @@ export default function ContentDetailModal({
                     />
                   )}
 
+                  {/* Images Section */}
+                  {details && (details as any).images && (
+                    <ImagesSection
+                      images={(details as any).images}
+                      title={title}
+                    />
+                  )}
+
                   {/* Where to Watch */}
-                  {watchAvailability && (
+                  {(watchAvailability || isLoadingWatchAvailability) && (
                     <ContentDetailWhereToWatch 
                       watchAvailability={watchAvailability}
                       watchCountry={watchCountry}
                       onWatchCountryChange={setWatchCountry}
                       justwatchCountries={justwatchCountries}
+                      isLoading={isLoadingWatchAvailability}
                     />
                   )}
                 </div>
@@ -641,7 +651,7 @@ export default function ContentDetailModal({
                 {/* Sidebar */}
                 <div className="space-y-4">
                   {posterPath && (
-                    <div className="relative aspect-[2/3] rounded-lg overflow-hidden">
+                    <div className="relative aspect-[2/3] rounded-lg overflow-hidden max-w-[200px] sm:max-w-none">
                       <Image
                         src={getPosterUrl(posterPath, "w500")}
                         alt={title}
