@@ -126,11 +126,27 @@ function EpisodeModalWhereToWatch({
 }) {
   // Filter state - "all" selected by default
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
+  // Quality filter state - only used in list view
+  const [selectedQuality, setSelectedQuality] = useState<string>("all");
   // View mode state - "table" is default
   const [viewMode, setViewMode] = useState<"table" | "list">("table");
 
+  // Helper function to extract quality from presentationType
+  const getQuality = (presentationType: string | null | undefined): string => {
+    if (!presentationType) return "";
+    const quality = presentationType.toLowerCase();
+    if (quality.includes("4k") || quality.includes("uhd")) return "4K";
+    if (quality.includes("hd") && !quality.includes("uhd")) return "HD";
+    if (quality.includes("sd")) return "SD";
+    return "";
+  };
+
   const handleFilterClick = (key: string) => {
     setSelectedFilter(key);
+  };
+
+  const handleQualityClick = (quality: string) => {
+    setSelectedQuality(quality);
   };
 
   if (isLoading) {
@@ -182,49 +198,104 @@ function EpisodeModalWhereToWatch({
         <ViewSwitcher viewMode={viewMode} onViewModeChange={setViewMode} />
       </div>
       
-      {/* Filter Row */}
-      <div className="overflow-x-auto scrollbar-hide">
-        <div className="flex items-center gap-2 pb-2">
-          {/* All button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleFilterClick("all")}
-            className={cn(
-              "h-9 rounded-[25px] cursor-pointer flex-shrink-0 px-4 transition-colors",
-              selectedFilter === "all"
-                ? "bg-blue-50 dark:bg-muted border-blue-200 dark:border-border text-foreground"
-                : "bg-muted border-none text-muted-foreground hover:bg-muted/80"
-            )}
-          >
-            All
-          </Button>
-          {/* Individual filter buttons - only show sections with offers */}
-          {sectionsWithOffers.map((section) => {
-            const isSelected = selectedFilter === section.key;
-            return (
-              <Button
-                key={section.key}
-                variant="outline"
-                size="sm"
-                onClick={() => handleFilterClick(section.key)}
-                className={cn(
-                  "h-9 rounded-[25px] cursor-pointer flex-shrink-0 px-4 transition-colors",
-                  isSelected
-                    ? "bg-blue-50 dark:bg-muted border-blue-200 dark:border-border text-foreground"
-                    : "bg-muted border-none text-muted-foreground hover:bg-muted/80"
-                )}
-              >
-                {section.title}
-              </Button>
-            );
-          })}
+      {/* Filter Row - Show quality filters in list view, type filters in table view */}
+      {viewMode === "list" ? (
+        (() => {
+          // Extract unique qualities from all offers
+          const allOffers = data.allOffers || [];
+          const qualities = new Set<string>();
+          allOffers.forEach((offer) => {
+            const quality = getQuality(offer.presentationType);
+            if (quality) qualities.add(quality);
+          });
+          const uniqueQualities = Array.from(qualities).sort((a, b) => {
+            const order = { "4K": 0, "HD": 1, "SD": 2 };
+            return (order[a as keyof typeof order] ?? 99) - (order[b as keyof typeof order] ?? 99);
+          });
+
+          return (
+            <div className="overflow-x-auto scrollbar-hide">
+              <div className="flex items-center gap-2 pb-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQualityClick("all")}
+                  className={cn(
+                    "h-9 rounded-[25px] cursor-pointer flex-shrink-0 px-4 transition-colors",
+                    selectedQuality === "all"
+                      ? "bg-blue-50 dark:bg-muted border-blue-200 dark:border-border text-foreground"
+                      : "bg-muted border-none text-muted-foreground hover:bg-muted/80"
+                  )}
+                >
+                  All
+                </Button>
+                {uniqueQualities.map((quality) => {
+                  const isSelected = selectedQuality === quality;
+                  return (
+                    <Button
+                      key={quality}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleQualityClick(quality)}
+                      className={cn(
+                        "h-9 rounded-[25px] cursor-pointer flex-shrink-0 px-4 transition-colors",
+                        isSelected
+                          ? "bg-blue-50 dark:bg-muted border-blue-200 dark:border-border text-foreground"
+                          : "bg-muted border-none text-muted-foreground hover:bg-muted/80"
+                      )}
+                    >
+                      {quality}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()
+      ) : (
+        <div className="overflow-x-auto scrollbar-hide">
+          <div className="flex items-center gap-2 pb-2">
+            {/* All button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleFilterClick("all")}
+              className={cn(
+                "h-9 rounded-[25px] cursor-pointer flex-shrink-0 px-4 transition-colors",
+                selectedFilter === "all"
+                  ? "bg-blue-50 dark:bg-muted border-blue-200 dark:border-border text-foreground"
+                  : "bg-muted border-none text-muted-foreground hover:bg-muted/80"
+              )}
+            >
+              All
+            </Button>
+            {/* Individual filter buttons - only show sections with offers */}
+            {sectionsWithOffers.map((section) => {
+              const isSelected = selectedFilter === section.key;
+              return (
+                <Button
+                  key={section.key}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleFilterClick(section.key)}
+                  className={cn(
+                    "h-9 rounded-[25px] cursor-pointer flex-shrink-0 px-4 transition-colors",
+                    isSelected
+                      ? "bg-blue-50 dark:bg-muted border-blue-200 dark:border-border text-foreground"
+                      : "bg-muted border-none text-muted-foreground hover:bg-muted/80"
+                  )}
+                >
+                  {section.title}
+                </Button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Render based on view mode */}
       {viewMode === "list" ? (
-        <WatchListView watchAvailability={data} selectedFilter={selectedFilter} />
+        <WatchListView watchAvailability={data} selectedFilter={selectedFilter} selectedQuality={selectedQuality} />
       ) : (
         <>
           {filteredSections.map((section) => {

@@ -7,8 +7,17 @@ import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { RegionDropdown } from "@/components/ui/region-dropdown";
+import { getCountryFlagEmoji } from "@/hooks/use-watch-regions";
 
 export interface SearchFilters {
   type: "all" | "movie" | "tv";

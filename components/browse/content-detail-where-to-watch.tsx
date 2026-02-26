@@ -1,10 +1,24 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import Image from "next/image";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Button } from "@/components/ui/button";
 import { JustWatchAvailabilityResponse, JustWatchCountry } from "@/lib/justwatch";
+import { getCountryFlagEmoji } from "@/hooks/use-watch-regions";
+import { ChevronsUpDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { RegionDropdown, type RegionOption } from "@/components/ui/region-dropdown";
 
 interface ContentDetailWhereToWatchProps {
   watchAvailability: JustWatchAvailabilityResponse | null | undefined;
@@ -37,7 +51,7 @@ export default function ContentDetailWhereToWatch({
     // Common quality formats: "4k", "uhd", "hd", "sd", etc.
     const quality = presentationType.toLowerCase();
     if (quality.includes("4k") || quality.includes("uhd")) return "4K";
-    if (quality.includes("hd")) return "HD";
+    if (quality.includes("hd") && !quality.includes("uhd")) return "HD";
     if (quality.includes("sd")) return "SD";
     return presentationType.toUpperCase();
   };
@@ -74,25 +88,74 @@ export default function ContentDetailWhereToWatch({
 
   if (rows.length === 0) return null;
 
-  // Map JustWatchCountry to RegionOption format
-  const regionOptions: RegionOption[] = useMemo(() => {
-    return justwatchCountries.map((c) => ({
-      iso_3166_1: c.code,
-      english_name: c.name,
-    }));
-  }, [justwatchCountries]);
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const filtered = useMemo(() => {
+    if (!search.trim()) return justwatchCountries;
+    const q = search.toLowerCase().trim();
+    return justwatchCountries.filter(
+      (c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+    );
+  }, [justwatchCountries, search]);
+  const selected = justwatchCountries.find((c) => c.code === watchCountry);
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <h3 className="text-lg font-semibold">Where to Watch</h3>
-        {regionOptions.length > 0 && onWatchCountryChange && (
-          <RegionDropdown
-            regions={regionOptions}
-            value={watchCountry}
-            onValueChange={onWatchCountryChange}
-            className="w-[230px]"
-          />
+        {justwatchCountries.length > 0 && onWatchCountryChange && (
+          <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                className="w-[230px] justify-between cursor-pointer"
+              >
+                <span className="flex items-center gap-2 truncate">
+                  <span className="text-lg shrink-0">{getCountryFlagEmoji(watchCountry)}</span>
+                  <span className="truncate">{selected?.name ?? watchCountry}</span>
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="end">
+              <Command shouldFilter={false} className="rounded-lg border-0 bg-transparent">
+                <CommandInput
+                  placeholder="Search country..."
+                  value={search}
+                  onValueChange={setSearch}
+                />
+                <CommandList className="max-h-[300px]">
+                  {filtered.length === 0 && (
+                    <div className="py-6 text-center text-sm text-muted-foreground">No country found.</div>
+                  )}
+                  <CommandGroup forceMount className="p-1">
+                    {filtered.map((c) => {
+                      const isSelected = watchCountry === c.code;
+                      return (
+                        <CommandItem
+                          key={c.code}
+                          value={c.code}
+                          forceMount
+                          onSelect={() => {
+                            onWatchCountryChange(c.code);
+                            setOpen(false);
+                            setSearch("");
+                          }}
+                          className="cursor-pointer gap-2"
+                        >
+                          <span className="text-lg shrink-0">{getCountryFlagEmoji(c.code)}</span>
+                          <span className="flex-1 truncate">{c.name}</span>
+                          {isSelected && <Check className="size-4 shrink-0" />}
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         )}
       </div>
       {isLoading ? (

@@ -535,8 +535,8 @@ function PopularContentInner() {
         {isSignedIn && (
           <div
             className={cn(
-              "overflow-hidden transition-all duration-300 ease-in-out",
-              providerBarOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+              "overflow-hidden transition-[transform,opacity] duration-300 ease-in-out origin-top",
+              providerBarOpen ? "scale-y-100 opacity-100" : "scale-y-0 opacity-0"
             )}
           >
             <ProviderBar

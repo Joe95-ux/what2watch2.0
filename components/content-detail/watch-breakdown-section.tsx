@@ -13,12 +13,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { getCountryFlagEmoji } from "@/hooks/use-watch-regions";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ChevronDown, ChevronUp, List, Table2, Clock } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronsUpDown, Check, Clock, List, Table2 } from "lucide-react";
 import { FaPlay } from "react-icons/fa";
 import { cn } from "@/lib/utils";
 import WatchListView from "./watch-list-view";
-import { RegionDropdown, type RegionOption } from "@/components/ui/region-dropdown";
 
 interface WatchBreakdownSectionProps {
   availability: JustWatchAvailabilityResponse | null | undefined;
@@ -81,6 +93,82 @@ function SeasonSelect({
 }
 
 
+function CountryCombobox({
+  countries,
+  value,
+  onValueChange,
+}: {
+  countries: JustWatchCountry[];
+  value: string;
+  onValueChange: (code: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const filtered = useMemo(() => {
+    if (!search.trim()) return countries;
+    const q = search.toLowerCase().trim();
+    return countries.filter(
+      (c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+    );
+  }, [countries, search]);
+  const selected = countries.find((c) => c.code === value);
+
+  return (
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-[230px] justify-between cursor-pointer"
+        >
+          <span className="flex items-center gap-2 truncate">
+            <span className="text-lg shrink-0">{getCountryFlagEmoji(value)}</span>
+            <span className="truncate">{selected?.name ?? value}</span>
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="end">
+        <Command shouldFilter={false} className="rounded-lg border-0 bg-transparent">
+          <CommandInput
+            placeholder="Search country..."
+            value={search}
+            onValueChange={setSearch}
+          />
+          <CommandList className="max-h-[300px]">
+            {filtered.length === 0 && (
+              <div className="py-6 text-center text-sm text-muted-foreground">No country found.</div>
+            )}
+            <CommandGroup forceMount className="p-1">
+              {filtered.map((c) => {
+                const isSelected = value === c.code;
+                return (
+                  <CommandItem
+                    key={c.code}
+                    value={c.code}
+                    forceMount
+                    onSelect={() => {
+                      onValueChange(c.code);
+                      setOpen(false);
+                      setSearch("");
+                    }}
+                    className="cursor-pointer gap-2"
+                  >
+                    <span className="text-lg shrink-0">{getCountryFlagEmoji(c.code)}</span>
+                    <span className="flex-1 truncate">{c.name}</span>
+                    {isSelected && <Check className="size-4 shrink-0" />}
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function ViewSwitcher({
   viewMode,
   onViewModeChange,
@@ -130,6 +218,8 @@ export default function WatchBreakdownSection({
 }: WatchBreakdownSectionProps) {
   // Filter state - "all" selected by default
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
+  // Quality filter state - only used in list view
+  const [selectedQuality, setSelectedQuality] = useState<string>("all");
   // View mode state - "table" is default
   const [viewMode, setViewMode] = useState<"table" | "list">("table");
   const [rankWindow, setRankWindow] = useState<"1d" | "7d" | "30d">("7d");
@@ -138,8 +228,22 @@ export default function WatchBreakdownSection({
   // The API response doesn't include expires_at/valid_until fields or a top-level "leaving" array
   // This feature is kept in the code structure for future API support, but will gracefully handle missing data
 
+  // Helper function to extract quality from presentationType
+  const getQuality = (presentationType: string | null | undefined): string => {
+    if (!presentationType) return "";
+    const quality = presentationType.toLowerCase();
+    if (quality.includes("4k") || quality.includes("uhd")) return "4K";
+    if (quality.includes("hd") && !quality.includes("uhd")) return "HD";
+    if (quality.includes("sd")) return "SD";
+    return "";
+  };
+
   const handleFilterClick = (key: string) => {
     setSelectedFilter(key);
+  };
+
+  const handleQualityClick = (quality: string) => {
+    setSelectedQuality(quality);
   };
 
   if (isLoading) {
@@ -257,20 +361,13 @@ export default function WatchBreakdownSection({
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <ViewSwitcher viewMode={viewMode} onViewModeChange={setViewMode} />
-            {justwatchCountries.length > 0 && onWatchCountryChange && (() => {
-              const regionOptions: RegionOption[] = justwatchCountries.map((c) => ({
-                iso_3166_1: c.code,
-                english_name: c.name,
-              }));
-              return (
-                <RegionDropdown
-                  regions={regionOptions}
-                  value={watchCountry}
-                  onValueChange={onWatchCountryChange}
-                  className="w-[230px]"
-                />
-              );
-            })()}
+            {justwatchCountries.length > 0 && onWatchCountryChange && (
+              <CountryCombobox
+                countries={justwatchCountries}
+                value={watchCountry}
+                onValueChange={onWatchCountryChange}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -321,49 +418,104 @@ export default function WatchBreakdownSection({
               </p>
             )}
             
-            {/* Filter Row */}
-            <div className="overflow-x-auto scrollbar-hide">
-              <div className="flex items-center gap-2 pb-2">
-                {/* All button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleFilterClick("all")}
-                  className={cn(
-                    "h-9 rounded-[25px] cursor-pointer flex-shrink-0 px-4 transition-colors",
-                    selectedFilter === "all"
-                      ? "bg-blue-50 dark:bg-muted border-blue-200 dark:border-border text-foreground"
-                      : "bg-muted border-none text-muted-foreground hover:bg-muted/80"
-                  )}
-                >
-                  All
-                </Button>
-                {/* Individual filter buttons - only show sections with offers */}
-                {sectionsWithOffers.map((section) => {
-                  const isSelected = selectedFilter === section.key;
-                  return (
-                    <Button
-                      key={section.key}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleFilterClick(section.key)}
-                      className={cn(
-                        "h-9 rounded-[25px] cursor-pointer flex-shrink-0 px-4 transition-colors",
-                        isSelected
-                          ? "bg-blue-50 dark:bg-muted border-blue-200 dark:border-border text-foreground"
-                          : "bg-muted border-none text-muted-foreground hover:bg-muted/80"
-                      )}
-                    >
-                      {section.title}
-                    </Button>
-                  );
-                })}
+            {/* Filter Row - Show quality filters in list view, type filters in table view */}
+            {viewMode === "list" ? (
+              (() => {
+                // Extract unique qualities from all offers
+                const allOffers = dataSource?.allOffers || [];
+                const qualities = new Set<string>();
+                allOffers.forEach((offer) => {
+                  const quality = getQuality(offer.presentationType);
+                  if (quality) qualities.add(quality);
+                });
+                const uniqueQualities = Array.from(qualities).sort((a, b) => {
+                  const order = { "4K": 0, "HD": 1, "SD": 2 };
+                  return (order[a as keyof typeof order] ?? 99) - (order[b as keyof typeof order] ?? 99);
+                });
+
+                return (
+                  <div className="overflow-x-auto scrollbar-hide">
+                    <div className="flex items-center gap-2 pb-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleQualityClick("all")}
+                        className={cn(
+                          "h-9 rounded-[25px] cursor-pointer flex-shrink-0 px-4 transition-colors",
+                          selectedQuality === "all"
+                            ? "bg-blue-50 dark:bg-muted border-blue-200 dark:border-border text-foreground"
+                            : "bg-muted border-none text-muted-foreground hover:bg-muted/80"
+                        )}
+                      >
+                        All
+                      </Button>
+                      {uniqueQualities.map((quality) => {
+                        const isSelected = selectedQuality === quality;
+                        return (
+                          <Button
+                            key={quality}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleQualityClick(quality)}
+                            className={cn(
+                              "h-9 rounded-[25px] cursor-pointer flex-shrink-0 px-4 transition-colors",
+                              isSelected
+                                ? "bg-blue-50 dark:bg-muted border-blue-200 dark:border-border text-foreground"
+                                : "bg-muted border-none text-muted-foreground hover:bg-muted/80"
+                            )}
+                          >
+                            {quality}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()
+            ) : (
+              <div className="overflow-x-auto scrollbar-hide">
+                <div className="flex items-center gap-2 pb-2">
+                  {/* All button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleFilterClick("all")}
+                    className={cn(
+                      "h-9 rounded-[25px] cursor-pointer flex-shrink-0 px-4 transition-colors",
+                      selectedFilter === "all"
+                        ? "bg-blue-50 dark:bg-muted border-blue-200 dark:border-border text-foreground"
+                        : "bg-muted border-none text-muted-foreground hover:bg-muted/80"
+                    )}
+                  >
+                    All
+                  </Button>
+                  {/* Individual filter buttons - only show sections with offers */}
+                  {sectionsWithOffers.map((section) => {
+                    const isSelected = selectedFilter === section.key;
+                    return (
+                      <Button
+                        key={section.key}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleFilterClick(section.key)}
+                        className={cn(
+                          "h-9 rounded-[25px] cursor-pointer flex-shrink-0 px-4 transition-colors",
+                          isSelected
+                            ? "bg-blue-50 dark:bg-muted border-blue-200 dark:border-border text-foreground"
+                            : "bg-muted border-none text-muted-foreground hover:bg-muted/80"
+                        )}
+                      >
+                        {section.title}
+                      </Button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Render based on view mode */}
             {viewMode === "list" ? (
-              <WatchListView watchAvailability={dataSource} selectedFilter={selectedFilter} />
+              <WatchListView watchAvailability={dataSource} selectedFilter={selectedFilter} selectedQuality={selectedQuality} />
             ) : (
               <>
                 {filteredSections.map((section, idx) => {

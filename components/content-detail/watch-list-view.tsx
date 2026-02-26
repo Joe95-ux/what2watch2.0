@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 interface WatchListViewProps {
   watchAvailability: JustWatchAvailabilityResponse | null | undefined;
   selectedFilter: string;
+  selectedQuality?: string;
 }
 
 const sections: Array<{
@@ -20,7 +21,7 @@ const sections: Array<{
   { key: "ads", label: "With Ads" },
 ];
 
-export default function WatchListView({ watchAvailability, selectedFilter }: WatchListViewProps) {
+export default function WatchListView({ watchAvailability, selectedFilter, selectedQuality }: WatchListViewProps) {
   if (!watchAvailability) return null;
 
   const formatPrice = (price: number | null | undefined, currency: string | null | undefined): string => {
@@ -107,7 +108,14 @@ export default function WatchListView({ watchAvailability, selectedFilter }: Wat
               {/* Provider List with Scroll */}
               <div className="flex-1 min-w-0 h-full overflow-x-auto scrollbar-thin">
                 <div className="flex items-center gap-2 h-full py-4">
-                  {row.offers.map((offer) => {
+                  {row.offers
+                    .filter((offer) => {
+                      // Filter by quality if selected
+                      if (!selectedQuality || selectedQuality === "all") return true;
+                      const offerQuality = getQuality(offer.presentationType);
+                      return offerQuality === selectedQuality;
+                    })
+                    .map((offer) => {
                     const quality = getQuality(offer.presentationType);
                     const price = offer.monetizationType === "rent" || offer.monetizationType === "buy"
                       ? formatPrice(offer.retailPrice, offer.currency)
