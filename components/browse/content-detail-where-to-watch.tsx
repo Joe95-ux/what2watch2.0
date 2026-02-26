@@ -104,7 +104,7 @@ export default function ContentDetailWhereToWatch({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <h3 className="text-lg font-semibold">Where to Watch</h3>
         {justwatchCountries.length > 0 && onWatchCountryChange && (
-          <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
+          <Popover modal={true} open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"

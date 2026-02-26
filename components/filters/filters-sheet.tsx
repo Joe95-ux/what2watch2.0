@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useMemo } from "react";
 import { SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -18,6 +17,7 @@ import {
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getCountryFlagEmoji } from "@/hooks/use-watch-regions";
+import { useState, useMemo } from "react";
 
 export interface SearchFilters {
   type: "all" | "movie" | "tv";
@@ -85,6 +85,8 @@ export function FiltersSheet({
   const showAllGenres = externalShowAllGenres ?? internalShowAllGenres;
   const setShowAllGenres = externalSetShowAllGenres ?? setInternalShowAllGenres;
   const [showAllWatchProviders, setShowAllWatchProviders] = useState(false);
+  const [countryOpen, setCountryOpen] = useState(false);
+  const [countrySearch, setCountrySearch] = useState("");
   const WATCH_PROVIDERS_TO_SHOW = 13;
   const first13 = watchProviders.slice(0, WATCH_PROVIDERS_TO_SHOW);
   const selectedInFirst13 = filters.watchProvider != null && first13.some((p) => p.provider_id === filters.watchProvider);
@@ -110,6 +112,16 @@ export function FiltersSheet({
     : allGenres;
   
   const watchRegion = filters.watchRegion || "US";
+
+  const filteredWatchRegions = useMemo(() => {
+    if (!countrySearch.trim()) return watchRegions;
+    const q = countrySearch.toLowerCase().trim();
+    return watchRegions.filter(
+      (r) =>
+        r.english_name.toLowerCase().includes(q) ||
+        r.iso_3166_1.toLowerCase().includes(q)
+    );
+  }, [watchRegions, countrySearch]);
 
   const hasActiveFilters = externalHasActiveFilters ?? (
     filters.type !== "all" || 
@@ -217,12 +229,70 @@ export function FiltersSheet({
             <div className="space-y-3">
               <Label className="text-sm font-semibold uppercase tracking-wider">Where to Watch</Label>
               {watchRegions.length > 0 && (
-                <RegionDropdown
-                  regions={watchRegions}
-                  value={watchRegion}
-                  onValueChange={(region) => setFilters({ ...filters, watchRegion: region })}
-                  className="w-full"
-                />
+                <Popover
+                  modal={true}
+                  open={countryOpen}
+                  onOpenChange={(open) => {
+                    setCountryOpen(open);
+                    if (!open) setCountrySearch("");
+                  }}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={countryOpen}
+                      className="w-full justify-between cursor-pointer"
+                      style={{ fontSize: "14px" }}
+                    >
+                      <span className="flex items-center gap-2 truncate" style={{ fontSize: "14px" }}>
+                        <span className="text-lg shrink-0">{getCountryFlagEmoji(watchRegion)}</span>
+                        <span className="truncate">{watchRegions.find((r) => r.iso_3166_1 === watchRegion)?.english_name ?? watchRegion}</span>
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent 
+                    className="w-[var(--radix-popover-trigger-width)] p-0 z-[100]" 
+                    align="start"
+                  >
+                    <Command shouldFilter={false} className="rounded-lg border-0 bg-transparent">
+                      <CommandInput
+                        placeholder="Search country..."
+                        value={countrySearch}
+                        onValueChange={setCountrySearch}
+                      />
+                      <CommandList className="max-h-[300px] scroll-smooth">
+                        {filteredWatchRegions.length === 0 && (
+                          <div className="py-6 text-center text-sm text-muted-foreground">No country found.</div>
+                        )}
+                        <CommandGroup forceMount className="p-1">
+                          {filteredWatchRegions.map((region) => {
+                            const isSelected = watchRegion === region.iso_3166_1;
+                            return (
+                              <CommandItem
+                                key={region.iso_3166_1}
+                                value={region.iso_3166_1}
+                                forceMount
+                                onSelect={() => {
+                                  setFilters({ ...filters, watchRegion: region.iso_3166_1 });
+                                  setCountryOpen(false);
+                                  setCountrySearch("");
+                                }}
+                                className="cursor-pointer gap-2"
+                                style={{ fontSize: "14px" }}
+                              >
+                                <span className="text-lg shrink-0">{getCountryFlagEmoji(region.iso_3166_1)}</span>
+                                <span className="flex-1 truncate" style={{ fontSize: "14px" }}>{region.english_name}</span>
+                                {isSelected && <Check className="size-4 shrink-0" />}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               )}
               {watchProviders.length > 0 && (
                 <div className="flex flex-wrap gap-2">

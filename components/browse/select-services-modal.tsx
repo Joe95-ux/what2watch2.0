@@ -350,6 +350,7 @@ export function SelectServicesModal({
         {watchRegions.length > 0 && (
           <div className="px-6 mt-4 flex justify-end">
             <Popover
+              modal={true}
               open={countryOpen}
               onOpenChange={(open) => {
                 setCountryOpen(open);

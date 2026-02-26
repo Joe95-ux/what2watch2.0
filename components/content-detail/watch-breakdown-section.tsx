@@ -114,7 +114,7 @@ function CountryCombobox({
   const selected = countries.find((c) => c.code === value);
 
   return (
-    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
+    <Popover modal={true} open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
