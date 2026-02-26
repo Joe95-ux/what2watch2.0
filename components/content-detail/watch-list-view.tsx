@@ -38,35 +38,46 @@ export default function WatchListView({ watchAvailability, selectedFilter, selec
     if (!presentationType) return "";
     const quality = presentationType.toLowerCase();
     if (quality.includes("4k") || quality.includes("uhd")) return "4K";
-    if (quality.includes("hd")) return "HD";
+    if (quality.includes("hd") && !quality.includes("uhd")) return "HD";
     if (quality.includes("sd")) return "SD";
-    return presentationType.toUpperCase();
+    return "";
   };
 
-  // Build rows array
+  // Filter ALL offers by quality FIRST (at raw data level)
+  const allOffers = watchAvailability.allOffers || [];
+  const qualityFilteredOffers = selectedQuality && selectedQuality !== "all"
+    ? allOffers.filter((offer) => {
+        const offerQuality = getQuality(offer.presentationType);
+        return offerQuality === selectedQuality;
+      })
+    : allOffers;
+
+  // Now group filtered offers by type
+  const flatrateOffers = qualityFilteredOffers.filter((o) => o.monetizationType === "flatrate");
+  const buyOffers = qualityFilteredOffers.filter((o) => o.monetizationType === "buy");
+  const rentOffers = qualityFilteredOffers.filter((o) => o.monetizationType === "rent");
+  const freeOffers = qualityFilteredOffers.filter((o) => o.monetizationType === "free");
+  const adsOffers = qualityFilteredOffers.filter((o) => o.monetizationType === "ads");
+
+  // Build rows array from filtered offers
   const rows: Array<{ key: string; label: string; offers: JustWatchAvailabilityResponse["allOffers"] }> = [];
 
   // Add flatrate
-  const flatrateOffers = watchAvailability?.offersByType?.flatrate || [];
   if (flatrateOffers.length > 0) {
     rows.push({ key: "flatrate", label: "STREAM", offers: flatrateOffers });
   }
 
   // Combine buy and rent
-  const buyOffers = watchAvailability?.offersByType?.buy || [];
-  const rentOffers = watchAvailability?.offersByType?.rent || [];
   if (buyOffers.length > 0 || rentOffers.length > 0) {
     rows.push({ key: "buy-rent", label: "Buy/Rent", offers: [...buyOffers, ...rentOffers] });
   }
 
   // Add free
-  const freeOffers = watchAvailability?.offersByType?.free || [];
   if (freeOffers.length > 0) {
     rows.push({ key: "free", label: "Free", offers: freeOffers });
   }
 
   // Add ads
-  const adsOffers = watchAvailability?.offersByType?.ads || [];
   if (adsOffers.length > 0) {
     rows.push({ key: "ads", label: "With Ads", offers: adsOffers });
   }
@@ -108,14 +119,7 @@ export default function WatchListView({ watchAvailability, selectedFilter, selec
               {/* Provider List with Scroll */}
               <div className="flex-1 min-w-0 h-full overflow-x-auto scrollbar-thin">
                 <div className="flex items-center gap-2 h-full py-4">
-                  {row.offers
-                    .filter((offer) => {
-                      // Filter by quality if selected
-                      if (!selectedQuality || selectedQuality === "all") return true;
-                      const offerQuality = getQuality(offer.presentationType);
-                      return offerQuality === selectedQuality;
-                    })
-                    .map((offer) => {
+                  {row.offers.map((offer) => {
                     const quality = getQuality(offer.presentationType);
                     const price = offer.monetizationType === "rent" || offer.monetizationType === "buy"
                       ? formatPrice(offer.retailPrice, offer.currency)

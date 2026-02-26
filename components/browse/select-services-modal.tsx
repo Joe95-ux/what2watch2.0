@@ -239,74 +239,7 @@ export function SelectServicesModal({
         )}
 
         {/* Filter Bar / Search */}
-        <div className="px-6 py-4 border-b space-y-3">
-          {/* Region Dropdown */}
-          {watchRegions.length > 0 && (
-            <Popover
-              open={countryOpen}
-              onOpenChange={(open) => {
-                setCountryOpen(open);
-                if (!open) setCountrySearch("");
-              }}
-            >
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={countryOpen}
-                  className="w-full justify-between cursor-pointer"
-                  style={{ fontSize: "14px" }}
-                >
-                  <span className="flex items-center gap-2 truncate" style={{ fontSize: "14px" }}>
-                    <span className="text-lg shrink-0">{getCountryFlagEmoji(watchRegion)}</span>
-                    <span className="truncate">{watchRegions.find((r) => r.iso_3166_1 === watchRegion)?.english_name ?? watchRegion}</span>
-                  </span>
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent 
-                className="w-[var(--radix-popover-trigger-width)] p-0 z-[100]" 
-                align="end"
-              >
-                <Command shouldFilter={false} className="rounded-lg border-0 bg-transparent">
-                  <CommandInput
-                    placeholder="Search country..."
-                    value={countrySearch}
-                    onValueChange={setCountrySearch}
-                  />
-                  <CommandList className="max-h-[300px] scroll-smooth">
-                    {filteredWatchRegions.length === 0 && (
-                      <div className="py-6 text-center text-sm text-muted-foreground">No country found.</div>
-                    )}
-                    <CommandGroup forceMount className="p-1">
-                      {filteredWatchRegions.map((region) => {
-                        const isSelected = watchRegion === region.iso_3166_1;
-                        return (
-                          <CommandItem
-                            key={region.iso_3166_1}
-                            value={region.iso_3166_1}
-                            forceMount
-                            onSelect={() => {
-                              handleRegionChange(region.iso_3166_1);
-                              setCountryOpen(false);
-                              setCountrySearch("");
-                            }}
-                            className="cursor-pointer gap-2"
-                            style={{ fontSize: "14px" }}
-                          >
-                            <span className="text-lg shrink-0">{getCountryFlagEmoji(region.iso_3166_1)}</span>
-                            <span className="flex-1 truncate" style={{ fontSize: "14px" }}>{region.english_name}</span>
-                            {isSelected && <Check className="size-4 shrink-0" />}
-                          </CommandItem>
-                        );
-                      })}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          )}
-          
+        <div className="px-6 py-4 border-b">
           <div className="flex items-center gap-2">
             {!isSearchOpen ? (
               <>
@@ -411,6 +344,75 @@ export function SelectServicesModal({
             )}
           </div>
         </div>
+
+        {/* Region Dropdown - Top right corner */}
+        {watchRegions.length > 0 && (
+          <div className="px-6 my-3 flex justify-end">
+            <Popover
+              open={countryOpen}
+              onOpenChange={(open) => {
+                setCountryOpen(open);
+                if (!open) setCountrySearch("");
+              }}
+            >
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={countryOpen}
+                  className="w-[230px] justify-between cursor-pointer"
+                  style={{ fontSize: "14px" }}
+                >
+                  <span className="flex items-center gap-2 truncate" style={{ fontSize: "14px" }}>
+                    <span className="text-lg shrink-0">{getCountryFlagEmoji(watchRegion)}</span>
+                    <span className="truncate">{watchRegions.find((r) => r.iso_3166_1 === watchRegion)?.english_name ?? watchRegion}</span>
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent 
+                className="w-[var(--radix-popover-trigger-width)] p-0 z-[100]" 
+                align="end"
+              >
+                <Command shouldFilter={false} className="rounded-lg border-0 bg-transparent">
+                  <CommandInput
+                    placeholder="Search country..."
+                    value={countrySearch}
+                    onValueChange={setCountrySearch}
+                  />
+                  <CommandList className="max-h-[300px] scroll-smooth">
+                    {filteredWatchRegions.length === 0 && (
+                      <div className="py-6 text-center text-sm text-muted-foreground">No country found.</div>
+                    )}
+                    <CommandGroup forceMount className="p-1">
+                      {filteredWatchRegions.map((region) => {
+                        const isSelected = watchRegion === region.iso_3166_1;
+                        return (
+                          <CommandItem
+                            key={region.iso_3166_1}
+                            value={region.iso_3166_1}
+                            forceMount
+                            onSelect={() => {
+                              handleRegionChange(region.iso_3166_1);
+                              setCountryOpen(false);
+                              setCountrySearch("");
+                            }}
+                            className="cursor-pointer gap-2"
+                            style={{ fontSize: "14px" }}
+                          >
+                            <span className="text-lg shrink-0">{getCountryFlagEmoji(region.iso_3166_1)}</span>
+                            <span className="flex-1 truncate" style={{ fontSize: "14px" }}>{region.english_name}</span>
+                            {isSelected && <Check className="size-4 shrink-0" />}
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
 
         {/* Provider List */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
