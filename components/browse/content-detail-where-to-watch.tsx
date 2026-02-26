@@ -3,13 +3,6 @@
 import { useState, useMemo } from "react";
 import Image from "next/image";
 import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -186,11 +179,11 @@ export default function ContentDetailWhereToWatch({
 
           return (
             <div key={row.key} className={cn(index < rows.length - 1 && "border-b border-border")}>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 h-[100px]">
                 {/* Rotated Label with alternating background */}
-                <div className={cn("flex-shrink-0 w-10 flex items-center justify-center py-4", labelBgColor)}>
+                <div className={cn("flex-shrink-0 w-10 h-full flex items-center justify-center", labelBgColor)}>
                   <span
-                    className="text-xs font-semibold text-foreground whitespace-nowrap uppercase"
+                    className="text-sm font-semibold text-foreground whitespace-nowrap uppercase"
                     style={{
                       writingMode: "vertical-rl",
                       textOrientation: "mixed",
@@ -201,71 +194,64 @@ export default function ContentDetailWhereToWatch({
                   </span>
                 </div>
 
-                {/* Provider Carousel */}
-                <div className="flex-1 min-w-0 relative group/carousel py-4">
-                  <Carousel
-                    opts={{
-                      align: "start",
-                      slidesToScroll: 2,
-                    }}
-                    className="w-full"
-                  >
-                    <CarouselContent className="-ml-2 md:-ml-4">
-                      {row.offers.map((offer) => {
-                        const quality = getQuality(offer.presentationType);
-                        const price = offer.monetizationType === "rent" || offer.monetizationType === "buy"
-                          ? formatPrice(offer.retailPrice, offer.currency)
-                          : "";
+                {/* Provider List with Scroll */}
+                <div className="flex-1 min-w-0 h-full overflow-x-auto scrollbar-thin">
+                  <div className="flex items-center gap-2 h-full py-4">
+                    {row.offers.map((offer) => {
+                      const quality = getQuality(offer.presentationType);
+                      const price = offer.monetizationType === "rent" || offer.monetizationType === "buy"
+                        ? formatPrice(offer.retailPrice, offer.currency)
+                        : "";
 
-                        return (
-                          <CarouselItem key={offer.providerId} className="pl-2 md:pl-4 basis-auto">
-                            <a
-                              href={offer.standardWebUrl ?? offer.deepLinkUrl ?? "#"}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="flex flex-col items-center gap-1">
-                                {offer.iconUrl ? (
-                                  <div className="relative h-[50px] w-[50px] rounded-lg border border-border overflow-hidden bg-muted hover:border-primary transition-colors cursor-pointer">
-                                    <Image
-                                      src={offer.iconUrl}
-                                      alt={offer.providerName}
-                                      fill
-                                      className="object-contain rounded-lg"
-                                      unoptimized
-                                    />
-                                  </div>
+                      return (
+                        <a
+                          key={offer.providerId}
+                          href={offer.standardWebUrl ?? offer.deepLinkUrl ?? "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-shrink-0"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex flex-col items-center gap-1">
+                            {offer.iconUrl ? (
+                              <div className="relative h-[50px] w-[50px] rounded-lg border border-border overflow-hidden bg-muted hover:border-primary transition-colors cursor-pointer">
+                                <Image
+                                  src={offer.iconUrl}
+                                  alt={offer.providerName}
+                                  fill
+                                  className="object-contain rounded-lg"
+                                  unoptimized
+                                />
+                              </div>
+                            ) : (
+                              <div className="h-[50px] w-[50px] rounded-lg border border-border bg-muted flex items-center justify-center hover:border-primary transition-colors cursor-pointer">
+                                <span className="text-xs text-muted-foreground">{offer.providerName[0]}</span>
+                              </div>
+                            )}
+                            {(quality || price) && (
+                              <div className="text-center">
+                                {price ? (
+                                  <>
+                                    <span className="text-muted-foreground" style={{ fontSize: "13px" }}>{price}</span>
+                                    {quality && (
+                                      <>
+                                        <span className="text-muted-foreground" style={{ fontSize: "13px" }}> </span>
+                                        <span className="text-[#F5C518]" style={{ fontSize: "11px" }}>{quality}</span>
+                                      </>
+                                    )}
+                                  </>
                                 ) : (
-                                  <div className="h-[50px] w-[50px] rounded-lg border border-border bg-muted flex items-center justify-center hover:border-primary transition-colors cursor-pointer">
-                                    <span className="text-xs text-muted-foreground">{offer.providerName[0]}</span>
-                                  </div>
-                                )}
-                                {(quality || price) && (
-                                  <div className="text-muted-foreground text-center" style={{ fontSize: "13px" }}>
-                                    {quality && <span>{quality}</span>}
-                                    {quality && price && <span> </span>}
-                                    {price && <span>({price})</span>}
-                                  </div>
+                                  quality && (
+                                    <span className="text-muted-foreground" style={{ fontSize: "13px" }}>{quality}</span>
+                                  )
                                 )}
                               </div>
-                            </a>
-                          </CarouselItem>
-                        );
-                      })}
-                    </CarouselContent>
-                    {row.offers.length > 2 && (
-                      <>
-                        <CarouselPrevious 
-                          className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10"
-                        />
-                        <CarouselNext 
-                          className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10"
-                        />
-                      </>
-                    )}
-                  </Carousel>
+                            )}
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
