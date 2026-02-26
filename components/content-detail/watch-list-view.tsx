@@ -5,7 +5,7 @@ import { JustWatchAvailabilityResponse } from "@/lib/justwatch";
 import { cn } from "@/lib/utils";
 
 interface WatchListViewProps {
-  watchAvailability: JustWatchAvailabilityResponse;
+  watchAvailability: JustWatchAvailabilityResponse | null | undefined;
   selectedFilter: string;
 }
 
@@ -21,6 +21,8 @@ const sections: Array<{
 ];
 
 export default function WatchListView({ watchAvailability, selectedFilter }: WatchListViewProps) {
+  if (!watchAvailability) return null;
+
   const formatPrice = (price: number | null | undefined, currency: string | null | undefined): string => {
     if (!price || !currency) return "";
     const formatter = new Intl.NumberFormat("en-US", {
@@ -44,26 +46,26 @@ export default function WatchListView({ watchAvailability, selectedFilter }: Wat
   const rows: Array<{ key: string; label: string; offers: JustWatchAvailabilityResponse["allOffers"] }> = [];
 
   // Add flatrate
-  const flatrateOffers = watchAvailability.offersByType?.flatrate || [];
+  const flatrateOffers = watchAvailability?.offersByType?.flatrate || [];
   if (flatrateOffers.length > 0) {
     rows.push({ key: "flatrate", label: "STREAM", offers: flatrateOffers });
   }
 
   // Combine buy and rent
-  const buyOffers = watchAvailability.offersByType?.buy || [];
-  const rentOffers = watchAvailability.offersByType?.rent || [];
+  const buyOffers = watchAvailability?.offersByType?.buy || [];
+  const rentOffers = watchAvailability?.offersByType?.rent || [];
   if (buyOffers.length > 0 || rentOffers.length > 0) {
     rows.push({ key: "buy-rent", label: "Buy/Rent", offers: [...buyOffers, ...rentOffers] });
   }
 
   // Add free
-  const freeOffers = watchAvailability.offersByType?.free || [];
+  const freeOffers = watchAvailability?.offersByType?.free || [];
   if (freeOffers.length > 0) {
     rows.push({ key: "free", label: "Free", offers: freeOffers });
   }
 
   // Add ads
-  const adsOffers = watchAvailability.offersByType?.ads || [];
+  const adsOffers = watchAvailability?.offersByType?.ads || [];
   if (adsOffers.length > 0) {
     rows.push({ key: "ads", label: "With Ads", offers: adsOffers });
   }
@@ -165,18 +167,6 @@ export default function WatchListView({ watchAvailability, selectedFilter }: Wat
           </div>
         );
       })}
-      
-      {/* JustWatch Attribution */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground pt-4">
-        <Image
-          src="https://widget.justwatch.com/assets/JW_logo_color_10px.svg"
-          alt="JustWatch"
-          width={66}
-          height={10}
-          unoptimized
-        />
-        <span>Data powered by JustWatch</span>
-      </div>
     </div>
   );
 }
