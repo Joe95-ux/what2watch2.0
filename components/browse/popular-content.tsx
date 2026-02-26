@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { createContentUrl } from "@/lib/content-slug";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { RegionDropdown } from "@/components/ui/region-dropdown";
 
 function PopularContentInner() {
   const searchParams = useSearchParams();
@@ -531,17 +532,24 @@ function PopularContentInner() {
         </div>
         
         {/* Provider Bar */}
-        {providerBarOpen && isSignedIn && (
-          <ProviderBar
-            providers={watchProviders}
-            selectedProviders={selectedProviders}
-            activeProvider={filters.watchProvider}
-            onProviderClick={handleProviderClick}
-            onAddServices={() => setSelectServicesModalOpen(true)}
-            watchRegion={filters.watchRegion || "US"}
-            onFilterChange={handleProviderTypeFilterChange}
-            selectedFilter={providerTypeFilter}
-          />
+        {isSignedIn && (
+          <div
+            className={cn(
+              "overflow-hidden transition-all duration-300 ease-in-out",
+              providerBarOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+            )}
+          >
+            <ProviderBar
+              providers={watchProviders}
+              selectedProviders={selectedProviders}
+              activeProvider={filters.watchProvider}
+              onProviderClick={handleProviderClick}
+              onAddServices={() => setSelectServicesModalOpen(true)}
+              watchRegion={filters.watchRegion || "US"}
+              onFilterChange={handleProviderTypeFilterChange}
+              selectedFilter={providerTypeFilter}
+            />
+          </div>
         )}
       </div>
       
@@ -554,6 +562,10 @@ function PopularContentInner() {
           selectedProviders={selectedProviders}
           onSave={handleSaveProviders}
           watchRegion={filters.watchRegion || "US"}
+          onRegionChange={(region) => {
+            setFilters({ ...filters, watchRegion: region });
+            updateURL({ watchRegion: region });
+          }}
         />
       )}
 

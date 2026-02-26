@@ -7,30 +7,18 @@ import type { JustWatchCountry } from "@/lib/justwatch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getCountryFlagEmoji } from "@/hooks/use-watch-regions";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ChevronDown, ChevronUp, ChevronsUpDown, Check, Clock, List, Table2 } from "lucide-react";
+import { ChevronDown, ChevronUp, List, Table2, Clock } from "lucide-react";
 import { FaPlay } from "react-icons/fa";
 import { cn } from "@/lib/utils";
 import WatchListView from "./watch-list-view";
+import { RegionDropdown, type RegionOption } from "@/components/ui/region-dropdown";
 
 interface WatchBreakdownSectionProps {
   availability: JustWatchAvailabilityResponse | null | undefined;
@@ -92,81 +80,6 @@ function SeasonSelect({
   );
 }
 
-function CountryCombobox({
-  countries,
-  value,
-  onValueChange,
-}: {
-  countries: JustWatchCountry[];
-  value: string;
-  onValueChange: (code: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const filtered = useMemo(() => {
-    if (!search.trim()) return countries;
-    const q = search.toLowerCase().trim();
-    return countries.filter(
-      (c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
-    );
-  }, [countries, search]);
-  const selected = countries.find((c) => c.code === value);
-
-  return (
-    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className="w-[230px] justify-between cursor-pointer"
-          >
-            <span className="flex items-center gap-2 truncate">
-              <span className="text-lg shrink-0">{getCountryFlagEmoji(value)}</span>
-              <span className="truncate">{selected?.name ?? value}</span>
-            </span>
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="end">
-          <Command shouldFilter={false} className="rounded-lg border-0 bg-transparent">
-            <CommandInput
-              placeholder="Search country..."
-              value={search}
-              onValueChange={setSearch}
-            />
-            <CommandList className="max-h-[300px]">
-              {filtered.length === 0 && (
-                <div className="py-6 text-center text-sm text-muted-foreground">No country found.</div>
-              )}
-              <CommandGroup forceMount className="p-1">
-                {filtered.map((c) => {
-                  const isSelected = value === c.code;
-                  return (
-                    <CommandItem
-                      key={c.code}
-                      value={c.code}
-                      forceMount
-                      onSelect={() => {
-                        onValueChange(c.code);
-                        setOpen(false);
-                        setSearch("");
-                      }}
-                      className="cursor-pointer gap-2"
-                    >
-                      <span className="text-lg shrink-0">{getCountryFlagEmoji(c.code)}</span>
-                      <span className="flex-1 truncate">{c.name}</span>
-                      {isSelected && <Check className="size-4 shrink-0" />}
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-  );
-}
 
 function ViewSwitcher({
   viewMode,
@@ -344,13 +257,20 @@ export default function WatchBreakdownSection({
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <ViewSwitcher viewMode={viewMode} onViewModeChange={setViewMode} />
-            {justwatchCountries.length > 0 && onWatchCountryChange && (
-              <CountryCombobox
-                countries={justwatchCountries}
-                value={watchCountry}
-                onValueChange={onWatchCountryChange}
-              />
-            )}
+            {justwatchCountries.length > 0 && onWatchCountryChange && (() => {
+              const regionOptions: RegionOption[] = justwatchCountries.map((c) => ({
+                iso_3166_1: c.code,
+                english_name: c.name,
+              }));
+              return (
+                <RegionDropdown
+                  regions={regionOptions}
+                  value={watchCountry}
+                  onValueChange={onWatchCountryChange}
+                  className="w-[230px]"
+                />
+              );
+            })()}
           </div>
         </div>
       </div>

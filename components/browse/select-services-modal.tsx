@@ -11,6 +11,9 @@ import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext
 import Image from "next/image";
 import type { WatchProvider } from "@/hooks/use-watch-providers";
 import { useProviderTypes } from "@/hooks/use-provider-types";
+import { useWatchProviders } from "@/hooks/use-watch-providers";
+import { useWatchRegions } from "@/hooks/use-watch-regions";
+import { RegionDropdown } from "@/components/ui/region-dropdown";
 
 interface SelectServicesModalProps {
   open: boolean;
@@ -19,6 +22,7 @@ interface SelectServicesModalProps {
   selectedProviders: number[];
   onSave: (providerIds: number[]) => Promise<void>;
   watchRegion?: string;
+  onRegionChange?: (region: string) => void;
 }
 
 type ProviderTypeFilter = "all" | "flatrate" | "buy" | "rent" | "free" | "ads";
@@ -29,14 +33,60 @@ export function SelectServicesModal({
   providers,
   selectedProviders: initialSelected,
   onSave,
-  watchRegion = "US",
+  watchRegion: initialWatchRegion = "US",
+  onRegionChange,
 }: SelectServicesModalProps) {
   const [selectedProviders, setSelectedProviders] = useState<number[]>(initialSelected);
   const [providerTypeFilter, setProviderTypeFilter] = useState<ProviderTypeFilter>("all");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [watchRegion, setWatchRegion] = useState(initialWatchRegion);
+  const { data: watchRegions = [] } = useWatchRegions();
+  const { data: regionProviders = [] } = useWatchProviders(watchRegion, { all: true });
   const { data: providerTypes } = useProviderTypes(watchRegion);
+
+  // Update region when prop changes
+  useEffect(() => {
+    setWatchRegion(initialWatchRegion);
+  }, [initialWatchRegion]);
+
+  // Use region-specific providers if available, otherwise fall back to passed providers
+  const activeProviders = regionProviders.length > 0 ? regionProviders : providers;
+
+  // Determine which type filters are available based on region-specific providers
+  const availableTypes = useMemo(() => {
+    if (!providerTypes || activeProviders.length === 0) {
+      return {
+        flatrate: false,
+        buy: false,
+        rent: false,
+        free: false,
+        ads: false,
+      };
+    }
+
+    const hasFlatrate = activeProviders.some((p) => providerTypes.flatrate.has(p.provider_id));
+    const hasBuy = activeProviders.some((p) => providerTypes.buy.has(p.provider_id));
+    const hasRent = activeProviders.some((p) => providerTypes.rent.has(p.provider_id));
+    const hasFree = activeProviders.some((p) => providerTypes.free.has(p.provider_id) || providerTypes.ads.has(p.provider_id));
+    const hasAds = activeProviders.some((p) => providerTypes.ads.has(p.provider_id));
+
+    return {
+      flatrate: hasFlatrate,
+      buy: hasBuy,
+      rent: hasRent,
+      free: hasFree,
+      ads: hasAds,
+    };
+  }, [providerTypes, activeProviders]);
+
+  const handleRegionChange = (region: string) => {
+    setWatchRegion(region);
+    if (onRegionChange) {
+      onRegionChange(region);
+    }
+  };
 
   // Sync selectedProviders when initialSelected changes (e.g., when modal opens with updated user preferences)
   useEffect(() => {
@@ -47,7 +97,7 @@ export function SelectServicesModal({
 
   // Filter providers based on type and search
   const filteredProviders = useMemo(() => {
-    let filtered = providers;
+    let filtered = activeProviders;
 
     // Filter by provider type
     if (providerTypeFilter !== "all" && providerTypes) {
@@ -74,12 +124,12 @@ export function SelectServicesModal({
     }
 
     return filtered;
-  }, [providers, searchQuery, providerTypeFilter, providerTypes]);
+  }, [activeProviders, searchQuery, providerTypeFilter, providerTypes]);
 
   // Get selected provider objects for preview
   const selectedProviderObjects = useMemo(() => {
-    return providers.filter((p) => selectedProviders.includes(p.provider_id));
-  }, [providers, selectedProviders]);
+    return activeProviders.filter((p) => selectedProviders.includes(p.provider_id));
+  }, [activeProviders, selectedProviders]);
 
   const handleToggleProvider = (providerId: number) => {
     setSelectedProviders((prev) =>
@@ -111,7 +161,17 @@ export function SelectServicesModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-full sm:max-w-[38rem] max-h-[90vh] flex flex-col p-0 gap-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
-          <DialogTitle>Select Your Services</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>Select Your Services</DialogTitle>
+            {watchRegions.length > 0 && (
+              <RegionDropdown
+                regions={watchRegions}
+                value={watchRegion}
+                onValueChange={handleRegionChange}
+                className="w-[200px]"
+              />
+            )}
+          </div>
         </DialogHeader>
 
         {/* Preview Carousel */}
@@ -186,50 +246,58 @@ export function SelectServicesModal({
                   >
                     All
                   </button>
-                  <button
-                    onClick={() => setProviderTypeFilter("flatrate")}
-                    className={cn(
-                      "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
-                      providerTypeFilter === "flatrate"
-                        ? "bg-blue-50 text-foreground dark:bg-accent"
-                        : "bg-transparent text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    Subscriptions
-                  </button>
-                  <button
-                    onClick={() => setProviderTypeFilter("buy")}
-                    className={cn(
-                      "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
-                      providerTypeFilter === "buy"
-                        ? "bg-blue-50 text-foreground dark:bg-accent"
-                        : "bg-transparent text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    Buy
-                  </button>
-                  <button
-                    onClick={() => setProviderTypeFilter("rent")}
-                    className={cn(
-                      "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
-                      providerTypeFilter === "rent"
-                        ? "bg-blue-50 text-foreground dark:bg-accent"
-                        : "bg-transparent text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    Rent
-                  </button>
-                  <button
-                    onClick={() => setProviderTypeFilter("free")}
-                    className={cn(
-                      "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
-                      providerTypeFilter === "free"
-                        ? "bg-blue-50 text-foreground dark:bg-accent"
-                        : "bg-transparent text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    Free
-                  </button>
+                  {availableTypes.flatrate && (
+                    <button
+                      onClick={() => setProviderTypeFilter("flatrate")}
+                      className={cn(
+                        "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
+                        providerTypeFilter === "flatrate"
+                          ? "bg-blue-50 text-foreground dark:bg-accent"
+                          : "bg-transparent text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      Subscriptions
+                    </button>
+                  )}
+                  {availableTypes.buy && (
+                    <button
+                      onClick={() => setProviderTypeFilter("buy")}
+                      className={cn(
+                        "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
+                        providerTypeFilter === "buy"
+                          ? "bg-blue-50 text-foreground dark:bg-accent"
+                          : "bg-transparent text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      Buy
+                    </button>
+                  )}
+                  {availableTypes.rent && (
+                    <button
+                      onClick={() => setProviderTypeFilter("rent")}
+                      className={cn(
+                        "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
+                        providerTypeFilter === "rent"
+                          ? "bg-blue-50 text-foreground dark:bg-accent"
+                          : "bg-transparent text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      Rent
+                    </button>
+                  )}
+                  {availableTypes.free && (
+                    <button
+                      onClick={() => setProviderTypeFilter("free")}
+                      className={cn(
+                        "h-9 px-4 rounded-[25px] border-none flex-shrink-0 cursor-pointer transition-colors",
+                        providerTypeFilter === "free"
+                          ? "bg-blue-50 text-foreground dark:bg-accent"
+                          : "bg-transparent text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      Free
+                    </button>
+                  )}
                 </div>
                 {/* Search Icon */}
                 <Button
