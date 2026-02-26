@@ -46,7 +46,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { useIsMobile } from "@/hooks/use-mobile";
 import AddToListDropdown from "@/components/content-detail/add-to-list-dropdown";
 import LogToDiaryDropdown from "./log-to-diary-dropdown";
-import { useWatchProviders } from "@/hooks/use-content-details";
+import { useWatchProviders, useJustWatchCountries } from "@/hooks/use-content-details";
 import ContentDetailWhereToWatch from "./content-detail-where-to-watch";
 import ContentDetailDetailsGrid from "./content-detail-details-grid";
 import TVSeasonsSection from "./content-detail-tv-seasons-section";
@@ -142,6 +142,7 @@ export default function ContentDetailModal({
   const isClosingRef = useRef(false);
   const [isSheetMounted, setIsSheetMounted] = useState(false);
   const [isHeroListDropdownOpen, setIsHeroListDropdownOpen] = useState(false);
+  const [watchCountry, setWatchCountry] = useState("US");
   
   // Track recently viewed
   const addRecentlyViewed = useAddRecentlyViewed();
@@ -170,7 +171,8 @@ export default function ContentDetailModal({
     callback();
   }, []);
   const { data: videosData } = useContentVideos(type, item.id);
-  const { data: watchAvailability } = useWatchProviders(type, item.id, "US");
+  const { data: watchAvailability } = useWatchProviders(type, item.id, watchCountry);
+  const { data: justwatchCountries = [] } = useJustWatchCountries();
   const { data: seasonsData } = useTVSeasons(type === "tv" ? item.id : null);
   const { data: seasonDetails, isLoading: isLoadingSeasonDetails } = useTVSeasonDetails(
     type === "tv" ? item.id : null,
@@ -627,7 +629,12 @@ export default function ContentDetailModal({
 
                   {/* Where to Watch */}
                   {watchAvailability && (
-                    <ContentDetailWhereToWatch watchAvailability={watchAvailability} />
+                    <ContentDetailWhereToWatch 
+                      watchAvailability={watchAvailability}
+                      watchCountry={watchCountry}
+                      onWatchCountryChange={setWatchCountry}
+                      justwatchCountries={justwatchCountries}
+                    />
                   )}
                 </div>
 

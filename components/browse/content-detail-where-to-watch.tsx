@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import Image from "next/image";
 import {
   Carousel,
@@ -8,15 +9,112 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { JustWatchAvailabilityResponse } from "@/lib/justwatch";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Button } from "@/components/ui/button";
+import { JustWatchAvailabilityResponse, JustWatchCountry } from "@/lib/justwatch";
+import { getCountryFlagEmoji } from "@/hooks/use-watch-regions";
+import { ChevronsUpDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ContentDetailWhereToWatchProps {
   watchAvailability: JustWatchAvailabilityResponse;
+  watchCountry?: string;
+  onWatchCountryChange?: (code: string) => void;
+  justwatchCountries?: JustWatchCountry[];
+}
+
+function CountryCombobox({
+  countries,
+  value,
+  onValueChange,
+}: {
+  countries: JustWatchCountry[];
+  value: string;
+  onValueChange: (code: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const filtered = useMemo(() => {
+    if (!search.trim()) return countries;
+    const q = search.toLowerCase().trim();
+    return countries.filter(
+      (c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+    );
+  }, [countries, search]);
+  const selected = countries.find((c) => c.code === value);
+
+  return (
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-[230px] justify-between cursor-pointer"
+        >
+          <span className="flex items-center gap-2 truncate">
+            <span className="text-lg shrink-0">{getCountryFlagEmoji(value)}</span>
+            <span className="truncate">{selected?.name ?? value}</span>
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="end">
+        <Command shouldFilter={false} className="rounded-lg border-0 bg-transparent">
+          <CommandInput
+            placeholder="Search country..."
+            value={search}
+            onValueChange={setSearch}
+          />
+          <CommandList className="max-h-[300px]">
+            {filtered.length === 0 && (
+              <div className="py-6 text-center text-sm text-muted-foreground">No country found.</div>
+            )}
+            <CommandGroup forceMount className="p-1">
+              {filtered.map((c) => {
+                const isSelected = value === c.code;
+                return (
+                  <CommandItem
+                    key={c.code}
+                    value={c.code}
+                    forceMount
+                    onSelect={() => {
+                      onValueChange(c.code);
+                      setOpen(false);
+                      setSearch("");
+                    }}
+                    className="cursor-pointer gap-2"
+                  >
+                    <span className="text-lg shrink-0">{getCountryFlagEmoji(c.code)}</span>
+                    <span className="flex-1 truncate">{c.name}</span>
+                    {isSelected && <Check className="size-4 shrink-0" />}
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 export default function ContentDetailWhereToWatch({
   watchAvailability,
+  watchCountry = "US",
+  onWatchCountryChange,
+  justwatchCountries = [],
 }: ContentDetailWhereToWatchProps) {
   // Build rows array with alternating backgrounds
   const rows: Array<{ key: string; label: string; offers: JustWatchAvailabilityResponse["allOffers"] }> = [];
@@ -24,7 +122,7 @@ export default function ContentDetailWhereToWatch({
   // Add flatrate
   const flatrateOffers = watchAvailability.offersByType?.flatrate || [];
   if (flatrateOffers.length > 0) {
-    rows.push({ key: "flatrate", label: "Subscriptions", offers: flatrateOffers });
+    rows.push({ key: "flatrate", label: "STREAM", offers: flatrateOffers });
   }
 
   // Combine buy and rent
@@ -50,11 +148,13 @@ export default function ContentDetailWhereToWatch({
 
   const formatPrice = (price: number | null | undefined, currency: string | null | undefined): string => {
     if (!price || !currency) return "";
-    return new Intl.NumberFormat(undefined, {
+    // Format as currency without locale-specific prefix (e.g., "US$" -> "$")
+    const formatter = new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: currency,
       maximumFractionDigits: 2,
-    }).format(price);
+    });
+    return formatter.format(price).replace(/^[A-Z]{2}\$/, "$"); // Remove country prefix if present
   };
 
   const getQuality = (presentationType: string | null | undefined): string => {
@@ -69,17 +169,26 @@ export default function ContentDetailWhereToWatch({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Where to Watch</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Where to Watch</h3>
+        {justwatchCountries.length > 0 && onWatchCountryChange && (
+          <CountryCombobox
+            countries={justwatchCountries}
+            value={watchCountry}
+            onValueChange={onWatchCountryChange}
+          />
+        )}
+      </div>
       <div className="space-y-0">
         {rows.map((row, index) => {
           const isEven = index % 2 === 0;
           const labelBgColor = isEven ? "bg-muted" : "bg-muted/50";
 
           return (
-            <div key={row.key}>
-              <div className="flex items-start border-b border-border last:border-b-0">
+            <div key={row.key} className={cn(index < rows.length - 1 && "border-b border-border")}>
+              <div className="flex items-center gap-2">
                 {/* Rotated Label with alternating background */}
-                <div className={cn("flex-shrink-0 w-16 flex items-center justify-center py-4", labelBgColor)}>
+                <div className={cn("flex-shrink-0 w-10 flex items-center justify-center py-4", labelBgColor)}>
                   <span
                     className="text-xs font-semibold text-foreground whitespace-nowrap uppercase"
                     style={{
@@ -117,7 +226,7 @@ export default function ContentDetailWhereToWatch({
                               className="block"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <div className="flex flex-col items-center gap-2">
+                              <div className="flex flex-col items-center gap-1">
                                 {offer.iconUrl ? (
                                   <div className="relative h-[50px] w-[50px] rounded-lg border border-border overflow-hidden bg-muted hover:border-primary transition-colors cursor-pointer">
                                     <Image
@@ -134,7 +243,7 @@ export default function ContentDetailWhereToWatch({
                                   </div>
                                 )}
                                 {(quality || price) && (
-                                  <div className="text-xs text-muted-foreground text-center">
+                                  <div className="text-muted-foreground text-center" style={{ fontSize: "13px" }}>
                                     {quality && <span>{quality}</span>}
                                     {quality && price && <span> </span>}
                                     {price && <span>({price})</span>}
