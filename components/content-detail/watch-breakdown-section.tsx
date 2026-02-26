@@ -232,8 +232,9 @@ export default function WatchBreakdownSection({
   const getQuality = (presentationType: string | null | undefined): string => {
     if (!presentationType) return "";
     const quality = presentationType.toLowerCase();
+    // Check for highest quality first (order matters to avoid false positives)
     if (quality.includes("4k") || quality.includes("uhd")) return "4K";
-    if (quality.includes("hd") && !quality.includes("uhd")) return "HD";
+    if (quality.includes("hd")) return "HD"; // "uhd" is already handled above
     if (quality.includes("sd")) return "SD";
     return "";
   };
