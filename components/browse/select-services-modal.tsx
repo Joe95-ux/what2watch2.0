@@ -9,6 +9,7 @@ import { Search, X, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import Image from "next/image";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { WatchProvider } from "@/hooks/use-watch-providers";
 import { useProviderTypes } from "@/hooks/use-provider-types";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
@@ -53,8 +54,8 @@ export function SelectServicesModal({
   const [countryOpen, setCountryOpen] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
   const { data: watchRegions = [] } = useWatchRegions();
-  const { data: regionProviders = [] } = useWatchProviders(watchRegion, { all: true });
-  const { data: providerTypes } = useProviderTypes(watchRegion);
+  const { data: regionProviders = [], isLoading: isLoadingRegionProviders } = useWatchProviders(watchRegion, { all: true });
+  const { data: providerTypes, isLoading: isLoadingProviderTypes } = useProviderTypes(watchRegion);
   
   const filteredWatchRegions = useMemo(() => {
     if (!countrySearch.trim()) return watchRegions;
@@ -347,7 +348,7 @@ export function SelectServicesModal({
 
         {/* Region Dropdown - Top right corner */}
         {watchRegions.length > 0 && (
-          <div className="px-6 my-3 flex justify-end">
+          <div className="px-6 mt-4 flex justify-end">
             <Popover
               open={countryOpen}
               onOpenChange={(open) => {
@@ -416,40 +417,57 @@ export function SelectServicesModal({
 
         {/* Provider List */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          <div className="space-y-0">
-            {filteredProviders.map((provider, index) => (
-              <div key={provider.provider_id}>
-                <div className="flex items-center justify-between py-3">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    {provider.logo_path ? (
-                      <div className="relative h-10 w-10 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                        <Image
-                          src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
-                          alt={provider.provider_name}
-                          fill
-                          className="object-contain rounded-lg"
-                          unoptimized
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-xs flex-shrink-0">
-                        {provider.provider_name[0]}
-                      </div>
-                    )}
-                    <span className="text-sm font-medium truncate">{provider.provider_name}</span>
+          {isLoadingRegionProviders || isLoadingProviderTypes ? (
+            <div className="space-y-0">
+              {Array.from({ length: 8 }).map((_, index) => (
+                <div key={index}>
+                  <div className="flex items-center justify-between py-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <Skeleton className="h-10 w-10 rounded-lg flex-shrink-0" />
+                      <Skeleton className="h-4 w-32" />
+                    </div>
+                    <Skeleton className="h-5 w-5 rounded" />
                   </div>
-                  <Checkbox
-                    checked={selectedProviders.includes(provider.provider_id)}
-                    onCheckedChange={() => handleToggleProvider(provider.provider_id)}
-                    className="cursor-pointer data-[state=checked]:!bg-red-500 data-[state=checked]:!border-red-500 data-[state=checked]:text-white"
-                  />
+                  {index < 7 && <div className="h-px bg-border" />}
                 </div>
-                {index < filteredProviders.length - 1 && (
-                  <div className="h-px bg-border" />
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-0">
+              {filteredProviders.map((provider, index) => (
+                <div key={provider.provider_id}>
+                  <div className="flex items-center justify-between py-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      {provider.logo_path ? (
+                        <div className="relative h-10 w-10 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                          <Image
+                            src={`https://image.tmdb.org/t/p/w92${provider.logo_path}`}
+                            alt={provider.provider_name}
+                            fill
+                            className="object-contain rounded-lg"
+                            unoptimized
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-xs flex-shrink-0">
+                          {provider.provider_name[0]}
+                        </div>
+                      )}
+                      <span className="text-sm font-medium truncate">{provider.provider_name}</span>
+                    </div>
+                    <Checkbox
+                      checked={selectedProviders.includes(provider.provider_id)}
+                      onCheckedChange={() => handleToggleProvider(provider.provider_id)}
+                      className="cursor-pointer data-[state=checked]:!bg-red-500 data-[state=checked]:!border-red-500 data-[state=checked]:text-white"
+                    />
+                  </div>
+                  {index < filteredProviders.length - 1 && (
+                    <div className="h-px bg-border" />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Footer with Save Button */}

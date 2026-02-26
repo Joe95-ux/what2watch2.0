@@ -37,8 +37,9 @@ export default function WatchListView({ watchAvailability, selectedFilter, selec
   const getQuality = (presentationType: string | null | undefined): string => {
     if (!presentationType) return "";
     const quality = presentationType.toLowerCase();
+    // Check for highest quality first (order matters to avoid false positives)
     if (quality.includes("4k") || quality.includes("uhd")) return "4K";
-    if (quality.includes("hd") && !quality.includes("uhd")) return "HD";
+    if (quality.includes("hd")) return "HD"; // "uhd" is already handled above
     if (quality.includes("sd")) return "SD";
     return "";
   };
@@ -52,34 +53,35 @@ export default function WatchListView({ watchAvailability, selectedFilter, selec
       })
     : allOffers;
 
-  // Now group filtered offers by type
+  // Now group filtered offers by type - create new arrays to avoid reference issues
   const flatrateOffers = qualityFilteredOffers.filter((o) => o.monetizationType === "flatrate");
   const buyOffers = qualityFilteredOffers.filter((o) => o.monetizationType === "buy");
   const rentOffers = qualityFilteredOffers.filter((o) => o.monetizationType === "rent");
   const freeOffers = qualityFilteredOffers.filter((o) => o.monetizationType === "free");
   const adsOffers = qualityFilteredOffers.filter((o) => o.monetizationType === "ads");
 
-  // Build rows array from filtered offers
+  // Build rows array from filtered offers - create fresh arrays for each row
   const rows: Array<{ key: string; label: string; offers: JustWatchAvailabilityResponse["allOffers"] }> = [];
 
   // Add flatrate
   if (flatrateOffers.length > 0) {
-    rows.push({ key: "flatrate", label: "STREAM", offers: flatrateOffers });
+    rows.push({ key: "flatrate", label: "STREAM", offers: [...flatrateOffers] });
   }
 
-  // Combine buy and rent
+  // Combine buy and rent - create a fresh array
   if (buyOffers.length > 0 || rentOffers.length > 0) {
-    rows.push({ key: "buy-rent", label: "Buy/Rent", offers: [...buyOffers, ...rentOffers] });
+    const buyRentOffers = [...buyOffers, ...rentOffers];
+    rows.push({ key: "buy-rent", label: "Buy/Rent", offers: buyRentOffers });
   }
 
   // Add free
   if (freeOffers.length > 0) {
-    rows.push({ key: "free", label: "Free", offers: freeOffers });
+    rows.push({ key: "free", label: "Free", offers: [...freeOffers] });
   }
 
   // Add ads
   if (adsOffers.length > 0) {
-    rows.push({ key: "ads", label: "With Ads", offers: adsOffers });
+    rows.push({ key: "ads", label: "With Ads", offers: [...adsOffers] });
   }
 
   // Filter rows based on selectedFilter
@@ -119,7 +121,7 @@ export default function WatchListView({ watchAvailability, selectedFilter, selec
               {/* Provider List with Scroll */}
               <div className="flex-1 min-w-0 h-full overflow-x-auto scrollbar-thin">
                 <div className="flex items-center gap-2 h-full py-4">
-                  {row.offers.map((offer) => {
+                  {row.offers.map((offer, offerIndex) => {
                     const quality = getQuality(offer.presentationType);
                     const price = offer.monetizationType === "rent" || offer.monetizationType === "buy"
                       ? formatPrice(offer.retailPrice, offer.currency)
@@ -127,7 +129,7 @@ export default function WatchListView({ watchAvailability, selectedFilter, selec
 
                     return (
                       <a
-                        key={offer.providerId}
+                        key={`${row.key}-${offer.providerId}-${offer.presentationType || offerIndex}`}
                         href={offer.standardWebUrl ?? offer.deepLinkUrl ?? "#"}
                         target="_blank"
                         rel="noopener noreferrer"
