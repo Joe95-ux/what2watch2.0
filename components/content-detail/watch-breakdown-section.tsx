@@ -234,7 +234,7 @@ export default function WatchBreakdownSection({
     const quality = presentationType.toLowerCase();
     // Check for highest quality first (order matters to avoid false positives)
     if (quality.includes("4k") || quality.includes("uhd")) return "4K";
-    if (quality.includes("hd")) return "HD"; // "uhd" is already handled above
+    if (quality.includes("hd") && !quality.includes("uhd")) return "HD"; // Explicitly exclude "uhd"
     if (quality.includes("sd")) return "SD";
     return "";
   };
@@ -557,7 +557,7 @@ export default function WatchBreakdownSection({
                       const isLast = index === offers.length - 1;
                       
                       return (
-                        <div key={`${offer.providerId}-${offer.monetizationType}`} className={cn(isLast && "rounded-b-2xl overflow-hidden")}>
+                        <div key={`${offer.providerId}-${offer.monetizationType}-${offer.presentationType || index}`} className={cn(isLast && "rounded-b-2xl overflow-hidden")}>
                           {isLeavingSoon && leavingSoonInfo && (
                             <div className="px-4 pt-4 pb-2">
                               <div className="flex items-center gap-2 text-sm bg-red-500/10 text-red-600 dark:text-red-400 px-3 py-2 rounded-md">

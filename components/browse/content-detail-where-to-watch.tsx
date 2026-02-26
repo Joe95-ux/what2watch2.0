@@ -67,21 +67,36 @@ export default function ContentDetailWhereToWatch({
     rows.push({ key: "flatrate", label: "STREAM", offers: flatrateOffers });
   }
 
-  // Combine buy and rent
+  // Get buy and rent offers
   const buyOffers = watchAvailability?.offersByType?.buy || [];
   const rentOffers = watchAvailability?.offersByType?.rent || [];
-  if (buyOffers.length > 0 || rentOffers.length > 0) {
-    rows.push({ key: "buy-rent", label: "Buy/Rent", offers: [...buyOffers, ...rentOffers] });
+  
+  // Check if only buy and rent offers exist (no other types)
+  const freeOffers = watchAvailability?.offersByType?.free || [];
+  const adsOffers = watchAvailability?.offersByType?.ads || [];
+  const hasOnlyBuyAndRent = flatrateOffers.length === 0 && freeOffers.length === 0 && adsOffers.length === 0;
+
+  // If only buy and rent, show them separately; otherwise combine them
+  if (hasOnlyBuyAndRent) {
+    if (buyOffers.length > 0) {
+      rows.push({ key: "buy", label: "Buy", offers: buyOffers });
+    }
+    if (rentOffers.length > 0) {
+      rows.push({ key: "rent", label: "Rent", offers: rentOffers });
+    }
+  } else {
+    // Combine buy and rent
+    if (buyOffers.length > 0 || rentOffers.length > 0) {
+      rows.push({ key: "buy-rent", label: "Buy/Rent", offers: [...buyOffers, ...rentOffers] });
+    }
   }
 
   // Add free
-  const freeOffers = watchAvailability?.offersByType?.free || [];
   if (freeOffers.length > 0) {
     rows.push({ key: "free", label: "Free", offers: freeOffers });
   }
 
   // Add ads
-  const adsOffers = watchAvailability?.offersByType?.ads || [];
   if (adsOffers.length > 0) {
     rows.push({ key: "ads", label: "With Ads", offers: adsOffers });
   }

@@ -39,7 +39,7 @@ export default function WatchListView({ watchAvailability, selectedFilter, selec
     const quality = presentationType.toLowerCase();
     // Check for highest quality first (order matters to avoid false positives)
     if (quality.includes("4k") || quality.includes("uhd")) return "4K";
-    if (quality.includes("hd")) return "HD"; // "uhd" is already handled above
+    if (quality.includes("hd") && !quality.includes("uhd")) return "HD"; // Explicitly exclude "uhd"
     if (quality.includes("sd")) return "SD";
     return "";
   };
@@ -68,10 +68,23 @@ export default function WatchListView({ watchAvailability, selectedFilter, selec
     rows.push({ key: "flatrate", label: "STREAM", offers: [...flatrateOffers] });
   }
 
-  // Combine buy and rent - create a fresh array
-  if (buyOffers.length > 0 || rentOffers.length > 0) {
+  // Check if only buy and rent offers exist (no other types)
+  const hasOnlyBuyAndRent = flatrateOffers.length === 0 && freeOffers.length === 0 && adsOffers.length === 0;
+
+  // If only buy and rent, show them separately; otherwise combine them
+  if (hasOnlyBuyAndRent) {
+    if (buyOffers.length > 0) {
+      rows.push({ key: "buy", label: "Buy", offers: [...buyOffers] });
+    }
+    if (rentOffers.length > 0) {
+      rows.push({ key: "rent", label: "Rent", offers: [...rentOffers] });
+    }
+  } else {
+    // Combine buy and rent - create a fresh array with only quality-filtered offers
     const buyRentOffers = [...buyOffers, ...rentOffers];
-    rows.push({ key: "buy-rent", label: "Buy/Rent", offers: buyRentOffers });
+    if (buyRentOffers.length > 0) {
+      rows.push({ key: "buy-rent", label: "Buy/Rent", offers: buyRentOffers });
+    }
   }
 
   // Add free
@@ -89,7 +102,8 @@ export default function WatchListView({ watchAvailability, selectedFilter, selec
     ? rows
     : rows.filter(row => {
         if (selectedFilter === "flatrate") return row.key === "flatrate";
-        if (selectedFilter === "buy" || selectedFilter === "rent") return row.key === "buy-rent";
+        if (selectedFilter === "buy") return row.key === "buy" || row.key === "buy-rent";
+        if (selectedFilter === "rent") return row.key === "rent" || row.key === "buy-rent";
         return row.key === selectedFilter;
       });
 

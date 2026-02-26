@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import type { JustWatchAvailabilityResponse } from "@/lib/justwatch";
 
 // Replicate the getQuality function from watch-list-view.tsx
@@ -14,18 +17,34 @@ const getQuality = (presentationType: string | null | undefined): string => {
   const quality = presentationType.toLowerCase();
   // Check for highest quality first (order matters to avoid false positives)
   if (quality.includes("4k") || quality.includes("uhd")) return "4K";
-  if (quality.includes("hd")) return "HD"; // "uhd" is already handled above
+  if (quality.includes("hd") && !quality.includes("uhd")) return "HD"; // Explicitly exclude "uhd"
   if (quality.includes("sd")) return "SD";
   return "";
 };
 
 export default function WatchAvailabilityDebugPage() {
+  const { user, isLoaded: isUserLoaded } = useUser();
   const [type, setType] = useState<"movie" | "tv">("movie");
   const [tmdbId, setTmdbId] = useState<string>("550"); // Fight Club as default
   const [country, setCountry] = useState<string>("US");
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState<JustWatchAvailabilityResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Check if user is admin
+  const { data: adminCheck, isLoading: isCheckingAdmin } = useQuery({
+    queryKey: ["admin-check"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/check");
+      if (!response.ok) return { isAdmin: false };
+      return response.json() as Promise<{ isAdmin: boolean }>;
+    },
+    enabled: isUserLoaded,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  const isAdmin = adminCheck?.isAdmin ?? false;
+  const showContent = isUserLoaded && !isCheckingAdmin && isAdmin;
 
   const handleFetch = async () => {
     setIsLoading(true);
@@ -106,11 +125,40 @@ export default function WatchAvailabilityDebugPage() {
       ).sort()
     : [];
 
+  // Show loading state while checking admin status
+  if (!isUserLoaded || isCheckingAdmin) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show access denied if not admin
+  if (!isAdmin) {
+    return (
+      <div className="container mx-auto py-8">
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-destructive">Access Denied</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              This page is restricted to authenticated administrators only.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto py-8 space-y-6">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold">Watch Availability Debug</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold">Watch Availability Debug</h1>
+        <p className="text-xs sm:text-sm md:text-base text-muted-foreground">
           Debug tool to inspect watch availability data and quality information from the JustWatch API
         </p>
       </div>
@@ -118,18 +166,18 @@ export default function WatchAvailabilityDebugPage() {
       {/* Input Form */}
       <Card>
         <CardHeader>
-          <CardTitle>Fetch Watch Availability</CardTitle>
-          <CardDescription>Enter content details to fetch watch availability data</CardDescription>
+          <CardTitle className="text-base sm:text-lg">Fetch Watch Availability</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Enter content details to fetch watch availability data</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="type">Type</Label>
               <select
                 id="type"
                 value={type}
                 onChange={(e) => setType(e.target.value as "movie" | "tv")}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
               >
                 <option value="movie">Movie</option>
                 <option value="tv">TV Show</option>
@@ -157,7 +205,7 @@ export default function WatchAvailabilityDebugPage() {
             </div>
             <div className="space-y-2">
               <Label>&nbsp;</Label>
-              <Button onClick={handleFetch} disabled={isLoading} className="w-full">
+              <Button onClick={handleFetch} disabled={isLoading} className="w-full cursor-pointer" type="button">
                 {isLoading ? "Fetching..." : "Fetch Data"}
               </Button>
             </div>
@@ -169,10 +217,10 @@ export default function WatchAvailabilityDebugPage() {
       {error && (
         <Card className="border-destructive">
           <CardHeader>
-            <CardTitle className="text-destructive">Error</CardTitle>
+            <CardTitle className="text-destructive text-base sm:text-lg">Error</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-destructive">{error}</p>
+            <p className="text-xs sm:text-sm text-destructive break-words">{error}</p>
           </CardContent>
         </Card>
       )}
@@ -180,11 +228,11 @@ export default function WatchAvailabilityDebugPage() {
       {/* Results */}
       {data && (
         <Tabs defaultValue="quality" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="quality">Quality Analysis</TabsTrigger>
-            <TabsTrigger value="presentation-types">Presentation Types</TabsTrigger>
-            <TabsTrigger value="raw-data">Raw Data</TabsTrigger>
-            <TabsTrigger value="offers">All Offers</TabsTrigger>
+          <TabsList className="w-full overflow-x-auto scrollbar-hide">
+            <TabsTrigger value="quality" className="cursor-pointer flex-shrink-0 text-xs sm:text-sm">Quality Analysis</TabsTrigger>
+            <TabsTrigger value="presentation-types" className="cursor-pointer flex-shrink-0 text-xs sm:text-sm">Presentation Types</TabsTrigger>
+            <TabsTrigger value="raw-data" className="cursor-pointer flex-shrink-0 text-xs sm:text-sm">Raw Data</TabsTrigger>
+            <TabsTrigger value="offers" className="cursor-pointer flex-shrink-0 text-xs sm:text-sm">All Offers</TabsTrigger>
           </TabsList>
 
           {/* Quality Analysis Tab */}
@@ -193,10 +241,10 @@ export default function WatchAvailabilityDebugPage() {
               <>
                 <Card>
                   <CardHeader>
-                    <CardTitle>Quality Summary</CardTitle>
+                    <CardTitle className="text-base sm:text-lg">Quality Summary</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
                       <div>
                         <p className="text-sm text-muted-foreground">Total Offers</p>
                         <p className="text-2xl font-bold">{qualityAnalysis.totalOffers}</p>
@@ -219,23 +267,23 @@ export default function WatchAvailabilityDebugPage() {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Detected Qualities</CardTitle>
+                    <CardTitle className="text-base sm:text-lg">Detected Qualities</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {qualityAnalysis.qualityMap.map(({ quality, count, examples }) => (
-                      <div key={quality} className="border rounded-lg p-4 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-semibold text-lg">{quality}</h3>
-                          <span className="text-sm text-muted-foreground">{count} offers</span>
+                      <div key={quality} className="border rounded-lg p-3 sm:p-4 space-y-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0">
+                          <h3 className="font-semibold text-base sm:text-lg">{quality}</h3>
+                          <span className="text-xs sm:text-sm text-muted-foreground">{count} offers</span>
                         </div>
                         <div className="space-y-1">
                           <p className="text-xs text-muted-foreground">Example presentationType values:</p>
                           {examples.map((ex, idx) => (
-                            <div key={idx} className="text-sm font-mono bg-muted p-2 rounded">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold">{ex.presentationType}</span>
+                            <div key={idx} className="text-xs sm:text-sm font-mono bg-muted p-2 rounded">
+                              <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                                <span className="font-semibold break-all">{ex.presentationType}</span>
                                 <span className="text-muted-foreground">•</span>
-                                <span>{ex.providerName}</span>
+                                <span className="break-all">{ex.providerName}</span>
                                 <span className="text-muted-foreground">•</span>
                                 <span className="text-xs">{ex.monetizationType}</span>
                               </div>
@@ -250,19 +298,19 @@ export default function WatchAvailabilityDebugPage() {
                 {qualityAnalysis.unrecognized.length > 0 && (
                   <Card>
                     <CardHeader>
-                      <CardTitle>Unrecognized Presentation Types</CardTitle>
-                      <CardDescription>
+                      <CardTitle className="text-base sm:text-lg">Unrecognized Presentation Types</CardTitle>
+                      <CardDescription className="text-xs sm:text-sm">
                         These presentationType values were not recognized by getQuality()
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
                         {qualityAnalysis.unrecognized.map((item, idx) => (
-                          <div key={idx} className="text-sm font-mono bg-muted p-2 rounded">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold">{item.presentationType || "(null)"}</span>
+                          <div key={idx} className="text-xs sm:text-sm font-mono bg-muted p-2 rounded">
+                            <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                              <span className="font-semibold break-all">{item.presentationType || "(null)"}</span>
                               <span className="text-muted-foreground">•</span>
-                              <span>{item.providerName}</span>
+                              <span className="break-all">{item.providerName}</span>
                               <span className="text-muted-foreground">•</span>
                               <span className="text-xs">{item.monetizationType}</span>
                             </div>
@@ -285,8 +333,8 @@ export default function WatchAvailabilityDebugPage() {
           <TabsContent value="presentation-types" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>All Unique Presentation Types</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-base sm:text-lg">All Unique Presentation Types</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   All unique presentationType values found in the response
                 </CardDescription>
               </CardHeader>
@@ -297,10 +345,10 @@ export default function WatchAvailabilityDebugPage() {
                     return (
                       <div
                         key={idx}
-                        className="flex items-center justify-between p-3 border rounded-lg"
+                        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 p-3 border rounded-lg"
                       >
-                        <code className="text-sm font-mono">{pt}</code>
-                        <div className="flex items-center gap-2">
+                        <code className="text-xs sm:text-sm font-mono break-all">{pt}</code>
+                        <div className="flex items-center gap-2 flex-shrink-0">
                           {detected ? (
                             <span className="px-2 py-1 bg-primary/10 text-primary rounded text-sm font-semibold">
                               → {detected}
@@ -323,11 +371,11 @@ export default function WatchAvailabilityDebugPage() {
           <TabsContent value="raw-data">
             <Card>
               <CardHeader>
-                <CardTitle>Raw API Response</CardTitle>
-                <CardDescription>Complete JSON response from the API</CardDescription>
+                <CardTitle className="text-base sm:text-lg">Raw API Response</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">Complete JSON response from the API</CardDescription>
               </CardHeader>
               <CardContent>
-                <pre className="text-xs overflow-auto bg-muted p-4 rounded-lg max-h-[600px]">
+                <pre className="text-[10px] sm:text-xs overflow-auto bg-muted p-3 sm:p-4 rounded-lg max-h-[400px] sm:max-h-[600px]">
                   {JSON.stringify(data, null, 2)}
                 </pre>
               </CardContent>
@@ -338,25 +386,25 @@ export default function WatchAvailabilityDebugPage() {
           <TabsContent value="offers" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>All Offers</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-base sm:text-lg">All Offers</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   All offers with their presentationType and detected quality
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                <div className="space-y-2 max-h-[400px] sm:max-h-[600px] overflow-y-auto">
                   {(data.allOffers || []).map((offer, idx) => {
                     const detected = getQuality(offer.presentationType);
                     return (
                       <div
                         key={idx}
-                        className="p-3 border rounded-lg text-sm space-y-1"
+                        className="p-3 border rounded-lg text-xs sm:text-sm space-y-1"
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold">{offer.providerName}</span>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0">
+                          <span className="font-semibold break-words">{offer.providerName}</span>
                           <span className="text-xs text-muted-foreground">{offer.monetizationType}</span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <code className="text-xs font-mono bg-muted px-2 py-1 rounded">
                             {offer.presentationType || "(null)"}
                           </code>

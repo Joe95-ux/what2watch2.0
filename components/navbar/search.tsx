@@ -608,7 +608,7 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
 
       {/* Results Dropdown */}
       {isExpanded && (query || displayResults.length > 0 || isLoadingDisplay) && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-50 h-auto overflow-hidden">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-[60] h-auto overflow-hidden">
           <div className="p-2 max-h-[400px] overflow-y-auto scrollbar-thin">
             {isLoadingDisplay && (
               <div className="space-y-4">
@@ -727,7 +727,7 @@ function SearchResultItem({
       )}
 
       <div className="flex-1 min-w-0 flex flex-col gap-1 px-3">
-        <div className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+        <div className="text-sm font-medium truncate transition-colors">
           {result.title}
         </div>
         <div className="flex items-center gap-2 text-[13px] text-muted-foreground flex-wrap">

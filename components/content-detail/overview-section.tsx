@@ -414,7 +414,7 @@ function OverviewInfoRow({ label, value, personId, personName, writers, cast, ge
                     `/search?${new URLSearchParams({ type: mediaType, genre: genre.id.toString() }).toString()}`
                   )
                 }
-                className="hover:text-primary transition-colors cursor-pointer"
+                className="hover:underline transition-colors cursor-pointer"
               >
                 {genre.name}
               </button>
@@ -435,7 +435,7 @@ function OverviewInfoRow({ label, value, personId, personName, writers, cast, ge
                   e.stopPropagation();
                   router.push(`/person/${createPersonSlug(person.id, person.name)}`);
                 }}
-                className="hover:text-primary transition-colors cursor-pointer"
+                className="hover:underline transition-colors cursor-pointer"
               >
                 {person.name}
               </button>
@@ -456,7 +456,7 @@ function OverviewInfoRow({ label, value, personId, personName, writers, cast, ge
                   e.stopPropagation();
                   router.push(`/person/${createPersonSlug(writer.id, writer.name)}`);
                 }}
-                className="hover:text-primary transition-colors cursor-pointer"
+                className="hover:underline transition-colors cursor-pointer"
               >
                 {writer.name}
               </button>
@@ -471,7 +471,7 @@ function OverviewInfoRow({ label, value, personId, personName, writers, cast, ge
       return (
         <button
           onClick={handleClick}
-          className="font-medium text-right hover:text-primary transition-colors cursor-pointer"
+          className="font-medium text-right hover:underline transition-colors cursor-pointer"
         >
           {value}
         </button>
