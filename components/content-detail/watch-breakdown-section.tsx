@@ -179,28 +179,28 @@ function ViewSwitcher({
   onViewModeChange: (mode: "table" | "list") => void;
 }) {
   return (
-    <div className="flex items-center gap-1 border border-border rounded-md p-1 bg-background">
+    <div className="flex items-center gap-1 border border-border rounded-md p-1 bg-background h-9">
       <Button
         variant={viewMode === "table" ? "default" : "ghost"}
         size="sm"
         onClick={() => onViewModeChange("table")}
         className={cn(
-          "h-8 px-3 cursor-pointer",
-          viewMode === "table" ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+          "h-7 cursor-pointer has-[>svg]:px-2",
+          viewMode === "table" ? "bg-muted text-foreground" : "hover:bg-muted/50"
         )}
       >
-        <Table2 className="h-4 w-4" />
+        <Table2 className="h-5 w-5" />
       </Button>
       <Button
         variant={viewMode === "list" ? "default" : "ghost"}
         size="sm"
         onClick={() => onViewModeChange("list")}
         className={cn(
-          "h-8 px-3 cursor-pointer",
-          viewMode === "list" ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+          "h-7 cursor-pointer has-[>svg]:px-2",
+          viewMode === "list" ? "bg-muted text-foreground" : "hover:bg-muted/50"
         )}
       >
-        <List className="h-4 w-4" />
+        <List className="h-5 w-5" />
       </Button>
     </div>
   );
