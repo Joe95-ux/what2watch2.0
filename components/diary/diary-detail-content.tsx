@@ -712,16 +712,19 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
           </div>
           
           {/* Sidebar */}
-          <div className="space-y-6 order-1 lg:order-2">
+          <div className="space-y-6 order-1 lg:order-2 lg:sticky lg:top-4 lg:self-start">
             {/* Where to Watch */}
             <div className="p-0">
-              <h3 className="text-lg font-semibold mb-4">Where to Watch</h3>
               {watchAvailability && topWatchOffers.length > 0 ? (
                 <>
                   <div className="overflow-hidden rounded-[5px] border border-border">
+                    {/* Heading as first row */}
+                    <div className="px-3 py-2 text-base font-semibold bg-muted/60">
+                      Where to Watch
+                    </div>
                     {topWatchOffers.map((offer, index) => {
-                      const isEven = index % 2 === 0;
-                      const rowBg = isEven ? "bg-muted" : "bg-muted/60";
+                      // After heading row, index 0 should be lighter (bg-muted), index 1 darker (bg-muted/60)
+                      const rowBg = index % 2 === 0 ? "bg-muted" : "bg-muted/60";
                       const quality = getOfferQuality(offer.presentationType);
                       const price =
                         offer.monetizationType === "rent" || offer.monetizationType === "buy"
@@ -850,9 +853,9 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
       {/* Where to Watch - Full Modal */}
       {watchAvailability && (
         <Dialog open={isWatchModalOpen} onOpenChange={setIsWatchModalOpen}>
-          <DialogContent className="lg:max-w-4xl w-full max-h-[95vh] overflow-hidden flex flex-col">
+          <DialogContent className="sm:max-w-none lg:max-w-4xl w-full max-h-[95vh] overflow-hidden flex flex-col">
             <DialogHeader>
-              <DialogTitle>Where to Watch</DialogTitle>
+              <DialogTitle>Where to Watch {title}</DialogTitle>
             </DialogHeader>
             <div className="flex-1 overflow-y-auto scrollbar-thin px-1 py-4 min-h-0">
               <WatchBreakdownSection
