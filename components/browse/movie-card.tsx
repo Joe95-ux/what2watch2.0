@@ -266,7 +266,6 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
       <MoreLikeThisCard
         item={item}
         type={type}
-        onItemClick={onCardClick}
         className={cn("flex-shrink-0", className)}
         onAddToPlaylist={onAddToPlaylist}
       />

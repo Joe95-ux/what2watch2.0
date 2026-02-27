@@ -47,7 +47,7 @@ import CreatePlaylistModal from "@/components/playlists/create-playlist-modal";
 import TrailerModal from "@/components/browse/trailer-modal";
 import Script from "next/script";
 import Link from "next/link";
-import WatchListView from "@/components/content-detail/watch-list-view";
+import WatchBreakdownSection from "@/components/content-detail/watch-breakdown-section";
 import { ShareDropdown } from "@/components/ui/share-dropdown";
 import { WatchHistoryModal } from "./watch-history-modal";
 
@@ -76,6 +76,8 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
   const [isSynopsisExpanded, setIsSynopsisExpanded] = useState(false);
   const [isWatchHistoryModalOpen, setIsWatchHistoryModalOpen] = useState(false);
+  const [isWatchModalOpen, setIsWatchModalOpen] = useState(false);
+  const [watchCountry, setWatchCountry] = useState("US");
   
   
   const updateLog = useUpdateViewingLog();
@@ -92,7 +94,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
   const { data: movieDetails } = useMovieDetails(log.mediaType === "movie" ? log.tmdbId : null);
   const { data: tvDetails } = useTVDetails(log.mediaType === "tv" ? log.tmdbId : null);
   const { data: videosData } = useContentVideos(log.mediaType, log.tmdbId);
-  const { data: watchAvailability } = useWatchProviders(log.mediaType, log.tmdbId, "US");
+  const { data: watchAvailability } = useWatchProviders(log.mediaType, log.tmdbId, watchCountry);
   const { data: justwatchCountries = [] } = useJustWatchCountries();
   const { data: allViewingLogs = [] } = useViewingLogsByContent(log.tmdbId, log.mediaType);
   const hasMultipleViewings = allViewingLogs.length > 1;
@@ -224,6 +226,32 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
+  const getOfferQuality = (presentationType: string | null | undefined): string => {
+    if (!presentationType) return "";
+    const quality = presentationType.toLowerCase();
+    if (quality.includes("4k") || quality.includes("uhd")) return "4K";
+    if (quality.includes("hd") && !quality.includes("uhd")) return "HD";
+    if (quality.includes("sd")) return "SD";
+    return "";
+  };
+
+  const formatOfferPrice = (price: number | null | undefined, currency: string | null | undefined): string => {
+    if (!price || !currency) return "";
+    const formatter = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 2,
+    });
+    // Remove leading currency code if present (e.g., "US$" -> "$")
+    return formatter.format(price).replace(/^[A-Z]{2}\$/, "$");
+  };
+
+  const truncateWords = (value: string, maxWords: number): string => {
+    const words = value.split(" ");
+    if (words.length <= maxWords) return value;
+    return words.slice(0, maxWords).join(" ") + "…";
+  };
+
   const runtimeText =
     log.mediaType === "movie"
       ? formatRuntime(movieDetails?.runtime, false)
@@ -231,6 +259,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
 
   const rated = log.mediaType === "movie" ? (omdbData?.rated || null) : null;
   const synopsis = details?.overview || null;
+  const topWatchOffers = watchAvailability?.allOffers?.slice(0, 6) ?? [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -645,13 +674,92 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
             {/* Where to Watch */}
             <div className="p-0">
               <h3 className="text-lg font-semibold mb-4">Where to Watch</h3>
-              {watchAvailability ? (
+              {watchAvailability && topWatchOffers.length > 0 ? (
                 <>
-                  <WatchListView 
-                    watchAvailability={watchAvailability} 
-                    selectedFilter="all"
-                  />
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-4">
+                  <div className="overflow-hidden rounded-[5px] border border-border">
+                    {topWatchOffers.map((offer, index) => {
+                      const isEven = index % 2 === 0;
+                      const rowBg = isEven ? "bg-muted" : "bg-muted/60";
+                      const quality = getOfferQuality(offer.presentationType);
+                      const price =
+                        offer.monetizationType === "rent" || offer.monetizationType === "buy"
+                          ? formatOfferPrice(offer.retailPrice, offer.currency)
+                          : "";
+
+                      const metaParts: string[] = [];
+                      if (offer.monetizationType === "buy") metaParts.push("Buy");
+                      else if (offer.monetizationType === "rent") metaParts.push("Rent");
+                      else if (offer.monetizationType === "flatrate") metaParts.push("Stream");
+                      else if (offer.monetizationType === "ads") metaParts.push("With Ads");
+                      else if (offer.monetizationType === "free") metaParts.push("Free");
+                      if (quality) metaParts.push(quality);
+                      if (price) metaParts.push(price);
+                      const metaText = metaParts.join(" · ");
+                      const providerName = truncateWords(offer.providerName, 3);
+
+                      return (
+                        <div
+                          key={`${offer.providerId}-${offer.monetizationType}-${offer.presentationType || index}`}
+                          className={cn(
+                            "flex items-center justify-between px-3 py-3 text-sm",
+                            rowBg
+                          )}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            {offer.iconUrl ? (
+                              <div className="relative h-8 w-8 rounded-md overflow-hidden bg-background border border-border flex-shrink-0">
+                                <Image
+                                  src={offer.iconUrl}
+                                  alt={offer.providerName}
+                                  fill
+                                  className="object-contain"
+                                  unoptimized
+                                />
+                              </div>
+                            ) : (
+                              <div className="h-8 w-8 rounded-md bg-muted border border-border flex items-center justify-center flex-shrink-0">
+                                <span className="text-xs text-muted-foreground">
+                                  {offer.providerName[0]}
+                                </span>
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <div className="text-[14px] font-medium truncate">
+                                {providerName}
+                              </div>
+                              {metaText && (
+                                <div className="text-xs text-[#E0B416] mt-0.5">
+                                  {metaText}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {(offer.standardWebUrl || offer.deepLinkUrl) && (
+                            <a
+                              href={offer.standardWebUrl ?? offer.deepLinkUrl ?? "#"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm font-medium text-primary hover:underline whitespace-nowrap cursor-pointer"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Watch now
+                            </a>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="mt-3 text-sm text-primary hover:underline cursor-pointer"
+                    onClick={() => setIsWatchModalOpen(true)}
+                  >
+                    View all
+                  </button>
+
+                  <div className="flex items-center gap-2 text-[13px] text-muted-foreground mt-4">
+                    <span>Powered by</span>
                     <Image
                       src="https://widget.justwatch.com/assets/JW_logo_color_10px.svg"
                       alt="JustWatch"
@@ -659,7 +767,6 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                       height={10}
                       unoptimized
                     />
-                    <span>Data powered by JustWatch</span>
                   </div>
                 </>
               ) : (
@@ -684,6 +791,26 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
           }}
           isPending={updateLog.isPending}
         />
+      )}
+
+      {/* Where to Watch - Full Modal */}
+      {watchAvailability && (
+        <Dialog open={isWatchModalOpen} onOpenChange={setIsWatchModalOpen}>
+          <DialogContent className="max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Where to Watch</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto scrollbar-thin px-1 pt-2 pb-4 min-h-0">
+              <WatchBreakdownSection
+                availability={watchAvailability}
+                isLoading={false}
+                watchCountry={watchCountry}
+                onWatchCountryChange={setWatchCountry}
+                justwatchCountries={justwatchCountries}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
       
       {/* Log Again Dialog */}
@@ -1190,8 +1317,8 @@ function LogAgainDialog({ isOpen, onClose, log, onSuccess, isPending }: LogAgain
           <Button variant="outline" onClick={onClose} className="cursor-pointer">
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isPending || !hasWatched} className="cursor-pointer">
-            {isPending ? "Logging..." : "Log Film"}
+          <Button onClick={handleSubmit} disabled={logViewing.isPending || !hasWatched} className="cursor-pointer">
+            {logViewing.isPending ? "Logging..." : "Log Film"}
           </Button>
         </DialogFooter>
       </DialogContent>
