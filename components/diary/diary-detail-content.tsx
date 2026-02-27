@@ -3,11 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { useUpdateViewingLog, useDeleteViewingLog, useLogViewing, type ViewingLog } from "@/hooks/use-viewing-logs";
+import { useUpdateViewingLog, useDeleteViewingLog, useLogViewing, useViewingLogsByContent, type ViewingLog } from "@/hooks/use-viewing-logs";
 import { useToggleFavorite, useAddFavorite, useRemoveFavorite } from "@/hooks/use-favorites";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import { useViewingLogComments, useCreateComment, useUpdateComment, useDeleteComment, useAddReaction, useRemoveReaction, type ViewingLogComment } from "@/hooks/use-viewing-log-comments";
-import { useMovieDetails, useTVDetails, useContentVideos } from "@/hooks/use-content-details";
+import { useMovieDetails, useTVDetails, useContentVideos, useWatchProviders, useJustWatchCountries, useIMDBRating, useOMDBData } from "@/hooks/use-content-details";
 import { getPosterUrl, getBackdropUrl, type TMDBVideo, type TMDBMovie, type TMDBSeries } from "@/lib/tmdb";
 import { format } from "date-fns";
 import Image from "next/image";
@@ -15,8 +15,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Heart, Star, CalendarIcon, Play, Edit, Trash2, Share2, Plus, 
-  MessageSquare, ArrowLeft, BookOpen, Reply, MoreVertical, Filter, ChevronDown, ChevronUp, Smile, Bookmark, Eye
+  MessageSquare, ArrowLeft, BookOpen, Reply, MoreVertical, Filter, ChevronDown, ChevronUp, Smile, Bookmark, Eye, Info
 } from "lucide-react";
+import { IMDBBadge } from "@/components/ui/imdb-badge";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -41,12 +42,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
+import AddToListDropdown from "@/components/content-detail/add-to-list-dropdown";
 import CreatePlaylistModal from "@/components/playlists/create-playlist-modal";
 import TrailerModal from "@/components/browse/trailer-modal";
 import Script from "next/script";
 import Link from "next/link";
-import { JustWatchWidget } from "@/components/ui/justwatch-widget";
+import WatchListView from "@/components/content-detail/watch-list-view";
+import { ShareDropdown } from "@/components/ui/share-dropdown";
+import { WatchHistoryModal } from "./watch-history-modal";
 
 interface DiaryDetailContentProps {
   log: ViewingLog;
@@ -71,6 +74,8 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
   const [commentFilter, setCommentFilter] = useState("newest");
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
+  const [isSynopsisExpanded, setIsSynopsisExpanded] = useState(false);
+  const [isWatchHistoryModalOpen, setIsWatchHistoryModalOpen] = useState(false);
   
   
   const updateLog = useUpdateViewingLog();
@@ -87,6 +92,10 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
   const { data: movieDetails } = useMovieDetails(log.mediaType === "movie" ? log.tmdbId : null);
   const { data: tvDetails } = useTVDetails(log.mediaType === "tv" ? log.tmdbId : null);
   const { data: videosData } = useContentVideos(log.mediaType, log.tmdbId);
+  const { data: watchAvailability } = useWatchProviders(log.mediaType, log.tmdbId, "US");
+  const { data: justwatchCountries = [] } = useJustWatchCountries();
+  const { data: allViewingLogs = [] } = useViewingLogsByContent(log.tmdbId, log.mediaType);
+  const hasMultipleViewings = allViewingLogs.length > 1;
   
   const details = log.mediaType === "movie" ? movieDetails : tvDetails;
   const title = log.title;
@@ -143,11 +152,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
   
   const mockItem = log.mediaType === "movie" ? mockMovieItem : mockTVItem;
   
-  const handleShare = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url);
-    toast.success("Link copied to clipboard!");
-  };
+  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
 
 
   const handleDelete = async () => {
@@ -166,7 +171,67 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
     : log.firstAirDate 
     ? new Date(log.firstAirDate).getFullYear() 
     : null;
+
+  // Get IMDb rating and OMDB data
+  const tmdbRating = details?.vote_average && details.vote_average > 0 ? details.vote_average : null;
+  const { data: ratingData } = useIMDBRating(imdbId, tmdbRating);
+  const { data: omdbData } = useOMDBData(imdbId);
   
+  // Use IMDb rating if available, otherwise fall back to TMDB
+  const displayRating = ratingData?.rating || tmdbRating;
+  const ratingSource = ratingData?.source || (tmdbRating ? "tmdb" : null);
+  const imdbVotes = ratingData?.votes || omdbData?.imdbVotes || null;
+
+  // JustWatch rank
+  const jwRanks = watchAvailability?.ranks;
+  const jwPrimaryRankRaw = jwRanks?.["7d"] ?? jwRanks?.["30d"] ?? jwRanks?.["1d"];
+  const jwPrimaryRank =
+    jwPrimaryRankRaw != null &&
+    typeof jwPrimaryRankRaw.rank === "number" &&
+    Number.isFinite(jwPrimaryRankRaw.rank)
+      ? {
+          rank: jwPrimaryRankRaw.rank,
+          delta: typeof jwPrimaryRankRaw.delta === "number" && Number.isFinite(jwPrimaryRankRaw.delta) ? jwPrimaryRankRaw.delta : 0,
+        }
+      : null;
+
+  // Format release date
+  const releaseDateFormatted = log.releaseDate
+    ? new Date(log.releaseDate).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+    : log.firstAirDate
+    ? new Date(log.firstAirDate).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+    : null;
+
+  // Format runtime
+  const formatRuntime = (minutes: number | number[] | undefined, isTV: boolean = false): string | null => {
+    if (!minutes) return null;
+    if (Array.isArray(minutes)) {
+      if (isTV && minutes.length > 0) {
+        const average = Math.round(minutes.reduce((sum, val) => sum + val, 0) / minutes.length);
+        const hours = Math.floor(average / 60);
+        const mins = average % 60;
+        return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+      }
+      if (minutes.length > 0) {
+        const hours = Math.floor(minutes[0] / 60);
+        const mins = minutes[0] % 60;
+        return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+      }
+      return null;
+    }
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+
+  const runtimeText =
+    log.mediaType === "movie"
+      ? formatRuntime(movieDetails?.runtime, false)
+      : formatRuntime(tvDetails?.episode_run_time, true);
+
+  const rated = log.mediaType === "movie" ? (omdbData?.rated || null) : null;
+  const synopsis = details?.overview || null;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -234,27 +299,134 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
             )}
             
             <div className="flex-1 pt-2 sm:pt-0">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 text-foreground">{title}</h1>
-              <div className="flex items-center gap-3 sm:gap-4 mb-4 flex-wrap">
-                {releaseYear && (
-                  <span className="text-muted-foreground text-sm sm:text-base">{releaseYear}</span>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 text-foreground">{title}</h1>
+              
+              {/* Line 1: Release date . Type . Rated . Runtime */}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
+                {releaseDateFormatted && (
+                  <>
+                    <span>{releaseDateFormatted}</span>
+                    <span>•</span>
+                  </>
                 )}
-                <span className="text-muted-foreground capitalize text-sm sm:text-base">{log.mediaType}</span>
-                {trailer && (
-                  <Button
-                    size="sm"
-                    variant="outline"
+                <span className="capitalize">{log.mediaType}</span>
+                {rated && (
+                  <>
+                    <span>•</span>
+                    <span>{rated}</span>
+                  </>
+                )}
+                {runtimeText && (
+                  <>
+                    <span>•</span>
+                    <span>{runtimeText}</span>
+                  </>
+                )}
+              </div>
+
+              {/* Line 2: IMDb rating . JustWatch rank */}
+              <div className="flex items-center gap-4 mb-2 flex-wrap">
+                {displayRating && displayRating > 0 && (
+                  <div className="flex items-center gap-2">
+                    {ratingSource === "imdb" ? (
+                      <IMDBBadge size={20} />
+                    ) : (
+                      <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                    )}
+                    <span className="font-semibold text-sm">{displayRating.toFixed(1)}</span>
+                    {ratingSource === "imdb" && imdbVotes && (
+                      <span className="text-xs text-muted-foreground">
+                        ({imdbVotes >= 1000 ? `${(imdbVotes / 1000).toFixed(1)}k` : imdbVotes.toLocaleString()})
+                      </span>
+                    )}
+                  </div>
+                )}
+                {jwPrimaryRank != null && (
+                  <div className="flex items-center gap-1.5">
+                    <Image
+                      src="/jw-icon.png"
+                      alt="JustWatch"
+                      width={16}
+                      height={16}
+                      className="object-contain"
+                      unoptimized
+                    />
+                    <span className="font-semibold text-sm text-[#F5C518]">#{jwPrimaryRank.rank}</span>
+                    {jwPrimaryRank.delta !== 0 && (
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium",
+                          jwPrimaryRank.delta > 0
+                            ? "bg-green-600 text-white"
+                            : "bg-red-600 text-white"
+                        )}
+                      >
+                        {jwPrimaryRank.delta > 0 ? (
+                          <ChevronUp className="h-3 w-3" />
+                        ) : (
+                          <ChevronDown className="h-3 w-3" />
+                        )}
+                        {Math.abs(jwPrimaryRank.delta)}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Line 3: Synopsis with expand/collapse */}
+              {synopsis && (
+                <div className="mb-3">
+                  <p className={cn(
+                    "text-sm text-muted-foreground leading-relaxed",
+                    !isSynopsisExpanded && "line-clamp-2"
+                  )}>
+                    {synopsis}
+                  </p>
+                  {synopsis.length > 100 && (
+                    <button
+                      onClick={() => setIsSynopsisExpanded(!isSynopsisExpanded)}
+                      className="mt-1 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    >
+                      {isSynopsisExpanded ? (
+                        <>
+                          <ChevronUp className="h-4 w-4" />
+                          Hide
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="h-4 w-4" />
+                          Show more
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Line 4: Play button and Watch Trailer text */}
+              {trailer && (
+                <div className="flex items-center gap-3">
+                  <button
                     onClick={() => {
                       setSelectedVideo(trailer);
                       setIsTrailerModalOpen(true);
                     }}
-                    className="text-xs sm:text-sm cursor-pointer"
+                    className="flex items-center justify-center h-14 w-14 rounded-full border-2 border-foreground/20 bg-background/80 backdrop-blur hover:bg-background/90 transition cursor-pointer"
+                    aria-label="Play trailer"
                   >
-                    <Play className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <Play className="h-7 w-7 text-foreground fill-foreground" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedVideo(trailer);
+                      setIsTrailerModalOpen(true);
+                    }}
+                    className="text-sm font-medium text-foreground hover:opacity-80 transition-opacity cursor-pointer"
+                  >
                     Watch Trailer
-                  </Button>
-                )}
-              </div>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -262,11 +434,11 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
       
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-14">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-6 order-2 lg:order-1">
             {/* Review by [username] Section */}
-            <div className="sm:bg-card sm:border sm:rounded-lg p-0 sm:p-6 overflow-hidden">
+            <div className="p-0 overflow-hidden mb-16">
               <div className="flex items-center gap-3 mb-4">
                 {user.avatarUrl ? (
                   <div className="relative w-10 h-10 rounded-full overflow-hidden">
@@ -317,7 +489,19 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
               {/* Date Watched */}
               <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
                 <CalendarIcon className="h-4 w-4" />
-                <span>Watched on {format(watchedDate, "MMMM d, yyyy")}</span>
+                <button
+                  onClick={() => hasMultipleViewings && setIsWatchHistoryModalOpen(true)}
+                  className={cn(
+                    "flex items-center gap-1.5",
+                    hasMultipleViewings && "cursor-pointer hover:text-foreground transition-colors"
+                  )}
+                  disabled={!hasMultipleViewings}
+                >
+                  <span>Watched on {format(watchedDate, "MMMM d, yyyy")}</span>
+                  {hasMultipleViewings && (
+                    <Info className="h-4 w-4 text-green-500" />
+                  )}
+                </button>
               </div>
               
               {/* Notes/Review */}
@@ -347,6 +531,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                       variant="outline"
                       size="sm"
                       onClick={() => setIsEditDialogOpen(true)}
+                      className="cursor-pointer"
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Edit
@@ -355,6 +540,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                       variant="outline"
                       size="sm"
                       onClick={() => setIsLogAgainDialogOpen(true)}
+                      className="cursor-pointer"
                     >
                       <BookOpen className="h-4 w-4 mr-2" />
                       Log Again
@@ -363,7 +549,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                       variant="outline"
                       size="sm"
                       onClick={() => setIsDeleteDialogOpen(true)}
-                      className="text-destructive hover:text-destructive"
+                      className="text-destructive hover:text-destructive cursor-pointer"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete
@@ -385,10 +571,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                         await toggleFavorite.toggle(mockTVItem, "tv");
                       }
                     }}
-                    className={cn(
-                      "cursor-pointer",
-                      isLiked && "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
-                    )}
+                    className="cursor-pointer"
                   >
                     <Heart 
                       className={cn(
@@ -409,10 +592,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                         await toggleWatchlist.toggle(mockTVItem, "tv");
                       }
                     }}
-                    className={cn(
-                      "cursor-pointer",
-                      isInWatchlist && "bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800"
-                    )}
+                    className="cursor-pointer"
                   >
                     <Bookmark 
                       className={cn(
@@ -423,26 +603,25 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                     {isInWatchlist ? "In Watchlist" : "Watchlist"}
                   </Button>
                   
-                  <AddToPlaylistDropdown
+                  <AddToListDropdown
                     item={mockItem}
                     type={log.mediaType}
                     trigger={
                       <Button variant="outline" size="sm" className="cursor-pointer">
                         <Plus className="h-4 w-4 mr-2" />
-                        Add to Playlist
+                        Add to List
                       </Button>
                     }
                   />
                   
-                  <Button
+                  <ShareDropdown
+                    shareUrl={shareUrl}
+                    title={`${title} - Review by ${user.username || user.displayName}`}
+                    description={`Check out this review of ${title} on What2Watch`}
                     variant="outline"
                     size="sm"
-                    onClick={handleShare}
                     className="cursor-pointer"
-                  >
-                    <Share2 className="h-4 w-4 mr-2" />
-                    Share
-                  </Button>
+                  />
                 </div>
               </div>
             </div>
@@ -462,15 +641,20 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
           </div>
           
           {/* Sidebar */}
-          <div className="space-y-6">
-            {/* JustWatch Widget */}
-            <div className="sm:bg-card sm:border sm:rounded-lg p-0 sm:p-6">
+          <div className="space-y-6 order-1 lg:order-2">
+            {/* Where to Watch */}
+            <div className="p-0">
               <h3 className="text-lg font-semibold mb-4">Where to Watch</h3>
-              <JustWatchWidget
-                imdbId={imdbId}
-                title={title}
-                mediaType={log.mediaType}
-              />
+              {watchAvailability ? (
+                <WatchListView 
+                  watchAvailability={watchAvailability} 
+                  selectedFilter="all"
+                />
+              ) : (
+                <div className="text-sm text-muted-foreground py-8 text-center">
+                  Loading availability...
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -543,6 +727,16 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
         isOpen={isCreatePlaylistModalOpen}
         onClose={() => setIsCreatePlaylistModalOpen(false)}
       />
+
+      {/* Watch History Modal */}
+      {hasMultipleViewings && (
+        <WatchHistoryModal
+          isOpen={isWatchHistoryModalOpen}
+          onClose={() => setIsWatchHistoryModalOpen(false)}
+          logs={allViewingLogs}
+          title={title}
+        />
+      )}
 
     </div>
   );
@@ -1098,7 +1292,7 @@ function CommentsSection({
   };
 
   return (
-    <div className="sm:bg-card sm:border sm:rounded-lg p-0 sm:p-6">
+    <div className="p-0">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold">Comments ({comments.length})</h3>
         <Select value={filter} onValueChange={onFilterChange}>

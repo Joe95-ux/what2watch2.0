@@ -96,12 +96,29 @@ const updateViewingLog = async (params: UpdateViewingLogParams): Promise<Viewing
   return data.log;
 };
 
+// Fetch viewing logs for a specific movie/TV show
+const fetchViewingLogsByContent = async (tmdbId: number, mediaType: "movie" | "tv"): Promise<ViewingLog[]> => {
+  const res = await fetch(`/api/viewing-logs/by-content?tmdbId=${tmdbId}&mediaType=${mediaType}`);
+  if (!res.ok) throw new Error("Failed to fetch viewing logs");
+  const data = await res.json();
+  return data.logs;
+};
+
 // Hook to fetch viewing logs
 export function useViewingLogs(limit?: number, orderBy: "watchedAt" | "createdAt" = "watchedAt", order: "asc" | "desc" = "desc") {
   return useQuery<ViewingLog[]>({
     queryKey: ["viewing-logs", limit, orderBy, order],
     queryFn: () => fetchViewingLogs(limit, orderBy, order),
     staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+}
+
+// Hook to fetch viewing logs for a specific movie/TV show
+export function useViewingLogsByContent(tmdbId: number | null, mediaType: "movie" | "tv" | null) {
+  return useQuery<ViewingLog[]>({
+    queryKey: ["viewing-logs-by-content", tmdbId, mediaType],
+    queryFn: () => fetchViewingLogsByContent(tmdbId!, mediaType!),
+    enabled: !!tmdbId && !!mediaType,
   });
 }
 
@@ -118,6 +135,7 @@ export function useLogViewing() {
     onSuccess: () => {
       // Invalidate viewing logs queries
       queryClient.invalidateQueries({ queryKey: ["viewing-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["viewing-logs-by-content"] });
     },
   });
 }
