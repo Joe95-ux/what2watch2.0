@@ -9,6 +9,7 @@ import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import { useViewingLogComments, useCreateComment, useUpdateComment, useDeleteComment, useAddReaction, useRemoveReaction, type ViewingLogComment } from "@/hooks/use-viewing-log-comments";
 import { useMovieDetails, useTVDetails, useContentVideos, useWatchProviders, useJustWatchCountries, useIMDBRating, useOMDBData } from "@/hooks/use-content-details";
 import { getPosterUrl, getBackdropUrl, type TMDBVideo, type TMDBMovie, type TMDBSeries } from "@/lib/tmdb";
+import { createContentUrl } from "@/lib/content-slug";
 import { format } from "date-fns";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -328,7 +329,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
             {posterPath && (
               <Link 
-                href={`/${log.mediaType}/${log.tmdbId}`}
+                href={createContentUrl(log.mediaType, log.tmdbId, title)}
                 className="relative w-32 h-48 sm:w-40 sm:h-60 md:w-48 md:h-72 rounded-lg overflow-hidden flex-shrink-0 shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
               >
                 <Image
@@ -827,8 +828,33 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                   </div>
                 </>
               ) : (
-                <div className="text-sm text-muted-foreground py-8 text-center">
-                  Loading availability...
+                <div className="overflow-hidden rounded-[5px] border border-border">
+                  {/* Heading skeleton */}
+                  <div className="px-3 py-2 bg-muted/60">
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                  {/* Offer row skeletons */}
+                  {[0, 1, 2, 3].map((index) => {
+                    const rowBg = index % 2 === 0 ? "bg-muted" : "bg-muted/60";
+                    return (
+                      <div
+                        key={index}
+                        className={cn(
+                          "flex items-center justify-between px-3 py-3",
+                          rowBg
+                        )}
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <Skeleton className="h-8 w-8 rounded-md flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <Skeleton className="h-4 w-24 mb-1" />
+                            <Skeleton className="h-3 w-32" />
+                          </div>
+                        </div>
+                        <Skeleton className="h-4 w-20 flex-shrink-0" />
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
