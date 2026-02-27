@@ -259,7 +259,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
 
   const rated = log.mediaType === "movie" ? (omdbData?.rated || null) : null;
   const synopsis = details?.overview || null;
-  const topWatchOffers = watchAvailability?.allOffers?.slice(0, 6) ?? [];
+  const topWatchOffers = watchAvailability?.allOffers?.slice(0, 8) ?? [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -693,7 +693,6 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                       else if (offer.monetizationType === "ads") metaParts.push("With Ads");
                       else if (offer.monetizationType === "free") metaParts.push("Free");
                       if (quality) metaParts.push(quality);
-                      if (price) metaParts.push(price);
                       const metaText = metaParts.join(" · ");
                       const providerName = truncateWords(offer.providerName, 3);
 
@@ -727,9 +726,15 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                               <div className="text-[14px] font-medium truncate">
                                 {providerName}
                               </div>
-                              {metaText && (
-                                <div className="text-xs text-[#E0B416] mt-0.5">
-                                  {metaText}
+                              {(metaText || price) && (
+                                <div className="text-xs mt-0.5">
+                                  {metaText && (
+                                    <span className="text-muted-foreground">{metaText}</span>
+                                  )}
+                                  {metaText && price && <span className="text-muted-foreground"> · </span>}
+                                  {price && (
+                                    <span className="text-[#E0B416]">{price}</span>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -742,7 +747,13 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                               className="text-sm font-medium text-primary hover:underline whitespace-nowrap cursor-pointer"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              Watch now
+                              {offer.monetizationType === "flatrate" && "Watch now"}
+                              {offer.monetizationType === "rent" && "Rent now"}
+                              {offer.monetizationType === "buy" && "Buy now"}
+                              {offer.monetizationType !== "flatrate" &&
+                                offer.monetizationType !== "rent" &&
+                                offer.monetizationType !== "buy" &&
+                                "Watch now"}
                             </a>
                           )}
                         </div>
@@ -750,23 +761,24 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                     })}
                   </div>
 
-                  <button
-                    type="button"
-                    className="mt-3 text-sm text-primary hover:underline cursor-pointer"
-                    onClick={() => setIsWatchModalOpen(true)}
-                  >
-                    View all
-                  </button>
-
-                  <div className="flex items-center gap-2 text-[13px] text-muted-foreground mt-4">
-                    <span>Powered by</span>
-                    <Image
-                      src="https://widget.justwatch.com/assets/JW_logo_color_10px.svg"
-                      alt="JustWatch"
-                      width={66}
-                      height={10}
-                      unoptimized
-                    />
+                  <div className="flex items-center justify-between mt-3 text-[13px] text-muted-foreground gap-2">
+                    <div className="flex items-center gap-2">
+                      <span>Powered by</span>
+                      <Image
+                        src="https://widget.justwatch.com/assets/JW_logo_color_10px.svg"
+                        alt="JustWatch"
+                        width={66}
+                        height={10}
+                        unoptimized
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="text-sm text-primary hover:underline cursor-pointer"
+                      onClick={() => setIsWatchModalOpen(true)}
+                    >
+                      View all
+                    </button>
                   </div>
                 </>
               ) : (
@@ -796,11 +808,11 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
       {/* Where to Watch - Full Modal */}
       {watchAvailability && (
         <Dialog open={isWatchModalOpen} onOpenChange={setIsWatchModalOpen}>
-          <DialogContent className="max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogContent className="lg:max-w-4xl w-full max-h-[95vh] overflow-hidden flex flex-col">
             <DialogHeader>
               <DialogTitle>Where to Watch</DialogTitle>
             </DialogHeader>
-            <div className="flex-1 overflow-y-auto scrollbar-thin px-1 pt-2 pb-4 min-h-0">
+            <div className="flex-1 overflow-y-auto scrollbar-thin px-1 py-4 min-h-0">
               <WatchBreakdownSection
                 availability={watchAvailability}
                 isLoading={false}
