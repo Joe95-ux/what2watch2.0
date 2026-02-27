@@ -377,7 +377,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
               {synopsis && (
                 <div className="mb-3">
                   <p className={cn(
-                    "text-sm text-muted-foreground leading-relaxed",
+                    "text-base text-muted-foreground leading-relaxed",
                     !isSynopsisExpanded && "line-clamp-2"
                   )}>
                     {synopsis}
@@ -525,7 +525,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
               
               {/* Actions */}
               {isOwner && (
-                <div className="pt-4 border-t overflow-x-auto">
+                <div className="pt-4 border-t overflow-x-auto scrollbar-hide">
                   <div className="flex items-center gap-2 min-w-max">
                     <Button
                       variant="outline"
@@ -559,7 +559,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
               )}
               
               {/* Actions for all users */}
-              <div className="pt-4 border-t mt-4 overflow-x-auto">
+              <div className="pt-4 border-t mt-4 overflow-x-auto scrollbar-hide">
                 <div className="flex items-center gap-2 min-w-max">
                   <Button
                     variant="outline"
@@ -646,10 +646,22 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
             <div className="p-0">
               <h3 className="text-lg font-semibold mb-4">Where to Watch</h3>
               {watchAvailability ? (
-                <WatchListView 
-                  watchAvailability={watchAvailability} 
-                  selectedFilter="all"
-                />
+                <>
+                  <WatchListView 
+                    watchAvailability={watchAvailability} 
+                    selectedFilter="all"
+                  />
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-4">
+                    <Image
+                      src="https://widget.justwatch.com/assets/JW_logo_color_10px.svg"
+                      alt="JustWatch"
+                      width={66}
+                      height={10}
+                      unoptimized
+                    />
+                    <span>Data powered by JustWatch</span>
+                  </div>
+                </>
               ) : (
                 <div className="text-sm text-muted-foreground py-8 text-center">
                   Loading availability...
