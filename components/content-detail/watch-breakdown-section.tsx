@@ -47,6 +47,8 @@ interface WatchBreakdownSectionProps {
   seasons?: Array<{ season_number: number; name: string }>;
   /** For TV: called when user selects a season in the dropdown. */
   onSeasonChange?: (seasonNumber: number) => void;
+  /** When true, use compact vertical padding (e.g. for diary modal). */
+  compact?: boolean;
 }
 
 const sections: Array<{
@@ -215,6 +217,7 @@ export default function WatchBreakdownSection({
   seasonNumber,
   seasons = [],
   onSeasonChange,
+  compact,
 }: WatchBreakdownSectionProps) {
   // Filter state - "all" selected by default
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
@@ -247,9 +250,11 @@ export default function WatchBreakdownSection({
     setSelectedQuality(quality);
   };
 
+  const paddingClass = compact ? "py-4" : "py-12";
+
   if (isLoading) {
     return (
-      <section className="py-12 space-y-6">
+      <section className={cn(paddingClass, "space-y-6")}>
         <Skeleton className="h-6 w-48" />
         <Skeleton className="h-48 w-full rounded-2xl" />
       </section>
@@ -258,7 +263,7 @@ export default function WatchBreakdownSection({
 
   if (!availability) {
     return (
-      <section className="py-12">
+      <section className={paddingClass}>
         <p className="text-muted-foreground text-center">
           We couldn&apos;t load real-time availability right now. Please try again later.
         </p>
@@ -298,7 +303,7 @@ export default function WatchBreakdownSection({
       : null;
 
   return (
-    <section className="py-12 space-y-8" id="watch">
+    <section className={cn(paddingClass, "space-y-8")} id="watch">
       {/* Streaming chart rank - hero-style, no descriptions */}
       {primaryRank && justwatchUrl && (
         <div className="flex items-center gap-2 flex-wrap">

@@ -91,10 +91,18 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
   const deleteComment = useDeleteComment();
   
   // Fetch movie/TV details
-  const { data: movieDetails } = useMovieDetails(log.mediaType === "movie" ? log.tmdbId : null);
-  const { data: tvDetails } = useTVDetails(log.mediaType === "tv" ? log.tmdbId : null);
-  const { data: videosData } = useContentVideos(log.mediaType, log.tmdbId);
-  const { data: watchAvailability } = useWatchProviders(log.mediaType, log.tmdbId, watchCountry);
+  const { data: movieDetails, isLoading: isLoadingMovie } = useMovieDetails(
+    log.mediaType === "movie" ? log.tmdbId : null
+  );
+  const { data: tvDetails, isLoading: isLoadingTV } = useTVDetails(
+    log.mediaType === "tv" ? log.tmdbId : null
+  );
+  const { data: videosData, isLoading: isLoadingVideos } = useContentVideos(log.mediaType, log.tmdbId);
+  const { data: watchAvailability, isLoading: isLoadingWatchAvailability } = useWatchProviders(
+    log.mediaType,
+    log.tmdbId,
+    watchCountry
+  );
   const { data: justwatchCountries = [] } = useJustWatchCountries();
   const { data: allViewingLogs = [] } = useViewingLogsByContent(log.tmdbId, log.mediaType);
   const hasMultipleViewings = allViewingLogs.length > 1;
@@ -176,8 +184,8 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
 
   // Get IMDb rating and OMDB data
   const tmdbRating = details?.vote_average && details.vote_average > 0 ? details.vote_average : null;
-  const { data: ratingData } = useIMDBRating(imdbId, tmdbRating);
-  const { data: omdbData } = useOMDBData(imdbId);
+  const { data: ratingData, isLoading: isRatingLoading } = useIMDBRating(imdbId, tmdbRating);
+  const { data: omdbData, isLoading: isOmdbLoading } = useOMDBData(imdbId);
   
   // Use IMDb rating if available, otherwise fall back to TMDB
   const displayRating = ratingData?.rating || tmdbRating;
@@ -261,6 +269,12 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
   const synopsis = details?.overview || null;
   const topWatchOffers = watchAvailability?.allOffers?.slice(0, 8) ?? [];
 
+  const isDetailsLoading = log.mediaType === "movie" ? isLoadingMovie : isLoadingTV;
+  const isHeroLine1Loading = isDetailsLoading || isOmdbLoading;
+  const isHeroLine2Loading = isRatingLoading || isLoadingWatchAvailability;
+  const isHeroLine3Loading = isDetailsLoading;
+  const isHeroLine4Loading = isLoadingVideos;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -331,130 +345,158 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 text-foreground">{title}</h1>
               
               {/* Line 1: Release date . Type . Rated . Runtime */}
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
-                {releaseDateFormatted && (
-                  <>
-                    <span>{releaseDateFormatted}</span>
-                    <span>•</span>
-                  </>
-                )}
-                <span className="capitalize">{log.mediaType}</span>
-                {rated && (
-                  <>
-                    <span>•</span>
-                    <span>{rated}</span>
-                  </>
-                )}
-                {runtimeText && (
-                  <>
-                    <span>•</span>
-                    <span>{runtimeText}</span>
-                  </>
-                )}
-              </div>
-
-              {/* Line 2: IMDb rating . JustWatch rank */}
-              <div className="flex items-center gap-4 mb-2 flex-wrap">
-                {displayRating && displayRating > 0 && (
-                  <div className="flex items-center gap-2">
-                    {ratingSource === "imdb" ? (
-                      <IMDBBadge size={20} />
-                    ) : (
-                      <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                    )}
-                    <span className="font-semibold text-sm">{displayRating.toFixed(1)}</span>
-                    {ratingSource === "imdb" && imdbVotes && (
-                      <span className="text-xs text-muted-foreground">
-                        ({imdbVotes >= 1000 ? `${(imdbVotes / 1000).toFixed(1)}k` : imdbVotes.toLocaleString()})
-                      </span>
-                    )}
-                  </div>
-                )}
-                {jwPrimaryRank != null && (
-                  <div className="flex items-center gap-1.5">
-                    <Image
-                      src="/jw-icon.png"
-                      alt="JustWatch"
-                      width={16}
-                      height={16}
-                      className="object-contain"
-                      unoptimized
-                    />
-                    <span className="font-semibold text-sm text-[#F5C518]">#{jwPrimaryRank.rank}</span>
-                    {jwPrimaryRank.delta !== 0 && (
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium",
-                          jwPrimaryRank.delta > 0
-                            ? "bg-green-600 text-white"
-                            : "bg-red-600 text-white"
-                        )}
-                      >
-                        {jwPrimaryRank.delta > 0 ? (
-                          <ChevronUp className="h-3 w-3" />
-                        ) : (
-                          <ChevronDown className="h-3 w-3" />
-                        )}
-                        {Math.abs(jwPrimaryRank.delta)}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Line 3: Synopsis with expand/collapse */}
-              {synopsis && (
-                <div className="mb-3">
-                  <p className={cn(
-                    "text-base text-muted-foreground leading-relaxed",
-                    !isSynopsisExpanded && "line-clamp-2"
-                  )}>
-                    {synopsis}
-                  </p>
-                  {synopsis.length > 100 && (
-                    <button
-                      onClick={() => setIsSynopsisExpanded(!isSynopsisExpanded)}
-                      className="mt-1 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                    >
-                      {isSynopsisExpanded ? (
-                        <>
-                          <ChevronUp className="h-4 w-4" />
-                          Hide
-                        </>
-                      ) : (
-                        <>
-                          <ChevronDown className="h-4 w-4" />
-                          Show more
-                        </>
-                      )}
-                    </button>
+              {isHeroLine1Loading ? (
+                <div className="mb-2">
+                  <Skeleton className="h-4 w-56 mb-1" />
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
+                  {releaseDateFormatted && (
+                    <>
+                      <span>{releaseDateFormatted}</span>
+                      <span>•</span>
+                    </>
+                  )}
+                  <span className="capitalize">{log.mediaType}</span>
+                  {rated && (
+                    <>
+                      <span>•</span>
+                      <span>{rated}</span>
+                    </>
+                  )}
+                  {runtimeText && (
+                    <>
+                      <span>•</span>
+                      <span>{runtimeText}</span>
+                    </>
                   )}
                 </div>
               )}
 
-              {/* Line 4: Play button and Watch Trailer text */}
-              {trailer && (
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => {
-                      setSelectedVideo(trailer);
-                      setIsTrailerModalOpen(true);
-                    }}
-                    className="flex items-center justify-center h-14 w-14 rounded-full border-2 border-foreground/20 bg-background/80 backdrop-blur hover:bg-background/90 transition cursor-pointer"
-                    aria-label="Play trailer"
-                  >
-                    <Play className="h-7 w-7 text-foreground fill-foreground" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedVideo(trailer);
-                      setIsTrailerModalOpen(true);
-                    }}
-                    className="text-sm font-medium text-foreground hover:opacity-80 transition-opacity cursor-pointer"
-                  >
-                    Watch Trailer
-                  </button>
+              {/* Line 2: IMDb rating . JustWatch rank */}
+              {isHeroLine2Loading ? (
+                <div className="mb-2">
+                  <Skeleton className="h-4 w-40 mb-1" />
                 </div>
+              ) : (
+                <div className="flex items-center gap-4 mb-2 flex-wrap">
+                  {displayRating && displayRating > 0 && (
+                    <div className="flex items-center gap-2">
+                      {ratingSource === "imdb" ? (
+                        <IMDBBadge size={20} />
+                      ) : (
+                        <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                      )}
+                      <span className="font-semibold text-sm">{displayRating.toFixed(1)}</span>
+                      {ratingSource === "imdb" && imdbVotes && (
+                        <span className="text-xs text-muted-foreground">
+                          ({imdbVotes >= 1000 ? `${(imdbVotes / 1000).toFixed(1)}k` : imdbVotes.toLocaleString()})
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {jwPrimaryRank != null && (
+                    <div className="flex items-center gap-1.5">
+                      <Image
+                        src="/jw-icon.png"
+                        alt="JustWatch"
+                        width={16}
+                        height={16}
+                        className="object-contain"
+                        unoptimized
+                      />
+                      <span className="font-semibold text-sm text-[#F5C518]">#{jwPrimaryRank.rank}</span>
+                      {jwPrimaryRank.delta !== 0 && (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium",
+                            jwPrimaryRank.delta > 0
+                              ? "bg-green-600 text-white"
+                              : "bg-red-600 text-white"
+                          )}
+                        >
+                          {jwPrimaryRank.delta > 0 ? (
+                            <ChevronUp className="h-3 w-3" />
+                          ) : (
+                            <ChevronDown className="h-3 w-3" />
+                          )}
+                          {Math.abs(jwPrimaryRank.delta)}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Line 3: Synopsis with expand/collapse */}
+              {isHeroLine3Loading ? (
+                <div className="mb-3 space-y-2">
+                  <Skeleton className="h-4 w-full max-w-[360px]" />
+                  <Skeleton className="h-4 w-3/4 max-w-[280px]" />
+                </div>
+              ) : (
+                synopsis && (
+                  <div className="mb-3">
+                    <p
+                      className={cn(
+                        "text-base text-muted-foreground leading-relaxed",
+                        !isSynopsisExpanded && "line-clamp-2"
+                      )}
+                    >
+                      {synopsis}
+                    </p>
+                    {synopsis.length > 100 && (
+                      <button
+                        onClick={() => setIsSynopsisExpanded(!isSynopsisExpanded)}
+                        className="mt-1 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                      >
+                        {isSynopsisExpanded ? (
+                          <>
+                            <ChevronUp className="h-4 w-4" />
+                            Hide
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-4 w-4" />
+                            Show more
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                )
+              )}
+
+              {/* Line 4: Play button and Watch Trailer text */}
+              {isHeroLine4Loading ? (
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-14 w-14 rounded-full" />
+                  <Skeleton className="h-4 w-28" />
+                </div>
+              ) : (
+                trailer && (
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => {
+                        setSelectedVideo(trailer);
+                        setIsTrailerModalOpen(true);
+                      }}
+                      className="flex items-center justify-center h-14 w-14 rounded-full border-2 border-foreground/20 bg-background/80 backdrop-blur hover:bg-background/90 transition cursor-pointer"
+                      aria-label="Play trailer"
+                    >
+                      <Play className="h-7 w-7 text-foreground fill-foreground" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedVideo(trailer);
+                        setIsTrailerModalOpen(true);
+                      }}
+                      className="text-sm font-medium text-foreground hover:opacity-80 transition-opacity cursor-pointer"
+                    >
+                      Watch Trailer
+                    </button>
+                  </div>
+                )
               )}
             </div>
           </div>
@@ -819,6 +861,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                 watchCountry={watchCountry}
                 onWatchCountryChange={setWatchCountry}
                 justwatchCountries={justwatchCountries}
+                compact
               />
             </div>
           </DialogContent>
