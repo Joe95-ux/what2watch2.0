@@ -712,9 +712,9 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
           </div>
           
           {/* Sidebar */}
-          <div className="space-y-6 order-1 lg:order-2 lg:sticky lg:top-4 lg:self-start">
+          <div className="space-y-6 order-1 lg:order-2">
             {/* Where to Watch */}
-            <div className="p-0">
+            <div className="p-0 lg:sticky lg:top-4 lg:self-start">
               {watchAvailability && topWatchOffers.length > 0 ? (
                 <>
                   <div className="overflow-hidden rounded-[5px] border border-border">
@@ -855,7 +855,10 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
         <Dialog open={isWatchModalOpen} onOpenChange={setIsWatchModalOpen}>
           <DialogContent className="sm:max-w-none lg:max-w-4xl w-full max-h-[95vh] overflow-hidden flex flex-col">
             <DialogHeader>
-              <DialogTitle>Where to Watch {title}</DialogTitle>
+              <DialogTitle className="text-muted-foreground">
+                Where to Watch{" "}
+                <span className="text-foreground font-semibold">{title}</span>
+              </DialogTitle>
             </DialogHeader>
             <div className="flex-1 overflow-y-auto scrollbar-thin px-1 py-4 min-h-0">
               <WatchBreakdownSection

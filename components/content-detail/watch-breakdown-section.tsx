@@ -430,7 +430,7 @@ export default function WatchBreakdownSection({
                 <Filter className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 <span className="text-sm font-medium text-foreground flex-shrink-0">Filters</span>
                 <div className="ml-4 overflow-x-auto scrollbar-hide flex-1">
-                  <div className="flex items-center gap-2 pb-2 min-w-max">
+                  <div className="flex items-center gap-2 min-w-max">
                     {/* All button */}
                     <Button
                       variant="outline"
@@ -489,7 +489,7 @@ export default function WatchBreakdownSection({
                     <Filter className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     <span className="text-sm font-medium text-foreground flex-shrink-0">Filters</span>
                     <div className="ml-4 overflow-x-auto scrollbar-hide flex-1">
-                      <div className="flex items-center gap-2 pb-2 min-w-max">
+                      <div className="flex items-center gap-2 min-w-max">
                         <Button
                           variant="outline"
                           size="sm"
