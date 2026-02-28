@@ -110,6 +110,12 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
   
   const details = log.mediaType === "movie" ? movieDetails : tvDetails;
   const title = log.title;
+  // For TV shows, use the TV show's actual title (without episode info) for the URL
+  const urlTitle = log.mediaType === "tv" && tvDetails?.name 
+    ? tvDetails.name 
+    : log.mediaType === "tv" 
+      ? title.replace(/\s+S\d+E\d+.*$/i, "") // Remove "S1E1" pattern if present
+      : title;
   const posterPath = log.posterPath;
   const backdropPath = log.backdropPath || log.posterPath;
   
@@ -329,7 +335,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
             {posterPath && (
               <Link 
-                href={createContentUrl(log.mediaType, log.tmdbId, title)}
+                href={createContentUrl(log.mediaType, log.tmdbId, urlTitle)}
                 className="relative w-32 h-48 sm:w-40 sm:h-60 md:w-48 md:h-72 rounded-lg overflow-hidden flex-shrink-0 shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
               >
                 <Image
