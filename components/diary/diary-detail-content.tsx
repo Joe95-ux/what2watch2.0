@@ -762,6 +762,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                                 <Image
                                   src={offer.iconUrl}
                                   alt={offer.providerName}
+                                  title={offer.providerName}
                                   fill
                                   className="object-contain"
                                   unoptimized

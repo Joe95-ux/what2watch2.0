@@ -546,44 +546,37 @@ export default function MoreLikeThisCard({
                 </span>
               </div>
             </div>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                {isSignedIn ? (
-                  <div>
-                    <AddToListDropdown
-                      item={item}
-                      type={type}
-                      onAddSuccess={onAddToPlaylist}
-                      trigger={
-                        <CircleActionButton
-                          size="sm"
-                          onClick={(e: React.MouseEvent) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                        >
-                          <Plus className="h-3 w-3 text-white" />
-                        </CircleActionButton>
-                      }
-                    />
-                  </div>
-                ) : (
-                  <CircleActionButton
-                    size="sm"
-                    onClick={(e: React.MouseEvent) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      void requireAuth(async () => undefined, "Sign in to manage playlists.");
-                    }}
-                  >
-                    <Plus className="h-3 w-3 text-white" />
-                  </CircleActionButton>
-                )}
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Add to List</p>
-              </TooltipContent>
-            </Tooltip>
+            {isSignedIn ? (
+              <div>
+                <AddToListDropdown
+                  item={item}
+                  type={type}
+                  onAddSuccess={onAddToPlaylist}
+                  trigger={
+                    <CircleActionButton
+                      size="sm"
+                      onClick={(e: React.MouseEvent) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                    >
+                      <Plus className="h-3 w-3 text-white" />
+                    </CircleActionButton>
+                  }
+                />
+              </div>
+            ) : (
+              <CircleActionButton
+                size="sm"
+                onClick={(e: React.MouseEvent) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  void requireAuth(async () => undefined, "Sign in to manage playlists.");
+                }}
+              >
+                <Plus className="h-3 w-3 text-white" />
+              </CircleActionButton>
+            )}
           </div>
 
           {/* Title */}

@@ -145,6 +145,7 @@ export default function WatchListView({ watchAvailability, selectedFilter, selec
                               <Image
                                 src={offer.iconUrl}
                                 alt={offer.providerName}
+                                title={offer.providerName}
                                 fill
                                 className="object-contain rounded-lg"
                                 unoptimized

@@ -67,7 +67,6 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const attemptedFetchRef = useRef<number | null>(null); // Track which item ID we've attempted to fetch
   const [trailerError, setTrailerError] = useState<string | null>(null);
-  const [playlistTooltipOpen, setPlaylistTooltipOpen] = useState(false);
   const [isPlaylistDropdownOpen, setIsPlaylistDropdownOpen] = useState(false);
   const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
   
@@ -596,55 +595,42 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                           <Play className={cn("fill-white text-white", isMobile ? "h-2.5 w-2.5 mr-0.5" : "h-3 w-3 mr-1")} />
                           {!isMobile && "Trailer"}
                         </Button>
-                      <Tooltip
-                        open={playlistTooltipOpen && !isPlaylistDropdownOpen}
-                        onOpenChange={(open) => setPlaylistTooltipOpen(open)}
-                      >
-                          <TooltipTrigger asChild>
-                          {isSignedIn ? (
-                            <div>
-                              <AddToListDropdown
-                                item={item}
-                                type={type}
-                                onAddSuccess={onAddToPlaylist}
-                                onOpenChange={(open) => {
-                                  setIsPlaylistDropdownOpen(open);
-                                  if (open) {
-                                    setPlaylistTooltipOpen(false);
-                                  }
+                      {isSignedIn ? (
+                        <div>
+                          <AddToListDropdown
+                            item={item}
+                            type={type}
+                            onAddSuccess={onAddToPlaylist}
+                            onOpenChange={(open) => {
+                              setIsPlaylistDropdownOpen(open);
+                            }}
+                            trigger={
+                              <CircleActionButton
+                                size="sm"
+                                className="backdrop-blur-md z-[5]"
+                                onClick={(e: React.MouseEvent) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
                                 }}
-                                trigger={
-                                  <CircleActionButton
-                                    size="sm"
-                                    className="backdrop-blur-md z-[5]"
-                                    onClick={(e: React.MouseEvent) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                    }}
-                                  >
-                                    <Plus className={cn("text-white", isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
-                                  </CircleActionButton>
-                                }
-                              />
-                            </div>
-                          ) : (
-                            <CircleActionButton
-                              size="sm"
-                              className="backdrop-blur-md z-[5]"
-                              onClick={(e: React.MouseEvent) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                void requireAuth(async () => undefined, "Sign in to manage playlists.");
-                              }}
-                            >
-                              <Plus className={cn("text-white", isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
-                            </CircleActionButton>
-                          )}
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Add to Playlist</p>
-                          </TooltipContent>
-                        </Tooltip>
+                              >
+                                <Plus className={cn("text-white", isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
+                              </CircleActionButton>
+                            }
+                          />
+                        </div>
+                      ) : (
+                        <CircleActionButton
+                          size="sm"
+                          className="backdrop-blur-md z-[5]"
+                          onClick={(e: React.MouseEvent) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            void requireAuth(async () => undefined, "Sign in to manage playlists.");
+                          }}
+                        >
+                          <Plus className={cn("text-white", isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
+                        </CircleActionButton>
+                      )}
                       </div>
 
                       {variant === "more-like-this" ? (

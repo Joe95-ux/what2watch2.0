@@ -344,7 +344,7 @@ function ModalOfferRow({ offer, ctaLabel, index, isLast }: { offer: JustWatchOff
     )}>
       <div className="flex items-center gap-2 min-w-0">
         {offer.iconUrl ? (
-          <Image src={offer.iconUrl} alt={offer.providerName} width={24} height={24} className="rounded flex-shrink-0" unoptimized />
+          <Image src={offer.iconUrl} alt={offer.providerName} title={offer.providerName} width={24} height={24} className="rounded flex-shrink-0" unoptimized />
         ) : (
           <span className="text-xs font-medium text-muted-foreground w-6 h-6 flex items-center justify-center rounded bg-muted flex-shrink-0">
             {offer.providerName[0]}

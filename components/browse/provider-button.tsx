@@ -39,6 +39,7 @@ export function ProviderButton({ providers, onClick }: ProviderButtonProps) {
               <Image
                 src={`https://image.tmdb.org/t/p/w45${provider.logo_path}`}
                 alt={provider.provider_name}
+                title={provider.provider_name}
                 fill
                 className="object-contain rounded-lg"
                 unoptimized

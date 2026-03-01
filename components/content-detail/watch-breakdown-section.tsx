@@ -639,6 +639,7 @@ function UpcomingReleaseRow({ release }: { release: JustWatchUpcomingRelease }) 
           <Image
             src={release.iconUrl}
             alt={release.providerName}
+            title={release.providerName}
             width={32}
             height={32}
             className="rounded-md"
@@ -682,7 +683,7 @@ function OfferRow({ offer, ctaLabel, index, isLast }: { offer: JustWatchOffer; c
     )}>
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {offer.iconUrl ? (
-          <Image src={offer.iconUrl} alt={offer.providerName} width={32} height={32} className="rounded-md" unoptimized />
+          <Image src={offer.iconUrl} alt={offer.providerName} title={offer.providerName} width={32} height={32} className="rounded-md" unoptimized />
         ) : (
           <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground">
             {offer.providerName[0]}

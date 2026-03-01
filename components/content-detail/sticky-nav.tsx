@@ -29,7 +29,7 @@ export default function StickyNav({ activeTab, onTabChange, isScrolled, type }: 
   return (
     <div
       className={cn(
-        "sticky top-0 z-50 transition-all duration-300",
+        "sticky top-[65px] z-40 transition-all duration-300",
         isScrolled
           ? "bg-background/95 backdrop-blur-md border-b border-border shadow-sm"
           : "bg-transparent"
