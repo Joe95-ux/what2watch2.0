@@ -152,7 +152,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                     router.push("/dashboard");
                   }, 100);
                 }} 
-                className="flex-1 rounded-md hover:bg-muted/80 transition-colors cursor-pointer"
+                className="flex-1 cursor-pointer"
               >
                 <div className="flex flex-col items-center gap-2">
                     <div className="rounded-full bg-muted/85 dark:bg-muted/50 p-3">
@@ -164,7 +164,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               
               <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
                 <SheetTrigger asChild>
-                  <button className="flex-1 rounded-md hover:bg-muted/80 transition-colors cursor-pointer">
+                  <button className="flex-1 cursor-pointer">
                     <div className="flex flex-col items-center gap-2">
                         <div className="rounded-full bg-muted/85 dark:bg-muted/50 p-3 relative">
                           <Bell className="h-5 w-5 text-foreground" />
@@ -188,7 +188,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
 
               <Popover open={feedbackOpen} onOpenChange={setFeedbackOpen}>
                 <PopoverTrigger asChild>
-                  <button className="flex-1 rounded-md hover:bg-muted/80 transition-colors cursor-pointer">
+                  <button className="flex-1 cursor-pointer">
                     <div className="flex flex-col items-center gap-2">
                       <div className="rounded-full bg-muted/85 dark:bg-muted/50 p-3">
                         <Megaphone className="h-5 w-5 text-foreground" />

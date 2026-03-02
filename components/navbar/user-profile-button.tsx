@@ -13,10 +13,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { UserRound, LogOut, Settings, Moon, Sun, Monitor, Link2 } from "lucide-react";
+import { UserRound, LogOut, Settings, Moon, Sun, Link2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
 
 interface UserProfileButtonProps {
   hasHeroSection?: boolean;
@@ -49,14 +50,9 @@ export function UserProfileButton({ hasHeroSection = false }: UserProfileButtonP
     router.push("/browse");
   };
 
+  // Toggle only between light and dark (no system option in this menu)
   const handleThemeToggle = () => {
-    if (theme === "light") {
-      setTheme("dark");
-    } else if (theme === "dark") {
-      setTheme("system");
-    } else {
-      setTheme("light");
-    }
+    setTheme(theme === "dark" ? "light" : "dark");
   };
 
   return (
@@ -150,20 +146,33 @@ export function UserProfileButton({ hasHeroSection = false }: UserProfileButtonP
           </Link>
 
           <DropdownMenuItem
-            onClick={handleThemeToggle}
             className="cursor-pointer"
             onSelect={(e) => {
               e.preventDefault();
             }}
+            onClick={(e) => {
+              // Allow clicking anywhere on the row to toggle
+              e.preventDefault();
+              handleThemeToggle();
+            }}
           >
-            {theme === "light" ? (
-              <Sun className="mr-2 h-4 w-4" />
-            ) : theme === "dark" ? (
-              <Moon className="mr-2 h-4 w-4" />
-            ) : (
-              <Monitor className="mr-2 h-4 w-4" />
-            )}
-            <span>Theme</span>
+            <div className="flex w-full items-center justify-between gap-3">
+              <div className="flex items-center">
+                {theme === "dark" ? (
+                  <Moon className="mr-2 h-4 w-4" />
+                ) : (
+                  <Sun className="mr-2 h-4 w-4" />
+                )}
+                <span>Theme</span>
+              </div>
+              <Switch
+                checked={theme === "dark"}
+                onCheckedChange={(checked) => {
+                  setTheme(checked ? "dark" : "light");
+                }}
+                className="ml-2"
+              />
+            </div>
           </DropdownMenuItem>
 
           <DropdownMenuSeparator />
