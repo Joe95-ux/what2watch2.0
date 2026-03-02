@@ -128,7 +128,11 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
           <Logo />
         </div>
         <SheetClose asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 cursor-pointer hover:bg-muted transition-colors"
+          >
             <X className="h-4 w-4" />
           </Button>
         </SheetClose>
@@ -148,7 +152,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                     router.push("/dashboard");
                   }, 100);
                 }} 
-                className="flex-1"
+                className="flex-1 rounded-md hover:bg-muted/80 transition-colors cursor-pointer"
               >
                 <div className="flex flex-col items-center gap-2">
                     <div className="rounded-full bg-muted/85 dark:bg-muted/50 p-3">
@@ -160,7 +164,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               
               <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
                 <SheetTrigger asChild>
-                  <button className="flex-1">
+                  <button className="flex-1 rounded-md hover:bg-muted/80 transition-colors cursor-pointer">
                     <div className="flex flex-col items-center gap-2">
                         <div className="rounded-full bg-muted/85 dark:bg-muted/50 p-3 relative">
                           <Bell className="h-5 w-5 text-foreground" />
@@ -184,7 +188,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
 
               <Popover open={feedbackOpen} onOpenChange={setFeedbackOpen}>
                 <PopoverTrigger asChild>
-                  <button className="flex-1">
+                  <button className="flex-1 rounded-md hover:bg-muted/80 transition-colors cursor-pointer">
                     <div className="flex flex-col items-center gap-2">
                       <div className="rounded-full bg-muted/85 dark:bg-muted/50 p-3">
                         <Megaphone className="h-5 w-5 text-foreground" />
@@ -265,7 +269,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   }, 100);
                 }}
               >
-                <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors">
+                <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors cursor-pointer">
                   <Bookmark className="h-5 w-5 text-foreground" />
                   <span className="text-xs font-medium">Watchlist</span>
                 </div>
@@ -280,7 +284,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   }, 100);
                 }}
               >
-                <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors">
+                <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors cursor-pointer">
                   <ClipboardList className="h-5 w-5 text-foreground" />
                   <span className="text-xs font-medium">Lists</span>
                 </div>
@@ -295,7 +299,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   }, 100);
                 }}
               >
-                <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors">
+                <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors cursor-pointer">
                   <List className="h-5 w-5 text-foreground" />
                   <span className="text-xs font-medium">Playlists</span>
                 </div>
@@ -310,7 +314,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   }, 100);
                 }}
               >
-                <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors">
+                <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors cursor-pointer">
                   <BookOpen className="h-5 w-5 text-foreground" />
                   <span className="text-xs font-medium">Diary</span>
                 </div>
@@ -361,7 +365,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   }, 100);
                 }}
                 className={cn(
-                  "flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors",
+                  "flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors cursor-pointer",
                   "text-[0.95rem]",
                   isActive ? "bg-muted text-foreground font-medium" : "text-muted-foreground"
                 )}
@@ -385,7 +389,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                     }, 100);
                   }}
                   className={cn(
-                    "flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
+                    "flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem] cursor-pointer",
                     pathname === "/browse/personalized" || pathname?.startsWith("/browse/personalized")
                       ? "bg-muted text-foreground font-medium"
                       : "text-muted-foreground"
@@ -404,7 +408,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
             {showSimpleYouTubeLink ? (
               <a
                 href="/youtube"
-                className="flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem] text-muted-foreground"
+                className="flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem] text-muted-foreground cursor-pointer"
                 onClick={(e) => {
                   e.preventDefault();
                   onLinkClick();
@@ -421,7 +425,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                 <button
                   onClick={() => setYoutubeExpanded(!youtubeExpanded)}
                   className={cn(
-                    "flex items-center justify-between w-full rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
+                    "flex items-center justify-between w-full rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem] cursor-pointer",
                     (pathname === "/youtube" || pathname?.startsWith("/youtube/"))
                       ? "bg-muted text-foreground font-medium"
                       : "text-muted-foreground"
@@ -457,7 +461,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                             }, 100);
                           }}
                           className={cn(
-                            "flex items-center rounded-md px-3 py-2 bg-muted/60 dark:bg-muted/40 hover:bg-muted/50 transition-colors text-[0.9rem]",
+                            "flex items-center rounded-md px-3 py-2 bg-muted/60 dark:bg-muted/40 hover:bg-muted/50 transition-colors text-[0.9rem] cursor-pointer",
                             isActive
                               ? "bg-muted/70 dark:bg-muted/60 text-foreground font-medium"
                               : "text-muted-foreground"
@@ -488,7 +492,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                 }, 100);
               }}
               className={cn(
-                "flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
+                "flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem] cursor-pointer",
                 pathname === "/settings"
                   ? "bg-muted text-foreground font-medium"
                   : "text-muted-foreground"
@@ -507,7 +511,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                 }, 100);
               }}
               className={cn(
-                "flex items-center w-full rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
+                "flex items-center w-full rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem] cursor-pointer",
                 pathname === "/dashboard/profile"
                   ? "bg-muted text-foreground font-medium"
                   : "text-muted-foreground"
@@ -522,7 +526,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               <button
                 onClick={() => setIsThemeOpen(!isThemeOpen)}
                 className={cn(
-                  "flex w-full items-center justify-between rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
+                  "flex w-full items-center justify-between rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem] cursor-pointer",
                   isThemeOpen
                     ? "bg-muted text-foreground font-medium"
                     : "text-muted-foreground"
@@ -553,7 +557,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                       onLinkClick();
                     }}
                     className={cn(
-                      "flex w-full items-center rounded-md px-3 py-2 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
+                      "flex w-full items-center rounded-md px-3 py-2 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem] cursor-pointer",
                       theme === "light"
                         ? "bg-muted text-foreground font-medium"
                         : "text-muted-foreground"
@@ -568,7 +572,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                       onLinkClick();
                     }}
                     className={cn(
-                      "flex w-full items-center rounded-md px-3 py-2 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
+                      "flex w-full items-center rounded-md px-3 py-2 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem] cursor-pointer",
                       theme === "dark"
                         ? "bg-muted text-foreground font-medium"
                         : "text-muted-foreground"
@@ -583,7 +587,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                       onLinkClick();
                     }}
                     className={cn(
-                      "flex w-full items-center rounded-md px-3 py-2 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem]",
+                      "flex w-full items-center rounded-md px-3 py-2 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem] cursor-pointer",
                       theme === "system"
                         ? "bg-muted text-foreground font-medium"
                         : "text-muted-foreground"
@@ -603,7 +607,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
         {!isSignedIn && (
           <div className="pt-4">
             <SignInButton mode="modal">
-              <Button className="w-full" onClick={onLinkClick} variant="default">
+              <Button className="w-full cursor-pointer" onClick={onLinkClick} variant="default">
                 Sign In
               </Button>
             </SignInButton>
@@ -616,7 +620,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
         <div className="sticky bottom-0 px-4 py-3 border-t bg-background">
           <button
             onClick={handleSignOut}
-            className="flex w-full items-center justify-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem] text-destructive"
+            className="flex w-full items-center justify-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted transition-colors text-[0.95rem] text-destructive cursor-pointer"
           >
             <LogOut className="mr-3 h-4 w-4 text-destructive/70" />
             <span>Logout</span>

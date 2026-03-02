@@ -12,9 +12,6 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { UserRound, LogOut, Settings, Moon, Sun, Monitor, Link2 } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -50,6 +47,16 @@ export function UserProfileButton({ hasHeroSection = false }: UserProfileButtonP
   const handleSignOut = async () => {
     await signOut();
     router.push("/browse");
+  };
+
+  const handleThemeToggle = () => {
+    if (theme === "light") {
+      setTheme("dark");
+    } else if (theme === "dark") {
+      setTheme("system");
+    } else {
+      setTheme("light");
+    }
   };
 
   return (
@@ -142,59 +149,22 @@ export function UserProfileButton({ hasHeroSection = false }: UserProfileButtonP
             </DropdownMenuItem>
           </Link>
 
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger className="cursor-pointer">
-              {theme === "light" ? (
-                <Sun className="mr-2 h-4 w-4" />
-              ) : theme === "dark" ? (
-                <Moon className="mr-2 h-4 w-4" />
-              ) : (
-                <Monitor className="mr-2 h-4 w-4" />
-              )}
-              <span>Theme</span>
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
-              <DropdownMenuItem
-                onClick={() => {
-                  setTheme("light");
-                  setTimeout(() => setIsDropdownOpen(false), 100);
-                }}
-                className="cursor-pointer"
-                onSelect={(e) => {
-                  e.preventDefault();
-                }}
-              >
-                <Sun className="mr-2 h-4 w-4" />
-                <span>Light</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  setTheme("dark");
-                  setTimeout(() => setIsDropdownOpen(false), 100);
-                }}
-                className="cursor-pointer"
-                onSelect={(e) => {
-                  e.preventDefault();
-                }}
-              >
-                <Moon className="mr-2 h-4 w-4" />
-                <span>Dark</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  setTheme("system");
-                  setTimeout(() => setIsDropdownOpen(false), 100);
-                }}
-                className="cursor-pointer"
-                onSelect={(e) => {
-                  e.preventDefault();
-                }}
-              >
-                <Monitor className="mr-2 h-4 w-4" />
-                <span>System</span>
-              </DropdownMenuItem>
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
+          <DropdownMenuItem
+            onClick={handleThemeToggle}
+            className="cursor-pointer"
+            onSelect={(e) => {
+              e.preventDefault();
+            }}
+          >
+            {theme === "light" ? (
+              <Sun className="mr-2 h-4 w-4" />
+            ) : theme === "dark" ? (
+              <Moon className="mr-2 h-4 w-4" />
+            ) : (
+              <Monitor className="mr-2 h-4 w-4" />
+            )}
+            <span>Theme</span>
+          </DropdownMenuItem>
 
           <DropdownMenuSeparator />
 
