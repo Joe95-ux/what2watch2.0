@@ -170,7 +170,7 @@ export function UserProfileButton({ hasHeroSection = false }: UserProfileButtonP
                 onCheckedChange={(checked) => {
                   setTheme(checked ? "dark" : "light");
                 }}
-                className="ml-2"
+                className="ml-2 data-[state=checked]:bg-zinc-700 dark:data-[state=checked]:bg-zinc-600"
               />
             </div>
           </DropdownMenuItem>
