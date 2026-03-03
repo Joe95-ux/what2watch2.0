@@ -968,6 +968,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
           onClose={() => setIsWatchHistoryModalOpen(false)}
           logs={allViewingLogs}
           title={title}
+          mediaType={log.mediaType}
         />
       )}
 

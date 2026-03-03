@@ -1,19 +1,61 @@
 "use client";
 
 import { format } from "date-fns";
-import { CalendarIcon, Star, Info } from "lucide-react";
+import { CalendarIcon, Star, Tv } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import type { ViewingLog } from "@/hooks/use-viewing-logs";
+import type { UnifiedViewingLog } from "@/hooks/use-viewing-logs";
 
 interface WatchHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  logs: ViewingLog[];
+  logs: UnifiedViewingLog[];
   title: string;
+  mediaType?: "movie" | "tv";
 }
 
-export function WatchHistoryModal({ isOpen, onClose, logs, title }: WatchHistoryModalProps) {
+// Format episode information for display
+function formatEpisodeInfo(log: UnifiedViewingLog): string | null {
+  if (log.type === "episodeLog") {
+    if (log.seasonNumber !== undefined) {
+      if (log.episodeNumber !== undefined) {
+        // Single episode
+        return `Season ${log.seasonNumber}, Episode ${log.episodeNumber}`;
+      } else if (log.episodeNumbers && log.episodeNumbers.length > 1) {
+        // Multiple episodes - show range
+        const sorted = [...log.episodeNumbers].sort((a, b) => a - b);
+        const first = sorted[0];
+        const last = sorted[sorted.length - 1];
+        
+        if (first === last) {
+          return `Season ${log.seasonNumber}, Episode ${first}`;
+        } else if (sorted.length === last - first + 1) {
+          // Consecutive episodes - show range
+          return `Season ${log.seasonNumber}, Episodes ${first}-${last}`;
+        } else {
+          // Non-consecutive - show count
+          return `Season ${log.seasonNumber}, ${sorted.length} episodes`;
+        }
+      }
+    }
+  } else if (log.type === "viewingLog" && log.title) {
+    // Check if title contains episode info (e.g., "Foundation S1E1" or "Foundation S1, S2")
+    const episodePattern = /S(\d+)\s*E(\d+)/i;
+    const seasonPattern = /S(\d+)/gi;
+    const episodeMatch = log.title.match(episodePattern);
+    const seasonMatches = [...log.title.matchAll(seasonPattern)];
+    
+    if (episodeMatch) {
+      return `Season ${episodeMatch[1]}, Episode ${episodeMatch[2]}`;
+    } else if (seasonMatches.length > 0) {
+      const seasons = seasonMatches.map(m => m[1]).join(", ");
+      return `Season${seasonMatches.length > 1 ? "s" : ""} ${seasons}`;
+    }
+  }
+  return null;
+}
+
+export function WatchHistoryModal({ isOpen, onClose, logs, title, mediaType = "movie" }: WatchHistoryModalProps) {
   if (logs.length === 0) return null;
 
   return (
@@ -31,6 +73,7 @@ export function WatchHistoryModal({ isOpen, onClose, logs, title }: WatchHistory
               {logs.map((log, index) => {
                 const isLatest = index === 0;
                 const watchedDate = new Date(log.watchedAt);
+                const episodeInfo = formatEpisodeInfo(log);
                 
                 return (
                   <div key={log.id} className="relative flex gap-4">
@@ -65,6 +108,23 @@ export function WatchHistoryModal({ isOpen, onClose, logs, title }: WatchHistory
                             <span className="text-xs text-green-500 font-medium">(Latest)</span>
                           )}
                         </div>
+
+                        {/* Season/Episode Info for TV shows */}
+                        {mediaType === "tv" && episodeInfo && (
+                          <div className="flex items-center gap-2">
+                            <Tv className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium text-foreground">
+                              {episodeInfo}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Title for viewingLog entries (if no episode info extracted) */}
+                        {log.type === "viewingLog" && log.title && !episodeInfo && (
+                          <div className="text-sm font-medium text-foreground">
+                            {log.title}
+                          </div>
+                        )}
 
                         {/* Rating */}
                         {log.rating && (

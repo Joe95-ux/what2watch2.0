@@ -19,6 +19,24 @@ export interface ViewingLog {
   updatedAt: string;
 }
 
+// Unified log entry that can represent both ViewingLog and EpisodeViewingLog entries
+export interface UnifiedViewingLog {
+  id: string;
+  watchedAt: string;
+  rating?: number | null;
+  notes?: string | null;
+  tags?: string[];
+  type: "viewingLog" | "episodeLog";
+  // For viewingLog entries
+  viewingLogId?: string;
+  title?: string;
+  // For episodeLog entries
+  episodeLogId?: string;
+  seasonNumber?: number;
+  episodeNumber?: number;
+  episodeNumbers?: number[]; // For grouped episodes (episode numbers, not IDs)
+}
+
 interface CreateViewingLogParams {
   tmdbId: number;
   mediaType: "movie" | "tv";
@@ -97,7 +115,7 @@ const updateViewingLog = async (params: UpdateViewingLogParams): Promise<Viewing
 };
 
 // Fetch viewing logs for a specific movie/TV show
-const fetchViewingLogsByContent = async (tmdbId: number, mediaType: "movie" | "tv"): Promise<ViewingLog[]> => {
+const fetchViewingLogsByContent = async (tmdbId: number, mediaType: "movie" | "tv"): Promise<UnifiedViewingLog[]> => {
   const res = await fetch(`/api/viewing-logs/by-content?tmdbId=${tmdbId}&mediaType=${mediaType}`);
   if (!res.ok) throw new Error("Failed to fetch viewing logs");
   const data = await res.json();
@@ -113,9 +131,9 @@ export function useViewingLogs(limit?: number, orderBy: "watchedAt" | "createdAt
   });
 }
 
-// Hook to fetch viewing logs for a specific movie/TV show
+// Hook to fetch viewing logs for a specific movie/TV show (returns unified logs including episodes)
 export function useViewingLogsByContent(tmdbId: number | null, mediaType: "movie" | "tv" | null) {
-  return useQuery<ViewingLog[]>({
+  return useQuery<UnifiedViewingLog[]>({
     queryKey: ["viewing-logs-by-content", tmdbId, mediaType],
     queryFn: () => fetchViewingLogsByContent(tmdbId!, mediaType!),
     enabled: !!tmdbId && !!mediaType,
