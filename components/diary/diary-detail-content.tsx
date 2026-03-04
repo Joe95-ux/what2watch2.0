@@ -834,7 +834,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                     </button>
                   </div>
                 </>
-              ) : (
+              ) : isLoadingWatchAvailability ? (
                 <div className="overflow-hidden rounded-[5px] border border-border">
                   {/* Heading skeleton */}
                   <div className="px-3 py-2 bg-muted/60">
@@ -862,6 +862,14 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                       </div>
                     );
                   })}
+                </div>
+              ) : (
+                <div className="overflow-hidden rounded-[5px] border border-border">
+                  <div className="px-3 py-4 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      Watch availability information is not available at this time.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
@@ -969,6 +977,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
           logs={allViewingLogs}
           title={title}
           mediaType={log.mediaType}
+          tmdbId={log.tmdbId}
         />
       )}
 

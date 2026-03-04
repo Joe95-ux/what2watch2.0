@@ -1,10 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, Star, Tv } from "lucide-react";
+import { CalendarIcon, Star, Tv, Edit } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import type { UnifiedViewingLog } from "@/hooks/use-viewing-logs";
+import { useUpdateEpisodeViewingLog } from "@/hooks/use-viewing-logs";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 interface WatchHistoryModalProps {
   isOpen: boolean;
@@ -12,6 +20,7 @@ interface WatchHistoryModalProps {
   logs: UnifiedViewingLog[];
   title: string;
   mediaType?: "movie" | "tv";
+  tmdbId?: number; // Required for updating episode logs
 }
 
 // Format episode information for display
@@ -55,8 +64,65 @@ function formatEpisodeInfo(log: UnifiedViewingLog): string | null {
   return null;
 }
 
-export function WatchHistoryModal({ isOpen, onClose, logs, title, mediaType = "movie" }: WatchHistoryModalProps) {
+export function WatchHistoryModal({ isOpen, onClose, logs, title, mediaType = "movie", tmdbId }: WatchHistoryModalProps) {
+  const [editingLog, setEditingLog] = useState<UnifiedViewingLog | null>(null);
+  const [editDate, setEditDate] = useState<Date | null>(null);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const updateEpisodeLog = useUpdateEpisodeViewingLog();
+  const queryClient = useQueryClient();
+
   if (logs.length === 0) return null;
+
+  const handleEditClick = (log: UnifiedViewingLog) => {
+    setEditingLog(log);
+    setEditDate(new Date(log.watchedAt));
+    setIsCalendarOpen(true);
+  };
+
+  const handleDateUpdate = async () => {
+    if (!editingLog || !editDate || !tmdbId) return;
+
+    try {
+      if (editingLog.type === "episodeLog") {
+        // For grouped episodes, we need to update all episodes in the group
+        if (editingLog.episodeNumbers && editingLog.episodeNumbers.length > 1 && editingLog.seasonNumber !== undefined) {
+          // Batch update all episodes in the group
+          const res = await fetch("/api/episode-viewing-logs/batch-update", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              tvShowTmdbId: tmdbId,
+              seasonNumber: editingLog.seasonNumber,
+              oldDate: editingLog.watchedAt,
+              newDate: editDate.toISOString(),
+            }),
+          });
+
+          if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.error || "Failed to update episode logs");
+          }
+
+          toast.success("Episode dates updated successfully");
+        } else if (editingLog.episodeLogId) {
+          // Single episode log
+          await updateEpisodeLog.mutateAsync({
+            logId: editingLog.episodeLogId,
+            watchedAt: editDate.toISOString(),
+          });
+          toast.success("Episode date updated successfully");
+        }
+      }
+
+      // Invalidate queries to refresh the timeline
+      await queryClient.invalidateQueries({ queryKey: ["viewing-logs-by-content"] });
+      
+      setEditingLog(null);
+      setIsCalendarOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update date");
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -168,6 +234,22 @@ export function WatchHistoryModal({ isOpen, onClose, logs, title, mediaType = "m
                             ))}
                           </div>
                         )}
+
+                        {/* Edit Button for Episode Logs */}
+                        {log.type === "episodeLog" && tmdbId && (
+                          <div className="pt-2 border-t">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditClick(log)}
+                              className="cursor-pointer"
+                              disabled={updateEpisodeLog.isPending}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Date
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -177,6 +259,67 @@ export function WatchHistoryModal({ isOpen, onClose, logs, title, mediaType = "m
           </div>
         </div>
       </DialogContent>
+
+      {/* Edit Date Dialog */}
+      {editingLog && (
+        <Dialog open={!!editingLog} onOpenChange={(open) => !open && setEditingLog(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Watch Date</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Date Watched</Label>
+                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal cursor-pointer",
+                        !editDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {editDate ? format(editDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={editDate || undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          setEditDate(date);
+                          setIsCalendarOpen(false);
+                        }
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditingLog(null);
+                    setIsCalendarOpen(false);
+                  }}
+                  disabled={updateEpisodeLog.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleDateUpdate}
+                  disabled={updateEpisodeLog.isPending || !editDate}
+                >
+                  {updateEpisodeLog.isPending ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Dialog>
   );
 }

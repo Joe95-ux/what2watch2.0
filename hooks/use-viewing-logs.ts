@@ -172,6 +172,39 @@ export function useDeleteViewingLog() {
 }
 
 // Hook to update a viewing log
+interface UpdateEpisodeViewingLogParams {
+  logId: string;
+  watchedAt?: string;
+}
+
+export function useUpdateEpisodeViewingLog() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: UpdateEpisodeViewingLogParams) => {
+      const res = await fetch(`/api/episode-viewing-logs/${params.logId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          watchedAt: params.watchedAt,
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to update episode viewing log");
+      }
+
+      return await res.json();
+    },
+    onSuccess: () => {
+      // Invalidate viewing logs queries
+      queryClient.invalidateQueries({ queryKey: ["viewing-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["viewing-logs-by-content"] });
+    },
+  });
+}
+
 export function useUpdateViewingLog() {
   const queryClient = useQueryClient();
 
