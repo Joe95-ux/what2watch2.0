@@ -11,7 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Check, Facebook, Twitter, Link2, MessageCircle, Mail, Instagram } from "lucide-react";
+import { Copy, Check, Facebook, Twitter, Link2, Mail, Instagram } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import type { Playlist } from "@/hooks/use-playlists";
@@ -204,7 +205,7 @@ export default function SharePlaylistDialog({ playlist, isOpen, onClose, isOwnPl
                     className="w-full"
                     onClick={() => handleSocialShare("whatsapp")}
                   >
-                    <MessageCircle className="h-4 w-4 mr-2" />
+                    <FaWhatsapp className="h-4 w-4 mr-2" />
                     WhatsApp
                   </Button>
                   <Button

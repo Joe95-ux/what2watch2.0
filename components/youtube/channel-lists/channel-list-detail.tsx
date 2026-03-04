@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Share2, Pencil, Trash2, ArrowLeftCircle, Users, Facebook, Twitter, MessageCircle, Mail, Link2, Eye, Heart } from "lucide-react";
+import { Share2, Pencil, Trash2, ArrowLeftCircle, Users, Facebook, Twitter, Mail, Link2, Eye, Heart } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -503,7 +504,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
                 onClick={() => handleSocialShare("whatsapp")}
                 className="cursor-pointer"
               >
-                <MessageCircle className="h-4 w-4 mr-2" />
+                <FaWhatsapp className="h-4 w-4 mr-2" />
                 WhatsApp
               </DropdownMenuItem>
               <DropdownMenuItem

@@ -485,45 +485,56 @@ export default function WatchBreakdownSection({
                 if (uniqueQualities.length === 0) return null;
 
                 return (
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-sm font-medium text-foreground flex-shrink-0">Filters</span>
-                    <div className="ml-4 overflow-x-auto scrollbar-hide flex-1">
-                      <div className="flex items-center gap-2 min-w-max">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleQualityClick("all")}
-                          className={cn(
-                            "h-9 rounded-[25px] cursor-pointer flex-shrink-0 px-4 transition-colors",
-                            selectedQuality === "all"
-                              ? "bg-blue-50 dark:bg-muted border-blue-200 dark:border-border text-foreground"
-                              : "bg-muted border-none text-muted-foreground hover:bg-muted/80"
-                          )}
-                        >
-                          All
-                        </Button>
-                        {uniqueQualities.map((quality) => {
-                          const isSelected = selectedQuality === quality;
-                          return (
-                            <Button
-                              key={quality}
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleQualityClick(quality)}
-                              className={cn(
-                                "h-9 rounded-[25px] cursor-pointer flex-shrink-0 px-4 transition-colors",
-                                isSelected
-                                  ? "bg-blue-50 dark:bg-muted border-blue-200 dark:border-border text-foreground"
-                                  : "bg-muted border-none text-muted-foreground hover:bg-muted/80"
-                              )}
-                            >
-                              {quality}
-                            </Button>
-                          );
-                        })}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <Filter className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-sm font-medium text-foreground flex-shrink-0">Filters</span>
+                      <div className="ml-4 overflow-x-auto scrollbar-hide flex-1">
+                        <div className="flex items-center gap-2 min-w-max">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleQualityClick("all")}
+                            className={cn(
+                              "h-9 rounded-[25px] cursor-pointer flex-shrink-0 px-4 transition-colors",
+                              selectedQuality === "all"
+                                ? "bg-blue-50 dark:bg-muted border-blue-200 dark:border-border text-foreground"
+                                : "bg-muted border-none text-muted-foreground hover:bg-muted/80"
+                            )}
+                          >
+                            All
+                          </Button>
+                          {uniqueQualities.map((quality) => {
+                            const isSelected = selectedQuality === quality;
+                            return (
+                              <Button
+                                key={quality}
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleQualityClick(quality)}
+                                className={cn(
+                                  "h-9 rounded-[25px] cursor-pointer flex-shrink-0 px-4 transition-colors",
+                                  isSelected
+                                    ? "bg-blue-50 dark:bg-muted border-blue-200 dark:border-border text-foreground"
+                                    : "bg-muted border-none text-muted-foreground hover:bg-muted/80"
+                                )}
+                              >
+                                {quality}
+                              </Button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
+                    {showSeasonDropdown && (
+                      <div className="flex-shrink-0">
+                        <SeasonSelect
+                          seasons={seasons}
+                          value={seasonNumber!}
+                          onValueChange={onSeasonChange!}
+                        />
+                      </div>
+                    )}
                   </div>
                 );
               })()

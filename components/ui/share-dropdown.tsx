@@ -1,7 +1,8 @@
 "use client";
 
-import { Facebook, Twitter, MessageCircle, Mail, Link2 } from "lucide-react";
+import { Facebook, Twitter, Mail, Link2 } from "lucide-react";
 import { FaShare } from "react-icons/fa6";
+import { FaWhatsapp } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -115,7 +116,7 @@ export function ShareDropdown({
           onClick={() => handleSocialShare("whatsapp")}
           className="cursor-pointer"
         >
-          <MessageCircle className="h-4 w-4 mr-2" />
+          <FaWhatsapp className="h-4 w-4 mr-2" />
           WhatsApp
         </DropdownMenuItem>
         <DropdownMenuItem

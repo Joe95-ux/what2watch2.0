@@ -11,7 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Check, Facebook, Twitter, Link2, MessageCircle, Mail, Instagram } from "lucide-react";
+import { Copy, Check, Facebook, Twitter, Link2, Mail, Instagram } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 import { toast } from "sonner";
 import type { List } from "@/hooks/use-lists";
 
@@ -161,7 +162,7 @@ export default function ShareListDialog({ list, isOpen, onClose, isOwnList = tru
                     className="w-full"
                     onClick={() => handleSocialShare("whatsapp")}
                   >
-                    <MessageCircle className="h-4 w-4 mr-2" />
+                    <FaWhatsapp className="h-4 w-4 mr-2" />
                     WhatsApp
                   </Button>
                   <Button
