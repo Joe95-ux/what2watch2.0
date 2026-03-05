@@ -185,12 +185,16 @@ ${overview ? `- Overview: ${overview}` : ""}${watchInfo}
 INSTRUCTIONS:
 1. Answer questions about ${title} accurately and helpfully
 2. If asked about where to watch, use the watch availability information provided
-3. For current information (box office, recent news, streaming updates), acknowledge if you're not certain about very recent data
+3. For current/recent information (box office numbers, recent news, streaming updates, awards, etc.):
+   - Use your knowledge which extends to October 2023
+   - For information after October 2023, acknowledge the limitation and provide what you know
+   - If asked about very recent events (last few months), suggest checking official sources
 4. Be conversational and friendly
 5. If you don't know something specific, say so rather than guessing
 6. Keep responses concise but informative
 
-Current date: ${new Date().toISOString().split("T")[0]}`;
+Current date: ${new Date().toISOString().split("T")[0]}
+Note: Your knowledge is current up to October 2023. For information after that date, acknowledge potential limitations.`;
 
     // Prepare conversation history
     const messages: Array<{ role: "user" | "assistant"; content: string }> = [

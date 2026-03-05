@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, type ReactNode } from "react";
 import Image from "next/image";
-import { Play, Clapperboard, Images, Star, Plus, Check, ChevronUp, ChevronDown, MessageCircle } from "lucide-react";
+import { Play, Clapperboard, Images, Star, Plus, Check, ChevronUp, ChevronDown, HelpCircle } from "lucide-react";
 import { IoBookmarkSharp } from "react-icons/io5";
 import {
   TMDBMovie,
@@ -257,7 +257,7 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
             <Button
               variant="outline"
               size="sm"
-              className="h-9 w-9 rounded-full cursor-pointer"
+              className="h-9 inline-flex items-center gap-2 rounded-[25px] cursor-pointer"
               onClick={() => {
                 if (!isSignedIn) {
                   toast.info("Sign in to chat about movies.");
@@ -271,7 +271,8 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
                 setIsChatOpen(true);
               }}
             >
-              <MessageCircle className="h-4 w-4" />
+              <HelpCircle className="h-4 w-4" />
+              Ask Us
             </Button>
             <LogToDiaryDropdown
               item={item}

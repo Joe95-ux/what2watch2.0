@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useUser } from "@clerk/nextjs";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import Image from "next/image";
 
 interface Message {
   role: "user" | "assistant";
@@ -38,6 +41,8 @@ export function MovieChatSheet({
   mediaType,
   title,
 }: MovieChatSheetProps) {
+  const { user } = useUser();
+  const { data: currentUser } = useCurrentUser();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -139,7 +144,7 @@ export function MovieChatSheet({
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:w-[540px] p-0 flex flex-col">
+      <SheetContent side="right" className="w-full sm:max-w-[30rem] p-0 flex flex-col">
         <SheetHeader className="px-6 py-4 border-b">
           <div className="flex items-center justify-between">
             <SheetTitle className="text-lg font-semibold">Ask about {title}</SheetTitle>
@@ -165,10 +170,22 @@ export function MovieChatSheet({
                 <div
                   key={index}
                   className={cn(
-                    "flex",
+                    "flex items-start gap-3",
                     message.role === "user" ? "justify-end" : "justify-start"
                   )}
                 >
+                  {message.role === "assistant" && (
+                    <div className="flex-shrink-0 h-8 w-8 rounded-full overflow-hidden bg-muted border border-border">
+                      <Image
+                        src="/icon1.png"
+                        alt="What2Watch"
+                        width={32}
+                        height={32}
+                        className="w-full h-full object-cover"
+                        unoptimized
+                      />
+                    </div>
+                  )}
                   <div
                     className={cn(
                       "max-w-[80%] rounded-lg px-4 py-2",
@@ -179,11 +196,39 @@ export function MovieChatSheet({
                   >
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   </div>
+                  {message.role === "user" && (
+                    <div className="flex-shrink-0 h-8 w-8 rounded-full overflow-hidden bg-muted border border-border">
+                      {currentUser?.avatarUrl || user?.imageUrl ? (
+                        <Image
+                          src={currentUser?.avatarUrl || user?.imageUrl || ""}
+                          alt={currentUser?.displayName || user?.firstName || "User"}
+                          width={32}
+                          height={32}
+                          className="w-full h-full object-cover"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs font-medium text-muted-foreground">
+                          {currentUser?.username?.[0]?.toUpperCase() || user?.firstName?.[0] || user?.emailAddresses?.[0]?.emailAddress?.[0]?.toUpperCase() || "U"}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))
             )}
             {isLoading && (
-              <div className="flex justify-start">
+              <div className="flex items-start gap-3 justify-start">
+                <div className="flex-shrink-0 h-8 w-8 rounded-full overflow-hidden bg-muted border border-border">
+                  <Image
+                    src="/icon1.png"
+                    alt="What2Watch"
+                    width={32}
+                    height={32}
+                    className="w-full h-full object-cover"
+                    unoptimized
+                  />
+                </div>
                 <div className="bg-muted rounded-lg px-4 py-2">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
