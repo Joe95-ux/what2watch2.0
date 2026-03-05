@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, type ReactNode } from "react";
 import Image from "next/image";
-import { Play, Clapperboard, Images, Star, Plus, Check, ChevronUp, ChevronDown } from "lucide-react";
+import { Play, Clapperboard, Images, Star, Plus, Check, ChevronUp, ChevronDown, MessageCircle } from "lucide-react";
 import { IoBookmarkSharp } from "react-icons/io5";
 import {
   TMDBMovie,
@@ -24,6 +24,7 @@ import type { JustWatchAvailabilityResponse } from "@/lib/justwatch";
 import { useUser } from "@clerk/nextjs";
 import { useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
+import { MovieChatSheet } from "./movie-chat-sheet";
 
 interface DetailsType {
   release_date?: string;
@@ -58,6 +59,7 @@ interface HeroSectionProps {
 export default function HeroSection({ item, type, details, trailer, videosData, watchAvailability, onCollectionClick }: HeroSectionProps) {
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [initialVideoId, setInitialVideoId] = useState<string | null>(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [isPhotosModalOpen, setIsPhotosModalOpen] = useState(false);
   const [trailerDuration, setTrailerDuration] = useState<number | null>(null);
   const toggleWatchlist = useToggleWatchlist();
@@ -252,6 +254,25 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-end gap-3 mt-[14px] md:mt-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 w-9 rounded-full cursor-pointer"
+              onClick={() => {
+                if (!isSignedIn) {
+                  toast.info("Sign in to chat about movies.");
+                  if (openSignIn) {
+                    openSignIn({
+                      afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                    });
+                  }
+                  return;
+                }
+                setIsChatOpen(true);
+              }}
+            >
+              <MessageCircle className="h-4 w-4" />
+            </Button>
             <LogToDiaryDropdown
               item={item}
               type={type}
@@ -438,42 +459,35 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
 
             {/* Watchlist Icon - Top Left */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div
-                  onClick={handleWatchlistToggle}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
-                  className="absolute -top-[14px] -left-[12px] z-10 flex items-center justify-center cursor-pointer"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleWatchlistToggle();
-                    }
-                  }}
-                >
-                  <div className="relative flex items-center justify-center">
-                    <IoBookmarkSharp
-                      className={cn(
-                        "w-16 h-21",
-                        toggleWatchlist.isInWatchlist(item.id, type)
-                          ? "text-[#E0B416] fill-[#E0B416]"
-                          : "text-gray-900 fill-gray-900"
-                      )}
-                    />
-                    {toggleWatchlist.isInWatchlist(item.id, type) ? (
-                      <Check className="absolute top-6 size-6 text-black z-10" />
-                    ) : (
-                      <Plus className="absolute top-6 size-6 text-white z-10" />
-                    )}
-                  </div>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                {toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
-              </TooltipContent>
-            </Tooltip>
+            <div
+              onClick={handleWatchlistToggle}
+              role="button"
+              tabIndex={0}
+              aria-label={toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
+              className="absolute -top-[14px] -left-[12px] z-10 flex items-center justify-center cursor-pointer"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleWatchlistToggle();
+                }
+              }}
+            >
+              <div className="relative flex items-center justify-center">
+                <IoBookmarkSharp
+                  className={cn(
+                    "w-16 h-21",
+                    toggleWatchlist.isInWatchlist(item.id, type)
+                      ? "text-[#E0B416] fill-[#E0B416]"
+                      : "text-gray-900 fill-gray-900"
+                  )}
+                />
+                {toggleWatchlist.isInWatchlist(item.id, type) ? (
+                  <Check className="absolute top-6 size-6 text-black z-10" />
+                ) : (
+                  <Plus className="absolute top-6 size-6 text-white z-10" />
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Banner Column */}
@@ -493,42 +507,35 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
 
             {/* Watchlist Icon - Top Left (Mobile only) */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div
-                  onClick={handleWatchlistToggle}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
-                  className="absolute -top-[3px] -left-[9px] z-10 flex items-center justify-center cursor-pointer lg:hidden"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleWatchlistToggle();
-                    }
-                  }}
-                >
-                  <div className="relative flex items-center justify-center">
-                    <IoBookmarkSharp
-                      className={cn(
-                        "h-[44px] w-[44px]",
-                        toggleWatchlist.isInWatchlist(item.id, type)
-                            ? "text-[#E0B416] fill-[#E0B416]"
-                          : "text-gray-900 fill-gray-900"
-                      )}
-                    />
-                    {toggleWatchlist.isInWatchlist(item.id, type) ? (
-                      <Check className="absolute top-[5px] size-6 text-black z-10" />
-                    ) : (
-                      <Plus className="absolute top-[5px] size-6 text-white z-10" />
-                    )}
-                  </div>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                {toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
-              </TooltipContent>
-            </Tooltip>
+            <div
+              onClick={handleWatchlistToggle}
+              role="button"
+              tabIndex={0}
+              aria-label={toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
+              className="absolute -top-[3px] -left-[9px] z-10 flex items-center justify-center cursor-pointer lg:hidden"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleWatchlistToggle();
+                }
+              }}
+            >
+              <div className="relative flex items-center justify-center">
+                <IoBookmarkSharp
+                  className={cn(
+                    "h-[44px] w-[44px]",
+                    toggleWatchlist.isInWatchlist(item.id, type)
+                        ? "text-[#E0B416] fill-[#E0B416]"
+                      : "text-gray-900 fill-gray-900"
+                  )}
+                />
+                {toggleWatchlist.isInWatchlist(item.id, type) ? (
+                  <Check className="absolute top-[5px] size-6 text-black z-10" />
+                ) : (
+                  <Plus className="absolute top-[5px] size-6 text-white z-10" />
+                )}
+              </div>
+            </div>
 
 
             <div className="absolute bottom-6 left-6 right-6">
@@ -604,6 +611,14 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
           </div>
         </div>
       </div>
+
+      <MovieChatSheet
+        isOpen={isChatOpen}
+        onOpenChange={setIsChatOpen}
+        tmdbId={item.id}
+        mediaType={type}
+        title={type === "movie" ? (item as TMDBMovie).title : (item as TMDBSeries).name}
+      />
 
       {(trailer || videosData) && (
         <TrailerModal
