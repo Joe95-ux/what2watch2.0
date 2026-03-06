@@ -325,7 +325,7 @@ export default function DashboardContent() {
                 </Button>
                 
                 {/* Carousel */}
-                <div className="flex-1">
+                <div className="flex-1 min-w-0 relative">
                   <Carousel
                     opts={{
                       align: "start",
@@ -361,10 +361,10 @@ export default function DashboardContent() {
                       ))}
                     </CarouselContent>
                     <CarouselPrevious 
-                      className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+                      className="left-0 h-16 sm:h-20 w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10"
                     />
                     <CarouselNext 
-                      className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+                      className="right-0 h-16 sm:h-20 w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer z-10"
                     />
                   </Carousel>
                 </div>

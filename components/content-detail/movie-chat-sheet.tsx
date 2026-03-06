@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, Send, X, Loader2 } from "lucide-react";
+import { MessageCircle, Send, X, Loader2, History, HelpCircle } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -144,14 +144,39 @@ export function MovieChatSheet({
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-[30rem] p-0 flex flex-col">
-        <SheetHeader className="px-6 py-4 border-b">
-          <div className="flex items-center justify-between">
-            <SheetTitle className="text-lg font-semibold">Ask about {title}</SheetTitle>
-            <div className="text-sm text-muted-foreground">
+      <SheetContent side="right" className="w-full sm:max-w-[30rem] p-0 flex flex-col [&>button]:hidden">
+        <SheetHeader className="px-6 py-4 border-b space-y-0">
+          {/* Action Row: Quota Notice | History | Close Button */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-xs text-muted-foreground">
               {remainingQuestions} {remainingQuestions === 1 ? "question" : "questions"} left
             </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 cursor-pointer"
+                onClick={() => {
+                  // TODO: Implement history view
+                  toast.info("History feature coming soon");
+                }}
+                title="View chat history"
+              >
+                <History className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 cursor-pointer"
+                onClick={() => onOpenChange(false)}
+                title="Close"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
+          {/* Title Row */}
+          <SheetTitle className="text-lg font-semibold">Ask about {title}</SheetTitle>
         </SheetHeader>
 
         {/* Messages Area */}
@@ -159,7 +184,7 @@ export function MovieChatSheet({
           <div className="space-y-4">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
-                <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                <HelpCircle className="h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground mb-2">Ask me anything about {title}</p>
                 <p className="text-sm text-muted-foreground">
                   I can tell you about the plot, cast, where to watch, and more!

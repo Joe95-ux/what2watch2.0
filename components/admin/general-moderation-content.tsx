@@ -1,6 +1,13 @@
 "use client";
 
+import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChatQuotaManagementTable } from "@/components/admin/chat-quota-management-table";
+import { MessageSquare } from "lucide-react";
+
 export function GeneralModerationContent() {
+  const [activeTab, setActiveTab] = useState("chat-quota");
+
   return (
     <div className="min-h-screen bg-background">
       <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
@@ -11,18 +18,18 @@ export function GeneralModerationContent() {
           </p>
         </div>
 
-        <div className="border rounded-lg p-8 text-center">
-          <p className="text-muted-foreground">
-            General moderation features coming soon. This will include moderation for:
-          </p>
-          <ul className="mt-4 text-sm text-muted-foreground space-y-2">
-            <li>• Movie and TV show reviews</li>
-            <li>• YouTube channel reviews</li>
-            <li>• Comments on viewing logs</li>
-            <li>• List comments</li>
-            <li>• Playlist comments</li>
-          </ul>
-        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="chat-quota" className="cursor-pointer">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Chat Quota Management
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="chat-quota" className="mt-0">
+            <ChatQuotaManagementTable />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

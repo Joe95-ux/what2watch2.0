@@ -53,6 +53,9 @@ model User {
   // View preferences
   youtubeCardStyle String @default("centered") // "centered" (default) or "horizontal"
   
+  // AI Chat quota (null = default limit, number = custom limit set by admin)
+  chatQuota Int? // Maximum number of questions allowed. null = default (6), -1 = unlimited
+  
   // Admin & Moderation
   role            String   @default("USER") // "USER", "MODERATOR", "ADMIN", "SUPER_ADMIN"
   isForumModerator Boolean @default(false)

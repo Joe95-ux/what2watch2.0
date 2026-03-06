@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     const user = await db.user.findUnique({
       where: { clerkId: clerkUserId },
-      select: { id: true },
+      select: { id: true, chatQuota: true },
     });
 
     if (!user) {
@@ -92,20 +92,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const metadata = (session.metadata as any) || {};
-    const questionCount = metadata.questionCount || 0;
+    const sessionMetadata = (session.metadata as any) || {};
 
-    // Check if user has exceeded free limit
-    // TODO: Check for pro subscription status
-    const isPro = false; // Placeholder - implement subscription check later
-    
-    if (!isPro && questionCount >= MAX_FREE_QUESTIONS) {
+    // Count total questions asked by user (using AiChatEvent for accurate count)
+    const totalQuestionCount = await db.aiChatEvent.count({
+      where: { userId: user.id },
+    });
+
+    // Determine user's quota limit
+    // null = default (6), -1 = unlimited, number = custom limit
+    let maxQuestions: number;
+    if (user.chatQuota === null) {
+      maxQuestions = MAX_FREE_QUESTIONS; // Default limit
+    } else if (user.chatQuota === -1) {
+      maxQuestions = -1; // Unlimited
+    } else {
+      maxQuestions = user.chatQuota; // Custom limit set by admin
+    }
+
+    // Check if user has exceeded their limit (skip check if unlimited)
+    if (maxQuestions !== -1 && totalQuestionCount >= maxQuestions) {
       return NextResponse.json(
         {
           error: "QUESTION_LIMIT_REACHED",
-          message: `You've reached your limit of ${MAX_FREE_QUESTIONS} questions. Upgrade to Pro for unlimited questions.`,
-          questionCount,
-          maxQuestions: MAX_FREE_QUESTIONS,
+          message: `You've reached your limit of ${maxQuestions} questions. Upgrade to Pro for unlimited questions.`,
+          questionCount: totalQuestionCount,
+          maxQuestions,
         },
         { status: 403 }
       );
@@ -225,8 +237,8 @@ Note: Your knowledge is current up to October 2023. For information after that d
       data: {
         messages: updatedMessages,
         metadata: {
-          ...metadata,
-          questionCount: questionCount + 1,
+          ...sessionMetadata,
+          questionCount: (sessionMetadata.questionCount || 0) + 1,
         },
         updatedAt: new Date(),
       },
@@ -257,9 +269,8 @@ Note: Your knowledge is current up to October 2023. For information after that d
 
     return NextResponse.json({
       message: aiResponse,
-      questionCount: questionCount + 1,
-      maxQuestions: MAX_FREE_QUESTIONS,
-      isPro,
+      questionCount: totalQuestionCount + 1, // +1 because we're about to create the event
+      maxQuestions,
     });
   } catch (error) {
     console.error("Movie details chat error:", error);
@@ -281,11 +292,26 @@ export async function GET(request: NextRequest) {
 
     const user = await db.user.findUnique({
       where: { clerkId: clerkUserId },
-      select: { id: true },
+      select: { id: true, chatQuota: true },
     });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Count total questions asked by user
+    const totalQuestionCount = await db.aiChatEvent.count({
+      where: { userId: user.id },
+    });
+
+    // Determine user's quota limit
+    let maxQuestions: number;
+    if (user.chatQuota === null) {
+      maxQuestions = MAX_FREE_QUESTIONS; // Default limit
+    } else if (user.chatQuota === -1) {
+      maxQuestions = -1; // Unlimited
+    } else {
+      maxQuestions = user.chatQuota; // Custom limit set by admin
     }
 
     const { searchParams } = new URL(request.url);
@@ -303,7 +329,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!session) {
-      return NextResponse.json({ messages: [], questionCount: 0 });
+      return NextResponse.json({ messages: [], questionCount: totalQuestionCount, maxQuestions });
     }
 
     const metadata = (session.metadata as any) || {};
@@ -311,8 +337,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       messages,
-      questionCount: metadata.questionCount || 0,
-      maxQuestions: MAX_FREE_QUESTIONS,
+      questionCount: totalQuestionCount,
+      maxQuestions,
     });
   } catch (error) {
     console.error("Get chat history error:", error);
