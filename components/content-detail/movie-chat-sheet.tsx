@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, Send, X, Loader2, History, HelpCircle, Clock } from "lucide-react";
+import { MessageCircle, Send, X, Loader2, History, HelpCircle, Clock, Copy, Check } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,6 +71,7 @@ export function MovieChatSheet({
     mediaType: string;
   }>>([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+  const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const shouldAutoScroll = useRef(true);
@@ -217,6 +218,19 @@ export function MovieChatSheet({
     handleSend(suggestion);
   };
 
+  const handleCopyMessage = async (content: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedMessageIndex(index);
+      toast.success("Message copied to clipboard");
+      setTimeout(() => {
+        setCopiedMessageIndex(null);
+      }, 2000);
+    } catch (error) {
+      toast.error("Failed to copy message");
+    }
+  };
+
   const loadChatSessions = async () => {
     setIsLoadingSessions(true);
     try {
@@ -341,13 +355,31 @@ export function MovieChatSheet({
                   )}
                   <div
                     className={cn(
-                      "max-w-[80%] rounded-lg px-4 py-2",
+                      "max-w-[80%] rounded-lg px-4 py-2 relative group",
                       message.role === "user"
                         ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground"
+                        : "bg-[#edf3fe] text-black"
                     )}
                   >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    <p className="text-sm whitespace-pre-wrap pr-6">{message.content}</p>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "absolute bottom-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer",
+                        message.role === "user"
+                          ? "text-primary-foreground hover:bg-primary-foreground/20"
+                          : "text-black hover:bg-black/10"
+                      )}
+                      onClick={() => handleCopyMessage(message.content, index)}
+                      title="Copy message"
+                    >
+                      {copiedMessageIndex === index ? (
+                        <Check className="h-3 w-3" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </Button>
                   </div>
                   {message.role === "user" && (
                     <div className="flex-shrink-0 h-8 w-8 rounded-full overflow-hidden bg-muted border border-border">

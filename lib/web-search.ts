@@ -27,9 +27,11 @@ export async function searchWebTavily(query: string): Promise<WebSearchResponse>
   const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 
   if (!TAVILY_API_KEY) {
-    console.warn("TAVILY_API_KEY not configured. Web search disabled.");
+    console.warn("[Web Search] TAVILY_API_KEY not configured. Web search disabled.");
     return { results: [], query, provider: "tavily" };
   }
+
+  console.log(`[Web Search] Calling Tavily API with query: "${query}"`);
 
   try {
     const response = await fetch("https://api.tavily.com/search", {
@@ -49,18 +51,37 @@ export async function searchWebTavily(query: string): Promise<WebSearchResponse>
     });
 
     if (!response.ok) {
-      throw new Error(`Tavily API error: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`[Web Search] Tavily API error (${response.status}):`, errorText);
+      throw new Error(`Tavily API error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
+    console.log(`[Web Search] Tavily API response:`, {
+      hasAnswer: !!data.answer,
+      resultsCount: data.results?.length || 0,
+      query: data.query,
+    });
+
+    // Tavily returns both an 'answer' field (when include_answer: true) and 'results' array
+    const results = (data.results || []).map((result: any) => ({
+      title: result.title || "",
+      url: result.url || "",
+      content: result.content || "",
+      publishedDate: result.published_date || undefined,
+    }));
+
+    // If there's an answer field, add it as the first result
+    if (data.answer) {
+      results.unshift({
+        title: `Answer: ${query}`,
+        url: "",
+        content: data.answer,
+      });
+    }
 
     return {
-      results: (data.results || []).map((result: any) => ({
-        title: result.title || "",
-        url: result.url || "",
-        content: result.content || "",
-        publishedDate: result.published_date || undefined,
-      })),
+      results,
       query,
       provider: "tavily",
     };

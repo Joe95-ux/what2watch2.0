@@ -270,21 +270,32 @@ export async function POST(request: NextRequest) {
     let webSearchInfo = "";
     if (needsWebSearch) {
       const searchQuery = `${title} ${mediaType === "movie" ? "movie" : "TV show"} ${message}`;
-      console.log(`[AI Chat] Performing web search for: "${searchQuery}"`);
+      console.log(`[AI Chat] ✅ Web search TRIGGERED for: "${searchQuery}"`);
+      console.log(`[AI Chat] Message contains trigger keywords: "${message}"`);
       try {
         const searchResults = await searchWeb(searchQuery);
-        console.log(`[AI Chat] Web search results: ${searchResults.results.length} results from ${searchResults.provider}`);
+        console.log(`[AI Chat] Web search completed: ${searchResults.results.length} results from ${searchResults.provider}`);
         if (searchResults.results.length > 0) {
           webSearchInfo = formatWebSearchResults(searchResults);
-          console.log(`[AI Chat] Web search info formatted, length: ${webSearchInfo.length} chars`);
+          console.log(`[AI Chat] ✅ Web search info formatted and included in prompt (${webSearchInfo.length} chars)`);
         } else {
-          console.log(`[AI Chat] No web search results found`);
+          console.log(`[AI Chat] ⚠️ No web search results found - API may have returned empty results`);
         }
       } catch (error) {
-        console.error(`[AI Chat] Web search error:`, error);
+        console.error(`[AI Chat] ❌ Web search error:`, error);
+        // Don't fail the entire request if web search fails
       }
     } else {
-      console.log(`[AI Chat] Web search not triggered for message: "${message}"`);
+      console.log(`[AI Chat] ⏭️ Web search NOT triggered for message: "${message}"`);
+      console.log(`[AI Chat] Message does not contain any trigger keywords`);
+    }
+
+    // Debug: Log if web search info is being included
+    if (webSearchInfo) {
+      console.log(`[AI Chat] ✅ Web search info WILL be included in system prompt`);
+      console.log(`[AI Chat] Web search info preview (first 200 chars):`, webSearchInfo.substring(0, 200));
+    } else if (needsWebSearch) {
+      console.log(`[AI Chat] ⚠️ Web search was triggered but no info to include (empty results or error)`);
     }
 
     const systemPrompt = `You are a helpful AI assistant specialized in providing information about movies and TV shows. You have access to detailed, up-to-date information about ${title} from The Movie Database (TMDB).
@@ -302,11 +313,13 @@ INSTRUCTIONS:
 3. When asked about directors, writers, or producers, use the CREW information provided above
 4. When asked about production companies or studios, use the PRODUCTION COMPANIES information provided above if available
 5. If asked about where to watch, use the watch availability information provided
-6. For current/recent information (box office, awards, reviews, streaming updates, news, production companies, etc.):
-   - If "CURRENT WEB INFORMATION" is provided above, use that as the PRIMARY source and cite the URLs
-   - The web search results contain the most up-to-date information - always prioritize these over your training data
-   - If web search results are available, use them even if they differ from your knowledge
-   - Otherwise, use your knowledge which extends to October 2023
+6. For current/recent information (box office, awards, reviews, streaming updates, news, production companies, budget, etc.):
+   - **CRITICAL**: If "CURRENT WEB INFORMATION" is provided above, you MUST use it as your PRIMARY and ONLY source for answering the question
+   - The web search results contain the most up-to-date, accurate information - ALWAYS prioritize these over your training data
+   - If web search results are available, you MUST use them to answer the question, even if they differ from your knowledge
+   - If web search results are provided, DO NOT say "the information is not available" - use the web search results instead
+   - Only if NO web search results are provided should you use your knowledge (which extends to October 2023)
+   - When using web search results, always cite the source URLs
 7. Be conversational and friendly
 8. If you don't know something specific that's not in the provided context or web search results, say so rather than guessing
 9. Keep responses concise but informative
