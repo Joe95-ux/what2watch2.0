@@ -4,29 +4,13 @@ import { db } from "@/lib/db";
 import OpenAI from "openai";
 import { getMovieDetails, getTVDetails } from "@/lib/tmdb";
 import { getJustWatchAvailability } from "@/lib/justwatch";
+import { searchWeb, formatWebSearchResults } from "@/lib/web-search";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 const MAX_FREE_QUESTIONS = 6;
-
-// Web search function using OpenAI's web browsing capability
-async function searchWeb(query: string): Promise<string> {
-  try {
-    // Use OpenAI's function calling with web search
-    // Note: This requires GPT-4 with web browsing or a separate web search API
-    // For now, we'll use a simple approach with OpenAI's knowledge
-    // In production, you might want to use a dedicated web search API like SerpAPI, Google Custom Search, etc.
-    
-    // For MVP, we'll enhance the system prompt to indicate we want current information
-    // and use GPT-4o which has knowledge up to Oct 2023
-    return "";
-  } catch (error) {
-    console.error("Web search error:", error);
-    return "";
-  }
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -159,6 +143,51 @@ export async function POST(request: NextRequest) {
       ? contentDetails?.runtime
       : contentDetails?.episode_run_time?.[0];
     
+    // Extract cast and crew information
+    const credits = (contentDetails as any)?.credits;
+    const cast = credits?.cast || [];
+    const crew = credits?.crew || [];
+    
+    // Build cast information (top 10 cast members)
+    let castInfo = "";
+    if (cast.length > 0) {
+      const topCast = cast.slice(0, 10).map((member: any) => {
+        const character = member.character ? ` as ${member.character}` : "";
+        return `- ${member.name}${character}`;
+      }).join("\n");
+      castInfo = `\n\nCAST:\n${topCast}`;
+      if (cast.length > 10) {
+        castInfo += `\n... and ${cast.length - 10} more cast members`;
+      }
+    }
+    
+    // Build crew information (key crew members: Director, Writer, Producer)
+    let crewInfo = "";
+    if (crew.length > 0) {
+      const directors = crew.filter((member: any) => member.job === "Director").map((m: any) => m.name);
+      const writers = crew.filter((member: any) => 
+        member.job === "Writer" || member.job === "Screenplay" || member.job === "Author"
+      ).map((m: any) => m.name);
+      const producers = crew.filter((member: any) => 
+        member.job === "Producer" || member.job === "Executive Producer"
+      ).slice(0, 3).map((m: any) => m.name);
+      
+      const crewParts = [];
+      if (directors.length > 0) {
+        crewParts.push(`Director: ${directors.join(", ")}`);
+      }
+      if (writers.length > 0) {
+        crewParts.push(`Writer: ${writers.slice(0, 3).join(", ")}${writers.length > 3 ? "..." : ""}`);
+      }
+      if (producers.length > 0) {
+        crewParts.push(`Producer: ${producers.join(", ")}`);
+      }
+      
+      if (crewParts.length > 0) {
+        crewInfo = `\n\nCREW:\n${crewParts.join("\n")}`;
+      }
+    }
+    
     // Build watch availability info
     let watchInfo = "";
     if (watchAvailability) {
@@ -185,28 +214,57 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const systemPrompt = `You are a helpful AI assistant specialized in providing information about movies and TV shows. You have access to detailed information about ${title}.
+    // Determine if we need web search for current information
+    // Check if the question asks about recent/current data
+    const needsWebSearch = 
+      message.toLowerCase().includes("box office") ||
+      message.toLowerCase().includes("revenue") ||
+      message.toLowerCase().includes("gross") ||
+      message.toLowerCase().includes("award") ||
+      message.toLowerCase().includes("nomination") ||
+      message.toLowerCase().includes("review") ||
+      message.toLowerCase().includes("rating") ||
+      message.toLowerCase().includes("streaming") ||
+      message.toLowerCase().includes("news") ||
+      message.toLowerCase().includes("recent") ||
+      message.toLowerCase().includes("latest") ||
+      message.toLowerCase().includes("current") ||
+      (releaseDate && new Date(releaseDate) > new Date("2023-10-01")); // Recent releases might need web search
+
+    // Perform web search if needed
+    let webSearchInfo = "";
+    if (needsWebSearch) {
+      const searchQuery = `${title} ${mediaType === "movie" ? "movie" : "TV show"} ${message}`;
+      const searchResults = await searchWeb(searchQuery);
+      if (searchResults.results.length > 0) {
+        webSearchInfo = formatWebSearchResults(searchResults);
+      }
+    }
+
+    const systemPrompt = `You are a helpful AI assistant specialized in providing information about movies and TV shows. You have access to detailed, up-to-date information about ${title} from The Movie Database (TMDB).
 
 CONTEXT ABOUT ${title.toUpperCase()}:
 - Type: ${mediaType === "movie" ? "Movie" : "TV Show"}
 ${releaseDate ? `- Release Date: ${releaseDate}` : ""}
 ${genres ? `- Genres: ${genres}` : ""}
 ${runtime ? `- Runtime: ${runtime} minutes` : ""}
-${overview ? `- Overview: ${overview}` : ""}${watchInfo}
+${overview ? `- Overview: ${overview}` : ""}${castInfo}${crewInfo}${watchInfo}${webSearchInfo}
 
 INSTRUCTIONS:
-1. Answer questions about ${title} accurately and helpfully
-2. If asked about where to watch, use the watch availability information provided
-3. For current/recent information (box office numbers, recent news, streaming updates, awards, etc.):
-   - Use your knowledge which extends to October 2023
-   - For information after October 2023, acknowledge the limitation and provide what you know
-   - If asked about very recent events (last few months), suggest checking official sources
-4. Be conversational and friendly
-5. If you don't know something specific, say so rather than guessing
-6. Keep responses concise but informative
+1. Answer questions about ${title} accurately and helpfully using the provided information
+2. When asked about cast members, use the CAST information provided above - this is current and accurate from TMDB
+3. When asked about directors, writers, or producers, use the CREW information provided above
+4. If asked about where to watch, use the watch availability information provided
+5. For current/recent information (box office, awards, reviews, streaming updates, news):
+   - If "CURRENT WEB INFORMATION" is provided above, use that as the primary source and cite the URLs
+   - Otherwise, use your knowledge which extends to October 2023
+   - Always prioritize web search results when available
+6. Be conversational and friendly
+7. If you don't know something specific that's not in the provided context, say so rather than guessing
+8. Keep responses concise but informative
 
 Current date: ${new Date().toISOString().split("T")[0]}
-Note: Your knowledge is current up to October 2023. For information after that date, acknowledge potential limitations.`;
+Note: Cast and crew information is current from TMDB. ${webSearchInfo ? "Current web information has been fetched and provided above - use it as the primary source for recent data." : "For very recent information not in the provided context, web search may be needed."}`;
 
     // Prepare conversation history
     const messages: Array<{ role: "user" | "assistant"; content: string }> = [

@@ -1,15 +1,23 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, Send, X, Loader2, History, HelpCircle } from "lucide-react";
+import { MessageCircle, Send, X, Loader2, History, HelpCircle, Clock } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useUser } from "@clerk/nextjs";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { formatDistanceToNow, format } from "date-fns";
 import Image from "next/image";
 
 interface Message {
@@ -47,16 +55,30 @@ export function MovieChatSheet({
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [questionCount, setQuestionCount] = useState(0);
-  const [maxQuestions] = useState(6);
-  const [sessionId] = useState(() => `session-${Date.now()}`);
+  const [maxQuestions, setMaxQuestions] = useState(6); // Default to 6, will be updated from API
+  const [sessionId, setSessionId] = useState(() => `session-${Date.now()}`);
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
+  const [chatSessions, setChatSessions] = useState<Array<{
+    id: string;
+    sessionId: string;
+    fullSessionId: string;
+    title: string;
+    messageCount: number;
+    firstMessage: string | null;
+    createdAt: string;
+    updatedAt: string;
+    tmdbId: number;
+    mediaType: string;
+  }>>([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load chat history when sheet opens
+  // Load chat history when sheet opens or sessionId changes
   useEffect(() => {
     if (isOpen) {
       loadChatHistory();
     }
-  }, [isOpen, tmdbId]);
+  }, [isOpen, tmdbId, sessionId]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -74,6 +96,10 @@ export function MovieChatSheet({
         const data = await res.json();
         setMessages(data.messages || []);
         setQuestionCount(data.questionCount || 0);
+        // Update maxQuestions from API response
+        if (data.maxQuestions !== undefined) {
+          setMaxQuestions(data.maxQuestions === -1 ? Infinity : data.maxQuestions);
+        }
       }
     } catch (error) {
       console.error("Failed to load chat history:", error);
@@ -84,8 +110,8 @@ export function MovieChatSheet({
     const messageToSend = message || input.trim();
     if (!messageToSend || isLoading) return;
 
-    // Check question limit
-    if (questionCount >= maxQuestions) {
+    // Check question limit (skip if unlimited)
+    if (maxQuestions !== Infinity && questionCount >= maxQuestions) {
       toast.error(`You've reached your limit of ${maxQuestions} questions. Upgrade to Pro for unlimited questions.`);
       return;
     }
@@ -115,7 +141,11 @@ export function MovieChatSheet({
       if (!res.ok) {
         if (data.error === "QUESTION_LIMIT_REACHED") {
           toast.error(data.message);
-          setQuestionCount(maxQuestions);
+          // Update maxQuestions from error response if provided
+          if (data.maxQuestions !== undefined) {
+            setMaxQuestions(data.maxQuestions === -1 ? Infinity : data.maxQuestions);
+          }
+          setQuestionCount(data.questionCount || maxQuestions);
         } else {
           throw new Error(data.error || "Failed to send message");
         }
@@ -126,6 +156,10 @@ export function MovieChatSheet({
       const assistantMessage: Message = { role: "assistant", content: data.message };
       setMessages((prev) => [...prev, assistantMessage]);
       setQuestionCount(data.questionCount || questionCount + 1);
+      // Update maxQuestions from API response
+      if (data.maxQuestions !== undefined) {
+        setMaxQuestions(data.maxQuestions === -1 ? Infinity : data.maxQuestions);
+      }
     } catch (error) {
       console.error("Chat error:", error);
       toast.error("Failed to send message. Please try again.");
@@ -140,7 +174,55 @@ export function MovieChatSheet({
     handleSend(suggestion);
   };
 
-  const remainingQuestions = maxQuestions - questionCount;
+  const loadChatSessions = async () => {
+    setIsLoadingSessions(true);
+    try {
+      const res = await fetch(`/api/ai/chat/movie-details/sessions?tmdbId=${tmdbId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setChatSessions(data.sessions || []);
+      } else {
+        toast.error("Failed to load chat history");
+      }
+    } catch (error) {
+      console.error("Failed to load chat sessions:", error);
+      toast.error("Failed to load chat history");
+    } finally {
+      setIsLoadingSessions(false);
+    }
+  };
+
+  const handleHistoryClick = () => {
+    setIsHistoryDialogOpen(true);
+    loadChatSessions();
+  };
+
+  const handleLoadSession = async (fullSessionId: string, sessionIdPart: string) => {
+    // Update the current session ID
+    setSessionId(sessionIdPart);
+    setIsHistoryDialogOpen(false);
+    
+    // Reload chat history with the new session
+    try {
+      const res = await fetch(
+        `/api/ai/chat/movie-details?tmdbId=${tmdbId}&sessionId=${sessionIdPart}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(data.messages || []);
+        setQuestionCount(data.questionCount || 0);
+        if (data.maxQuestions !== undefined) {
+          setMaxQuestions(data.maxQuestions === -1 ? Infinity : data.maxQuestions);
+        }
+        toast.success("Chat session loaded");
+      }
+    } catch (error) {
+      console.error("Failed to load session:", error);
+      toast.error("Failed to load chat session");
+    }
+  };
+
+  const remainingQuestions = maxQuestions === Infinity ? Infinity : maxQuestions - questionCount;
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
@@ -149,17 +231,16 @@ export function MovieChatSheet({
           {/* Action Row: Quota Notice | History | Close Button */}
           <div className="flex items-center justify-between mb-3">
             <div className="text-xs text-muted-foreground">
-              {remainingQuestions} {remainingQuestions === 1 ? "question" : "questions"} left
+              {remainingQuestions === Infinity 
+                ? "Unlimited questions" 
+                : `${remainingQuestions} ${remainingQuestions === 1 ? "question" : "questions"} left`}
             </div>
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 cursor-pointer"
-                onClick={() => {
-                  // TODO: Implement history view
-                  toast.info("History feature coming soon");
-                }}
+                onClick={handleHistoryClick}
                 title="View chat history"
               >
                 <History className="h-4 w-4" />
@@ -275,7 +356,7 @@ export function MovieChatSheet({
                   size="sm"
                   onClick={() => handleSuggestionClick(suggestion)}
                   className="text-xs h-8 rounded-full cursor-pointer"
-                  disabled={isLoading || questionCount >= maxQuestions}
+                  disabled={isLoading || (maxQuestions !== Infinity && questionCount >= maxQuestions)}
                 >
                   {suggestion}
                 </Button>
@@ -297,7 +378,7 @@ export function MovieChatSheet({
                 }
               }}
               placeholder={
-                questionCount >= maxQuestions
+                maxQuestions !== Infinity && questionCount >= maxQuestions
                   ? "Upgrade to Pro for more questions"
                   : "Ask a question..."
               }
@@ -324,6 +405,73 @@ export function MovieChatSheet({
           )}
         </div>
       </SheetContent>
+
+      {/* Chat History Dialog */}
+      <Dialog open={isHistoryDialogOpen} onOpenChange={setIsHistoryDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Chat History for {title}</DialogTitle>
+            <DialogDescription>
+              Select a previous conversation to continue
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="flex-1 -mx-6 px-6">
+            {isLoadingSessions ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : chatSessions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <History className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No chat history found</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Start a conversation to see it here
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {chatSessions.map((session) => (
+                  <button
+                    key={session.id}
+                    onClick={() => handleLoadSession(session.fullSessionId, session.sessionId)}
+                    className="w-full text-left p-4 rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <History className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="text-sm font-medium text-foreground truncate">
+                            {session.title}
+                          </span>
+                        </div>
+                        {session.firstMessage && (
+                          <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                            {session.firstMessage}
+                            {session.firstMessage.length >= 100 ? "..." : ""}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <MessageCircle className="h-3 w-3" />
+                            {session.messageCount} {session.messageCount === 1 ? "message" : "messages"}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {formatDistanceToNow(new Date(session.updatedAt), { addSuffix: true })}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground flex-shrink-0">
+                        {format(new Date(session.updatedAt), "MMM d, yyyy")}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }

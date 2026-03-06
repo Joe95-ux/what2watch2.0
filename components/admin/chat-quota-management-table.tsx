@@ -14,7 +14,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, ChevronRight, Loader2, Search, Filter, X, ChevronDown, ChevronUp, ArrowUpDown, ArrowDown, ArrowUp, Edit, Infinity } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChevronLeft, ChevronRight, Loader2, Search, Filter, X, ChevronDown, ChevronUp, ArrowUpDown, ArrowDown, ArrowUp, Edit, Infinity, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -60,6 +61,9 @@ export function ChatQuotaManagementTable() {
   const [editingUser, setEditingUser] = useState<UserWithQuota | null>(null);
   const [quotaValue, setQuotaValue] = useState<string>("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [bulkQuotaValue, setBulkQuotaValue] = useState<string>("");
+  const [isBulkQuotaDialogOpen, setIsBulkQuotaDialogOpen] = useState(false);
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ["admin-chat-quota", page, debouncedSearchQuery, sortField, sortOrder],
@@ -177,6 +181,64 @@ export function ChatQuotaManagementTable() {
   const clearFilters = () => {
     setSearchQuery("");
     setPage(1);
+  };
+
+  const handleSelectUser = (userId: string, selected: boolean) => {
+    const newSelected = new Set(selectedUserIds);
+    if (selected) {
+      newSelected.add(userId);
+    } else {
+      newSelected.delete(userId);
+    }
+    setSelectedUserIds(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedUserIds.size === users.length && users.length > 0) {
+      setSelectedUserIds(new Set());
+    } else {
+      setSelectedUserIds(new Set(users.map((u: UserWithQuota) => u.id)));
+    }
+  };
+
+  const handleBulkQuotaUpdate = () => {
+    if (selectedUserIds.size === 0) return;
+    setIsBulkQuotaDialogOpen(true);
+  };
+
+  const handleBulkQuotaSave = async () => {
+    if (selectedUserIds.size === 0 || !bulkQuotaValue.trim()) return;
+
+    let parsedQuota: number | null | -1;
+    if (bulkQuotaValue.trim() === "" || bulkQuotaValue === "default") {
+      parsedQuota = null; // Default (6)
+    } else if (bulkQuotaValue === "-1" || bulkQuotaValue.toLowerCase() === "unlimited") {
+      parsedQuota = -1; // Unlimited
+    } else {
+      const num = parseInt(bulkQuotaValue);
+      if (isNaN(num) || num < 0) {
+        toast.error("Please enter a valid number (0 or greater) or -1 for unlimited");
+        return;
+      }
+      parsedQuota = num;
+    }
+
+    const selectedCount = selectedUserIds.size;
+    const userIds = Array.from(selectedUserIds);
+
+    try {
+      // Update all selected users sequentially to avoid overwhelming the API
+      for (const userId of userIds) {
+        await updateQuota.mutateAsync({ userId, chatQuota: parsedQuota });
+      }
+      setSelectedUserIds(new Set());
+      setBulkQuotaValue("");
+      setIsBulkQuotaDialogOpen(false);
+      toast.success(`Updated quota for ${selectedCount} user(s)`);
+    } catch (error) {
+      toast.error("Failed to update some quotas");
+      console.error(error);
+    }
   };
 
   const users = data?.users ?? [];
@@ -313,13 +375,8 @@ export function ChatQuotaManagementTable() {
         </div>
 
         {/* Filter Row - Collapsible */}
-        <div
-          className={cn(
-            "overflow-hidden transition-all duration-300 ease-in-out",
-            isFilterRowOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-          )}
-        >
-          <div className="overflow-x-auto scrollbar-hide pb-2">
+        {isFilterRowOpen && (
+          <div className="overflow-x-auto scrollbar-hide pb-2 border-t pt-3">
             <div className="flex items-center gap-4 min-w-max px-1">
               {/* Clear All Button */}
               {hasActiveFilters && (
@@ -333,16 +390,57 @@ export function ChatQuotaManagementTable() {
                   Clear All
                 </Button>
               )}
+              {!hasActiveFilters && (
+                <p className="text-sm text-muted-foreground">No additional filters available</p>
+              )}
             </div>
           </div>
-        </div>
+        )}
       </div>
+
+      {/* Bulk Actions Bar */}
+      {selectedUserIds.size > 0 && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg bg-muted/30">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
+              {selectedUserIds.size} of {users.length} selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBulkQuotaUpdate}
+              className="cursor-pointer whitespace-nowrap"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Update Quota
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSelectedUserIds(new Set())}
+              className="cursor-pointer h-9 w-9"
+              title="Clear selection"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={selectedUserIds.size === users.length && users.length > 0}
+                  onCheckedChange={handleSelectAll}
+                  className="cursor-pointer"
+                />
+              </TableHead>
               <TableHead>User</TableHead>
               <TableHead 
                 className="cursor-pointer hover:bg-accent/50 transition-colors"
@@ -401,13 +499,20 @@ export function ChatQuotaManagementTable() {
               ))
             ) : users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   No users found
                 </TableCell>
               </TableRow>
             ) : (
               users.map((user: UserWithQuota) => (
                 <TableRow key={user.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedUserIds.has(user.id)}
+                      onCheckedChange={(checked) => handleSelectUser(user.id, checked as boolean)}
+                      className="cursor-pointer"
+                    />
+                  </TableCell>
                   <TableCell>
                     <div>
                       {user.id ? (
@@ -537,6 +642,60 @@ export function ChatQuotaManagementTable() {
                 </>
               ) : (
                 "Save Changes"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Quota Update Dialog */}
+      <Dialog open={isBulkQuotaDialogOpen} onOpenChange={setIsBulkQuotaDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Quota for {selectedUserIds.size} User(s)</DialogTitle>
+            <DialogDescription>
+              Set the maximum number of questions allowed for the selected users
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="bulk-quota">Quota Limit</Label>
+              <Input
+                id="bulk-quota"
+                type="text"
+                value={bulkQuotaValue}
+                onChange={(e) => setBulkQuotaValue(e.target.value)}
+                placeholder="Enter number, -1 for unlimited, or leave empty for default (6)"
+                className="text-muted-foreground placeholder:text-muted-foreground/60"
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter a number (0 or greater), -1 for unlimited, or leave empty/default for the default limit (6 questions)
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsBulkQuotaDialogOpen(false);
+                setBulkQuotaValue("");
+              }}
+              className="cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBulkQuotaSave}
+              disabled={updateQuota.isPending || !bulkQuotaValue.trim()}
+              className="cursor-pointer"
+            >
+              {updateQuota.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                `Update ${selectedUserIds.size} User(s)`
               )}
             </Button>
           </DialogFooter>
