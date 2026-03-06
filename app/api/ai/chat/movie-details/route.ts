@@ -232,6 +232,8 @@ export async function POST(request: NextRequest) {
       messageLower.includes("gross") ||
       messageLower.includes("budget") ||
       messageLower.includes("cost") ||
+      messageLower.includes("how much did") ||
+      messageLower.includes("how much was") ||
       // Awards and recognition
       messageLower.includes("award") ||
       messageLower.includes("nomination") ||
@@ -266,6 +268,16 @@ export async function POST(request: NextRequest) {
       // Recent releases might need web search for current information
       (releaseDate && new Date(releaseDate) > new Date("2023-10-01"));
 
+    // Check if API key is configured (for debugging)
+    const hasTavilyKey = !!process.env.TAVILY_API_KEY;
+    const hasSerpKey = !!process.env.SERP_API_KEY;
+    const hasGoogleKey = !!process.env.GOOGLE_SEARCH_API_KEY;
+    console.log(`[AI Chat] Web search API keys status:`, {
+      TAVILY_API_KEY: hasTavilyKey ? "✅ Set" : "❌ Not set",
+      SERP_API_KEY: hasSerpKey ? "✅ Set" : "❌ Not set",
+      GOOGLE_SEARCH_API_KEY: hasGoogleKey ? "✅ Set" : "❌ Not set",
+    });
+
     // Perform web search if needed
     let webSearchInfo = "";
     if (needsWebSearch) {
@@ -280,14 +292,17 @@ export async function POST(request: NextRequest) {
           console.log(`[AI Chat] ✅ Web search info formatted and included in prompt (${webSearchInfo.length} chars)`);
         } else {
           console.log(`[AI Chat] ⚠️ No web search results found - API may have returned empty results`);
+          console.log(`[AI Chat] Provider used: ${searchResults.provider}`);
         }
       } catch (error) {
         console.error(`[AI Chat] ❌ Web search error:`, error);
+        console.error(`[AI Chat] Error details:`, error instanceof Error ? error.message : String(error));
         // Don't fail the entire request if web search fails
       }
     } else {
       console.log(`[AI Chat] ⏭️ Web search NOT triggered for message: "${message}"`);
       console.log(`[AI Chat] Message does not contain any trigger keywords`);
+      console.log(`[AI Chat] Message lowercased: "${messageLower}"`);
     }
 
     // Debug: Log if web search info is being included

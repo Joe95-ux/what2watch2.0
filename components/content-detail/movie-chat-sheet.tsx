@@ -357,8 +357,8 @@ export function MovieChatSheet({
                     className={cn(
                       "max-w-[80%] rounded-lg px-4 py-2 relative group",
                       message.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-[#edf3fe] text-black"
+                        ? "bg-[#edf3fe] text-black"
+                        : "bg-muted text-foreground"
                     )}
                   >
                     <p className="text-sm whitespace-pre-wrap pr-6">{message.content}</p>
@@ -368,8 +368,8 @@ export function MovieChatSheet({
                       className={cn(
                         "absolute bottom-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer",
                         message.role === "user"
-                          ? "text-primary-foreground hover:bg-primary-foreground/20"
-                          : "text-black hover:bg-black/10"
+                          ? "text-black hover:bg-black/10"
+                          : "text-foreground hover:bg-foreground/10"
                       )}
                       onClick={() => handleCopyMessage(message.content, index)}
                       title="Copy message"
