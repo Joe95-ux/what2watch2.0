@@ -71,21 +71,64 @@ export function MovieChatSheet({
     mediaType: string;
   }>>([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScroll = useRef(true);
 
   // Load chat history when sheet opens or sessionId changes
   useEffect(() => {
     if (isOpen) {
       loadChatHistory();
+      shouldAutoScroll.current = true;
+      // Scroll to bottom when sheet opens
+      setTimeout(() => {
+        if (scrollAreaRef.current) {
+          const viewport = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+          if (viewport) {
+            viewport.scrollTo({
+              top: viewport.scrollHeight,
+              behavior: "auto",
+            });
+          }
+        }
+      }, 200);
     }
   }, [isOpen, tmdbId, sessionId]);
 
-  // Scroll to bottom when new messages arrive
+  // Scroll to bottom when new messages arrive (only if user is near bottom)
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    if (shouldAutoScroll.current && scrollAreaRef.current) {
+      const viewport = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+      if (viewport) {
+        // Small delay to ensure DOM is updated
+        setTimeout(() => {
+          viewport.scrollTo({
+            top: viewport.scrollHeight,
+            behavior: "smooth",
+          });
+        }, 100);
+      }
     }
-  }, [messages]);
+  }, [messages, isLoading]);
+
+  // Attach scroll listener to detect if user is near bottom
+  useEffect(() => {
+    if (!scrollAreaRef.current) return;
+
+    const viewport = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+    if (!viewport) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = viewport;
+      // If user is within 100px of bottom, enable auto-scroll
+      shouldAutoScroll.current = scrollHeight - scrollTop - clientHeight < 100;
+    };
+
+    viewport.addEventListener("scroll", handleScroll);
+    return () => {
+      viewport.removeEventListener("scroll", handleScroll);
+    };
+  }, [isOpen]);
 
   const loadChatHistory = async () => {
     try {
@@ -227,7 +270,8 @@ export function MovieChatSheet({
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-[30rem] p-0 flex flex-col [&>button]:hidden">
-        <SheetHeader className="px-6 py-4 border-b space-y-0">
+        {/* Fixed Header */}
+        <SheetHeader className="px-6 py-4 border-b space-y-0 flex-shrink-0">
           {/* Action Row: Quota Notice | History | Close Button */}
           <div className="flex items-center justify-between mb-3">
             <div className="text-xs text-muted-foreground">
@@ -260,9 +304,12 @@ export function MovieChatSheet({
           <SheetTitle className="text-lg font-semibold">Ask about {title}</SheetTitle>
         </SheetHeader>
 
-        {/* Messages Area */}
-        <ScrollArea className="flex-1 px-6 py-4">
-          <div className="space-y-4">
+        {/* Scrollable Messages Area */}
+        <ScrollArea 
+          ref={scrollAreaRef}
+          className="flex-1 min-h-0"
+        >
+          <div className="px-6 py-4 space-y-4">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
                 <HelpCircle className="h-12 w-12 text-muted-foreground mb-4" />
@@ -344,65 +391,68 @@ export function MovieChatSheet({
           </div>
         </ScrollArea>
 
-        {/* Suggestions */}
-        {messages.length === 0 && (
-          <div className="px-6 py-3 border-t">
-            <p className="text-xs text-muted-foreground mb-2">Suggestions:</p>
-            <div className="flex flex-wrap gap-2">
-              {SUGGESTIONS.map((suggestion, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleSuggestionClick(suggestion)}
-                  className="text-xs h-8 rounded-full cursor-pointer"
-                  disabled={isLoading || (maxQuestions !== Infinity && questionCount >= maxQuestions)}
-                >
-                  {suggestion}
-                </Button>
-              ))}
+        {/* Fixed Footer */}
+        <div className="flex-shrink-0 border-t bg-background">
+          {/* Suggestions */}
+          {messages.length === 0 && (
+            <div className="px-6 py-3 border-b">
+              <p className="text-xs text-muted-foreground mb-2">Suggestions:</p>
+              <div className="flex flex-wrap gap-2">
+                {SUGGESTIONS.map((suggestion, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    className="text-xs h-8 rounded-full cursor-pointer"
+                    disabled={isLoading || (maxQuestions !== Infinity && questionCount >= maxQuestions)}
+                  >
+                    {suggestion}
+                  </Button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-
-        {/* Input Area */}
-        <div className="px-6 py-4 border-t">
-          <div className="flex gap-2">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              placeholder={
-                maxQuestions !== Infinity && questionCount >= maxQuestions
-                  ? "Upgrade to Pro for more questions"
-                  : "Ask a question..."
-              }
-              disabled={isLoading || questionCount >= maxQuestions}
-              className="flex-1"
-            />
-            <Button
-              onClick={() => handleSend()}
-              disabled={!input.trim() || isLoading || questionCount >= maxQuestions}
-              size="icon"
-              className="cursor-pointer"
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-          {questionCount >= maxQuestions && (
-            <p className="text-xs text-muted-foreground mt-2 text-center">
-              You've reached your question limit. Upgrade to Pro for unlimited questions.
-            </p>
           )}
+
+          {/* Input Area */}
+          <div className="px-6 py-4">
+            <div className="flex gap-2">
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                placeholder={
+                  maxQuestions !== Infinity && questionCount >= maxQuestions
+                    ? "Upgrade to Pro for more questions"
+                    : "Ask a question..."
+                }
+                disabled={isLoading || questionCount >= maxQuestions}
+                className="flex-1"
+              />
+              <Button
+                onClick={() => handleSend()}
+                disabled={!input.trim() || isLoading || questionCount >= maxQuestions}
+                size="icon"
+                className="cursor-pointer"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            {questionCount >= maxQuestions && (
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                You've reached your question limit. Upgrade to Pro for unlimited questions.
+              </p>
+            )}
+          </div>
         </div>
       </SheetContent>
 
