@@ -187,6 +187,14 @@ export async function POST(request: NextRequest) {
         crewInfo = `\n\nCREW:\n${crewParts.join("\n")}`;
       }
     }
+
+    // Build production companies info
+    let productionInfo = "";
+    const productionCompanies = (contentDetails as any)?.production_companies || [];
+    if (productionCompanies.length > 0) {
+      const companyNames = productionCompanies.slice(0, 5).map((company: any) => company.name).join(", ");
+      productionInfo = `\n\nPRODUCTION COMPANIES:\n${companyNames}${productionCompanies.length > 5 ? `, and ${productionCompanies.length - 5} more` : ""}`;
+    }
     
     // Build watch availability info
     let watchInfo = "";
@@ -215,30 +223,68 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine if we need web search for current information
-    // Check if the question asks about recent/current data
+    // Check if the question asks about recent/current data or information that might need web search
+    const messageLower = message.toLowerCase();
     const needsWebSearch = 
-      message.toLowerCase().includes("box office") ||
-      message.toLowerCase().includes("revenue") ||
-      message.toLowerCase().includes("gross") ||
-      message.toLowerCase().includes("award") ||
-      message.toLowerCase().includes("nomination") ||
-      message.toLowerCase().includes("review") ||
-      message.toLowerCase().includes("rating") ||
-      message.toLowerCase().includes("streaming") ||
-      message.toLowerCase().includes("news") ||
-      message.toLowerCase().includes("recent") ||
-      message.toLowerCase().includes("latest") ||
-      message.toLowerCase().includes("current") ||
-      (releaseDate && new Date(releaseDate) > new Date("2023-10-01")); // Recent releases might need web search
+      // Financial/box office queries
+      messageLower.includes("box office") ||
+      messageLower.includes("revenue") ||
+      messageLower.includes("gross") ||
+      messageLower.includes("budget") ||
+      messageLower.includes("cost") ||
+      // Awards and recognition
+      messageLower.includes("award") ||
+      messageLower.includes("nomination") ||
+      messageLower.includes("oscar") ||
+      messageLower.includes("emmy") ||
+      messageLower.includes("golden globe") ||
+      // Reviews and ratings
+      messageLower.includes("review") ||
+      messageLower.includes("rating") ||
+      messageLower.includes("critic") ||
+      // Streaming and availability
+      messageLower.includes("streaming") ||
+      messageLower.includes("where to watch") ||
+      messageLower.includes("available") ||
+      // News and updates
+      messageLower.includes("news") ||
+      messageLower.includes("recent") ||
+      messageLower.includes("latest") ||
+      messageLower.includes("current") ||
+      messageLower.includes("update") ||
+      // Production information (might need current data)
+      messageLower.includes("production compan") ||
+      messageLower.includes("studio") ||
+      messageLower.includes("distributor") ||
+      messageLower.includes("who made") ||
+      messageLower.includes("who produced") ||
+      // Other queries that might need current data
+      messageLower.includes("sequel") ||
+      messageLower.includes("prequel") ||
+      messageLower.includes("spin-off") ||
+      messageLower.includes("franchise") ||
+      // Recent releases might need web search for current information
+      (releaseDate && new Date(releaseDate) > new Date("2023-10-01"));
 
     // Perform web search if needed
     let webSearchInfo = "";
     if (needsWebSearch) {
       const searchQuery = `${title} ${mediaType === "movie" ? "movie" : "TV show"} ${message}`;
-      const searchResults = await searchWeb(searchQuery);
-      if (searchResults.results.length > 0) {
-        webSearchInfo = formatWebSearchResults(searchResults);
+      console.log(`[AI Chat] Performing web search for: "${searchQuery}"`);
+      try {
+        const searchResults = await searchWeb(searchQuery);
+        console.log(`[AI Chat] Web search results: ${searchResults.results.length} results from ${searchResults.provider}`);
+        if (searchResults.results.length > 0) {
+          webSearchInfo = formatWebSearchResults(searchResults);
+          console.log(`[AI Chat] Web search info formatted, length: ${webSearchInfo.length} chars`);
+        } else {
+          console.log(`[AI Chat] No web search results found`);
+        }
+      } catch (error) {
+        console.error(`[AI Chat] Web search error:`, error);
       }
+    } else {
+      console.log(`[AI Chat] Web search not triggered for message: "${message}"`);
     }
 
     const systemPrompt = `You are a helpful AI assistant specialized in providing information about movies and TV shows. You have access to detailed, up-to-date information about ${title} from The Movie Database (TMDB).
@@ -248,20 +294,23 @@ CONTEXT ABOUT ${title.toUpperCase()}:
 ${releaseDate ? `- Release Date: ${releaseDate}` : ""}
 ${genres ? `- Genres: ${genres}` : ""}
 ${runtime ? `- Runtime: ${runtime} minutes` : ""}
-${overview ? `- Overview: ${overview}` : ""}${castInfo}${crewInfo}${watchInfo}${webSearchInfo}
+${overview ? `- Overview: ${overview}` : ""}${castInfo}${crewInfo}${productionInfo}${watchInfo}${webSearchInfo}
 
 INSTRUCTIONS:
 1. Answer questions about ${title} accurately and helpfully using the provided information
 2. When asked about cast members, use the CAST information provided above - this is current and accurate from TMDB
 3. When asked about directors, writers, or producers, use the CREW information provided above
-4. If asked about where to watch, use the watch availability information provided
-5. For current/recent information (box office, awards, reviews, streaming updates, news):
-   - If "CURRENT WEB INFORMATION" is provided above, use that as the primary source and cite the URLs
+4. When asked about production companies or studios, use the PRODUCTION COMPANIES information provided above if available
+5. If asked about where to watch, use the watch availability information provided
+6. For current/recent information (box office, awards, reviews, streaming updates, news, production companies, etc.):
+   - If "CURRENT WEB INFORMATION" is provided above, use that as the PRIMARY source and cite the URLs
+   - The web search results contain the most up-to-date information - always prioritize these over your training data
+   - If web search results are available, use them even if they differ from your knowledge
    - Otherwise, use your knowledge which extends to October 2023
-   - Always prioritize web search results when available
-6. Be conversational and friendly
-7. If you don't know something specific that's not in the provided context, say so rather than guessing
-8. Keep responses concise but informative
+7. Be conversational and friendly
+8. If you don't know something specific that's not in the provided context or web search results, say so rather than guessing
+9. Keep responses concise but informative
+10. When using web search results, mention the sources (URLs) when relevant
 
 Current date: ${new Date().toISOString().split("T")[0]}
 Note: Cast and crew information is current from TMDB. ${webSearchInfo ? "Current web information has been fetched and provided above - use it as the primary source for recent data." : "For very recent information not in the provided context, web search may be needed."}`;
