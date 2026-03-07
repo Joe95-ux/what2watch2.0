@@ -246,7 +246,7 @@ export function MovieChatSheet({
               href={part}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary hover:underline break-all"
+              className="text-blue-400 underline break-words overflow-wrap-anywhere"
             >
               {displayText}
             </a>
@@ -259,7 +259,7 @@ export function MovieChatSheet({
               href={part}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary hover:underline break-all"
+              className="text-blue-400 underline break-words overflow-wrap-anywhere"
             >
               {part}
             </a>
@@ -410,7 +410,7 @@ export function MovieChatSheet({
                   key={index}
                   className={cn(
                     "flex items-start gap-3",
-                    message.role === "user" ? "justify-end pr-[10px]" : "justify-start"
+                    message.role === "user" ? "justify-end" : "justify-start"
                   )}
                 >
                   {message.role === "assistant" && (
@@ -427,13 +427,13 @@ export function MovieChatSheet({
                   )}
                   <div
                     className={cn(
-                      "max-w-[80%] rounded-lg px-4 py-2 relative group",
+                      "max-w-[80%] rounded-lg px-4 py-2 relative group overflow-hidden",
                       message.role === "user"
                         ? "bg-[#edf3fe] text-black"
                         : "bg-muted text-foreground"
                     )}
                   >
-                    <p className="text-sm whitespace-pre-wrap pr-6">
+                    <p className="text-sm whitespace-pre-wrap pr-6 break-words overflow-wrap-anywhere">
                       {message.role === "assistant" ? formatMessageWithLinks(message.content) : message.content}
                     </p>
                     <Button
