@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, Send, X, Loader2, History, HelpCircle, Clock, Copy, Check, SquarePen, Trash2 } from "lucide-react";
+import { MessageCircle, Send, X, Loader2, History, HelpCircle, Clock, Copy, Check, SquarePen, Trash2, Mic, MicOff } from "lucide-react";
+
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,9 +74,52 @@ export function MovieChatSheet({
   }>>([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeechSupported, setIsSpeechSupported] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const shouldAutoScroll = useRef(true);
+
+  // Check if MediaRecorder is supported (works in all modern browsers including Firefox)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isSupported = 
+        navigator.mediaDevices && 
+        navigator.mediaDevices.getUserMedia && 
+        typeof MediaRecorder !== "undefined";
+      setIsSpeechSupported(isSupported);
+    }
+  }, []);
+
+  // Cleanup: Stop recording when component unmounts or sheet closes
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+    };
+  }, []);
+
+  // Stop recording when sheet closes
+  useEffect(() => {
+    if (!isOpen && isListening) {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+      setIsListening(false);
+    }
+  }, [isOpen, isListening]);
 
   // Load chat history when sheet opens or sessionId changes
   useEffect(() => {
@@ -402,6 +446,122 @@ export function MovieChatSheet({
     toast.success("New chat started");
   };
 
+  const handleVoiceInput = async () => {
+    if (!isSpeechSupported) {
+      toast.error("Voice input is not supported in your browser");
+      return;
+    }
+
+    if (isListening) {
+      // Stop recording
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+      // Stop the media stream
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+      setIsListening(false);
+      return;
+    }
+
+    // Start recording
+    try {
+      // Request microphone permission
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      // Determine the best audio format for the browser
+      let mimeType = "audio/webm";
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = "audio/mp4";
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = "audio/ogg";
+          if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = ""; // Use browser default
+          }
+        }
+      }
+
+      const options: MediaRecorderOptions = mimeType ? { mimeType } : {};
+      const mediaRecorder = new MediaRecorder(stream, options);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        // Stop all tracks
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+        }
+
+        // Combine audio chunks
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType || "audio/webm" });
+        audioChunksRef.current = [];
+
+        // Send to transcription API
+        try {
+          const formData = new FormData();
+          formData.append("audio", audioBlob, "recording.webm");
+
+          const response = await fetch("/api/ai/transcribe", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!response.ok) {
+            throw new Error("Transcription failed");
+          }
+
+          const data = await response.json();
+          if (data.text) {
+            setInput((prev) => prev + (prev ? " " : "") + data.text.trim());
+            toast.success("Voice input transcribed");
+          } else {
+            toast.error("No speech detected. Please try again.");
+          }
+        } catch (error) {
+          console.error("Transcription error:", error);
+          toast.error("Failed to transcribe audio. Please try again.");
+        } finally {
+          setIsListening(false);
+        }
+      };
+
+      mediaRecorder.onerror = (event: any) => {
+        console.error("MediaRecorder error:", event);
+        toast.error("Recording error. Please try again.");
+        setIsListening(false);
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+        }
+      };
+
+      // Start recording
+      mediaRecorder.start();
+      setIsListening(true);
+    } catch (error: any) {
+      console.error("Failed to start recording:", error);
+      setIsListening(false);
+      
+      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+        toast.error("Microphone permission denied. Please enable microphone access in your browser settings.");
+      } else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
+        toast.error("No microphone found. Please connect a microphone and try again.");
+      } else {
+        toast.error("Failed to access microphone. Please try again.");
+      }
+    }
+  };
+
   const remainingQuestions = maxQuestions === Infinity ? Infinity : maxQuestions - questionCount;
 
   return (
@@ -583,40 +743,62 @@ export function MovieChatSheet({
 
           {/* Input Area */}
           <div className="px-6 py-4">
-            <div className="flex gap-2">
-              <Input
-                value={input}
-                onChange={(e) => {
-                  // Sanitize input on change to prevent malicious code
-                  const sanitized = sanitizeHtml(e.target.value);
-                  setInput(sanitized);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
+            <div className="relative rounded-lg border border-border bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+              <div className="flex items-end gap-2 p-2">
+                <Input
+                  value={input}
+                  onChange={(e) => {
+                    // Sanitize input on change to prevent malicious code
+                    const sanitized = sanitizeHtml(e.target.value);
+                    setInput(sanitized);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  placeholder={
+                    maxQuestions !== Infinity && questionCount >= maxQuestions
+                      ? "Upgrade to Pro for more questions"
+                      : "Ask a question..."
                   }
-                }}
-                placeholder={
-                  maxQuestions !== Infinity && questionCount >= maxQuestions
-                    ? "Upgrade to Pro for more questions"
-                    : "Ask a question..."
-                }
-                disabled={isLoading || questionCount >= maxQuestions}
-                className="flex-1"
-              />
-              <Button
-                onClick={() => handleSend()}
-                disabled={!input.trim() || isLoading || questionCount >= maxQuestions}
-                size="icon"
-                className="cursor-pointer"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </Button>
+                  disabled={isLoading || questionCount >= maxQuestions}
+                  className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent resize-none min-h-[44px] max-h-[200px]"
+                />
+                <div className="flex items-center gap-1 pb-1">
+                  <Button
+                    onClick={handleVoiceInput}
+                    disabled={isLoading || questionCount >= maxQuestions || !isSpeechSupported}
+                    size="icon"
+                    variant="ghost"
+                    className={cn(
+                      "h-8 w-8 cursor-pointer shrink-0",
+                      isListening && "text-destructive animate-pulse"
+                    )}
+                    title={isListening ? "Stop recording" : "Start voice input"}
+                  >
+                    {isListening ? (
+                      <MicOff className="h-4 w-4" />
+                    ) : (
+                      <Mic className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    onClick={() => handleSend()}
+                    disabled={!input.trim() || isLoading || questionCount >= maxQuestions}
+                    size="icon"
+                    className="h-8 w-8 cursor-pointer shrink-0"
+                    title="Send message"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
             {questionCount >= maxQuestions && (
               <p className="text-xs text-muted-foreground mt-2 text-center">
