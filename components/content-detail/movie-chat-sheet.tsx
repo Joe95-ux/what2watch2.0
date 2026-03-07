@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, Send, X, Loader2, History, HelpCircle, Clock, Copy, Check, SquarePen } from "lucide-react";
+import { MessageCircle, Send, X, Loader2, History, HelpCircle, Clock, Copy, Check, SquarePen, Trash2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -230,11 +230,40 @@ export function MovieChatSheet({
 
   // Convert URLs in text to clickable links
   const formatMessageWithLinks = (text: string) => {
-    // URL regex pattern
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const parts = text.split(urlRegex);
+    // URL regex pattern - matches full URLs (http:// or https://)
+    // This pattern matches URLs and stops at whitespace or common punctuation (but includes trailing punctuation that's part of the URL)
+    const urlRegex = /(https?:\/\/[^\s<>"']+)/g;
+    const parts: string[] = [];
+    let lastIndex = 0;
+    let match;
+    
+    // Reset regex
+    urlRegex.lastIndex = 0;
+    
+    // Find all URLs and split the text
+    while ((match = urlRegex.exec(text)) !== null) {
+      // Add text before the URL
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+      // Add the URL
+      parts.push(match[0]);
+      lastIndex = urlRegex.lastIndex;
+    }
+    
+    // Add remaining text
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+    
+    // If no URLs found, return original text
+    if (parts.length === 0) {
+      return <span>{text}</span>;
+    }
     
     return parts.map((part, index) => {
+      // Check if this part is a URL
+      urlRegex.lastIndex = 0;
       if (urlRegex.test(part)) {
         // Extract domain for display text
         try {
@@ -328,6 +357,39 @@ export function MovieChatSheet({
     } catch (error) {
       console.error("Failed to load session:", error);
       toast.error("Failed to load chat session");
+    }
+  };
+
+  const handleDeleteSession = async (sessionIdToDelete: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent loading the session when clicking delete
+    
+    if (!confirm("Are you sure you want to delete this chat session?")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/ai/chat/movie-details/sessions/${sessionIdToDelete}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        toast.success("Chat session deleted");
+        
+        // Check if we're deleting the current session
+        const sessionToDelete = chatSessions.find(s => s.id === sessionIdToDelete);
+        if (sessionToDelete && sessionToDelete.fullSessionId === `movie-details-${tmdbId}-${sessionId}`) {
+          // If deleting current session, start a new chat
+          handleNewChat();
+        }
+        
+        // Reload sessions list
+        loadChatSessions();
+      } else {
+        toast.error("Failed to delete chat session");
+      }
+    } catch (error) {
+      console.error("Failed to delete session:", error);
+      toast.error("Failed to delete chat session");
     }
   };
 
@@ -591,13 +653,15 @@ export function MovieChatSheet({
             ) : (
               <div className="space-y-2">
                 {chatSessions.map((session) => (
-                  <button
+                  <div
                     key={session.id}
-                    onClick={() => handleLoadSession(session.fullSessionId, session.sessionId)}
-                    className="w-full text-left p-4 rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer group"
+                    className="w-full p-4 rounded-lg border border-border hover:bg-muted transition-colors group"
                   >
                     <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
+                      <button
+                        onClick={() => handleLoadSession(session.fullSessionId, session.sessionId)}
+                        className="flex-1 min-w-0 text-left cursor-pointer"
+                      >
                         <div className="flex items-center gap-2 mb-1">
                           <History className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                           <span className="text-sm font-medium text-foreground truncate">
@@ -620,12 +684,23 @@ export function MovieChatSheet({
                             {formatDistanceToNow(new Date(session.updatedAt), { addSuffix: true })}
                           </span>
                         </div>
-                      </div>
-                      <div className="text-xs text-muted-foreground flex-shrink-0">
-                        {format(new Date(session.updatedAt), "MMM d, yyyy")}
+                      </button>
+                      <div className="flex items-start gap-2 flex-shrink-0">
+                        <div className="text-xs text-muted-foreground">
+                          {format(new Date(session.updatedAt), "MMM d, yyyy")}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => handleDeleteSession(session.id, e)}
+                          title="Delete chat session"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             )}
