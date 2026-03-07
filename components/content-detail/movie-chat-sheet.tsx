@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, Send, X, Loader2, History, HelpCircle, Clock, Copy, Check, SquarePen, Trash2, Mic, MicOff } from "lucide-react";
+import { MessageCircle, Send, X, Loader2, History, HelpCircle, Clock, Copy, Check, SquarePen, Trash2, Mic, MicOff, CornerDownLeft } from "lucide-react";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -79,6 +79,10 @@ export function MovieChatSheet({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
+  const transcriptionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const accumulatedTextRef = useRef<string>("");
+  const isTranscribingRef = useRef<boolean>(false);
+  const isListeningRef = useRef<boolean>(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const shouldAutoScroll = useRef(true);
@@ -97,6 +101,10 @@ export function MovieChatSheet({
   // Cleanup: Stop recording when component unmounts or sheet closes
   useEffect(() => {
     return () => {
+      if (transcriptionIntervalRef.current) {
+        clearInterval(transcriptionIntervalRef.current);
+        transcriptionIntervalRef.current = null;
+      }
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
         mediaRecorderRef.current.stop();
       }
@@ -110,6 +118,10 @@ export function MovieChatSheet({
   // Stop recording when sheet closes
   useEffect(() => {
     if (!isOpen && isListening) {
+      if (transcriptionIntervalRef.current) {
+        clearInterval(transcriptionIntervalRef.current);
+        transcriptionIntervalRef.current = null;
+      }
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
         mediaRecorderRef.current.stop();
       }
@@ -118,6 +130,8 @@ export function MovieChatSheet({
         streamRef.current = null;
       }
       setIsListening(false);
+      isListeningRef.current = false;
+      accumulatedTextRef.current = "";
     }
   }, [isOpen, isListening]);
 
@@ -446,6 +460,54 @@ export function MovieChatSheet({
     toast.success("New chat started");
   };
 
+  // Function to transcribe accumulated audio chunks
+  const transcribeAccumulated = async (chunks: Blob[], mimeType: string, isFinal: boolean = false) => {
+    if (isTranscribingRef.current && !isFinal) return; // Skip if already transcribing (unless it's the final chunk)
+    if (chunks.length === 0) return;
+    
+    try {
+      isTranscribingRef.current = true;
+      
+      // Combine all chunks into one blob
+      const audioBlob = new Blob(chunks, { type: mimeType || "audio/webm" });
+      
+      const formData = new FormData();
+      formData.append("audio", audioBlob, "recording.webm");
+
+      const response = await fetch("/api/ai/transcribe", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Transcription failed");
+      }
+
+      const data = await response.json();
+      if (data.text && data.text.trim()) {
+        const transcribedText = data.text.trim();
+        
+        // Update accumulated text and input field
+        // We replace the accumulated text with the new full transcription
+        setInput((prev) => {
+          // Remove old accumulated text if it exists
+          const baseText = prev.replace(accumulatedTextRef.current, "").trim();
+          accumulatedTextRef.current = transcribedText;
+          return baseText 
+            ? `${baseText} ${transcribedText}`.trim()
+            : transcribedText;
+        });
+      }
+    } catch (error) {
+      console.error("Transcription error:", error);
+      if (isFinal) {
+        toast.error("Failed to transcribe audio. Please try again.");
+      }
+    } finally {
+      isTranscribingRef.current = false;
+    }
+  };
+
   const handleVoiceInput = async () => {
     if (!isSpeechSupported) {
       toast.error("Voice input is not supported in your browser");
@@ -453,21 +515,33 @@ export function MovieChatSheet({
     }
 
     if (isListening) {
-      // Stop recording
+      // Stop recording and clear interval
+      if (transcriptionIntervalRef.current) {
+        clearInterval(transcriptionIntervalRef.current);
+        transcriptionIntervalRef.current = null;
+      }
+      
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
         mediaRecorderRef.current.stop();
       }
+      
       // Stop the media stream
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
       }
+      
       setIsListening(false);
+      isListeningRef.current = false;
+      accumulatedTextRef.current = "";
       return;
     }
 
     // Start recording
     try {
+      // Reset accumulated text
+      accumulatedTextRef.current = "";
+      
       // Request microphone permission
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -488,6 +562,9 @@ export function MovieChatSheet({
       const mediaRecorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
+      
+      const chunkDuration = 2000; // 2 seconds per chunk
+      const transcriptionInterval = 3000; // Transcribe every 3 seconds
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -495,62 +572,61 @@ export function MovieChatSheet({
         }
       };
 
+      // Set up periodic transcription
+      isListeningRef.current = true;
+      transcriptionIntervalRef.current = setInterval(() => {
+        if (isListeningRef.current && audioChunksRef.current.length > 0) {
+          transcribeAccumulated([...audioChunksRef.current], mimeType || "audio/webm", false);
+        }
+      }, transcriptionInterval);
+
       mediaRecorder.onstop = async () => {
+        // Clear interval
+        if (transcriptionIntervalRef.current) {
+          clearInterval(transcriptionIntervalRef.current);
+          transcriptionIntervalRef.current = null;
+        }
+
         // Stop all tracks
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((track) => track.stop());
           streamRef.current = null;
         }
 
-        // Combine audio chunks
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType || "audio/webm" });
-        audioChunksRef.current = [];
-
-        // Send to transcription API
-        try {
-          const formData = new FormData();
-          formData.append("audio", audioBlob, "recording.webm");
-
-          const response = await fetch("/api/ai/transcribe", {
-            method: "POST",
-            body: formData,
-          });
-
-          if (!response.ok) {
-            throw new Error("Transcription failed");
-          }
-
-          const data = await response.json();
-          if (data.text) {
-            setInput((prev) => prev + (prev ? " " : "") + data.text.trim());
-            toast.success("Voice input transcribed");
-          } else {
-            toast.error("No speech detected. Please try again.");
-          }
-        } catch (error) {
-          console.error("Transcription error:", error);
-          toast.error("Failed to transcribe audio. Please try again.");
-        } finally {
-          setIsListening(false);
+        // Final transcription of any remaining audio
+        if (audioChunksRef.current.length > 0) {
+          await transcribeAccumulated([...audioChunksRef.current], mimeType || "audio/webm", true);
+          audioChunksRef.current = [];
         }
+
+        setIsListening(false);
+        isListeningRef.current = false;
+        accumulatedTextRef.current = "";
       };
 
       mediaRecorder.onerror = (event: any) => {
         console.error("MediaRecorder error:", event);
         toast.error("Recording error. Please try again.");
         setIsListening(false);
+        if (transcriptionIntervalRef.current) {
+          clearInterval(transcriptionIntervalRef.current);
+          transcriptionIntervalRef.current = null;
+        }
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((track) => track.stop());
           streamRef.current = null;
         }
+        accumulatedTextRef.current = "";
       };
 
-      // Start recording
-      mediaRecorder.start();
+      // Start recording with timeslice to get chunks every 2 seconds
+      mediaRecorder.start(chunkDuration);
       setIsListening(true);
+      isListeningRef.current = true;
     } catch (error: any) {
       console.error("Failed to start recording:", error);
       setIsListening(false);
+      accumulatedTextRef.current = "";
       
       if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
         toast.error("Microphone permission denied. Please enable microphone access in your browser settings.");
@@ -743,7 +819,7 @@ export function MovieChatSheet({
 
           {/* Input Area */}
           <div className="px-6 py-4">
-            <div className="relative rounded-lg border border-border bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+            <div className="relative rounded-lg border border-border bg-background">
               <div className="flex items-end gap-2 p-2">
                 <Input
                   value={input}
@@ -764,7 +840,7 @@ export function MovieChatSheet({
                       : "Ask a question..."
                   }
                   disabled={isLoading || questionCount >= maxQuestions}
-                  className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent resize-none min-h-[44px] max-h-[200px]"
+                  className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent resize-none min-h-[44px] max-h-[200px] placeholder:text-muted-foreground"
                 />
                 <div className="flex items-center gap-1 pb-1">
                   <Button
@@ -794,7 +870,7 @@ export function MovieChatSheet({
                     {isLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <Send className="h-4 w-4" />
+                      <CornerDownLeft className="h-4 w-4" />
                     )}
                   </Button>
                 </div>

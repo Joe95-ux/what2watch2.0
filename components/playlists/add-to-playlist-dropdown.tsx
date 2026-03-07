@@ -159,6 +159,7 @@ export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChang
       <CreatePlaylistModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+        initialItem={{ item, type }}
       />
     </>
   );

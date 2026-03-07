@@ -30,13 +30,14 @@ interface CreateListModalProps {
   list?: List;
   onSuccess?: (list: List) => void;
   editOnly?: boolean; // If true, only show step 1 (name, description, tags) and skip step 2
+  initialItem?: { item: TMDBMovie | TMDBSeries; type: "movie" | "tv" };
 }
 
 interface ListItemWithData extends ListItem {
   tmdbData?: TMDBMovie | TMDBSeries;
 }
 
-export default function CreateListModal({ isOpen, onClose, list, onSuccess, editOnly = false }: CreateListModalProps) {
+export default function CreateListModal({ isOpen, onClose, list, onSuccess, editOnly = false, initialItem }: CreateListModalProps) {
   const createList = useCreateList();
   const updateList = useUpdateList();
   const [step, setStep] = useState<1 | 2>(1);
@@ -78,12 +79,38 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess, edit
       setDescription("");
       setVisibility("PUBLIC");
       setTags("");
-      setItems([]);
-      setStep(1);
+      
+      // If initialItem is provided, add it to items
+      if (initialItem) {
+        const film = initialItem.item;
+        const isMovie = initialItem.type === "movie";
+        const title = isMovie ? (film as TMDBMovie).title : (film as TMDBSeries).name;
+        
+        const newItem: ListItemWithData = {
+          id: `temp-${Date.now()}`,
+          listId: "",
+          tmdbId: film.id,
+          mediaType: initialItem.type,
+          title,
+          posterPath: film.poster_path,
+          backdropPath: film.backdrop_path,
+          releaseDate: isMovie ? (film as TMDBMovie).release_date || null : null,
+          firstAirDate: !isMovie ? (film as TMDBSeries).first_air_date || null : null,
+          position: 1,
+          note: null,
+          createdAt: new Date().toISOString(),
+          tmdbData: film,
+        };
+        setItems([newItem]);
+        setStep(2); // Go directly to step 2 since item is already added
+      } else {
+        setItems([]);
+        setStep(1);
+      }
     }
     setSearchQuery("");
     setIsSearchOpen(false);
-  }, [list, isOpen, editOnly]);
+  }, [list, isOpen, editOnly, initialItem]);
 
   // Close search dropdown when clicking outside
   useEffect(() => {

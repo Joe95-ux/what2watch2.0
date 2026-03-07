@@ -28,13 +28,14 @@ interface CreatePlaylistModalProps {
   isOpen: boolean;
   onClose: () => void;
   playlist?: Playlist;
+  initialItem?: { item: TMDBMovie | TMDBSeries; type: "movie" | "tv" };
 }
 
 interface PlaylistItemWithData extends PlaylistItem {
   tmdbData?: TMDBMovie | TMDBSeries;
 }
 
-export default function CreatePlaylistModal({ isOpen, onClose, playlist }: CreatePlaylistModalProps) {
+export default function CreatePlaylistModal({ isOpen, onClose, playlist, initialItem }: CreatePlaylistModalProps) {
   const createPlaylist = useCreatePlaylist();
   const updatePlaylist = useUpdatePlaylist();
   const [step, setStep] = useState<1 | 2>(1);
@@ -71,12 +72,38 @@ export default function CreatePlaylistModal({ isOpen, onClose, playlist }: Creat
       setName("");
       setDescription("");
       setIsPublic(false);
-      setItems([]);
-      setStep(1);
+      
+      // If initialItem is provided, add it to items
+      if (initialItem) {
+        const film = initialItem.item;
+        const isMovie = initialItem.type === "movie";
+        const title = isMovie ? (film as TMDBMovie).title : (film as TMDBSeries).name;
+        
+        const newItem: PlaylistItemWithData = {
+          id: `temp-${Date.now()}`,
+          playlistId: "",
+          tmdbId: film.id,
+          mediaType: initialItem.type,
+          title,
+          posterPath: film.poster_path,
+          backdropPath: film.backdrop_path,
+          releaseDate: isMovie ? (film as TMDBMovie).release_date || null : null,
+          firstAirDate: !isMovie ? (film as TMDBSeries).first_air_date || null : null,
+          order: 0,
+          note: null,
+          createdAt: new Date().toISOString(),
+          tmdbData: film,
+        };
+        setItems([newItem]);
+        setStep(2); // Go directly to step 2 since item is already added
+      } else {
+        setItems([]);
+        setStep(1);
+      }
     }
     setSearchQuery("");
     setIsSearchOpen(false);
-  }, [playlist, isOpen]);
+  }, [playlist, isOpen, initialItem]);
 
   // Close search dropdown when clicking outside
   useEffect(() => {

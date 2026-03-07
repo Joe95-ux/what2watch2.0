@@ -390,10 +390,12 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
       <CreatePlaylistModal
         isOpen={isCreatePlaylistModalOpen}
         onClose={() => setIsCreatePlaylistModalOpen(false)}
+        initialItem={{ item, type }}
       />
       <CreateListModal
         isOpen={isCreateListModalOpen}
         onClose={() => setIsCreateListModalOpen(false)}
+        initialItem={{ item, type }}
       />
     </>
   );
