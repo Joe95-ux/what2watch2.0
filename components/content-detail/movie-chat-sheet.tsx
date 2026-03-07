@@ -76,24 +76,83 @@ export function MovieChatSheet({
   const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [isSpeechSupported, setIsSpeechSupported] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
-  const isTranscribingRef = useRef<boolean>(false);
-  const isListeningRef = useRef<boolean>(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const shouldAutoScroll = useRef(true);
 
-  // Check if MediaRecorder is supported (works in all modern browsers including Firefox)
+  // Check for Web Speech API support (Chrome, Edge, Safari) or MediaRecorder (Firefox)
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const isSupported = 
+      const hasWebSpeech = !!(window as any).SpeechRecognition || !!(window as any).webkitSpeechRecognition;
+      const hasMediaRecorder = 
         navigator.mediaDevices && 
         navigator.mediaDevices.getUserMedia && 
         typeof MediaRecorder !== "undefined";
-      setIsSpeechSupported(isSupported);
+      setIsSpeechSupported(hasWebSpeech || hasMediaRecorder);
     }
+  }, []);
+
+  // Initialize Web Speech API if available (for Chrome, Edge, Safari)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onresult = (event: any) => {
+      let interimTranscript = "";
+      let finalTranscript = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + " ";
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+
+      // Update input with final + interim text (like ChatGPT)
+      if (finalTranscript || interimTranscript) {
+        setInput((prev) => {
+          // Remove previous interim results and add new ones
+          const baseText = prev.replace(/\s*\[listening\.\.\.\]\s*$/, "");
+          const newText = baseText + finalTranscript + (interimTranscript ? `[listening...]` : "");
+          return newText.trim();
+        });
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error:", event.error);
+      if (event.error === "not-allowed") {
+        toast.error("Microphone permission denied. Please enable it in your browser settings.");
+      } else if (event.error !== "no-speech") {
+        toast.error("Speech recognition error. Please try again.");
+      }
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
   }, []);
 
   // Cleanup: Stop recording when component unmounts or sheet closes
@@ -112,6 +171,9 @@ export function MovieChatSheet({
   // Stop recording when sheet closes
   useEffect(() => {
     if (!isOpen && isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
         mediaRecorderRef.current.stop();
       }
@@ -120,7 +182,6 @@ export function MovieChatSheet({
         streamRef.current = null;
       }
       setIsListening(false);
-      isListeningRef.current = false;
     }
   }, [isOpen, isListening]);
 
@@ -449,22 +510,9 @@ export function MovieChatSheet({
     toast.success("New chat started");
   };
 
-  // Function to transcribe accumulated audio chunks
-  const transcribeAccumulated = async (chunks: Blob[], mimeType: string) => {
-    if (chunks.length === 0) return;
-    
+  // Transcribe audio using Whisper API (for Firefox fallback)
+  const transcribeAudio = async (audioBlob: Blob) => {
     try {
-      isTranscribingRef.current = true;
-      
-      // Combine all chunks into one blob
-      const audioBlob = new Blob(chunks, { type: mimeType || "audio/webm" });
-      
-      // Check minimum audio size (at least 1KB to ensure we have some audio)
-      if (audioBlob.size < 1024) {
-        isTranscribingRef.current = false;
-        return;
-      }
-      
       const formData = new FormData();
       formData.append("audio", audioBlob, "recording.webm");
 
@@ -479,22 +527,16 @@ export function MovieChatSheet({
 
       const data = await response.json();
       if (data.text && data.text.trim()) {
-        const transcribedText = data.text.trim();
-        
-        // Simply append the transcribed text to the input
-        // This avoids issues with text replacement logic
         setInput((prev) => {
-          // If there's existing text, add a space before appending
-          return prev.trim() 
-            ? `${prev.trim()} ${transcribedText}`.trim()
-            : transcribedText;
+          const baseText = prev.replace(/\s*\[listening\.\.\.\]\s*$/, "");
+          return baseText.trim() 
+            ? `${baseText.trim()} ${data.text.trim()}`.trim()
+            : data.text.trim();
         });
       }
     } catch (error) {
       console.error("Transcription error:", error);
       toast.error("Failed to transcribe audio. Please try again.");
-    } finally {
-      isTranscribingRef.current = false;
     }
   };
 
@@ -504,105 +546,109 @@ export function MovieChatSheet({
       return;
     }
 
-    if (isListening) {
-      // Stop recording
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-        mediaRecorderRef.current.stop();
+    // Check if Web Speech API is available (Chrome, Edge, Safari)
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (SpeechRecognition && recognitionRef.current) {
+      // Use Web Speech API for real-time transcription (like ChatGPT)
+      if (isListening) {
+        recognitionRef.current.stop();
+        setIsListening(false);
+        setInput((prev) => prev.replace(/\s*\[listening\.\.\.\]\s*$/, ""));
+      } else {
+        try {
+          recognitionRef.current.start();
+          setIsListening(true);
+        } catch (error) {
+          console.error("Failed to start speech recognition:", error);
+          toast.error("Failed to start voice input. Please try again.");
+        }
       }
-      
-      // Stop the media stream
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
+    } else {
+      // Fallback to MediaRecorder + Whisper for Firefox
+      if (isListening) {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+          mediaRecorderRef.current.stop();
+        }
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+        }
+        setIsListening(false);
+        setInput((prev) => prev.replace(/\s*\[listening\.\.\.\]\s*$/, ""));
+        return;
       }
-      
-      setIsListening(false);
-      isListeningRef.current = false;
-      return;
-    }
 
-    // Start recording
-    try {
-      
-      // Request microphone permission with better audio constraints
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 44100, // Higher sample rate for better quality
-        } 
-      });
-      streamRef.current = stream;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          } 
+        });
+        streamRef.current = stream;
 
-      // Determine the best audio format for the browser
-      let mimeType = "audio/webm";
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = "audio/mp4";
+        let mimeType = "audio/webm";
         if (!MediaRecorder.isTypeSupported(mimeType)) {
-          mimeType = "audio/ogg";
+          mimeType = "audio/mp4";
           if (!MediaRecorder.isTypeSupported(mimeType)) {
-            mimeType = ""; // Use browser default
+            mimeType = "audio/ogg";
+            if (!MediaRecorder.isTypeSupported(mimeType)) {
+              mimeType = "";
+            }
           }
         }
-      }
 
-      const options: MediaRecorderOptions = mimeType ? { mimeType } : {};
-      const mediaRecorder = new MediaRecorder(stream, options);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-      
-      // Don't use timeslice - record continuously and only transcribe on stop
-      // This gives better accuracy as Whisper works better with complete audio
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
+        const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
 
-      mediaRecorder.onstop = async () => {
-        // Stop all tracks
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach((track) => track.stop());
-          streamRef.current = null;
-        }
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
 
-        // Final transcription of all recorded audio
-        if (audioChunksRef.current.length > 0) {
-          await transcribeAccumulated([...audioChunksRef.current], mimeType || "audio/webm");
-          audioChunksRef.current = [];
-        }
+        mediaRecorder.onstop = async () => {
+          if (streamRef.current) {
+            streamRef.current.getTracks().forEach((track) => track.stop());
+            streamRef.current = null;
+          }
 
+          if (audioChunksRef.current.length > 0) {
+            const audioBlob = new Blob(audioChunksRef.current, { type: mimeType || "audio/webm" });
+            await transcribeAudio(audioBlob);
+            audioChunksRef.current = [];
+          }
+
+          setIsListening(false);
+        };
+
+        mediaRecorder.onerror = (event: any) => {
+          console.error("MediaRecorder error:", event);
+          toast.error("Recording error. Please try again.");
+          setIsListening(false);
+          if (streamRef.current) {
+            streamRef.current.getTracks().forEach((track) => track.stop());
+            streamRef.current = null;
+          }
+        };
+
+        mediaRecorder.start();
+        setIsListening(true);
+        setInput((prev) => prev + (prev ? " " : "") + "[listening...]");
+      } catch (error: any) {
+        console.error("Failed to start recording:", error);
         setIsListening(false);
-        isListeningRef.current = false;
-      };
-
-      mediaRecorder.onerror = (event: any) => {
-        console.error("MediaRecorder error:", event);
-        toast.error("Recording error. Please try again.");
-        setIsListening(false);
-        isListeningRef.current = false;
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach((track) => track.stop());
-          streamRef.current = null;
+        
+        if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+          toast.error("Microphone permission denied. Please enable microphone access in your browser settings.");
+        } else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
+          toast.error("No microphone found. Please connect a microphone and try again.");
+        } else {
+          toast.error("Failed to access microphone. Please try again.");
         }
-      };
-
-      // Start recording continuously (no timeslice for better quality)
-      mediaRecorder.start();
-      setIsListening(true);
-      isListeningRef.current = true;
-    } catch (error: any) {
-      console.error("Failed to start recording:", error);
-      setIsListening(false);
-      isListeningRef.current = false;
-      
-      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-        toast.error("Microphone permission denied. Please enable microphone access in your browser settings.");
-      } else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
-        toast.error("No microphone found. Please connect a microphone and try again.");
-      } else {
-        toast.error("Failed to access microphone. Please try again.");
       }
     }
   };
