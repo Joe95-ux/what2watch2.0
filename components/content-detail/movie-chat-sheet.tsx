@@ -19,6 +19,7 @@ import { useUser } from "@clerk/nextjs";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { formatDistanceToNow, format } from "date-fns";
 import Image from "next/image";
+import { containsProfanity, sanitizeHtml } from "@/lib/moderation";
 
 interface Message {
   role: "user" | "assistant";
@@ -154,6 +155,15 @@ export function MovieChatSheet({
     const messageToSend = message || input.trim();
     if (!messageToSend || isLoading) return;
 
+    // Sanitize and validate input
+    const sanitizedMessage = sanitizeHtml(messageToSend);
+    
+    // Check for profanity
+    if (containsProfanity(sanitizedMessage)) {
+      toast.error("Your message contains inappropriate language. Please revise your message.");
+      return;
+    }
+
     // Check question limit (skip if unlimited)
     if (maxQuestions !== Infinity && questionCount >= maxQuestions) {
       toast.error(`You've reached your limit of ${maxQuestions} questions. Upgrade to Pro for unlimited questions.`);
@@ -163,8 +173,8 @@ export function MovieChatSheet({
     setInput("");
     setIsLoading(true);
 
-    // Add user message immediately
-    const userMessage: Message = { role: "user", content: messageToSend };
+    // Add user message immediately (use sanitized version)
+    const userMessage: Message = { role: "user", content: sanitizedMessage };
     setMessages((prev) => [...prev, userMessage]);
 
     try {
@@ -172,7 +182,7 @@ export function MovieChatSheet({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: messageToSend,
+          message: sanitizedMessage,
           sessionId,
           tmdbId,
           mediaType,
@@ -216,6 +226,48 @@ export function MovieChatSheet({
 
   const handleSuggestionClick = (suggestion: string) => {
     handleSend(suggestion);
+  };
+
+  // Convert URLs in text to clickable links
+  const formatMessageWithLinks = (text: string) => {
+    // URL regex pattern
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+    
+    return parts.map((part, index) => {
+      if (urlRegex.test(part)) {
+        // Extract domain for display text
+        try {
+          const url = new URL(part);
+          const displayText = url.hostname.replace('www.', '');
+          return (
+            <a
+              key={index}
+              href={part}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline break-all"
+            >
+              {displayText}
+            </a>
+          );
+        } catch {
+          // If URL parsing fails, show the URL as-is
+          return (
+            <a
+              key={index}
+              href={part}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline break-all"
+            >
+              {part}
+            </a>
+          );
+        }
+      }
+      return <span key={index}>{part}</span>;
+    });
   };
 
   const handleCopyMessage = async (content: string, index: number) => {
@@ -343,7 +395,7 @@ export function MovieChatSheet({
           ref={scrollAreaRef}
           className="flex-1 min-h-0"
         >
-          <div className="px-6 py-4 space-y-4">
+          <div className="px-3 py-4 space-y-4">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
                 <HelpCircle className="h-12 w-12 text-muted-foreground mb-4" />
@@ -358,7 +410,7 @@ export function MovieChatSheet({
                   key={index}
                   className={cn(
                     "flex items-start gap-3",
-                    message.role === "user" ? "justify-end" : "justify-start"
+                    message.role === "user" ? "justify-end pr-[10px]" : "justify-start"
                   )}
                 >
                   {message.role === "assistant" && (
@@ -381,7 +433,9 @@ export function MovieChatSheet({
                         : "bg-muted text-foreground"
                     )}
                   >
-                    <p className="text-sm whitespace-pre-wrap pr-6">{message.content}</p>
+                    <p className="text-sm whitespace-pre-wrap pr-6">
+                      {message.role === "assistant" ? formatMessageWithLinks(message.content) : message.content}
+                    </p>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -471,7 +525,11 @@ export function MovieChatSheet({
             <div className="flex gap-2">
               <Input
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  // Sanitize input on change to prevent malicious code
+                  const sanitized = sanitizeHtml(e.target.value);
+                  setInput(sanitized);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
