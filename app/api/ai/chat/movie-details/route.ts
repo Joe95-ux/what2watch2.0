@@ -319,11 +319,13 @@ INSTRUCTIONS:
    - If web search results are available, you MUST use them to answer the question, even if they differ from your knowledge
    - If web search results are provided, DO NOT say "the information is not available" - use the web search results instead
    - Only if NO web search results are provided should you use your knowledge (which extends to October 2023)
-   - When using web search results, always cite the source URLs
+   - When using web search results, always cite the source URLs using markdown links
+   - Format links as [Site Name](url) or [Domain Name](url), NOT as "Site Name [here](url)"
+   - Use the site name or domain name as the link text, not the word "here"
 7. Be conversational and friendly
 8. If you don't know something specific that's not in the provided context or web search results, say so rather than guessing
 9. Keep responses concise but informative
-10. When using web search results, mention the sources (URLs) when relevant
+10. When using web search results, mention the sources (URLs) when relevant, formatted as [Site Name](url)
 
 Current date: ${new Date().toISOString().split("T")[0]}
 Note: Cast and crew information is current from TMDB. ${webSearchInfo ? "Current web information has been fetched and provided above - use it as the primary source for recent data." : "For very recent information not in the provided context, web search may be needed."}`;
@@ -371,7 +373,7 @@ Note: Cast and crew information is current from TMDB. ${webSearchInfo ? "Current
           // Regenerate response with web search results
           const updatedSystemPrompt = `${systemPrompt}${newWebSearchInfo}
 
-IMPORTANT: The user's question requires current information that you don't have in your training data. Use the CURRENT WEB INFORMATION provided above to answer the question accurately. Do NOT say "as of my last update" or similar phrases - use the web search results instead.`;
+IMPORTANT: The user's question requires current information that you don't have in your training data. Use the CURRENT WEB INFORMATION provided above to answer the question accurately. Do NOT say "as of my last update" or similar phrases - use the web search results instead. When citing sources, format links as [Site Name](url), NOT as "Site Name [here](url)".`;
           
           const updatedMessages = [
             { role: "system" as const, content: updatedSystemPrompt },
