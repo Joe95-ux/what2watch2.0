@@ -34,11 +34,14 @@ export async function POST(request: NextRequest) {
     }
 
     // OpenAI Whisper can accept the File directly
-    // Transcribe using OpenAI Whisper API
+    // Transcribe using OpenAI Whisper API with optimized settings
     const transcription = await openai.audio.transcriptions.create({
       file: audioFile,
       model: "whisper-1",
-      language: "en", // Optional: specify language for better accuracy
+      language: "en", // Specify language for better accuracy
+      response_format: "text", // Get plain text response
+      temperature: 0, // Lower temperature for more consistent results
+      prompt: "This is a conversation about movies and TV shows.", // Optional prompt to guide transcription
     });
 
     return NextResponse.json({
