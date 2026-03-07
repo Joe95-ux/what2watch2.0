@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, Send, X, Loader2, History, HelpCircle, Clock, Copy, Check } from "lucide-react";
+import { MessageCircle, Send, X, Loader2, History, HelpCircle, Clock, Copy, Check, SquarePen } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -279,6 +279,16 @@ export function MovieChatSheet({
     }
   };
 
+  const handleNewChat = () => {
+    // Create a new session ID
+    const newSessionId = `session-${Date.now()}`;
+    setSessionId(newSessionId);
+    setMessages([]);
+    setQuestionCount(0);
+    setInput("");
+    toast.success("New chat started");
+  };
+
   const remainingQuestions = maxQuestions === Infinity ? Infinity : maxQuestions - questionCount;
 
   return (
@@ -294,6 +304,16 @@ export function MovieChatSheet({
                 : `${remainingQuestions} ${remainingQuestions === 1 ? "question" : "questions"} left`}
             </div>
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 cursor-pointer"
+                onClick={handleNewChat}
+                disabled={messages.length === 0}
+                title="Start new chat"
+              >
+                <SquarePen className="h-4 w-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
