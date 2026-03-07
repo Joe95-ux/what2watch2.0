@@ -231,9 +231,9 @@ export function MovieChatSheet({
   // Convert URLs in text to clickable links
   const formatMessageWithLinks = (text: string) => {
     // URL regex pattern - matches full URLs (http:// or https://)
-    // This pattern matches URLs and stops at whitespace or common punctuation (but includes trailing punctuation that's part of the URL)
-    const urlRegex = /(https?:\/\/[^\s<>"']+)/g;
-    const parts: string[] = [];
+    // Uses non-greedy matching and stops before whitespace, punctuation, or closing brackets
+    const urlRegex = /(https?:\/\/[^\s<>"'\])]+)/g;
+    const parts: Array<string | { url: string }> = [];
     let lastIndex = 0;
     let match;
     
@@ -242,60 +242,59 @@ export function MovieChatSheet({
     
     // Find all URLs and split the text
     while ((match = urlRegex.exec(text)) !== null) {
-      // Add text before the URL
+      // Add text before the URL (this preserves opening parentheses and brackets)
       if (match.index > lastIndex) {
         parts.push(text.substring(lastIndex, match.index));
       }
+      
       // Add the URL
-      parts.push(match[0]);
+      parts.push({ url: match[0] });
       lastIndex = urlRegex.lastIndex;
     }
     
-    // Add remaining text
+    // Add remaining text (this preserves closing parentheses and brackets)
     if (lastIndex < text.length) {
       parts.push(text.substring(lastIndex));
     }
     
     // If no URLs found, return original text
-    if (parts.length === 0) {
+    if (parts.length === 0 || parts.every(p => typeof p === 'string')) {
       return <span>{text}</span>;
     }
     
     return parts.map((part, index) => {
-      // Check if this part is a URL
-      urlRegex.lastIndex = 0;
-      if (urlRegex.test(part)) {
-        // Extract domain for display text
-        try {
-          const url = new URL(part);
-          const displayText = url.hostname.replace('www.', '');
-          return (
-            <a
-              key={index}
-              href={part}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-400 underline break-words overflow-wrap-anywhere"
-            >
-              {displayText}
-            </a>
-          );
-        } catch {
-          // If URL parsing fails, show the URL as-is
-          return (
-            <a
-              key={index}
-              href={part}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-400 underline break-words overflow-wrap-anywhere"
-            >
-              {part}
-            </a>
-          );
-        }
+      if (typeof part === 'string') {
+        return <span key={index}>{part}</span>;
       }
-      return <span key={index}>{part}</span>;
+      
+      // This is a URL
+      try {
+        const url = new URL(part.url);
+        const displayText = url.hostname.replace('www.', '');
+        return (
+          <a
+            key={index}
+            href={part.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 underline break-words overflow-wrap-anywhere"
+          >
+            {displayText}
+          </a>
+        );
+      } catch {
+        return (
+          <a
+            key={index}
+            href={part.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 underline break-words overflow-wrap-anywhere"
+          >
+            {part.url}
+          </a>
+        );
+      }
     });
   };
 
@@ -502,7 +501,7 @@ export function MovieChatSheet({
                       variant="ghost"
                       size="icon"
                       className={cn(
-                        "absolute bottom-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer",
+                        "absolute bottom-1 right-1 h-6 w-6 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity cursor-pointer",
                         message.role === "user"
                           ? "text-black hover:bg-black/10"
                           : "text-foreground hover:bg-foreground/10"
@@ -655,51 +654,47 @@ export function MovieChatSheet({
                 {chatSessions.map((session) => (
                   <div
                     key={session.id}
-                    className="w-full p-4 rounded-lg border border-border hover:bg-muted transition-colors group"
+                    className="w-full p-4 rounded-lg border border-border hover:bg-muted transition-colors group relative"
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <button
-                        onClick={() => handleLoadSession(session.fullSessionId, session.sessionId)}
-                        className="flex-1 min-w-0 text-left cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <History className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="text-sm font-medium text-foreground truncate">
-                            {session.title}
-                          </span>
-                        </div>
-                        {session.firstMessage && (
-                          <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                            {session.firstMessage}
-                            {session.firstMessage.length >= 100 ? "..." : ""}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <MessageCircle className="h-3 w-3" />
-                            {session.messageCount} {session.messageCount === 1 ? "message" : "messages"}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {formatDistanceToNow(new Date(session.updatedAt), { addSuffix: true })}
-                          </span>
-                        </div>
-                      </button>
-                      <div className="flex items-start gap-2 flex-shrink-0">
-                        <div className="text-xs text-muted-foreground">
-                          {format(new Date(session.updatedAt), "MMM d, yyyy")}
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={(e) => handleDeleteSession(session.id, e)}
-                          title="Delete chat session"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                    <button
+                      onClick={() => handleLoadSession(session.fullSessionId, session.sessionId)}
+                      className="w-full text-left cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <History className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <span className="text-sm font-medium text-foreground truncate">
+                          {session.title}
+                        </span>
                       </div>
-                    </div>
+                      {session.firstMessage && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-2 pr-10">
+                          {session.firstMessage}
+                          {session.firstMessage.length >= 100 ? "..." : ""}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <MessageCircle className="h-3 w-3" />
+                          {session.messageCount} {session.messageCount === 1 ? "message" : "messages"}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {formatDistanceToNow(new Date(session.updatedAt), { addSuffix: true })}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {format(new Date(session.updatedAt), "MMM d, yyyy")}
+                        </span>
+                      </div>
+                    </button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute bottom-2 right-2 h-7 w-7 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={(e) => handleDeleteSession(session.id, e)}
+                      title="Delete chat session"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 ))}
               </div>
