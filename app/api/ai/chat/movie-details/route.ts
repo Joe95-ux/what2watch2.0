@@ -265,52 +265,37 @@ export async function POST(request: NextRequest) {
       messageLower.includes("prequel") ||
       messageLower.includes("spin-off") ||
       messageLower.includes("franchise") ||
+      // Questions about new/recent seasons, episodes, releases
+      messageLower.includes("season") && (messageLower.includes("new") || messageLower.includes("latest") || messageLower.includes("recent") || messageLower.includes("current") || /\d+/.test(messageLower)) ||
+      messageLower.includes("episode") && (messageLower.includes("new") || messageLower.includes("latest") || messageLower.includes("recent") || messageLower.includes("current") || /\d+/.test(messageLower)) ||
+      messageLower.includes("finale") ||
+      messageLower.includes("series finale") ||
+      messageLower.includes("new episode") ||
+      messageLower.includes("latest episode") ||
+      messageLower.includes("new season") ||
+      messageLower.includes("latest season") ||
+      messageLower.includes("when will") ||
+      messageLower.includes("when did") ||
+      messageLower.includes("is there a") ||
+      messageLower.includes("has there been") ||
+      messageLower.includes("did they release") ||
+      messageLower.includes("was there") ||
       // Recent releases might need web search for current information
       (releaseDate && new Date(releaseDate) > new Date("2023-10-01"));
-
-    // Check if API key is configured (for debugging)
-    const hasTavilyKey = !!process.env.TAVILY_API_KEY;
-    const hasSerpKey = !!process.env.SERP_API_KEY;
-    const hasGoogleKey = !!process.env.GOOGLE_SEARCH_API_KEY;
-    console.log(`[AI Chat] Web search API keys status:`, {
-      TAVILY_API_KEY: hasTavilyKey ? "✅ Set" : "❌ Not set",
-      SERP_API_KEY: hasSerpKey ? "✅ Set" : "❌ Not set",
-      GOOGLE_SEARCH_API_KEY: hasGoogleKey ? "✅ Set" : "❌ Not set",
-    });
 
     // Perform web search if needed
     let webSearchInfo = "";
     if (needsWebSearch) {
       const searchQuery = `${title} ${mediaType === "movie" ? "movie" : "TV show"} ${message}`;
-      console.log(`[AI Chat] ✅ Web search TRIGGERED for: "${searchQuery}"`);
-      console.log(`[AI Chat] Message contains trigger keywords: "${message}"`);
       try {
         const searchResults = await searchWeb(searchQuery);
-        console.log(`[AI Chat] Web search completed: ${searchResults.results.length} results from ${searchResults.provider}`);
         if (searchResults.results.length > 0) {
           webSearchInfo = formatWebSearchResults(searchResults);
-          console.log(`[AI Chat] ✅ Web search info formatted and included in prompt (${webSearchInfo.length} chars)`);
-        } else {
-          console.log(`[AI Chat] ⚠️ No web search results found - API may have returned empty results`);
-          console.log(`[AI Chat] Provider used: ${searchResults.provider}`);
         }
       } catch (error) {
-        console.error(`[AI Chat] ❌ Web search error:`, error);
-        console.error(`[AI Chat] Error details:`, error instanceof Error ? error.message : String(error));
+        console.error(`[AI Chat] Web search error:`, error);
         // Don't fail the entire request if web search fails
       }
-    } else {
-      console.log(`[AI Chat] ⏭️ Web search NOT triggered for message: "${message}"`);
-      console.log(`[AI Chat] Message does not contain any trigger keywords`);
-      console.log(`[AI Chat] Message lowercased: "${messageLower}"`);
-    }
-
-    // Debug: Log if web search info is being included
-    if (webSearchInfo) {
-      console.log(`[AI Chat] ✅ Web search info WILL be included in system prompt`);
-      console.log(`[AI Chat] Web search info preview (first 200 chars):`, webSearchInfo.substring(0, 200));
-    } else if (needsWebSearch) {
-      console.log(`[AI Chat] ⚠️ Web search was triggered but no info to include (empty results or error)`);
     }
 
     const systemPrompt = `You are a helpful AI assistant specialized in providing information about movies and TV shows. You have access to detailed, up-to-date information about ${title} from The Movie Database (TMDB).
@@ -358,7 +343,59 @@ Note: Cast and crew information is current from TMDB. ${webSearchInfo ? "Current
       max_tokens: 1000,
     });
 
-    const aiResponse = completion.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
+    let aiResponse = completion.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
+
+    // Check if AI response indicates lack of current knowledge
+    const responseLower = aiResponse.toLowerCase();
+    const indicatesOutdatedKnowledge = 
+      responseLower.includes("as of my last update") ||
+      responseLower.includes("as of my knowledge cutoff") ||
+      responseLower.includes("my knowledge cutoff") ||
+      responseLower.includes("my training data") ||
+      responseLower.includes("i don't have information") ||
+      responseLower.includes("i don't have specific details") ||
+      responseLower.includes("i don't have access to") ||
+      responseLower.includes("i cannot provide") ||
+      responseLower.includes("i'm not aware of") ||
+      responseLower.includes("i'm not certain") ||
+      (responseLower.includes("october 2023") && (responseLower.includes("knowledge") || responseLower.includes("update")));
+
+    // If AI indicates outdated knowledge and we haven't done a web search yet, do one now
+    if (indicatesOutdatedKnowledge && !webSearchInfo) {
+      const searchQuery = `${title} ${mediaType === "movie" ? "movie" : "TV show"} ${message}`;
+      try {
+        const searchResults = await searchWeb(searchQuery);
+        if (searchResults.results.length > 0) {
+          const newWebSearchInfo = formatWebSearchResults(searchResults);
+          
+          // Regenerate response with web search results
+          const updatedSystemPrompt = `${systemPrompt}${newWebSearchInfo}
+
+IMPORTANT: The user's question requires current information that you don't have in your training data. Use the CURRENT WEB INFORMATION provided above to answer the question accurately. Do NOT say "as of my last update" or similar phrases - use the web search results instead.`;
+          
+          const updatedMessages = [
+            { role: "system" as const, content: updatedSystemPrompt },
+            ...conversationHistory.map((msg: any) => ({
+              role: msg.role as "user" | "assistant",
+              content: msg.content,
+            })),
+            { role: "user" as const, content: message },
+          ];
+
+          const retryCompletion = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: updatedMessages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+            temperature: 0.7,
+            max_tokens: 1000,
+          });
+
+          aiResponse = retryCompletion.choices[0]?.message?.content || aiResponse;
+        }
+      } catch (error) {
+        console.error(`[AI Chat] Error performing follow-up web search:`, error);
+        // Continue with original response if web search fails
+      }
+    }
 
     // Update session with new messages
     const updatedMessages = [
