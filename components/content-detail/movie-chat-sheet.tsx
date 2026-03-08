@@ -902,14 +902,14 @@ export function MovieChatSheet({
 
       {/* Chat History Dialog */}
       <Dialog open={isHistoryDialogOpen} onOpenChange={setIsHistoryDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+        <DialogContent className="w-[calc(100vw-1rem)] min-h-0 max-h-[95vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Chat History for {title}</DialogTitle>
             <DialogDescription>
               Select a previous conversation to continue
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="flex-1 -mx-6 px-6">
+          <ScrollArea className="min-h-0 flex-1 -mx-6 px-6">
             {isLoadingSessions ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -945,7 +945,7 @@ export function MovieChatSheet({
                           {session.firstMessage.length >= 100 ? "..." : ""}
                         </p>
                       )}
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                         <span className="flex items-center gap-1">
                           <MessageCircle className="h-3 w-3" />
                           {session.messageCount} {session.messageCount === 1 ? "message" : "messages"}
