@@ -32,8 +32,23 @@ import PlaylistCard from "@/components/browse/playlist-card";
 import ListCard from "@/components/browse/list-card";
 import { Playlist } from "@/hooks/use-playlists";
 import { cn } from "@/lib/utils";
-import { useWatchProviders } from "@/hooks/use-content-details";
-import { JustWatchOffer } from "@/lib/justwatch";
+import { useWatchProviders, useJustWatchCountries } from "@/hooks/use-content-details";
+import { JustWatchOffer, JustWatchCountry } from "@/lib/justwatch";
+import { useState, useMemo } from "react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { ChevronsUpDown, Check } from "lucide-react";
+import { getCountryFlagEmoji } from "@/hooks/use-watch-regions";
 
 
 function CuratedListsCarousel() {
@@ -120,8 +135,106 @@ function CuratedListsCarousel() {
 
 import { FAQAccordion } from "@/components/landing/faq-accordion";
 
+function CountryCombobox({
+  countries,
+  value,
+  onValueChange,
+}: {
+  countries: JustWatchCountry[];
+  value: string;
+  onValueChange: (code: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const filtered = useMemo(() => {
+    if (!search.trim()) return countries;
+    const q = search.toLowerCase().trim();
+    return countries.filter(
+      (c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+    );
+  }, [countries, search]);
+  const selected = countries.find((c) => c.code === value);
+
+  return (
+    <Popover modal={true} open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-[200px] justify-between cursor-pointer"
+          size="sm"
+        >
+          <span className="flex items-center gap-2 truncate">
+            <span className="text-lg shrink-0">{getCountryFlagEmoji(value)}</span>
+            <span className="truncate text-sm">{selected?.name ?? value}</span>
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="end">
+        <Command shouldFilter={false} className="rounded-lg border-0 bg-transparent">
+          <CommandInput
+            placeholder="Search country..."
+            value={search}
+            onValueChange={setSearch}
+          />
+          <CommandList className="max-h-[300px]">
+            {filtered.length === 0 && (
+              <div className="py-6 text-center text-sm text-muted-foreground">No country found.</div>
+            )}
+            <CommandGroup forceMount className="p-1">
+              {filtered.map((c) => {
+                const isSelected = value === c.code;
+                return (
+                  <CommandItem
+                    key={c.code}
+                    value={c.code}
+                    forceMount
+                    onSelect={() => {
+                      onValueChange(c.code);
+                      setOpen(false);
+                      setSearch("");
+                    }}
+                    className="cursor-pointer gap-2"
+                  >
+                    <span className="text-lg shrink-0">{getCountryFlagEmoji(c.code)}</span>
+                    <span className="flex-1 truncate">{c.name}</span>
+                    {isSelected && <Check className="size-4 shrink-0" />}
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function DuneWatchProvidersCard() {
-  const { data: watchAvailability, isLoading } = useWatchProviders("movie", 693134, "US");
+  const [watchCountry, setWatchCountry] = useState("US");
+  const { data: watchAvailability, isLoading } = useWatchProviders("movie", 693134, watchCountry);
+  const { data: countries = [] } = useJustWatchCountries();
+  
+  const formatPrice = (price: number | null | undefined, currency: string | null | undefined): string => {
+    if (!price || !currency) return "";
+    const formatter = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency,
+      maximumFractionDigits: 2,
+    });
+    return formatter.format(price).replace(/^[A-Z]{2}\$/, "$");
+  };
+
+  const getQuality = (presentationType: string | null | undefined): string => {
+    if (!presentationType) return "";
+    const quality = presentationType.toLowerCase();
+    if (quality.includes("4k") || quality.includes("uhd")) return "4K";
+    if (quality.includes("hd") && !quality.includes("uhd")) return "HD";
+    if (quality.includes("sd")) return "SD";
+    return "";
+  };
   
   const streamOffers = watchAvailability?.offersByType?.flatrate || [];
   const rentOffers = watchAvailability?.offersByType?.rent || [];
@@ -130,14 +243,23 @@ function DuneWatchProvidersCard() {
   return (
     <div className="order-1 lg:order-2 relative">
       <div className="relative rounded-2xl overflow-hidden border bg-card/50 backdrop-blur-sm p-6 lg:p-8">
-        <div className="flex items-center space-x-4 mb-6">
-          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-            <Tv className="h-6 w-6 text-white" />
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-4">
+            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+              <Tv className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold">Dune: Part Two</h3>
+              <p className="text-xs text-muted-foreground">Available to stream now</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-lg font-bold">Dune: Part Two</h3>
-            <p className="text-xs text-muted-foreground">Available to stream now</p>
-          </div>
+          {countries.length > 0 && (
+            <CountryCombobox
+              countries={countries}
+              value={watchCountry}
+              onValueChange={setWatchCountry}
+            />
+          )}
         </div>
 
         {isLoading ? (
@@ -146,7 +268,7 @@ function DuneWatchProvidersCard() {
               <Skeleton className="h-3 w-20 mb-3" />
               <div className="flex flex-wrap gap-3">
                 {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-12 w-12 rounded-lg" />
+                  <Skeleton key={i} className="h-[50px] w-[50px] rounded-lg" />
                 ))}
               </div>
             </div>
@@ -157,32 +279,39 @@ function DuneWatchProvidersCard() {
               <div>
                 <p className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Stream</p>
                 <div className="flex flex-wrap gap-3">
-                  {streamOffers.slice(0, 6).map((offer: JustWatchOffer) => (
-                    <a
-                      key={offer.providerId}
-                      href={offer.standardWebUrl || offer.deepLinkUrl || "#"}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex flex-col items-center gap-2 group cursor-pointer transition-transform hover:-translate-y-1"
-                    >
-                      {offer.iconUrl ? (
-                        <div className="relative w-12 h-12 rounded-lg border border-border overflow-hidden bg-muted hover:border-primary transition-colors">
-                          <Image
-                            src={offer.iconUrl}
-                            alt={offer.providerName}
-                            fill
-                            className="object-contain rounded-lg p-1"
-                            unoptimized
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-12 h-12 rounded-lg border border-border bg-muted flex items-center justify-center hover:border-primary transition-colors">
-                          <span className="text-xs text-muted-foreground">{offer.providerName[0]}</span>
-                        </div>
-                      )}
-                      <span className="text-xs font-medium">{offer.providerName}</span>
-                    </a>
-                  ))}
+                  {streamOffers.slice(0, 6).map((offer: JustWatchOffer) => {
+                    const quality = getQuality(offer.presentationType);
+                    return (
+                      <a
+                        key={offer.providerId}
+                        href={offer.standardWebUrl || offer.deepLinkUrl || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-col items-center gap-1 group cursor-pointer transition-transform hover:-translate-y-1"
+                      >
+                        {offer.iconUrl ? (
+                          <div className="relative h-[50px] w-[50px] rounded-lg border border-border overflow-hidden bg-muted hover:border-primary transition-colors">
+                            <Image
+                              src={offer.iconUrl}
+                              alt={offer.providerName}
+                              fill
+                              className="object-contain rounded-lg"
+                              unoptimized
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-[50px] w-[50px] rounded-lg border border-border bg-muted flex items-center justify-center hover:border-primary transition-colors">
+                            <span className="text-xs text-muted-foreground">{offer.providerName[0]}</span>
+                          </div>
+                        )}
+                        {(quality) && (
+                          <div className="text-center">
+                            <span className="text-muted-foreground" style={{ fontSize: "13px" }}>{quality}</span>
+                          </div>
+                        )}
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -191,32 +320,54 @@ function DuneWatchProvidersCard() {
               <div className="pt-4 border-t border-border/50">
                 <p className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Rent / Buy</p>
                 <div className="flex flex-wrap gap-3">
-                  {[...rentOffers, ...buyOffers].slice(0, 6).map((offer: JustWatchOffer) => (
-                    <a
-                      key={offer.providerId}
-                      href={offer.standardWebUrl || offer.deepLinkUrl || "#"}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex flex-col items-center gap-2 group cursor-pointer transition-transform hover:-translate-y-1"
-                    >
-                      {offer.iconUrl ? (
-                        <div className="relative w-12 h-12 rounded-lg border border-border overflow-hidden bg-muted hover:border-primary transition-colors">
-                          <Image
-                            src={offer.iconUrl}
-                            alt={offer.providerName}
-                            fill
-                            className="object-contain rounded-lg p-1"
-                            unoptimized
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-12 h-12 rounded-lg border border-border bg-muted flex items-center justify-center hover:border-primary transition-colors">
-                          <span className="text-xs text-muted-foreground">{offer.providerName[0]}</span>
-                        </div>
-                      )}
-                      <span className="text-xs font-medium">{offer.providerName}</span>
-                    </a>
-                  ))}
+                  {[...rentOffers, ...buyOffers].slice(0, 6).map((offer: JustWatchOffer) => {
+                    const quality = getQuality(offer.presentationType);
+                    const price = formatPrice(offer.retailPrice, offer.currency);
+                    return (
+                      <a
+                        key={offer.providerId}
+                        href={offer.standardWebUrl || offer.deepLinkUrl || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-col items-center gap-1 group cursor-pointer transition-transform hover:-translate-y-1"
+                      >
+                        {offer.iconUrl ? (
+                          <div className="relative h-[50px] w-[50px] rounded-lg border border-border overflow-hidden bg-muted hover:border-primary transition-colors">
+                            <Image
+                              src={offer.iconUrl}
+                              alt={offer.providerName}
+                              fill
+                              className="object-contain rounded-lg"
+                              unoptimized
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-[50px] w-[50px] rounded-lg border border-border bg-muted flex items-center justify-center hover:border-primary transition-colors">
+                            <span className="text-xs text-muted-foreground">{offer.providerName[0]}</span>
+                          </div>
+                        )}
+                        {(quality || price) && (
+                          <div className="text-center">
+                            {price ? (
+                              <>
+                                <span className="text-muted-foreground" style={{ fontSize: "13px" }}>{price}</span>
+                                {quality && (
+                                  <>
+                                    <span className="text-muted-foreground" style={{ fontSize: "13px" }}> </span>
+                                    <span className="text-[#F5C518]" style={{ fontSize: "11px" }}>{quality}</span>
+                                  </>
+                                )}
+                              </>
+                            ) : (
+                              quality && (
+                                <span className="text-muted-foreground" style={{ fontSize: "13px" }}>{quality}</span>
+                              )
+                            )}
+                          </div>
+                        )}
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
             )}
