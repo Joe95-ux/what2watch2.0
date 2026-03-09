@@ -467,7 +467,10 @@ export default function LandingPage() {
                   </Link>
                 </Button>
               ) : (
-                <SignInButton mode="modal">
+                <SignInButton 
+                  mode="modal"
+                  afterSignInUrl={typeof window !== "undefined" ? window.location.href : "/browse"}
+                >
                   <Button size="lg" className="w-full sm:w-auto rounded-full shadow-lg hover:shadow-xl transition-all">
                     Get Started
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -666,7 +669,10 @@ export default function LandingPage() {
                   </Link>
                 </Button>
               ) : (
-                <SignInButton mode="modal">
+                <SignInButton 
+                  mode="modal"
+                  afterSignInUrl={typeof window !== "undefined" ? window.location.href : "/browse"}
+                >
                   <Button size="lg" className="w-full sm:w-auto">
                     Get Started Free
                     <ArrowRight className="ml-2 h-4 w-4" />

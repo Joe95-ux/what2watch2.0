@@ -606,7 +606,10 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
         {/* Auth Section */}
         {!isSignedIn && (
           <div className="pt-4">
-            <SignInButton mode="modal">
+            <SignInButton 
+              mode="modal"
+              afterSignInUrl={typeof window !== "undefined" ? window.location.href : "/browse"}
+            >
               <Button className="w-full cursor-pointer" onClick={onLinkClick} variant="default">
                 Sign In
               </Button>

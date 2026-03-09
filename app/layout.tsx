@@ -27,6 +27,7 @@ export default function RootLayout({
   return (
     <ClerkProvider
       afterSignOutUrl="/browse"
+      afterSignInUrl="/browse"
       appearance={{
         baseTheme: dark,
         elements: {
