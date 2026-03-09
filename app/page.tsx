@@ -214,8 +214,16 @@ function CountryCombobox({
 
 function DuneWatchProvidersCard() {
   const [watchCountry, setWatchCountry] = useState("US");
-  const { data: watchAvailability, isLoading } = useWatchProviders("movie", 693134, watchCountry);
+  // Normalize country code to uppercase for consistency
+  const normalizedCountry = watchCountry.toUpperCase();
+  const { data: watchAvailability, isLoading, isFetching } = useWatchProviders("movie", 693134, normalizedCountry);
   const { data: countries = [] } = useJustWatchCountries();
+  
+  // Only show data if it matches the selected country to prevent showing wrong country's data
+  // Also check if we're currently fetching to avoid showing stale data
+  const countryMatches = watchAvailability?.country?.toUpperCase() === normalizedCountry;
+  const shouldShowData = countryMatches && !isFetching;
+  const displayData = shouldShowData ? watchAvailability : null;
   
   const formatPrice = (price: number | null | undefined, currency: string | null | undefined): string => {
     if (!price || !currency) return "";
@@ -236,9 +244,9 @@ function DuneWatchProvidersCard() {
     return "";
   };
   
-  const streamOffers = watchAvailability?.offersByType?.flatrate || [];
-  const rentOffers = watchAvailability?.offersByType?.rent || [];
-  const buyOffers = watchAvailability?.offersByType?.buy || [];
+  const streamOffers = displayData?.offersByType?.flatrate || [];
+  const rentOffers = displayData?.offersByType?.rent || [];
+  const buyOffers = displayData?.offersByType?.buy || [];
 
   return (
     <div className="order-1 lg:order-2 relative">
@@ -256,13 +264,12 @@ function DuneWatchProvidersCard() {
           {countries.length > 0 && (
             <CountryCombobox
               countries={countries}
-              value={watchCountry}
-              onValueChange={setWatchCountry}
+              value={normalizedCountry}
+              onValueChange={(code) => setWatchCountry(code.toUpperCase())}
             />
-          )}
         </div>
 
-        {isLoading ? (
+        {(isLoading || isFetching || !shouldShowData) ? (
           <div className="space-y-6">
             <div>
               <Skeleton className="h-3 w-20 mb-3" />
