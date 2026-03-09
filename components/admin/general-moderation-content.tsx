@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChatQuotaManagementTable } from "@/components/admin/chat-quota-management-table";
-import { MessageSquare } from "lucide-react";
 
 export function GeneralModerationContent() {
   const [activeTab, setActiveTab] = useState("chat-quota");
@@ -21,7 +20,6 @@ export function GeneralModerationContent() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="chat-quota" className="cursor-pointer">
-              <MessageSquare className="h-4 w-4 mr-2" />
               Chat Quota Management
             </TabsTrigger>
           </TabsList>

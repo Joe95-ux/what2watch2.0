@@ -32,7 +32,8 @@ import PlaylistCard from "@/components/browse/playlist-card";
 import ListCard from "@/components/browse/list-card";
 import { Playlist } from "@/hooks/use-playlists";
 import { cn } from "@/lib/utils";
-import { SiNetflix, SiAmazonprime, SiHulu, SiHbo, SiApple } from "react-icons/si";
+import { useWatchProviders } from "@/hooks/use-content-details";
+import { JustWatchOffer } from "@/lib/justwatch";
 
 
 function CuratedListsCarousel() {
@@ -119,6 +120,124 @@ function CuratedListsCarousel() {
 
 import { FAQAccordion } from "@/components/landing/faq-accordion";
 
+function DuneWatchProvidersCard() {
+  const { data: watchAvailability, isLoading } = useWatchProviders("movie", 693134, "US");
+  
+  const streamOffers = watchAvailability?.offersByType?.flatrate || [];
+  const rentOffers = watchAvailability?.offersByType?.rent || [];
+  const buyOffers = watchAvailability?.offersByType?.buy || [];
+
+  return (
+    <div className="order-1 lg:order-2 relative">
+      <div className="relative rounded-2xl overflow-hidden border bg-card/50 backdrop-blur-sm p-6 lg:p-8">
+        <div className="flex items-center space-x-4 mb-6">
+          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+            <Tv className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold">Dune: Part Two</h3>
+            <p className="text-xs text-muted-foreground">Available to stream now</p>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="space-y-6">
+            <div>
+              <Skeleton className="h-3 w-20 mb-3" />
+              <div className="flex flex-wrap gap-3">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-12 w-12 rounded-lg" />
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {streamOffers.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Stream</p>
+                <div className="flex flex-wrap gap-3">
+                  {streamOffers.slice(0, 6).map((offer: JustWatchOffer) => (
+                    <a
+                      key={offer.providerId}
+                      href={offer.standardWebUrl || offer.deepLinkUrl || "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col items-center gap-2 group cursor-pointer transition-transform hover:-translate-y-1"
+                    >
+                      {offer.iconUrl ? (
+                        <div className="relative w-12 h-12 rounded-lg border border-border overflow-hidden bg-muted hover:border-primary transition-colors">
+                          <Image
+                            src={offer.iconUrl}
+                            alt={offer.providerName}
+                            fill
+                            className="object-contain rounded-lg p-1"
+                            unoptimized
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg border border-border bg-muted flex items-center justify-center hover:border-primary transition-colors">
+                          <span className="text-xs text-muted-foreground">{offer.providerName[0]}</span>
+                        </div>
+                      )}
+                      <span className="text-xs font-medium">{offer.providerName}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {(rentOffers.length > 0 || buyOffers.length > 0) && (
+              <div className="pt-4 border-t border-border/50">
+                <p className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Rent / Buy</p>
+                <div className="flex flex-wrap gap-3">
+                  {[...rentOffers, ...buyOffers].slice(0, 6).map((offer: JustWatchOffer) => (
+                    <a
+                      key={offer.providerId}
+                      href={offer.standardWebUrl || offer.deepLinkUrl || "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col items-center gap-2 group cursor-pointer transition-transform hover:-translate-y-1"
+                    >
+                      {offer.iconUrl ? (
+                        <div className="relative w-12 h-12 rounded-lg border border-border overflow-hidden bg-muted hover:border-primary transition-colors">
+                          <Image
+                            src={offer.iconUrl}
+                            alt={offer.providerName}
+                            fill
+                            className="object-contain rounded-lg p-1"
+                            unoptimized
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg border border-border bg-muted flex items-center justify-center hover:border-primary transition-colors">
+                          <span className="text-xs text-muted-foreground">{offer.providerName[0]}</span>
+                        </div>
+                      )}
+                      <span className="text-xs font-medium">{offer.providerName}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {streamOffers.length === 0 && rentOffers.length === 0 && buyOffers.length === 0 && (
+              <p className="text-sm text-muted-foreground">No streaming options available</p>
+            )}
+          </div>
+        )}
+
+        <div className="mt-6 flex justify-end">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Data powered by</span>
+            <strong className="text-foreground">JustWatch</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LandingPage() {
   const { isSignedIn } = useUser();
 
@@ -158,7 +277,7 @@ export default function LandingPage() {
       <Navbar />
 
       {/* Hero Section with Modern Design */}
-      <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden border-b">
+      <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden border-b pb-0">
         {/* Subtle background effects */}
         <div className="absolute inset-0 z-0">
           <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-primary/10 rounded-full blur-[100px] opacity-50" />
@@ -166,19 +285,16 @@ export default function LandingPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background to-background z-10" />
         </div>
 
-        <div className="relative z-20 container mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-28 lg:pt-32 pb-24">
+        <div className="relative z-20 container mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-28 lg:pt-32 pb-0">
           <div className="mx-auto max-w-4xl text-center mb-12">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-background/80 backdrop-blur-sm px-4 py-1.5 text-sm font-medium text-foreground shadow-sm">
               <Sparkles className="h-4 w-4 text-primary" />
               Discover what to watch next
             </div>
             <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-              Your personal{" "}
-              <span className="inline-block bg-gradient-to-r from-primary via-blue-500 to-purple-500 bg-clip-text text-transparent">
-                watchlist
-              </span>
+              Your Personal Watchlist
               <br />
-              companion
+              Companion
             </h1>
             <p className="mb-8 text-lg text-muted-foreground sm:text-xl max-w-2xl mx-auto">
               Discover, curate, and share your favorite movies and TV shows with AI-powered recommendations
@@ -208,7 +324,7 @@ export default function LandingPage() {
           
           {/* Image Card - Sinks into bottom */}
           <div className="relative mx-auto max-w-5xl -mb-8">
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-border/50">
+            <div className="relative rounded-2xl overflow-hidden border border-border/50">
               <div className="relative aspect-[16/9] w-full">
                 <Image
                   src="/hero-list-img.png"
@@ -219,7 +335,6 @@ export default function LandingPage() {
                   priority
                   quality={90}
                 />
-                <div className="absolute inset-0 bg-black/30" />
               </div>
             </div>
             <div className="absolute -bottom-6 left-0 right-0 h-12 bg-background rounded-t-3xl" />
@@ -258,68 +373,7 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            <div className="order-1 lg:order-2 relative">
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl border bg-card/50 backdrop-blur-sm p-6 lg:p-8">
-                <div className="flex items-center space-x-4 mb-6">
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                    <Tv className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold">Dune: Part Two</h3>
-                    <p className="text-xs text-muted-foreground">Available to stream now</p>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <div>
-                    <p className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Stream</p>
-                    <div className="flex flex-wrap gap-3">
-                      {[
-                        { Icon: SiNetflix, name: "Netflix", color: "#E50914" },
-                        { Icon: SiAmazonprime, name: "Prime Video", color: "#00A8E1" },
-                        { Icon: SiHbo, name: "Max", color: "#5821A8" },
-                      ].map((service, i) => (
-                        <div key={i} className="flex flex-col items-center gap-2 group cursor-pointer transition-transform hover:-translate-y-1">
-                          <div 
-                            className="w-12 h-12 rounded-lg bg-black border border-gray-800 flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all"
-                            style={{ boxShadow: `0 0 0 0 ${service.color}20`, transition: "all 0.3s" }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.boxShadow = `0 0 20px ${service.color}40`;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.boxShadow = "0 0 0 0 transparent";
-                            }}
-                          >
-                            <service.Icon className="w-6 h-6" style={{ color: service.color }} />
-                          </div>
-                          <span className="text-xs font-medium">{service.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-border/50">
-                    <p className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Rent / Buy</p>
-                    <div className="flex flex-wrap gap-3">
-                      <div className="flex flex-col items-center gap-2 group cursor-pointer transition-transform hover:-translate-y-1">
-                        <div className="w-12 h-12 rounded-lg bg-white border flex items-center justify-center shadow-lg dark:bg-black dark:border-gray-800 transition-all">
-                          <SiApple className="w-6 h-6 text-black dark:text-white" />
-                        </div>
-                        <span className="text-xs font-medium">Apple TV</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6 flex justify-end">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>Data powered by</span>
-                    <strong className="text-foreground">JustWatch</strong>
-                  </div>
-                </div>
-              </div>
-              <div className="absolute -top-8 -right-8 w-48 h-48 bg-primary/10 rounded-full blur-[60px] -z-10" />
-            </div>
+            <DuneWatchProvidersCard />
           </div>
         </div>
       </section>
