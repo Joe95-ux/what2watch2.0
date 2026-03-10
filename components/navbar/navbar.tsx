@@ -195,7 +195,7 @@ export default function Navbar() {
               ) : (
                 <SignInButton 
                   mode="modal"
-                  afterSignInUrl={typeof window !== "undefined" ? window.location.href : "/browse"}
+                  fallbackRedirectUrl={typeof window !== "undefined" ? window.location.href : "/browse"}
                 >
                   <Button size="sm" className="cursor-pointer">
                     Sign In

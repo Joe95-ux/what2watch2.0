@@ -267,6 +267,7 @@ function DuneWatchProvidersCard() {
               value={normalizedCountry}
               onValueChange={(code) => setWatchCountry(code.toUpperCase())}
             />
+          )}
         </div>
 
         {(isLoading || isFetching || !shouldShowData) ? (
@@ -469,7 +470,7 @@ export default function LandingPage() {
               ) : (
                 <SignInButton 
                   mode="modal"
-                  afterSignInUrl={typeof window !== "undefined" ? window.location.href : "/browse"}
+                  fallbackRedirectUrl={typeof window !== "undefined" ? window.location.href : "/browse"}
                 >
                   <Button size="lg" className="w-full sm:w-auto rounded-full shadow-lg hover:shadow-xl transition-all">
                     Get Started
@@ -671,7 +672,7 @@ export default function LandingPage() {
               ) : (
                 <SignInButton 
                   mode="modal"
-                  afterSignInUrl={typeof window !== "undefined" ? window.location.href : "/browse"}
+                  fallbackRedirectUrl={typeof window !== "undefined" ? window.location.href : "/browse"}
                 >
                   <Button size="lg" className="w-full sm:w-auto">
                     Get Started Free
