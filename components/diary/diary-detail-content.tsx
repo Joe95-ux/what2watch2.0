@@ -724,7 +724,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
             <div className="p-0 lg:sticky lg:top-4 lg:self-start">
               {watchAvailability && topWatchOffers.length > 0 ? (
                 <>
-                  <div className="overflow-hidden rounded-[5px] border border-border">
+                  <div className="overflow-hidden rounded-[10px] border border-border">
                     {/* Heading as first row */}
                     <div className="px-3 py-2 text-base font-semibold bg-muted/60">
                       Where to Watch
@@ -780,7 +780,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                                 {providerName}
                               </div>
                               {(metaText || price) && (
-                                <div className="text-xs mt-0.5">
+                                <div className="text-[14px] mt-0.5">
                                   {metaText && (
                                     <span className="text-muted-foreground">{metaText}</span>
                                   )}
@@ -835,7 +835,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                   </div>
                 </>
               ) : isLoadingWatchAvailability ? (
-                <div className="overflow-hidden rounded-[5px] border border-border">
+                <div className="overflow-hidden rounded-[10px] border border-border">
                   {/* Heading skeleton */}
                   <div className="px-3 py-2 bg-muted/60">
                     <Skeleton className="h-4 w-32" />
@@ -864,7 +864,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                   })}
                 </div>
               ) : (
-                <div className="overflow-hidden rounded-[5px] border border-border">
+                <div className="overflow-hidden rounded-[10px] border border-border">
                   <div className="px-3 py-4 text-center">
                     <p className="text-sm text-muted-foreground">
                       Watch availability information is not available at this time.
