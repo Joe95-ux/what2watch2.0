@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, Send, X, Loader2, History, HelpCircle, Clock, Copy, Check, SquarePen, Trash2, Mic, MicOff, CornerDownLeft } from "lucide-react";
+import React from "react";
+import { MessageCircle, Send, X, Loader2, History, HelpCircle, Clock, Copy, Check, SquarePen, Trash2, Mic, MicOff, CornerDownLeft, RotateCw, Edit2, Check as CheckIcon, X as XIcon } from "lucide-react";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,9 @@ import { containsProfanity, sanitizeHtml } from "@/lib/moderation";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  retryCount?: number;
+  isEditing?: boolean;
+  followUpSuggestions?: string[];
 }
 
 interface MovieChatSheetProps {
@@ -56,6 +60,7 @@ export function MovieChatSheet({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [editingMessageIndex, setEditingMessageIndex] = useState<number | null>(null);
   const [questionCount, setQuestionCount] = useState(0);
   const [maxQuestions, setMaxQuestions] = useState(6); // Default to 6, will be updated from API
   const [sessionId, setSessionId] = useState(() => `session-${Date.now()}`);
@@ -270,42 +275,68 @@ export function MovieChatSheet({
     }
   };
 
-  const handleSend = async (message?: string) => {
-    const messageToSend = message || input.trim();
-    if (!messageToSend || isLoading) return;
+  const sendMessage = async (
+    userMessageText: string,
+    options: {
+      isRegenerate?: boolean;
+      messageIndex?: number;
+      isEdit?: boolean;
+    } = {}
+  ) => {
+    if (isLoading) return;
 
-    // Sanitize and validate input
-    const sanitizedMessage = sanitizeHtml(messageToSend);
+    const sanitizedMessage = sanitizeHtml(userMessageText);
     
-    // Check for profanity
     if (containsProfanity(sanitizedMessage)) {
       toast.error("Your message contains inappropriate language. Please revise your message.");
       return;
     }
 
-    // Check question limit (skip if unlimited)
-    if (maxQuestions !== Infinity && questionCount >= maxQuestions) {
+    if (maxQuestions !== Infinity && questionCount >= maxQuestions && !options.isRegenerate) {
       toast.error(`You've reached your limit of ${maxQuestions} questions. Upgrade to Pro for unlimited questions.`);
       return;
     }
 
-    setInput("");
     setIsLoading(true);
 
-    // Add user message immediately (use sanitized version)
-    const userMessage: Message = { role: "user", content: sanitizedMessage };
-    setMessages((prev) => [...prev, userMessage]);
+    // Handle message updates
+    let updatedMessages = [...messages];
+    let userMessageIndex = updatedMessages.length;
+
+    if (options.isEdit && options.messageIndex !== undefined) {
+      // Replace the edited message
+      updatedMessages[options.messageIndex] = { role: "user", content: sanitizedMessage };
+      // Remove all messages after the edited one
+      updatedMessages = updatedMessages.slice(0, options.messageIndex + 1);
+      userMessageIndex = options.messageIndex;
+    } else if (options.isRegenerate && options.messageIndex !== undefined) {
+      // Remove the assistant message being regenerated and all after it
+      updatedMessages = updatedMessages.slice(0, options.messageIndex);
+      userMessageIndex = options.messageIndex - 1;
+    } else if (!options.isRegenerate) {
+      // Add new user message
+      updatedMessages.push({ role: "user", content: sanitizedMessage });
+      userMessageIndex = updatedMessages.length - 1;
+    }
+
+    setMessages(updatedMessages);
+    if (!options.isRegenerate && !options.isEdit) {
+      setInput("");
+    }
 
     try {
+      const conversationHistory = updatedMessages.slice(0, userMessageIndex);
+      const lastUserMessage = updatedMessages[userMessageIndex];
+      
       const res = await fetch("/api/ai/chat/movie-details", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: sanitizedMessage,
+          message: lastUserMessage.content,
           sessionId,
           tmdbId,
           mediaType,
-          conversationHistory: messages,
+          conversationHistory,
         }),
       });
 
@@ -314,7 +345,6 @@ export function MovieChatSheet({
       if (!res.ok) {
         if (data.error === "QUESTION_LIMIT_REACHED") {
           toast.error(data.message);
-          // Update maxQuestions from error response if provided
           if (data.maxQuestions !== undefined) {
             setMaxQuestions(data.maxQuestions === -1 ? Infinity : data.maxQuestions);
           }
@@ -325,95 +355,183 @@ export function MovieChatSheet({
         return;
       }
 
-      // Add assistant response
-      const assistantMessage: Message = { role: "assistant", content: data.message };
+      // Create assistant message with retry count
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: data.message,
+        retryCount: options.isRegenerate && options.messageIndex !== undefined
+          ? (updatedMessages[options.messageIndex]?.retryCount || 0) + 1
+          : 0,
+      };
+
+      // Generate follow-up suggestions
+      try {
+        const suggestionsRes = await fetch("/api/ai/chat/movie-details/suggestions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lastMessage: lastUserMessage.content,
+            lastResponse: assistantMessage.content,
+            title,
+            mediaType,
+          }),
+        });
+        if (suggestionsRes.ok) {
+          const suggestionsData = await suggestionsRes.json();
+          assistantMessage.followUpSuggestions = suggestionsData.suggestions || [];
+        }
+      } catch (e) {
+        // Silently fail suggestions
+      }
+
       setMessages((prev) => [...prev, assistantMessage]);
-      setQuestionCount(data.questionCount || questionCount + 1);
-      // Update maxQuestions from API response
-      if (data.maxQuestions !== undefined) {
-        setMaxQuestions(data.maxQuestions === -1 ? Infinity : data.maxQuestions);
+      
+      if (!options.isRegenerate) {
+        setQuestionCount(data.questionCount || questionCount + 1);
+        if (data.maxQuestions !== undefined) {
+          setMaxQuestions(data.maxQuestions === -1 ? Infinity : data.maxQuestions);
+        }
       }
     } catch (error) {
       console.error("Chat error:", error);
       toast.error("Failed to send message. Please try again.");
-      // Remove user message on error
-      setMessages((prev) => prev.slice(0, -1));
+      if (!options.isRegenerate && !options.isEdit) {
+        setMessages((prev) => prev.slice(0, -1));
+      }
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSend = async (message?: string) => {
+    const messageToSend = message || input.trim();
+    if (!messageToSend) return;
+    await sendMessage(messageToSend);
+  };
+
+  const handleRegenerate = async (messageIndex: number) => {
+    const message = messages[messageIndex - 1];
+    if (message?.role === "user") {
+      const retryCount = messages[messageIndex]?.retryCount || 0;
+      if (retryCount >= 2) {
+        toast.error("Maximum retries reached. Please try a different question.");
+        return;
+      }
+      await sendMessage(message.content, { isRegenerate: true, messageIndex });
+    }
+  };
+
+  const handleEditMessage = (index: number) => {
+    setEditingMessageIndex(index);
+    setInput(messages[index].content);
+  };
+
+  const handleSaveEdit = async () => {
+    if (editingMessageIndex === null) return;
+    await sendMessage(input, { isEdit: true, messageIndex: editingMessageIndex });
+    setEditingMessageIndex(null);
+    setInput("");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageIndex(null);
+    setInput("");
   };
 
   const handleSuggestionClick = (suggestion: string) => {
     handleSend(suggestion);
   };
 
-  // Convert URLs in text to clickable links
-  const formatMessageWithLinks = (text: string) => {
-    // URL regex pattern - matches full URLs (http:// or https://)
-    // Uses non-greedy matching and stops before whitespace, punctuation, or closing brackets
+  // Simple markdown renderer with links, bold, italic, code
+  const formatMessageContent = (text: string) => {
+    // Split by URLs first
     const urlRegex = /(https?:\/\/[^\s<>"'\])]+)/g;
-    const parts: Array<string | { url: string }> = [];
+    const parts: Array<{ type: "text" | "url"; content: string; url?: string }> = [];
     let lastIndex = 0;
     let match;
     
-    // Reset regex
     urlRegex.lastIndex = 0;
-    
-    // Find all URLs and split the text
     while ((match = urlRegex.exec(text)) !== null) {
-      // Add text before the URL (this preserves opening parentheses and brackets)
       if (match.index > lastIndex) {
-        parts.push(text.substring(lastIndex, match.index));
+        parts.push({ type: "text", content: text.substring(lastIndex, match.index) });
       }
-      
-      // Add the URL
-      parts.push({ url: match[0] });
+      parts.push({ type: "url", content: match[0], url: match[0] });
       lastIndex = urlRegex.lastIndex;
     }
-    
-    // Add remaining text (this preserves closing parentheses and brackets)
     if (lastIndex < text.length) {
-      parts.push(text.substring(lastIndex));
+      parts.push({ type: "text", content: text.substring(lastIndex) });
     }
     
-    // If no URLs found, return original text
-    if (parts.length === 0 || parts.every(p => typeof p === 'string')) {
-      return <span>{text}</span>;
+    if (parts.length === 0) {
+      parts.push({ type: "text", content: text });
     }
     
     return parts.map((part, index) => {
-      if (typeof part === 'string') {
-        return <span key={index}>{part}</span>;
+      if (part.type === "url") {
+        try {
+          const url = new URL(part.url!);
+          const displayText = url.hostname.replace('www.', '');
+          return (
+            <a
+              key={index}
+              href={part.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 underline break-words overflow-wrap-anywhere"
+            >
+              {displayText}
+            </a>
+          );
+        } catch {
+          return (
+            <a
+              key={index}
+              href={part.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 underline break-words overflow-wrap-anywhere"
+            >
+              {part.url}
+            </a>
+          );
+        }
       }
       
-      // This is a URL
-      try {
-        const url = new URL(part.url);
-        const displayText = url.hostname.replace('www.', '');
-        return (
-          <a
-            key={index}
-            href={part.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-400 underline break-words overflow-wrap-anywhere"
-          >
-            {displayText}
-          </a>
-        );
-      } catch {
-        return (
-          <a
-            key={index}
-            href={part.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-400 underline break-words overflow-wrap-anywhere"
-          >
-            {part.url}
-          </a>
-        );
-      }
+      // Process markdown in text parts
+      let content = part.content;
+      const elements: React.ReactNode[] = [];
+      let key = 0;
+      
+      // Bold: **text**
+      content = content.replace(/\*\*(.+?)\*\*/g, (_, text) => {
+        elements.push(<strong key={key++}>{text}</strong>);
+        return `__BOLD_${elements.length - 1}__`;
+      });
+      
+      // Italic: *text*
+      content = content.replace(/\*(.+?)\*/g, (_, text) => {
+        if (!text.includes('__BOLD_')) {
+          elements.push(<em key={key++}>{text}</em>);
+          return `__ITALIC_${elements.length - 1}__`;
+        }
+        return `*${text}*`;
+      });
+      
+      // Code: `code`
+      content = content.replace(/`([^`]+)`/g, (_, code) => {
+        elements.push(<code key={key++} className="bg-muted px-1 py-0.5 rounded text-sm">{code}</code>);
+        return `__CODE_${elements.length - 1}__`;
+      });
+      
+      // Replace placeholders
+      const parts2 = content.split(/(__BOLD_\d+__|__ITALIC_\d+__|__CODE_\d+__)/);
+      return parts2.map((p, i) => {
+        const match = p.match(/__(BOLD|ITALIC|CODE)_(\d+)__/);
+        if (match) {
+          return <React.Fragment key={i}>{elements[parseInt(match[2])]}</React.Fragment>;
+        }
+        return <span key={i}>{p}</span>;
+      });
     });
   };
 
@@ -813,28 +931,75 @@ export function MovieChatSheet({
                         : "bg-muted text-foreground"
                     )}
                   >
-                    <p className="text-sm whitespace-pre-wrap pr-6 break-words overflow-wrap-anywhere">
-                      {message.role === "assistant" ? formatMessageWithLinks(message.content) : message.content}
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        "absolute bottom-1 right-1 h-6 w-6 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity cursor-pointer",
-                        message.role === "user"
-                          ? "text-black hover:bg-black/10"
-                          : "text-foreground hover:bg-foreground/10"
+                    <div className="text-sm whitespace-pre-wrap pr-12 break-words overflow-wrap-anywhere">
+                      {message.role === "assistant" ? formatMessageContent(message.content) : message.content}
+                    </div>
+                    <div className="absolute bottom-1 right-1 flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                      {message.role === "user" && index === messages.length - 1 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={cn(
+                            "h-6 w-6 cursor-pointer",
+                            "text-black hover:bg-black/10"
+                          )}
+                          onClick={() => handleEditMessage(index)}
+                          title="Edit message"
+                        >
+                          <Edit2 className="h-3 w-3" />
+                        </Button>
                       )}
-                      onClick={() => handleCopyMessage(message.content, index)}
-                      title="Copy message"
-                    >
-                      {copiedMessageIndex === index ? (
-                        <Check className="h-3 w-3" />
-                      ) : (
-                        <Copy className="h-3 w-3" />
+                      {message.role === "assistant" && (message.retryCount || 0) < 2 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={cn(
+                            "h-6 w-6 cursor-pointer",
+                            "text-foreground hover:bg-foreground/10"
+                          )}
+                          onClick={() => handleRegenerate(index + 1)}
+                          disabled={isLoading}
+                          title="Regenerate response"
+                        >
+                          <RotateCw className="h-3 w-3" />
+                        </Button>
                       )}
-                    </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={cn(
+                          "h-6 w-6 cursor-pointer",
+                          message.role === "user"
+                            ? "text-black hover:bg-black/10"
+                            : "text-foreground hover:bg-foreground/10"
+                        )}
+                        onClick={() => handleCopyMessage(message.content, index)}
+                        title="Copy message"
+                      >
+                        {copiedMessageIndex === index ? (
+                          <Check className="h-3 w-3" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
+                  {message.role === "assistant" && message.followUpSuggestions && message.followUpSuggestions.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2 max-w-[80%]">
+                      {message.followUpSuggestions.map((suggestion, sugIndex) => (
+                        <Button
+                          key={sugIndex}
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-auto py-1 px-2 cursor-pointer"
+                          onClick={() => handleSend(suggestion)}
+                          disabled={isLoading}
+                        >
+                          {suggestion}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
                   {message.role === "user" && (
                     <div className="flex-shrink-0 h-8 w-8 rounded-full overflow-hidden bg-muted border border-border">
                       {currentUser?.avatarUrl || user?.imageUrl ? (
@@ -902,6 +1067,33 @@ export function MovieChatSheet({
 
           {/* Input Area */}
           <div className="px-6 py-4">
+            {editingMessageIndex !== null && (
+              <div className="mb-2 px-3 py-2 bg-muted/50 rounded-md flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Editing message</span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSaveEdit}
+                    disabled={isLoading || !input.trim()}
+                    className="h-6 px-2 text-xs"
+                  >
+                    <CheckIcon className="h-3 w-3 mr-1" />
+                    Save
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCancelEdit}
+                    disabled={isLoading}
+                    className="h-6 px-2 text-xs"
+                  >
+                    <XIcon className="h-3 w-3 mr-1" />
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
             <div className="relative rounded-lg border border-border bg-background">
               <div className="flex items-end gap-2 p-2">
                 <Input
@@ -914,15 +1106,24 @@ export function MovieChatSheet({
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
-                      handleSend();
+                      if (editingMessageIndex !== null) {
+                        handleSaveEdit();
+                      } else {
+                        handleSend();
+                      }
+                    }
+                    if (e.key === "Escape" && editingMessageIndex !== null) {
+                      handleCancelEdit();
                     }
                   }}
                   placeholder={
-                    maxQuestions !== Infinity && questionCount >= maxQuestions
+                    editingMessageIndex !== null
+                      ? "Edit your message..."
+                      : maxQuestions !== Infinity && questionCount >= maxQuestions
                       ? "Upgrade to Pro for more questions"
                       : "Ask a question..."
                   }
-                  disabled={isLoading || questionCount >= maxQuestions}
+                  disabled={isLoading || (questionCount >= maxQuestions && editingMessageIndex === null)}
                   className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-transparent resize-none min-h-[44px] max-h-[200px] placeholder:text-muted-foreground"
                 />
                 <div className="flex items-center gap-1 pb-1">

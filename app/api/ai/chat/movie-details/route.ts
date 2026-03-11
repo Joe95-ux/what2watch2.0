@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { message, sessionId, tmdbId, mediaType, conversationHistory = [] } = body;
+    const { message, sessionId, tmdbId, mediaType, conversationHistory = [], stream = false } = body;
 
     if (!message || typeof message !== "string" || !message.trim()) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
