@@ -1010,6 +1010,22 @@ export function MovieChatSheet({
                   </div>
                   {message.role === "assistant" && message.followUpSuggestions && message.followUpSuggestions.length > 0 && (
                     <div className="flex flex-wrap items-center gap-2 pl-11">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 cursor-pointer text-muted-foreground hover:text-foreground shrink-0 order-first"
+                        onClick={() => {
+                          setSuggestionsDismissed(true);
+                          setMessages((prev) =>
+                            prev.map((m) =>
+                              m.role === "assistant" ? { ...m, followUpSuggestions: undefined } : m
+                            )
+                          );
+                        }}
+                        title="Hide suggestions"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
                       {message.followUpSuggestions.map((suggestion, sugIndex) => (
                         <Button
                           key={sugIndex}
@@ -1022,15 +1038,6 @@ export function MovieChatSheet({
                           {suggestion}
                         </Button>
                       ))}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 cursor-pointer text-muted-foreground hover:text-foreground shrink-0"
-                        onClick={() => setSuggestionsDismissed(true)}
-                        title="Hide suggestions"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
                     </div>
                   )}
                 </div>
