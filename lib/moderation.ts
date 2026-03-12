@@ -34,7 +34,7 @@ export function containsProfanity(text: string): boolean {
 }
 
 // Sanitize HTML content to prevent XSS attacks
-export function sanitizeHtml(html: string): string {
+export function sanitizeHtml(html: string, options?: { trim?: boolean }): string {
   // Strip all HTML tags and decode HTML entities for maximum security
   // This approach works in serverless environments without requiring jsdom
   const sanitized = html
@@ -56,7 +56,8 @@ export function sanitizeHtml(html: string): string {
     .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec))
     .replace(/&#x([a-f\d]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
   
-  return sanitized.trim();
+  const trim = options?.trim !== false;
+  return trim ? sanitized.trim() : sanitized;
 }
 
 // Validate content length

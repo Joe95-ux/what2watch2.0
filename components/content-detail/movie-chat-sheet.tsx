@@ -64,6 +64,7 @@ export function MovieChatSheet({
   const [questionCount, setQuestionCount] = useState(0);
   const [maxQuestions, setMaxQuestions] = useState(6); // Default to 6, will be updated from API
   const [sessionId, setSessionId] = useState(() => `session-${Date.now()}`);
+  const [suggestionsDismissed, setSuggestionsDismissed] = useState(false);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [chatSessions, setChatSessions] = useState<Array<{
     id: string;
@@ -364,24 +365,26 @@ export function MovieChatSheet({
           : 0,
       };
 
-      // Generate follow-up suggestions
-      try {
-        const suggestionsRes = await fetch("/api/ai/chat/movie-details/suggestions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            lastMessage: lastUserMessage.content,
-            lastResponse: assistantMessage.content,
-            title,
-            mediaType,
-          }),
-        });
-        if (suggestionsRes.ok) {
-          const suggestionsData = await suggestionsRes.json();
-          assistantMessage.followUpSuggestions = suggestionsData.suggestions || [];
+      // Generate follow-up suggestions only if user hasn't dismissed them this session
+      if (!suggestionsDismissed) {
+        try {
+          const suggestionsRes = await fetch("/api/ai/chat/movie-details/suggestions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              lastMessage: lastUserMessage.content,
+              lastResponse: assistantMessage.content,
+              title,
+              mediaType,
+            }),
+          });
+          if (suggestionsRes.ok) {
+            const suggestionsData = await suggestionsRes.json();
+            assistantMessage.followUpSuggestions = suggestionsData.suggestions || [];
+          }
+        } catch (e) {
+          // Silently fail suggestions
         }
-      } catch (e) {
-        // Silently fail suggestions
       }
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -574,6 +577,7 @@ export function MovieChatSheet({
   const handleLoadSession = async (fullSessionId: string, sessionIdPart: string) => {
     // Update the current session ID
     setSessionId(sessionIdPart);
+    setSuggestionsDismissed(false);
     setIsHistoryDialogOpen(false);
     
     // Reload chat history with the new session
@@ -635,6 +639,7 @@ export function MovieChatSheet({
     setSessionId(newSessionId);
     setMessages([]);
     setQuestionCount(0);
+    setSuggestionsDismissed(false);
     setInput("");
     toast.success("New chat started");
   };
@@ -904,88 +909,107 @@ export function MovieChatSheet({
               </div>
             ) : (
               messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={cn(
-                    "flex items-start gap-3",
-                    message.role === "user" ? "justify-end" : "justify-start"
-                  )}
-                >
-                  {message.role === "assistant" && (
-                    <div className="flex-shrink-0 h-8 w-8 rounded-full overflow-hidden bg-muted border border-border">
-                      <Image
-                        src="/icon1.png"
-                        alt="What2Watch"
-                        width={32}
-                        height={32}
-                        className="w-full h-full object-cover"
-                        unoptimized
-                      />
-                    </div>
-                  )}
+                <div key={index} className="space-y-1">
                   <div
                     className={cn(
-                      "max-w-[80%] rounded-lg px-4 py-2 relative group overflow-hidden",
-                      message.role === "user"
-                        ? "bg-[#edf3fe] text-black"
-                        : "bg-muted text-foreground"
+                      "flex items-start gap-3",
+                      message.role === "user" ? "justify-end" : "justify-start"
                     )}
                   >
-                    <div className="text-sm whitespace-pre-wrap pr-12 break-words overflow-wrap-anywhere">
-                      {message.role === "assistant" ? formatMessageContent(message.content) : message.content}
-                    </div>
-                    <div className="absolute bottom-1 right-1 flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                      {message.role === "user" && index === messages.length - 1 && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className={cn(
-                            "h-6 w-6 cursor-pointer",
-                            "text-black hover:bg-black/10"
-                          )}
-                          onClick={() => handleEditMessage(index)}
-                          title="Edit message"
-                        >
-                          <Edit2 className="h-3 w-3" />
-                        </Button>
+                    {message.role === "assistant" && (
+                      <div className="flex-shrink-0 h-8 w-8 rounded-full overflow-hidden bg-muted border border-border">
+                        <Image
+                          src="/icon1.png"
+                          alt="What2Watch"
+                          width={32}
+                          height={32}
+                          className="w-full h-full object-cover"
+                          unoptimized
+                        />
+                      </div>
+                    )}
+                    <div
+                      className={cn(
+                        "max-w-[80%] rounded-lg px-4 py-2 relative group overflow-hidden",
+                        message.role === "user"
+                          ? "bg-[#edf3fe] text-black"
+                          : "bg-muted text-foreground"
                       )}
-                      {message.role === "assistant" && (message.retryCount || 0) < 2 && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className={cn(
-                            "h-6 w-6 cursor-pointer",
-                            "text-foreground hover:bg-foreground/10"
-                          )}
-                          onClick={() => handleRegenerate(index + 1)}
-                          disabled={isLoading}
-                          title="Regenerate response"
-                        >
-                          <RotateCw className="h-3 w-3" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                          "h-6 w-6 cursor-pointer",
-                          message.role === "user"
-                            ? "text-black hover:bg-black/10"
-                            : "text-foreground hover:bg-foreground/10"
+                    >
+                      <div className="text-sm whitespace-pre-wrap pr-12 break-words overflow-wrap-anywhere">
+                        {message.role === "assistant" ? formatMessageContent(message.content) : message.content}
+                      </div>
+                      <div className="absolute bottom-1 right-1 flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                        {message.role === "user" && index === messages.length - 1 && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              "h-6 w-6 cursor-pointer",
+                              "text-black hover:bg-black/10"
+                            )}
+                            onClick={() => handleEditMessage(index)}
+                            title="Edit message"
+                          >
+                            <Edit2 className="h-3 w-3" />
+                          </Button>
                         )}
-                        onClick={() => handleCopyMessage(message.content, index)}
-                        title="Copy message"
-                      >
-                        {copiedMessageIndex === index ? (
-                          <Check className="h-3 w-3" />
+                        {message.role === "assistant" && (message.retryCount || 0) < 2 && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              "h-6 w-6 cursor-pointer",
+                              "text-foreground hover:bg-foreground/10"
+                            )}
+                            onClick={() => handleRegenerate(index + 1)}
+                            disabled={isLoading}
+                            title="Regenerate response"
+                          >
+                            <RotateCw className="h-3 w-3" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={cn(
+                            "h-6 w-6 cursor-pointer",
+                            message.role === "user"
+                              ? "text-black hover:bg-black/10"
+                              : "text-foreground hover:bg-foreground/10"
+                          )}
+                          onClick={() => handleCopyMessage(message.content, index)}
+                          title="Copy message"
+                        >
+                          {copiedMessageIndex === index ? (
+                            <Check className="h-3 w-3" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                    {message.role === "user" && (
+                      <div className="flex-shrink-0 h-8 w-8 rounded-full overflow-hidden bg-muted border border-border">
+                        {currentUser?.avatarUrl || user?.imageUrl ? (
+                          <Image
+                            src={currentUser?.avatarUrl || user?.imageUrl || ""}
+                            alt={currentUser?.displayName || user?.firstName || "User"}
+                            width={32}
+                            height={32}
+                            className="w-full h-full object-cover"
+                            unoptimized
+                          />
                         ) : (
-                          <Copy className="h-3 w-3" />
+                          <div className="w-full h-full flex items-center justify-center text-xs font-medium text-muted-foreground">
+                            {currentUser?.username?.[0]?.toUpperCase() || user?.firstName?.[0] || user?.emailAddresses?.[0]?.emailAddress?.[0]?.toUpperCase() || "U"}
+                          </div>
                         )}
-                      </Button>
-                    </div>
+                      </div>
+                    )}
                   </div>
                   {message.role === "assistant" && message.followUpSuggestions && message.followUpSuggestions.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2 max-w-[80%]">
+                    <div className="flex flex-wrap items-center gap-2 pl-11">
                       {message.followUpSuggestions.map((suggestion, sugIndex) => (
                         <Button
                           key={sugIndex}
@@ -998,24 +1022,15 @@ export function MovieChatSheet({
                           {suggestion}
                         </Button>
                       ))}
-                    </div>
-                  )}
-                  {message.role === "user" && (
-                    <div className="flex-shrink-0 h-8 w-8 rounded-full overflow-hidden bg-muted border border-border">
-                      {currentUser?.avatarUrl || user?.imageUrl ? (
-                        <Image
-                          src={currentUser?.avatarUrl || user?.imageUrl || ""}
-                          alt={currentUser?.displayName || user?.firstName || "User"}
-                          width={32}
-                          height={32}
-                          className="w-full h-full object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs font-medium text-muted-foreground">
-                          {currentUser?.username?.[0]?.toUpperCase() || user?.firstName?.[0] || user?.emailAddresses?.[0]?.emailAddress?.[0]?.toUpperCase() || "U"}
-                        </div>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 cursor-pointer text-muted-foreground hover:text-foreground shrink-0"
+                        onClick={() => setSuggestionsDismissed(true)}
+                        title="Hide suggestions"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -1076,7 +1091,7 @@ export function MovieChatSheet({
                     size="sm"
                     onClick={handleSaveEdit}
                     disabled={isLoading || !input.trim()}
-                    className="h-6 px-2 text-xs"
+                    className="h-6 px-2 text-xs cursor-pointer"
                   >
                     <CheckIcon className="h-3 w-3 mr-1" />
                     Save
@@ -1086,7 +1101,7 @@ export function MovieChatSheet({
                     size="sm"
                     onClick={handleCancelEdit}
                     disabled={isLoading}
-                    className="h-6 px-2 text-xs"
+                    className="h-6 px-2 text-xs cursor-pointer"
                   >
                     <XIcon className="h-3 w-3 mr-1" />
                     Cancel
@@ -1099,8 +1114,8 @@ export function MovieChatSheet({
                 <Input
                   value={input}
                   onChange={(e) => {
-                    // Sanitize input on change to prevent malicious code
-                    const sanitized = sanitizeHtml(e.target.value);
+                    // Sanitize input on change (no trim so spaces while typing are preserved)
+                    const sanitized = sanitizeHtml(e.target.value, { trim: false });
                     setInput(sanitized);
                   }}
                   onKeyDown={(e) => {
