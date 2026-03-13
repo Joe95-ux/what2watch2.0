@@ -222,6 +222,7 @@ function DuneWatchProvidersCard() {
   const countryMatches = watchAvailability?.country?.toUpperCase() === normalizedCountry;
   const shouldShowData = countryMatches && !isFetching;
   const displayData = shouldShowData ? watchAvailability : null;
+  const isLoadingDisplay = isLoading || isFetching || !displayData;
 
   return (
     <div className="order-1 lg:order-2 relative">
@@ -236,15 +237,36 @@ function DuneWatchProvidersCard() {
               <p className="text-xs text-muted-foreground">Available to stream now</p>
             </div>
           </div>
+          {countries.length > 0 && (
+            <CountryCombobox
+              countries={countries}
+              value={normalizedCountry}
+              onValueChange={(code) => setWatchCountry(code.toUpperCase())}
+            />
+          )}
         </div>
 
-        <ContentDetailWhereToWatch
-          watchAvailability={displayData}
-          watchCountry={normalizedCountry}
-          onWatchCountryChange={(code) => setWatchCountry(code.toUpperCase())}
-          justwatchCountries={countries}
-          isLoading={isLoading || isFetching}
-        />
+        {isLoadingDisplay ? (
+          <div className="space-y-6">
+            <div>
+              <Skeleton className="h-3 w-20 mb-3" />
+              <div className="flex flex-wrap gap-3">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-[50px] w-[50px] rounded-lg" />
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <ContentDetailWhereToWatch
+            watchAvailability={displayData}
+            watchCountry={normalizedCountry}
+            // Let inner component own its region selector; we still keep the top pill for quick changes
+            onWatchCountryChange={(code) => setWatchCountry(code.toUpperCase())}
+            justwatchCountries={countries}
+            isLoading={false}
+          />
+        )}
       </div>
     </div>
   );
