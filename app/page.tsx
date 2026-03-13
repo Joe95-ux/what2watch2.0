@@ -237,33 +237,28 @@ function DuneWatchProvidersCard() {
               <p className="text-xs text-muted-foreground">Available to stream now</p>
             </div>
           </div>
-          {countries.length > 0 && (
-            <CountryCombobox
-              countries={countries}
-              value={normalizedCountry}
-              onValueChange={(code) => setWatchCountry(code.toUpperCase())}
-            />
-          )}
         </div>
 
         {isLoadingDisplay ? (
           <div className="space-y-6">
-            <div>
-              <Skeleton className="h-3 w-20 mb-3" />
-              <div className="flex flex-wrap gap-3">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-[50px] w-[50px] rounded-lg" />
-                ))}
+            {[1, 2].map((row) => (
+              <div key={row}>
+                <Skeleton className="h-3 w-24 mb-3" />
+                <div className="flex flex-wrap gap-3">
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <Skeleton key={i} className="h-[50px] w-[50px] rounded-lg" />
+                  ))}
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         ) : (
           <ContentDetailWhereToWatch
             watchAvailability={displayData}
             watchCountry={normalizedCountry}
-            // Let inner component own its region selector; we still keep the top pill for quick changes
             onWatchCountryChange={(code) => setWatchCountry(code.toUpperCase())}
             justwatchCountries={countries}
+            // Let the card own the loading state; inner component renders full rows without its own skeleton
             isLoading={false}
           />
         )}
