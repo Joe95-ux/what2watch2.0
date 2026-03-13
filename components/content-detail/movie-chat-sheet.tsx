@@ -1009,7 +1009,7 @@ export function MovieChatSheet({
                     )}
                   </div>
                   {message.role === "assistant" && message.followUpSuggestions && message.followUpSuggestions.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-2 pl-11">
+                    <div className="flex flex-wrap items-center gap-2 pl-11 mt-2">
                       <Button
                         variant="ghost"
                         size="icon"

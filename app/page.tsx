@@ -33,7 +33,8 @@ import ListCard from "@/components/browse/list-card";
 import { Playlist } from "@/hooks/use-playlists";
 import { cn } from "@/lib/utils";
 import { useWatchProviders, useJustWatchCountries } from "@/hooks/use-content-details";
-import { JustWatchOffer, JustWatchCountry } from "@/lib/justwatch";
+import { JustWatchCountry } from "@/lib/justwatch";
+import ContentDetailWhereToWatch from "@/components/browse/content-detail-where-to-watch";
 import { useState, useMemo } from "react";
 import {
   Popover,
@@ -214,39 +215,13 @@ function CountryCombobox({
 
 function DuneWatchProvidersCard() {
   const [watchCountry, setWatchCountry] = useState("US");
-  // Normalize country code to uppercase for consistency
   const normalizedCountry = watchCountry.toUpperCase();
   const { data: watchAvailability, isLoading, isFetching } = useWatchProviders("movie", 693134, normalizedCountry);
   const { data: countries = [] } = useJustWatchCountries();
-  
-  // Only show data if it matches the selected country to prevent showing wrong country's data
-  // Also check if we're currently fetching to avoid showing stale data
+
   const countryMatches = watchAvailability?.country?.toUpperCase() === normalizedCountry;
   const shouldShowData = countryMatches && !isFetching;
   const displayData = shouldShowData ? watchAvailability : null;
-  
-  const formatPrice = (price: number | null | undefined, currency: string | null | undefined): string => {
-    if (!price || !currency) return "";
-    const formatter = new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency,
-      maximumFractionDigits: 2,
-    });
-    return formatter.format(price).replace(/^[A-Z]{2}\$/, "$");
-  };
-
-  const getQuality = (presentationType: string | null | undefined): string => {
-    if (!presentationType) return "";
-    const quality = presentationType.toLowerCase();
-    if (quality.includes("4k") || quality.includes("uhd")) return "4K";
-    if (quality.includes("hd") && !quality.includes("uhd")) return "HD";
-    if (quality.includes("sd")) return "SD";
-    return "";
-  };
-  
-  const streamOffers = displayData?.offersByType?.flatrate || [];
-  const rentOffers = displayData?.offersByType?.rent || [];
-  const buyOffers = displayData?.offersByType?.buy || [];
 
   return (
     <div className="order-1 lg:order-2 relative">
@@ -261,137 +236,15 @@ function DuneWatchProvidersCard() {
               <p className="text-xs text-muted-foreground">Available to stream now</p>
             </div>
           </div>
-          {countries.length > 0 && (
-            <CountryCombobox
-              countries={countries}
-              value={normalizedCountry}
-              onValueChange={(code) => setWatchCountry(code.toUpperCase())}
-            />
-          )}
         </div>
 
-        {(isLoading || isFetching || !shouldShowData) ? (
-          <div className="space-y-6">
-            <div>
-              <Skeleton className="h-3 w-20 mb-3" />
-              <div className="flex flex-wrap gap-3">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-[50px] w-[50px] rounded-lg" />
-                ))}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {streamOffers.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Stream</p>
-                <div className="flex flex-wrap gap-3">
-                  {streamOffers.slice(0, 6).map((offer: JustWatchOffer) => {
-                    const quality = getQuality(offer.presentationType);
-                    return (
-                      <a
-                        key={offer.providerId}
-                        href={offer.standardWebUrl || offer.deepLinkUrl || "#"}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex flex-col items-center gap-1 group cursor-pointer transition-transform hover:-translate-y-1"
-                      >
-                        {offer.iconUrl ? (
-                          <div className="relative h-[50px] w-[50px] rounded-lg border border-border overflow-hidden bg-muted hover:border-primary transition-colors">
-                            <Image
-                              src={offer.iconUrl}
-                              alt={offer.providerName}
-                              fill
-                              className="object-contain rounded-lg"
-                              unoptimized
-                            />
-                          </div>
-                        ) : (
-                          <div className="h-[50px] w-[50px] rounded-lg border border-border bg-muted flex items-center justify-center hover:border-primary transition-colors">
-                            <span className="text-xs text-muted-foreground">{offer.providerName[0]}</span>
-                          </div>
-                        )}
-                        {(quality) && (
-                          <div className="text-center">
-                            <span className="text-muted-foreground" style={{ fontSize: "13px" }}>{quality}</span>
-                          </div>
-                        )}
-                      </a>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {(rentOffers.length > 0 || buyOffers.length > 0) && (
-              <div className="pt-4 border-t border-border/50">
-                <p className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Rent / Buy</p>
-                <div className="flex flex-wrap gap-3">
-                  {[...rentOffers, ...buyOffers].slice(0, 6).map((offer: JustWatchOffer) => {
-                    const quality = getQuality(offer.presentationType);
-                    const price = formatPrice(offer.retailPrice, offer.currency);
-                    return (
-                      <a
-                        key={offer.providerId}
-                        href={offer.standardWebUrl || offer.deepLinkUrl || "#"}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex flex-col items-center gap-1 group cursor-pointer transition-transform hover:-translate-y-1"
-                      >
-                        {offer.iconUrl ? (
-                          <div className="relative h-[50px] w-[50px] rounded-lg border border-border overflow-hidden bg-muted hover:border-primary transition-colors">
-                            <Image
-                              src={offer.iconUrl}
-                              alt={offer.providerName}
-                              fill
-                              className="object-contain rounded-lg"
-                              unoptimized
-                            />
-                          </div>
-                        ) : (
-                          <div className="h-[50px] w-[50px] rounded-lg border border-border bg-muted flex items-center justify-center hover:border-primary transition-colors">
-                            <span className="text-xs text-muted-foreground">{offer.providerName[0]}</span>
-                          </div>
-                        )}
-                        {(quality || price) && (
-                          <div className="text-center">
-                            {price ? (
-                              <>
-                                <span className="text-muted-foreground" style={{ fontSize: "13px" }}>{price}</span>
-                                {quality && (
-                                  <>
-                                    <span className="text-muted-foreground" style={{ fontSize: "13px" }}> </span>
-                                    <span className="text-[#F5C518]" style={{ fontSize: "11px" }}>{quality}</span>
-                                  </>
-                                )}
-                              </>
-                            ) : (
-                              quality && (
-                                <span className="text-muted-foreground" style={{ fontSize: "13px" }}>{quality}</span>
-                              )
-                            )}
-                          </div>
-                        )}
-                      </a>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {streamOffers.length === 0 && rentOffers.length === 0 && buyOffers.length === 0 && (
-              <p className="text-sm text-muted-foreground">No streaming options available</p>
-            )}
-          </div>
-        )}
-
-        <div className="mt-6 flex justify-end">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>Data powered by</span>
-            <strong className="text-foreground">JustWatch</strong>
-          </div>
-        </div>
+        <ContentDetailWhereToWatch
+          watchAvailability={displayData}
+          watchCountry={normalizedCountry}
+          onWatchCountryChange={(code) => setWatchCountry(code.toUpperCase())}
+          justwatchCountries={countries}
+          isLoading={isLoading || isFetching}
+        />
       </div>
     </div>
   );
@@ -487,7 +340,7 @@ export default function LandingPage() {
           {/* Image Card - Sinks into bottom */}
           <div className="relative mx-auto max-w-5xl -mb-8">
             <div className="relative rounded-2xl overflow-hidden border border-border/50">
-              <div className="relative aspect-[16/9] w-full">
+              <div className="relative aspect-[13/8] w-full">
                 <Image
                   src="/hero-list-img.png"
                   alt="Watchlist"
