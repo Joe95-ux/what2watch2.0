@@ -42,6 +42,7 @@ import { Button } from "../ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
+import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { YouTubeProfileSkeleton } from "./youtube-profile-skeleton";
 import { getChannelProfilePath } from "@/lib/channel-path";
 import StreamingServiceRow from "./streaming-service-row";
@@ -143,8 +144,26 @@ export default function BrowseContent({ favoriteGenres = [], preferredTypes = ["
   );
   const { data: publicLists = [] } = usePublicLists(10);
   const { data: publicPlaylists = [] } = usePublicPlaylists(10);
-  const { data: watchProviders = [] } = useWatchProviders("US");
-  const topStreamingProviders = watchProviders.slice(0, 5);
+  const { data: watchProviders = [] } = useWatchProviders("US", { all: true });
+  const { data: userPreferences } = useUserPreferences();
+  const selectedProviders = userPreferences?.selectedProviders ?? [];
+
+  // Provider rows: default first 5, or merge with user's services, or replace with user's when > 5
+  const topStreamingProviders = useMemo(() => {
+    const defaultRows = watchProviders.slice(0, 5);
+    if (selectedProviders.length > 5) {
+      // User has more than 5 services: show only their services (no default rows)
+      return watchProviders.filter((p) => selectedProviders.includes(p.provider_id));
+    }
+    if (selectedProviders.length === 0) {
+      return defaultRows;
+    }
+    // User has 1–5 services: default rows + user's services not already in default (no duplicates)
+    const defaultIds = new Set(defaultRows.map((p) => p.provider_id));
+    const userProviderObjects = watchProviders.filter((p) => selectedProviders.includes(p.provider_id));
+    const extraFromUser = userProviderObjects.filter((p) => !defaultIds.has(p.provider_id));
+    return [...defaultRows, ...extraFromUser];
+  }, [watchProviders, selectedProviders]);
 
   // Map mood filters to genre IDs
   const getMoodGenres = (mood: MoodFilter): number[] => {
