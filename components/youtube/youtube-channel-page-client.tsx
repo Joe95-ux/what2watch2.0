@@ -374,8 +374,12 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
   };
 
   const handleSearchClick = () => {
-    handleTabChange("home");
-    setShowSearch(true);
+    if (activeTab === "home") {
+      setShowSearch((prev) => !prev);
+    } else {
+      handleTabChange("home");
+      setShowSearch(true);
+    }
   };
 
   const filteredVideos = videos.filter((video) => {
@@ -706,13 +710,13 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
 
               <div className="flex flex-wrap gap-2">
                 <Button
-                  variant={toggleFavorite.isFavorited(channelId) ? "default" : "outline"}
+                  variant="ghost"
                   size="sm"
                   onClick={async () => {
                     await requireAuth(() => toggleFavorite.toggle(channelId), "Sign in to favorite channels.");
                   }}
                   disabled={toggleFavorite.isLoading}
-                  className="cursor-pointer"
+                  className="cursor-pointer bg-transparent"
                 >
                   <Heart
                     className={cn(
@@ -720,7 +724,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
                       toggleFavorite.isFavorited(channelId) && "fill-red-500 text-red-500"
                     )}
                   />
-                  {toggleFavorite.isFavorited(channelId) ? "Favorited" : "Favorite"}
+                  Favorite
                 </Button>
                 <Button
                   variant="outline"
@@ -742,6 +746,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
             onTabChange={handleTabChange}
             onSearchClick={handleSearchClick}
             isScrolled={isScrolled}
+            isSearchOpen={showSearch && activeTab === "home"}
           />
         </div>
 

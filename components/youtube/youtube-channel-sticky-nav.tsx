@@ -8,6 +8,7 @@ interface YouTubeChannelStickyNavProps {
   onTabChange: (tab: string) => void;
   onSearchClick: () => void;
   isScrolled: boolean;
+  isSearchOpen?: boolean;
 }
 
 const tabs = [
@@ -52,13 +53,20 @@ export default function YouTubeChannelStickyNav({
             )}
           </button>
         ))}
-        {/* Search Icon - After Posts */}
+        {/* Search Icon - Toggle */}
         <button
           onClick={onSearchClick}
-          className="relative py-4 cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="Search videos"
+          className={cn(
+            "relative py-4 cursor-pointer transition-colors",
+            isSearchOpen ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+          )}
+          aria-label={isSearchOpen ? "Close search" : "Search videos"}
+          aria-pressed={isSearchOpen}
         >
           <Search className="h-5 w-5" />
+          {isSearchOpen && (
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+          )}
         </button>
       </div>
     </div>

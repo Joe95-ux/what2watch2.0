@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { FollowButton } from "@/components/social/follow-button";
-import { Bookmark, List, Heart, BookmarkCheck, Eye, FileText } from "lucide-react";
+import { Bookmark, List, Heart, Eye, FileText } from "lucide-react";
 import { BANNER_GRADIENTS } from "@/components/social/banner-gradient-selector";
 import { cn } from "@/lib/utils";
 
@@ -134,7 +134,7 @@ export function MemberCardCompact({
           disabled={isBookmarkPending}
         >
           {isBookmarked ? (
-            <BookmarkCheck className="h-4 w-4 text-primary" />
+            <Bookmark className="h-4 w-4 fill-green-500 text-green-500" />
           ) : (
             <Bookmark className="h-4 w-4 text-muted-foreground" />
           )}
@@ -177,7 +177,7 @@ export function MemberCardCompact({
         <Button
           asChild
           size="sm"
-          className="mt-3 w-full rounded-[20px] border-0 bg-white text-black hover:bg-gray-100 dark:bg-white dark:text-black dark:hover:bg-gray-100 cursor-pointer"
+          className="mt-3 h-9 w-full rounded-[20px] border-0 bg-white text-black hover:bg-gray-100 dark:bg-white dark:text-black dark:hover:bg-gray-100 cursor-pointer"
         >
           <Link href={`/users/${user.id}`} className="cursor-pointer">View Profile</Link>
         </Button>

@@ -171,24 +171,24 @@ export default function MembersPage() {
         </p>
       </div>
 
-      {/* Search bar with sort, filter, and view toggle tucked in */}
-      <div className="mb-6">
-        <form onSubmit={handleSearch} className="relative flex items-center rounded-lg border bg-background">
+      {/* Search bar (input + sort + filter only) and view toggle outside */}
+      <div className="mb-6 flex flex-col sm:flex-row gap-3 sm:items-center">
+        <form onSubmit={handleSearch} className="relative w-full sm:w-80 sm:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none shrink-0" />
           <Input
             type="text"
             placeholder="Search members..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="pl-9 pr-4 h-10 min-w-0 flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="pl-9 pr-24 h-10 w-full border rounded-lg bg-background"
           />
-          <div className="flex items-center gap-0.5 pr-2 shrink-0">
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0">
             {searchInput && (
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 cursor-pointer"
+                className="h-7 w-7 cursor-pointer"
                 onClick={() => setSearchInput("")}
               >
                 <X className="h-3.5 w-3.5" />
@@ -201,7 +201,7 @@ export default function MembersPage() {
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    "h-8 w-8 cursor-pointer",
+                    "h-7 w-7 cursor-pointer",
                     sort !== "newest" && "text-primary"
                   )}
                   aria-label="Sort by"
@@ -233,7 +233,7 @@ export default function MembersPage() {
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    "h-8 w-8 cursor-pointer",
+                    "h-7 w-7 cursor-pointer",
                     filter !== "all" && "text-primary"
                   )}
                   aria-label="Filter"
@@ -262,22 +262,22 @@ export default function MembersPage() {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-            <ToggleGroup
-              type="single"
-              value={viewMode}
-              onValueChange={(v) => v && setViewMode(v as ViewMode)}
-              className="border-0 p-0 h-8 gap-0 rounded-md overflow-hidden"
-              aria-label="View mode"
-            >
-              <ToggleGroupItem value="compact" aria-label="Compact view" className="h-8 w-8 rounded-none border-0 data-[state=on]:bg-muted cursor-pointer">
-                <LayoutGrid className="h-4 w-4" />
-              </ToggleGroupItem>
-              <ToggleGroupItem value="list" aria-label="List view" className="h-8 w-8 rounded-none border-0 data-[state=on]:bg-muted cursor-pointer">
-                <List className="h-4 w-4" />
-              </ToggleGroupItem>
-            </ToggleGroup>
           </div>
         </form>
+        <ToggleGroup
+          type="single"
+          value={viewMode}
+          onValueChange={(v) => v && setViewMode(v as ViewMode)}
+          className="border rounded-md p-0.5 bg-muted/30 shrink-0"
+          aria-label="View mode"
+        >
+          <ToggleGroupItem value="compact" aria-label="Compact view" className="h-8 w-8 data-[state=on]:bg-background data-[state=on]:shadow-sm cursor-pointer">
+            <LayoutGrid className="h-4 w-4" />
+          </ToggleGroupItem>
+          <ToggleGroupItem value="list" aria-label="List view" className="h-8 w-8 data-[state=on]:bg-background data-[state=on]:shadow-sm cursor-pointer">
+            <List className="h-4 w-4" />
+          </ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
       {/* Users Grid */}
