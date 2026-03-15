@@ -11,6 +11,7 @@ interface FollowButtonProps {
   variant?: "default" | "outline" | "ghost";
   size?: "default" | "sm" | "lg" | "icon";
   showIcon?: boolean;
+  className?: string;
 }
 
 export function FollowButton({
@@ -18,6 +19,7 @@ export function FollowButton({
   variant = "default",
   size = "default",
   showIcon = true,
+  className,
 }: FollowButtonProps) {
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
@@ -80,7 +82,7 @@ export function FollowButton({
       disabled={isLoading}
       variant={isFollowing ? "outline" : variant}
       size={size}
-      className="cursor-pointer"
+      className={className ?? "cursor-pointer"}
     >
       {isLoading ? (
         <Loader2 className="h-4 w-4 animate-spin" />

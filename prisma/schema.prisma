@@ -121,6 +121,8 @@ model User {
   // Social features
   followers     Follow[] @relation("UserFollowers")
   following     Follow[] @relation("UserFollowing")
+  favoriteMembersBookmarked   FavoriteMember[] @relation("FavoriteMembersBookmarkedBy")
+  favoriteMembersBookmarkedBy FavoriteMember[] @relation("FavoriteMembersBookmarked")
   likedPlaylists LikedPlaylist[]
   viewingLogComments ViewingLogComment[]
   commentReactions CommentReaction[]
@@ -1155,6 +1157,23 @@ model Follow {
   @@map("follows")
   @@index([followerId])
   @@index([followingId])
+  @@index([createdAt])
+}
+
+// Favorite members - users bookmarking other members (favorites list)
+model FavoriteMember {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  bookmarkedById  String   @db.ObjectId
+  bookmarkedBy    User     @relation("FavoriteMembersBookmarkedBy", fields: [bookmarkedById], references: [id], onDelete: Cascade)
+  memberId        String   @db.ObjectId
+  member          User     @relation("FavoriteMembersBookmarked", fields: [memberId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime @default(now())
+
+  @@unique([bookmarkedById, memberId])
+  @@map("favorite_members")
+  @@index([bookmarkedById])
+  @@index([memberId])
   @@index([createdAt])
 }
 

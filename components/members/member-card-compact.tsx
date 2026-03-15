@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { FollowButton } from "@/components/social/follow-button";
-import { Bookmark, List, Heart, BookmarkCheck } from "lucide-react";
+import { Bookmark, List, Heart, BookmarkCheck, Eye, FileText } from "lucide-react";
 import { BANNER_GRADIENTS } from "@/components/social/banner-gradient-selector";
 import { cn } from "@/lib/utils";
 
@@ -22,8 +22,9 @@ export interface MemberCardUser {
   followersCount: number;
   followingCount?: number;
   listsCount: number;
-  watchlistCount?: number;
+  watchedCount?: number;
   likedCount?: number;
+  reviewsCount?: number;
   allListsCount?: number;
   isFollowing: boolean;
 }
@@ -34,6 +35,7 @@ interface MemberCardCompactProps {
   isSignedIn: boolean;
   onBookmarkClick?: (userId: string) => void;
   isBookmarked?: boolean;
+  isBookmarkPending?: boolean;
 }
 
 export function MemberCardCompact({
@@ -42,6 +44,7 @@ export function MemberCardCompact({
   isSignedIn,
   onBookmarkClick,
   isBookmarked = false,
+  isBookmarkPending = false,
 }: MemberCardCompactProps) {
   const displayName = user.username || user.displayName || "Unknown";
   const username = user.username || user.id.slice(0, 8);
@@ -54,8 +57,9 @@ export function MemberCardCompact({
 
   const listsDisplay =
     currentUserId === user.id && user.allListsCount != null ? user.allListsCount : user.listsCount;
-  const watchlistCount = user.watchlistCount ?? 0;
+  const watchedCount = user.watchedCount ?? 0;
   const likedCount = user.likedCount ?? 0;
+  const reviewsCount = user.reviewsCount ?? 0;
 
   const bannerStyle = user.bannerUrl
     ? undefined
@@ -67,7 +71,8 @@ export function MemberCardCompact({
   return (
     <div
       className={cn(
-        "rounded-xl border bg-card overflow-hidden transition-colors",
+        "rounded-xl border overflow-hidden transition-colors",
+        "bg-sky-50/90 dark:bg-zinc-900/80",
         "hover:border-primary/50"
       )}
     >
@@ -92,7 +97,7 @@ export function MemberCardCompact({
         )}
         {/* Avatar - tucked under banner, left */}
         <div className="absolute bottom-0 left-4 translate-y-1/2">
-          <Link href={`/users/${user.id}`} className="block">
+          <Link href={`/users/${user.id}`} className="block cursor-pointer">
             <Avatar className="h-14 w-14 border-2 border-background shadow-md cursor-pointer ring-2 ring-background">
               <AvatarImage src={user.avatarUrl || undefined} alt={displayName} />
               <AvatarFallback className="text-lg bg-muted">{initials}</AvatarFallback>
@@ -102,7 +107,12 @@ export function MemberCardCompact({
         {/* Follow button - tucked under banner, right */}
         {isSignedIn && currentUserId !== user.id && (
           <div className="absolute bottom-0 right-4 translate-y-1/2">
-            <FollowButton userId={user.id} size="sm" variant="default" className="shadow-md" />
+            <FollowButton
+              userId={user.id}
+              size="sm"
+              variant="default"
+              className="rounded-[20px] shadow-md cursor-pointer"
+            />
           </div>
         )}
       </div>
@@ -110,7 +120,7 @@ export function MemberCardCompact({
       {/* Name row: display name + username left, bookmark right */}
       <div className="flex items-start justify-between gap-2 px-4 pt-9 pb-3">
         <div className="min-w-0 flex-1">
-          <Link href={`/users/${user.id}`}>
+          <Link href={`/users/${user.id}`} className="cursor-pointer">
             <h3 className="font-semibold truncate hover:underline">{displayName}</h3>
           </Link>
           <p className="text-sm text-muted-foreground truncate">@{username}</p>
@@ -118,9 +128,10 @@ export function MemberCardCompact({
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 shrink-0 rounded-full"
+          className="h-9 w-9 shrink-0 rounded-full cursor-pointer"
           aria-label={isBookmarked ? "Unbookmark" : "Bookmark"}
           onClick={() => onBookmarkClick?.(user.id)}
+          disabled={isBookmarkPending}
         >
           {isBookmarked ? (
             <BookmarkCheck className="h-4 w-4 text-primary" />
@@ -130,34 +141,45 @@ export function MemberCardCompact({
         </Button>
       </div>
 
-      {/* Stats: list count, watch count, liked count - bordered box */}
+      {/* Stats: list, watched, liked, reviews - bordered box */}
       <div className="px-4 pb-4">
-        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2.5 flex items-center justify-around gap-2">
+        <div className="rounded-[15px] border border-border/60 bg-muted/20 px-3 py-2.5 flex items-center justify-around gap-1 flex-wrap">
           <span
             className="flex items-center gap-1.5 text-sm text-muted-foreground"
             title="Lists & playlists"
           >
-            <List className="h-4 w-4 shrink-0" />
+            <List className="h-4 w-4 shrink-0 text-blue-500" />
             <span className="font-medium text-foreground">{listsDisplay}</span>
           </span>
           <span
             className="flex items-center gap-1.5 text-sm text-muted-foreground"
-            title="Watchlist"
+            title="Movies & TV marked as seen"
           >
-            <Bookmark className="h-4 w-4 shrink-0" />
-            <span className="font-medium text-foreground">{watchlistCount}</span>
+            <Eye className="h-4 w-4 shrink-0 text-green-500" />
+            <span className="font-medium text-foreground">{watchedCount}</span>
           </span>
           <span
             className="flex items-center gap-1.5 text-sm text-muted-foreground"
-            title="Liked lists & playlists"
+            title="Movies liked"
           >
-            <Heart className="h-4 w-4 shrink-0" />
+            <Heart className="h-4 w-4 shrink-0 text-rose-500" />
             <span className="font-medium text-foreground">{likedCount}</span>
+          </span>
+          <span
+            className="flex items-center gap-1.5 text-sm text-muted-foreground"
+            title="Reviews"
+          >
+            <FileText className="h-4 w-4 shrink-0 text-amber-500" />
+            <span className="font-medium text-foreground">{reviewsCount}</span>
           </span>
         </div>
 
-        <Button asChild variant="outline" size="sm" className="mt-3 w-full">
-          <Link href={`/users/${user.id}`}>View Profile</Link>
+        <Button
+          asChild
+          size="sm"
+          className="mt-3 w-full rounded-[20px] border-0 bg-white text-black hover:bg-gray-100 dark:bg-white dark:text-black dark:hover:bg-gray-100 cursor-pointer"
+        >
+          <Link href={`/users/${user.id}`} className="cursor-pointer">View Profile</Link>
         </Button>
       </div>
     </div>
