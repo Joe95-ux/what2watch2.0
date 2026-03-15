@@ -20,11 +20,12 @@ const tabs = [
   { id: "reviews", label: "Reviews" },
 ];
 
-export default function YouTubeChannelStickyNav({ 
-  activeTab, 
+export default function YouTubeChannelStickyNav({
+  activeTab,
   onTabChange,
   onSearchClick,
-  isScrolled 
+  isScrolled,
+  isSearchOpen = false,
 }: YouTubeChannelStickyNavProps) {
   return (
     <div
