@@ -15,7 +15,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
-  Heart, Star, CalendarIcon, Play, Edit, Trash2, Share2, Plus, 
+  Heart, Star, CalendarIcon, Play, Edit, Trash2, Plus, 
   MessageSquare, ArrowLeft, BookOpen, Reply, MoreVertical, Filter, ChevronDown, ChevronUp, Smile, Bookmark, Eye, Info
 } from "lucide-react";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
@@ -49,7 +49,7 @@ import TrailerModal from "@/components/browse/trailer-modal";
 import Script from "next/script";
 import Link from "next/link";
 import WatchBreakdownSection from "@/components/content-detail/watch-breakdown-section";
-import { ShareDropdown } from "@/components/ui/share-dropdown";
+import { DiaryLogActionsDropdown } from "./diary-log-actions-dropdown";
 import { WatchHistoryModal } from "./watch-history-modal";
 
 interface DiaryDetailContentProps {
@@ -601,106 +601,69 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                 </div>
               </div>
               
-              {/* Actions */}
-              {isOwner && (
-                <div className="pt-4 border-t overflow-x-auto scrollbar-hide">
-                  <div className="flex items-center gap-2 min-w-max">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsEditDialogOpen(true)}
-                      className="cursor-pointer"
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsLogAgainDialogOpen(true)}
-                      className="cursor-pointer"
-                    >
-                      <BookOpen className="h-4 w-4 mr-2" />
-                      Log Again
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsDeleteDialogOpen(true)}
-                      className="text-destructive hover:text-destructive cursor-pointer"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              )}
-              
-              {/* Actions for all users */}
-              <div className="pt-4 border-t mt-4 overflow-x-auto scrollbar-hide">
-                <div className="flex items-center gap-2 min-w-max">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      if (log.mediaType === "movie") {
-                        await toggleFavorite.toggle(mockMovieItem, "movie");
-                      } else {
-                        await toggleFavorite.toggle(mockTVItem, "tv");
-                      }
-                    }}
-                    className="cursor-pointer"
-                  >
-                    <Heart 
-                      className={cn(
-                        "h-4 w-4 mr-2",
-                        isLiked ? "text-red-500 fill-red-500" : "text-muted-foreground"
-                      )} 
-                    />
-                    {isLiked ? "Liked" : "Like"}
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      if (log.mediaType === "movie") {
-                        await toggleWatchlist.toggle(mockMovieItem, "movie");
-                      } else {
-                        await toggleWatchlist.toggle(mockTVItem, "tv");
-                      }
-                    }}
-                    className="cursor-pointer"
-                  >
-                    <Bookmark 
-                      className={cn(
-                        "h-4 w-4 mr-2",
-                        isInWatchlist ? "text-blue-500 fill-blue-500" : "text-muted-foreground"
-                      )} 
-                    />
-                    {isInWatchlist ? "In Watchlist" : "Watchlist"}
-                  </Button>
-                  
+              {/* Actions: left = Edit, Log again, Add to list; right = 3-dot menu (Like, Watchlist, Share, Delete) */}
+              <div className="flex flex-wrap items-center justify-between gap-4 overflow-x-auto scrollbar-hide">
+                <div className="flex items-center gap-2 min-w-0">
+                  {isOwner && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsEditDialogOpen(true)}
+                        className="h-9 rounded-[20px] border-none bg-muted/50 hover:bg-muted cursor-pointer"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsLogAgainDialogOpen(true)}
+                        className="h-9 rounded-[20px] border-none bg-muted/50 hover:bg-muted cursor-pointer"
+                      >
+                        <BookOpen className="h-4 w-4 mr-2" />
+                        Log Again
+                      </Button>
+                    </>
+                  )}
                   <AddToListDropdown
                     item={mockItem}
                     type={log.mediaType}
                     trigger={
-                      <Button variant="outline" size="sm" className="cursor-pointer">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 rounded-[20px] border-none bg-muted/50 hover:bg-muted cursor-pointer"
+                      >
                         <Plus className="h-4 w-4 mr-2" />
                         Add to List
                       </Button>
                     }
                   />
-                  
-                  <ShareDropdown
-                    shareUrl={shareUrl}
-                    title={`${title} - Review by ${user.username || user.displayName}`}
-                    description={`Check out this review of ${title} on What2Watch`}
-                    variant="outline"
-                    size="sm"
-                    className="cursor-pointer"
-                  />
                 </div>
+                <DiaryLogActionsDropdown
+                  shareUrl={shareUrl}
+                  shareTitle={`${title} - Review by ${user.username || user.displayName}`}
+                  shareDescription={`Check out this review of ${title} on What2Watch`}
+                  isLiked={isLiked}
+                  isInWatchlist={isInWatchlist}
+                  isOwner={isOwner}
+                  onLikeToggle={async () => {
+                    if (log.mediaType === "movie") {
+                      await toggleFavorite.toggle(mockMovieItem, "movie");
+                    } else {
+                      await toggleFavorite.toggle(mockTVItem, "tv");
+                    }
+                  }}
+                  onWatchlistToggle={async () => {
+                    if (log.mediaType === "movie") {
+                      await toggleWatchlist.toggle(mockMovieItem, "movie");
+                    } else {
+                      await toggleWatchlist.toggle(mockTVItem, "tv");
+                    }
+                  }}
+                  onDeleteClick={() => setIsDeleteDialogOpen(true)}
+                />
               </div>
             </div>
             
@@ -1539,7 +1502,7 @@ function CommentsSection({
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold">Comments ({comments.length})</h3>
         <Select value={filter} onValueChange={onFilterChange}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-[140px] rounded-[20px]">
             <Filter className="h-4 w-4 mr-2" />
             <SelectValue />
           </SelectTrigger>
@@ -1643,7 +1606,7 @@ function CommentsSection({
                   variant="outline"
                   size="sm"
                   onClick={() => setShowAllComments(!showAllComments)}
-                  className="flex items-center gap-2 cursor-pointer"
+                  className="flex items-center gap-2 rounded-[20px] cursor-pointer"
                 >
                   {showAllComments ? (
                     <>
@@ -1900,7 +1863,7 @@ function CommentItem({
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
                 rows={3}
-                className="resize-none text-sm"
+                className="resize-none text-sm rounded-[20px]"
               />
               <div className="flex items-center gap-2">
                 <Button
@@ -1908,7 +1871,7 @@ function CommentItem({
                   variant="outline"
                   onClick={handleCancelEdit}
                   disabled={isSaving}
-                  className="cursor-pointer"
+                  className="rounded-[20px] cursor-pointer"
                 >
                   Cancel
                 </Button>
@@ -1916,7 +1879,7 @@ function CommentItem({
                   size="sm"
                   onClick={handleSaveEdit}
                   disabled={!editContent.trim() || isSaving}
-                  className="cursor-pointer"
+                  className="rounded-[20px] cursor-pointer"
                 >
                   {isSaving ? "Saving..." : "Save"}
                 </Button>
@@ -2032,7 +1995,7 @@ function CommentItem({
                   <Textarea
                     placeholder={`Reply to ${comment.user.username || comment.user.displayName}...`}
                     rows={2}
-                    className="resize-none text-sm"
+                    className="resize-none text-sm rounded-[20px]"
                     value={replyContent}
                     onChange={(e) => onReplyContentChange(e.target.value)}
                   />
@@ -2041,7 +2004,7 @@ function CommentItem({
                       size="sm"
                       variant="outline"
                       onClick={onCancelReply}
-                      className="cursor-pointer"
+                      className="rounded-[20px] cursor-pointer"
                     >
                       Cancel
                     </Button>
@@ -2049,7 +2012,7 @@ function CommentItem({
                       size="sm"
                       onClick={() => onPostReply(comment.id)}
                       disabled={!replyContent.trim()}
-                      className="cursor-pointer"
+                      className="rounded-[20px] cursor-pointer"
                     >
                       Reply
                     </Button>

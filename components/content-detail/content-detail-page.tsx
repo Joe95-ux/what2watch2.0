@@ -190,7 +190,8 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-end gap-3 mt-[14px] md:mt-0">
-                <Skeleton className="h-9 w-32 rounded-full" />
+                <Skeleton className="h-9 w-24 rounded-[25px]" />
+                <Skeleton className="h-9 w-32 rounded-[25px]" />
               </div>
               <div className="flex flex-col sm:flex-row justify-start sm:justify-between sm:items-center gap-3">
                 <Skeleton className="h-8 w-64" />
@@ -215,6 +216,20 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
                 <Skeleton className="h-24 lg:h-48 rounded-lg" />
                 <Skeleton className="h-24 lg:h-48 rounded-lg" />
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons Section Skeleton */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap items-center justify-start gap-4 py-4 border-b border-border">
+            <Skeleton className="h-10 w-40 rounded-lg flex-shrink-0" />
+            <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+              <Skeleton className="h-9 w-24 rounded-[25px]" />
+              <Skeleton className="h-9 w-20 rounded-[25px]" />
+              <Skeleton className="h-9 w-20 rounded-[25px]" />
+              <Skeleton className="h-9 w-20 rounded-[25px]" />
+              <Skeleton className="h-9 w-24 rounded-[25px]" />
             </div>
           </div>
         </div>
