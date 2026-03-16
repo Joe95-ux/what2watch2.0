@@ -15,7 +15,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
-  Heart, Star, CalendarIcon, Play, Edit, Trash2, Plus, 
+  Heart, Star, CalendarIcon, Play, Edit, Trash2, Plus, Repeat,
   MessageSquare, ArrowLeft, BookOpen, Reply, MoreVertical, Filter, ChevronDown, ChevronUp, Smile, Bookmark, Eye, Info
 } from "lucide-react";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
@@ -598,12 +598,20 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                 <div className="flex items-center gap-2">
                   <Eye className="h-6 w-6 text-green-500" />
                   <span>Watched</span>
+                  {hasMultipleViewings && (
+                    <span
+                      title={log.mediaType === "movie" ? "Movie has been rewatched" : "TV show has been rewatched"}
+                      aria-label={log.mediaType === "movie" ? "Movie has been rewatched" : "TV show has been rewatched"}
+                    >
+                      <Repeat className="h-4 w-4 text-muted-foreground" />
+                    </span>
+                  )}
                 </div>
               </div>
               
               {/* Actions: left = Edit, Log again, Add to list; right = 3-dot menu (Like, Watchlist, Share, Delete) */}
               <div className="flex flex-wrap items-center justify-between gap-4 overflow-x-auto scrollbar-hide">
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-1 min-w-0">
                   {isOwner && (
                     <>
                       <Button
@@ -1502,7 +1510,7 @@ function CommentsSection({
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold">Comments ({comments.length})</h3>
         <Select value={filter} onValueChange={onFilterChange}>
-          <SelectTrigger className="w-[140px] rounded-[20px]">
+          <SelectTrigger className="w-[140px] rounded-[20px] cursor-pointer">
             <Filter className="h-4 w-4 mr-2" />
             <SelectValue />
           </SelectTrigger>

@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useViewingLogs, useDeleteViewingLog, useUpdateViewingLog, type ViewingLog } from "@/hooks/use-viewing-logs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Trash2, Film, Tv, Edit, Table2, Grid3x3, CalendarIcon, Heart, Star, FileText, X, Filter, ChevronLeft, ChevronRight, Bookmark, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Trash2, Film, Tv, Edit, Table2, Grid3x3, CalendarIcon, Heart, Star, FileText, X, Filter, ChevronLeft, ChevronRight, Bookmark, ArrowUpDown, ArrowUp, ArrowDown, Repeat } from "lucide-react";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "@/components/ui/carousel";
 import Image from "next/image";
 import { getPosterUrl, TMDBMovie, TMDBSeries } from "@/lib/tmdb";
@@ -236,6 +236,16 @@ export default function DiaryContent() {
     
     return { visibleDates, hasMore };
   }, [sortedDates, groupedLogs, rowsToShow]);
+
+  // Count viewings per content (tmdbId + mediaType) for rewatched indicator
+  const rewatchedCountByContent = useMemo(() => {
+    const count = new Map<string, number>();
+    logs.forEach((log) => {
+      const key = `${log.tmdbId}-${log.mediaType}`;
+      count.set(key, (count.get(key) ?? 0) + 1);
+    });
+    return count;
+  }, [logs]);
 
   // Paginated data for table view
   const paginatedTableData = useMemo(() => {
@@ -854,6 +864,9 @@ export default function DiaryContent() {
                     Like
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Rewatched
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Note
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -870,6 +883,9 @@ export default function DiaryContent() {
                     ? new Date(log.firstAirDate).getFullYear() 
                     : "—";
                   const isLiked = toggleFavorite.isFavorite(log.tmdbId, log.mediaType);
+                  const contentKey = `${log.tmdbId}-${log.mediaType}`;
+                  const viewingsCount = rewatchedCountByContent.get(contentKey) ?? 0;
+                  const isRewatched = viewingsCount > 1;
                   
                   return (
                     <tr
@@ -956,6 +972,18 @@ export default function DiaryContent() {
                               : "text-muted-foreground"
                           )}
                         />
+                      </td>
+                      <td className="px-4 py-4">
+                        {isRewatched ? (
+                          <span
+                            title={log.mediaType === "movie" ? "Movie has been rewatched" : "TV show has been rewatched"}
+                            aria-label={log.mediaType === "movie" ? "Movie has been rewatched" : "TV show has been rewatched"}
+                          >
+                            <Repeat className="h-4 w-4 text-muted-foreground" />
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-4">
                         {log.notes ? (
