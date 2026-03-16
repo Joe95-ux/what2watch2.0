@@ -716,7 +716,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
                     await requireAuth(() => toggleFavorite.toggle(channelId), "Sign in to favorite channels.");
                   }}
                   disabled={toggleFavorite.isLoading}
-                  className="cursor-pointer bg-transparent"
+                  className="cursor-pointer bg-transparent border border-border/60"
                 >
                   <Heart
                     className={cn(

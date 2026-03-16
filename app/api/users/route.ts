@@ -64,7 +64,9 @@ export async function GET(request: NextRequest) {
       }),
       db.playlist.groupBy({
         by: ["userId"],
-        where: { visibility: "PUBLIC" },
+        where: {
+          OR: [{ visibility: "PUBLIC" }, { isPublic: true }],
+        },
         _count: { id: true },
       }),
       db.viewingLog.groupBy({ by: ["userId"], _count: { id: true } }),
