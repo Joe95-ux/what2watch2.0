@@ -219,6 +219,7 @@ export function UnifiedNotificationCenter() {
                 size="sm"
                 onClick={handleMarkAllAsRead}
                 disabled={markForumAsRead.isPending || markYouTubeAsRead.isPending || markGeneralAsRead.isPending}
+                className="cursor-pointer disabled:cursor-not-allowed"
               >
                 <CheckCheck className="h-4 w-4 mr-2" />
                 Mark all read

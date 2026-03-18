@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
-import { Search, UsersRound, ArrowUpDown, Filter, LayoutGrid, List, X } from "lucide-react";
+import { Search, UsersRound, ArrowUpDown, Filter, LayoutTemplate, LayoutList, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -264,20 +264,42 @@ export default function MembersPage() {
             </DropdownMenu>
           </div>
         </form>
-        <ToggleGroup
-          type="single"
-          value={viewMode}
-          onValueChange={(v) => v && setViewMode(v as ViewMode)}
-          className="border rounded-md p-0.5 bg-muted/30 shrink-0"
-          aria-label="View mode"
+        <div
+          className="flex items-center gap-1 border border-border rounded-md p-1 bg-background h-9 shrink-0"
+          role="group"
+          aria-label="Member card layout"
         >
-          <ToggleGroupItem value="compact" aria-label="Compact view" className="h-8 w-8 data-[state=on]:bg-background data-[state=on]:shadow-sm cursor-pointer">
-            <LayoutGrid className="h-4 w-4" />
-          </ToggleGroupItem>
-          <ToggleGroupItem value="list" aria-label="List view" className="h-8 w-8 data-[state=on]:bg-background data-[state=on]:shadow-sm cursor-pointer">
-            <List className="h-4 w-4" />
-          </ToggleGroupItem>
-        </ToggleGroup>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setViewMode("compact")}
+            title="Profile cards with banner"
+            aria-label="Profile cards with banner"
+            aria-pressed={viewMode === "compact"}
+            className={cn(
+              "h-7 cursor-pointer has-[>svg]:px-2",
+              viewMode === "compact" ? "bg-muted text-foreground" : "hover:bg-muted/50"
+            )}
+          >
+            <LayoutTemplate className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setViewMode("list")}
+            title="Simple row layout"
+            aria-label="Simple row layout"
+            aria-pressed={viewMode === "list"}
+            className={cn(
+              "h-7 cursor-pointer has-[>svg]:px-2",
+              viewMode === "list" ? "bg-muted text-foreground" : "hover:bg-muted/50"
+            )}
+          >
+            <LayoutList className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Users Grid */}

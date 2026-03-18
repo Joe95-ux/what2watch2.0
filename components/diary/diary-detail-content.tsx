@@ -611,25 +611,25 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
               
               {/* Actions: left = Edit, Log again, Add to list; right = 3-dot menu (Like, Watchlist, Share, Delete) */}
               <div className="flex flex-wrap items-center justify-between gap-4 overflow-x-auto scrollbar-hide">
-                <div className="flex items-center gap-1 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
                   {isOwner && (
                     <>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setIsEditDialogOpen(true)}
-                        className="h-9 rounded-[20px] border-none bg-muted/50 hover:bg-muted cursor-pointer"
+                        className="h-9 rounded-[20px] border-none bg-muted/50 hover:bg-muted cursor-pointer gap-1"
                       >
-                        <Edit className="h-4 w-4 mr-2" />
+                        <Edit className="h-4 w-4" />
                         Edit
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setIsLogAgainDialogOpen(true)}
-                        className="h-9 rounded-[20px] border-none bg-muted/50 hover:bg-muted cursor-pointer"
+                        className="h-9 rounded-[20px] border-none bg-muted/50 hover:bg-muted cursor-pointer gap-1"
                       >
-                        <BookOpen className="h-4 w-4 mr-2" />
+                        <BookOpen className="h-4 w-4" />
                         Log Again
                       </Button>
                     </>
@@ -641,9 +641,9 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-9 rounded-[20px] border-none bg-muted/50 hover:bg-muted cursor-pointer"
+                        className="h-9 rounded-[20px] border-none bg-muted/50 hover:bg-muted cursor-pointer gap-1"
                       >
-                        <Plus className="h-4 w-4 mr-2" />
+                        <Plus className="h-4 w-4" />
                         Add to List
                       </Button>
                     }

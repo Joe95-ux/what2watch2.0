@@ -111,6 +111,7 @@ export function MemberCardCompact({
               userId={user.id}
               size="sm"
               variant="default"
+              iconVariant="round"
               className="rounded-[20px] shadow-md cursor-pointer"
             />
           </div>

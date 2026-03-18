@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useFollowUser, useUnfollowUser, useIsFollowing } from "@/hooks/use-follow";
-import { UserPlus, UserMinus, Loader2 } from "lucide-react";
+import { UserPlus, UserMinus, UserRound, UserRoundMinus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useUser, useClerk } from "@clerk/nextjs";
 
@@ -12,6 +12,8 @@ interface FollowButtonProps {
   size?: "default" | "sm" | "lg" | "icon";
   showIcon?: boolean;
   className?: string;
+  /** Round user icons (members cards): UserRound / UserRoundMinus */
+  iconVariant?: "default" | "round";
 }
 
 export function FollowButton({
@@ -20,6 +22,7 @@ export function FollowButton({
   size = "default",
   showIcon = true,
   className,
+  iconVariant = "default",
 }: FollowButtonProps) {
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
@@ -89,12 +92,20 @@ export function FollowButton({
       ) : showIcon ? (
         isFollowing ? (
           <>
-            <UserMinus className="h-4 w-4 mr-2" />
+            {iconVariant === "round" ? (
+              <UserRoundMinus className="h-4 w-4 mr-2" />
+            ) : (
+              <UserMinus className="h-4 w-4 mr-2" />
+            )}
             Unfollow
           </>
         ) : (
           <>
-            <UserPlus className="h-4 w-4 mr-2" />
+            {iconVariant === "round" ? (
+              <UserRound className="h-4 w-4 mr-2" />
+            ) : (
+              <UserPlus className="h-4 w-4 mr-2" />
+            )}
             Follow
           </>
         )

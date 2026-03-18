@@ -257,7 +257,7 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
             <Button
               variant="outline"
               size="sm"
-              className="h-9 inline-flex items-center gap-2 rounded-[25px] cursor-pointer border-none"
+              className="h-9 inline-flex items-center gap-2 rounded-[25px] cursor-pointer border-none bg-muted hover:bg-muted/90"
               onClick={() => {
                 if (!isSignedIn) {
                   toast.info("Sign in to chat about movies.");
@@ -281,7 +281,7 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 inline-flex items-center gap-2 rounded-[25px] cursor-pointer border-none"
+                  className="h-9 inline-flex items-center gap-2 rounded-[25px] cursor-pointer border-none bg-muted hover:bg-muted/90"
                   onClick={(e) => {
                     if (!isSignedIn) {
                       e.preventDefault();

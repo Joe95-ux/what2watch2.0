@@ -115,6 +115,7 @@ export function MemberCardList({
             userId={user.id}
             size="sm"
             variant="default"
+            iconVariant="round"
             className="rounded-[15px] cursor-pointer"
           />
         )}
