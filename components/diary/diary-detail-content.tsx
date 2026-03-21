@@ -618,7 +618,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                         variant="ghost"
                         size="sm"
                         onClick={() => setIsEditDialogOpen(true)}
-                        className="h-9 rounded-[20px] border-none bg-muted/50 hover:bg-muted cursor-pointer gap-1"
+                        className="h-9 rounded-[20px] border-none bg-muted/50 hover:bg-muted cursor-pointer gap-1.5"
                       >
                         <Edit className="h-4 w-4" />
                         Edit
@@ -627,7 +627,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                         variant="ghost"
                         size="sm"
                         onClick={() => setIsLogAgainDialogOpen(true)}
-                        className="h-9 rounded-[20px] border-none bg-muted/50 hover:bg-muted cursor-pointer gap-1"
+                        className="h-9 rounded-[20px] border-none bg-muted/50 hover:bg-muted cursor-pointer gap-1.5"
                       >
                         <BookOpen className="h-4 w-4" />
                         Log Again
@@ -641,7 +641,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-9 rounded-[20px] border-none bg-muted/50 hover:bg-muted cursor-pointer gap-1"
+                        className="h-9 rounded-[20px] border-none bg-muted/50 hover:bg-muted cursor-pointer gap-1.5"
                       >
                         <Plus className="h-4 w-4" />
                         Add to List

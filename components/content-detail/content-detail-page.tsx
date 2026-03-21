@@ -223,7 +223,10 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
         {/* Action Buttons Section Skeleton */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center justify-start gap-4 py-4 border-b border-border">
-            <Skeleton className="h-10 w-40 rounded-lg flex-shrink-0" />
+            <div className="flex items-center h-10 rounded-lg overflow-hidden bg-muted/60 flex-shrink-0">
+              <Skeleton className="h-10 w-10 rounded-none" />
+              <Skeleton className="h-5 w-28 mx-3" />
+            </div>
             <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
               <Skeleton className="h-9 w-24 rounded-[25px]" />
               <Skeleton className="h-9 w-20 rounded-[25px]" />
@@ -235,14 +238,14 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
         </div>
 
         {/* Sticky Nav Skeleton */}
-        <div className="sticky top-[65px] z-40 bg-background/95 backdrop-blur-sm">
+        <div className="sticky top-[65px] z-40 bg-background/95 backdrop-blur-sm border-b border-border">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex gap-6 overflow-x-auto">
-              <Skeleton className="h-8 w-24" />
-              <Skeleton className="h-8 w-24" />
-              <Skeleton className="h-8 w-24" />
-              <Skeleton className="h-8 w-24" />
-              <Skeleton className="h-8 w-24" />
+            <div className="flex items-center gap-4 overflow-x-auto py-2">
+              <Skeleton className="h-6 w-16 rounded-md" />
+              <Skeleton className="h-6 w-16 rounded-md" />
+              <Skeleton className="h-6 w-16 rounded-md" />
+              <Skeleton className="h-6 w-16 rounded-md" />
+              <Skeleton className="h-6 w-16 rounded-md" />
             </div>
           </div>
         </div>
