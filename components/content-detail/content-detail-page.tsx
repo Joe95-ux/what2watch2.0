@@ -207,9 +207,9 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
               <div className="hidden lg:block">
                 <Skeleton className="aspect-[2/3] rounded-lg" />
               </div>
-              {/* Banner Skeleton */}
-              <div className="relative rounded-lg overflow-hidden min-h-[260px] md:min-h-[400px] lg:min-h-[260px]">
-                <Skeleton className="block w-full min-h-[260px] md:min-h-[400px] lg:min-h-[260px] rounded-none" />
+              {/* Banner Skeleton — match grid row height (poster drives lg row); fill cell, not only min-height */}
+              <div className="relative min-h-[260px] md:min-h-[400px] lg:min-h-[260px] lg:h-full rounded-lg overflow-hidden">
+                <Skeleton className="absolute inset-0 size-full rounded-lg" />
               </div>
               {/* Stats Skeleton */}
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
