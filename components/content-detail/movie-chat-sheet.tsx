@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import React from "react";
-import { MessageCircle, Send, X, Loader2, History, HelpCircle, Clock, Copy, Check, SquarePen, Trash2, Mic, MicOff, CornerDownLeft, RotateCw, Edit2, Check as CheckIcon, X as XIcon } from "lucide-react";
+import { MessageCircle, Send, X, Loader2, History, HelpCircle, Clock, Copy, Check, SquarePen, Trash2, Mic, MicOff, CornerDownLeft, RotateCw, Edit2, Check as CheckIcon, X as XIcon, Info, ArrowLeft } from "lucide-react";
+import Link from "next/link";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { formatDistanceToNow, format } from "date-fns";
 import Image from "next/image";
 import { containsProfanity, sanitizeHtml } from "@/lib/moderation";
+import { PRO_PRICE_USD_MONTHLY } from "@/lib/billing";
 
 interface Message {
   role: "user" | "assistant";
@@ -66,6 +68,7 @@ export function MovieChatSheet({
   const [sessionId, setSessionId] = useState(() => `session-${Date.now()}`);
   const [suggestionsDismissed, setSuggestionsDismissed] = useState(false);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
+  const [chatHeaderMode, setChatHeaderMode] = useState<"chat" | "upgrade">("chat");
   const [chatSessions, setChatSessions] = useState<Array<{
     id: string;
     sessionId: string;
@@ -202,6 +205,12 @@ export function MovieChatSheet({
     }
   }, [isOpen, isListening]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setChatHeaderMode("chat");
+    }
+  }, [isOpen]);
+
   // Load chat history when sheet opens or sessionId changes
   useEffect(() => {
     if (isOpen) {
@@ -294,7 +303,9 @@ export function MovieChatSheet({
     }
 
     if (maxQuestions !== Infinity && questionCount >= maxQuestions && !options.isRegenerate) {
-      toast.error(`You've reached your limit of ${maxQuestions} questions. Upgrade to Pro for unlimited questions.`);
+      toast.error(
+        `You've reached your limit of ${maxQuestions} questions. Upgrade to Pro ($${PRO_PRICE_USD_MONTHLY}/mo) for unlimited AI chat on title pages and the dashboard.`
+      );
       return;
     }
 
@@ -851,46 +862,99 @@ export function MovieChatSheet({
       <SheetContent side="right" className="w-full sm:max-w-[30rem] p-0 flex flex-col [&>button]:hidden">
         {/* Fixed Header */}
         <SheetHeader className="px-6 py-4 border-b space-y-0 flex-shrink-0">
-          {/* Action Row: Quota Notice | History | Close Button */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-xs text-muted-foreground">
-              {remainingQuestions === Infinity 
-                ? "Unlimited questions" 
-                : `${remainingQuestions} ${remainingQuestions === 1 ? "question" : "questions"} left`}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 cursor-pointer"
-                onClick={handleNewChat}
-                disabled={messages.length === 0}
-                title="Start new chat"
-              >
-                <SquarePen className="h-4 w-4" />
+          {chatHeaderMode === "upgrade" ? (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 cursor-pointer -ml-2"
+                  onClick={() => setChatHeaderMode("chat")}
+                  title="Back to chat"
+                  aria-label="Back to chat"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 cursor-pointer"
+                  onClick={() => onOpenChange(false)}
+                  title="Close"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <SheetTitle className="text-lg font-semibold text-left">
+                {`Get more AI chat with Pro ($${PRO_PRICE_USD_MONTHLY}/mo)`}
+              </SheetTitle>
+              <p className="text-sm text-muted-foreground text-left mt-2 leading-relaxed">
+                Pro includes unlimited AI chat here (Ask Us on details) and in the dashboard, plus other advanced
+                features we add over time. Free accounts have a limited number of messages each billing period.
+              </p>
+              <Button className="w-full mt-4 cursor-pointer" asChild>
+                <Link href="/settings?section=billing">Upgrade to Pro</Link>
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 cursor-pointer"
-                onClick={handleHistoryClick}
-                title="View chat history"
-              >
-                <History className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 cursor-pointer"
-                onClick={() => onOpenChange(false)}
-                title="Close"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          {/* Title Row */}
-          <SheetTitle className="text-lg font-semibold">Ask about {title}</SheetTitle>
+            </>
+          ) : (
+            <>
+              {/* Action Row: Quota Notice | History | Close Button */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-1.5 min-w-0 text-xs text-muted-foreground">
+                  <span className="truncate">
+                    {remainingQuestions === Infinity
+                      ? "Unlimited questions"
+                      : `${remainingQuestions} ${remainingQuestions === 1 ? "question" : "questions"} left`}
+                  </span>
+                  {remainingQuestions !== Infinity && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0 cursor-pointer text-muted-foreground hover:text-foreground"
+                      onClick={() => setChatHeaderMode("upgrade")}
+                      title="About question limits and Pro"
+                      aria-label="About question limits and Pro"
+                    >
+                      <Info className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 cursor-pointer"
+                    onClick={handleNewChat}
+                    disabled={messages.length === 0}
+                    title="Start new chat"
+                  >
+                    <SquarePen className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 cursor-pointer"
+                    onClick={handleHistoryClick}
+                    title="View chat history"
+                  >
+                    <History className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 cursor-pointer"
+                    onClick={() => onOpenChange(false)}
+                    title="Close"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              {/* Title Row */}
+              <SheetTitle className="text-lg font-semibold">Ask about {title}</SheetTitle>
+            </>
+          )}
         </SheetHeader>
 
         {/* Scrollable Messages Area */}
@@ -1142,7 +1206,7 @@ export function MovieChatSheet({
                     editingMessageIndex !== null
                       ? "Edit your message..."
                       : maxQuestions !== Infinity && questionCount >= maxQuestions
-                      ? "Upgrade to Pro for more questions"
+                      ? `Upgrade to Pro ($${PRO_PRICE_USD_MONTHLY}/mo) for more AI chat`
                       : "Ask a question..."
                   }
                   disabled={isLoading || (questionCount >= maxQuestions && editingMessageIndex === null)}
@@ -1184,7 +1248,7 @@ export function MovieChatSheet({
             </div>
             {questionCount >= maxQuestions && (
               <p className="text-xs text-muted-foreground mt-2 text-center">
-                You've reached your question limit. Upgrade to Pro for unlimited questions.
+                {`You've reached your AI chat limit for this period. Pro ($${PRO_PRICE_USD_MONTHLY}/mo) includes unlimited AI chat on title pages and the dashboard.`}
               </p>
             )}
           </div>

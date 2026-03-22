@@ -38,11 +38,13 @@ import {
   LayoutGrid,
   Link2,
   Youtube,
+  CreditCard,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { SettingsLinksSection } from "@/components/settings/settings-links-section";
 import { SettingsYoutubeVisibilitySection } from "@/components/settings/settings-youtube-visibility-section";
+import { SettingsBillingSection } from "@/components/settings/settings-billing-section";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 
 interface SettingsContentProps {
@@ -83,10 +85,10 @@ interface SettingsContentProps {
   youtubeCardStyle: string;
 }
 
-type SettingsSection = "account" | "preferences" | "activity" | "theme" | "notifications" | "view" | "links" | "youtubeVisibility";
+type SettingsSection = "account" | "billing" | "preferences" | "activity" | "theme" | "notifications" | "view" | "links" | "youtubeVisibility";
 
 const SETTINGS_SECTION_STORAGE_KEY = "settings-active-section";
-const VALID_SECTIONS: SettingsSection[] = ["account", "preferences", "activity", "theme", "notifications", "view", "links", "youtubeVisibility"];
+const VALID_SECTIONS: SettingsSection[] = ["account", "billing", "preferences", "activity", "theme", "notifications", "view", "links", "youtubeVisibility"];
 
 function getStoredSection(): SettingsSection | null {
   if (typeof window === "undefined") return null;
@@ -314,6 +316,7 @@ export default function SettingsContent({
   const isAdmin = user.role === "ADMIN" || user.role === "SUPER_ADMIN";
   const settingsSections: Array<{ id: SettingsSection; label: string; icon: React.ReactNode }> = [
     { id: "account", label: "Account", icon: <UserRound className="h-4 w-4" /> },
+    { id: "billing", label: "Billing", icon: <CreditCard className="h-4 w-4" /> },
     { id: "preferences", label: "Preferences", icon: <Palette className="h-4 w-4" /> },
     { id: "activity", label: "Activity Privacy", icon: <Lock className="h-4 w-4" /> },
     { id: "theme", label: "Theme", icon: <Sun className="h-4 w-4" /> },
@@ -435,6 +438,9 @@ export default function SettingsContent({
                 </div>
               </div>
             )}
+
+            {/* Billing Section */}
+            {activeSection === "billing" && <SettingsBillingSection userEmail={user.email} />}
 
             {/* Preferences Section */}
             {activeSection === "preferences" && (

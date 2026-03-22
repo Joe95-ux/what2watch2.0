@@ -5,6 +5,7 @@ import OpenAI from "openai";
 import { getMovieDetails, getTVDetails } from "@/lib/tmdb";
 import { getJustWatchAvailability } from "@/lib/justwatch";
 import { searchWeb, formatWebSearchResults } from "@/lib/web-search";
+import { PRO_PRICE_USD_MONTHLY } from "@/lib/billing";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -99,7 +100,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: "QUESTION_LIMIT_REACHED",
-          message: `You've reached your limit of ${maxQuestions} questions. Upgrade to Pro for unlimited questions.`,
+          message: `You've reached your limit of ${maxQuestions} questions. Upgrade to Pro ($${PRO_PRICE_USD_MONTHLY}/mo) for unlimited AI chat on title pages and the dashboard.`,
           questionCount: totalQuestionCount,
           maxQuestions,
         },
