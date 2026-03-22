@@ -186,14 +186,14 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
     return (
       <div className="min-h-screen bg-background">
         {/* Hero Section Skeleton */}
-        <div className="-mt-[65px] pt-16 sm:pt-20 pb-12 bg-background">
+        <div className="-mt-[65px] pt-16 sm:pt-20 pb-0 bg-background">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-end gap-3 mt-[14px] md:mt-0">
                 <Skeleton className="h-9 w-24 rounded-[25px]" />
                 <Skeleton className="h-9 w-32 rounded-[25px]" />
               </div>
-              <div className="flex flex-col sm:flex-row justify-start sm:justify-between sm:items-center gap-3">
+              <div className="flex flex-col sm:flex-row justify-start sm:justify-between sm:items-end gap-3">
                 <Skeleton className="h-8 w-64" />
                 <div className="flex items-center gap-4">
                   <Skeleton className="h-5 w-16" />
@@ -208,8 +208,8 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
                 <Skeleton className="aspect-[2/3] rounded-lg" />
               </div>
               {/* Banner Skeleton */}
-              <div className="relative rounded-lg overflow-hidden min-h-[260px]">
-                <Skeleton className="w-full h-full" />
+              <div className="relative rounded-lg overflow-hidden min-h-[260px] md:min-h-[400px] lg:min-h-[260px]">
+                <Skeleton className="block w-full min-h-[260px] md:min-h-[400px] lg:min-h-[260px] rounded-none" />
               </div>
               {/* Stats Skeleton */}
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
