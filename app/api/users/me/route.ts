@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { resolveMaxChatQuestions } from "@/lib/subscription";
 
 // GET - Get current user's database ID and basic info
 export async function GET(request: NextRequest) {
@@ -23,6 +24,11 @@ export async function GET(request: NextRequest) {
         role: true,
         isForumAdmin: true,
         isForumModerator: true,
+        chatQuota: true,
+        stripeSubscriptionStatus: true,
+        stripeSubscriptionCurrentPeriodEnd: true,
+        stripeCustomerId: true,
+        stripeSubscriptionId: true,
       },
     });
 
@@ -30,7 +36,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ user });
+    const aiChatQuestionCount = await db.aiChatEvent.count({
+      where: { userId: user.id },
+    });
+
+    const maxQuestions = resolveMaxChatQuestions(user.chatQuota, user.stripeSubscriptionStatus);
+
+    return NextResponse.json({
+      user: {
+        ...user,
+        aiChatQuestionCount,
+        aiChatMaxQuestions: maxQuestions,
+      },
+    });
   } catch (error) {
     console.error("Error fetching current user:", error);
     return NextResponse.json(

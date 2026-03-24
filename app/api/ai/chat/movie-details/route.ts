@@ -6,12 +6,11 @@ import { getMovieDetails, getTVDetails } from "@/lib/tmdb";
 import { getJustWatchAvailability } from "@/lib/justwatch";
 import { searchWeb, formatWebSearchResults } from "@/lib/web-search";
 import { PRO_PRICE_USD_MONTHLY } from "@/lib/billing";
+import { resolveMaxChatQuestions } from "@/lib/subscription";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-const MAX_FREE_QUESTIONS = 6;
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +22,7 @@ export async function POST(request: NextRequest) {
 
     const user = await db.user.findUnique({
       where: { clerkId: clerkUserId },
-      select: { id: true, chatQuota: true },
+      select: { id: true, chatQuota: true, stripeSubscriptionStatus: true },
     });
 
     if (!user) {
@@ -84,16 +83,7 @@ export async function POST(request: NextRequest) {
       where: { userId: user.id },
     });
 
-    // Determine user's quota limit
-    // null = default (6), -1 = unlimited, number = custom limit
-    let maxQuestions: number;
-    if (user.chatQuota === null) {
-      maxQuestions = MAX_FREE_QUESTIONS; // Default limit
-    } else if (user.chatQuota === -1) {
-      maxQuestions = -1; // Unlimited
-    } else {
-      maxQuestions = user.chatQuota; // Custom limit set by admin
-    }
+    const maxQuestions = resolveMaxChatQuestions(user.chatQuota, user.stripeSubscriptionStatus);
 
     // Check if user has exceeded their limit (skip check if unlimited)
     if (maxQuestions !== -1 && totalQuestionCount >= maxQuestions) {
@@ -467,7 +457,7 @@ export async function GET(request: NextRequest) {
 
     const user = await db.user.findUnique({
       where: { clerkId: clerkUserId },
-      select: { id: true, chatQuota: true },
+      select: { id: true, chatQuota: true, stripeSubscriptionStatus: true },
     });
 
     if (!user) {
@@ -479,15 +469,7 @@ export async function GET(request: NextRequest) {
       where: { userId: user.id },
     });
 
-    // Determine user's quota limit
-    let maxQuestions: number;
-    if (user.chatQuota === null) {
-      maxQuestions = MAX_FREE_QUESTIONS; // Default limit
-    } else if (user.chatQuota === -1) {
-      maxQuestions = -1; // Unlimited
-    } else {
-      maxQuestions = user.chatQuota; // Custom limit set by admin
-    }
+    const maxQuestions = resolveMaxChatQuestions(user.chatQuota, user.stripeSubscriptionStatus);
 
     const { searchParams } = new URL(request.url);
     const tmdbId = searchParams.get("tmdbId");

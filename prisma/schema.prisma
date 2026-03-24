@@ -55,6 +55,12 @@ model User {
   
   // AI Chat quota (null = default limit, number = custom limit set by admin)
   chatQuota Int? // Maximum number of questions allowed. null = default (6), -1 = unlimited
+
+  // Stripe (Pro subscription) — status synced via webhooks
+  stripeCustomerId                   String?
+  stripeSubscriptionId               String?
+  stripeSubscriptionStatus           String? // Stripe Subscription.status, e.g. active, trialing, past_due, canceled
+  stripeSubscriptionCurrentPeriodEnd DateTime?
   
   // Admin & Moderation
   role            String   @default("USER") // "USER", "MODERATOR", "ADMIN", "SUPER_ADMIN"

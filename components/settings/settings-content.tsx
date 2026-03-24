@@ -54,6 +54,12 @@ interface SettingsContentProps {
     displayName: string | null;
     username: string | null;
     role: string | null;
+    stripeCustomerId: string | null;
+    stripeSubscriptionId: string | null;
+    stripeSubscriptionStatus: string | null;
+    stripeSubscriptionCurrentPeriodEnd: string | null;
+    aiChatQuestionCount: number;
+    aiChatMaxQuestions: number;
   };
   preferences: {
     favoriteGenres: number[];
@@ -440,7 +446,17 @@ export default function SettingsContent({
             )}
 
             {/* Billing Section */}
-            {activeSection === "billing" && <SettingsBillingSection userEmail={user.email} />}
+            {activeSection === "billing" && (
+              <SettingsBillingSection
+                userEmail={user.email}
+                stripeCustomerId={user.stripeCustomerId}
+                stripeSubscriptionId={user.stripeSubscriptionId}
+                stripeSubscriptionStatus={user.stripeSubscriptionStatus}
+                stripeSubscriptionCurrentPeriodEnd={user.stripeSubscriptionCurrentPeriodEnd}
+                aiChatQuestionCount={user.aiChatQuestionCount}
+                aiChatMaxQuestions={user.aiChatMaxQuestions}
+              />
+            )}
 
             {/* Preferences Section */}
             {activeSection === "preferences" && (

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import SettingsContent from "@/components/settings/settings-content";
+import { resolveMaxChatQuestions } from "@/lib/subscription";
 
 export default async function SettingsPage() {
   const { userId } = await auth();
@@ -38,6 +39,11 @@ export default async function SettingsPage() {
       notifyOnForumMentions: true,
       notifyOnForumSubscriptions: true,
       youtubeCardStyle: true,
+      chatQuota: true,
+      stripeCustomerId: true,
+      stripeSubscriptionId: true,
+      stripeSubscriptionStatus: true,
+      stripeSubscriptionCurrentPeriodEnd: true,
       preferences: {
         select: {
           favoriteGenres: true,
@@ -51,8 +57,23 @@ export default async function SettingsPage() {
     redirect("/onboarding");
   }
 
+  const aiChatQuestionCount = await db.aiChatEvent.count({
+    where: { userId: user.id },
+  });
+
+  const aiChatMaxQuestions = resolveMaxChatQuestions(
+    user.chatQuota,
+    user.stripeSubscriptionStatus,
+  );
+
   return <SettingsContent 
-    user={user} 
+    user={{
+      ...user,
+      stripeSubscriptionCurrentPeriodEnd:
+        user.stripeSubscriptionCurrentPeriodEnd?.toISOString() ?? null,
+      aiChatQuestionCount,
+      aiChatMaxQuestions,
+    }} 
     preferences={user.preferences} 
     activitySettings={{
       activityVisibility: user.activityVisibility || "PUBLIC",
