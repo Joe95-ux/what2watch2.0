@@ -36,6 +36,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { DEFAULT_FREE_CHAT_LIMIT } from "@/lib/billing";
 import Link from "next/link";
 
 interface UserWithQuota {
@@ -117,7 +118,7 @@ export function ChatQuotaManagementTable() {
   const handleEditQuota = (user: UserWithQuota) => {
     setEditingUser(user);
     if (user.chatQuota === null) {
-      setQuotaValue("6"); // Default
+      setQuotaValue(String(DEFAULT_FREE_CHAT_LIMIT)); // Default
     } else if (user.chatQuota === -1) {
       setQuotaValue("-1"); // Unlimited
     } else {
@@ -131,7 +132,7 @@ export function ChatQuotaManagementTable() {
 
     let parsedQuota: number | null | -1;
     if (quotaValue.trim() === "" || quotaValue === "default") {
-      parsedQuota = null; // Default (6)
+      parsedQuota = null; // Default
     } else if (quotaValue === "-1" || quotaValue.toLowerCase() === "unlimited") {
       parsedQuota = -1; // Unlimited
     } else {
@@ -211,7 +212,7 @@ export function ChatQuotaManagementTable() {
 
     let parsedQuota: number | null | -1;
     if (bulkQuotaValue.trim() === "" || bulkQuotaValue === "default") {
-      parsedQuota = null; // Default (6)
+      parsedQuota = null; // Default
     } else if (bulkQuotaValue === "-1" || bulkQuotaValue.toLowerCase() === "unlimited") {
       parsedQuota = -1; // Unlimited
     } else {
@@ -606,15 +607,15 @@ export function ChatQuotaManagementTable() {
                 type="text"
                 value={quotaValue}
                 onChange={(e) => setQuotaValue(e.target.value)}
-                placeholder="Enter number, -1 for unlimited, or leave empty for default (6)"
+                placeholder={`Enter number, -1 for unlimited, or leave empty for default (${DEFAULT_FREE_CHAT_LIMIT})`}
                 className="text-muted-foreground placeholder:text-muted-foreground/60"
               />
               <p className="text-xs text-muted-foreground">
-                Enter a number (0 or greater), -1 for unlimited, or leave empty/default for the default limit (6 questions)
+                {`Enter a number (0 or greater), -1 for unlimited, or leave empty/default for the default limit (${DEFAULT_FREE_CHAT_LIMIT} questions)`}
               </p>
               <div className="text-xs text-muted-foreground space-y-1">
                 <p>• Current questions asked: <strong>{editingUser?.questionCount || 0}</strong></p>
-                <p>• Current quota limit: <strong>{editingUser?.maxQuestions === -1 ? "Unlimited" : editingUser?.maxQuestions || 6}</strong></p>
+                <p>• Current quota limit: <strong>{editingUser?.maxQuestions === -1 ? "Unlimited" : editingUser?.maxQuestions ?? DEFAULT_FREE_CHAT_LIMIT}</strong></p>
               </div>
             </div>
           </div>
@@ -665,11 +666,11 @@ export function ChatQuotaManagementTable() {
                 type="text"
                 value={bulkQuotaValue}
                 onChange={(e) => setBulkQuotaValue(e.target.value)}
-                placeholder="Enter number, -1 for unlimited, or leave empty for default (6)"
+                placeholder={`Enter number, -1 for unlimited, or leave empty for default (${DEFAULT_FREE_CHAT_LIMIT})`}
                 className="text-muted-foreground placeholder:text-muted-foreground/60"
               />
               <p className="text-xs text-muted-foreground">
-                Enter a number (0 or greater), -1 for unlimited, or leave empty/default for the default limit (6 questions)
+                {`Enter a number (0 or greater), -1 for unlimited, or leave empty/default for the default limit (${DEFAULT_FREE_CHAT_LIMIT} questions)`}
               </p>
             </div>
           </div>

@@ -29,6 +29,8 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { hasActiveProSubscription } from "@/lib/subscription";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 interface DetailsType {
   release_date?: string;
@@ -170,6 +172,10 @@ export default function OverviewSection({
   onEpisodeClick,
 }: OverviewSectionProps) {
   const router = useRouter();
+  const { data: currentUser } = useCurrentUser();
+  const hideAds =
+    hasActiveProSubscription(currentUser?.stripeSubscriptionStatus) ||
+    currentUser?.aiChatMaxQuestions === -1;
   const [isExpanded, setIsExpanded] = useState(false);
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const synopsis = item.overview || "";
@@ -197,7 +203,12 @@ export default function OverviewSection({
   return (
     <section className="py-12 space-y-12">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        <div className="lg:col-span-8 space-y-6">
+        <div
+          className={cn(
+            "space-y-6",
+            hideAds ? "lg:col-span-12" : "lg:col-span-8",
+          )}
+        >
           <div>
             <h2 className="text-2xl font-bold mb-4">Storyline</h2>
             <p className="text-muted-foreground leading-relaxed text-base">
@@ -368,14 +379,16 @@ export default function OverviewSection({
           )}
         </div>
 
-        <div className="lg:col-span-4 space-y-6">
-          <div className="flex min-h-[420px] border border-border rounded-2xl bg-muted/40 items-center justify-center text-sm text-muted-foreground">
-            Ad placement
+        {!hideAds && (
+          <div className="lg:col-span-4 space-y-6">
+            <div className="flex min-h-[420px] border border-border rounded-2xl bg-muted/40 items-center justify-center text-sm text-muted-foreground">
+              Ad placement
+            </div>
+            <div className="hidden lg:flex min-h-[420px] border border-border rounded-2xl bg-muted/40 items-center justify-center text-sm text-muted-foreground">
+              Ad placement
+            </div>
           </div>
-          <div className="hidden lg:flex min-h-[420px] border border-border rounded-2xl bg-muted/40 items-center justify-center text-sm text-muted-foreground">
-            Ad placement
-          </div>
-        </div>
+        )}
       </div>
     </section>
   );

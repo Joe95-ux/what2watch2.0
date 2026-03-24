@@ -1,11 +1,37 @@
 import { notFound, redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { getMovieDetails } from "@/lib/tmdb";
 import ContentDetailPage from "@/components/content-detail/content-detail-page";
 import { TMDBMovie } from "@/lib/tmdb";
 import { createContentSlug } from "@/lib/content-slug";
+import { truncateMetaDescription } from "@/lib/content-detail-seo";
 
 interface PageProps {
   params: Promise<{ id: string; slug: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const movieId = parseInt(id, 10);
+  if (isNaN(movieId)) {
+    return { title: "Movie | What2Watch" };
+  }
+  try {
+    const movie = await getMovieDetails(movieId);
+    const title = `Where to Watch ${movie.title} | What2Watch`;
+    const description =
+      movie.overview?.trim()
+        ? `Where to watch ${movie.title}. ${truncateMetaDescription(movie.overview)}`
+        : `Where to watch ${movie.title} — streaming, buy, and rent options on What2Watch.`;
+    return {
+      title,
+      description,
+      openGraph: { title, description },
+      twitter: { card: "summary_large_image", title, description },
+    };
+  } catch {
+    return { title: "Movie | What2Watch" };
+  }
 }
 
 export default async function MovieDetailPage({ params }: PageProps) {

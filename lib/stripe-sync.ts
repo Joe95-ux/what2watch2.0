@@ -23,6 +23,9 @@ export async function syncSubscriptionToUser(sub: Stripe.Subscription): Promise<
     return;
   }
 
+  const periodStart = sub.current_period_start
+    ? new Date(sub.current_period_start * 1000)
+    : null;
   const periodEnd = sub.current_period_end
     ? new Date(sub.current_period_end * 1000)
     : null;
@@ -33,6 +36,7 @@ export async function syncSubscriptionToUser(sub: Stripe.Subscription): Promise<
       stripeCustomerId: customerId,
       stripeSubscriptionId: sub.id,
       stripeSubscriptionStatus: sub.status,
+      stripeSubscriptionCurrentPeriodStart: periodStart,
       stripeSubscriptionCurrentPeriodEnd: periodEnd,
     },
   });

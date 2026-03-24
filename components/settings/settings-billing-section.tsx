@@ -18,6 +18,7 @@ import {
   Sparkles,
   AlertTriangle,
   ExternalLink,
+  Calendar,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -111,11 +112,26 @@ function invoiceStatusBadge(status: string | null) {
   }
 }
 
+type BillingSummaryResponse = {
+  billingCycle: {
+    periodStart: string | null;
+    periodEnd: string | null;
+    interval: string | null;
+  };
+  upcoming: {
+    amountDue: number;
+    currency: string;
+    nextPaymentAttempt: number | null;
+    periodEnd: number | null;
+  } | null;
+};
+
 interface SettingsBillingSectionProps {
   userEmail: string;
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
   stripeSubscriptionStatus: string | null;
+  stripeSubscriptionCurrentPeriodStart: string | null;
   stripeSubscriptionCurrentPeriodEnd: string | null;
   aiChatQuestionCount: number;
   aiChatMaxQuestions: number;
@@ -126,6 +142,7 @@ export function SettingsBillingSection({
   stripeCustomerId,
   stripeSubscriptionId,
   stripeSubscriptionStatus,
+  stripeSubscriptionCurrentPeriodStart,
   stripeSubscriptionCurrentPeriodEnd,
   aiChatQuestionCount,
   aiChatMaxQuestions,
@@ -134,6 +151,8 @@ export function SettingsBillingSection({
   const [portalLoading, setPortalLoading] = useState(false);
   const [invoices, setInvoices] = useState<InvoiceApiRow[] | null>(null);
   const [invoicesLoading, setInvoicesLoading] = useState(false);
+  const [billingSummary, setBillingSummary] = useState<BillingSummaryResponse | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   const isPro = hasActiveProSubscription(stripeSubscriptionStatus);
   const paymentProblem = subscriptionNeedsPaymentAction(stripeSubscriptionStatus);
@@ -228,13 +247,40 @@ export function SettingsBillingSection({
     };
   }, [stripeCustomerId]);
 
+  useEffect(() => {
+    if (!isPro || !stripeCustomerId) {
+      setBillingSummary(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setSummaryLoading(true);
+      try {
+        const res = await fetch("/api/billing/summary");
+        const data = await res.json();
+        if (!cancelled && res.ok && data.billingCycle) {
+          setBillingSummary(data as BillingSummaryResponse);
+        } else if (!cancelled) {
+          setBillingSummary(null);
+        }
+      } catch {
+        if (!cancelled) setBillingSummary(null);
+      } finally {
+        if (!cancelled) setSummaryLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isPro, stripeCustomerId, stripeSubscriptionId]);
+
   return (
     <div className="space-y-8">
       <div className="space-y-1">
         <h2 className="text-2xl font-semibold tracking-tight">Billing</h2>
         <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
           Pro is <span className="text-foreground font-medium">${PRO_PRICE_USD_MONTHLY}/month</span> and includes
-          unlimited AI chat on title details and the dashboard, plus other advanced features as we ship them.
+          unlimited AI chat, an ad-free experience across pages, and other advanced features as we ship them.
         </p>
       </div>
 
@@ -321,6 +367,15 @@ export function SettingsBillingSection({
                         — Ask Us on title details and AI chat in the dashboard;{" "}
                         {isPro ? "unlimited" : "limited on Free (see usage)"}
                       </span>
+                    </span>
+                  </li>
+                  <li className="flex gap-2">
+                    <BadgeCheck
+                      className={cn("size-4 shrink-0 mt-0.5", isPro ? "text-primary" : "text-muted-foreground/40")}
+                    />
+                    <span className={cn(!isPro && "text-muted-foreground/80")}>
+                      <span className="font-medium text-foreground">Ad-free browsing</span>
+                      <span className="text-muted-foreground"> — no ads on pages (Pro)</span>
                     </span>
                   </li>
                   <li className="flex gap-2">
@@ -484,6 +539,117 @@ export function SettingsBillingSection({
         </TabsContent>
 
         <TabsContent value="invoices" className="mt-0 space-y-4 outline-none">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card className="shadow-none gap-0 py-0 overflow-hidden">
+              <CardHeader className="border-b bg-muted/30 px-5 py-4 space-y-1">
+                <div className="flex items-center gap-2">
+                  <Calendar className="size-4 text-muted-foreground" />
+                  <CardTitle className="text-base font-semibold">Billing cycle</CardTitle>
+                </div>
+                <CardDescription className="text-xs">
+                  Current subscription period (from Stripe). Dates use your plan’s renewal window.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="px-5 py-5 space-y-3 text-sm">
+                {summaryLoading ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : isPro &&
+                  (billingSummary?.billingCycle?.periodStart ||
+                    stripeSubscriptionCurrentPeriodStart ||
+                    billingSummary?.billingCycle?.periodEnd ||
+                    stripeSubscriptionCurrentPeriodEnd) ? (
+                  <>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-muted-foreground">Period start</span>
+                      <span className="font-medium tabular-nums text-right">
+                        {(billingSummary?.billingCycle?.periodStart || stripeSubscriptionCurrentPeriodStart)
+                          ? format(
+                              new Date(
+                                (billingSummary?.billingCycle?.periodStart ||
+                                  stripeSubscriptionCurrentPeriodStart)!,
+                              ),
+                              "PPP",
+                            )
+                          : "—"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-muted-foreground">Period end</span>
+                      <span className="font-medium tabular-nums text-right">
+                        {(billingSummary?.billingCycle?.periodEnd || stripeSubscriptionCurrentPeriodEnd)
+                          ? format(
+                              new Date(
+                                (billingSummary?.billingCycle?.periodEnd || stripeSubscriptionCurrentPeriodEnd)!,
+                              ),
+                              "PPP",
+                            )
+                          : "—"}
+                      </span>
+                    </div>
+                    {billingSummary?.billingCycle?.interval && (
+                      <div className="flex justify-between gap-4">
+                        <span className="text-muted-foreground">Plan interval</span>
+                        <span className="font-medium text-right">{billingSummary.billingCycle.interval}</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-muted-foreground text-sm">
+                    {isPro
+                      ? "Cycle details will appear after the next webhook sync, or open the billing portal."
+                      : "Subscribe to Pro to see your billing cycle here."}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-none gap-0 py-0 overflow-hidden">
+              <CardHeader className="border-b bg-muted/30 px-5 py-4 space-y-1">
+                <div className="flex items-center gap-2">
+                  <Receipt className="size-4 text-muted-foreground" />
+                  <CardTitle className="text-base font-semibold">Upcoming payment</CardTitle>
+                </div>
+                <CardDescription className="text-xs">
+                  Next charge from your subscription (preview from Stripe).
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="px-5 py-5 space-y-3 text-sm">
+                {summaryLoading ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : billingSummary?.upcoming && billingSummary.upcoming.amountDue >= 0 ? (
+                  <>
+                    <div className="flex justify-between gap-4 items-baseline">
+                      <span className="text-muted-foreground">Amount due</span>
+                      <span className="text-lg font-semibold tabular-nums">
+                        {formatMoney(billingSummary.upcoming.amountDue, billingSummary.upcoming.currency)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-muted-foreground">Payment date</span>
+                      <span className="font-medium text-right">
+                        {billingSummary.upcoming.nextPaymentAttempt
+                          ? format(new Date(billingSummary.upcoming.nextPaymentAttempt * 1000), "PPP")
+                          : billingSummary.upcoming.periodEnd
+                            ? format(new Date(billingSummary.upcoming.periodEnd * 1000), "PPP")
+                            : renewalLabel || "—"}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-muted-foreground text-sm">
+                    {isPro
+                      ? "No upcoming invoice preview right now (e.g. trial or sync pending). Check the portal for details."
+                      : "Upcoming charges appear here when you have an active Pro subscription."}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
           <Card className="shadow-none py-0 gap-0 overflow-hidden">
             <CardHeader className="border-b bg-muted/30 px-5 py-4 space-y-1">
               <CardTitle className="text-base font-semibold">Invoice history</CardTitle>
@@ -627,7 +793,7 @@ export function SettingsBillingSection({
             </CardHeader>
             <CardContent className="px-5 pb-5">
               <Button variant="outline" className="cursor-pointer" asChild>
-                <a href="mailto:support@what2watch.com?subject=Billing%20question">Email support@what2watch.com</a>
+                <a href="mailto:support@what2watch.net?subject=Billing%20question">Email support@what2watch.net</a>
               </Button>
               <p className="text-xs text-muted-foreground mt-3">
                 Include the invoice date and last four digits of the card if your question is about a specific charge.

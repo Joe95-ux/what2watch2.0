@@ -2,4 +2,4 @@
 export const PRO_PRICE_USD_MONTHLY = 5;
 
 /** Free-tier default when `chatQuota` is null (must match server enforcement). */
-export const DEFAULT_FREE_CHAT_LIMIT = 6;
+export const DEFAULT_FREE_CHAT_LIMIT = 20;

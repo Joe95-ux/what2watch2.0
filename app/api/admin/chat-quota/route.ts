@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { DEFAULT_FREE_CHAT_LIMIT } from "@/lib/billing";
 
 // GET - Fetch users with chat quota info
 export async function GET(request: NextRequest) {
@@ -67,7 +68,7 @@ export async function GET(request: NextRequest) {
         // Determine max questions
         let maxQuestions: number;
         if (user.chatQuota === null) {
-          maxQuestions = 6; // Default
+          maxQuestions = DEFAULT_FREE_CHAT_LIMIT;
         } else if (user.chatQuota === -1) {
           maxQuestions = -1; // Unlimited
         } else {
@@ -170,7 +171,7 @@ export async function PATCH(request: NextRequest) {
 
     let maxQuestions: number;
     if (updatedUser.chatQuota === null) {
-      maxQuestions = 6;
+      maxQuestions = DEFAULT_FREE_CHAT_LIMIT;
     } else if (updatedUser.chatQuota === -1) {
       maxQuestions = -1;
     } else {

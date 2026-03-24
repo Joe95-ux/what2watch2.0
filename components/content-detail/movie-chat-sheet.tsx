@@ -23,7 +23,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { formatDistanceToNow, format } from "date-fns";
 import Image from "next/image";
 import { containsProfanity, sanitizeHtml } from "@/lib/moderation";
-import { PRO_PRICE_USD_MONTHLY } from "@/lib/billing";
+import { PRO_PRICE_USD_MONTHLY, DEFAULT_FREE_CHAT_LIMIT } from "@/lib/billing";
 
 interface Message {
   role: "user" | "assistant";
@@ -64,7 +64,7 @@ export function MovieChatSheet({
   const [isLoading, setIsLoading] = useState(false);
   const [editingMessageIndex, setEditingMessageIndex] = useState<number | null>(null);
   const [questionCount, setQuestionCount] = useState(0);
-  const [maxQuestions, setMaxQuestions] = useState(6); // Default to 6, will be updated from API
+  const [maxQuestions, setMaxQuestions] = useState(DEFAULT_FREE_CHAT_LIMIT); // Updated from API
   const [sessionId, setSessionId] = useState(() => `session-${Date.now()}`);
   const [suggestionsDismissed, setSuggestionsDismissed] = useState(false);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);

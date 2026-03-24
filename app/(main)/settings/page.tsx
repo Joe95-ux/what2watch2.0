@@ -43,6 +43,7 @@ export default async function SettingsPage() {
       stripeCustomerId: true,
       stripeSubscriptionId: true,
       stripeSubscriptionStatus: true,
+      stripeSubscriptionCurrentPeriodStart: true,
       stripeSubscriptionCurrentPeriodEnd: true,
       preferences: {
         select: {
@@ -69,6 +70,8 @@ export default async function SettingsPage() {
   return <SettingsContent 
     user={{
       ...user,
+      stripeSubscriptionCurrentPeriodStart:
+        user.stripeSubscriptionCurrentPeriodStart?.toISOString() ?? null,
       stripeSubscriptionCurrentPeriodEnd:
         user.stripeSubscriptionCurrentPeriodEnd?.toISOString() ?? null,
       aiChatQuestionCount,

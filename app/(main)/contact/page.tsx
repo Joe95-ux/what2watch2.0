@@ -61,11 +61,11 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <div className="font-semibold">Email us</div>
-                    <div className="text-sm text-muted-foreground">support@what2watch.com</div>
+                    <div className="text-sm text-muted-foreground">support@what2watch.net</div>
                   </div>
                 </div>
                 <Link
-                  href="mailto:support@what2watch.com"
+                  href="mailto:support@what2watch.net"
                   className="rounded-full bg-muted hover:bg-muted/80 p-2 transition-colors"
                 >
                   <ArrowUpRight className="h-4 w-4" />

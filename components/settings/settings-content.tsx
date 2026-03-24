@@ -57,6 +57,7 @@ interface SettingsContentProps {
     stripeCustomerId: string | null;
     stripeSubscriptionId: string | null;
     stripeSubscriptionStatus: string | null;
+    stripeSubscriptionCurrentPeriodStart: string | null;
     stripeSubscriptionCurrentPeriodEnd: string | null;
     aiChatQuestionCount: number;
     aiChatMaxQuestions: number;
@@ -138,6 +139,14 @@ export default function SettingsContent({
     }
   }, [searchParams]);
 
+  // Keep ?section= in the URL when it’s missing so refresh/back and Billing (Stripe return) match other tabs
+  useEffect(() => {
+    if (searchParams.get("section")) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("section", activeSection);
+    router.replace(`/settings?${params.toString()}`, { scroll: false });
+  }, [activeSection, searchParams, router]);
+
   // Persist current tab to localStorage whenever it changes (any tab: account, preferences, theme, links, etc.)
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -146,6 +155,10 @@ export default function SettingsContent({
 
   const setActiveSection = (section: SettingsSection) => {
     setActiveSectionState(section);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("section", section);
+    params.delete("checkout");
+    router.replace(`/settings?${params.toString()}`, { scroll: false });
   };
   const [activitySettings, setActivitySettings] = useState(initialActivitySettings);
   const [notificationSettings, setNotificationSettings] = useState(initialNotificationSettings);
@@ -452,6 +465,7 @@ export default function SettingsContent({
                 stripeCustomerId={user.stripeCustomerId}
                 stripeSubscriptionId={user.stripeSubscriptionId}
                 stripeSubscriptionStatus={user.stripeSubscriptionStatus}
+                stripeSubscriptionCurrentPeriodStart={user.stripeSubscriptionCurrentPeriodStart}
                 stripeSubscriptionCurrentPeriodEnd={user.stripeSubscriptionCurrentPeriodEnd}
                 aiChatQuestionCount={user.aiChatQuestionCount}
                 aiChatMaxQuestions={user.aiChatMaxQuestions}
