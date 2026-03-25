@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Play, Heart, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { Play, Heart, ArrowLeft, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
 
@@ -235,7 +235,9 @@ export default function PersonHeroSection({
             aria-label={isHearted ? "Remove from favorites" : "Add to favorites"}
             disabled={favoritePersonality.isLoading}
           >
-            {isHearted ? (
+            {favoritePersonality.isLoading ? (
+              <Loader2 className="h-5 w-5 text-white animate-spin" />
+            ) : isHearted ? (
               <Heart className="h-5 w-5 text-green-500 fill-green-500" />
             ) : (
               <Heart className="h-5 w-5 text-white" />

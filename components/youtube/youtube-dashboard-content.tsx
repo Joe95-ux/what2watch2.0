@@ -36,12 +36,14 @@ interface SectionProps {
 function Section({ title, description, action, children }: SectionProps) {
   return (
     <section className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
+      <div>
+        <div className="flex items-center gap-2">
           <h2 className="text-xl font-semibold text-foreground">{title}</h2>
+          {action}
+        </div>
+        <div>
           {description && <p className="text-sm text-muted-foreground">{description}</p>}
         </div>
-        {action}
       </div>
       {children}
     </section>

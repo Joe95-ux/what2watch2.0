@@ -162,6 +162,10 @@ export default function PersonCreditsTable({
     return filtered;
   }, [allCredits, creditType, roleType, sortBy]);
 
+  const uniqueFilteredCreditsCount = useMemo(() => {
+    return new Set(filteredCredits.map((credit) => `${credit.type}-${credit.id}`)).size;
+  }, [filteredCredits]);
+
   // Pagination
   const totalPages = Math.ceil(filteredCredits.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -199,7 +203,7 @@ export default function PersonCreditsTable({
     <section>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <h2 className="text-2xl font-bold">
-          Credits ({filteredCredits.length})
+          Credits ({uniqueFilteredCreditsCount})
         </h2>
 
         {/* Filters */}
@@ -325,7 +329,7 @@ export default function PersonCreditsTable({
       {totalPages > 1 && (
         <div className="mt-6">
           <Pagination>
-            <PaginationContent>
+            <PaginationContent className="flex flex-wrap items-center justify-center gap-2">
               <PaginationItem>
                 <Button
                   variant="outline"

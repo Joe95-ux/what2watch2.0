@@ -3,10 +3,13 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useUser, useClerk } from "@clerk/nextjs";
+import { toast } from "sonner";
 import { getPosterUrl } from "@/lib/tmdb";
 import { createPersonSlug } from "@/lib/person-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { useToggleFavoritePersonality } from "@/hooks/use-favorite-personalities";
 import {
   Carousel,
   CarouselContent,
@@ -28,7 +31,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, ChevronUp, ArrowUpDown, Filter } from "lucide-react";
+import { ChevronDown, ChevronUp, ArrowUpDown, Filter, Heart, Loader2 } from "lucide-react";
 
 interface CastMember {
   id: number;
@@ -63,6 +66,10 @@ const ITEMS_PER_PAGE = 20;
 
 export default function CastSection({ cast, crew, isLoading, type = "movie" }: CastSectionProps) {
   const router = useRouter();
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
+  const favoritePersonality = useToggleFavoritePersonality();
+  const [pendingFavoritePersonId, setPendingFavoritePersonId] = useState<number | null>(null);
   const [showFullCast, setShowFullCast] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("carousel");
   const [sortField, setSortField] = useState<SortField>("order");
@@ -207,6 +214,38 @@ export default function CastSection({ cast, crew, isLoading, type = "movie" }: C
     setCurrentPage(1);
   };
 
+  const handleFavoriteClick = async (person: {
+    id: number;
+    name: string;
+    profile_path: string | null;
+  }) => {
+    if (!isSignedIn) {
+      toast.info("Sign in to favorite personalities.");
+      if (openSignIn) {
+        openSignIn({
+          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        });
+      }
+      return;
+    }
+
+    try {
+      setPendingFavoritePersonId(person.id);
+      await favoritePersonality.toggle({
+        id: person.id,
+        name: person.name,
+        profile_path: person.profile_path,
+        known_for_department: null,
+        movieCount: 0,
+        tvCount: 0,
+      });
+    } catch {
+      toast.error("Could not update favorite personality.");
+    } finally {
+      setPendingFavoritePersonId(null);
+    }
+  };
+
   return (
     <section className="py-12">
       <div className="flex items-center justify-between mb-6">
@@ -258,22 +297,48 @@ export default function CastSection({ cast, crew, isLoading, type = "movie" }: C
                       className="text-center group cursor-pointer"
                       onClick={() => router.push(`/person/${createPersonSlug(person.id, person.name)}`)}
                     >
-                      <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden mb-3 group-hover:scale-105 transition-transform">
-                        {person.profile_path ? (
-                          <Image
-                            src={getPosterUrl(person.profile_path, "w300")}
-                            alt={person.name}
-                            fill
-                            className="object-cover"
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                            <span className="text-sm font-medium text-muted-foreground">
-                              {person.name[0].toUpperCase()}
-                            </span>
-                          </div>
-                        )}
+                      <div className="relative w-32 h-32 mx-auto mb-3">
+                        <div className="relative w-full h-full rounded-full overflow-hidden group-hover:scale-105 transition-transform">
+                          {person.profile_path ? (
+                            <Image
+                              src={getPosterUrl(person.profile_path, "w300")}
+                              alt={person.name}
+                              fill
+                              className="object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="absolute inset-0 bg-muted flex items-center justify-center">
+                              <span className="text-sm font-medium text-muted-foreground">
+                                {person.name[0].toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFavoriteClick(person);
+                          }}
+                          className="absolute -top-1 -right-1 z-10 h-8 w-8 rounded-full bg-black/70 hover:bg-black/85 border border-white/20 backdrop-blur-sm flex items-center justify-center cursor-pointer transition-colors"
+                          aria-label={
+                            favoritePersonality.isFavorite(person.id)
+                              ? "Remove from favorites"
+                              : "Add to favorites"
+                          }
+                          disabled={
+                            pendingFavoritePersonId === person.id && favoritePersonality.isLoading
+                          }
+                        >
+                          {pendingFavoritePersonId === person.id && favoritePersonality.isLoading ? (
+                            <Loader2 className="h-4 w-4 text-white animate-spin" />
+                          ) : favoritePersonality.isFavorite(person.id) ? (
+                            <Heart className="h-4 w-4 text-green-500 fill-green-500" />
+                          ) : (
+                            <Heart className="h-4 w-4 text-white" />
+                          )}
+                        </button>
                       </div>
                       <p className="font-medium text-sm line-clamp-1">{person.name}</p>
                       <p className="text-xs text-muted-foreground line-clamp-1">{person.character}</p>
@@ -330,22 +395,48 @@ export default function CastSection({ cast, crew, isLoading, type = "movie" }: C
                       className="flex items-start gap-4 cursor-pointer hover:bg-muted/20 p-2 rounded-lg transition-colors"
                       onClick={() => router.push(`/person/${createPersonSlug(person.id, person.name)}`)}
                     >
-                      <div className="relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
-                        {person.profile_path ? (
-                          <Image
-                            src={getPosterUrl(person.profile_path, "w300")}
-                            alt={person.name}
-                            fill
-                            className="object-cover"
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                            <span className="text-sm font-medium text-muted-foreground">
-                              {person.name[0].toUpperCase()}
-                            </span>
-                          </div>
-                        )}
+                      <div className="relative w-16 h-16 flex-shrink-0">
+                        <div className="relative w-full h-full rounded-full overflow-hidden">
+                          {person.profile_path ? (
+                            <Image
+                              src={getPosterUrl(person.profile_path, "w300")}
+                              alt={person.name}
+                              fill
+                              className="object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="absolute inset-0 bg-muted flex items-center justify-center">
+                              <span className="text-sm font-medium text-muted-foreground">
+                                {person.name[0].toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFavoriteClick(person);
+                          }}
+                          className="absolute -top-1 -right-1 z-10 h-7 w-7 rounded-full bg-black/70 hover:bg-black/85 border border-white/20 backdrop-blur-sm flex items-center justify-center cursor-pointer transition-colors"
+                          aria-label={
+                            favoritePersonality.isFavorite(person.id)
+                              ? "Remove from favorites"
+                              : "Add to favorites"
+                          }
+                          disabled={
+                            pendingFavoritePersonId === person.id && favoritePersonality.isLoading
+                          }
+                        >
+                          {pendingFavoritePersonId === person.id && favoritePersonality.isLoading ? (
+                            <Loader2 className="h-3.5 w-3.5 text-white animate-spin" />
+                          ) : favoritePersonality.isFavorite(person.id) ? (
+                            <Heart className="h-3.5 w-3.5 text-green-500 fill-green-500" />
+                          ) : (
+                            <Heart className="h-3.5 w-3.5 text-white" />
+                          )}
+                        </button>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm">{person.name}</p>
@@ -376,22 +467,50 @@ export default function CastSection({ cast, crew, isLoading, type = "movie" }: C
                               className="flex items-start gap-4 cursor-pointer hover:bg-muted/20 p-2 rounded-lg transition-colors"
                               onClick={() => router.push(`/person/${createPersonSlug(member.id, member.name)}`)}
                             >
-                              <div className="relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
-                                {member.profile_path ? (
-                                  <Image
-                                    src={getPosterUrl(member.profile_path, "w300")}
-                                    alt={member.name}
-                                    fill
-                                    className="object-cover"
-                                    unoptimized
-                                  />
-                                ) : (
-                                  <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                                    <span className="text-sm font-medium text-muted-foreground">
-                                      {member.name[0].toUpperCase()}
-                                    </span>
-                                  </div>
-                                )}
+                              <div className="relative w-16 h-16 flex-shrink-0">
+                                <div className="relative w-full h-full rounded-full overflow-hidden">
+                                  {member.profile_path ? (
+                                    <Image
+                                      src={getPosterUrl(member.profile_path, "w300")}
+                                      alt={member.name}
+                                      fill
+                                      className="object-cover"
+                                      unoptimized
+                                    />
+                                  ) : (
+                                    <div className="absolute inset-0 bg-muted flex items-center justify-center">
+                                      <span className="text-sm font-medium text-muted-foreground">
+                                        {member.name[0].toUpperCase()}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleFavoriteClick(member);
+                                  }}
+                                  className="absolute -top-1 -right-1 z-10 h-7 w-7 rounded-full bg-black/70 hover:bg-black/85 border border-white/20 backdrop-blur-sm flex items-center justify-center cursor-pointer transition-colors"
+                                  aria-label={
+                                    favoritePersonality.isFavorite(member.id)
+                                      ? "Remove from favorites"
+                                      : "Add to favorites"
+                                  }
+                                  disabled={
+                                    pendingFavoritePersonId === member.id &&
+                                    favoritePersonality.isLoading
+                                  }
+                                >
+                                  {pendingFavoritePersonId === member.id &&
+                                  favoritePersonality.isLoading ? (
+                                    <Loader2 className="h-3.5 w-3.5 text-white animate-spin" />
+                                  ) : favoritePersonality.isFavorite(member.id) ? (
+                                    <Heart className="h-3.5 w-3.5 text-green-500 fill-green-500" />
+                                  ) : (
+                                    <Heart className="h-3.5 w-3.5 text-white" />
+                                  )}
+                                </button>
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium text-sm">{member.name}</p>
