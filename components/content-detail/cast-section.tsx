@@ -231,13 +231,44 @@ export default function CastSection({ cast, crew, isLoading, type = "movie" }: C
 
     try {
       setPendingFavoritePersonId(person.id);
+      const alreadyFavorite = favoritePersonality.isFavorite(person.id);
+
+      if (alreadyFavorite) {
+        await favoritePersonality.toggle({
+          id: person.id,
+          name: person.name,
+          profile_path: person.profile_path,
+          known_for_department: null,
+          movieCount: 0,
+          tvCount: 0,
+        });
+        return;
+      }
+
+      const [personDetailsRes, movieCreditsRes, tvCreditsRes] = await Promise.all([
+        fetch(`/api/person/${person.id}`),
+        fetch(`/api/person/${person.id}/movie-credits`),
+        fetch(`/api/person/${person.id}/tv-credits`),
+      ]);
+
+      const personDetails = personDetailsRes.ok ? await personDetailsRes.json() : null;
+      const movieCredits = movieCreditsRes.ok ? await movieCreditsRes.json() : null;
+      const tvCredits = tvCreditsRes.ok ? await tvCreditsRes.json() : null;
+
+      const movieCount = new Set(
+        [...(movieCredits?.cast ?? []), ...(movieCredits?.crew ?? [])].map((item: { id: number }) => item.id),
+      ).size;
+      const tvCount = new Set(
+        [...(tvCredits?.cast ?? []), ...(tvCredits?.crew ?? [])].map((item: { id: number }) => item.id),
+      ).size;
+
       await favoritePersonality.toggle({
         id: person.id,
         name: person.name,
         profile_path: person.profile_path,
-        known_for_department: null,
-        movieCount: 0,
-        tvCount: 0,
+        known_for_department: personDetails?.known_for_department ?? null,
+        movieCount,
+        tvCount,
       });
     } catch {
       toast.error("Could not update favorite personality.");

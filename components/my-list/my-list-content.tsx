@@ -7,11 +7,12 @@ import { useRouter } from "next/navigation";
 import { useFavorites, useRemoveFavorite } from "@/hooks/use-favorites";
 import { useAllGenres } from "@/hooks/use-genres";
 import { useFavoriteChannels } from "@/hooks/use-favorite-channels";
-import { useFavoritePersonalities } from "@/hooks/use-favorite-personalities";
+import { useFavoritePersonalities, useToggleFavoritePersonality } from "@/hooks/use-favorite-personalities";
 import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LayoutGrid, List, X, Plus, Star, ChevronLeft, ChevronRight, Youtube, Info } from "lucide-react";
+import { Heart, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
@@ -42,6 +43,7 @@ export default function MyListContent() {
   const { data: favorites = [], isLoading } = useFavorites();
   const { data: favoriteChannels = [], isLoading: isLoadingChannels } = useFavoriteChannels();
   const { data: favoritePersonalities = [] } = useFavoritePersonalities();
+  const favoritePersonality = useToggleFavoritePersonality();
   const removeFavorite = useRemoveFavorite();
   const { data: allGenres = [] } = useAllGenres();
   
@@ -53,6 +55,7 @@ export default function MyListContent() {
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isPersonalitiesSheetOpen, setIsPersonalitiesSheetOpen] = useState(false);
+  const [pendingPersonalityId, setPendingPersonalityId] = useState<number | null>(null);
 
   // Convert favorites to TMDB format for display
   const favoritesAsTMDB = useMemo(() => {
@@ -176,6 +179,29 @@ export default function MyListContent() {
     } catch (error) {
       toast.error("Failed to remove item");
       console.error(error);
+    }
+  };
+
+  const handleUnfavoritePersonality = async (personality: {
+    tmdbPersonId: number;
+    name: string;
+    profilePath: string | null;
+    knownForDepartment: string | null;
+    movieCount: number;
+    tvCount: number;
+  }) => {
+    try {
+      setPendingPersonalityId(personality.tmdbPersonId);
+      await favoritePersonality.toggle({
+        id: personality.tmdbPersonId,
+        name: personality.name,
+        profile_path: personality.profilePath,
+        known_for_department: personality.knownForDepartment,
+        movieCount: personality.movieCount,
+        tvCount: personality.tvCount,
+      });
+    } finally {
+      setPendingPersonalityId(null);
     }
   };
 
@@ -317,8 +343,28 @@ export default function MyListContent() {
                             onClick={() =>
                               router.push(`/person/${createPersonSlug(personality.tmdbPersonId, personality.name)}`)
                             }
-                            className="group w-full text-left rounded-xl border p-3 hover:bg-accent/40 transition-colors cursor-pointer"
+                            className="group relative w-full text-left rounded-xl border p-3 hover:bg-accent/40 transition-colors cursor-pointer"
                           >
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleUnfavoritePersonality(personality);
+                              }}
+                              className="absolute top-2 right-2 z-10 h-7 w-7 rounded-full bg-black/70 hover:bg-black/85 border border-white/20 backdrop-blur-sm flex items-center justify-center cursor-pointer transition-colors"
+                              aria-label="Remove from favorite personalities"
+                              disabled={
+                                pendingPersonalityId === personality.tmdbPersonId &&
+                                favoritePersonality.isLoading
+                              }
+                            >
+                              {pendingPersonalityId === personality.tmdbPersonId &&
+                              favoritePersonality.isLoading ? (
+                                <Loader2 className="h-3.5 w-3.5 text-white animate-spin" />
+                              ) : (
+                                <Heart className="h-3.5 w-3.5 text-green-500 fill-green-500" />
+                              )}
+                            </button>
                             <div className="flex items-center gap-3">
                               <div className="relative h-12 w-12 rounded-full overflow-hidden bg-muted shrink-0">
                                 {personality.profilePath ? (
@@ -644,8 +690,26 @@ export default function MyListContent() {
                   setIsPersonalitiesSheetOpen(false);
                   router.push(`/person/${createPersonSlug(personality.tmdbPersonId, personality.name)}`);
                 }}
-                className="group w-full text-left rounded-xl border p-3 hover:bg-accent/40 transition-colors cursor-pointer"
+                className="group relative w-full text-left rounded-xl border p-3 hover:bg-accent/40 transition-colors cursor-pointer"
               >
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handleUnfavoritePersonality(personality);
+                  }}
+                  className="absolute top-2 right-2 z-10 h-7 w-7 rounded-full bg-black/70 hover:bg-black/85 border border-white/20 backdrop-blur-sm flex items-center justify-center cursor-pointer transition-colors"
+                  aria-label="Remove from favorite personalities"
+                  disabled={
+                    pendingPersonalityId === personality.tmdbPersonId && favoritePersonality.isLoading
+                  }
+                >
+                  {pendingPersonalityId === personality.tmdbPersonId && favoritePersonality.isLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 text-white animate-spin" />
+                  ) : (
+                    <Heart className="h-3.5 w-3.5 text-green-500 fill-green-500" />
+                  )}
+                </button>
                 <div className="flex items-center gap-3">
                   <div className="relative h-12 w-12 rounded-full overflow-hidden bg-muted shrink-0">
                     {personality.profilePath ? (
