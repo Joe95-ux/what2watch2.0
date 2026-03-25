@@ -8,7 +8,7 @@ import { getPosterUrl, getImageUrl } from "@/lib/tmdb";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Calendar, MapPin, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Link as LinkIcon, FileText, Image as ImageIcon, Sparkles, Clapperboard } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import PersonBiography from "./person-biography";
 import PersonPhotos from "./person-photos";
@@ -24,6 +24,7 @@ interface PersonDetailPageProps {
 export default function PersonDetailPage({ personId }: PersonDetailPageProps) {
   const router = useRouter();
   const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState<"overview" | "photos" | "known-for" | "credits">("overview");
   const { data: person, isLoading: isLoadingPerson } = usePersonDetails(personId);
   const { data: images, isLoading: isLoadingImages } = usePersonImages(personId);
   const { data: movieCredits, isLoading: isLoadingMovieCredits } = usePersonMovieCredits(personId);
@@ -57,7 +58,7 @@ export default function PersonDetailPage({ personId }: PersonDetailPageProps) {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero / Header */}
-      <div className="border-b border-border">
+      <div>
         {isMobile ? (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <Button
@@ -156,20 +157,56 @@ export default function PersonDetailPage({ personId }: PersonDetailPageProps) {
 
       {/* Content Tabs */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Tabs defaultValue="overview" className="w-full">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="w-full">
           <div className="overflow-x-auto scrollbar-hide mb-8 -mx-2 px-2">
-            <TabsList className="mb-0 min-w-fit">
-              <TabsTrigger value="overview" className="cursor-pointer">
-                Overview
+            <TabsList className="mb-0 min-w-fit flex gap-2">
+              <TabsTrigger
+                value="overview"
+                aria-label="Overview"
+                title="Overview"
+                className={
+                  activeTab === "overview"
+                    ? "h-10 w-10 rounded-full bg-muted text-foreground cursor-pointer flex items-center justify-center"
+                    : "h-10 w-10 rounded-full bg-background text-muted-foreground hover:bg-muted/50 cursor-pointer flex items-center justify-center"
+                }
+              >
+                <FileText className="h-4 w-4" />
               </TabsTrigger>
-              <TabsTrigger value="photos" className="cursor-pointer">
-                Photos
+              <TabsTrigger
+                value="photos"
+                aria-label="Photos"
+                title="Photos"
+                className={
+                  activeTab === "photos"
+                    ? "h-10 w-10 rounded-full bg-muted text-foreground cursor-pointer flex items-center justify-center"
+                    : "h-10 w-10 rounded-full bg-background text-muted-foreground hover:bg-muted/50 cursor-pointer flex items-center justify-center"
+                }
+              >
+                <ImageIcon className="h-4 w-4" />
               </TabsTrigger>
-              <TabsTrigger value="known-for" className="cursor-pointer">
-                Known For
+              <TabsTrigger
+                value="known-for"
+                aria-label="Known For"
+                title="Known For"
+                className={
+                  activeTab === "known-for"
+                    ? "h-10 w-10 rounded-full bg-muted text-foreground cursor-pointer flex items-center justify-center"
+                    : "h-10 w-10 rounded-full bg-background text-muted-foreground hover:bg-muted/50 cursor-pointer flex items-center justify-center"
+                }
+              >
+                <Sparkles className="h-4 w-4" />
               </TabsTrigger>
-              <TabsTrigger value="credits" className="cursor-pointer">
-                Credits
+              <TabsTrigger
+                value="credits"
+                aria-label="Credits"
+                title="Credits"
+                className={
+                  activeTab === "credits"
+                    ? "h-10 w-10 rounded-full bg-muted text-foreground cursor-pointer flex items-center justify-center"
+                    : "h-10 w-10 rounded-full bg-background text-muted-foreground hover:bg-muted/50 cursor-pointer flex items-center justify-center"
+                }
+              >
+                <Clapperboard className="h-4 w-4" />
               </TabsTrigger>
             </TabsList>
           </div>

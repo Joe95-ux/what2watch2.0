@@ -8,7 +8,7 @@ import { Play, Heart, Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import TrailerModal from "@/components/browse/trailer-modal";
-import { useContentVideos, useWatchProviders } from "@/hooks/use-content-details";
+import { useContentVideos } from "@/hooks/use-content-details";
 import { createContentUrl } from "@/lib/content-slug";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
 
@@ -81,7 +81,7 @@ export default function PersonHeroSection({
 
     return [...movies, ...tv]
       .sort((a, b) => (b.vote_average ?? 0) - (a.vote_average ?? 0))
-      .slice(0, 3);
+      .slice(0, 10);
   }, [allMovies, allTV]);
 
   // Latest movie trailer preview
@@ -115,7 +115,7 @@ export default function PersonHeroSection({
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[260px_minmax(0,1fr)_200px]">
         {/* Poster Column */}
-        <div className="relative hidden lg:block rounded-lg rounded-tl-none bg-muted/20 overflow-hidden aspect-[2/3] border border-white/10">
+        <div className="relative hidden lg:block rounded-lg bg-muted/20 overflow-hidden aspect-[2/3] border border-white/10">
           {profileImage ? (
             <Image
               src={profileImage}
@@ -132,6 +132,10 @@ export default function PersonHeroSection({
           )}
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+
+          <div className="absolute bottom-4 left-4 right-4">
+            <h1 className="text-white font-semibold text-sm sm:text-base drop-shadow line-clamp-1">{person.name}</h1>
+          </div>
 
           {/* Heart - Top Left */}
           <button
@@ -166,9 +170,9 @@ export default function PersonHeroSection({
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
 
           <div className="absolute top-4 left-4 right-4">
-            <h1 className="text-[1.3rem] sm:text-3xl font-semibold text-white drop-shadow">
-              {person.name}
-            </h1>
+            <h2 className="text-white text-sm sm:text-lg font-semibold drop-shadow">
+              {latestMovie?.title ?? person.name}
+            </h2>
           </div>
 
           <div className="absolute bottom-6 left-6 right-6">
@@ -199,9 +203,9 @@ export default function PersonHeroSection({
 
         {/* Top Rated Column */}
         <div className="hidden lg:block">
-          <div className="space-y-3">
-            <h2 className="text-base font-semibold">Top rated movies/tv shows</h2>
-            <div className="space-y-3">
+          <div className="rounded-lg bg-muted/20 border border-white/10 p-3">
+            <h2 className="text-sm font-semibold mb-2">Top Rated</h2>
+            <div className="overflow-y-auto scrollbar-hide max-h-[520px] space-y-2 pr-1">
               {topRatedItems.map((item) => (
                 <TopRatedMediaCard
                   key={`${item.type}-${item.id}`}
@@ -244,22 +248,14 @@ function TopRatedMediaCard({
   const { data: videosData } = useContentVideos(item.type, item.id, true);
   const trailer = pickTrailer(videosData);
 
-  const { data: watchAvailability } = useWatchProviders(item.type, item.id, "US");
-  const primaryOffer =
-    watchAvailability?.offersByType?.flatrate?.[0] ??
-    watchAvailability?.offersByType?.buy?.[0] ??
-    watchAvailability?.offersByType?.rent?.[0] ??
-    watchAvailability?.allOffers?.[0] ??
-    null;
-
   const title = item.type === "movie" ? item.title : item.name;
-  const releaseDate = item.type === "movie" ? (item.release_date ?? null) : (item.first_air_date ?? null);
+  const releaseDate = item.type === "movie" ? item.release_date ?? null : item.first_air_date ?? null;
   const releaseDateFormatted = formatReleaseDate(releaseDate);
 
   return (
     <div
       className={cn(
-        "relative cursor-pointer rounded-lg border border-border bg-card/80 overflow-hidden transition hover:bg-card flex",
+        "flex items-start gap-3 rounded-lg border border-border bg-card/80 hover:bg-card transition cursor-pointer p-2.5",
       )}
       onClick={onNavigate}
       role="button"
@@ -268,26 +264,41 @@ function TopRatedMediaCard({
         if (e.key === "Enter" || e.key === " ") onNavigate();
       }}
     >
-      <div className="relative w-28 h-40 sm:w-30 sm:h-44 bg-muted overflow-hidden">
+      <div className="relative w-14 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-white/10">
         {item.poster_path ? (
           <Image
             src={getPosterUrl(item.poster_path, "w500")}
             alt={title}
             fill
             className="object-cover"
-            sizes="112px"
+            sizes="56px"
             unoptimized
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">No Image</div>
+          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-[10px]">
+            No Image
+          </div>
         )}
+      </div>
 
-        {/* Play Trailer (bottom of poster) */}
-        <div className="absolute bottom-8 left-2 right-2 flex flex-col items-center gap-1">
+      <div className="flex-1 min-w-0 py-0.5">
+        <p className="text-[13px] font-semibold truncate" title={title}>
+          {title}
+        </p>
+        <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-1">
+          <span>{releaseDateFormatted ?? "—"}</span>
+          <span>•</span>
+          <Badge variant="secondary" className="h-5 px-2 py-0 text-[10px]">
+            {item.type === "movie" ? "Movie" : "TV"}
+          </Badge>
+        </div>
+
+        <div className="mt-2">
           <button
             type="button"
             onClick={(e: MouseEvent) => {
               e.stopPropagation();
+              if (!trailer) return;
               onOpenTrailer({
                 title,
                 video: trailer,
@@ -295,61 +306,14 @@ function TopRatedMediaCard({
               });
             }}
             disabled={!trailer}
-            className="flex flex-col items-center gap-1 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             aria-label={`Play trailer for ${title}`}
           >
-            <span className="flex items-center justify-center h-10 w-10 rounded-full bg-black/70 hover:bg-black/80 border border-white/20 transition">
-              <Play className="h-5 w-5 text-white fill-white" />
+            <span className="flex items-center justify-center h-9 w-9 rounded-full bg-black/70 hover:bg-black/80 border border-white/20 transition">
+              <Play className="h-4 w-4 text-white fill-white" />
             </span>
-            <span className="text-[10px] font-medium text-white">Play Trailer</span>
+            <span className="text-[12px] font-medium text-foreground">Play Trailer</span>
           </button>
-        </div>
-
-        {/* Watch Now provider button (bottom of poster) */}
-        {primaryOffer && (
-          <div className="absolute bottom-0 left-0 right-0 p-1">
-            <a
-              href={primaryOffer.standardWebUrl ?? primaryOffer.deepLinkUrl ?? "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
-              className="flex items-center h-7 w-full overflow-hidden rounded bg-black/70 hover:bg-black/80 transition-colors cursor-pointer"
-            >
-              {primaryOffer.iconUrl ? (
-                <Image
-                  src={primaryOffer.iconUrl}
-                  alt={primaryOffer.providerName}
-                  width={28}
-                  height={28}
-                  className="object-contain rounded-l w-7 h-7 block flex-shrink-0"
-                  unoptimized
-                />
-              ) : null}
-              <span
-                className={cn(
-                  "pl-2 pr-2 flex items-center text-[12px] font-medium truncate text-white",
-                  !primaryOffer.iconUrl && "px-2",
-                )}
-              >
-                Watch Now
-              </span>
-            </a>
-          </div>
-        )}
-      </div>
-
-      <div className="flex-1 min-w-0 p-3 space-y-1">
-        <p className="text-sm font-semibold truncate" title={title}>
-          {title}
-        </p>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{releaseDateFormatted ?? "—"}</span>
-          <span className="text-muted-foreground">•</span>
-          <Badge variant="secondary" className="h-5 px-2 py-0 text-[11px]">
-            {item.type === "movie" ? "Movie" : "TV"}
-          </Badge>
         </div>
       </div>
     </div>
