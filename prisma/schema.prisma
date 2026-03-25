@@ -88,6 +88,7 @@ model User {
   // Relations
   preferences   UserPreferences?
   favorites     Favorite[]
+  favoritePersonalities FavoritePersonality[]
   contentReactions ContentReaction[]
   playlists     Playlist[]
   reviews       Review[]
@@ -298,6 +299,26 @@ model Favorite {
   @@unique([userId, tmdbId, mediaType])
   @@map("favorites")
   @@index([userId])
+}
+
+// Favorite personalities - actors/directors/people a user likes
+model FavoritePersonality {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId             String   @db.ObjectId
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tmdbPersonId       Int
+  name               String
+  profilePath        String?
+  knownForDepartment String?
+  movieCount         Int      @default(0)
+  tvCount            Int      @default(0)
+
+  createdAt          DateTime @default(now())
+
+  @@unique([userId, tmdbPersonId])
+  @@index([userId])
+  @@map("favorite_personalities")
 }
 
 // Content Reactions - likes and dislikes for movies and TV shows

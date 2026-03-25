@@ -7,10 +7,11 @@ import { useRouter } from "next/navigation";
 import { useFavorites, useRemoveFavorite } from "@/hooks/use-favorites";
 import { useAllGenres } from "@/hooks/use-genres";
 import { useFavoriteChannels } from "@/hooks/use-favorite-channels";
-import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
+import { useFavoritePersonalities } from "@/hooks/use-favorite-personalities";
+import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LayoutGrid, List, X, Plus, Star, ChevronLeft, ChevronRight, Youtube } from "lucide-react";
+import { LayoutGrid, List, X, Plus, Star, ChevronLeft, ChevronRight, Youtube, Info } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
@@ -18,6 +19,7 @@ import { MovieCardSkeleton } from "@/components/skeletons/movie-card-skeleton";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { cn } from "@/lib/utils";
 import { getChannelProfilePath } from "@/lib/channel-path";
+import { createPersonSlug } from "@/lib/person-utils";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -29,6 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 type ViewMode = "grid" | "list";
 type FilterType = "all" | "movie" | "tv";
@@ -38,6 +41,7 @@ export default function MyListContent() {
   const router = useRouter();
   const { data: favorites = [], isLoading } = useFavorites();
   const { data: favoriteChannels = [], isLoading: isLoadingChannels } = useFavoriteChannels();
+  const { data: favoritePersonalities = [] } = useFavoritePersonalities();
   const removeFavorite = useRemoveFavorite();
   const { data: allGenres = [] } = useAllGenres();
   
@@ -48,6 +52,7 @@ export default function MyListContent() {
   const [itemToRemove, setItemToRemove] = useState<{ tmdbId: number; mediaType: string; title: string } | null>(null);
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isPersonalitiesSheetOpen, setIsPersonalitiesSheetOpen] = useState(false);
 
   // Convert favorites to TMDB format for display
   const favoritesAsTMDB = useMemo(() => {
@@ -254,6 +259,85 @@ export default function MyListContent() {
                       <p className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">
                         {channel.title || "Channel"}
                       </p>
+                    </button>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious
+                className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+              />
+              <CarouselNext
+                className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+              />
+            </Carousel>
+          </div>
+        </div>
+      )}
+
+      {/* Favorite Personalities Section - Between Channels and My List */}
+      {favoritePersonalities.length > 0 && (
+        <div className="mb-12">
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-2xl font-semibold">Favorite Personalities</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full cursor-pointer"
+              onClick={() => setIsPersonalitiesSheetOpen(true)}
+              aria-label="Open favorite personalities"
+            >
+              <Info className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="relative group/carousel">
+            <Carousel
+              opts={{
+                align: "start",
+                slidesToScroll: 2,
+                breakpoints: {
+                  "(max-width: 640px)": { slidesToScroll: 1 },
+                  "(max-width: 1024px)": { slidesToScroll: 2 },
+                  "(max-width: 1280px)": { slidesToScroll: 2 },
+                },
+              }}
+              className="w-full"
+            >
+              <CarouselContent className="-ml-2 md:-ml-4 gap-4">
+                {favoritePersonalities.map((personality) => (
+                  <CarouselItem
+                    key={personality.id}
+                    className="pl-2 md:pl-4 basis-[260px] sm:basis-[320px] md:basis-[360px]"
+                  >
+                    <button
+                      onClick={() =>
+                        router.push(`/person/${createPersonSlug(personality.tmdbPersonId, personality.name)}`)
+                      }
+                      className="group w-full text-left rounded-xl border bg-card p-3 hover:bg-accent/40 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="relative h-12 w-12 rounded-full overflow-hidden bg-muted shrink-0">
+                          {personality.profilePath ? (
+                            <Image
+                              src={getPosterUrl(personality.profilePath, "w200")}
+                              alt={personality.name}
+                              fill
+                              className="object-cover"
+                              sizes="48px"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="absolute inset-0 bg-muted" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm line-clamp-1 group-hover:text-primary transition-colors">
+                            {personality.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {personality.movieCount} movies • {personality.tvCount} TV shows
+                          </p>
+                        </div>
+                      </div>
                     </button>
                   </CarouselItem>
                 ))}
@@ -536,6 +620,52 @@ export default function MyListContent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Sheet open={isPersonalitiesSheetOpen} onOpenChange={setIsPersonalitiesSheetOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-[30rem] p-0 flex flex-col">
+          <SheetHeader className="px-6 py-4 border-b">
+            <SheetTitle>Favorite Personalities</SheetTitle>
+          </SheetHeader>
+
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+            {favoritePersonalities.map((personality) => (
+              <button
+                key={personality.id}
+                onClick={() => {
+                  setIsPersonalitiesSheetOpen(false);
+                  router.push(`/person/${createPersonSlug(personality.tmdbPersonId, personality.name)}`);
+                }}
+                className="group w-full text-left rounded-xl border bg-card p-3 hover:bg-accent/40 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="relative h-12 w-12 rounded-full overflow-hidden bg-muted shrink-0">
+                    {personality.profilePath ? (
+                      <Image
+                        src={getPosterUrl(personality.profilePath, "w200")}
+                        alt={personality.name}
+                        fill
+                        className="object-cover"
+                        sizes="48px"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-muted" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm line-clamp-1 group-hover:text-primary transition-colors">
+                      {personality.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {personality.movieCount} movies • {personality.tvCount} TV shows
+                    </p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Detail Modal */}
       {selectedItem && (

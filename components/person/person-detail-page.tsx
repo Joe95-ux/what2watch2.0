@@ -160,28 +160,62 @@ export default function PersonDetailPage({ personId }: PersonDetailPageProps) {
         <div className="w-full">
           <div className="overflow-x-auto scrollbar-hide mb-8 -mx-2 px-2">
             <div className="min-w-fit flex items-center gap-2">
-              {([
-                { id: "overview", label: "Overview" },
-                { id: "photos", label: "Photos" },
-                { id: "known-for", label: "Known For" },
-                { id: "credits", label: "Credits" },
-              ] as const).map((tab) => (
-                <Button
-                  key={tab.id}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    "h-9 rounded-full px-4 cursor-pointer",
-                    activeTab === tab.id
-                      ? "bg-muted text-foreground border-border"
-                      : "bg-background text-muted-foreground hover:bg-muted/50",
-                  )}
-                >
-                  {tab.label}
-                </Button>
-              ))}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveTab("overview")}
+                className={cn(
+                  "h-9 rounded-full px-4 cursor-pointer border-0",
+                  activeTab === "overview"
+                    ? "bg-muted text-foreground hover:bg-muted"
+                    : "text-muted-foreground hover:bg-muted/50",
+                )}
+              >
+                Overview
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveTab("photos")}
+                className={cn(
+                  "h-9 rounded-full px-4 cursor-pointer border-0",
+                  activeTab === "photos"
+                    ? "bg-muted text-foreground hover:bg-muted"
+                    : "text-muted-foreground hover:bg-muted/50",
+                )}
+              >
+                Photos
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveTab("known-for")}
+                className={cn(
+                  "h-9 rounded-full px-4 cursor-pointer border-0",
+                  activeTab === "known-for"
+                    ? "bg-muted text-foreground hover:bg-muted"
+                    : "text-muted-foreground hover:bg-muted/50",
+                )}
+              >
+                Known For
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveTab("credits")}
+                className={cn(
+                  "h-9 rounded-full px-4 cursor-pointer border-0",
+                  activeTab === "credits"
+                    ? "bg-muted text-foreground hover:bg-muted"
+                    : "text-muted-foreground hover:bg-muted/50",
+                )}
+              >
+                Credits
+              </Button>
             </div>
           </div>
 

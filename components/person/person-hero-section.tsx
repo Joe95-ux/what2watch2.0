@@ -3,13 +3,16 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
-import { Play, Heart, Check } from "lucide-react";
+import { Play, Heart } from "lucide-react";
+import { useUser, useClerk } from "@clerk/nextjs";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import TrailerModal from "@/components/browse/trailer-modal";
-import { useContentVideos } from "@/hooks/use-content-details";
+import { useContentVideos, useWatchProviders } from "@/hooks/use-content-details";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
 import { Carousel, CarouselApi, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { useToggleFavoritePersonality } from "@/hooks/use-favorite-personalities";
 
 import type { TMDBPerson, TMDBPersonMovieCredits, TMDBPersonTVCredits, TMDBVideo } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
@@ -41,10 +44,13 @@ export default function PersonHeroSection({
   tvCredits: TMDBPersonTVCredits | null;
   onBack: () => void;
 }) {
-  const [isHearted, setIsHearted] = useState(false);
   const [carouselApi, setCarouselApi] = useState<CarouselApi | null>(null);
   const [activeSlide, setActiveSlide] = useState(0);
   const [isCarouselPaused, setIsCarouselPaused] = useState(false);
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
+  const favoritePersonality = useToggleFavoritePersonality();
+  const isHearted = favoritePersonality.isFavorite(person.id);
 
   const slides = useMemo(() => {
     const movies =
@@ -88,6 +94,20 @@ export default function PersonHeroSection({
     return combined;
   }, [movieCredits, tvCredits]);
 
+  const movieCount = useMemo(() => {
+    const ids = new Set(
+      [...(movieCredits?.cast ?? []), ...(movieCredits?.crew ?? [])].map((x) => x.id),
+    );
+    return ids.size;
+  }, [movieCredits]);
+
+  const tvCount = useMemo(() => {
+    const ids = new Set(
+      [...(tvCredits?.cast ?? []), ...(tvCredits?.crew ?? [])].map((x) => x.id),
+    );
+    return ids.size;
+  }, [tvCredits]);
+
   const currentSlide = slides[activeSlide] ?? slides[0] ?? null;
   const currentSlideId = currentSlide?.id ?? null;
   const currentSlideType = currentSlide?.type ?? "movie";
@@ -97,6 +117,17 @@ export default function PersonHeroSection({
     isLoading: currentVideosLoading,
   } = useContentVideos(currentSlideType, currentSlideId, !!currentSlideId);
   const currentTrailer = pickTrailer(currentVideosData);
+  const { data: currentWatchAvailability } = useWatchProviders(
+    currentSlideType,
+    currentSlideId,
+    "US",
+  );
+  const currentPrimaryOffer =
+    currentWatchAvailability?.offersByType?.flatrate?.[0] ??
+    currentWatchAvailability?.offersByType?.buy?.[0] ??
+    currentWatchAvailability?.offersByType?.rent?.[0] ??
+    currentWatchAvailability?.allOffers?.[0] ??
+    null;
 
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [trailerVideo, setTrailerVideo] = useState<TMDBVideo | null>(null);
@@ -111,6 +142,28 @@ export default function PersonHeroSection({
     setTrailerVideos(videos);
     setInitialVideoId(video.id ?? video.id);
     setIsTrailerOpen(true);
+  };
+
+  const handleFavoriteClick = async () => {
+    if (!isSignedIn) {
+      toast.info("Sign in to favorite personalities.");
+      if (openSignIn) {
+        openSignIn({
+          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        });
+      }
+      return;
+    }
+
+    try {
+      await favoritePersonality.toggle({
+        ...person,
+        movieCount,
+        tvCount,
+      });
+    } catch {
+      toast.error("Could not update favorite personality.");
+    }
   };
 
   useEffect(() => {
@@ -166,14 +219,19 @@ export default function PersonHeroSection({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              setIsHearted((v) => !v);
+              handleFavoriteClick();
             }}
             className={cn(
               "absolute top-3 left-3 z-10 h-11 w-11 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm flex items-center justify-center cursor-pointer transition-colors",
             )}
             aria-label={isHearted ? "Remove from favorites" : "Add to favorites"}
+            disabled={favoritePersonality.isLoading}
           >
-            {isHearted ? <Check className="h-5 w-5 text-[#E0B416]" /> : <Heart className="h-5 w-5 text-white" />}
+            {isHearted ? (
+              <Heart className="h-5 w-5 text-green-500 fill-green-500" />
+            ) : (
+              <Heart className="h-5 w-5 text-white" />
+            )}
           </button>
         </div>
 
@@ -181,7 +239,7 @@ export default function PersonHeroSection({
         <Carousel
           setApi={setCarouselApi}
           opts={{ loop: slides.length > 1 }}
-          className="rounded-lg rounded-tl-none lg:rounded-tl-lg"
+          className="rounded-lg rounded-tl-none lg:rounded-tl-lg h-full"
           onMouseEnter={() => setIsCarouselPaused(true)}
           onMouseLeave={() => setIsCarouselPaused(false)}
         >
@@ -189,7 +247,7 @@ export default function PersonHeroSection({
             {slides.length > 0 ? (
               slides.map((slide, index) => (
                 <CarouselItem key={`${slide.type}-${slide.id}-${index}`} className="pl-0">
-                  <div className="relative rounded-lg rounded-tl-none lg:rounded-tl-lg bg-muted/20 overflow-hidden min-h-[260px] md:min-h-[400px] lg:min-h-[260px] border border-white/10">
+                  <div className="relative rounded-lg rounded-tl-none lg:rounded-tl-lg bg-muted/20 overflow-hidden min-h-[260px] md:min-h-[400px] lg:h-[390px] lg:min-h-0 border border-white/10">
                     {slide.backdropPath ? (
                       <Image
                         src={getBackdropUrl(slide.backdropPath, "w1280")}
@@ -221,48 +279,73 @@ export default function PersonHeroSection({
                         {slide.title}
                       </p>
                     </div>
+
+                    {index === activeSlide && (
+                      <div className="absolute bottom-6 left-6 right-6 z-10">
+                        <div className="flex items-center gap-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
+                            <button
+                              type="button"
+                              disabled={!currentTrailer || currentVideosLoading}
+                              onClick={() =>
+                                openTrailer(
+                                  currentSlide?.title ?? person.name,
+                                  currentTrailer,
+                                  currentVideosData?.results ?? [],
+                                )
+                              }
+                              className="flex items-center justify-center h-16 w-16 rounded-full border-2 border-white/60 bg-white/10 backdrop-blur hover:bg-white/20 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                              aria-label="Play trailer"
+                            >
+                              <Play className="h-7 w-7 text-white fill-white" />
+                            </button>
+
+                            <div className="flex flex-col gap-1">
+                              <p className="text-white font-semibold text-lg">Play Trailer</p>
+                              {currentSlide?.date && (
+                                <p className="text-white/80 text-sm">
+                                  {formatReleaseDate(currentSlide.date)}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CarouselItem>
               ))
             ) : (
               <CarouselItem className="pl-0">
-                <div className="relative rounded-lg rounded-tl-none lg:rounded-tl-lg bg-muted/20 overflow-hidden min-h-[260px] md:min-h-[400px] lg:min-h-[260px] border border-white/10">
+                <div className="relative rounded-lg rounded-tl-none lg:rounded-tl-lg bg-muted/20 overflow-hidden min-h-[260px] md:min-h-[400px] lg:h-[390px] lg:min-h-0 border border-white/10">
                   <div className="absolute inset-0 bg-muted" />
                 </div>
               </CarouselItem>
             )}
           </CarouselContent>
 
-          <div className="absolute bottom-6 left-6 right-6 z-10">
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
-                <button
-                  type="button"
-                  disabled={!currentTrailer || currentVideosLoading}
-                  onClick={() =>
-                    openTrailer(
-                      currentSlide?.title ?? person.name,
-                      currentTrailer,
-                      currentVideosData?.results ?? [],
-                    )
-                  }
-                  className="flex items-center justify-center h-16 w-16 rounded-full border-2 border-white/60 bg-white/10 backdrop-blur hover:bg-white/20 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                  aria-label="Play trailer"
-                >
-                  <Play className="h-7 w-7 text-white fill-white" />
-                </button>
-
-                <div className="flex flex-col gap-1">
-                  <p className="text-white font-semibold text-lg">Play Trailer</p>
-                  {currentSlide?.date && (
-                    <p className="text-white/80 text-sm">
-                      {formatReleaseDate(currentSlide.date)}
-                    </p>
-                  )}
-                </div>
-              </div>
+          {currentPrimaryOffer && (
+            <div className="absolute bottom-0 right-0 z-20">
+              <a
+                href={currentPrimaryOffer.standardWebUrl ?? currentPrimaryOffer.deepLinkUrl ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-muted/20 backdrop-blur-sm border-t border-l border-white/10 rounded-tl-lg px-4 py-2 text-[0.85rem] font-medium text-white hover:bg-muted/30 transition-colors cursor-pointer flex items-center gap-2"
+              >
+                {currentPrimaryOffer.iconUrl ? (
+                  <Image
+                    src={currentPrimaryOffer.iconUrl}
+                    alt={currentPrimaryOffer.providerName}
+                    width={18}
+                    height={18}
+                    className="object-contain rounded-sm"
+                    unoptimized
+                  />
+                ) : null}
+                <span>Watch Now</span>
+              </a>
             </div>
-          </div>
+          )}
         </Carousel>
 
       </div>
