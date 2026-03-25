@@ -312,15 +312,15 @@ export function SettingsBillingSection({
 
       <Tabs defaultValue="overview" className="w-full gap-6">
         <TabsList className="grid w-full h-auto grid-cols-3 gap-1 p-1">
-          <TabsTrigger value="overview" className="gap-2 py-2.5 sm:py-2">
+          <TabsTrigger value="overview" className="gap-2 py-2.5 sm:py-2 cursor-pointer">
             <LayoutDashboard className="size-4 shrink-0 opacity-70" />
             <span className="hidden sm:inline">Overview</span>
           </TabsTrigger>
-          <TabsTrigger value="invoices" className="gap-2 py-2.5 sm:py-2">
+          <TabsTrigger value="invoices" className="gap-2 py-2.5 sm:py-2 cursor-pointer">
             <Receipt className="size-4 shrink-0 opacity-70" />
             <span className="hidden sm:inline">{"Invoices & payments"}</span>
           </TabsTrigger>
-          <TabsTrigger value="documents" className="gap-2 py-2.5 sm:py-2">
+          <TabsTrigger value="documents" className="gap-2 py-2.5 sm:py-2 cursor-pointer">
             <Scale className="size-4 shrink-0 opacity-70" />
             <span className="hidden sm:inline">{"Documents & support"}</span>
           </TabsTrigger>
@@ -586,7 +586,7 @@ export function SettingsBillingSection({
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="size-7 shrink-0"
+                      className="size-7 shrink-0 cursor-pointer"
                       aria-label="What is a billing cycle?"
                     >
                       <Info className="size-4" />

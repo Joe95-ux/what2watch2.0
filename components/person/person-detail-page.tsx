@@ -9,11 +9,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Calendar, MapPin, Link as LinkIcon } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import PersonBiography from "./person-biography";
 import PersonPhotos from "./person-photos";
 import PersonKnownFor from "./person-known-for";
 import PersonPersonalInfo from "./person-personal-info";
 import PersonCreditsTable from "./person-credits-table";
+import PersonHeroSection from "./person-hero-section";
 
 interface PersonDetailPageProps {
   personId: number;
@@ -21,6 +23,7 @@ interface PersonDetailPageProps {
 
 export default function PersonDetailPage({ personId }: PersonDetailPageProps) {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const { data: person, isLoading: isLoadingPerson } = usePersonDetails(personId);
   const { data: images, isLoading: isLoadingImages } = usePersonImages(personId);
   const { data: movieCredits, isLoading: isLoadingMovieCredits } = usePersonMovieCredits(personId);
@@ -53,91 +56,102 @@ export default function PersonDetailPage({ personId }: PersonDetailPageProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
+      {/* Hero / Header */}
       <div className="border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.back()}
-            className="mb-6"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
+        {isMobile ? (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.back()}
+              className="mb-6 cursor-pointer"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
 
-          <div className="flex flex-col md:flex-row gap-8">
-            {/* Profile Image */}
-            <div className="flex-shrink-0">
-              {profileImage ? (
-                <div className="relative w-64 h-96 rounded-lg overflow-hidden">
-                  <Image
-                    src={profileImage}
-                    alt={person.name}
-                    fill
-                    className="object-cover"
-                    priority
-                    unoptimized
-                  />
-                </div>
-              ) : (
-                <div className="w-64 h-96 rounded-lg bg-muted flex items-center justify-center">
-                  <span className="text-4xl font-bold text-muted-foreground">
-                    {person.name[0].toUpperCase()}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Basic Info */}
-            <div className="flex-1">
-              <h1 className="text-4xl font-bold mb-4">{person.name}</h1>
-              {person.known_for_department && (
-                <p className="text-lg text-muted-foreground mb-6">
-                  {person.known_for_department}
-                </p>
-              )}
-
-              {/* Quick Stats */}
-              <div className="flex flex-wrap gap-6 mb-6">
-                {person.birthday && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <span>
-                      {new Date(person.birthday).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                      {person.deathday && ` - ${new Date(person.deathday).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}`}
+            <div className="flex flex-col md:flex-row gap-8">
+              {/* Profile Image */}
+              <div className="flex-shrink-0">
+                {profileImage ? (
+                  <div className="relative w-64 h-96 rounded-lg overflow-hidden">
+                    <Image
+                      src={profileImage}
+                      alt={person.name}
+                      fill
+                      className="object-cover"
+                      priority
+                      unoptimized
+                    />
+                  </div>
+                ) : (
+                  <div className="w-64 h-96 rounded-lg bg-muted flex items-center justify-center">
+                    <span className="text-4xl font-bold text-muted-foreground">
+                      {person.name[0].toUpperCase()}
                     </span>
                   </div>
                 )}
-                {person.place_of_birth && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPin className="h-4 w-4" />
-                    <span>{person.place_of_birth}</span>
-                  </div>
+              </div>
+
+              {/* Basic Info */}
+              <div className="flex-1">
+                <h1 className="text-4xl font-bold mb-4">{person.name}</h1>
+                {person.known_for_department && (
+                  <p className="text-lg text-muted-foreground mb-6">
+                    {person.known_for_department}
+                  </p>
                 )}
-                {person.homepage && (
-                  <a
-                    href={person.homepage}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-primary hover:text-primary/80"
-                  >
-                    <LinkIcon className="h-4 w-4" />
-                    <span>Website</span>
-                  </a>
-                )}
+
+                {/* Quick Stats */}
+                <div className="flex flex-wrap gap-6 mb-6">
+                  {person.birthday && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Calendar className="h-4 w-4" />
+                      <span>
+                        {new Date(person.birthday).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                        {person.deathday &&
+                          ` - ${new Date(person.deathday).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}`}
+                      </span>
+                    </div>
+                  )}
+                  {person.place_of_birth && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="h-4 w-4" />
+                      <span>{person.place_of_birth}</span>
+                    </div>
+                  )}
+                  {person.homepage && (
+                    <a
+                      href={person.homepage}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 cursor-pointer"
+                    >
+                      <LinkIcon className="h-4 w-4" />
+                      <span>Website</span>
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <PersonHeroSection
+            person={person}
+            profileImage={profileImage}
+            movieCredits={movieCredits ?? null}
+            tvCredits={tvCredits ?? null}
+            onBack={() => router.back()}
+          />
+        )}
       </div>
 
       {/* Content Tabs */}
@@ -145,10 +159,18 @@ export default function PersonDetailPage({ personId }: PersonDetailPageProps) {
         <Tabs defaultValue="overview" className="w-full">
           <div className="overflow-x-auto scrollbar-hide mb-8 -mx-2 px-2">
             <TabsList className="mb-0 min-w-fit">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="photos">Photos</TabsTrigger>
-              <TabsTrigger value="known-for">Known For</TabsTrigger>
-              <TabsTrigger value="credits">Credits</TabsTrigger>
+              <TabsTrigger value="overview" className="cursor-pointer">
+                Overview
+              </TabsTrigger>
+              <TabsTrigger value="photos" className="cursor-pointer">
+                Photos
+              </TabsTrigger>
+              <TabsTrigger value="known-for" className="cursor-pointer">
+                Known For
+              </TabsTrigger>
+              <TabsTrigger value="credits" className="cursor-pointer">
+                Credits
+              </TabsTrigger>
             </TabsList>
           </div>
 

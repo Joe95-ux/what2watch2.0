@@ -40,7 +40,7 @@ export default function PersonBiography({ biography }: PersonBiographyProps) {
           variant="ghost"
           size="sm"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="mt-4"
+          className="mt-4 cursor-pointer"
         >
           {isExpanded ? (
             <>

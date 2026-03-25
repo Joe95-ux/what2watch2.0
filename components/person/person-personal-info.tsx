@@ -73,7 +73,7 @@ export default function PersonPersonalInfo({ person }: PersonPersonalInfoProps) 
                 href={item.value as string}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
+                className="text-sm text-primary hover:text-primary/80 flex items-center gap-1 cursor-pointer"
               >
                 <LinkIcon className="h-3 w-3" />
                 {item.label === "Homepage" ? "Visit Website" : "View on IMDb"}

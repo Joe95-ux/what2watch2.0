@@ -206,17 +206,29 @@ export default function PersonCreditsTable({
         <div className="flex flex-wrap items-center gap-4">
           <Tabs value={creditType} onValueChange={(v) => setCreditType(v as CreditType)}>
             <TabsList>
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="movies">Movies</TabsTrigger>
-              <TabsTrigger value="tv">TV Shows</TabsTrigger>
+              <TabsTrigger value="all" className="cursor-pointer">
+                All
+              </TabsTrigger>
+              <TabsTrigger value="movies" className="cursor-pointer">
+                Movies
+              </TabsTrigger>
+              <TabsTrigger value="tv" className="cursor-pointer">
+                TV Shows
+              </TabsTrigger>
             </TabsList>
           </Tabs>
 
           <Tabs value={roleType} onValueChange={(v) => setRoleType(v as RoleType)}>
             <TabsList>
-              <TabsTrigger value="all">All Roles</TabsTrigger>
-              <TabsTrigger value="cast">Cast</TabsTrigger>
-              <TabsTrigger value="crew">Crew</TabsTrigger>
+              <TabsTrigger value="all" className="cursor-pointer">
+                All Roles
+              </TabsTrigger>
+              <TabsTrigger value="cast" className="cursor-pointer">
+                Cast
+              </TabsTrigger>
+              <TabsTrigger value="crew" className="cursor-pointer">
+                Crew
+              </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -228,6 +240,7 @@ export default function PersonCreditsTable({
           variant={sortBy === "year" ? "default" : "outline"}
           size="sm"
           onClick={() => handleSort("year")}
+          className="cursor-pointer"
         >
           <ArrowUpDown className="h-4 w-4 mr-2" />
           Year
@@ -236,6 +249,7 @@ export default function PersonCreditsTable({
           variant={sortBy === "rating" ? "default" : "outline"}
           size="sm"
           onClick={() => handleSort("rating")}
+          className="cursor-pointer"
         >
           <ArrowUpDown className="h-4 w-4 mr-2" />
           Rating
@@ -244,6 +258,7 @@ export default function PersonCreditsTable({
           variant={sortBy === "title" ? "default" : "outline"}
           size="sm"
           onClick={() => handleSort("title")}
+          className="cursor-pointer"
         >
           <ArrowUpDown className="h-4 w-4 mr-2" />
           Title
@@ -317,7 +332,7 @@ export default function PersonCreditsTable({
                   size="sm"
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="gap-1"
+                  className={currentPage === 1 ? "gap-1 cursor-not-allowed" : "gap-1 cursor-pointer"}
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Previous
@@ -392,7 +407,7 @@ export default function PersonCreditsTable({
                   size="sm"
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="gap-1"
+                  className={currentPage === totalPages ? "gap-1 cursor-not-allowed" : "gap-1 cursor-pointer"}
                 >
                   Next
                   <ChevronRight className="h-4 w-4" />

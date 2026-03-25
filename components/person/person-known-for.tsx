@@ -167,7 +167,7 @@ export default function PersonKnownFor({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 flex-shrink-0"
+              className="h-8 w-8 flex-shrink-0 cursor-pointer"
               onClick={() => {
                 setIsSearchOpen(true);
               }}
@@ -197,7 +197,7 @@ export default function PersonKnownFor({
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-0 top-0 h-full w-8"
+                className="absolute right-0 top-0 h-full w-8 cursor-pointer"
                 onClick={() => {
                   setSearchQuery("");
                   setIsSearchOpen(false);
@@ -211,13 +211,19 @@ export default function PersonKnownFor({
         
         {/* Filter Dropdown */}
         <Select value={filterType} onValueChange={(v) => setFilterType(v as FilterType)}>
-          <SelectTrigger className="w-[140px] flex-shrink-0">
+          <SelectTrigger className="w-[140px] flex-shrink-0 cursor-pointer">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="movie">Movies</SelectItem>
-            <SelectItem value="tv">TV Shows</SelectItem>
+            <SelectItem value="all" className="cursor-pointer">
+              All
+            </SelectItem>
+            <SelectItem value="movie" className="cursor-pointer">
+              Movies
+            </SelectItem>
+            <SelectItem value="tv" className="cursor-pointer">
+              TV Shows
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -252,7 +258,11 @@ export default function PersonKnownFor({
                   size="sm"
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className={cn("gap-1", isMobile && "px-2")}
+                  className={cn(
+                    "gap-1",
+                    isMobile && "px-2",
+                    currentPage === 1 ? "cursor-not-allowed" : "cursor-pointer",
+                  )}
                 >
                   <ChevronLeft className="h-4 w-4" />
                   {!isMobile && "Previous"}
@@ -342,7 +352,11 @@ export default function PersonKnownFor({
                   size="sm"
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className={cn("gap-1", isMobile && "px-2")}
+                  className={cn(
+                    "gap-1",
+                    isMobile && "px-2",
+                    currentPage === totalPages ? "cursor-not-allowed" : "cursor-pointer",
+                  )}
                 >
                   {!isMobile && "Next"}
                   <ChevronRight className="h-4 w-4" />
