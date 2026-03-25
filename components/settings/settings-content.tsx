@@ -377,7 +377,16 @@ export default function SettingsContent({
 
         {/* Main Content */}
         <div className="flex-1 min-w-0">
-          <div className="bg-card border rounded-lg p-6 lg:p-8">
+          <div
+            className={cn(
+              // Default: keep the main wrapper card on mobile for non-Billing tabs
+              "bg-card border rounded-lg p-6",
+              // Billing: remove outer wrapper on mobile to avoid double card padding
+              activeSection === "billing" && "bg-transparent border-0 p-0",
+              // Desktop: always show the main wrapper card
+              "lg:bg-card lg:border lg:rounded-lg lg:p-8",
+            )}
+          >
             {/* Account Section */}
             {activeSection === "account" && (
               <div className="space-y-6">

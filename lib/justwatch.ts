@@ -640,23 +640,58 @@ export async function getJustWatchRecommendations(
     if (!token) return [];
 
     const path = `/recommendations/object_type/${objectType}/id_type/tmdb/locale/${locale}`;
-    const data = await fetchFromJustWatch(path, { id: String(tmdbId) }) as Array<{
-      id?: string;
-      text: string;
-      author?: string;
-      author_role?: string;
-      source?: string;
-    }>;
+    const data = await fetchFromJustWatch(path, { id: String(tmdbId) }) as Array<Record<string, unknown>>;
 
-    if (!Array.isArray(data)) return [];
+    const list = Array.isArray(data)
+      ? data
+      : Array.isArray((data as any)?.recommendations)
+        ? (data as any).recommendations
+        : Array.isArray((data as any)?.items)
+          ? (data as any).items
+          : [];
 
-    return data.slice(0, 40).map((rec) => ({
-      id: rec.id || `${tmdbId}-${rec.text.slice(0, 20)}`,
-      text: rec.text,
-      author: rec.author,
-      authorRole: rec.author_role,
-      source: rec.source,
-    }));
+    if (!list.length) return [];
+
+    const textFrom = (rec: Record<string, unknown>): string | null => {
+      const candidates = [
+        rec.text,
+        rec.recommendation_text,
+        rec.recommendation,
+        rec.description,
+        rec.quote,
+        rec.editorial_summary,
+      ];
+      for (const c of candidates) {
+        if (typeof c === "string" && c.trim().length > 0) return c;
+      }
+      return null;
+    };
+
+    const stringFrom = (value: unknown): string | null => {
+      if (typeof value === "string" && value.trim().length > 0) return value;
+      return null;
+    };
+
+    return list
+      .slice(0, 40)
+      .map((rec, idx) => {
+        const text = textFrom(rec);
+        if (!text) return null;
+
+        const id =
+          stringFrom(rec.id) ||
+          (text ? `${tmdbId}-${text.slice(0, 20)}` : null) ||
+          `${tmdbId}-${idx}`;
+
+        return {
+          id,
+          text,
+          author: stringFrom(rec.author) ?? undefined,
+          authorRole: stringFrom((rec as any).author_role) ?? stringFrom((rec as any).authorRole) ?? undefined,
+          source: stringFrom(rec.source) ?? undefined,
+        } satisfies JustWatchRecommendation;
+      })
+      .filter((r): r is JustWatchRecommendation => r !== null);
   } catch (error) {
     console.error("[JustWatch] Failed to load recommendations", error);
     return [];
