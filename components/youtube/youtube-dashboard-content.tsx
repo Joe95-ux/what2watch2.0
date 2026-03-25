@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -19,23 +20,28 @@ import { useUserYouTubePlaylists, type UserYouTubePlaylistPreview } from "@/hook
 import { YouTubeVideo, YouTubePlaylist } from "@/hooks/use-youtube-channel";
 import { getChannelProfilePath } from "@/lib/channel-path";
 import { useQuery } from "@tanstack/react-query";
-import { Users, Video } from "lucide-react";
+import { Users, Video, Info } from "lucide-react";
 import { YouTubeVideoCardSkeleton } from "@/components/youtube/youtube-video-card-skeleton";
 import { YouTubeRecommendations } from "@/components/youtube/youtube-recommendations";
 import { YouTubePlaylistCard as ChannelPlaylistCard } from "@/components/youtube/youtube-playlist-card";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 interface SectionProps {
   title: string;
   description?: string;
+  action?: React.ReactNode;
   children: React.ReactNode;
 }
 
-function Section({ title, description, children }: SectionProps) {
+function Section({ title, description, action, children }: SectionProps) {
   return (
     <section className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold text-foreground">{title}</h2>
-        {description && <p className="text-sm text-muted-foreground">{description}</p>}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold text-foreground">{title}</h2>
+          {description && <p className="text-sm text-muted-foreground">{description}</p>}
+        </div>
+        {action}
       </div>
       {children}
     </section>
@@ -165,6 +171,7 @@ function toYouTubeVideo(item: {
 
 export default function YouTubeDashboardContent() {
   const router = useRouter();
+  const [isChannelsSheetOpen, setIsChannelsSheetOpen] = useState(false);
   const { data: favoriteChannels = [], isLoading: isLoadingFavoriteChannels } = useFavoriteChannels();
   const { data: favoriteVideos = [], isLoading: isLoadingFavoriteVideos } = useFavoriteYouTubeVideos();
   const { data: watchlistVideos = [], isLoading: isLoadingVideoWatchlist } = useYouTubeVideoWatchlist();
@@ -470,7 +477,23 @@ export default function YouTubeDashboardContent() {
         <div className="space-y-12">
           <YouTubeRecommendations />
 
-          <Section title="Favorite Channels" description="Channels you like to keep up with.">
+          <Section
+            title="Favorite Channels"
+            description="Channels you like to keep up with."
+            action={
+              favoriteChannels.length > 0 ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full cursor-pointer"
+                  onClick={() => setIsChannelsSheetOpen(true)}
+                  aria-label="Open favorite channels"
+                >
+                  <Info className="h-4 w-4" />
+                </Button>
+              ) : undefined
+            }
+          >
             {renderFavoriteChannels()}
           </Section>
 
@@ -487,6 +510,20 @@ export default function YouTubeDashboardContent() {
           </Section>
         </div>
       </div>
+
+      <Sheet open={isChannelsSheetOpen} onOpenChange={setIsChannelsSheetOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-[30rem] p-0 flex flex-col">
+          <SheetHeader className="px-6 py-4 border-b">
+            <SheetTitle>Favorite Channels</SheetTitle>
+          </SheetHeader>
+
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+            {favoriteChannels.map((favorite) => (
+              <FavoriteChannelCard key={favorite.id} favorite={favorite} />
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

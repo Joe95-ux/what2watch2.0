@@ -2,14 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Play, Heart } from "lucide-react";
+import { Play, Heart, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import TrailerModal from "@/components/browse/trailer-modal";
 import { useContentVideos, useWatchProviders } from "@/hooks/use-content-details";
+import { createContentUrl } from "@/lib/content-slug";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
 import { Carousel, CarouselApi, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { useToggleFavoritePersonality } from "@/hooks/use-favorite-personalities";
@@ -44,6 +46,7 @@ export default function PersonHeroSection({
   tvCredits: TMDBPersonTVCredits | null;
   onBack: () => void;
 }) {
+  const router = useRouter();
   const [carouselApi, setCarouselApi] = useState<CarouselApi | null>(null);
   const [activeSlide, setActiveSlide] = useState(0);
   const [isCarouselPaused, setIsCarouselPaused] = useState(false);
@@ -191,12 +194,17 @@ export default function PersonHeroSection({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <Button variant="ghost" size="sm" onClick={onBack} className="mb-4 cursor-pointer">
+        <ArrowLeft className="h-4 w-4 mr-2" />
         Back
       </Button>
 
+      <h1 className="text-[1.3rem] sm:text-3xl font-semibold mb-4">
+        {person.name}
+      </h1>
+
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[260px_minmax(0,1fr)]">
         {/* Poster Column */}
-        <div className="relative hidden lg:block rounded-lg bg-muted/20 overflow-hidden aspect-[2/3] border border-white/10">
+        <div className="relative hidden lg:block rounded-lg bg-muted/20 overflow-hidden lg:h-[414px] border border-white/10">
           {profileImage ? (
             <Image
               src={profileImage}
@@ -247,7 +255,20 @@ export default function PersonHeroSection({
             {slides.length > 0 ? (
               slides.map((slide, index) => (
                 <CarouselItem key={`${slide.type}-${slide.id}-${index}`} className="pl-0">
-                  <div className="relative rounded-lg rounded-tl-none lg:rounded-tl-lg bg-muted/20 overflow-hidden min-h-[260px] md:min-h-[400px] lg:h-[390px] lg:min-h-0 border border-white/10">
+                  <div
+                    className="relative rounded-lg rounded-tl-none lg:rounded-tl-lg bg-muted/20 overflow-hidden min-h-[260px] md:min-h-[400px] lg:h-[414px] lg:min-h-0 border border-white/10 cursor-pointer"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      router.push(createContentUrl(slide.type, slide.id, slide.title));
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        router.push(createContentUrl(slide.type, slide.id, slide.title));
+                      }
+                    }}
+                  >
                     {slide.backdropPath ? (
                       <Image
                         src={getBackdropUrl(slide.backdropPath, "w1280")}
@@ -271,15 +292,6 @@ export default function PersonHeroSection({
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
 
-                    <div className="absolute top-4 left-4 right-4">
-                      <h1 className="text-[1.3rem] sm:text-3xl font-semibold text-white drop-shadow">
-                        {person.name}
-                      </h1>
-                      <p className="text-white/80 text-xs sm:text-sm mt-1">
-                        {slide.title}
-                      </p>
-                    </div>
-
                     {index === activeSlide && (
                       <div className="absolute bottom-6 left-6 right-6 z-10">
                         <div className="flex items-center gap-4">
@@ -287,13 +299,14 @@ export default function PersonHeroSection({
                             <button
                               type="button"
                               disabled={!currentTrailer || currentVideosLoading}
-                              onClick={() =>
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 openTrailer(
                                   currentSlide?.title ?? person.name,
                                   currentTrailer,
                                   currentVideosData?.results ?? [],
-                                )
-                              }
+                                );
+                              }}
                               className="flex items-center justify-center h-16 w-16 rounded-full border-2 border-white/60 bg-white/10 backdrop-blur hover:bg-white/20 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                               aria-label="Play trailer"
                             >
@@ -302,11 +315,9 @@ export default function PersonHeroSection({
 
                             <div className="flex flex-col gap-1">
                               <p className="text-white font-semibold text-lg">Play Trailer</p>
-                              {currentSlide?.date && (
-                                <p className="text-white/80 text-sm">
-                                  {formatReleaseDate(currentSlide.date)}
-                                </p>
-                              )}
+                              <p className="text-white/80 text-sm line-clamp-1">
+                                {currentSlide?.title ?? ""}
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -317,7 +328,7 @@ export default function PersonHeroSection({
               ))
             ) : (
               <CarouselItem className="pl-0">
-                <div className="relative rounded-lg rounded-tl-none lg:rounded-tl-lg bg-muted/20 overflow-hidden min-h-[260px] md:min-h-[400px] lg:h-[390px] lg:min-h-0 border border-white/10">
+                <div className="relative rounded-lg rounded-tl-none lg:rounded-tl-lg bg-muted/20 overflow-hidden min-h-[260px] md:min-h-[400px] lg:h-[414px] lg:min-h-0 border border-white/10">
                   <div className="absolute inset-0 bg-muted" />
                 </div>
               </CarouselItem>
@@ -330,7 +341,8 @@ export default function PersonHeroSection({
                 href={currentPrimaryOffer.standardWebUrl ?? currentPrimaryOffer.deepLinkUrl ?? "#"}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-muted/20 backdrop-blur-sm border-t border-l border-white/10 rounded-tl-lg px-4 py-2 text-[0.85rem] font-medium text-white hover:bg-muted/30 transition-colors cursor-pointer flex items-center gap-2"
+                onClick={(e) => e.stopPropagation()}
+                className="bg-muted/20 backdrop-blur-sm border-t border-l border-white/10 rounded-tl-lg rounded-br-lg px-4 py-2 text-[0.85rem] font-medium text-white hover:bg-muted/30 transition-colors cursor-pointer flex items-center gap-2"
               >
                 {currentPrimaryOffer.iconUrl ? (
                   <Image
@@ -344,6 +356,33 @@ export default function PersonHeroSection({
                 ) : null}
                 <span>Watch Now</span>
               </a>
+            </div>
+          )}
+
+          {slides.length > 1 && (
+            <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  carouselApi?.scrollPrev();
+                }}
+                className="h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 border border-white/15 text-white flex items-center justify-center transition-colors cursor-pointer"
+                aria-label="Previous slide"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  carouselApi?.scrollNext();
+                }}
+                className="h-8 w-8 rounded-full bg-black/60 hover:bg-black/80 border border-white/15 text-white flex items-center justify-center transition-colors cursor-pointer"
+                aria-label="Next slide"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
             </div>
           )}
         </Carousel>

@@ -312,7 +312,7 @@ export default function MyListContent() {
                       onClick={() =>
                         router.push(`/person/${createPersonSlug(personality.tmdbPersonId, personality.name)}`)
                       }
-                      className="group w-full text-left rounded-xl border bg-card p-3 hover:bg-accent/40 transition-colors cursor-pointer"
+                      className="group w-full text-left rounded-xl border p-3 hover:bg-accent/40 transition-colors cursor-pointer"
                     >
                       <div className="flex items-center gap-3">
                         <div className="relative h-12 w-12 rounded-full overflow-hidden bg-muted shrink-0">
@@ -334,7 +334,8 @@ export default function MyListContent() {
                             {personality.name}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {personality.movieCount} movies • {personality.tvCount} TV shows
+                            Known for {personality.knownForDepartment || "Unknown"} . Credits(
+                            {(personality.movieCount || 0) + (personality.tvCount || 0)})
                           </p>
                         </div>
                       </div>
@@ -635,7 +636,7 @@ export default function MyListContent() {
                   setIsPersonalitiesSheetOpen(false);
                   router.push(`/person/${createPersonSlug(personality.tmdbPersonId, personality.name)}`);
                 }}
-                className="group w-full text-left rounded-xl border bg-card p-3 hover:bg-accent/40 transition-colors cursor-pointer"
+                className="group w-full text-left rounded-xl border p-3 hover:bg-accent/40 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="relative h-12 w-12 rounded-full overflow-hidden bg-muted shrink-0">
@@ -657,7 +658,8 @@ export default function MyListContent() {
                       {personality.name}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {personality.movieCount} movies • {personality.tvCount} TV shows
+                      Known for {personality.knownForDepartment || "Unknown"} . Credits(
+                      {(personality.movieCount || 0) + (personality.tvCount || 0)})
                     </p>
                   </div>
                 </div>
