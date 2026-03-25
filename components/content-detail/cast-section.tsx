@@ -292,7 +292,7 @@ export default function CastSection({ cast, crew, isLoading, type = "movie" }: C
             >
               <CarouselContent className="-ml-2 md:-ml-4 gap-4">
                 {displayedCast.map((person) => (
-                  <CarouselItem key={person.id} className="pl-2 md:pl-4 basis-[140px] sm:basis-[160px]">
+                  <CarouselItem key={person.id} className="pl-2 pt-[5px] md:pl-4 basis-[140px] sm:basis-[160px]">
                     <div 
                       className="text-center group cursor-pointer"
                       onClick={() => router.push(`/person/${createPersonSlug(person.id, person.name)}`)}
