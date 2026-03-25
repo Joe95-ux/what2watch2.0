@@ -7,8 +7,7 @@ import { usePersonDetails, usePersonImages, usePersonMovieCredits, usePersonTVCr
 import { getPosterUrl, getImageUrl } from "@/lib/tmdb";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Calendar, MapPin, Link as LinkIcon, FileText, Image as ImageIcon, Sparkles, Clapperboard } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Link as LinkIcon } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import PersonBiography from "./person-biography";
 import PersonPhotos from "./person-photos";
@@ -16,6 +15,7 @@ import PersonKnownFor from "./person-known-for";
 import PersonPersonalInfo from "./person-personal-info";
 import PersonCreditsTable from "./person-credits-table";
 import PersonHeroSection from "./person-hero-section";
+import { cn } from "@/lib/utils";
 
 interface PersonDetailPageProps {
   personId: number;
@@ -157,84 +157,66 @@ export default function PersonDetailPage({ personId }: PersonDetailPageProps) {
 
       {/* Content Tabs */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="w-full">
+        <div className="w-full">
           <div className="overflow-x-auto scrollbar-hide mb-8 -mx-2 px-2">
-            <TabsList className="mb-0 min-w-fit flex gap-2">
-              <TabsTrigger
-                value="overview"
-                aria-label="Overview"
-                title="Overview"
-                className={
-                  activeTab === "overview"
-                    ? "h-10 w-10 rounded-full bg-muted text-foreground cursor-pointer flex items-center justify-center"
-                    : "h-10 w-10 rounded-full bg-background text-muted-foreground hover:bg-muted/50 cursor-pointer flex items-center justify-center"
-                }
-              >
-                <FileText className="h-4 w-4" />
-              </TabsTrigger>
-              <TabsTrigger
-                value="photos"
-                aria-label="Photos"
-                title="Photos"
-                className={
-                  activeTab === "photos"
-                    ? "h-10 w-10 rounded-full bg-muted text-foreground cursor-pointer flex items-center justify-center"
-                    : "h-10 w-10 rounded-full bg-background text-muted-foreground hover:bg-muted/50 cursor-pointer flex items-center justify-center"
-                }
-              >
-                <ImageIcon className="h-4 w-4" />
-              </TabsTrigger>
-              <TabsTrigger
-                value="known-for"
-                aria-label="Known For"
-                title="Known For"
-                className={
-                  activeTab === "known-for"
-                    ? "h-10 w-10 rounded-full bg-muted text-foreground cursor-pointer flex items-center justify-center"
-                    : "h-10 w-10 rounded-full bg-background text-muted-foreground hover:bg-muted/50 cursor-pointer flex items-center justify-center"
-                }
-              >
-                <Sparkles className="h-4 w-4" />
-              </TabsTrigger>
-              <TabsTrigger
-                value="credits"
-                aria-label="Credits"
-                title="Credits"
-                className={
-                  activeTab === "credits"
-                    ? "h-10 w-10 rounded-full bg-muted text-foreground cursor-pointer flex items-center justify-center"
-                    : "h-10 w-10 rounded-full bg-background text-muted-foreground hover:bg-muted/50 cursor-pointer flex items-center justify-center"
-                }
-              >
-                <Clapperboard className="h-4 w-4" />
-              </TabsTrigger>
-            </TabsList>
+            <div className="min-w-fit flex items-center gap-2">
+              {([
+                { id: "overview", label: "Overview" },
+                { id: "photos", label: "Photos" },
+                { id: "known-for", label: "Known For" },
+                { id: "credits", label: "Credits" },
+              ] as const).map((tab) => (
+                <Button
+                  key={tab.id}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "h-9 rounded-full px-4 cursor-pointer",
+                    activeTab === tab.id
+                      ? "bg-muted text-foreground border-border"
+                      : "bg-background text-muted-foreground hover:bg-muted/50",
+                  )}
+                >
+                  {tab.label}
+                </Button>
+              ))}
+            </div>
           </div>
 
-          <TabsContent value="overview" className="space-y-12">
+          {activeTab === "overview" && (
+            <div className="space-y-12">
             <PersonBiography biography={person.biography} />
             <PersonPersonalInfo person={person} />
-          </TabsContent>
+            </div>
+          )}
 
-          <TabsContent value="photos">
+          {activeTab === "photos" && (
+            <div>
             <PersonPhotos images={images?.profiles || []} personName={person.name} />
-          </TabsContent>
+            </div>
+          )}
 
-          <TabsContent value="known-for">
+          {activeTab === "known-for" && (
+            <div>
             <PersonKnownFor
               movieCredits={movieCredits}
               tvCredits={tvCredits}
               knownForDepartment={person.known_for_department}
             />
-          </TabsContent>
+            </div>
+          )}
 
-          <TabsContent value="credits">
+          {activeTab === "credits" && (
+            <div>
             <PersonCreditsTable
               movieCredits={movieCredits}
               tvCredits={tvCredits}
             />
-          </TabsContent>
-        </Tabs>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

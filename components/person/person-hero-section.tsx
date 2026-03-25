@@ -1,26 +1,18 @@
 "use client";
 
-import { useMemo, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { Play, Heart, Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import TrailerModal from "@/components/browse/trailer-modal";
 import { useContentVideos } from "@/hooks/use-content-details";
-import { createContentUrl } from "@/lib/content-slug";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
+import { Carousel, CarouselApi, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 
-import type { TMDBPerson, TMDBPersonMovieCredits, TMDBPersonTVCredits, TMDBPersonMovieCredit, TMDBPersonTVCredit, TMDBVideo } from "@/lib/tmdb";
-import { Badge } from "@/components/ui/badge";
+import type { TMDBPerson, TMDBPersonMovieCredits, TMDBPersonTVCredits, TMDBVideo } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
-
-type MediaType = "movie" | "tv";
-
-type TopRatedItem =
-  | (TMDBPersonMovieCredit & { type: "movie" })
-  | (TMDBPersonTVCredit & { type: "tv" });
 
 function formatReleaseDate(dateStr: string | null | undefined) {
   if (!dateStr) return null;
@@ -49,48 +41,62 @@ export default function PersonHeroSection({
   tvCredits: TMDBPersonTVCredits | null;
   onBack: () => void;
 }) {
-  const router = useRouter();
   const [isHearted, setIsHearted] = useState(false);
+  const [carouselApi, setCarouselApi] = useState<CarouselApi | null>(null);
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
 
-  const allMovies = useMemo(() => {
-    const cast = movieCredits?.cast ?? [];
-    const crew = movieCredits?.crew ?? [];
-    return [...cast, ...crew];
-  }, [movieCredits]);
+  const slides = useMemo(() => {
+    const movies =
+      [...(movieCredits?.cast ?? []), ...(movieCredits?.crew ?? [])].map((m) => ({
+        id: m.id,
+        type: "movie" as const,
+        title: m.title,
+        backdropPath: m.backdrop_path,
+        posterPath: m.poster_path,
+        date: m.release_date ?? null,
+        voteAverage: m.vote_average ?? 0,
+      }));
+    const tv =
+      [...(tvCredits?.cast ?? []), ...(tvCredits?.crew ?? [])].map((t) => ({
+        id: t.id,
+        type: "tv" as const,
+        title: t.name,
+        backdropPath: t.backdrop_path,
+        posterPath: t.poster_path,
+        date: t.first_air_date ?? null,
+        voteAverage: t.vote_average ?? 0,
+      }));
 
-  const allTV = useMemo(() => {
-    const cast = tvCredits?.cast ?? [];
-    const crew = tvCredits?.crew ?? [];
-    return [...cast, ...crew];
-  }, [tvCredits]);
+    const deduped = [...movies, ...tv].filter(
+      (item, index, arr) =>
+        arr.findIndex((x) => x.id === item.id && x.type === item.type) === index,
+    );
 
-  const latestMovie = useMemo(() => {
-    const list = allMovies
-      .filter((m) => !!m.release_date)
-      .sort((a, b) => new Date(b.release_date).getTime() - new Date(a.release_date).getTime());
-    return list[0] ?? null;
-  }, [allMovies]);
+    const latest = [...deduped]
+      .filter((x) => !!x.date)
+      .sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime())[0];
 
-  const topRatedItems = useMemo(() => {
-    const movies: TopRatedItem[] = allMovies
-      .filter((m) => !!m.poster_path)
-      .map((m) => ({ ...m, type: "movie" as const }));
-    const tv: TopRatedItem[] = allTV
-      .filter((s) => !!s.poster_path)
-      .map((s) => ({ ...s, type: "tv" as const }));
-
-    return [...movies, ...tv]
-      .sort((a, b) => (b.vote_average ?? 0) - (a.vote_average ?? 0))
+    const topRated = [...deduped]
+      .sort((a, b) => (b.voteAverage ?? 0) - (a.voteAverage ?? 0))
       .slice(0, 10);
-  }, [allMovies, allTV]);
 
-  // Latest movie trailer preview
-  const latestMovieId = latestMovie?.id ?? null;
+    const combined = latest
+      ? [latest, ...topRated.filter((x) => !(x.id === latest.id && x.type === latest.type))]
+      : topRated;
+
+    return combined;
+  }, [movieCredits, tvCredits]);
+
+  const currentSlide = slides[activeSlide] ?? slides[0] ?? null;
+  const currentSlideId = currentSlide?.id ?? null;
+  const currentSlideType = currentSlide?.type ?? "movie";
+
   const {
-    data: latestVideosData,
-    isLoading: latestVideosLoading,
-  } = useContentVideos("movie", latestMovieId, !!latestMovieId);
-  const latestTrailer = pickTrailer(latestVideosData);
+    data: currentVideosData,
+    isLoading: currentVideosLoading,
+  } = useContentVideos(currentSlideType, currentSlideId, !!currentSlideId);
+  const currentTrailer = pickTrailer(currentVideosData);
 
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [trailerVideo, setTrailerVideo] = useState<TMDBVideo | null>(null);
@@ -107,13 +113,35 @@ export default function PersonHeroSection({
     setIsTrailerOpen(true);
   };
 
+  useEffect(() => {
+    if (!carouselApi) return;
+    const onSelect = () => setActiveSlide(carouselApi.selectedScrollSnap());
+    onSelect();
+    carouselApi.on("select", onSelect);
+    return () => {
+      carouselApi.off("select", onSelect);
+    };
+  }, [carouselApi]);
+
+  useEffect(() => {
+    if (!carouselApi || isCarouselPaused || slides.length <= 1) return;
+    const id = setInterval(() => {
+      if (carouselApi.canScrollNext()) {
+        carouselApi.scrollNext();
+      } else {
+        carouselApi.scrollTo(0);
+      }
+    }, 4500);
+    return () => clearInterval(id);
+  }, [carouselApi, isCarouselPaused, slides.length]);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <Button variant="ghost" size="sm" onClick={onBack} className="mb-4 cursor-pointer">
         Back
       </Button>
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[260px_minmax(0,1fr)_200px]">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[260px_minmax(0,1fr)]">
         {/* Poster Column */}
         <div className="relative hidden lg:block rounded-lg bg-muted/20 overflow-hidden aspect-[2/3] border border-white/10">
           {profileImage ? (
@@ -133,10 +161,6 @@ export default function PersonHeroSection({
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
 
-          <div className="absolute bottom-4 left-4 right-4">
-            <h1 className="text-white font-semibold text-sm sm:text-base drop-shadow line-clamp-1">{person.name}</h1>
-          </div>
-
           {/* Heart - Top Left */}
           <button
             type="button"
@@ -154,34 +178,74 @@ export default function PersonHeroSection({
         </div>
 
         {/* Banner Column */}
-        <div className="relative rounded-lg rounded-tl-none lg:rounded-tl-lg bg-muted/20 overflow-hidden min-h-[260px] md:min-h-[400px] lg:min-h-[260px] border border-white/10">
-          {latestMovie?.backdrop_path ? (
-            <Image
-              src={getBackdropUrl(latestMovie.backdrop_path, "w1280")}
-              alt={`${latestMovie.title} backdrop`}
-              fill
-              className="object-cover"
-              priority
-              unoptimized
-            />
-          ) : (
-            <div className="absolute inset-0 bg-muted" />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
+        <Carousel
+          setApi={setCarouselApi}
+          opts={{ loop: slides.length > 1 }}
+          className="rounded-lg rounded-tl-none lg:rounded-tl-lg"
+          onMouseEnter={() => setIsCarouselPaused(true)}
+          onMouseLeave={() => setIsCarouselPaused(false)}
+        >
+          <CarouselContent className="ml-0">
+            {slides.length > 0 ? (
+              slides.map((slide, index) => (
+                <CarouselItem key={`${slide.type}-${slide.id}-${index}`} className="pl-0">
+                  <div className="relative rounded-lg rounded-tl-none lg:rounded-tl-lg bg-muted/20 overflow-hidden min-h-[260px] md:min-h-[400px] lg:min-h-[260px] border border-white/10">
+                    {slide.backdropPath ? (
+                      <Image
+                        src={getBackdropUrl(slide.backdropPath, "w1280")}
+                        alt={`${slide.title} backdrop`}
+                        fill
+                        className="object-cover"
+                        priority={index === 0}
+                        unoptimized
+                      />
+                    ) : slide.posterPath ? (
+                      <Image
+                        src={getPosterUrl(slide.posterPath, "w500")}
+                        alt={slide.title}
+                        fill
+                        className="object-cover"
+                        priority={index === 0}
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-muted" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
 
-          <div className="absolute top-4 left-4 right-4">
-            <h2 className="text-white text-sm sm:text-lg font-semibold drop-shadow">
-              {latestMovie?.title ?? person.name}
-            </h2>
-          </div>
+                    <div className="absolute top-4 left-4 right-4">
+                      <h1 className="text-[1.3rem] sm:text-3xl font-semibold text-white drop-shadow">
+                        {person.name}
+                      </h1>
+                      <p className="text-white/80 text-xs sm:text-sm mt-1">
+                        {slide.title}
+                      </p>
+                    </div>
+                  </div>
+                </CarouselItem>
+              ))
+            ) : (
+              <CarouselItem className="pl-0">
+                <div className="relative rounded-lg rounded-tl-none lg:rounded-tl-lg bg-muted/20 overflow-hidden min-h-[260px] md:min-h-[400px] lg:min-h-[260px] border border-white/10">
+                  <div className="absolute inset-0 bg-muted" />
+                </div>
+              </CarouselItem>
+            )}
+          </CarouselContent>
 
-          <div className="absolute bottom-6 left-6 right-6">
+          <div className="absolute bottom-6 left-6 right-6 z-10">
             <div className="flex items-center gap-4">
               <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
                 <button
                   type="button"
-                  disabled={!latestTrailer || latestVideosLoading}
-                  onClick={() => openTrailer(latestMovie?.title ?? person.name, latestTrailer, latestVideosData?.results ?? [])}
+                  disabled={!currentTrailer || currentVideosLoading}
+                  onClick={() =>
+                    openTrailer(
+                      currentSlide?.title ?? person.name,
+                      currentTrailer,
+                      currentVideosData?.results ?? [],
+                    )
+                  }
                   className="flex items-center justify-center h-16 w-16 rounded-full border-2 border-white/60 bg-white/10 backdrop-blur hover:bg-white/20 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                   aria-label="Play trailer"
                 >
@@ -190,38 +254,17 @@ export default function PersonHeroSection({
 
                 <div className="flex flex-col gap-1">
                   <p className="text-white font-semibold text-lg">Play Trailer</p>
-                  {latestMovie?.release_date && (
+                  {currentSlide?.date && (
                     <p className="text-white/80 text-sm">
-                      {formatReleaseDate(latestMovie.release_date)}
+                      {formatReleaseDate(currentSlide.date)}
                     </p>
                   )}
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </Carousel>
 
-        {/* Top Rated Column */}
-        <div className="hidden lg:block">
-          <div className="rounded-lg bg-muted/20 border border-white/10 p-3">
-            <h2 className="text-sm font-semibold mb-2">Top Rated</h2>
-            <div className="overflow-y-auto scrollbar-hide max-h-[520px] space-y-2 pr-1">
-              {topRatedItems.map((item) => (
-                <TopRatedMediaCard
-                  key={`${item.type}-${item.id}`}
-                  item={item}
-                  onOpenTrailer={(payload) => {
-                    openTrailer(payload.title, payload.video, payload.videos);
-                  }}
-                  onNavigate={() => {
-                    const title = item.type === "movie" ? item.title : item.name;
-                    router.push(createContentUrl(item.type, item.id, title));
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
       </div>
 
       <TrailerModal
@@ -232,90 +275,6 @@ export default function PersonHeroSection({
         title={trailerTitle}
         initialVideoId={initialVideoId}
       />
-    </div>
-  );
-}
-
-function TopRatedMediaCard({
-  item,
-  onOpenTrailer,
-  onNavigate,
-}: {
-  item: TopRatedItem;
-  onOpenTrailer: (payload: { title: string; video: TMDBVideo | null; videos: TMDBVideo[] }) => void;
-  onNavigate: () => void;
-}) {
-  const { data: videosData } = useContentVideos(item.type, item.id, true);
-  const trailer = pickTrailer(videosData);
-
-  const title = item.type === "movie" ? item.title : item.name;
-  const releaseDate = item.type === "movie" ? item.release_date ?? null : item.first_air_date ?? null;
-  const releaseDateFormatted = formatReleaseDate(releaseDate);
-
-  return (
-    <div
-      className={cn(
-        "flex items-start gap-3 rounded-lg border border-border bg-card/80 hover:bg-card transition cursor-pointer p-2.5",
-      )}
-      onClick={onNavigate}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") onNavigate();
-      }}
-    >
-      <div className="relative w-14 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-white/10">
-        {item.poster_path ? (
-          <Image
-            src={getPosterUrl(item.poster_path, "w500")}
-            alt={title}
-            fill
-            className="object-cover"
-            sizes="56px"
-            unoptimized
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-[10px]">
-            No Image
-          </div>
-        )}
-      </div>
-
-      <div className="flex-1 min-w-0 py-0.5">
-        <p className="text-[13px] font-semibold truncate" title={title}>
-          {title}
-        </p>
-        <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-1">
-          <span>{releaseDateFormatted ?? "—"}</span>
-          <span>•</span>
-          <Badge variant="secondary" className="h-5 px-2 py-0 text-[10px]">
-            {item.type === "movie" ? "Movie" : "TV"}
-          </Badge>
-        </div>
-
-        <div className="mt-2">
-          <button
-            type="button"
-            onClick={(e: MouseEvent) => {
-              e.stopPropagation();
-              if (!trailer) return;
-              onOpenTrailer({
-                title,
-                video: trailer,
-                videos: videosData?.results ?? [],
-              });
-            }}
-            disabled={!trailer}
-            className="inline-flex items-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-            aria-label={`Play trailer for ${title}`}
-          >
-            <span className="flex items-center justify-center h-9 w-9 rounded-full bg-black/70 hover:bg-black/80 border border-white/20 transition">
-              <Play className="h-4 w-4 text-white fill-white" />
-            </span>
-            <span className="text-[12px] font-medium text-foreground">Play Trailer</span>
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
