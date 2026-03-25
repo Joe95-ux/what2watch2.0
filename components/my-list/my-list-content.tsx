@@ -293,7 +293,7 @@ export default function MyListContent() {
             <Carousel
               opts={{
                 align: "start",
-                slidesToScroll: 2,
+                slidesToScroll: 1,
                 breakpoints: {
                   "(max-width: 640px)": { slidesToScroll: 1 },
                   "(max-width: 1024px)": { slidesToScroll: 2 },
@@ -303,45 +303,53 @@ export default function MyListContent() {
               className="w-full"
             >
               <CarouselContent className="-ml-2 md:-ml-4 gap-4">
-                {favoritePersonalities.map((personality) => (
-                  <CarouselItem
-                    key={personality.id}
-                    className="pl-2 md:pl-4 basis-[260px] sm:basis-[320px] md:basis-[360px]"
-                  >
-                    <button
-                      onClick={() =>
-                        router.push(`/person/${createPersonSlug(personality.tmdbPersonId, personality.name)}`)
-                      }
-                      className="group w-full text-left rounded-xl border p-3 hover:bg-accent/40 transition-colors cursor-pointer"
+                {Array.from({ length: Math.ceil(favoritePersonalities.length / 2) }).map((_, pairIndex) => {
+                  const pair = favoritePersonalities.slice(pairIndex * 2, pairIndex * 2 + 2);
+                  return (
+                    <CarouselItem
+                      key={`pair-${pairIndex}`}
+                      className="pl-2 md:pl-4 basis-[260px] sm:basis-[320px] md:basis-[360px]"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="relative h-12 w-12 rounded-full overflow-hidden bg-muted shrink-0">
-                          {personality.profilePath ? (
-                            <Image
-                              src={getPosterUrl(personality.profilePath, "w200")}
-                              alt={personality.name}
-                              fill
-                              className="object-cover"
-                              sizes="48px"
-                              unoptimized
-                            />
-                          ) : (
-                            <div className="absolute inset-0 bg-muted" />
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-medium text-sm line-clamp-1 group-hover:text-primary transition-colors">
-                            {personality.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Known for {personality.knownForDepartment || "Unknown"} . Credits(
-                            {(personality.movieCount || 0) + (personality.tvCount || 0)})
-                          </p>
-                        </div>
+                      <div className="flex flex-col gap-4">
+                        {pair.map((personality) => (
+                          <button
+                            key={personality.id}
+                            onClick={() =>
+                              router.push(`/person/${createPersonSlug(personality.tmdbPersonId, personality.name)}`)
+                            }
+                            className="group w-full text-left rounded-xl border p-3 hover:bg-accent/40 transition-colors cursor-pointer"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="relative h-12 w-12 rounded-full overflow-hidden bg-muted shrink-0">
+                                {personality.profilePath ? (
+                                  <Image
+                                    src={getPosterUrl(personality.profilePath, "w200")}
+                                    alt={personality.name}
+                                    fill
+                                    className="object-cover"
+                                    sizes="48px"
+                                    unoptimized
+                                  />
+                                ) : (
+                                  <div className="absolute inset-0 bg-muted" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-medium text-sm line-clamp-1 group-hover:text-primary transition-colors">
+                                  {personality.name}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Known for {personality.knownForDepartment || "Unknown"} . Credits(
+                                  {(personality.movieCount || 0) + (personality.tvCount || 0)})
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
                       </div>
-                    </button>
-                  </CarouselItem>
-                ))}
+                    </CarouselItem>
+                  );
+                })}
               </CarouselContent>
               <CarouselPrevious
                 className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"

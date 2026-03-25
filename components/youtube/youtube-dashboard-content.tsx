@@ -99,7 +99,7 @@ function FavoriteChannelCard({ favorite }: { favorite: FavoriteChannel }) {
   return (
     <button
       onClick={() => router.push(getChannelProfilePath(favorite.channelId, favorite.slug))}
-      className="group rounded-2xl border border-border/60 p-4 text-left transition-colors hover:border-primary cursor-pointer"
+      className="group w-full rounded-2xl border border-border/60 p-4 text-left transition-colors hover:border-primary cursor-pointer"
     >
       <div className="flex items-center gap-3">
         <div className="relative h-14 w-14 rounded-full overflow-hidden bg-muted flex-shrink-0">
@@ -519,7 +519,7 @@ export default function YouTubeDashboardContent() {
             <SheetTitle>Favorite Channels</SheetTitle>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+          <div className="flex overflow-y-auto px-6 py-4 flex-col gap-1.5 scrollbar-thin">
             {favoriteChannels.map((favorite) => (
               <FavoriteChannelCard key={favorite.id} favorite={favorite} />
             ))}
