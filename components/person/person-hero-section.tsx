@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Play, Heart, ArrowLeft, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Play, Heart, ArrowLeft, ChevronLeft, ChevronRight, Loader2, Link as LinkIcon } from "lucide-react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
 
@@ -31,6 +31,40 @@ function formatReleaseDate(dateStr: string | null | undefined) {
 function pickTrailer(videosData: { results: TMDBVideo[] } | null | undefined) {
   const results = videosData?.results ?? [];
   return results.find((v) => v.site === "YouTube" && v.type === "Trailer") ?? results.find((v) => v.site === "YouTube") ?? null;
+}
+
+function formatPersonDate(dateStr: string | null | undefined) {
+  if (!dateStr) return null;
+  try {
+    return format(new Date(dateStr), "MMM d, yyyy");
+  } catch {
+    return null;
+  }
+}
+
+function getGenderLabel(gender: number | null | undefined) {
+  switch (gender) {
+    case 1:
+      return "Female";
+    case 2:
+      return "Male";
+    case 3:
+      return "Non-binary";
+    default:
+      return "Not specified";
+  }
+}
+
+function getPersonAge(birthday: string | null | undefined, deathday: string | null | undefined) {
+  if (!birthday) return null;
+  const birth = new Date(birthday);
+  const end = deathday ? new Date(deathday) : new Date();
+  let age = end.getFullYear() - birth.getFullYear();
+  const monthDiff = end.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && end.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
 }
 
 export default function PersonHeroSection({
@@ -228,6 +262,29 @@ export default function PersonHeroSection({
   const [trailerVideos, setTrailerVideos] = useState<TMDBVideo[]>([]);
   const [trailerTitle, setTrailerTitle] = useState<string>("");
   const [initialVideoId, setInitialVideoId] = useState<string | null>(null);
+  const birthdayFormatted = formatPersonDate(person.birthday);
+  const deathdayFormatted = formatPersonDate(person.deathday);
+  const age = getPersonAge(person.birthday, person.deathday);
+  const personalInfoRows = [
+    { key: "Known For", value: person.known_for_department || null },
+    { key: "Gender", value: getGenderLabel(person.gender) },
+    { key: "Birthday", value: birthdayFormatted },
+    { key: "Place of Birth", value: person.place_of_birth || null },
+    { key: "Age", value: age !== null ? `${age} years${person.deathday ? " (at death)" : ""}` : null },
+    { key: "Deathday", value: deathdayFormatted },
+    {
+      key: "Homepage",
+      value: person.homepage || null,
+      isLink: true,
+      displayValue: "Visit Website",
+    },
+    {
+      key: "IMDb",
+      value: person.imdb_id ? `https://www.imdb.com/name/${person.imdb_id}` : null,
+      isLink: true,
+      displayValue: "View on IMDb",
+    },
+  ].filter((row) => row.value);
 
   const openTrailer = (title: string, video: TMDBVideo | null, videos: TMDBVideo[]) => {
     if (!video) return;
@@ -293,7 +350,7 @@ export default function PersonHeroSection({
         {person.name}
       </h1>
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[260px_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[260px_minmax(0,1fr)_300px]">
         {/* Poster Column */}
         <div className="relative hidden lg:block rounded-lg bg-muted/20 overflow-hidden lg:h-[414px] border border-white/10">
           {profileImage ? (
@@ -480,6 +537,32 @@ export default function PersonHeroSection({
           )}
         </Carousel>
 
+        {/* Personal Info Column (Desktop Only) */}
+        <div className="hidden lg:flex lg:flex-col rounded-lg border border-white/10 bg-muted/20 overflow-hidden lg:h-[414px]">
+          <div className="px-4 py-3 border-b border-white/10">
+            <p className="text-white font-semibold">Personal Info</p>
+          </div>
+          <div className="flex-1 overflow-y-auto divide-y divide-white/10">
+            {personalInfoRows.map((row) => (
+              <div key={row.key} className="px-4 py-3 flex flex-col gap-1">
+                <p className="text-[11px] uppercase tracking-wide text-white/70">{row.key}</p>
+                {row.isLink ? (
+                  <a
+                    href={row.value as string}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-white hover:text-white/80 transition-colors cursor-pointer inline-flex items-center gap-1"
+                  >
+                    <LinkIcon className="h-3.5 w-3.5" />
+                    {row.displayValue}
+                  </a>
+                ) : (
+                  <p className="text-sm text-white/95">{row.value}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <TrailerModal
