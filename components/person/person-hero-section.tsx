@@ -492,15 +492,16 @@ export default function PersonHeroSection({
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
+                title={`Watch on ${currentPrimaryOffer.providerName}`}
                 className="bg-muted/20 backdrop-blur-sm border-t border-l border-white/10 rounded-tl-lg rounded-br-lg px-4 py-2 text-[0.85rem] font-medium text-white hover:bg-muted/30 transition-colors cursor-pointer flex items-center gap-2"
               >
                 {currentPrimaryOffer.iconUrl ? (
                   <Image
                     src={currentPrimaryOffer.iconUrl}
                     alt={currentPrimaryOffer.providerName}
-                    width={18}
-                    height={18}
-                    className="object-contain rounded-sm"
+                    width={22}
+                    height={22}
+                    className="object-contain rounded-[5px]"
                     unoptimized
                   />
                 ) : null}
@@ -538,26 +539,26 @@ export default function PersonHeroSection({
         </Carousel>
 
         {/* Personal Info Column (Desktop Only) */}
-        <div className="hidden lg:flex lg:flex-col rounded-lg border border-white/10 bg-muted/20 overflow-hidden lg:h-[414px]">
-          <div className="px-4 py-3 border-b border-white/10">
-            <p className="text-white font-semibold">Personal Info</p>
+        <div className="hidden lg:flex lg:flex-col rounded-lg border border-border/60 bg-card/80 overflow-hidden lg:h-[414px]">
+          <div className="px-4 py-3 border-b border-border/60">
+            <p className="text-foreground font-semibold">Personal Info</p>
           </div>
-          <div className="flex-1 overflow-y-auto divide-y divide-white/10">
+          <div className="flex-1 overflow-y-auto scrollbar-thin divide-y divide-border/60">
             {personalInfoRows.map((row) => (
               <div key={row.key} className="px-4 py-3 flex flex-col gap-1">
-                <p className="text-[11px] uppercase tracking-wide text-white/70">{row.key}</p>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{row.key}</p>
                 {row.isLink ? (
                   <a
                     href={row.value as string}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-white hover:text-white/80 transition-colors cursor-pointer inline-flex items-center gap-1"
+                    className="text-sm text-foreground hover:text-foreground/80 transition-colors cursor-pointer inline-flex items-center gap-1"
                   >
                     <LinkIcon className="h-3.5 w-3.5" />
                     {row.displayValue}
                   </a>
                 ) : (
-                  <p className="text-sm text-white/95">{row.value}</p>
+                  <p className="text-sm text-foreground">{row.value}</p>
                 )}
               </div>
             ))}
