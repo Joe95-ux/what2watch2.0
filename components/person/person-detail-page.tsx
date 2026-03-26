@@ -35,9 +35,56 @@ export default function PersonDetailPage({ personId }: PersonDetailPageProps) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <Skeleton className="h-96 w-full mb-8" />
-          <Skeleton className="h-64 w-full" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {/* Back + title */}
+          <div className="mb-4 flex items-center gap-3">
+            <Skeleton className="h-9 w-20 rounded-md" />
+          </div>
+          <Skeleton className="h-9 w-64 mb-4" />
+
+          {/* Hero skeleton */}
+          {isMobile ? (
+            <div className="flex flex-col md:flex-row gap-8 mb-10">
+              <Skeleton className="w-64 h-96 rounded-lg" />
+              <div className="flex-1 space-y-4">
+                <Skeleton className="h-10 w-72" />
+                <Skeleton className="h-6 w-48" />
+                <div className="flex flex-wrap gap-4">
+                  <Skeleton className="h-5 w-44" />
+                  <Skeleton className="h-5 w-56" />
+                  <Skeleton className="h-5 w-32" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-[260px_minmax(0,1fr)_300px] mb-10">
+              <Skeleton className="hidden lg:block h-[414px] rounded-lg" />
+              <Skeleton className="h-[414px] rounded-lg" />
+              <Skeleton className="hidden lg:block h-[414px] rounded-lg" />
+            </div>
+          )}
+
+          {/* Tabs skeleton */}
+          <div className="flex items-center gap-2 mb-8">
+            <Skeleton className="h-9 w-24 rounded-full" />
+            <Skeleton className="h-9 w-20 rounded-full" />
+            <Skeleton className="h-9 w-24 rounded-full" />
+            <Skeleton className="h-9 w-20 rounded-full" />
+          </div>
+
+          {/* Overview content skeleton */}
+          <div className="space-y-10">
+            <div className="space-y-3">
+              <Skeleton className="h-7 w-44" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-11/12" />
+            </div>
+            <div className="space-y-3">
+              <Skeleton className="h-7 w-56" />
+              <Skeleton className="h-40 w-full rounded-lg" />
+            </div>
+          </div>
         </div>
       </div>
     );

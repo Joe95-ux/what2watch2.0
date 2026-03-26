@@ -64,10 +64,10 @@ export default function PersonPersonalInfo({ person }: PersonPersonalInfoProps) 
   return (
     <section>
       <h2 className="text-2xl font-bold mb-6">Personal Information</h2>
-      <div className="border border-border rounded-lg divide-y divide-border">
+      <div className="rounded-lg border border-border bg-card shadow-sm divide-y divide-border">
         {infoItems.map((item, index) => (
           <div key={index} className="flex items-start justify-between gap-4 px-4 py-3">
-            <span className="text-sm text-muted-foreground font-medium">{item.label}</span>
+            <span className="text-sm text-foreground/80 font-medium">{item.label}</span>
             {item.isLink ? (
               <a
                 href={item.value as string}

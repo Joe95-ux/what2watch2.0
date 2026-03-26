@@ -539,11 +539,11 @@ export default function PersonHeroSection({
         </Carousel>
 
         {/* Personal Info Column (Desktop Only) */}
-        <div className="hidden lg:flex lg:flex-col rounded-lg border border-border/60 bg-card/80 overflow-hidden lg:h-[414px]">
-          <div className="px-4 py-3 border-b border-border/60">
+        <div className="hidden lg:flex lg:flex-col rounded-lg border border-border bg-card shadow-sm overflow-hidden lg:h-[414px]">
+          <div className="px-4 py-3 border-b border-border">
             <p className="text-foreground font-semibold">Personal Info</p>
           </div>
-          <div className="flex-1 overflow-y-auto scrollbar-thin divide-y divide-border/60">
+          <div className="flex-1 overflow-y-auto scrollbar-thin divide-y divide-border">
             {personalInfoRows.map((row) => (
               <div key={row.key} className="px-4 py-3 flex flex-col gap-1">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{row.key}</p>
