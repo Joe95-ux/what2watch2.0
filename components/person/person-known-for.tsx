@@ -259,13 +259,12 @@ export default function PersonKnownFor({
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
                   className={cn(
-                    "gap-1",
+                    "gap-0 px-2",
                     isMobile && "px-2",
                     currentPage === 1 ? "cursor-not-allowed" : "cursor-pointer",
                   )}
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  {!isMobile && "Previous"}
                 </Button>
               </PaginationItem>
               
@@ -337,7 +336,7 @@ export default function PersonKnownFor({
                           handlePageChange(page);
                         }}
                         isActive={currentPage === page}
-                        className="cursor-pointer px-2 rounded-sm"
+                            className="cursor-pointer px-2 rounded-sm"
                       >
                         {page}
                       </PaginationLink>
@@ -353,12 +352,11 @@ export default function PersonKnownFor({
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
                   className={cn(
-                    "gap-1",
+                    "gap-0 px-2",
                     isMobile && "px-2",
                     currentPage === totalPages ? "cursor-not-allowed" : "cursor-pointer",
                   )}
                 >
-                  {!isMobile && "Next"}
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </PaginationItem>

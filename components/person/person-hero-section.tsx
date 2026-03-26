@@ -55,47 +55,138 @@ export default function PersonHeroSection({
   const favoritePersonality = useToggleFavoritePersonality();
   const isHearted = favoritePersonality.isFavorite(person.id);
 
-  const slides = useMemo(() => {
-    const movies =
-      [...(movieCredits?.cast ?? []), ...(movieCredits?.crew ?? [])].map((m) => ({
-        id: m.id,
-        type: "movie" as const,
-        title: m.title,
-        backdropPath: m.backdrop_path,
-        posterPath: m.poster_path,
-        date: m.release_date ?? null,
-        voteAverage: m.vote_average ?? 0,
-      }));
-    const tv =
-      [...(tvCredits?.cast ?? []), ...(tvCredits?.crew ?? [])].map((t) => ({
-        id: t.id,
-        type: "tv" as const,
-        title: t.name,
-        backdropPath: t.backdrop_path,
-        posterPath: t.poster_path,
-        date: t.first_air_date ?? null,
-        voteAverage: t.vote_average ?? 0,
-      }));
+  type Slide = {
+    id: number;
+    type: "movie" | "tv";
+    title: string;
+    backdropPath: string | null;
+    posterPath: string | null;
+    date: string | null;
+    voteAverage: number;
+    imdbRating?: number;
+    imdbVotes?: number;
+    imdbSource?: "imdb" | "tmdb";
+  };
 
-    const deduped = [...movies, ...tv].filter(
+  const dedupedSlides = useMemo(() => {
+    const movies: Slide[] = [
+      ...(movieCredits?.cast ?? []),
+      ...(movieCredits?.crew ?? []),
+    ].map((m) => ({
+      id: m.id,
+      type: "movie",
+      title: m.title,
+      backdropPath: m.backdrop_path,
+      posterPath: m.poster_path,
+      date: m.release_date ?? null,
+      voteAverage: m.vote_average ?? 0,
+    }));
+
+    const tv: Slide[] = [
+      ...(tvCredits?.cast ?? []),
+      ...(tvCredits?.crew ?? []),
+    ].map((t) => ({
+      id: t.id,
+      type: "tv",
+      title: t.name,
+      backdropPath: t.backdrop_path,
+      posterPath: t.poster_path,
+      date: t.first_air_date ?? null,
+      voteAverage: t.vote_average ?? 0,
+    }));
+
+    return [...movies, ...tv].filter(
       (item, index, arr) =>
         arr.findIndex((x) => x.id === item.id && x.type === item.type) === index,
     );
+  }, [movieCredits, tvCredits]);
 
-    const latest = [...deduped]
+  const latestSlide = useMemo(() => {
+    return [...dedupedSlides]
       .filter((x) => !!x.date)
       .sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime())[0];
+  }, [dedupedSlides]);
 
-    const topRated = [...deduped]
+  const topRatedCandidates = useMemo(() => {
+    // First shortlist by TMDB rating (cheap), then refine using IMDb.
+    return [...dedupedSlides]
       .sort((a, b) => (b.voteAverage ?? 0) - (a.voteAverage ?? 0))
-      .slice(0, 10);
+      .slice(0, 25);
+  }, [dedupedSlides]);
 
-    const combined = latest
-      ? [latest, ...topRated.filter((x) => !(x.id === latest.id && x.type === latest.type))]
-      : topRated;
+  const [topRatedByImdb, setTopRatedByImdb] = useState<Slide[]>([]);
 
-    return combined;
-  }, [movieCredits, tvCredits]);
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function run() {
+      setTopRatedByImdb([]);
+
+      // Fetch IMDb ratings for a limited candidate set to avoid too many requests.
+      const candidates = topRatedCandidates.slice(0, 20);
+
+      const qualified: Slide[] = [];
+      await Promise.all(
+        candidates.map(async (candidate) => {
+          try {
+            const res = await fetch(
+              `/api/imdb-rating-by-tmdb?tmdbId=${candidate.id}&type=${candidate.type}`,
+            );
+            if (!res.ok) return;
+            const data = await res.json();
+
+            const source = data?.source as "imdb" | "tmdb" | undefined;
+            const rating = typeof data?.rating === "number" ? data.rating : null;
+            const votes = typeof data?.votes === "number" ? data.votes : null;
+
+            // Only trust IMDb (source===imdb) and require at least 1k votes.
+            if (source === "imdb" && rating !== null && votes !== null && votes >= 1000) {
+              qualified.push({
+                ...candidate,
+                imdbRating: rating,
+                imdbVotes: votes,
+                imdbSource: source,
+              });
+            }
+          } catch {
+            // Ignore individual failures; we still might have enough qualified results.
+          }
+        }),
+      );
+
+      if (isCancelled) return;
+
+      qualified.sort((a, b) => (b.imdbRating ?? 0) - (a.imdbRating ?? 0));
+      setTopRatedByImdb(qualified.slice(0, 10));
+    }
+
+    run();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [topRatedCandidates]);
+
+  const slides = useMemo(() => {
+    const topRated =
+      topRatedByImdb.length > 0 ? topRatedByImdb : topRatedCandidates.slice(0, 10);
+
+    if (!latestSlide) return topRated;
+
+    return [
+      latestSlide,
+      ...topRated.filter(
+        (x) => !(x.id === latestSlide.id && x.type === latestSlide.type),
+      ),
+    ];
+  }, [latestSlide, topRatedCandidates, topRatedByImdb]);
+
+  useEffect(() => {
+    // If we refined top-rated results, keep the carousel stable by returning to the first slide.
+    if (topRatedByImdb.length === 0) return;
+    setActiveSlide(0);
+    carouselApi?.scrollTo(0);
+  }, [topRatedByImdb, carouselApi]);
 
   const movieCount = useMemo(() => {
     const ids = new Set(

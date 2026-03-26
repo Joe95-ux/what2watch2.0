@@ -336,10 +336,13 @@ export default function PersonCreditsTable({
                   size="sm"
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className={currentPage === 1 ? "gap-1 cursor-not-allowed" : "gap-1 cursor-pointer"}
+                  className={
+                    currentPage === 1
+                      ? "gap-0 px-2 cursor-not-allowed"
+                      : "gap-0 px-2 cursor-pointer"
+                  }
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  Previous
                 </Button>
               </PaginationItem>
               
@@ -396,7 +399,7 @@ export default function PersonCreditsTable({
                           handlePageChange(page);
                         }}
                         isActive={currentPage === page}
-                        className="cursor-pointer"
+                        className="cursor-pointer px-2 rounded-sm"
                       >
                         {page}
                       </PaginationLink>
@@ -411,9 +414,12 @@ export default function PersonCreditsTable({
                   size="sm"
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className={currentPage === totalPages ? "gap-1 cursor-not-allowed" : "gap-1 cursor-pointer"}
+                  className={
+                    currentPage === totalPages
+                      ? "gap-0 px-2 cursor-not-allowed"
+                      : "gap-0 px-2 cursor-pointer"
+                  }
                 >
-                  Next
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </PaginationItem>
