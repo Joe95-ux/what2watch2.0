@@ -2,12 +2,28 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 
+const EDITORIAL_TAG = "__editorial__";
+
+function mapListForClient<T extends { tags?: string[] }>(list: T) {
+  const tags = list.tags ?? [];
+  const isEditorial = tags.includes(EDITORIAL_TAG);
+  return {
+    ...list,
+    tags: tags.filter((tag) => tag !== EDITORIAL_TAG),
+    isEditorial,
+  };
+}
+
 // GET - Fetch public lists (no authentication required)
 export async function GET(request: NextRequest): Promise<NextResponse<{ lists: unknown[]; currentUserId?: string } | { error: string }>> {
   try {
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get("limit");
     const limitNum = limit ? parseInt(limit, 10) : 20;
+    const editorialOnly = searchParams.get("editorialOnly") === "true";
+    const relatedTmdbId = searchParams.get("tmdbId");
+    const relatedMediaType = searchParams.get("mediaType");
+    const relatedTmdbIdNum = relatedTmdbId ? parseInt(relatedTmdbId, 10) : null;
 
     // Get current user if authenticated (for ownership checks)
     const { userId: clerkUserId } = await auth();
@@ -22,13 +38,34 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
 
     // Fetch public lists, ordered by most recently updated
     // Only include lists that have at least one item
-    const lists = await db.list.findMany({
-      where: {
-        visibility: "PUBLIC",
-        items: {
-          some: {}, // At least one item
-        },
+    const where: any = {
+      visibility: "PUBLIC",
+      items: {
+        some: {}, // At least one item
       },
+    };
+
+    if (editorialOnly) {
+      where.tags = { has: EDITORIAL_TAG };
+    } else {
+      where.tags = { hasNone: [EDITORIAL_TAG] };
+    }
+
+    if (
+      relatedTmdbIdNum &&
+      !Number.isNaN(relatedTmdbIdNum) &&
+      (relatedMediaType === "movie" || relatedMediaType === "tv")
+    ) {
+      where.items = {
+        some: {
+          tmdbId: relatedTmdbIdNum,
+          mediaType: relatedMediaType,
+        },
+      };
+    }
+
+    const lists = await db.list.findMany({
+      where,
       include: {
         user: {
           select: {
@@ -53,13 +90,18 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
             comments: true,
           },
         },
+        likedBy: {
+          select: {
+            id: true,
+          },
+        },
       },
       orderBy: { updatedAt: "desc" },
       take: limitNum,
     });
 
     return NextResponse.json(
-      { lists, currentUserId },
+      { lists: lists.map(mapListForClient), currentUserId },
       {
         headers: {
           'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',

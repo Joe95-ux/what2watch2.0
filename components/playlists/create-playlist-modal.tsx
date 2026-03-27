@@ -95,7 +95,7 @@ export default function CreatePlaylistModal({ isOpen, onClose, playlist, initial
           tmdbData: film,
         };
         setItems([newItem]);
-        setStep(2); // Go directly to step 2 since item is already added
+        setStep(1);
       } else {
         setItems([]);
         setStep(1);

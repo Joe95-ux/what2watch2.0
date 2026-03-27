@@ -2,6 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 
+const EDITORIAL_TAG = "__editorial__";
+
+function hasEditorialPrivileges(user: {
+  role?: string | null;
+  isForumAdmin?: boolean | null;
+}) {
+  const role = (user.role ?? "").toUpperCase();
+  return role === "ADMIN" || role === "SUPER_ADMIN" || role === "EDITOR" || user.isForumAdmin === true;
+}
+
+function mapListForClient<T extends { tags?: string[] }>(list: T) {
+  const tags = list.tags ?? [];
+  const isEditorial = tags.includes(EDITORIAL_TAG);
+  return {
+    ...list,
+    tags: tags.filter((tag) => tag !== EDITORIAL_TAG),
+    isEditorial,
+  };
+}
+
 // GET - Fetch user's lists
 export async function GET(request: NextRequest): Promise<NextResponse<{ lists: unknown[] } | { error: string }>> {
   try {
@@ -62,7 +82,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
       orderBy: { updatedAt: "desc" },
     });
 
-    return NextResponse.json({ lists });
+    return NextResponse.json({ lists: lists.map(mapListForClient) });
   } catch (error) {
     console.error("Lists API error:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to fetch lists";
@@ -84,7 +104,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
 
     const user = await db.user.findUnique({
       where: { clerkId: clerkUserId },
-      select: { id: true },
+      select: {
+        id: true,
+        role: true,
+        isForumAdmin: true,
+      },
     });
 
     if (!user) {
@@ -92,7 +116,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
     }
 
     const body = await request.json();
-    const { name, description, visibility, tags, items } = body;
+    const { name, description, visibility, tags, items, isEditorial } = body;
 
     if (!name || !name.trim()) {
       return NextResponse.json(
@@ -109,6 +133,18 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
       } else if (Array.isArray(tags)) {
         tagsArray = tags.filter(tag => typeof tag === "string" && tag.trim().length > 0);
       }
+    }
+
+    if (isEditorial === true && !hasEditorialPrivileges(user)) {
+      return NextResponse.json({ error: "Forbidden: Editorial privileges required" }, { status: 403 });
+    }
+
+    if (isEditorial === true) {
+      if (!tagsArray.includes(EDITORIAL_TAG)) {
+        tagsArray.push(EDITORIAL_TAG);
+      }
+    } else {
+      tagsArray = tagsArray.filter((tag) => tag !== EDITORIAL_TAG);
     }
 
     // Create list with items in a transaction
@@ -171,7 +207,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
       console.error("Failed to create activity:", error);
     }
 
-    return NextResponse.json({ success: true, list });
+    return NextResponse.json({ success: true, list: mapListForClient(list) });
   } catch (error) {
     console.error("Create list API error:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to create list";

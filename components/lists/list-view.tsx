@@ -691,32 +691,42 @@ export default function ListView({
             <div className="flex-1">
               {list.user && (
                 <div className="flex items-center gap-3 mb-4">
-                  <Link href={`/users/${list.user.username || list.user.id}`}>
-                    <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 ring-primary transition-all">
-                      <AvatarImage
-                        src={
-                          currentUser?.id === list.user.id && contextAvatarUrl
-                            ? contextAvatarUrl
-                            : list.user.avatarUrl || undefined
-                        }
-                        alt={list.user.username || list.user.displayName || "User"}
-                      />
-                      <AvatarFallback>
-                        {(list.user.displayName ||
-                          list.user.username ||
-                          "U")[0].toUpperCase()}
-                      </AvatarFallback>
+                  {list.isEditorial ? (
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback>W</AvatarFallback>
                     </Avatar>
-                  </Link>
+                  ) : (
+                    <Link href={`/users/${list.user.username || list.user.id}`}>
+                      <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 ring-primary transition-all">
+                        <AvatarImage
+                          src={
+                            currentUser?.id === list.user.id && contextAvatarUrl
+                              ? contextAvatarUrl
+                              : list.user.avatarUrl || undefined
+                          }
+                          alt={list.user.username || list.user.displayName || "User"}
+                        />
+                        <AvatarFallback>
+                          {(list.user.displayName ||
+                            list.user.username ||
+                            "U")[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Link>
+                  )}
                   <div>
                     <p className="text-sm text-muted-foreground">
                       Created by{" "}
-                      <Link
-                        href={`/users/${list.user.username || list.user.id}`}
-                        className="hover:text-primary transition-colors cursor-pointer"
-                      >
-                        {list.user.username || list.user.displayName || "Unknown"}
-                      </Link>
+                      {list.isEditorial ? (
+                        <span className="text-foreground">What2watch.net-Editors</span>
+                      ) : (
+                        <Link
+                          href={`/users/${list.user.username || list.user.id}`}
+                          className="hover:text-primary transition-colors cursor-pointer"
+                        >
+                          {list.user.username || list.user.displayName || "Unknown"}
+                        </Link>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -746,12 +756,16 @@ export default function ListView({
                   <>
                     <span>
                       Created by{" "}
-                      <Link
-                        href={`/users/${list.user.username || list.user.id}`}
-                        className="hover:text-primary transition-colors cursor-pointer"
-                      >
-                        {list.user.username || list.user.displayName || "Unknown"}
-                      </Link>
+                      {list.isEditorial ? (
+                        <span className="text-foreground">What2watch.net-Editors</span>
+                      ) : (
+                        <Link
+                          href={`/users/${list.user.username || list.user.id}`}
+                          className="hover:text-primary transition-colors cursor-pointer"
+                        >
+                          {list.user.username || list.user.displayName || "Unknown"}
+                        </Link>
+                      )}
                     </span>
                     <span>•</span>
                   </>

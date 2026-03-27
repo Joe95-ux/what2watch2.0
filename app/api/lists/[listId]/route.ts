@@ -2,6 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 
+const EDITORIAL_TAG = "__editorial__";
+
+function hasEditorialPrivileges(user: {
+  role?: string | null;
+  isForumAdmin?: boolean | null;
+}) {
+  const role = (user.role ?? "").toUpperCase();
+  return role === "ADMIN" || role === "SUPER_ADMIN" || role === "EDITOR" || user.isForumAdmin === true;
+}
+
+function mapListForClient<T extends { tags?: string[] }>(list: T) {
+  const tags = list.tags ?? [];
+  const isEditorial = tags.includes(EDITORIAL_TAG);
+  return {
+    ...list,
+    tags: tags.filter((tag) => tag !== EDITORIAL_TAG),
+    isEditorial,
+  };
+}
+
 // GET - Fetch a specific list
 export async function GET(
   request: NextRequest,
@@ -68,7 +88,7 @@ export async function GET(
     });
 
     return NextResponse.json({
-      list: { ...list, viewsCount },
+      list: { ...mapListForClient(list), viewsCount },
       currentUserId: user?.id || null,
     });
   } catch (error) {
@@ -96,7 +116,11 @@ export async function PATCH(
 
     const user = await db.user.findUnique({
       where: { clerkId: clerkUserId },
-      select: { id: true },
+      select: {
+        id: true,
+        role: true,
+        isForumAdmin: true,
+      },
     });
 
     if (!user) {
@@ -116,7 +140,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { name, description, visibility, tags, items } = body;
+    const { name, description, visibility, tags, items, isEditorial } = body;
 
     // Parse tags if provided
     let tagsArray: string[] | undefined = undefined;
@@ -141,6 +165,17 @@ export async function PATCH(
       updateData.visibility = visibility;
     }
     if (tagsArray !== undefined) updateData.tags = tagsArray;
+
+    if (isEditorial !== undefined) {
+      if (!hasEditorialPrivileges(user)) {
+        return NextResponse.json({ error: "Forbidden: Editorial privileges required" }, { status: 403 });
+      }
+      const effectiveTags = [...(updateData.tags ?? list.tags ?? [])].filter((tag) => tag !== EDITORIAL_TAG);
+      if (isEditorial === true) {
+        effectiveTags.push(EDITORIAL_TAG);
+      }
+      updateData.tags = effectiveTags;
+    }
 
     // Update items if provided
     if (items !== undefined) {
@@ -194,7 +229,7 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json({ success: true, list: updatedList });
+    return NextResponse.json({ success: true, list: mapListForClient(updatedList) });
   } catch (error) {
     console.error("Update list API error:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to update list";

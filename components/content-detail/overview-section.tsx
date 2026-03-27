@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
 import { JustWatchAvailabilityResponse } from "@/lib/justwatch";
 import { createPersonSlug } from "@/lib/person-utils";
@@ -31,6 +32,8 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { hasActiveProSubscription } from "@/lib/subscription";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useQuery } from "@tanstack/react-query";
+import CreateListModal from "@/components/lists/create-list-modal";
 
 interface DetailsType {
   release_date?: string;
@@ -178,6 +181,7 @@ export default function OverviewSection({
     currentUser?.aiChatMaxQuestions === -1;
   const [isExpanded, setIsExpanded] = useState(false);
   const [detailsExpanded, setDetailsExpanded] = useState(false);
+  const [isCreateListModalOpen, setIsCreateListModalOpen] = useState(false);
   const synopsis = item.overview || "";
   const shouldTruncate = synopsis.length > MAX_SYNOPSIS_LENGTH;
   const displaySynopsis = shouldTruncate && !isExpanded
@@ -186,6 +190,31 @@ export default function OverviewSection({
 
   // Fetch OMDB data if IMDb ID is available
   const { data: omdbData } = useOMDBData(details?.imdb_id || null);
+  const { isSignedIn } = useUser();
+
+  const { data: editorialLists = [] } = useQuery({
+    queryKey: ["overview-editorial-lists", item.id, type],
+    queryFn: async () => {
+      const res = await fetch("/api/lists/public?limit=3&editorialOnly=true");
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.lists ?? [];
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: relatedUserLists = [] } = useQuery({
+    queryKey: ["overview-related-user-lists", item.id, type],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/lists/public?limit=3&editorialOnly=false&tmdbId=${item.id}&mediaType=${type}`,
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.lists ?? [];
+    },
+    staleTime: 1000 * 60 * 3,
+  });
 
   // Get director (for movies) or creators (for TV)
   const director = type === "movie" 
@@ -203,12 +232,7 @@ export default function OverviewSection({
   return (
     <section className="py-12 space-y-12">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        <div
-          className={cn(
-            "space-y-6",
-            hideAds ? "lg:col-span-12" : "lg:col-span-8",
-          )}
-        >
+        <div className="space-y-6 lg:col-span-8">
           <div>
             <h2 className="text-2xl font-bold mb-4">Storyline</h2>
             <p className="text-muted-foreground leading-relaxed text-base">
@@ -379,18 +403,111 @@ export default function OverviewSection({
           )}
         </div>
 
-        {!hideAds && (
-          <div className="lg:col-span-4 space-y-6">
-            <div className="flex min-h-[420px] border border-border rounded-2xl bg-muted/40 items-center justify-center text-sm text-muted-foreground">
-              Ad placement
-            </div>
-            <div className="hidden lg:flex min-h-[420px] border border-border rounded-2xl bg-muted/40 items-center justify-center text-sm text-muted-foreground">
-              Ad placement
+        <div className="lg:col-span-4 space-y-6">
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold">Editorial Lists</h3>
+            <div className="space-y-2">
+              {editorialLists.slice(0, 3).map((list: any) => (
+                <CompactListCard key={list.id} list={list} />
+              ))}
+              {editorialLists.length === 0 && (
+                <div className="text-sm text-muted-foreground border border-dashed rounded-lg p-4">
+                  No editorial lists yet.
+                </div>
+              )}
             </div>
           </div>
-        )}
+
+          <div className="space-y-3">
+            {isSignedIn && (
+              <Button
+                variant="ghost"
+                className="w-full justify-start px-0 hover:bg-transparent hover:text-primary cursor-pointer"
+                onClick={() => setIsCreateListModalOpen(true)}
+              >
+                Create a list
+              </Button>
+            )}
+
+            <Link
+              href="/lists"
+              className="inline-flex text-lg font-semibold hover:text-primary transition-colors cursor-pointer"
+            >
+              Related User Lists
+            </Link>
+
+            <div className="space-y-2">
+              {relatedUserLists.slice(0, 3).map((list: any) => (
+                <CompactListCard key={list.id} list={list} />
+              ))}
+              {relatedUserLists.length === 0 && (
+                <div className="text-sm text-muted-foreground border border-dashed rounded-lg p-4">
+                  No related user lists yet.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
+
+      {isSignedIn && (
+        <CreateListModal
+          isOpen={isCreateListModalOpen}
+          onClose={() => setIsCreateListModalOpen(false)}
+          initialItem={{ item, type }}
+        />
+      )}
     </section>
+  );
+}
+
+function CompactListCard({ list }: { list: any }) {
+  const router = useRouter();
+  const firstWithPoster = (list.items || []).find((x: any) => Boolean(x.posterPath));
+  const posterPath = firstWithPoster?.posterPath || null;
+  const itemCount = list?._count?.items ?? list?.items?.length ?? 0;
+  const updatedAt = list?.updatedAt
+    ? new Date(list.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : null;
+
+  return (
+    <div
+      className="relative flex rounded-lg border border-border transition-all group cursor-pointer overflow-hidden"
+      onClick={() => router.push(`/lists/${list.id}`)}
+    >
+      <div className="flex-1 min-w-0 flex flex-col p-3">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/lists/${list.id}`);
+          }}
+          className="text-left text-sm font-semibold line-clamp-1 hover:text-primary transition-colors cursor-pointer"
+        >
+          {list.name}
+        </button>
+        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+          {updatedAt ? `Updated ${updatedAt}` : "Recently updated"} . {itemCount} {itemCount === 1 ? "item" : "items"}
+        </p>
+      </div>
+
+      {posterPath ? (
+        <div className="relative w-14 sm:w-16 rounded-r-lg overflow-hidden flex-shrink-0 bg-muted">
+          <Image
+            src={getPosterUrl(posterPath, "w200")}
+            alt={list.name}
+            fill
+            className="object-cover"
+            sizes="64px"
+            unoptimized
+          />
+        </div>
+      ) : (
+        <div className="w-14 sm:w-16 rounded-r-lg bg-muted flex-shrink-0 flex items-center justify-center">
+          <span className="text-[10px] text-muted-foreground">No Image</span>
+        </div>
+      )}
+    </div>
   );
 }
 

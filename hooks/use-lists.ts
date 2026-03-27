@@ -43,6 +43,7 @@ export interface List {
     comments: number;
   };
   viewsCount?: number;
+  isEditorial?: boolean;
 }
 
 interface CreateListParams {
@@ -60,6 +61,7 @@ interface CreateListParams {
     firstAirDate?: string | null;
     position?: number;
   }>;
+  isEditorial?: boolean;
 }
 
 interface UpdateListParams {
@@ -78,6 +80,7 @@ interface UpdateListParams {
     firstAirDate?: string | null;
     position?: number;
   }>;
+  isEditorial?: boolean;
 }
 
 // Fetch user's lists

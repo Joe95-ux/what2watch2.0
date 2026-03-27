@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useCreateList, useUpdateList, type List, type ListItem } from "@/hooks/use-lists";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { useSearch } from "@/hooks/use-search";
 import { useDebounce } from "@/hooks/use-debounce";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
@@ -17,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { X, Search, Film, Tv, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
@@ -44,6 +46,7 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess, edit
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<"PUBLIC" | "FOLLOWERS_ONLY" | "PRIVATE">("PUBLIC");
+  const [isEditorial, setIsEditorial] = useState(false);
   const [tags, setTags] = useState("");
   const [items, setItems] = useState<ListItemWithData[]>([]);
   
@@ -54,6 +57,10 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess, edit
   const searchContainerRef = useRef<HTMLDivElement>(null);
   
   const isEditing = !!list;
+  const { data: currentUser } = useCurrentUser();
+  const currentRole = (currentUser?.role || "").toUpperCase();
+  const canManageEditorial =
+    currentRole === "ADMIN" || currentRole === "SUPER_ADMIN" || currentRole === "EDITOR" || currentUser?.isForumAdmin === true;
 
   // Search for films
   const { data: searchResults, isLoading: isSearching } = useSearch({
@@ -67,6 +74,7 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess, edit
       setName(list.name);
       setDescription(list.description || "");
       setVisibility(list.visibility);
+      setIsEditorial(Boolean(list.isEditorial));
       setTags(list.tags.join(", "));
       setItems(list.items.map(item => ({
         ...item,
@@ -78,6 +86,7 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess, edit
       setName("");
       setDescription("");
       setVisibility("PUBLIC");
+      setIsEditorial(false);
       setTags("");
       
       // If initialItem is provided, add it to items
@@ -102,7 +111,7 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess, edit
           tmdbData: film,
         };
         setItems([newItem]);
-        setStep(2); // Go directly to step 2 since item is already added
+        setStep(1);
       } else {
         setItems([]);
         setStep(1);
@@ -223,6 +232,7 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess, edit
           description: description.trim() || undefined,
           visibility,
           tags: tagsArray,
+          isEditorial: canManageEditorial ? isEditorial : undefined,
         });
         toast.success("List updated");
         onSuccess?.(list);
@@ -251,6 +261,7 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess, edit
           visibility,
           tags: tagsArray,
           items: listItems,
+          isEditorial: canManageEditorial ? isEditorial : undefined,
         });
         toast.success("List updated");
       } else {
@@ -260,6 +271,7 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess, edit
           visibility,
           tags: tagsArray,
           items: listItems,
+          isEditorial: canManageEditorial ? isEditorial : undefined,
         });
         toast.success("List created");
       }
@@ -306,23 +318,36 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess, edit
                   Add Films
                 </button>
               </div>
-              <div className="flex items-center gap-2">
-                <div className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors",
-                  step >= 1 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                )}>
-                  1
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <div className={cn(
+                    "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors",
+                    step >= 1 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  )}>
+                    1
+                  </div>
+                  <div className={cn(
+                    "h-0.5 w-12 transition-colors",
+                    step >= 2 ? "bg-primary" : "bg-muted"
+                  )} />
+                  <div className={cn(
+                    "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors",
+                    step >= 2 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  )}>
+                    2
+                  </div>
                 </div>
-                <div className={cn(
-                  "h-0.5 w-12 transition-colors",
-                  step >= 2 ? "bg-primary" : "bg-muted"
-                )} />
-                <div className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors",
-                  step >= 2 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                )}>
-                  2
-                </div>
+                {canManageEditorial && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Editorial</span>
+                    <Switch
+                      checked={isEditorial}
+                      onCheckedChange={setIsEditorial}
+                      disabled={isLoading}
+                      aria-label="Toggle editorial list"
+                    />
+                  </div>
+                )}
               </div>
             </>
           )}

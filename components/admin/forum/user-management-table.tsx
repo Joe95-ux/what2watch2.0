@@ -143,6 +143,9 @@ export function UserManagementTable() {
     if (isForumAdmin || role === "ADMIN" || role === "SUPER_ADMIN") {
       return <Badge variant="destructive">Admin</Badge>;
     }
+    if (role === "EDITOR") {
+      return <Badge variant="secondary">Editor</Badge>;
+    }
     if (isForumModerator || role === "MODERATOR") {
       return <Badge variant="secondary">Moderator</Badge>;
     }
@@ -253,6 +256,7 @@ export function UserManagementTable() {
               <SelectItem value="all">All Roles</SelectItem>
               <SelectItem value="USER">User</SelectItem>
               <SelectItem value="MODERATOR">Moderator</SelectItem>
+              <SelectItem value="EDITOR">Editor</SelectItem>
               <SelectItem value="ADMIN">Admin</SelectItem>
             </SelectContent>
           </Select>
@@ -316,6 +320,9 @@ export function UserManagementTable() {
                           if (role === "ADMIN" || role === "SUPER_ADMIN") {
                             data.isForumAdmin = true;
                             data.isForumModerator = true;
+                          } else if (role === "EDITOR") {
+                            data.isForumAdmin = false;
+                            data.isForumModerator = false;
                           } else if (role === "MODERATOR") {
                             data.isForumModerator = true;
                             data.isForumAdmin = false;
@@ -332,6 +339,7 @@ export function UserManagementTable() {
                         <SelectContent>
                           <SelectItem value="USER">User</SelectItem>
                           <SelectItem value="MODERATOR">Moderator</SelectItem>
+                          <SelectItem value="EDITOR">Editor</SelectItem>
                           <SelectItem value="ADMIN">Admin</SelectItem>
                           <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
                         </SelectContent>
@@ -361,7 +369,7 @@ export function UserManagementTable() {
                       <DropdownMenuContent align="end">
                         {!user.isBanned && !user.isSuspended && (
                           <>
-                            {(user.isForumAdmin || user.isForumModerator || user.role === "ADMIN" || user.role === "SUPER_ADMIN") ? (
+                            {(user.isForumAdmin || user.isForumModerator || user.role === "ADMIN" || user.role === "SUPER_ADMIN" || user.role === "EDITOR") ? (
                               <DropdownMenuItem
                                 disabled
                                 className="cursor-not-allowed opacity-50"
@@ -381,7 +389,7 @@ export function UserManagementTable() {
                                 Suspend User
                               </DropdownMenuItem>
                             )}
-                            {(user.isForumAdmin || user.isForumModerator || user.role === "ADMIN" || user.role === "SUPER_ADMIN") ? (
+                            {(user.isForumAdmin || user.isForumModerator || user.role === "ADMIN" || user.role === "SUPER_ADMIN" || user.role === "EDITOR") ? (
                               <DropdownMenuItem
                                 disabled
                                 className="cursor-not-allowed opacity-50 text-destructive"
@@ -417,7 +425,7 @@ export function UserManagementTable() {
                               <UserCheck className="mr-2 h-4 w-4" />
                               Unsuspend User
                             </DropdownMenuItem>
-                            {(user.isForumAdmin || user.isForumModerator || user.role === "ADMIN" || user.role === "SUPER_ADMIN") ? (
+                            {(user.isForumAdmin || user.isForumModerator || user.role === "ADMIN" || user.role === "SUPER_ADMIN" || user.role === "EDITOR") ? (
                               <DropdownMenuItem
                                 disabled
                                 className="cursor-not-allowed opacity-50 text-destructive"

@@ -64,7 +64,7 @@ model User {
   stripeSubscriptionCurrentPeriodEnd   DateTime?
   
   // Admin & Moderation
-  role            String   @default("USER") // "USER", "MODERATOR", "ADMIN", "SUPER_ADMIN"
+  role            String   @default("USER") // "USER", "MODERATOR", "EDITOR", "ADMIN", "SUPER_ADMIN"
   isForumModerator Boolean @default(false)
   isForumAdmin     Boolean @default(false)
   isBanned         Boolean @default(false)
