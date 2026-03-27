@@ -8,7 +8,7 @@ import { JustWatchAvailabilityResponse } from "@/lib/justwatch";
 import { createPersonSlug } from "@/lib/person-utils";
 import { useOMDBData } from "@/hooks/use-content-details";
 import { useState, useCallback, useEffect } from "react";
-import { ChevronDown, ChevronUp, Star, Check, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Star, Check, Loader2, Plus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import AwardsSection from "./awards-section";
 import { RatingsRow } from "./ratings-row";
@@ -206,14 +206,16 @@ export default function OverviewSection({
   const { data: relatedUserLists = [] } = useQuery({
     queryKey: ["overview-related-user-lists", item.id, type],
     queryFn: async () => {
+      const genreIds = (details?.genres || []).map((g) => g.id).join(",");
       const res = await fetch(
-        `/api/lists/public?limit=3&editorialOnly=false&tmdbId=${item.id}&mediaType=${type}`,
+        `/api/lists/public?limit=3&editorialOnly=false&genreIds=${genreIds}`,
       );
       if (!res.ok) return [];
       const data = await res.json();
       return data.lists ?? [];
     },
     staleTime: 1000 * 60 * 3,
+    enabled: Boolean(details?.genres && details.genres.length > 0),
   });
 
   // Get director (for movies) or creators (for TV)
@@ -421,11 +423,13 @@ export default function OverviewSection({
           <div className="space-y-3">
             {isSignedIn && (
               <Button
+                type="button"
                 variant="ghost"
-                className="w-full justify-start px-0 hover:bg-transparent hover:text-primary cursor-pointer"
+                className="w-fit rounded-[20px] border-0 bg-transparent hover:bg-muted/60 cursor-pointer"
                 onClick={() => setIsCreateListModalOpen(true)}
               >
-                Create a list
+                <Plus className="h-4 w-4 mr-2" />
+                Create List
               </Button>
             )}
 
