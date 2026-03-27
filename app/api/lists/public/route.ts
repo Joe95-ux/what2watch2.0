@@ -107,39 +107,58 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
         },
       },
       orderBy: { updatedAt: "desc" },
-      take: genreIds.length > 0 ? Math.max(limitNum * 8, 40) : limitNum,
+      take: genreIds.length > 0 ? Math.max(limitNum * 3, 15) : limitNum,
     });
 
     const mappedLists = lists.map(mapListForClient);
 
     if (genreIds.length > 0) {
       const genreSet = new Set(genreIds);
+      const genreMatchCache = new Map<string, boolean>();
       const genreMatched = await Promise.all(
         mappedLists.map(async (list: any) => {
-          const candidates = (list.items || []).slice(0, 6);
+          const candidates = (list.items || []).slice(0, 3);
           if (candidates.length === 0) return null;
 
-          const matches = await Promise.all(
-            candidates.map(async (item: any) => {
-              try {
-                if (item.mediaType === "movie") {
-                  const details = await getMovieDetails(item.tmdbId);
-                  return (details.genres || []).some((g) => genreSet.has(g.id));
-                }
-                const details = await getTVDetails(item.tmdbId);
-                return (details.genres || []).some((g) => genreSet.has(g.id));
-              } catch {
-                return false;
+          for (const item of candidates) {
+            const cacheKey = `${item.mediaType}-${item.tmdbId}`;
+            if (genreMatchCache.has(cacheKey)) {
+              if (genreMatchCache.get(cacheKey)) {
+                return list;
               }
-            }),
-          );
+              continue;
+            }
 
-          return matches.some(Boolean) ? list : null;
+            let isMatch = false;
+            try {
+              if (item.mediaType === "movie") {
+                const details = await getMovieDetails(item.tmdbId);
+                isMatch = (details.genres || []).some((g) => genreSet.has(g.id));
+              } else {
+                const details = await getTVDetails(item.tmdbId);
+                isMatch = (details.genres || []).some((g) => genreSet.has(g.id));
+              }
+            } catch {
+              isMatch = false;
+            }
+
+            genreMatchCache.set(cacheKey, isMatch);
+            if (isMatch) {
+              return list;
+            }
+          }
+
+          return null;
         }),
       );
 
+      const filteredLists = genreMatched.filter(Boolean);
+
       return NextResponse.json(
-        { lists: genreMatched.filter(Boolean).slice(0, limitNum), currentUserId },
+        {
+          lists: (filteredLists.length > 0 ? filteredLists : mappedLists).slice(0, limitNum),
+          currentUserId,
+        },
         {
           headers: {
             "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",

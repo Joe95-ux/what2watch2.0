@@ -192,18 +192,18 @@ export default function OverviewSection({
   const { data: omdbData } = useOMDBData(details?.imdb_id || null);
   const { isSignedIn } = useUser();
 
-  const { data: editorialLists = [] } = useQuery({
+  const { data: editorialLists = [], isLoading: isEditorialListsLoading } = useQuery({
     queryKey: ["overview-editorial-lists", item.id, type],
     queryFn: async () => {
-      const res = await fetch("/api/lists/public?limit=3&editorialOnly=true");
+      const res = await fetch("/api/lists/public?limit=20");
       if (!res.ok) return [];
       const data = await res.json();
-      return data.lists ?? [];
+      return (data.lists ?? []).filter((list: any) => list?.isEditorial === true).slice(0, 3);
     },
     staleTime: 1000 * 60 * 5,
   });
 
-  const { data: relatedUserLists = [] } = useQuery({
+  const { data: relatedUserLists = [], isLoading: isRelatedUserListsLoading } = useQuery({
     queryKey: ["overview-related-user-lists", item.id, type],
     queryFn: async () => {
       const genreIds = (details?.genres || []).map((g) => g.id).join(",");
@@ -409,10 +409,15 @@ export default function OverviewSection({
           <div className="space-y-3">
             <h3 className="text-lg font-semibold">Editorial Lists</h3>
             <div className="space-y-2">
-              {editorialLists.slice(0, 3).map((list: any) => (
+              {isEditorialListsLoading &&
+                Array.from({ length: 3 }).map((_, i) => (
+                  <CompactListCardSkeleton key={`editorial-skeleton-${i}`} />
+                ))}
+              {!isEditorialListsLoading &&
+                editorialLists.slice(0, 3).map((list: any) => (
                 <CompactListCard key={list.id} list={list} />
               ))}
-              {editorialLists.length === 0 && (
+              {!isEditorialListsLoading && editorialLists.length === 0 && (
                 <div className="text-sm text-muted-foreground border border-dashed rounded-lg p-4">
                   No editorial lists yet.
                 </div>
@@ -421,30 +426,39 @@ export default function OverviewSection({
           </div>
 
           <div className="space-y-3">
-            {isSignedIn && (
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-fit rounded-[20px] border-0 bg-transparent hover:bg-muted/60 cursor-pointer"
-                onClick={() => setIsCreateListModalOpen(true)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create List
-              </Button>
-            )}
+            <div>
+              {isSignedIn && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-fit rounded-[20px] border-0 bg-transparent hover:bg-muted/60 cursor-pointer"
+                  onClick={() => setIsCreateListModalOpen(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create List
+                </Button>
+              )}
+            </div>
 
-            <Link
-              href="/lists"
-              className="inline-flex text-lg font-semibold hover:text-primary transition-colors cursor-pointer"
-            >
-              Related User Lists
-            </Link>
+            <div>
+              <Link
+                href="/lists"
+                className="block w-fit text-lg font-semibold text-foreground cursor-pointer"
+              >
+                Related User Lists
+              </Link>
+            </div>
 
             <div className="space-y-2">
-              {relatedUserLists.slice(0, 3).map((list: any) => (
+              {isRelatedUserListsLoading &&
+                Array.from({ length: 3 }).map((_, i) => (
+                  <CompactListCardSkeleton key={`related-skeleton-${i}`} />
+                ))}
+              {!isRelatedUserListsLoading &&
+                relatedUserLists.slice(0, 3).map((list: any) => (
                 <CompactListCard key={list.id} list={list} />
               ))}
-              {relatedUserLists.length === 0 && (
+              {!isRelatedUserListsLoading && relatedUserLists.length === 0 && (
                 <div className="text-sm text-muted-foreground border border-dashed rounded-lg p-4">
                   No related user lists yet.
                 </div>
@@ -462,6 +476,20 @@ export default function OverviewSection({
         />
       )}
     </section>
+  );
+}
+
+function CompactListCardSkeleton() {
+  return (
+    <div className="relative flex rounded-lg border border-border overflow-hidden">
+      <div className="flex-1 min-w-0 flex flex-col p-3 gap-2">
+        <Skeleton className="h-4 w-4/5" />
+        <Skeleton className="h-3 w-3/5" />
+      </div>
+      <div className="w-14 sm:w-16 flex-shrink-0 p-1">
+        <Skeleton className="h-full min-h-[64px] w-full rounded-md" />
+      </div>
+    </div>
   );
 }
 
