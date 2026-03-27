@@ -145,38 +145,27 @@ export default function EditorialPageClient() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="-mt-[65px] border-b border-white/10 bg-zinc-950 text-zinc-50 dark:bg-black pt-20 sm:pt-24 pb-8 lg:pb-10">
+      <header className="-mt-[65px] border-b border-white/10 bg-zinc-950 text-zinc-50 dark:bg-black pt-20 sm:pt-34 pb-8 lg:pb-15">
         <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 lg:gap-8">
-            <div className="flex gap-4 min-w-0">
-              <Avatar className="h-14 w-14 shrink-0 border border-white/10">
+            <div className="flex gap-3 sm:gap-4 min-w-0">
+              <Avatar className="h-10 w-10 sm:h-14 sm:w-14 shrink-0 border border-white/10">
                 <AvatarImage src="/icon1.png" alt="What2watch.net Editors" />
-                <AvatarFallback className="bg-zinc-800 text-zinc-200">W</AvatarFallback>
+                <AvatarFallback className="bg-zinc-800 text-zinc-200 text-sm sm:text-base">
+                  W
+                </AvatarFallback>
               </Avatar>
-              <div className="min-w-0 space-y-2">
-                <p className="text-sm text-zinc-400">What2watch.net Editors</p>
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-50">
+              <div className="min-w-0 space-y-1.5 sm:space-y-2">
+                <p className="text-xs sm:text-sm text-zinc-400">What2watch.net Editors</p>
+                <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-zinc-50">
                   What2watch.net Editors&apos; lists
                 </h1>
-                <p className="text-sm sm:text-base text-zinc-400 max-w-xl">
+                <p className="text-xs sm:text-base text-zinc-400 max-w-xl">
                   Explore lists curated by our Editors
                 </p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2 shrink-0 lg:pt-1">
-              <ShareDropdown
-                shareUrl={shareUrl}
-                title="What2watch.net Editors' lists"
-                description="Explore lists curated by our Editors on What2Watch"
-                variant="ghost"
-                size="sm"
-                showLabel
-                triggerTitle="Share"
-                className="h-9 rounded-[20px] border border-white/20 bg-transparent px-3 text-zinc-50 hover:bg-white/10 hover:text-zinc-50"
-              />
-              <span className="text-zinc-500 select-none" aria-hidden>
-                |
-              </span>
               {isSignedIn ? (
                 <Button
                   type="button"
@@ -197,6 +186,19 @@ export default function EditorialPageClient() {
                   <Link href="/sign-in">Create a new list</Link>
                 </Button>
               )}
+              <span className="text-zinc-500 select-none" aria-hidden>
+                |
+              </span>
+              <ShareDropdown
+                shareUrl={shareUrl}
+                title="What2watch.net Editors' lists"
+                description="Explore lists curated by our Editors on What2Watch"
+                variant="ghost"
+                size="sm"
+                showLabel
+                triggerTitle="Share"
+                className="h-9 rounded-[20px] border border-white/20 bg-transparent px-3 text-zinc-50 hover:bg-white/10 hover:text-zinc-50"
+              />
             </div>
           </div>
         </div>
@@ -514,7 +516,7 @@ function EditorialListRow({
     : "—";
 
   return (
-    <div className="flex items-stretch gap-0 sm:min-h-32 sm:h-32">
+    <div className="flex items-stretch gap-0 sm:min-h-35 sm:h-35">
       <button
         type="button"
         onClick={() => router.push(`/lists/${list.id}`)}
