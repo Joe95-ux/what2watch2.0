@@ -134,9 +134,9 @@ export function SimpleMediaListItem({
       onClick={onClick}
       className="w-full text-left cursor-pointer py-3 px-3 transition-colors"
     >
-      <div className="flex items-start gap-4">
+      <div className="flex items-center gap-4">
         {posterPath ? (
-          <div className="relative w-28 h-40 sm:w-32 sm:h-48 rounded-[5px] overflow-hidden flex-shrink-0 bg-muted">
+          <div className="relative w-28 h-40 sm:w-28 sm:h-[9.5rem] rounded-[5px] overflow-hidden flex-shrink-0 bg-muted">
             <Image
               src={getPosterUrl(posterPath, "w500")}
               alt={title}
@@ -191,12 +191,12 @@ export function SimpleMediaListItem({
                         className="object-contain rounded-l-[5px] w-7 h-7 block flex-shrink-0"
                         unoptimized
                       />
-                      <span className="pl-2 pr-2 flex items-center text-[13px] font-medium truncate text-white">
+                      <span className="pl-2 pr-2 flex items-center text-[12px] font-medium truncate text-white">
                         Watch Now
                       </span>
                     </>
                   ) : (
-                    <span className="px-2 flex items-center text-[13px] font-medium truncate text-white">
+                    <span className="px-2 flex items-center text-[12px] font-medium truncate text-white">
                       Watch Now
                     </span>
                   )}
