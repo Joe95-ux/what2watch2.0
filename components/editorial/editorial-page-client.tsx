@@ -205,7 +205,7 @@ export default function EditorialPageClient() {
       </header>
 
       <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-20">
           {/* Main column */}
           <div className="lg:col-span-8 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
