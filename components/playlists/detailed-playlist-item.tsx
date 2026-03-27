@@ -313,7 +313,7 @@ function DetailedPlaylistItem({
               </div>
             )}
             {playlistItem.posterPath ? (
-              <div className="relative w-24 h-32 sm:w-28 sm:h-40 rounded overflow-hidden flex-shrink-0 bg-muted">
+              <div className="relative w-28 h-40 sm:w-32 sm:h-48 rounded-[5px] overflow-hidden flex-shrink-0 bg-muted">
                 <Image
                   src={getPosterUrl(playlistItem.posterPath)}
                   alt={playlistItem.title}
@@ -321,6 +321,14 @@ function DetailedPlaylistItem({
                   className="object-cover"
                   sizes="112px"
                 />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-1 right-1 h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 text-white cursor-pointer"
+                  onClick={handleWatchToggle}
+                >
+                  <Eye className={cn("h-4 w-4", isWatched ? "text-green-400" : "text-white")} />
+                </Button>
                 {/* Primary Provider Button - Bottom of Poster */}
                 {primaryOffer && (
                   <div className="absolute bottom-0 left-0 right-0 p-1">
@@ -330,7 +338,7 @@ function DetailedPlaylistItem({
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
                       className={cn(
-                        "flex items-center h-7 w-full overflow-hidden rounded bg-black/70 hover:bg-black/80 transition-colors cursor-pointer"
+                        "flex items-center h-7 w-full overflow-hidden rounded-[5px] bg-black/70 hover:bg-black/80 transition-colors cursor-pointer"
                       )}
                     >
                       {primaryOffer.iconUrl ? (
@@ -340,7 +348,7 @@ function DetailedPlaylistItem({
                             alt={primaryOffer.providerName}
                             width={28}
                             height={28}
-                            className="object-contain rounded-l w-7 h-7 block flex-shrink-0"
+                            className="object-contain rounded-l-[5px] w-7 h-7 block flex-shrink-0"
                             unoptimized
                           />
                           <span className="pl-2 pr-2 flex items-center text-[13px] font-medium truncate text-white">
@@ -357,7 +365,7 @@ function DetailedPlaylistItem({
                 )}
               </div>
             ) : (
-              <div className="w-24 h-32 sm:w-28 sm:h-40 rounded bg-muted flex-shrink-0 flex items-center justify-center">
+              <div className="w-28 h-40 sm:w-32 sm:h-48 rounded-[5px] bg-muted flex-shrink-0 flex items-center justify-center">
                 {type === "movie" ? (
                   <Film className="h-8 w-8 text-muted-foreground" />
                 ) : (

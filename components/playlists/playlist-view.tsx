@@ -1569,7 +1569,7 @@ export default function PlaylistView({
                 </>
               ) : effectiveViewMode === "table" ? (
                 <>
-                  <div className="border border-border rounded-[5px] overflow-hidden">
+                  <div className="border border-border rounded-[5px] overflow-hidden p-2">
                     {paginatedTMDB.map(({ type, playlistItem }, index) => {
                       const releaseYear = playlistItem.releaseDate
                         ? new Date(playlistItem.releaseDate).getFullYear().toString()
@@ -1586,9 +1586,10 @@ export default function PlaylistView({
                             posterPath={playlistItem.posterPath}
                             yearLabel={releaseYear}
                             addedLabel={addedLabel}
+                            orderLabel={tmdbSortField === "listOrder" ? `${playlistItem.order > 0 ? playlistItem.order : index + 1}.` : undefined}
                             onClick={() => router.push(`/${type}/${playlistItem.tmdbId}`)}
                           />
-                          {index < paginatedTMDB.length - 1 && <Separator />}
+                          {index < paginatedTMDB.length - 1 && <Separator className="mx-2 w-auto" />}
                         </div>
                       );
                     })}
@@ -1851,7 +1852,7 @@ export default function PlaylistView({
                 </>
               ) : effectiveViewMode === "table" ? (
                 <>
-                  <div className="border border-border rounded-[5px] overflow-hidden">
+                  <div className="border border-border rounded-[5px] overflow-hidden p-2">
                     {paginatedYouTube.map((youtubeItem, index) => (
                       <div key={youtubeItem.id}>
                         <button
@@ -1884,7 +1885,7 @@ export default function PlaylistView({
                             </div>
                           </div>
                         </button>
-                        {index < paginatedYouTube.length - 1 && <Separator />}
+                        {index < paginatedYouTube.length - 1 && <Separator className="mx-2 w-auto" />}
                       </div>
                     ))}
                   </div>

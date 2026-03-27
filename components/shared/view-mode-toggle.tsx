@@ -21,11 +21,11 @@ export function ViewModeToggle({ viewMode, onViewModeChange }: ViewModeTogglePro
         title="Grid view"
         className={`cursor-pointer rounded-full border ${
           viewMode === "grid"
-            ? "border-primary bg-muted text-foreground"
-            : "border-border hover:bg-muted"
-        }`}
+            ? "border-primary bg-transparent text-foreground"
+            : "border-transparent bg-transparent hover:bg-muted"
+        } h-10 w-10`}
       >
-        <BiSolidGrid className="h-4 w-4" />
+        <BiSolidGrid className="h-5 w-5" />
       </Button>
       <Button
         variant="ghost"
@@ -34,11 +34,11 @@ export function ViewModeToggle({ viewMode, onViewModeChange }: ViewModeTogglePro
         title="List view"
         className={`cursor-pointer rounded-full border ${
           viewMode === "table"
-            ? "border-primary bg-muted text-foreground"
-            : "border-border hover:bg-muted"
-        }`}
+            ? "border-primary bg-transparent text-foreground"
+            : "border-transparent bg-transparent hover:bg-muted"
+        } h-10 w-10`}
       >
-        <AlignJustify className="h-4 w-4" />
+        <AlignJustify className="h-5 w-5" />
       </Button>
       <Button
         variant="ghost"
@@ -47,11 +47,11 @@ export function ViewModeToggle({ viewMode, onViewModeChange }: ViewModeTogglePro
         title="Detailed view"
         className={`cursor-pointer rounded-full border ${
           viewMode === "detailed"
-            ? "border-primary bg-muted text-foreground"
-            : "border-border hover:bg-muted"
-        }`}
+            ? "border-primary bg-transparent text-foreground"
+            : "border-transparent bg-transparent hover:bg-muted"
+        } h-10 w-10`}
       >
-        <List className="h-4 w-4" />
+        <List className="h-5 w-5" />
       </Button>
     </div>
   );
