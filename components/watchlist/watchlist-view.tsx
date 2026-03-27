@@ -91,7 +91,7 @@ import {
 import { useUser } from "@clerk/nextjs";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { useLists, useUpdateList, useCreateList } from "@/hooks/use-lists";
-import { useReorderWatchlist, useAddToWatchlist, useUpdateWatchlistItem } from "@/hooks/use-watchlist";
+import { useReorderWatchlist, useAddToWatchlist, useUpdateWatchlistItem, useToggleWatchlist } from "@/hooks/use-watchlist";
 import { reorderWatchlistEntries, type WatchlistEntry } from "@/lib/watchlist-utils";
 import { createPersonSlug } from "@/lib/person-utils";
 import { useSearch } from "@/hooks/use-search";
@@ -115,6 +115,7 @@ import {
 import { ChangeOrderModal } from "./change-order-modal";
 import { Textarea } from "@/components/ui/textarea";
 import ImportWatchlistModal from "./import-watchlist-modal";
+import { IoBookmarkSharp } from "react-icons/io5";
 
 type SortField = "listOrder" | "createdAt" | "title" | "releaseYear";
 type SortOrder = "asc" | "desc";
@@ -1248,7 +1249,7 @@ export default function WatchlistView({
                       : "border-transparent bg-transparent hover:bg-muted"
                   } h-10 w-10`}
                 >
-                  <BiSolidGrid className="h-5 w-5" />
+                  <BiSolidGrid className="size-6" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -1261,7 +1262,7 @@ export default function WatchlistView({
                       : "border-transparent bg-transparent hover:bg-muted"
                   } h-10 w-10`}
                 >
-                  <AlignJustify className="h-5 w-5" />
+                  <AlignJustify className="size-6" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -1274,7 +1275,7 @@ export default function WatchlistView({
                       : "border-transparent bg-transparent hover:bg-muted"
                   } h-10 w-10`}
                 >
-                  <List className="h-5 w-5" />
+                  <List className="size-6" />
                 </Button>
               </div>
             )}
@@ -1647,7 +1648,7 @@ export default function WatchlistView({
                       yearLabel={releaseYear}
                       addedLabel={addedLabel}
                       orderLabel={sortField === "listOrder" ? `${watchlistItem.order && watchlistItem.order > 0 ? watchlistItem.order : index + 1}.` : undefined}
-                      onClick={() => router.push(`/${type}/${watchlistItem.tmdbId}`)}
+                      onClick={() => router.push(createContentUrl(type, watchlistItem.tmdbId, watchlistItem.title))}
                     />
                     {index < paginatedData.length - 1 && <Separator className="mx-2 w-auto" />}
                   </div>
@@ -2038,6 +2039,7 @@ function DetailedWatchlistItem({
   const { isSignedIn } = useUser();
   const quickWatch = useQuickWatch();
   const unwatch = useUnwatch();
+  const toggleWatchlist = useToggleWatchlist();
   const { data: watchedData } = useIsWatched(item.id, type);
   const isWatched = watchedData?.isWatched || false;
   const watchedLogId = watchedData?.logId || null;
@@ -2187,6 +2189,15 @@ function DetailedWatchlistItem({
     }
   };
 
+  const handleWatchlistToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await toggleWatchlist.toggle(item, type);
+    } catch {
+      toast.error("Failed to update watchlist");
+    }
+  };
+
   const handleNoteSave = async () => {
     try {
       await updateWatchlistItem.mutateAsync({
@@ -2294,16 +2305,38 @@ function DetailedWatchlistItem({
                 alt={watchlistItem.title}
                 fill
                 className="object-cover"
-                sizes="112px"
+                sizes="(max-width: 640px) 112px, 128px"
+                unoptimized
               />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-1 right-1 h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 text-white cursor-pointer"
-                onClick={handleWatchToggle}
+              <div
+                onClick={handleWatchlistToggle}
+                role="button"
+                tabIndex={0}
+                aria-label={toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
+                className="absolute -top-[3px] -left-[9px] z-10 flex items-center justify-center cursor-pointer"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleWatchlistToggle(e as unknown as React.MouseEvent);
+                  }
+                }}
               >
-                <Eye className={cn("h-4 w-4", isWatched ? "text-green-400" : "text-white")} />
-              </Button>
+                <div className="relative flex items-center justify-center">
+                  <IoBookmarkSharp
+                    className={cn(
+                      "h-[44px] w-[44px]",
+                      toggleWatchlist.isInWatchlist(item.id, type)
+                        ? "text-[#E0B416] fill-[#E0B416]"
+                        : "text-gray-900 fill-gray-900"
+                    )}
+                  />
+                  {toggleWatchlist.isInWatchlist(item.id, type) ? (
+                    <Check className="absolute top-[5px] size-6 text-black z-10" />
+                  ) : (
+                    <Plus className="absolute top-[5px] size-6 text-white z-10" />
+                  )}
+                </div>
+              </div>
               {/* Primary Provider Button - Bottom of Poster */}
               {primaryOffer && (
                 <div className="absolute bottom-0 left-0 right-0 p-1">
@@ -2774,7 +2807,7 @@ function DetailedWatchlistItem({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive flex-shrink-0"
+            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive flex-shrink-0 cursor-pointer"
             onClick={(e) => {
               e.stopPropagation();
               if (onRemove) onRemove();

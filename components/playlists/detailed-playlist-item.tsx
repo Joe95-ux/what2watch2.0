@@ -7,7 +7,7 @@ import { PlaylistItem } from "@/hooks/use-playlists";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, GripVertical, Eye, ArrowUpDown, Film, Tv, Star, Trash2 } from "lucide-react";
+import { Check, GripVertical, Eye, ArrowUpDown, Film, Tv, Star, Trash2, Plus } from "lucide-react";
 import Image from "next/image";
 import { getPosterUrl } from "@/lib/tmdb";
 import { format } from "date-fns";
@@ -31,6 +31,8 @@ import { createPersonSlug } from "@/lib/person-utils";
 import { useUpdatePlaylistItemMutation } from "@/hooks/use-playlists";
 import { ChangeOrderModal } from "./change-order-modal";
 import type { SortField } from "@/components/shared/collection-filters";
+import { useToggleWatchlist } from "@/hooks/use-watchlist";
+import { IoBookmarkSharp } from "react-icons/io5";
 
 interface DetailedPlaylistItemProps {
   item: TMDBMovie | TMDBSeries;
@@ -71,6 +73,7 @@ function DetailedPlaylistItem({
   const { isSignedIn } = useUser();
   const quickWatch = useQuickWatch();
   const unwatch = useUnwatch();
+  const toggleWatchlist = useToggleWatchlist();
   const { data: watchedData } = useIsWatched(item.id, type);
   const isWatched = watchedData?.isWatched || false;
   const watchedLogId = watchedData?.logId || null;
@@ -220,6 +223,15 @@ function DetailedPlaylistItem({
     }
   };
 
+  const handleWatchlistToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await toggleWatchlist.toggle(item, type);
+    } catch {
+      toast.error("Failed to update watchlist");
+    }
+  };
+
   const handleNoteSave = async () => {
     try {
       await updatePlaylistItem.mutateAsync({
@@ -319,16 +331,38 @@ function DetailedPlaylistItem({
                   alt={playlistItem.title}
                   fill
                   className="object-cover"
-                  sizes="112px"
+                  sizes="(max-width: 640px) 112px, 128px"
+                  unoptimized
                 />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-1 right-1 h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 text-white cursor-pointer"
-                  onClick={handleWatchToggle}
+                <div
+                  onClick={handleWatchlistToggle}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from watchlist" : "Add to watchlist"}
+                  className="absolute -top-[3px] -left-[9px] z-10 flex items-center justify-center cursor-pointer"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleWatchlistToggle(e as unknown as React.MouseEvent);
+                    }
+                  }}
                 >
-                  <Eye className={cn("h-4 w-4", isWatched ? "text-green-400" : "text-white")} />
-                </Button>
+                  <div className="relative flex items-center justify-center">
+                    <IoBookmarkSharp
+                      className={cn(
+                        "h-[44px] w-[44px]",
+                        toggleWatchlist.isInWatchlist(item.id, type)
+                          ? "text-[#E0B416] fill-[#E0B416]"
+                          : "text-gray-900 fill-gray-900"
+                      )}
+                    />
+                    {toggleWatchlist.isInWatchlist(item.id, type) ? (
+                      <Check className="absolute top-[5px] size-6 text-black z-10" />
+                    ) : (
+                      <Plus className="absolute top-[5px] size-6 text-white z-10" />
+                    )}
+                  </div>
+                </div>
                 {/* Primary Provider Button - Bottom of Poster */}
                 {primaryOffer && (
                   <div className="absolute bottom-0 left-0 right-0 p-1">
@@ -791,7 +825,7 @@ function DetailedPlaylistItem({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive flex-shrink-0"
+              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive flex-shrink-0 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 if (onRemove) onRemove();

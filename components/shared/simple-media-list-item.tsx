@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
-import { Eye, Film, Star, Tv } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Eye, Film, Plus, Star, Tv } from "lucide-react";
+import { IoBookmarkSharp } from "react-icons/io5";
 import { getPosterUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
 import {
@@ -12,8 +14,7 @@ import {
   useWatchProviders,
 } from "@/hooks/use-content-details";
 import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-logs";
-import { useUser } from "@clerk/nextjs";
-import { toast } from "sonner";
+import { useAddToWatchlist, useRemoveFromWatchlist, useWatchlist } from "@/hooks/use-watchlist";
 import { Button } from "@/components/ui/button";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 
@@ -38,9 +39,12 @@ export function SimpleMediaListItem({
   orderLabel,
   onClick,
 }: SimpleMediaListItemProps) {
-  const { isSignedIn } = useUser();
+  const [rankWindow, setRankWindow] = useState<"1d" | "7d" | "30d">("7d");
   const quickWatch = useQuickWatch();
   const unwatch = useUnwatch();
+  const { data: watchlist = [] } = useWatchlist();
+  const addToWatchlist = useAddToWatchlist();
+  const removeFromWatchlist = useRemoveFromWatchlist();
   const { data: watchedData } = useIsWatched(tmdbId, mediaType);
   const isWatched = watchedData?.isWatched || false;
   const watchedLogId = watchedData?.logId || null;
@@ -59,11 +63,13 @@ export function SimpleMediaListItem({
     watchAvailability?.allOffers?.[0] ??
     null;
 
-  const justWatchRank =
-    watchAvailability?.ranks?.["7d"]?.rank ??
-    watchAvailability?.ranks?.["30d"]?.rank ??
-    watchAvailability?.ranks?.["1d"]?.rank ??
-    null;
+  const activeRankWindow =
+    watchAvailability?.ranks?.[rankWindow] ??
+    watchAvailability?.ranks?.["7d"] ??
+    watchAvailability?.ranks?.["30d"] ??
+    watchAvailability?.ranks?.["1d"];
+  const justWatchRank = activeRankWindow?.rank ?? null;
+  const justWatchDelta = activeRankWindow?.delta ?? null;
   const metascore = omdbData?.metascore || null;
   const rated = omdbData?.rated || null;
   const displayRating = ratingData?.rating || tmdbRating;
@@ -72,16 +78,37 @@ export function SimpleMediaListItem({
     mediaType === "movie" ? movieDetails?.runtime : tvDetails?.episode_run_time?.[0];
   const averageEpisodeRuntime =
     mediaType === "tv" ? tvDetails?.episode_run_time?.[0] || null : null;
+  const numberOfEpisodes =
+    mediaType === "tv" ? tvDetails?.number_of_episodes || null : null;
   const formattedRuntime = runtime
     ? `${Math.floor(runtime / 60)}h ${runtime % 60}m`
     : null;
 
+  const isInWatchlist = watchlist.some((w) => w.tmdbId === tmdbId && w.mediaType === mediaType);
+
+  const handleWatchlistToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      if (isInWatchlist) {
+        await removeFromWatchlist.mutateAsync({ tmdbId, mediaType });
+      } else {
+        await addToWatchlist.mutateAsync({
+          tmdbId,
+          mediaType,
+          title,
+          posterPath,
+          backdropPath: ("backdrop_path" in (details || {}) ? details?.backdrop_path : null) || null,
+          releaseDate: mediaType === "movie" ? (movieDetails?.release_date || undefined) : undefined,
+          firstAirDate: mediaType === "tv" ? (tvDetails?.first_air_date || undefined) : undefined,
+        });
+      }
+    } catch {
+      // no-op toast here; calling components already handle feedback patterns
+    }
+  };
+
   const handleWatchToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!isSignedIn) {
-      toast.error("Sign in to mark films as watched.");
-      return;
-    }
     try {
       if (isWatched && watchedLogId) {
         await unwatch.mutateAsync(watchedLogId);
@@ -91,13 +118,13 @@ export function SimpleMediaListItem({
           mediaType,
           title,
           posterPath,
-          backdropPath: null,
+          backdropPath: ("backdrop_path" in (details || {}) ? details?.backdrop_path : null) || null,
           releaseDate: mediaType === "movie" ? (movieDetails?.release_date || null) : null,
           firstAirDate: mediaType === "tv" ? (tvDetails?.first_air_date || null) : null,
         });
       }
     } catch {
-      toast.error("Failed to update watched status");
+      // no-op toast here; calling components already handle feedback patterns
     }
   };
 
@@ -105,20 +132,46 @@ export function SimpleMediaListItem({
     <button
       type="button"
       onClick={onClick}
-      className="w-full text-left cursor-pointer py-3 px-3 hover:bg-muted/30 transition-colors"
+      className="w-full text-left cursor-pointer py-3 px-3 transition-colors"
     >
       <div className="flex items-start gap-4">
         {posterPath ? (
-          <div className="relative w-24 h-32 sm:w-28 sm:h-40 rounded-[5px] overflow-hidden flex-shrink-0 bg-muted">
-            <Image src={getPosterUrl(posterPath)} alt={title} fill className="object-cover" sizes="64px" />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleWatchToggle}
-              className="absolute top-1 right-1 h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 text-white cursor-pointer"
+          <div className="relative w-28 h-40 sm:w-32 sm:h-48 rounded-[5px] overflow-hidden flex-shrink-0 bg-muted">
+            <Image
+              src={getPosterUrl(posterPath, "w500")}
+              alt={title}
+              fill
+              className="object-cover"
+              sizes="(max-width: 640px) 112px, 128px"
+              unoptimized
+            />
+            <div
+              onClick={handleWatchlistToggle}
+              role="button"
+              tabIndex={0}
+              aria-label={isInWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+              className="absolute -top-[3px] -left-[9px] z-10 flex items-center justify-center cursor-pointer"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleWatchlistToggle(e as unknown as React.MouseEvent);
+                }
+              }}
             >
-              <Eye className={cn("h-4 w-4", isWatched && "text-green-400")} />
-            </Button>
+              <div className="relative flex items-center justify-center">
+                <IoBookmarkSharp
+                  className={cn(
+                    "h-[44px] w-[44px]",
+                    isInWatchlist ? "text-[#E0B416] fill-[#E0B416]" : "text-gray-900 fill-gray-900"
+                  )}
+                />
+                {isInWatchlist ? (
+                  <Check className="absolute top-[5px] size-6 text-black z-10" />
+                ) : (
+                  <Plus className="absolute top-[5px] size-6 text-white z-10" />
+                )}
+              </div>
+            </div>
             {primaryOffer && (
               <div className="absolute bottom-0 left-0 right-0 p-1">
                 <a
@@ -152,7 +205,7 @@ export function SimpleMediaListItem({
             )}
           </div>
         ) : (
-          <div className="w-24 h-32 sm:w-28 sm:h-40 rounded-[5px] bg-muted flex-shrink-0 flex items-center justify-center">
+          <div className="w-28 h-40 sm:w-32 sm:h-48 rounded-[5px] bg-muted flex-shrink-0 flex items-center justify-center">
             {mediaType === "movie" ? (
               <Film className="h-6 w-6 text-muted-foreground" />
             ) : (
@@ -181,6 +234,12 @@ export function SimpleMediaListItem({
                     <span>{Math.floor(averageEpisodeRuntime / 60)}h {averageEpisodeRuntime % 60}m</span>
                   </>
                 )}
+            {numberOfEpisodes && (
+              <>
+                {(yearLabel || averageEpisodeRuntime) && <span>•</span>}
+                <span>{numberOfEpisodes} episodes</span>
+              </>
+            )}
             {rated && (
               <>
                 <span>•</span>
@@ -237,16 +296,36 @@ export function SimpleMediaListItem({
               <span className="text-[#F5C518] font-medium">
                 {justWatchRank != null ? `#${justWatchRank}` : "-"}
               </span>
+              {justWatchDelta != null && justWatchDelta !== 0 && (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium",
+                    justWatchDelta > 0 ? "bg-green-600 text-white" : "bg-red-600 text-white"
+                  )}
+                >
+                  {justWatchDelta > 0 ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                  {Math.abs(justWatchDelta)}
+                </span>
+              )}
             </div>
-            <a
-              href={watchAvailability?.credits?.url || "https://www.justwatch.com"}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {watchAvailability?.credits?.text || "Data by JustWatch"}
-            </a>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              {(["1d", "7d", "30d"] as const).map((w) => (
+                <button
+                  key={w}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setRankWindow(w);
+                  }}
+                  className={cn(
+                    "px-1.5 py-0.5 rounded cursor-pointer",
+                    rankWindow === w ? "bg-muted font-medium text-foreground" : "hover:text-foreground"
+                  )}
+                >
+                  {w === "1d" ? "24h" : w}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

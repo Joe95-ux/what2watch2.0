@@ -1587,7 +1587,7 @@ export default function PlaylistView({
                             yearLabel={releaseYear}
                             addedLabel={addedLabel}
                             orderLabel={tmdbSortField === "listOrder" ? `${playlistItem.order > 0 ? playlistItem.order : index + 1}.` : undefined}
-                            onClick={() => router.push(`/${type}/${playlistItem.tmdbId}`)}
+                            onClick={() => router.push(createContentUrl(type, playlistItem.tmdbId, playlistItem.title))}
                           />
                           {index < paginatedTMDB.length - 1 && <Separator className="mx-2 w-auto" />}
                         </div>

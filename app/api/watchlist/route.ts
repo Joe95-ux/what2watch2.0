@@ -144,13 +144,12 @@ export async function DELETE(request: NextRequest): Promise<NextResponse<{ succe
       );
     }
 
-    await db.watchlistItem.delete({
+    // Delete safely to tolerate duplicate remove actions/race conditions
+    await db.watchlistItem.deleteMany({
       where: {
-        userId_tmdbId_mediaType: {
-          userId: user.id,
-          tmdbId: parseInt(tmdbId, 10),
-          mediaType,
-        },
+        userId: user.id,
+        tmdbId: parseInt(tmdbId, 10),
+        mediaType,
       },
     });
 

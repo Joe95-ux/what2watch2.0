@@ -64,9 +64,9 @@ export async function DELETE(
       );
     }
 
-    // Delete the item
-    await db.listItem.delete({
-      where: { id: itemId },
+    // Delete the item safely (handles double-click/race where item may already be gone)
+    await db.listItem.deleteMany({
+      where: { id: itemId, listId },
     });
 
     // Re-sequence remaining items

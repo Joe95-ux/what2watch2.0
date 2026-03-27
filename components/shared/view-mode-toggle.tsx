@@ -25,7 +25,7 @@ export function ViewModeToggle({ viewMode, onViewModeChange }: ViewModeTogglePro
             : "border-transparent bg-transparent hover:bg-muted"
         } h-10 w-10`}
       >
-        <BiSolidGrid className="h-5 w-5" />
+        <BiSolidGrid className="size-6" />
       </Button>
       <Button
         variant="ghost"
@@ -38,7 +38,7 @@ export function ViewModeToggle({ viewMode, onViewModeChange }: ViewModeTogglePro
             : "border-transparent bg-transparent hover:bg-muted"
         } h-10 w-10`}
       >
-        <AlignJustify className="h-5 w-5" />
+        <AlignJustify className="size-6" />
       </Button>
       <Button
         variant="ghost"
@@ -51,7 +51,7 @@ export function ViewModeToggle({ viewMode, onViewModeChange }: ViewModeTogglePro
             : "border-transparent bg-transparent hover:bg-muted"
         } h-10 w-10`}
       >
-        <List className="h-5 w-5" />
+        <List className="size-6" />
       </Button>
     </div>
   );

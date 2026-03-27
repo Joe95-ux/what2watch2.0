@@ -175,8 +175,9 @@ export async function DELETE(
       );
     }
 
-    await db.playlistItem.delete({
-      where: { id: itemId },
+    // Delete safely to avoid occasional Prisma not-found errors on repeated clicks
+    await db.playlistItem.deleteMany({
+      where: { id: itemId, playlistId },
     });
 
     return NextResponse.json({ success: true });
