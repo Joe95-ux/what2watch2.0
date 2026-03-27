@@ -191,6 +191,8 @@ export function useUpdateList() {
       queryClient.invalidateQueries({ queryKey: ["lists"] });
       queryClient.invalidateQueries({ queryKey: ["list", data.id] });
       queryClient.invalidateQueries({ queryKey: ["public-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["overview-related-user-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["overview-editorial-lists"] });
     },
   });
 }
@@ -241,6 +243,9 @@ export function useRemoveItemFromList() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["lists"] });
       queryClient.invalidateQueries({ queryKey: ["list", variables.listId] });
+      queryClient.invalidateQueries({ queryKey: ["public-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["overview-related-user-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["overview-editorial-lists"] });
     },
   });
 }

@@ -7,7 +7,8 @@
     "postinstall": "prisma generate",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "backfill:list-related-metadata": "node scripts/backfill-list-related-metadata.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.34.5",
