@@ -29,7 +29,6 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
     const relatedMediaType = searchParams.get("mediaType");
     const relatedTmdbIdNum = relatedTmdbId ? parseInt(relatedTmdbId, 10) : null;
     const genreIdsParam = searchParams.get("genreIds");
-    const debugMode = searchParams.get("debug") === "1";
     const genreIds = genreIdsParam
       ? genreIdsParam
           .split(",")
@@ -84,32 +83,6 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
       where.AND = [{ OR: relatedTagFilters }];
     }
 
-    const debug: {
-      input: Record<string, unknown>;
-      derived: Record<string, unknown>;
-      whereBeforeQuery: Record<string, unknown>;
-      result?: Record<string, unknown>;
-      samples?: Record<string, unknown>;
-      fallback?: Record<string, unknown>;
-    } | null = debugMode
-      ? {
-          input: {
-            limitNum,
-            editorialOnlyParam,
-            relatedTmdbId,
-            relatedMediaType,
-            genreIds,
-            currentUserId: currentUserId ?? null,
-          },
-          derived: {
-            hasExactTarget,
-            exactItemTag,
-            genreTags,
-          },
-          whereBeforeQuery: where,
-        }
-      : null;
-
     let lists = await db.list.findMany({
       where,
       include: {
@@ -147,22 +120,6 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
       orderBy: { updatedAt: "desc" },
       take: hasExactTarget || genreTags.length > 0 ? Math.max(limitNum * 2, 20) : limitNum,
     });
-
-    if (debug) {
-      debug.result = {
-        matchedBeforeFallback: lists.length,
-      };
-      debug.samples = {
-        firstMatchedLists: lists.slice(0, 5).map((list) => ({
-          id: list.id,
-          name: list.name,
-          visibility: list.visibility,
-          hasEditorialTag: (list.tags || []).includes(EDITORIAL_TAG),
-          itemCount: list._count?.items ?? 0,
-          tagsPreview: (list.tags || []).slice(0, 12),
-        })),
-      };
-    }
 
     if ((hasExactTarget || genreTags.length > 0) && lists.length === 0) {
       const fallbackWhere: Record<string, unknown> = {
@@ -208,34 +165,12 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
         orderBy: { updatedAt: "desc" },
         take: limitNum,
       });
-
-      if (debug) {
-        debug.fallback = {
-          used: true,
-          fallbackWhere,
-          fallbackCount: lists.length,
-          fallbackPreview: lists.slice(0, 5).map((list) => ({
-            id: list.id,
-            name: list.name,
-            hasEditorialTag: (list.tags || []).includes(EDITORIAL_TAG),
-            tagsPreview: (list.tags || []).slice(0, 12),
-          })),
-        };
-      }
-    } else if (debug) {
-      debug.fallback = {
-        used: false,
-      };
     }
 
     const mappedLists = lists.map(mapListForClient);
 
     return NextResponse.json(
-      {
-        lists: mappedLists.slice(0, limitNum),
-        currentUserId,
-        ...(debugMode ? { debug } : {}),
-      },
+      { lists: mappedLists.slice(0, limitNum), currentUserId },
       {
         headers: {
           "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",

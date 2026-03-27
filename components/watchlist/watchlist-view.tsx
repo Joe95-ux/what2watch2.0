@@ -14,9 +14,8 @@ import {
   Film,
   Tv,
   Trash2,
-  Grid3x3,
-  Table2,
   List,
+  AlignJustify,
   Search,
   X,
   ArrowUpDown,
@@ -39,6 +38,7 @@ import {
   ChevronRight,
   Loader2,
 } from "lucide-react";
+import { BiSolidGrid } from "react-icons/bi";
 import Image from "next/image";
 import { getPosterUrl } from "@/lib/tmdb";
 import { format } from "date-fns";
@@ -97,6 +97,8 @@ import { createPersonSlug } from "@/lib/person-utils";
 import { useSearch } from "@/hooks/use-search";
 import { useDebounce } from "@/hooks/use-debounce";
 import { ShareDropdown } from "@/components/ui/share-dropdown";
+import { SimpleMediaListItem } from "@/components/shared/simple-media-list-item";
+import { Separator } from "@/components/ui/separator";
 import { useWatchlistDragDrop } from "@/hooks/use-watchlist-drag-drop";
 import { Droppable, Draggable } from "@hello-pangea/dnd";
 import {
@@ -848,16 +850,15 @@ export default function WatchlistView({
                       : "Check out this watchlist"
                   }
                   onShare={onShare}
-                  className="gap-2 cursor-pointer"
+                  variant="ghost"
+                  size="icon"
+                  showLabel={false}
+                  triggerTitle="Share watchlist"
+                  className="cursor-pointer rounded-full hover:bg-muted"
                 />
                 {enablePublicToggle && onTogglePublic && (
                   <div
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-md border",
-                      isPublicProp
-                        ? "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
-                        : "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
-                    )}
+                    className="flex items-center gap-2"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Switch
@@ -1237,31 +1238,43 @@ export default function WatchlistView({
             ) : (
               <div className="flex items-center gap-2">
                 <Button
-                  variant={viewMode === "grid" ? "default" : "outline"}
-                  size="sm"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setViewMode("grid")}
-                  className="cursor-pointer"
+                  title="Grid view"
+                  className={`cursor-pointer rounded-full border ${
+                    viewMode === "grid"
+                      ? "border-primary bg-muted text-foreground"
+                      : "border-border hover:bg-muted"
+                  }`}
                 >
-                  <Grid3x3 className="h-4 w-4 mr-2" />
-                  Grid
+                  <BiSolidGrid className="h-4 w-4" />
                 </Button>
                 <Button
-                  variant={viewMode === "table" ? "default" : "outline"}
-                  size="sm"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setViewMode("table")}
-                  className="cursor-pointer"
+                  title="List view"
+                  className={`cursor-pointer rounded-full border ${
+                    viewMode === "table"
+                      ? "border-primary bg-muted text-foreground"
+                      : "border-border hover:bg-muted"
+                  }`}
                 >
-                  <Table2 className="h-4 w-4 mr-2" />
-                  Table
+                  <AlignJustify className="h-4 w-4" />
                 </Button>
                 <Button
-                  variant={viewMode === "detailed" ? "default" : "outline"}
-                  size="sm"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setViewMode("detailed")}
-                  className="cursor-pointer"
+                  title="Detailed view"
+                  className={`cursor-pointer rounded-full border ${
+                    viewMode === "detailed"
+                      ? "border-primary bg-muted text-foreground"
+                      : "border-border hover:bg-muted"
+                  }`}
                 >
-                  <List className="h-4 w-4 mr-2" />
-                  Detailed
+                  <List className="h-4 w-4" />
                 </Button>
               </div>
             )}
@@ -1616,234 +1629,29 @@ export default function WatchlistView({
             </>
           ) : effectiveViewMode === "table" ? (
             <>
-            <div className="border border-border rounded-lg overflow-hidden bg-card">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-muted/30 border-b border-border">
-                    <tr>
-                      {isEditMode && enableEdit && (
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-12">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 cursor-pointer"
-                            onClick={toggleSelectAll}
-                          >
-                            {selectedItems.size === filteredAndSorted.length ? (
-                              <Check className="h-4 w-4" />
-                            ) : (
-                              <div className="h-4 w-4 border-2 border-current rounded" />
-                            )}
-                          </Button>
-                        </th>
-                      )}
-                      <th
-                        className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => {
-                          if (sortField === "title") {
-                            setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                          } else {
-                            setSortField("title");
-                            setSortOrder("asc");
-                          }
-                        }}
-                      >
-                        <div className="flex items-center">
-                          Title
-                          {sortField === "title" ? (
-                            sortOrder === "asc" ? (
-                              <ArrowUp className="h-3 w-3 ml-1" />
-                            ) : (
-                              <ArrowDown className="h-3 w-3 ml-1" />
-                            )
-                          ) : (
-                            <ArrowUpDown className="h-3 w-3 ml-1" />
-                          )}
-                        </div>
-                      </th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Type
-                      </th>
-                      <th
-                        className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => {
-                          if (sortField === "releaseYear") {
-                            setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                          } else {
-                            setSortField("releaseYear");
-                            setSortOrder("desc");
-                          }
-                        }}
-                      >
-                        <div className="flex items-center">
-                          Year
-                          {sortField === "releaseYear" ? (
-                            sortOrder === "asc" ? (
-                              <ArrowUp className="h-3 w-3 ml-1" />
-                            ) : (
-                              <ArrowDown className="h-3 w-3 ml-1" />
-                            )
-                          ) : (
-                            <ArrowUpDown className="h-3 w-3 ml-1" />
-                          )}
-                        </div>
-                      </th>
-                      <th
-                        className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => {
-                          if (sortField === "createdAt") {
-                            setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                          } else {
-                            setSortField("createdAt");
-                            setSortOrder("desc");
-                          }
-                        }}
-                      >
-                        <div className="flex items-center">
-                          Added
-                          {sortField === "createdAt" ? (
-                            sortOrder === "asc" ? (
-                              <ArrowUp className="h-3 w-3 ml-1" />
-                            ) : (
-                              <ArrowDown className="h-3 w-3 ml-1" />
-                            )
-                          ) : (
-                            <ArrowUpDown className="h-3 w-3 ml-1" />
-                          )}
-                        </div>
-                      </th>
-                      {!isEditMode && enableRemove && (
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                          Actions
-                        </th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {paginatedData.map(({ type, watchlistItem }) => {
-                      const releaseYear = watchlistItem.releaseDate
-                        ? new Date(watchlistItem.releaseDate).getFullYear()
-                        : watchlistItem.firstAirDate
-                        ? new Date(watchlistItem.firstAirDate).getFullYear()
-                        : "—";
-
-                      return (
-                        <tr
-                          key={watchlistItem.id}
-                          className={cn(
-                            "hover:bg-muted/20 transition-colors group cursor-pointer",
-                            isEditMode &&
-                              selectedItems.has(watchlistItem.id) &&
-                              "bg-primary/10"
-                          )}
-                          onClick={() => {
-                            if (isEditMode) {
-                              toggleItemSelection(watchlistItem.id);
-                            } else {
-                              // Note: We don't have the title here, so we'll use the ID-only URL
-                              // The redirect route will handle adding the slug
-                              router.push(`/${type}/${watchlistItem.tmdbId}`);
-                            }
-                          }}
-                        >
-                          {isEditMode && enableEdit && (
-                            <td className="px-4 py-4">
-                              <Button
-                                variant={
-                                  selectedItems.has(watchlistItem.id)
-                                    ? "default"
-                                    : "outline"
-                                }
-                                size="icon"
-                                className={cn(
-                                  "h-6 w-6 cursor-pointer",
-                                  selectedItems.has(watchlistItem.id) &&
-                                    "bg-primary"
-                                )}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleItemSelection(watchlistItem.id);
-                                }}
-                              >
-                                {selectedItems.has(watchlistItem.id) ? (
-                                  <Check className="h-3 w-3" />
-                                ) : (
-                                  <div className="h-3 w-3 border-2 border-current rounded" />
-                                )}
-                              </Button>
-                            </td>
-                          )}
-                          <td className="px-4 py-4">
-                            <div className="flex items-center gap-3">
-                              {watchlistItem.posterPath ? (
-                                <div className="relative w-16 h-24 rounded overflow-hidden flex-shrink-0 bg-muted">
-                                  <Image
-                                    src={getPosterUrl(watchlistItem.posterPath)}
-                                    alt={watchlistItem.title}
-                                    fill
-                                    className="object-cover"
-                                    sizes="64px"
-                                  />
-                                </div>
-                              ) : (
-                                <div className="w-16 h-24 rounded bg-muted flex-shrink-0 flex items-center justify-center">
-                                  {type === "movie" ? (
-                                    <Film className="h-6 w-6 text-muted-foreground" />
-                                  ) : (
-                                    <Tv className="h-6 w-6 text-muted-foreground" />
-                                  )}
-                                </div>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-sm group-hover:text-primary transition-colors">
-                                  {watchlistItem.title}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-4">
-                            <span className="text-sm text-muted-foreground capitalize">
-                              {type}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4">
-                            <span className="text-sm text-muted-foreground">
-                              {releaseYear}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4">
-                            <span className="text-sm text-muted-foreground">
-                              {format(
-                                new Date(watchlistItem.createdAt),
-                                "MMM d, yyyy"
-                              )}
-                            </span>
-                          </td>
-                          {!isEditMode && enableRemove && (
-                            <td className="px-4 py-4">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setItemToRemove({
-                                    tmdbId: watchlistItem.tmdbId,
-                                    mediaType: watchlistItem.mediaType,
-                                    title: watchlistItem.title,
-                                  });
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </td>
-                          )}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+            <div className="border border-border rounded-[5px] overflow-hidden">
+              {paginatedData.map(({ type, watchlistItem }, index) => {
+                const releaseYear = watchlistItem.releaseDate
+                  ? new Date(watchlistItem.releaseDate).getFullYear().toString()
+                  : watchlistItem.firstAirDate
+                  ? new Date(watchlistItem.firstAirDate).getFullYear().toString()
+                  : "—";
+                const addedLabel = format(new Date(watchlistItem.createdAt), "MMM d, yyyy");
+                return (
+                  <div key={watchlistItem.id}>
+                    <SimpleMediaListItem
+                      tmdbId={watchlistItem.tmdbId}
+                      mediaType={type}
+                      title={watchlistItem.title}
+                      posterPath={watchlistItem.posterPath}
+                      yearLabel={releaseYear}
+                      addedLabel={addedLabel}
+                      onClick={() => router.push(`/${type}/${watchlistItem.tmdbId}`)}
+                    />
+                    {index < paginatedData.length - 1 && <Separator />}
+                  </div>
+                );
+              })}
             </div>
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-2 mt-8 w-full overflow-auto px-2 py-1">
@@ -2509,12 +2317,12 @@ function DetailedWatchlistItem({
                           className="object-contain rounded-l w-7 h-7 block flex-shrink-0"
                           unoptimized
                         />
-                        <span className="pl-2 pr-2 flex items-center text-[12px] font-medium truncate text-white">
+                        <span className="pl-2 pr-2 flex items-center text-[13px] font-medium truncate text-white">
                           Watch Now
                         </span>
                       </>
                     ) : (
-                      <span className="px-2 flex items-center text-[12px] font-medium truncate text-white">
+                      <span className="px-2 flex items-center text-[13px] font-medium truncate text-white">
                         Watch Now
                       </span>
                     )}

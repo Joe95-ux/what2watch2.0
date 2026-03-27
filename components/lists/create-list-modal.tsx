@@ -293,6 +293,20 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess, edit
           <DialogTitle className="text-[1.5rem] font-bold mb-4">
             {isEditing ? "Edit List" : "Create List"}
           </DialogTitle>
+          <div className="flex items-center justify-end mb-3">
+            {canManageEditorial && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Editorial</span>
+                <Switch
+                  checked={isEditorial}
+                  onCheckedChange={setIsEditorial}
+                  disabled={isLoading}
+                  className="cursor-pointer"
+                  aria-label="Toggle editorial list"
+                />
+              </div>
+            )}
+          </div>
           {!editOnly && (
             <>
               <div className="flex items-center gap-8 mb-4">
@@ -337,18 +351,6 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess, edit
                     2
                   </div>
                 </div>
-                {canManageEditorial && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Editorial</span>
-                    <Switch
-                      checked={isEditorial}
-                      onCheckedChange={setIsEditorial}
-                      disabled={isLoading}
-                      className="cursor-pointer"
-                      aria-label="Toggle editorial list"
-                    />
-                  </div>
-                )}
               </div>
             </>
           )}

@@ -343,12 +343,12 @@ function DetailedPlaylistItem({
                             className="object-contain rounded-l w-7 h-7 block flex-shrink-0"
                             unoptimized
                           />
-                          <span className="pl-2 pr-2 flex items-center text-[12px] font-medium truncate text-white">
+                          <span className="pl-2 pr-2 flex items-center text-[13px] font-medium truncate text-white">
                             Watch Now
                           </span>
                         </>
                       ) : (
-                        <span className="px-2 flex items-center text-[12px] font-medium truncate text-white">
+                        <span className="px-2 flex items-center text-[13px] font-medium truncate text-white">
                           Watch Now
                         </span>
                       )}

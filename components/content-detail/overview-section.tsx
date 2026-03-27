@@ -413,7 +413,7 @@ export default function OverviewSection({
           )}
         </div>
 
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-24 lg:self-start">
           <div className="space-y-3">
             <h3 className="text-lg font-semibold">Editorial Lists</h3>
             <div className="space-y-2">

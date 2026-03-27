@@ -62,6 +62,8 @@ import { Droppable, Draggable } from "@hello-pangea/dnd";
 import { CollectionBanner } from "@/components/shared/collection-banner";
 import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import { CollectionPagination } from "@/components/shared/collection-pagination";
+import { SimpleMediaListItem } from "@/components/shared/simple-media-list-item";
+import { Separator } from "@/components/ui/separator";
 import { BulkActionsBar } from "@/components/shared/bulk-actions-bar";
 import {
   CollectionFilters,
@@ -693,6 +695,7 @@ export default function ListView({
                 <div className="flex items-center gap-3 mb-4">
                   {list.isEditorial ? (
                     <Avatar className="h-10 w-10">
+                      <AvatarImage src="/icon1.png" alt="What2watch.net-Editors" />
                       <AvatarFallback>W</AvatarFallback>
                     </Avatar>
                   ) : (
@@ -833,18 +836,15 @@ export default function ListView({
                   title={list.name}
                   description={`Check out ${list.name} on What2Watch`}
                   onShare={onShare}
-                  className="gap-2 cursor-pointer flex-shrink-0"
+                  variant="ghost"
+                  size="icon"
+                  showLabel={false}
+                  triggerTitle="Share list"
+                  className="cursor-pointer flex-shrink-0 rounded-full hover:bg-muted"
                 />
                 {enablePublicToggle && onTogglePublic && isOwner && (
                   <div
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-md border",
-                      (optimisticVisibility ?? list.visibility) === "PUBLIC"
-                        ? "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
-                        : (optimisticVisibility ?? list.visibility) === "FOLLOWERS_ONLY"
-                        ? "bg-purple-500/20 border-purple-500/30 text-purple-700 dark:text-purple-400"
-                        : "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
-                    )}
+                    className="flex items-center gap-2"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Switch
@@ -1331,243 +1331,29 @@ export default function ListView({
             </>
           ) : effectiveViewMode === "table" ? (
             <>
-              <div className="border border-border rounded-lg overflow-hidden bg-card">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-muted/30 border-b border-border">
-                      <tr>
-                        {isEditMode && enableEdit && (
-                          <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-12">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 cursor-pointer"
-                              onClick={toggleSelectAll}
-                            >
-                              {selectedItems.size === filteredAndSorted.length ? (
-                                <Check className="h-4 w-4" />
-                              ) : (
-                                <div className="h-4 w-4 border-2 border-current rounded" />
-                              )}
-                            </Button>
-                          </th>
-                        )}
-                        {sortField === "listOrder" && (
-                          <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                            {sortField === "listOrder" ? "Position" : ""}
-                          </th>
-                        )}
-                        <th
-                          className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors"
-                          onClick={() => {
-                            if (sortField === "title") {
-                              setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                            } else {
-                              setSortField("title");
-                              setSortOrder("asc");
-                            }
-                          }}
-                        >
-                          <div className="flex items-center">
-                            Title
-                            {sortField === "title" ? (
-                              sortOrder === "asc" ? (
-                                <ArrowUp className="h-3 w-3 ml-1" />
-                              ) : (
-                                <ArrowDown className="h-3 w-3 ml-1" />
-                              )
-                            ) : (
-                              <ArrowUpDown className="h-3 w-3 ml-1" />
-                            )}
-                          </div>
-                        </th>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                          Type
-                        </th>
-                        <th
-                          className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors"
-                          onClick={() => {
-                            if (sortField === "releaseYear") {
-                              setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                            } else {
-                              setSortField("releaseYear");
-                              setSortOrder("desc");
-                            }
-                          }}
-                        >
-                          <div className="flex items-center">
-                            Year
-                            {sortField === "releaseYear" ? (
-                              sortOrder === "asc" ? (
-                                <ArrowUp className="h-3 w-3 ml-1" />
-                              ) : (
-                                <ArrowDown className="h-3 w-3 ml-1" />
-                              )
-                            ) : (
-                              <ArrowUpDown className="h-3 w-3 ml-1" />
-                            )}
-                          </div>
-                        </th>
-                        <th
-                          className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors"
-                          onClick={() => {
-                            if (sortField === "createdAt") {
-                              setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                            } else {
-                              setSortField("createdAt");
-                              setSortOrder("desc");
-                            }
-                          }}
-                        >
-                          <div className="flex items-center">
-                            Added
-                            {sortField === "createdAt" ? (
-                              sortOrder === "asc" ? (
-                                <ArrowUp className="h-3 w-3 ml-1" />
-                              ) : (
-                                <ArrowDown className="h-3 w-3 ml-1" />
-                              )
-                            ) : (
-                              <ArrowUpDown className="h-3 w-3 ml-1" />
-                            )}
-                          </div>
-                        </th>
-                        {!isEditMode && enableRemove && (
-                          <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                            Actions
-                          </th>
-                        )}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {paginatedData.map(({ type, listItem }) => {
-                        const releaseYear = listItem.releaseDate
-                          ? new Date(listItem.releaseDate).getFullYear()
-                          : listItem.firstAirDate
-                          ? new Date(listItem.firstAirDate).getFullYear()
-                          : "—";
-
-                        return (
-                          <tr
-                            key={listItem.id}
-                            className={cn(
-                              "hover:bg-muted/20 transition-colors group cursor-pointer",
-                              isEditMode &&
-                                selectedItems.has(listItem.id) &&
-                                "bg-primary/10"
-                            )}
-                            onClick={() => {
-                              if (isEditMode) {
-                                toggleItemSelection(listItem.id);
-                              } else {
-                                router.push(`/${type}/${listItem.tmdbId}`);
-                              }
-                            }}
-                          >
-                            {isEditMode && enableEdit && (
-                              <td className="px-4 py-4">
-                                <Button
-                                  variant={
-                                    selectedItems.has(listItem.id)
-                                      ? "default"
-                                      : "outline"
-                                  }
-                                  size="icon"
-                                  className={cn(
-                                    "h-6 w-6 cursor-pointer",
-                                    selectedItems.has(listItem.id) &&
-                                      "bg-primary"
-                                  )}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleItemSelection(listItem.id);
-                                  }}
-                                >
-                                  {selectedItems.has(listItem.id) ? (
-                                    <Check className="h-3 w-3" />
-                                  ) : (
-                                    <div className="h-3 w-3 border-2 border-current rounded" />
-                                  )}
-                                </Button>
-                              </td>
-                            )}
-                            {sortField === "listOrder" && (
-                              <td className="px-4 py-4">
-                                <span className="text-sm text-muted-foreground">
-                                  {listItem.position > 0 ? listItem.position : "—"}
-                                </span>
-                              </td>
-                            )}
-                            <td className="px-4 py-4">
-                              <div className="flex items-center gap-3">
-                                {listItem.posterPath ? (
-                                  <div className="relative w-16 h-24 rounded overflow-hidden flex-shrink-0 bg-muted">
-                                    <Image
-                                      src={getPosterUrl(listItem.posterPath)}
-                                      alt={listItem.title}
-                                      fill
-                                      className="object-cover"
-                                      sizes="64px"
-                                    />
-                                  </div>
-                                ) : (
-                                  <div className="w-16 h-24 rounded bg-muted flex-shrink-0 flex items-center justify-center">
-                                    {type === "movie" ? (
-                                      <Film className="h-6 w-6 text-muted-foreground" />
-                                    ) : (
-                                      <Tv className="h-6 w-6 text-muted-foreground" />
-                                    )}
-                                  </div>
-                                )}
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-semibold text-sm group-hover:text-primary transition-colors">
-                                    {listItem.title}
-                                  </p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-4">
-                              <span className="text-sm text-muted-foreground capitalize">
-                                {type}
-                              </span>
-                            </td>
-                            <td className="px-4 py-4">
-                              <span className="text-sm text-muted-foreground">
-                                {releaseYear}
-                              </span>
-                            </td>
-                            <td className="px-4 py-4">
-                              <span className="text-sm text-muted-foreground">
-                                {format(
-                                  new Date(listItem.createdAt),
-                                  "MMM d, yyyy"
-                                )}
-                              </span>
-                            </td>
-                            {!isEditMode && enableRemove && (
-                              <td className="px-4 py-4">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setItemToRemove({
-                                      itemId: listItem.id,
-                                      title: listItem.title,
-                                    });
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </td>
-                            )}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+              <div className="border border-border rounded-[5px] overflow-hidden">
+                {paginatedData.map(({ type, listItem }, index) => {
+                  const releaseYear = listItem.releaseDate
+                    ? new Date(listItem.releaseDate).getFullYear().toString()
+                    : listItem.firstAirDate
+                    ? new Date(listItem.firstAirDate).getFullYear().toString()
+                    : "—";
+                  const addedLabel = format(new Date(listItem.createdAt), "MMM d, yyyy");
+                  return (
+                    <div key={listItem.id}>
+                      <SimpleMediaListItem
+                        tmdbId={listItem.tmdbId}
+                        mediaType={type}
+                        title={listItem.title}
+                        posterPath={listItem.posterPath}
+                        yearLabel={releaseYear}
+                        addedLabel={addedLabel}
+                        onClick={() => router.push(`/${type}/${listItem.tmdbId}`)}
+                      />
+                      {index < paginatedData.length - 1 && <Separator />}
+                    </div>
+                  );
+                })}
               </div>
               <CollectionPagination
                 currentPage={currentPage}
@@ -2587,12 +2373,12 @@ function DetailedListItem({
                           className="object-contain rounded-l w-7 h-7 block flex-shrink-0"
                           unoptimized
                         />
-                        <span className="pl-2 pr-2 flex items-center text-[12px] font-medium truncate text-white">
+                        <span className="pl-2 pr-2 flex items-center text-[13px] font-medium truncate text-white">
                           Watch Now
                         </span>
                       </>
                     ) : (
-                      <span className="px-2 flex items-center text-[12px] font-medium truncate text-white">
+                      <span className="px-2 flex items-center text-[13px] font-medium truncate text-white">
                         Watch Now
                       </span>
                     )}

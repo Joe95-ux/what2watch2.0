@@ -1,7 +1,6 @@
 "use client";
 
-import { Facebook, Twitter, Mail, Link2 } from "lucide-react";
-import { FaShare } from "react-icons/fa6";
+import { Facebook, Twitter, Mail, Link2, Share2 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import {
@@ -129,6 +128,7 @@ interface ShareDropdownProps {
   variant?: "default" | "outline" | "ghost" | "link" | "destructive" | "secondary";
   size?: "default" | "sm" | "lg" | "icon";
   showLabel?: boolean;
+  triggerTitle?: string;
 }
 
 export function ShareDropdown({
@@ -140,12 +140,13 @@ export function ShareDropdown({
   variant = "outline",
   size = "default",
   showLabel = true,
+  triggerTitle = "Share",
 }: ShareDropdownProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant={variant} size={size} className={className}>
-          <FaShare className="h-4 w-4" />
+        <Button variant={variant} size={size} className={className} title={triggerTitle}>
+          <Share2 className="h-4 w-4" />
           {showLabel && <span className="hidden md:inline">Share</span>}
         </Button>
       </DropdownMenuTrigger>

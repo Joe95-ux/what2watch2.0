@@ -1,7 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Grid3x3, Table2, List } from "lucide-react";
+import { AlignJustify, List } from "lucide-react";
+import { BiSolidGrid } from "react-icons/bi";
 
 export type ViewMode = "grid" | "table" | "detailed";
 
@@ -14,31 +15,43 @@ export function ViewModeToggle({ viewMode, onViewModeChange }: ViewModeTogglePro
   return (
     <div className="flex items-center gap-2">
       <Button
-        variant={viewMode === "grid" ? "default" : "outline"}
-        size="sm"
+        variant="ghost"
+        size="icon"
         onClick={() => onViewModeChange("grid")}
-        className="cursor-pointer"
+        title="Grid view"
+        className={`cursor-pointer rounded-full border ${
+          viewMode === "grid"
+            ? "border-primary bg-muted text-foreground"
+            : "border-border hover:bg-muted"
+        }`}
       >
-        <Grid3x3 className="h-4 w-4 mr-2" />
-        Grid
+        <BiSolidGrid className="h-4 w-4" />
       </Button>
       <Button
-        variant={viewMode === "table" ? "default" : "outline"}
-        size="sm"
+        variant="ghost"
+        size="icon"
         onClick={() => onViewModeChange("table")}
-        className="cursor-pointer"
+        title="List view"
+        className={`cursor-pointer rounded-full border ${
+          viewMode === "table"
+            ? "border-primary bg-muted text-foreground"
+            : "border-border hover:bg-muted"
+        }`}
       >
-        <Table2 className="h-4 w-4 mr-2" />
-        Table
+        <AlignJustify className="h-4 w-4" />
       </Button>
       <Button
-        variant={viewMode === "detailed" ? "default" : "outline"}
-        size="sm"
+        variant="ghost"
+        size="icon"
         onClick={() => onViewModeChange("detailed")}
-        className="cursor-pointer"
+        title="Detailed view"
+        className={`cursor-pointer rounded-full border ${
+          viewMode === "detailed"
+            ? "border-primary bg-muted text-foreground"
+            : "border-border hover:bg-muted"
+        }`}
       >
-        <List className="h-4 w-4 mr-2" />
-        Detailed
+        <List className="h-4 w-4" />
       </Button>
     </div>
   );

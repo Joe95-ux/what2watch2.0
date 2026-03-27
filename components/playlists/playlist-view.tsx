@@ -65,6 +65,8 @@ import { Droppable, Draggable } from "@hello-pangea/dnd";
 import { CollectionBanner } from "@/components/shared/collection-banner";
 import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import { CollectionPagination } from "@/components/shared/collection-pagination";
+import { SimpleMediaListItem } from "@/components/shared/simple-media-list-item";
+import { Separator } from "@/components/ui/separator";
 import { BulkActionsBar } from "@/components/shared/bulk-actions-bar";
 import {
   CollectionFilters,
@@ -1081,18 +1083,15 @@ export default function PlaylistView({
                   title={playlist.name}
                   description={`Check out ${playlist.name} on What2Watch`}
                   onShare={onShare}
-                  className="gap-2 cursor-pointer flex-shrink-0"
+                  variant="ghost"
+                  size="icon"
+                  showLabel={false}
+                  triggerTitle="Share playlist"
+                  className="cursor-pointer flex-shrink-0 rounded-full hover:bg-muted"
                 />
                 {enablePublicToggle && onTogglePublic && isOwner && (
                   <div
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-md border",
-                      effectiveVisibility === "PUBLIC"
-                        ? "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
-                        : effectiveVisibility === "FOLLOWERS_ONLY"
-                        ? "bg-purple-500/20 border-purple-500/30 text-purple-700 dark:text-purple-400"
-                        : "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
-                    )}
+                    className="flex items-center gap-2"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Switch
@@ -1570,180 +1569,29 @@ export default function PlaylistView({
                 </>
               ) : effectiveViewMode === "table" ? (
                 <>
-                  <div className="border border-border rounded-lg overflow-hidden bg-card">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className="bg-muted/30 border-b border-border">
-                          <tr>
-                            {isEditMode && enableEdit && (
-                              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-12">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 cursor-pointer"
-                                  onClick={() => toggleSelectAll(false)}
-                                >
-                                  {selectedItems.size === filteredAndSortedTMDB.length ? (
-                                    <Check className="h-4 w-4" />
-                                  ) : (
-                                    <div className="h-4 w-4 border-2 border-current rounded" />
-                                  )}
-                                </Button>
-                              </th>
-                            )}
-                            {tmdbSortField === "listOrder" && !isMixedPlaylist && (
-                              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                Order
-                              </th>
-                            )}
-                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                              Title
-                            </th>
-                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                              Type
-                            </th>
-                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                              Year
-                            </th>
-                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                              Added
-                            </th>
-                            {!isEditMode && enableRemove && (
-                              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                Actions
-                              </th>
-                            )}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {paginatedTMDB.map(({ type, playlistItem }) => {
-                            const releaseYear = playlistItem.releaseDate
-                              ? new Date(playlistItem.releaseDate).getFullYear()
-                              : playlistItem.firstAirDate
-                              ? new Date(playlistItem.firstAirDate).getFullYear()
-                              : "—";
-
-                            return (
-                              <tr
-                                key={playlistItem.id}
-                                className={cn(
-                                  "hover:bg-muted/20 transition-colors group cursor-pointer",
-                                  isEditMode &&
-                                    selectedItems.has(playlistItem.id) &&
-                                    "bg-primary/10"
-                                )}
-                                onClick={() => {
-                                  if (isEditMode) {
-                                    toggleItemSelection(playlistItem.id);
-                                  } else {
-                                    router.push(`/${type}/${playlistItem.tmdbId}`);
-                                  }
-                                }}
-                              >
-                                {isEditMode && enableEdit && (
-                                  <td className="px-4 py-4">
-                                    <Button
-                                      variant={
-                                        selectedItems.has(playlistItem.id)
-                                          ? "default"
-                                          : "outline"
-                                      }
-                                      size="icon"
-                                      className={cn(
-                                        "h-6 w-6 cursor-pointer",
-                                        selectedItems.has(playlistItem.id) &&
-                                          "bg-primary"
-                                      )}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleItemSelection(playlistItem.id);
-                                      }}
-                                    >
-                                      {selectedItems.has(playlistItem.id) ? (
-                                        <Check className="h-3 w-3" />
-                                      ) : (
-                                        <div className="h-3 w-3 border-2 border-current rounded" />
-                                      )}
-                                    </Button>
-                                  </td>
-                                )}
-                                {tmdbSortField === "listOrder" && (
-                                  <td className="px-4 py-4">
-                                    <span className="text-sm text-muted-foreground">
-                                      {playlistItem.order > 0 ? playlistItem.order : "—"}
-                                    </span>
-                                  </td>
-                                )}
-                                <td className="px-4 py-4">
-                                  <div className="flex items-center gap-3">
-                                    {playlistItem.posterPath ? (
-                                      <div className="relative w-16 h-24 rounded overflow-hidden flex-shrink-0 bg-muted">
-                                        <Image
-                                          src={getPosterUrl(playlistItem.posterPath)}
-                                          alt={playlistItem.title}
-                                          fill
-                                          className="object-cover"
-                                          sizes="64px"
-                                        />
-                                      </div>
-                                    ) : (
-                                      <div className="w-16 h-24 rounded bg-muted flex-shrink-0 flex items-center justify-center">
-                                        {type === "movie" ? (
-                                          <Film className="h-6 w-6 text-muted-foreground" />
-                                        ) : (
-                                          <Tv className="h-6 w-6 text-muted-foreground" />
-                                        )}
-                                      </div>
-                                    )}
-                                    <div className="flex-1 min-w-0">
-                                      <p className="font-semibold text-sm group-hover:text-primary transition-colors">
-                                        {playlistItem.title}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="px-4 py-4">
-                                  <span className="text-sm text-muted-foreground capitalize">
-                                    {type}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-4">
-                                  <span className="text-sm text-muted-foreground">
-                                    {releaseYear}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-4">
-                                  <span className="text-sm text-muted-foreground">
-                                    {format(
-                                      new Date(playlistItem.createdAt),
-                                      "MMM d, yyyy"
-                                    )}
-                                  </span>
-                                </td>
-                                {!isEditMode && enableRemove && (
-                                  <td className="px-4 py-4">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setItemToRemove({
-                                          itemId: playlistItem.id,
-                                          title: playlistItem.title,
-                                        });
-                                      }}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </td>
-                                )}
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                  <div className="border border-border rounded-[5px] overflow-hidden">
+                    {paginatedTMDB.map(({ type, playlistItem }, index) => {
+                      const releaseYear = playlistItem.releaseDate
+                        ? new Date(playlistItem.releaseDate).getFullYear().toString()
+                        : playlistItem.firstAirDate
+                        ? new Date(playlistItem.firstAirDate).getFullYear().toString()
+                        : "—";
+                      const addedLabel = format(new Date(playlistItem.createdAt), "MMM d, yyyy");
+                      return (
+                        <div key={playlistItem.id}>
+                          <SimpleMediaListItem
+                            tmdbId={playlistItem.tmdbId}
+                            mediaType={type}
+                            title={playlistItem.title}
+                            posterPath={playlistItem.posterPath}
+                            yearLabel={releaseYear}
+                            addedLabel={addedLabel}
+                            onClick={() => router.push(`/${type}/${playlistItem.tmdbId}`)}
+                          />
+                          {index < paginatedTMDB.length - 1 && <Separator />}
+                        </div>
+                      );
+                    })}
                   </div>
                   {tmdbTotalPages > 1 && (
                     <CollectionPagination
@@ -2003,169 +1851,42 @@ export default function PlaylistView({
                 </>
               ) : effectiveViewMode === "table" ? (
                 <>
-                  <div className="border border-border rounded-lg overflow-hidden bg-card">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className="bg-muted/30 border-b border-border">
-                          <tr>
-                            {isEditMode && enableEdit && (
-                              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-12">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 cursor-pointer"
-                                  onClick={() => toggleSelectAll(true)}
-                                >
-                                  {selectedYouTubeItems.size === filteredYouTube.length ? (
-                                    <Check className="h-4 w-4" />
-                                  ) : (
-                                    <div className="h-4 w-4 border-2 border-current rounded" />
-                                  )}
-                                </Button>
-                              </th>
+                  <div className="border border-border rounded-[5px] overflow-hidden">
+                    {paginatedYouTube.map((youtubeItem, index) => (
+                      <div key={youtubeItem.id}>
+                        <button
+                          type="button"
+                          onClick={() => window.open(`https://www.youtube.com/watch?v=${youtubeItem.videoId}`, "_blank")}
+                          className="w-full text-left cursor-pointer py-3 px-3 hover:bg-muted/30 transition-colors"
+                        >
+                          <div className="flex items-start gap-3">
+                            {youtubeItem.thumbnail ? (
+                              <div className="relative w-24 h-16 overflow-hidden flex-shrink-0 bg-muted">
+                                <Image
+                                  src={youtubeItem.thumbnail}
+                                  alt={youtubeItem.title}
+                                  fill
+                                  className="object-cover"
+                                  sizes="96px"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-24 h-16 bg-muted flex-shrink-0 flex items-center justify-center">
+                                <Youtube className="h-6 w-6 text-muted-foreground" />
+                              </div>
                             )}
-                            {!isMixedPlaylist && (
-                              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                Order
-                              </th>
-                            )}
-                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                              Title
-                            </th>
-                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                              Channel
-                            </th>
-                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                              Duration
-                            </th>
-                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                              Added
-                            </th>
-                            {!isEditMode && enableRemove && (
-                              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                Actions
-                              </th>
-                            )}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {paginatedYouTube.map((youtubeItem) => (
-                            <tr
-                              key={youtubeItem.id}
-                              className={cn(
-                                "hover:bg-muted/20 transition-colors group cursor-pointer",
-                                isEditMode &&
-                                  selectedYouTubeItems.has(youtubeItem.id) &&
-                                  "bg-primary/10"
-                              )}
-                              onClick={() => {
-                                if (isEditMode) {
-                                  toggleItemSelection(youtubeItem.id, true);
-                                } else {
-                                  window.open(`https://www.youtube.com/watch?v=${youtubeItem.videoId}`, "_blank");
-                                }
-                              }}
-                            >
-                              {isEditMode && enableEdit && (
-                                <td className="px-4 py-4">
-                                  <Button
-                                    variant={
-                                      selectedYouTubeItems.has(youtubeItem.id)
-                                        ? "default"
-                                        : "outline"
-                                    }
-                                    size="icon"
-                                    className={cn(
-                                      "h-6 w-6 cursor-pointer",
-                                      selectedYouTubeItems.has(youtubeItem.id) &&
-                                        "bg-primary"
-                                    )}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleItemSelection(youtubeItem.id, true);
-                                    }}
-                                  >
-                                    {selectedYouTubeItems.has(youtubeItem.id) ? (
-                                      <Check className="h-3 w-3" />
-                                    ) : (
-                                      <div className="h-3 w-3 border-2 border-current rounded" />
-                                    )}
-                                  </Button>
-                                </td>
-                              )}
-                              {!isMixedPlaylist && (
-                                <td className="px-4 py-4">
-                                  <span className="text-sm text-muted-foreground">
-                                    {youtubeItem.order > 0 ? youtubeItem.order : "—"}
-                                  </span>
-                                </td>
-                              )}
-                              <td className="px-4 py-4">
-                                <div className="flex items-center gap-3">
-                                  {youtubeItem.thumbnail ? (
-                                    <div className="relative w-24 h-16 rounded overflow-hidden flex-shrink-0 bg-muted">
-                                      <Image
-                                        src={youtubeItem.thumbnail}
-                                        alt={youtubeItem.title}
-                                        fill
-                                        className="object-cover"
-                                        sizes="96px"
-                                      />
-                                    </div>
-                                  ) : (
-                                    <div className="w-24 h-16 rounded bg-muted flex-shrink-0 flex items-center justify-center">
-                                      <Youtube className="h-6 w-6 text-muted-foreground" />
-                                    </div>
-                                  )}
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-semibold text-sm group-hover:text-primary transition-colors">
-                                      {youtubeItem.title}
-                                    </p>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-4 py-4">
-                                <span className="text-sm text-muted-foreground">
-                                  {youtubeItem.channelTitle || "—"}
-                                </span>
-                              </td>
-                              <td className="px-4 py-4">
-                                <span className="text-sm text-muted-foreground">
-                                  {youtubeItem.duration ? youtubeItem.duration : "—"}
-                                </span>
-                              </td>
-                              <td className="px-4 py-4">
-                                <span className="text-sm text-muted-foreground">
-                                  {format(
-                                    new Date(youtubeItem.createdAt),
-                                    "MMM d, yyyy"
-                                  )}
-                                </span>
-                              </td>
-                              {!isEditMode && enableRemove && (
-                                <td className="px-4 py-4">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setItemToRemove({
-                                        itemId: youtubeItem.id,
-                                        title: youtubeItem.title,
-                                        isYouTube: true,
-                                      });
-                                    }}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </td>
-                              )}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <p className="font-semibold leading-tight line-clamp-2">{youtubeItem.title}</p>
+                              <p className="text-sm text-muted-foreground">{youtubeItem.channelTitle || "—"}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {youtubeItem.duration || "—"} • Added {format(new Date(youtubeItem.createdAt), "MMM d, yyyy")}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                        {index < paginatedYouTube.length - 1 && <Separator />}
+                      </div>
+                    ))}
                   </div>
                   {youtubeTotalPages > 1 && (
                     <CollectionPagination
