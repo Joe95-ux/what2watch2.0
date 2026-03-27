@@ -60,7 +60,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
     if (editorialOnlyParam === "true") {
       where.tags = { has: EDITORIAL_TAG };
     } else if (editorialOnlyParam === "false") {
-      where.tags = { hasNone: [EDITORIAL_TAG] };
+      where.NOT = [{ tags: { has: EDITORIAL_TAG } }];
     }
 
     const hasExactTarget =
@@ -167,7 +167,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
     if ((hasExactTarget || genreTags.length > 0) && lists.length === 0) {
       const fallbackWhere: Record<string, unknown> = {
         visibility: "PUBLIC",
-        tags: { hasNone: [EDITORIAL_TAG] },
+        NOT: [{ tags: { has: EDITORIAL_TAG } }],
         items: { some: {} },
       };
 
