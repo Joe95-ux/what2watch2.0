@@ -722,19 +722,24 @@ export default function ListView({
                     </Link>
                   )}
                   <div>
-                    <p className="text-sm text-muted-foreground">
-                      Created by{" "}
-                      {list.isEditorial ? (
-                        <span className="text-foreground">What2watch.net-Editors</span>
-                      ) : (
+                    {list.isEditorial ? (
+                      <Link
+                        href="/editorial"
+                        className="text-sm font-medium text-foreground hover:text-primary transition-colors cursor-pointer"
+                      >
+                        What2watch.net Editors
+                      </Link>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Created by{" "}
                         <Link
                           href={`/users/${list.user.username || list.user.id}`}
                           className="hover:text-primary transition-colors cursor-pointer"
                         >
                           {list.user.username || list.user.displayName || "Unknown"}
                         </Link>
-                      )}
-                    </p>
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -759,20 +764,16 @@ export default function ListView({
                 </p>
               )}
               <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                {list.user && (
+                {list.user && !list.isEditorial && (
                   <>
                     <span>
                       Created by{" "}
-                      {list.isEditorial ? (
-                        <span className="text-foreground">What2watch.net-Editors</span>
-                      ) : (
-                        <Link
-                          href={`/users/${list.user.username || list.user.id}`}
-                          className="hover:text-primary transition-colors cursor-pointer"
-                        >
-                          {list.user.username || list.user.displayName || "Unknown"}
-                        </Link>
-                      )}
+                      <Link
+                        href={`/users/${list.user.username || list.user.id}`}
+                        className="hover:text-primary transition-colors cursor-pointer"
+                      >
+                        {list.user.username || list.user.displayName || "Unknown"}
+                      </Link>
                     </span>
                     <span>•</span>
                   </>

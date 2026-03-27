@@ -18,8 +18,54 @@ function mapListForClient<T extends { tags?: string[] }>(list: T) {
   };
 }
 
+const listInclude = {
+  user: {
+    select: {
+      id: true,
+      username: true,
+      displayName: true,
+      avatarUrl: true,
+    },
+  },
+  items: {
+    take: 12,
+    orderBy: { position: "asc" as const },
+    select: {
+      tmdbId: true,
+      mediaType: true,
+      position: true,
+      posterPath: true,
+    },
+  },
+  _count: {
+    select: {
+      items: true,
+      likedBy: true,
+      comments: true,
+    },
+  },
+  likedBy: {
+    select: {
+      id: true,
+    },
+  },
+};
+
 // GET - Fetch public lists (no authentication required)
-export async function GET(request: NextRequest): Promise<NextResponse<{ lists: unknown[]; currentUserId?: string } | { error: string }>> {
+export async function GET(
+  request: NextRequest,
+): Promise<
+  NextResponse<
+    | {
+        lists: unknown[];
+        currentUserId?: string;
+        total?: number;
+        page?: number;
+        limit?: number;
+      }
+    | { error: string }
+  >
+> {
   try {
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get("limit");
@@ -36,7 +82,13 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
           .filter((x) => !Number.isNaN(x))
       : [];
 
-    // Get current user if authenticated (for ownership checks)
+    const pageRaw = searchParams.get("page");
+    const pageNum = pageRaw ? Math.max(1, parseInt(pageRaw, 10) || 1) : 1;
+    const skip = (pageNum - 1) * limitNum;
+    const q = searchParams.get("q")?.trim();
+    const sortBy = searchParams.get("sortBy") === "name" ? "name" : "updatedAt";
+    const sortOrder = searchParams.get("order") === "asc" ? ("asc" as const) : ("desc" as const);
+
     const { userId: clerkUserId } = await auth();
     let currentUserId: string | undefined;
     if (clerkUserId) {
@@ -47,23 +99,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
       currentUserId = user?.id;
     }
 
-    // Fetch public lists, ordered by most recently updated
-    // Only include lists that have at least one item
-    const where: any = {
-      visibility: "PUBLIC",
-      items: {
-        some: {}, // At least one item
-      },
-    };
-
-    if (editorialOnlyParam === "true") {
-      where.tags = { has: EDITORIAL_TAG };
-    } else if (editorialOnlyParam === "false") {
-      where.NOT = [{ tags: { has: EDITORIAL_TAG } }];
-    }
-
     const hasExactTarget =
-      relatedTmdbIdNum &&
+      relatedTmdbIdNum !== null &&
       !Number.isNaN(relatedTmdbIdNum) &&
       (relatedMediaType === "movie" || relatedMediaType === "tv");
 
@@ -71,8 +108,23 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
       ? toItemTag(relatedMediaType as "movie" | "tv", relatedTmdbIdNum as number)
       : null;
     const genreTags = genreIds.map((id) => toGenreTag(id));
+    const hasRelatedFilters = Boolean(hasExactTarget || genreTags.length > 0);
 
-    if (hasExactTarget || genreTags.length > 0) {
+    // Related lists (details overview): tag-based match + optional fallback — no paginated catalog
+    if (hasRelatedFilters) {
+      const where: Record<string, unknown> = {
+        visibility: "PUBLIC",
+        items: {
+          some: {},
+        },
+      };
+
+      if (editorialOnlyParam === "true") {
+        where.tags = { has: EDITORIAL_TAG };
+      } else if (editorialOnlyParam === "false") {
+        where.NOT = [{ tags: { has: EDITORIAL_TAG } }];
+      }
+
       const relatedTagFilters: Array<Record<string, unknown>> = [];
       if (exactItemTag) {
         relatedTagFilters.push({ tags: { has: exactItemTag } });
@@ -81,96 +133,86 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
         relatedTagFilters.push({ tags: { hasSome: genreTags } });
       }
       where.AND = [{ OR: relatedTagFilters }];
-    }
 
-    let lists = await db.list.findMany({
-      where,
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            avatarUrl: true,
-          },
-        },
-        items: {
-          take: 12,
-          orderBy: { position: "asc" },
-          select: {
-            tmdbId: true,
-            mediaType: true,
-            position: true,
-            posterPath: true,
-          },
-        },
-        _count: {
-          select: {
-            items: true,
-            likedBy: true,
-            comments: true,
-          },
-        },
-        likedBy: {
-          select: {
-            id: true,
-          },
-        },
-      },
-      orderBy: { updatedAt: "desc" },
-      take: hasExactTarget || genreTags.length > 0 ? Math.max(limitNum * 2, 20) : limitNum,
-    });
-
-    if ((hasExactTarget || genreTags.length > 0) && lists.length === 0) {
-      const fallbackWhere: Record<string, unknown> = {
-        visibility: "PUBLIC",
-        NOT: [{ tags: { has: EDITORIAL_TAG } }],
-        items: { some: {} },
-      };
-
-      lists = await db.list.findMany({
-        where: fallbackWhere,
-        include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              displayName: true,
-              avatarUrl: true,
-            },
-          },
-          items: {
-            take: 12,
-            orderBy: { position: "asc" },
-            select: {
-              tmdbId: true,
-              mediaType: true,
-              position: true,
-              posterPath: true,
-            },
-          },
-          _count: {
-            select: {
-              items: true,
-              likedBy: true,
-              comments: true,
-            },
-          },
-          likedBy: {
-            select: {
-              id: true,
-            },
-          },
-        },
+      let lists = await db.list.findMany({
+        where,
+        include: listInclude,
         orderBy: { updatedAt: "desc" },
-        take: limitNum,
+        take: Math.max(limitNum * 2, 20),
       });
+
+      if (lists.length === 0) {
+        const fallbackWhere: Record<string, unknown> = {
+          visibility: "PUBLIC",
+          NOT: [{ tags: { has: EDITORIAL_TAG } }],
+          items: { some: {} },
+        };
+
+        lists = await db.list.findMany({
+          where: fallbackWhere,
+          include: listInclude,
+          orderBy: { updatedAt: "desc" },
+          take: limitNum,
+        });
+      }
+
+      const mappedLists = lists.map(mapListForClient);
+
+      return NextResponse.json(
+        { lists: mappedLists.slice(0, limitNum), currentUserId },
+        {
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            Pragma: "no-cache",
+            Expires: "0",
+          },
+        },
+      );
     }
+
+    // Catalog mode (lists browser, editorial page): pagination, search, sort
+    const whereAnd: Array<Record<string, unknown>> = [
+      { visibility: "PUBLIC" },
+      { items: { some: {} } },
+    ];
+
+    if (editorialOnlyParam === "true") {
+      whereAnd.push({ tags: { has: EDITORIAL_TAG } });
+    } else if (editorialOnlyParam === "false") {
+      whereAnd.push({ NOT: [{ tags: { has: EDITORIAL_TAG } }] });
+    }
+
+    if (q) {
+      whereAnd.push({ name: { contains: q, mode: "insensitive" } });
+    }
+
+    const whereCatalog = { AND: whereAnd };
+
+    const total = await db.list.count({ where: whereCatalog });
+
+    const orderBy =
+      sortBy === "name"
+        ? { name: sortOrder }
+        : { updatedAt: sortOrder };
+
+    const lists = await db.list.findMany({
+      where: whereCatalog,
+      include: listInclude,
+      orderBy,
+      skip,
+      take: limitNum,
+    });
 
     const mappedLists = lists.map(mapListForClient);
 
     return NextResponse.json(
-      { lists: mappedLists.slice(0, limitNum), currentUserId },
+      {
+        lists: mappedLists,
+        currentUserId,
+        total,
+        page: pageNum,
+        limit: limitNum,
+      },
       {
         headers: {
           "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
@@ -182,10 +224,6 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
   } catch (error) {
     console.error("Get public lists API error:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to fetch public lists";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
-

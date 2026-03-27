@@ -8,7 +8,7 @@ import { JustWatchAvailabilityResponse } from "@/lib/justwatch";
 import { createPersonSlug } from "@/lib/person-utils";
 import { useOMDBData } from "@/hooks/use-content-details";
 import { useState, useCallback, useEffect } from "react";
-import { ChevronDown, ChevronUp, Star, Check, Loader2, Plus } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronRight, Star, Check, Loader2, Plus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import AwardsSection from "./awards-section";
 import { RatingsRow } from "./ratings-row";
@@ -199,10 +199,10 @@ export default function OverviewSection({
   } = useQuery({
     queryKey: ["overview-editorial-lists", item.id, type],
     queryFn: async () => {
-      const res = await fetch("/api/lists/public?limit=20");
+      const res = await fetch("/api/lists/public?editorialOnly=true&limit=10");
       if (!res.ok) return [];
       const data = await res.json();
-      return (data.lists ?? []).filter((list: any) => list?.isEditorial === true).slice(0, 3);
+      return (data.lists ?? []).slice(0, 3);
     },
     staleTime: 1000 * 60 * 5,
   });
@@ -478,9 +478,10 @@ export default function OverviewSection({
             <div>
               <Link
                 href="/lists"
-                className="block w-fit text-lg font-semibold text-foreground cursor-pointer"
+                className="inline-flex items-center gap-0.5 w-fit text-lg font-semibold cursor-pointer group"
               >
-                Related lists & playlists
+                <span className="text-foreground">Related user Lists</span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-primary" aria-hidden />
               </Link>
             </div>
 

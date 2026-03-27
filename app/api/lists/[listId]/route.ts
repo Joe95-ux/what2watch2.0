@@ -278,24 +278,29 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await db.user.findUnique({
+    const userWithRole = await db.user.findUnique({
       where: { clerkId: clerkUserId },
-      select: { id: true },
+      select: { id: true, role: true, isForumAdmin: true },
     });
 
-    if (!user) {
+    if (!userWithRole) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const list = await db.list.findUnique({
       where: { id: listId },
+      select: { id: true, userId: true, tags: true },
     });
 
     if (!list) {
       return NextResponse.json({ error: "List not found" }, { status: 404 });
     }
 
-    if (list.userId !== user.id) {
+    const isEditorial = (list.tags ?? []).includes(EDITORIAL_TAG);
+    const isOwner = list.userId === userWithRole.id;
+    const canDeleteAsEditor = isEditorial && hasEditorialPrivileges(userWithRole);
+
+    if (!isOwner && !canDeleteAsEditor) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 

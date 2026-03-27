@@ -175,6 +175,7 @@ export function useCreateList() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lists"] });
       queryClient.invalidateQueries({ queryKey: ["public-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["editorial-lists-catalog"] });
       queryClient.invalidateQueries({ queryKey: ["activity-feed"] });
     },
   });
@@ -193,6 +194,7 @@ export function useUpdateList() {
       queryClient.invalidateQueries({ queryKey: ["public-lists"] });
       queryClient.invalidateQueries({ queryKey: ["overview-related-user-lists"] });
       queryClient.invalidateQueries({ queryKey: ["overview-editorial-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["editorial-lists-catalog"] });
     },
   });
 }
@@ -205,6 +207,8 @@ export function useDeleteList() {
     mutationFn: deleteList,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lists"] });
+      queryClient.invalidateQueries({ queryKey: ["public-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["editorial-lists-catalog"] });
     },
   });
 }
