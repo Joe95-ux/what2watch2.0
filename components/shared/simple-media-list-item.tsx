@@ -290,7 +290,7 @@ export function SimpleMediaListItem({
               {isWatched ? "Watched" : "Mark as watched"}
             </span>
           </div>
-          <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground flex-wrap">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
             <div className="flex items-center gap-1.5">
               <Image src="/jw-icon.png" alt="JustWatch" width={16} height={16} className="object-contain" unoptimized />
               <span className="text-[#F5C518] font-medium">

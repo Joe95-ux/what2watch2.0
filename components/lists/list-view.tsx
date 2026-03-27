@@ -30,6 +30,8 @@ import {
   Lock,
   Heart,
   Loader2,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import Image from "next/image";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
@@ -2110,12 +2112,20 @@ function DetailedListItem({
   
   // Fetch watch providers
   const { data: watchAvailability } = useWatchProviders(type, item.id, "US");
+  const [rankWindow, setRankWindow] = useState<"1d" | "7d" | "30d">("7d");
   const primaryOffer =
     watchAvailability?.offersByType?.flatrate?.[0] ??
     watchAvailability?.offersByType?.buy?.[0] ??
     watchAvailability?.offersByType?.rent?.[0] ??
     watchAvailability?.allOffers?.[0] ??
     null;
+  const activeRankWindow =
+    watchAvailability?.ranks?.[rankWindow] ??
+    watchAvailability?.ranks?.["7d"] ??
+    watchAvailability?.ranks?.["30d"] ??
+    watchAvailability?.ranks?.["1d"];
+  const justWatchRank = activeRankWindow?.rank ?? null;
+  const justWatchDelta = activeRankWindow?.delta ?? null;
   
   // Note editing state
   const [isEditingNote, setIsEditingNote] = useState(false);
@@ -2556,6 +2566,46 @@ function DetailedListItem({
                 </span>
               )}
             </div>
+
+            {!isEditMode && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <Image src="/jw-icon.png" alt="JustWatch" width={16} height={16} className="object-contain" unoptimized />
+                  <span className="text-[#F5C518] font-medium">
+                    {justWatchRank != null ? `#${justWatchRank}` : "-"}
+                  </span>
+                  {justWatchDelta != null && justWatchDelta !== 0 && (
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium",
+                        justWatchDelta > 0 ? "bg-green-600 text-white" : "bg-red-600 text-white"
+                      )}
+                    >
+                      {justWatchDelta > 0 ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                      {Math.abs(justWatchDelta)}
+                    </span>
+                  )}
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    {(["1d", "7d", "30d"] as const).map((w) => (
+                      <button
+                        key={w}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRankWindow(w);
+                        }}
+                        className={cn(
+                          "px-1.5 py-0.5 rounded cursor-pointer",
+                          rankWindow === w ? "bg-muted font-medium text-foreground" : "hover:text-foreground"
+                        )}
+                      >
+                        {w === "1d" ? "24h" : w}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="hidden sm:block">
               {isEditMode ? (
