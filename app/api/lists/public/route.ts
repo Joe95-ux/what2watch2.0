@@ -21,7 +21,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get("limit");
     const limitNum = limit ? parseInt(limit, 10) : 20;
-    const editorialOnly = searchParams.get("editorialOnly") === "true";
+    const editorialOnlyParam = searchParams.get("editorialOnly");
     const relatedTmdbId = searchParams.get("tmdbId");
     const relatedMediaType = searchParams.get("mediaType");
     const relatedTmdbIdNum = relatedTmdbId ? parseInt(relatedTmdbId, 10) : null;
@@ -53,9 +53,9 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
       },
     };
 
-    if (editorialOnly) {
+    if (editorialOnlyParam === "true") {
       where.tags = { has: EDITORIAL_TAG };
-    } else {
+    } else if (editorialOnlyParam === "false") {
       where.tags = { hasNone: [EDITORIAL_TAG] };
     }
 
