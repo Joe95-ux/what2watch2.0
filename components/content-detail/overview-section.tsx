@@ -215,12 +215,36 @@ export default function OverviewSection({
     queryKey: ["overview-related-user-lists", item.id, type],
     queryFn: async () => {
       const genreIds = (details?.genres || []).map((g) => g.id).join(",");
-      const res = await fetch(
-        `/api/lists/public?limit=3&editorialOnly=false&tmdbId=${item.id}&mediaType=${type}&genreIds=${genreIds}`,
+      const listParams = new URLSearchParams({
+        limit: "12",
+        editorialOnly: "false",
+        tmdbId: String(item.id),
+        mediaType: type,
+        genreIds,
+      });
+      const playlistParams = new URLSearchParams({
+        limit: "12",
+        tmdbId: String(item.id),
+        mediaType: type,
+        genreIds,
+      });
+      const [listsRes, playlistsRes] = await Promise.all([
+        fetch(`/api/lists/public?${listParams}`),
+        fetch(`/api/playlists/public?${playlistParams}`),
+      ]);
+      const listsJson = listsRes.ok ? await listsRes.json() : { lists: [] };
+      const playlistsJson = playlistsRes.ok ? await playlistsRes.json() : { playlists: [] };
+      const lists = (listsJson.lists ?? []) as Array<Record<string, unknown> & { id: string; updatedAt: string }>;
+      const playlists = (playlistsJson.playlists ?? []) as Array<Record<string, unknown> & { id: string; updatedAt: string }>;
+      const merged = [
+        ...lists.map((l) => ({ kind: "list" as const, ...l })),
+        ...playlists.map((p) => ({ kind: "playlist" as const, ...p })),
+      ];
+      merged.sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
       );
-      if (!res.ok) return [];
-      const data = await res.json();
-      return data.lists ?? [];
+      return merged.slice(0, 3);
     },
     staleTime: 1000 * 60 * 3,
     enabled: Boolean(details?.genres && details.genres.length > 0),
@@ -456,7 +480,7 @@ export default function OverviewSection({
                 href="/lists"
                 className="block w-fit text-lg font-semibold text-foreground cursor-pointer"
               >
-                Related User Lists
+                Related lists & playlists
               </Link>
             </div>
 
@@ -467,14 +491,14 @@ export default function OverviewSection({
                 ))}
               {!isRelatedUserListsLoading &&
                 !(isRelatedUserListsFetching && relatedUserLists.length === 0) &&
-                relatedUserLists.slice(0, 3).map((list: any) => (
-                <CompactListCard key={list.id} list={list} />
-              ))}
+                relatedUserLists.map((row: { kind: "list" | "playlist"; id: string }) => (
+                  <CompactRelatedCard key={`${row.kind}-${row.id}`} row={row} />
+                ))}
               {!isRelatedUserListsLoading &&
                 !(isRelatedUserListsFetching && relatedUserLists.length === 0) &&
                 relatedUserLists.length === 0 && (
                 <div className="text-sm text-muted-foreground border border-dashed rounded-lg p-4">
-                  No related user lists yet.
+                  No related lists yet.
                 </div>
               )}
             </div>
@@ -542,6 +566,64 @@ function CompactListCard({ list }: { list: any }) {
           <Image
             src={getPosterUrl(posterPath, "w200")}
             alt={list.name}
+            fill
+            className="object-cover"
+            sizes="80px"
+            unoptimized
+          />
+        </div>
+      ) : (
+        <div className="w-16 sm:w-20 aspect-[3/4] rounded-r-lg bg-muted flex-shrink-0 flex items-center justify-center">
+          <span className="text-[10px] text-muted-foreground">No Image</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CompactRelatedCard({ row }: { row: Record<string, unknown> & { kind: "list" | "playlist"; id: string; name?: string } }) {
+  const router = useRouter();
+  const isPlaylist = row.kind === "playlist";
+  const href = isPlaylist ? `/playlists/${row.id}` : `/lists/${row.id}`;
+  const items = (row.items as Array<{ posterPath?: string | null }> | undefined) ?? [];
+  const firstWithPoster = items.find((x) => Boolean(x.posterPath));
+  const posterPath = firstWithPoster?.posterPath || null;
+  const countList = row._count as { items?: number; youtubeItems?: number } | undefined;
+  const itemCount = isPlaylist
+    ? (countList?.items ?? 0) + (countList?.youtubeItems ?? 0)
+    : countList?.items ?? items.length;
+  const updatedAt = row.updatedAt
+    ? new Date(row.updatedAt as string).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : null;
+  const title = (row.name as string) || "Untitled";
+
+  return (
+    <div
+      className="relative flex rounded-lg border border-border transition-all group cursor-pointer overflow-hidden"
+      onClick={() => router.push(href)}
+    >
+      <div className="flex-1 min-w-0 flex flex-col p-3">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(href);
+          }}
+          className="text-left text-sm font-semibold line-clamp-1 hover:text-primary transition-colors cursor-pointer"
+        >
+          {title}
+        </button>
+        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+          {isPlaylist ? "Playlist · " : "List · "}
+          {updatedAt ? `Updated ${updatedAt}` : "Recently updated"} . {itemCount} {itemCount === 1 ? "item" : "items"}
+        </p>
+      </div>
+
+      {posterPath ? (
+        <div className="relative w-16 sm:w-20 aspect-[3/4] rounded-r-lg overflow-hidden flex-shrink-0 bg-muted">
+          <Image
+            src={getPosterUrl(posterPath, "w200")}
+            alt={title}
             fill
             className="object-cover"
             sizes="80px"

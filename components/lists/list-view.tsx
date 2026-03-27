@@ -816,13 +816,18 @@ export default function ListView({
                 {showLikeFollow && !isOwner && list && (optimisticVisibility ?? list.visibility) !== "PRIVATE" && (
                   <>
                     <Button
-                      variant={isLiked ? "default" : "outline"}
+                      variant="ghost"
                       size="sm"
                       onClick={onToggleLike}
                       disabled={isLikeLoading || !likeUserId}
-                      className="cursor-pointer flex-shrink-0"
+                      className="cursor-pointer flex-shrink-0 text-foreground hover:bg-muted"
                     >
-                      <Heart className={cn("h-4 w-4 mr-2", isLiked && "fill-current")} />
+                      <Heart
+                        className={cn(
+                          "h-4 w-4 mr-2",
+                          isLiked ? "fill-primary text-primary" : "text-muted-foreground"
+                        )}
+                      />
                       {isLiked ? "Liked" : "Like"}
                       {list._count?.likedBy && list._count.likedBy > 0 && (
                         <span className="ml-2">({list._count.likedBy})</span>
@@ -830,7 +835,7 @@ export default function ListView({
                     </Button>
                     {list.user && (
                       <div className="flex-shrink-0">
-                        <FollowButton userId={list.user.id} size="sm" />
+                        <FollowButton userId={list.user.id} size="sm" iconVariant="roundPlus" />
                       </div>
                     )}
                   </>

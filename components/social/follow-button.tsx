@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useFollowUser, useUnfollowUser, useIsFollowing } from "@/hooks/use-follow";
-import { UserPlus, UserMinus, UserRound, UserRoundMinus, Loader2 } from "lucide-react";
+import { UserPlus, UserMinus, UserRound, UserRoundMinus, UserRoundPlus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useUser, useClerk } from "@clerk/nextjs";
 
@@ -13,7 +13,8 @@ interface FollowButtonProps {
   showIcon?: boolean;
   className?: string;
   /** Round user icons (members cards): UserRound / UserRoundMinus */
-  iconVariant?: "default" | "round";
+  /** roundPlus: list & playlist views — UserRoundPlus / UserRoundMinus, label "Following" when followed */
+  iconVariant?: "default" | "round" | "roundPlus";
 }
 
 export function FollowButton({
@@ -92,16 +93,18 @@ export function FollowButton({
       ) : showIcon ? (
         isFollowing ? (
           <>
-            {iconVariant === "round" ? (
+            {iconVariant === "round" || iconVariant === "roundPlus" ? (
               <UserRoundMinus className="h-4 w-4 mr-2" />
             ) : (
               <UserMinus className="h-4 w-4 mr-2" />
             )}
-            Unfollow
+            {iconVariant === "roundPlus" ? "Following" : "Unfollow"}
           </>
         ) : (
           <>
-            {iconVariant === "round" ? (
+            {iconVariant === "roundPlus" ? (
+              <UserRoundPlus className="h-4 w-4 mr-2" />
+            ) : iconVariant === "round" ? (
               <UserRound className="h-4 w-4 mr-2" />
             ) : (
               <UserPlus className="h-4 w-4 mr-2" />
@@ -110,7 +113,7 @@ export function FollowButton({
           </>
         )
       ) : (
-        isFollowing ? "Unfollow" : "Follow"
+        isFollowing ? (iconVariant === "roundPlus" ? "Following" : "Unfollow") : "Follow"
       )}
     </Button>
   );

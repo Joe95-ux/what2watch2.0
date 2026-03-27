@@ -394,7 +394,8 @@ model Playlist {
   visibility    PlaylistVisibility @default(PRIVATE)
   coverImage    String?  // URL to cover image
   likesCount    Int      @default(0) // Number of users who liked this playlist
-  
+  tags          String[] @default([]) // Hidden metadata for related-content matching (__item__/__genre__), same as lists
+
   items         PlaylistItem[]
   youtubeItems  YouTubePlaylistItem[]
   sharedPlaylists SharedPlaylist[]

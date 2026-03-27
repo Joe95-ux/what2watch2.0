@@ -223,6 +223,8 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
             playlistId={playlistId}
             onSuccess={() => {
               queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
+              queryClient.invalidateQueries({ queryKey: ["overview-related-user-lists"] });
+              queryClient.invalidateQueries({ queryKey: ["public-playlists"] });
             }}
           />
         </>

@@ -46,6 +46,7 @@ export function useLikePlaylist() {
     onSuccess: (_, playlistId) => {
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ["playlist", playlistId, "like"] });
+      queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
       queryClient.invalidateQueries({ queryKey: ["playlists", "liked"] });
       queryClient.invalidateQueries({ queryKey: ["playlists", "following"] });
       queryClient.invalidateQueries({ queryKey: ["playlists"] });
@@ -99,6 +100,7 @@ export function useUnlikePlaylist() {
     onSuccess: (_, playlistId) => {
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ["playlist", playlistId, "like"] });
+      queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
       queryClient.invalidateQueries({ queryKey: ["playlists", "liked"] });
       queryClient.invalidateQueries({ queryKey: ["playlists", "following"] });
       queryClient.invalidateQueries({ queryKey: ["playlists"] });

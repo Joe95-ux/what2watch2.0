@@ -1056,16 +1056,22 @@ export default function PlaylistView({
                 {showLikeFollow && !isOwner && playlist && effectiveVisibility !== "PRIVATE" && (
                   <>
                     <Button
-                      variant={isLiked ? "default" : "outline"}
+                      variant="ghost"
                       size="sm"
                       onClick={onToggleLike}
                       disabled={isLikeLoading || !likeUserId}
-                      className="cursor-pointer flex-shrink-0"
+                      className="cursor-pointer flex-shrink-0 text-foreground hover:bg-muted"
                     >
-                      <Heart className={cn("h-4 w-4 mr-2", isLiked && "fill-current")} />
+                      <Heart
+                        className={cn(
+                          "h-4 w-4 mr-2",
+                          isLiked ? "fill-primary text-primary" : "text-muted-foreground"
+                        )}
+                      />
                       {isLiked ? "Liked" : "Like"}
                       {(() => {
-                        const likesCount = playlist.likesCount ?? playlist._count?.likedBy ?? 0;
+                        const likesCount =
+                          playlist._count?.likedBy ?? playlist.likesCount ?? 0;
                         return likesCount > 0 && (
                           <span className="ml-2">({likesCount})</span>
                         );
@@ -1073,7 +1079,7 @@ export default function PlaylistView({
                     </Button>
                     {playlist.user && (
                       <div className="flex-shrink-0">
-                        <FollowButton userId={playlist.user.id} size="sm" />
+                        <FollowButton userId={playlist.user.id} size="sm" iconVariant="roundPlus" />
                       </div>
                     )}
                   </>
@@ -1188,7 +1194,10 @@ export default function PlaylistView({
                     </span>
                     <span className="flex items-center gap-1.5">
                       <Heart className="h-4 w-4" />
-                      {playlist.likesCount ?? playlist._count?.likedBy ?? 0} {(playlist.likesCount ?? playlist._count?.likedBy ?? 0) === 1 ? "like" : "likes"}
+                      {playlist._count?.likedBy ?? playlist.likesCount ?? 0}{" "}
+                      {(playlist._count?.likedBy ?? playlist.likesCount ?? 0) === 1
+                        ? "like"
+                        : "likes"}
                     </span>
                   </div>
                 </div>

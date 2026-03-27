@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { syncPlaylistRelatedMetadata } from "@/lib/sync-playlist-related-metadata";
 
 // GET - Fetch user's playlists
 export async function GET(request: NextRequest): Promise<NextResponse<{ playlists: unknown[] } | { error: string }>> {
@@ -153,6 +154,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
         },
       },
     });
+
+    try {
+      await syncPlaylistRelatedMetadata(playlist.id);
+    } catch (e) {
+      console.error("syncPlaylistRelatedMetadata after create:", e);
+    }
 
     // Create activity for creating playlist
     try {

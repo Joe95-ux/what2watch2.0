@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { syncPlaylistRelatedMetadata } from "@/lib/sync-playlist-related-metadata";
 import { parseAndAnalyzeCSV, validateCSV, type ParsedCSV } from "@/lib/csv-import";
 import { findByExternalId } from "@/lib/tmdb";
 import { getMovieDetails, getTVDetails } from "@/lib/tmdb";
@@ -96,6 +97,12 @@ export async function POST(
       await processIMDbPlaylistImport(parsed, playlistId, user.id, duplicateAction, results);
     } else {
       await processGenericPlaylistImport(parsed, playlistId, user.id, duplicateAction, results);
+    }
+
+    try {
+      await syncPlaylistRelatedMetadata(playlistId);
+    } catch (e) {
+      console.error("syncPlaylistRelatedMetadata after CSV import:", e);
     }
 
     return NextResponse.json(results);

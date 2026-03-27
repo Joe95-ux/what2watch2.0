@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { syncPlaylistRelatedMetadata } from "@/lib/sync-playlist-related-metadata";
 
 interface RouteParams {
   params: Promise<{ playlistId: string }>;
@@ -104,6 +105,12 @@ export async function POST(
       },
     });
 
+    try {
+      await syncPlaylistRelatedMetadata(playlistId);
+    } catch (e) {
+      console.error("syncPlaylistRelatedMetadata after add item:", e);
+    }
+
     // Note: We don't create activities for every item added to playlist to avoid spam
     // Activities are only created when a playlist is first created (handled in playlist creation endpoint)
     // If you want to track item additions, consider adding a new activity type "ADDED_TO_PLAYLIST"
@@ -179,6 +186,12 @@ export async function DELETE(
     await db.playlistItem.deleteMany({
       where: { id: itemId, playlistId },
     });
+
+    try {
+      await syncPlaylistRelatedMetadata(playlistId);
+    } catch (e) {
+      console.error("syncPlaylistRelatedMetadata after remove item:", e);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

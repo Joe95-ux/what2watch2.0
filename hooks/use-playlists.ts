@@ -221,6 +221,8 @@ export function useCreatePlaylist() {
     mutationFn: createPlaylist,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["playlists"] });
+      queryClient.invalidateQueries({ queryKey: ["overview-related-user-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["public-playlists"] });
     },
   });
 }
@@ -234,6 +236,8 @@ export function useUpdatePlaylist() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["playlists"] });
       queryClient.invalidateQueries({ queryKey: ["playlist", variables.playlistId] });
+      queryClient.invalidateQueries({ queryKey: ["overview-related-user-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["public-playlists"] });
     },
   });
 }
@@ -245,6 +249,8 @@ export function useDeletePlaylist() {
     mutationFn: deletePlaylist,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["playlists"] });
+      queryClient.invalidateQueries({ queryKey: ["overview-related-user-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["public-playlists"] });
     },
   });
 }
@@ -258,6 +264,8 @@ export function useAddItemToPlaylist() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["playlists"] });
       queryClient.invalidateQueries({ queryKey: ["playlist", variables.playlistId] });
+      queryClient.invalidateQueries({ queryKey: ["overview-related-user-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["public-playlists"] });
     },
   });
 }
@@ -271,6 +279,8 @@ export function useRemoveItemFromPlaylist() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["playlists"] });
       queryClient.invalidateQueries({ queryKey: ["playlist", variables.playlistId] });
+      queryClient.invalidateQueries({ queryKey: ["overview-related-user-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["public-playlists"] });
     },
   });
 }

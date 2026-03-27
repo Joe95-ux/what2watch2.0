@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { syncPlaylistRelatedMetadata } from "@/lib/sync-playlist-related-metadata";
 
 interface RouteParams {
   params: Promise<{ playlistId: string }>;
@@ -242,6 +243,14 @@ export async function PUT(
             order: item.order !== undefined ? item.order : index,
           })),
         });
+      }
+    }
+
+    if (items !== undefined) {
+      try {
+        await syncPlaylistRelatedMetadata(playlistId);
+      } catch (e) {
+        console.error("syncPlaylistRelatedMetadata after PUT items:", e);
       }
     }
 
