@@ -278,8 +278,40 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
                 </div>
               </div>
             </div>
-            <div className="lg:col-span-4">
-              <Skeleton className="min-h-[420px] w-full rounded-2xl" />
+            <div className="lg:col-span-4 space-y-6">
+              <div className="space-y-3">
+                <Skeleton className="h-6 w-40" />
+                <div className="space-y-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={`right-editorial-skeleton-${i}`} className="relative flex rounded-lg border border-border overflow-hidden">
+                      <div className="flex-1 min-w-0 flex flex-col p-3 gap-2">
+                        <Skeleton className="h-4 w-4/5" />
+                        <Skeleton className="h-3 w-3/5" />
+                      </div>
+                      <div className="w-16 sm:w-20 aspect-[3/4] flex-shrink-0">
+                        <Skeleton className="h-full w-full rounded-r-lg" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-3">
+                <Skeleton className="h-9 w-32 rounded-[20px]" />
+                <Skeleton className="h-6 w-44" />
+                <div className="space-y-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={`right-related-skeleton-${i}`} className="relative flex rounded-lg border border-border overflow-hidden">
+                      <div className="flex-1 min-w-0 flex flex-col p-3 gap-2">
+                        <Skeleton className="h-4 w-4/5" />
+                        <Skeleton className="h-3 w-3/5" />
+                      </div>
+                      <div className="w-16 sm:w-20 aspect-[3/4] flex-shrink-0">
+                        <Skeleton className="h-full w-full rounded-r-lg" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>

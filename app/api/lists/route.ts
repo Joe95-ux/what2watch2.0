@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-
-const EDITORIAL_TAG = "__editorial__";
+import {
+  EDITORIAL_TAG,
+  buildRelatedMetadataTags,
+  stripSystemListTags,
+} from "@/lib/list-related-metadata";
 
 function hasEditorialPrivileges(user: {
   role?: string | null;
@@ -17,7 +20,7 @@ function mapListForClient<T extends { tags?: string[] }>(list: T) {
   const isEditorial = tags.includes(EDITORIAL_TAG);
   return {
     ...list,
-    tags: tags.filter((tag) => tag !== EDITORIAL_TAG),
+    tags: stripSystemListTags(tags),
     isEditorial,
   };
 }
@@ -147,6 +150,19 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
       tagsArray = tagsArray.filter((tag) => tag !== EDITORIAL_TAG);
     }
 
+    const itemsPayload = Array.isArray(items) ? items : [];
+    const relatedMetadataTags = await buildRelatedMetadataTags(
+      itemsPayload.map((item: { tmdbId: number; mediaType: "movie" | "tv" }) => ({
+        tmdbId: item.tmdbId,
+        mediaType: item.mediaType,
+      })),
+    );
+
+    const effectiveTags = [...stripSystemListTags(tagsArray), ...relatedMetadataTags];
+    if (isEditorial === true && !effectiveTags.includes(EDITORIAL_TAG)) {
+      effectiveTags.push(EDITORIAL_TAG);
+    }
+
     // Create list with items in a transaction
     const list = await db.list.create({
       data: {
@@ -154,7 +170,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
         name: name.trim(),
         description: description?.trim() || null,
         visibility: visibility || "PUBLIC",
-        tags: tagsArray,
+        tags: effectiveTags,
         items: {
           create: (items || []).map((item: {
             tmdbId: number;

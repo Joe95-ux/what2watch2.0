@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-import { getMovieDetails, getTVDetails } from "@/lib/tmdb";
-
-const EDITORIAL_TAG = "__editorial__";
+import {
+  EDITORIAL_TAG,
+  stripSystemListTags,
+  toGenreTag,
+  toItemTag,
+} from "@/lib/list-related-metadata";
 
 function mapListForClient<T extends { tags?: string[] }>(list: T) {
   const tags = list.tags ?? [];
   const isEditorial = tags.includes(EDITORIAL_TAG);
   return {
     ...list,
-    tags: tags.filter((tag) => tag !== EDITORIAL_TAG),
+    tags: stripSystemListTags(tags),
     isEditorial,
   };
 }
@@ -64,16 +67,23 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
       !Number.isNaN(relatedTmdbIdNum) &&
       (relatedMediaType === "movie" || relatedMediaType === "tv");
 
-    if (hasExactTarget && genreIds.length === 0) {
-      where.items = {
-        some: {
-          tmdbId: relatedTmdbIdNum,
-          mediaType: relatedMediaType,
-        },
-      };
+    const exactItemTag = hasExactTarget
+      ? toItemTag(relatedMediaType as "movie" | "tv", relatedTmdbIdNum as number)
+      : null;
+    const genreTags = genreIds.map((id) => toGenreTag(id));
+
+    if (hasExactTarget || genreTags.length > 0) {
+      const relatedTagFilters: Array<Record<string, unknown>> = [];
+      if (exactItemTag) {
+        relatedTagFilters.push({ tags: { has: exactItemTag } });
+      }
+      if (genreTags.length > 0) {
+        relatedTagFilters.push({ tags: { hasSome: genreTags } });
+      }
+      where.AND = [{ OR: relatedTagFilters }];
     }
 
-    const lists = await db.list.findMany({
+    let lists = await db.list.findMany({
       where,
       include: {
         user: {
@@ -85,7 +95,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
           },
         },
         items: {
-          take: hasExactTarget ? 50 : 12,
+          take: 12,
           orderBy: { position: "asc" },
           select: {
             tmdbId: true,
@@ -108,88 +118,66 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
         },
       },
       orderBy: { updatedAt: "desc" },
-      take: genreIds.length > 0 ? Math.max(limitNum * 5, 30) : limitNum,
+      take: hasExactTarget || genreTags.length > 0 ? Math.max(limitNum * 2, 20) : limitNum,
     });
+
+    if ((hasExactTarget || genreTags.length > 0) && lists.length === 0) {
+      const fallbackWhere: Record<string, unknown> = {
+        visibility: "PUBLIC",
+        tags: { hasNone: [EDITORIAL_TAG] },
+        items: { some: {} },
+      };
+
+      lists = await db.list.findMany({
+        where: fallbackWhere,
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+            },
+          },
+          items: {
+            take: 12,
+            orderBy: { position: "asc" },
+            select: {
+              tmdbId: true,
+              mediaType: true,
+              position: true,
+              posterPath: true,
+            },
+          },
+          _count: {
+            select: {
+              items: true,
+              likedBy: true,
+              comments: true,
+            },
+          },
+          likedBy: {
+            select: {
+              id: true,
+            },
+          },
+        },
+        orderBy: { updatedAt: "desc" },
+        take: limitNum,
+      });
+    }
 
     const mappedLists = lists.map(mapListForClient);
 
-    if (genreIds.length > 0 || hasExactTarget) {
-      const genreSet = new Set(genreIds);
-      const genreMatchCache = new Map<string, boolean>();
-      const genreMatched = await Promise.all(
-        mappedLists.map(async (list: any) => {
-          const items = list.items || [];
-          const hasExactMatch = hasExactTarget
-            ? items.some(
-                (item: any) => item.tmdbId === relatedTmdbIdNum && item.mediaType === relatedMediaType,
-              )
-            : false;
-
-          if (hasExactMatch) {
-            return list;
-          }
-
-          const candidates = items.slice(0, 8);
-          if (candidates.length === 0) return null;
-
-          for (const item of candidates) {
-            const cacheKey = `${item.mediaType}-${item.tmdbId}`;
-            if (genreMatchCache.has(cacheKey)) {
-              if (genreMatchCache.get(cacheKey)) {
-                return list;
-              }
-              continue;
-            }
-
-            let isMatch = false;
-            try {
-              if (item.mediaType === "movie") {
-                const details = await getMovieDetails(item.tmdbId);
-                isMatch = (details.genres || []).some((g) => genreSet.has(g.id));
-              } else {
-                const details = await getTVDetails(item.tmdbId);
-                isMatch = (details.genres || []).some((g) => genreSet.has(g.id));
-              }
-            } catch {
-              isMatch = false;
-            }
-
-            genreMatchCache.set(cacheKey, isMatch);
-            if (isMatch) {
-              return list;
-            }
-          }
-
-          return null;
-        }),
-      );
-
-      const filteredLists = genreMatched.filter(Boolean);
-
-      return NextResponse.json(
-        {
-          lists: (filteredLists.length > 0 ? filteredLists : mappedLists).slice(0, limitNum),
-          currentUserId,
-        },
-        {
-          headers: {
-            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-            Pragma: "no-cache",
-            Expires: "0",
-          },
-        },
-      );
-    }
-
     return NextResponse.json(
-      { lists: mappedLists, currentUserId },
+      { lists: mappedLists.slice(0, limitNum), currentUserId },
       {
         headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
         },
-      }
+      },
     );
   } catch (error) {
     console.error("Get public lists API error:", error);

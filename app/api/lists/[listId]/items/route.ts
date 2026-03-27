@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import {
+  EDITORIAL_TAG,
+  buildRelatedMetadataTags,
+  stripSystemListTags,
+} from "@/lib/list-related-metadata";
 
 // DELETE - Remove item from list
 export async function DELETE(
@@ -42,7 +47,7 @@ export async function DELETE(
     // Check if list exists and user owns it
     const list = await db.list.findUnique({
       where: { id: listId },
-      select: { userId: true },
+      select: { userId: true, tags: true },
     });
 
     if (!list) {
@@ -79,6 +84,25 @@ export async function DELETE(
         })
       )
     );
+
+    const metadataTags = await buildRelatedMetadataTags(
+      remainingItems.map((item) => ({
+        tmdbId: item.tmdbId,
+        mediaType: item.mediaType as "movie" | "tv",
+      })),
+    );
+
+    const preserveEditorial = (list.tags || []).includes(EDITORIAL_TAG);
+    await db.list.update({
+      where: { id: listId },
+      data: {
+        tags: [
+          ...stripSystemListTags(list.tags || []),
+          ...metadataTags,
+          ...(preserveEditorial ? [EDITORIAL_TAG] : []),
+        ],
+      },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

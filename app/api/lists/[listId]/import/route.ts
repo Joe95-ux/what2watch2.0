@@ -4,6 +4,11 @@ import { db } from "@/lib/db";
 import { parseAndAnalyzeCSV, validateCSV, type ParsedCSV, type CSVRow } from "@/lib/csv-import";
 import { findByExternalId } from "@/lib/tmdb";
 import { getMovieDetails, getTVDetails } from "@/lib/tmdb";
+import {
+  EDITORIAL_TAG,
+  buildRelatedMetadataTags,
+  stripSystemListTags,
+} from "@/lib/list-related-metadata";
 
 interface ImportResult {
   success: boolean;
@@ -38,7 +43,7 @@ export async function POST(
     // Verify list exists and user owns it
     const list = await db.list.findUnique({
       where: { id: listId },
-      select: { userId: true },
+      select: { userId: true, tags: true },
     });
 
     if (!list) {
@@ -97,6 +102,33 @@ export async function POST(
     } else {
       await processGenericListImport(parsed, listId, user.id, duplicateAction, results);
     }
+
+    const currentItems = await db.listItem.findMany({
+      where: { listId },
+      select: {
+        tmdbId: true,
+        mediaType: true,
+      },
+    });
+
+    const metadataTags = await buildRelatedMetadataTags(
+      currentItems.map((item) => ({
+        tmdbId: item.tmdbId,
+        mediaType: item.mediaType as "movie" | "tv",
+      })),
+    );
+
+    const preserveEditorial = (list.tags || []).includes(EDITORIAL_TAG);
+    await db.list.update({
+      where: { id: listId },
+      data: {
+        tags: [
+          ...stripSystemListTags(list.tags || []),
+          ...metadataTags,
+          ...(preserveEditorial ? [EDITORIAL_TAG] : []),
+        ],
+      },
+    });
 
     return NextResponse.json(results);
   } catch (error) {

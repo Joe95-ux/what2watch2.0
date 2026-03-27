@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-
-const EDITORIAL_TAG = "__editorial__";
+import {
+  EDITORIAL_TAG,
+  buildRelatedMetadataTags,
+  keepSystemListTags,
+  stripSystemListTags,
+} from "@/lib/list-related-metadata";
 
 function hasEditorialPrivileges(user: {
   role?: string | null;
@@ -17,7 +21,7 @@ function mapListForClient<T extends { tags?: string[] }>(list: T) {
   const isEditorial = tags.includes(EDITORIAL_TAG);
   return {
     ...list,
-    tags: tags.filter((tag) => tag !== EDITORIAL_TAG),
+    tags: stripSystemListTags(tags),
     isEditorial,
   };
 }
@@ -164,7 +168,10 @@ export async function PATCH(
     if (visibility !== undefined && (visibility === "PUBLIC" || visibility === "FOLLOWERS_ONLY" || visibility === "PRIVATE")) {
       updateData.visibility = visibility;
     }
-    if (tagsArray !== undefined) updateData.tags = tagsArray;
+    if (tagsArray !== undefined) {
+      const systemTags = keepSystemListTags(list.tags ?? []);
+      updateData.tags = [...stripSystemListTags(tagsArray), ...systemTags];
+    }
 
     if (isEditorial !== undefined) {
       if (!hasEditorialPrivileges(user)) {
@@ -209,6 +216,24 @@ export async function PATCH(
           })),
         });
       }
+
+      const metadataTags = await buildRelatedMetadataTags(
+        (Array.isArray(items) ? items : []).map((item: {
+          tmdbId: number;
+          mediaType: "movie" | "tv";
+        }) => ({
+          tmdbId: item.tmdbId,
+          mediaType: item.mediaType,
+        })),
+      );
+
+      const currentTags = updateData.tags ?? list.tags ?? [];
+      const isEditorialEffective = currentTags.includes(EDITORIAL_TAG);
+      updateData.tags = [
+        ...stripSystemListTags(currentTags),
+        ...metadataTags,
+        ...(isEditorialEffective ? [EDITORIAL_TAG] : []),
+      ];
     }
 
     const updatedList = await db.list.update({

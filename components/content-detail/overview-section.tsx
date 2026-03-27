@@ -500,7 +500,7 @@ function CompactListCardSkeleton() {
         <Skeleton className="h-4 w-4/5" />
         <Skeleton className="h-3 w-3/5" />
       </div>
-      <div className="w-16 sm:w-20 aspect-[2/3] flex-shrink-0">
+      <div className="w-16 sm:w-20 aspect-[3/4] flex-shrink-0">
         <Skeleton className="h-full w-full rounded-r-lg" />
       </div>
     </div>
@@ -538,7 +538,7 @@ function CompactListCard({ list }: { list: any }) {
       </div>
 
       {posterPath ? (
-        <div className="relative w-16 sm:w-20 aspect-[2/3] rounded-r-lg overflow-hidden flex-shrink-0 bg-muted">
+        <div className="relative w-16 sm:w-20 aspect-[3/4] rounded-r-lg overflow-hidden flex-shrink-0 bg-muted">
           <Image
             src={getPosterUrl(posterPath, "w200")}
             alt={list.name}
@@ -549,7 +549,7 @@ function CompactListCard({ list }: { list: any }) {
           />
         </div>
       ) : (
-        <div className="w-16 sm:w-20 aspect-[2/3] rounded-r-lg bg-muted flex-shrink-0 flex items-center justify-center">
+        <div className="w-16 sm:w-20 aspect-[3/4] rounded-r-lg bg-muted flex-shrink-0 flex items-center justify-center">
           <span className="text-[10px] text-muted-foreground">No Image</span>
         </div>
       )}
