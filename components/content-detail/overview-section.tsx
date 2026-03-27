@@ -192,7 +192,11 @@ export default function OverviewSection({
   const { data: omdbData } = useOMDBData(details?.imdb_id || null);
   const { isSignedIn } = useUser();
 
-  const { data: editorialLists = [], isLoading: isEditorialListsLoading } = useQuery({
+  const {
+    data: editorialLists = [],
+    isLoading: isEditorialListsLoading,
+    isFetching: isEditorialListsFetching,
+  } = useQuery({
     queryKey: ["overview-editorial-lists", item.id, type],
     queryFn: async () => {
       const res = await fetch("/api/lists/public?limit=20");
@@ -203,12 +207,16 @@ export default function OverviewSection({
     staleTime: 1000 * 60 * 5,
   });
 
-  const { data: relatedUserLists = [], isLoading: isRelatedUserListsLoading } = useQuery({
+  const {
+    data: relatedUserLists = [],
+    isLoading: isRelatedUserListsLoading,
+    isFetching: isRelatedUserListsFetching,
+  } = useQuery({
     queryKey: ["overview-related-user-lists", item.id, type],
     queryFn: async () => {
       const genreIds = (details?.genres || []).map((g) => g.id).join(",");
       const res = await fetch(
-        `/api/lists/public?limit=3&editorialOnly=false&genreIds=${genreIds}`,
+        `/api/lists/public?limit=3&editorialOnly=false&tmdbId=${item.id}&mediaType=${type}&genreIds=${genreIds}`,
       );
       if (!res.ok) return [];
       const data = await res.json();
@@ -233,7 +241,7 @@ export default function OverviewSection({
 
   return (
     <section className="py-12 space-y-12">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14">
         <div className="space-y-6 lg:col-span-8">
           <div>
             <h2 className="text-2xl font-bold mb-4">Storyline</h2>
@@ -409,15 +417,18 @@ export default function OverviewSection({
           <div className="space-y-3">
             <h3 className="text-lg font-semibold">Editorial Lists</h3>
             <div className="space-y-2">
-              {isEditorialListsLoading &&
+              {(isEditorialListsLoading || (isEditorialListsFetching && editorialLists.length === 0)) &&
                 Array.from({ length: 3 }).map((_, i) => (
                   <CompactListCardSkeleton key={`editorial-skeleton-${i}`} />
                 ))}
               {!isEditorialListsLoading &&
+                !(isEditorialListsFetching && editorialLists.length === 0) &&
                 editorialLists.slice(0, 3).map((list: any) => (
                 <CompactListCard key={list.id} list={list} />
               ))}
-              {!isEditorialListsLoading && editorialLists.length === 0 && (
+              {!isEditorialListsLoading &&
+                !(isEditorialListsFetching && editorialLists.length === 0) &&
+                editorialLists.length === 0 && (
                 <div className="text-sm text-muted-foreground border border-dashed rounded-lg p-4">
                   No editorial lists yet.
                 </div>
@@ -450,15 +461,18 @@ export default function OverviewSection({
             </div>
 
             <div className="space-y-2">
-              {isRelatedUserListsLoading &&
+              {(isRelatedUserListsLoading || (isRelatedUserListsFetching && relatedUserLists.length === 0)) &&
                 Array.from({ length: 3 }).map((_, i) => (
                   <CompactListCardSkeleton key={`related-skeleton-${i}`} />
                 ))}
               {!isRelatedUserListsLoading &&
+                !(isRelatedUserListsFetching && relatedUserLists.length === 0) &&
                 relatedUserLists.slice(0, 3).map((list: any) => (
                 <CompactListCard key={list.id} list={list} />
               ))}
-              {!isRelatedUserListsLoading && relatedUserLists.length === 0 && (
+              {!isRelatedUserListsLoading &&
+                !(isRelatedUserListsFetching && relatedUserLists.length === 0) &&
+                relatedUserLists.length === 0 && (
                 <div className="text-sm text-muted-foreground border border-dashed rounded-lg p-4">
                   No related user lists yet.
                 </div>
@@ -486,8 +500,8 @@ function CompactListCardSkeleton() {
         <Skeleton className="h-4 w-4/5" />
         <Skeleton className="h-3 w-3/5" />
       </div>
-      <div className="w-14 sm:w-16 flex-shrink-0 p-1">
-        <Skeleton className="h-full min-h-[64px] w-full rounded-md" />
+      <div className="w-16 sm:w-20 aspect-[2/3] flex-shrink-0">
+        <Skeleton className="h-full w-full rounded-r-lg" />
       </div>
     </div>
   );
@@ -524,18 +538,18 @@ function CompactListCard({ list }: { list: any }) {
       </div>
 
       {posterPath ? (
-        <div className="relative w-14 sm:w-16 rounded-r-lg overflow-hidden flex-shrink-0 bg-muted">
+        <div className="relative w-16 sm:w-20 aspect-[2/3] rounded-r-lg overflow-hidden flex-shrink-0 bg-muted">
           <Image
             src={getPosterUrl(posterPath, "w200")}
             alt={list.name}
             fill
             className="object-cover"
-            sizes="64px"
+            sizes="80px"
             unoptimized
           />
         </div>
       ) : (
-        <div className="w-14 sm:w-16 rounded-r-lg bg-muted flex-shrink-0 flex items-center justify-center">
+        <div className="w-16 sm:w-20 aspect-[2/3] rounded-r-lg bg-muted flex-shrink-0 flex items-center justify-center">
           <span className="text-[10px] text-muted-foreground">No Image</span>
         </div>
       )}

@@ -59,11 +59,12 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
       where.tags = { hasNone: [EDITORIAL_TAG] };
     }
 
-    if (
+    const hasExactTarget =
       relatedTmdbIdNum &&
       !Number.isNaN(relatedTmdbIdNum) &&
-      (relatedMediaType === "movie" || relatedMediaType === "tv")
-    ) {
+      (relatedMediaType === "movie" || relatedMediaType === "tv");
+
+    if (hasExactTarget && genreIds.length === 0) {
       where.items = {
         some: {
           tmdbId: relatedTmdbIdNum,
@@ -84,7 +85,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
           },
         },
         items: {
-          take: 12,
+          take: hasExactTarget ? 50 : 12,
           orderBy: { position: "asc" },
           select: {
             tmdbId: true,
@@ -107,17 +108,28 @@ export async function GET(request: NextRequest): Promise<NextResponse<{ lists: u
         },
       },
       orderBy: { updatedAt: "desc" },
-      take: genreIds.length > 0 ? Math.max(limitNum * 3, 15) : limitNum,
+      take: genreIds.length > 0 ? Math.max(limitNum * 5, 30) : limitNum,
     });
 
     const mappedLists = lists.map(mapListForClient);
 
-    if (genreIds.length > 0) {
+    if (genreIds.length > 0 || hasExactTarget) {
       const genreSet = new Set(genreIds);
       const genreMatchCache = new Map<string, boolean>();
       const genreMatched = await Promise.all(
         mappedLists.map(async (list: any) => {
-          const candidates = (list.items || []).slice(0, 3);
+          const items = list.items || [];
+          const hasExactMatch = hasExactTarget
+            ? items.some(
+                (item: any) => item.tmdbId === relatedTmdbIdNum && item.mediaType === relatedMediaType,
+              )
+            : false;
+
+          if (hasExactMatch) {
+            return list;
+          }
+
+          const candidates = items.slice(0, 8);
           if (candidates.length === 0) return null;
 
           for (const item of candidates) {

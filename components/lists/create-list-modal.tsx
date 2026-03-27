@@ -344,6 +344,7 @@ export default function CreateListModal({ isOpen, onClose, list, onSuccess, edit
                       checked={isEditorial}
                       onCheckedChange={setIsEditorial}
                       disabled={isLoading}
+                      className="cursor-pointer"
                       aria-label="Toggle editorial list"
                     />
                   </div>
