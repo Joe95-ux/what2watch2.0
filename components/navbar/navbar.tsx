@@ -69,7 +69,12 @@ export default function Navbar() {
 
   const isDetailsNav = pathname?.startsWith("/tv") || pathname?.startsWith("/movie");
 
-  const isGuideNav = pathname === "/browse/personalized" || pathname?.startsWith("/lists") || pathname?.startsWith("/playlists");
+  const isGuideNav =
+    pathname === "/browse/personalized" ||
+    pathname?.startsWith("/lists") ||
+    pathname?.startsWith("/playlists") ||
+    pathname === "/editorial" ||
+    pathname?.startsWith("/editorial/");
 
   const isDashboardNav = pathname === "/dashboard" || pathname?.startsWith("/dashboard");
 
@@ -79,9 +84,11 @@ export default function Navbar() {
     pathname === "/popular" ||
     pathname === "/lists" ||
     pathname === "/members" ||
+    pathname === "/editorial" ||
     pathname?.startsWith("/browse/") ||
     pathname?.startsWith("/popular") ||
-    pathname?.startsWith("/lists/");
+    pathname?.startsWith("/lists/") ||
+    pathname?.startsWith("/editorial/");
 
   return (
     <nav

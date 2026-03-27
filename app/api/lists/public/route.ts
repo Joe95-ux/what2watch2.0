@@ -86,7 +86,13 @@ export async function GET(
     const pageNum = pageRaw ? Math.max(1, parseInt(pageRaw, 10) || 1) : 1;
     const skip = (pageNum - 1) * limitNum;
     const q = searchParams.get("q")?.trim();
-    const sortBy = searchParams.get("sortBy") === "name" ? "name" : "updatedAt";
+    const sortByParam = searchParams.get("sortBy") || "updatedAt";
+    const sortBy =
+      sortByParam === "name"
+        ? "name"
+        : sortByParam === "createdAt"
+          ? "createdAt"
+          : "updatedAt";
     const sortOrder = searchParams.get("order") === "asc" ? ("asc" as const) : ("desc" as const);
 
     const { userId: clerkUserId } = await auth();
@@ -193,7 +199,9 @@ export async function GET(
     const orderBy =
       sortBy === "name"
         ? { name: sortOrder }
-        : { updatedAt: sortOrder };
+        : sortBy === "createdAt"
+          ? { createdAt: sortOrder }
+          : { updatedAt: sortOrder };
 
     const lists = await db.list.findMany({
       where: whereCatalog,

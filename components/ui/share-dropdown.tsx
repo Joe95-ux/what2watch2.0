@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export type SharePlatform = "facebook" | "twitter" | "whatsapp" | "email" | "link";
 
@@ -145,7 +146,12 @@ export function ShareDropdown({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant={variant} size={size} className={className} title={triggerTitle}>
+        <Button
+          variant={variant}
+          size={size}
+          className={cn("cursor-pointer", className)}
+          title={triggerTitle}
+        >
           <Share2 className="h-4 w-4" />
           {showLabel && <span className="hidden md:inline">Share</span>}
         </Button>
