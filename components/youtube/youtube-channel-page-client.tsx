@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Heart, Youtube, ExternalLink, Loader2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, PanelLeft, Search, ArrowLeft } from "lucide-react";
@@ -50,6 +50,16 @@ interface YouTubeChannelPageClientProps {
 const VALID_TABS = new Set(["home", "videos", "shorts", "playlists", "posts", "reviews"]);
 const DEFAULT_TAB = "home";
 const STORAGE_KEY = "youtube-channel-tab";
+const YOUTUBE_SIDEBAR_TAB_KEY = "youtube-page-sidebar-tab";
+
+function isValidSidebarTab(value: string): value is SidebarTab {
+  return (
+    value === "channel" ||
+    value === "favorites" ||
+    value === "watchlater" ||
+    value === "recommendations"
+  );
+}
 
 export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPageClientProps) {
   const router = useRouter();
@@ -83,6 +93,26 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
   });
   
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("channel");
+  const handleSidebarTabChange = useCallback((tab: SidebarTab) => {
+    setSidebarTab(tab);
+    try {
+      localStorage.setItem(YOUTUBE_SIDEBAR_TAB_KEY, tab);
+    } catch {
+      // ignore quota / private mode
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(YOUTUBE_SIDEBAR_TAB_KEY);
+      if (raw && isValidSidebarTab(raw)) {
+        setSidebarTab(raw);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -550,6 +580,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
                   size="sm"
                   onClick={() => setRecommendationsPage((p) => Math.max(1, p - 1))}
                   disabled={!hasPreviousPage || isLoadingRecommendations}
+                  className="cursor-pointer"
                 >
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   Previous
@@ -559,6 +590,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
                   size="sm"
                   onClick={() => setRecommendationsPage((p) => p + 1)}
                   disabled={!hasNextPage || isLoadingRecommendations}
+                  className="cursor-pointer"
                 >
                   Next
                   <ChevronRight className="h-4 w-4 ml-1" />
@@ -586,7 +618,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
           <YouTubeChannelSidebar 
             currentChannelId={undefined}
             activeTab={sidebarTab}
-            onTabChange={setSidebarTab}
+            onTabChange={handleSidebarTabChange}
           />
           <div className="flex-1 min-w-0 transition-all duration-300">
             {renderMobileSidebarTriggerNav()}
@@ -622,7 +654,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
       <YouTubeChannelSidebar 
         currentChannelId={sidebarTab === "channel" ? channelId : undefined}
         activeTab={sidebarTab}
-        onTabChange={setSidebarTab}
+        onTabChange={handleSidebarTabChange}
         mobileOpen={mobileSidebarOpen}
         onMobileOpenChange={setMobileSidebarOpen}
         onCollapsedChange={setIsSidebarCollapsed}
@@ -915,8 +947,8 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setSidebarTab("channel")}
-                className="mb-4 -ml-2"
+                onClick={() => handleSidebarTabChange("channel")}
+                className="mb-4 -ml-2 cursor-pointer"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Channel
