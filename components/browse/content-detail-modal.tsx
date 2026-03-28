@@ -23,6 +23,7 @@ import {
   useOMDBData,
 } from "@/hooks/use-content-details";
 import { cn } from "@/lib/utils";
+import { createContentUrl } from "@/lib/content-slug";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import VideosCarousel from "./videos-carousel";
 import TrailerModal from "./trailer-modal";
@@ -426,16 +427,20 @@ export default function ContentDetailModal({
                       </>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide">
+                  <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide p-1">
                     <Button
                       size="lg"
-                      className="bg-white dark:bg-white text-black dark:text-black hover:bg-white/90 dark:hover:bg-white/90 h-10 px-6 text-sm font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg rounded-md no-close flex-shrink-0"
+                      className="bg-white dark:bg-white text-black dark:text-black hover:bg-white/90 dark:hover:bg-white/90 h-10 px-6 text-[16px] font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg rounded-md no-close flex-shrink-0"
                       asChild
                     >
-                      <Link 
-                        href={`/${type}/${item.id}`}
+                      <Link
+                        href={createContentUrl(
+                          type,
+                          item.id,
+                          "title" in item ? item.title : item.name,
+                        )}
                         onClick={(e) => e.stopPropagation()}
-                        className="no-close"
+                        className="no-close text-[16px]"
                       >
                         View More
                       </Link>

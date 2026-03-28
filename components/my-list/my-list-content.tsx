@@ -19,7 +19,11 @@ import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { MovieCardSkeleton } from "@/components/skeletons/movie-card-skeleton";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { cn } from "@/lib/utils";
+import { createContentUrl } from "@/lib/content-slug";
 import { getChannelProfilePath } from "@/lib/channel-path";
+import { useMovieDetails, useTVDetails, useIMDBRating } from "@/hooks/use-content-details";
+import { IMDBBadge } from "@/components/ui/imdb-badge";
+import { FavoriteChannelCard } from "@/components/youtube/favorite-channel-card";
 import { createPersonSlug } from "@/lib/person-utils";
 import { toast } from "sonner";
 import {
@@ -38,6 +42,54 @@ type ViewMode = "grid" | "list";
 type FilterType = "all" | "movie" | "tv";
 type SortBy = "recent" | "title" | "year";
 
+function MyListTableRatingCell({ tmdbId, type }: { tmdbId: number; type: "movie" | "tv" }) {
+  const { data: movieDetails, isLoading: loadingMovie } = useMovieDetails(type === "movie" ? tmdbId : null);
+  const { data: tvDetails, isLoading: loadingTv } = useTVDetails(type === "tv" ? tmdbId : null);
+  const details = type === "movie" ? movieDetails : tvDetails;
+  const loadingDetails = type === "movie" ? loadingMovie : loadingTv;
+  const tmdbVote =
+    details && "vote_average" in details && details.vote_average > 0 ? details.vote_average : null;
+  const movieWithExt = movieDetails as
+    | (typeof movieDetails & { external_ids?: { imdb_id?: string | null } })
+    | null
+    | undefined;
+  const tvWithExt = tvDetails as
+    | (typeof tvDetails & { external_ids?: { imdb_id?: string | null }; imdb_id?: string })
+    | null
+    | undefined;
+  const imdbId =
+    type === "movie"
+      ? movieWithExt?.imdb_id || movieWithExt?.external_ids?.imdb_id || null
+      : tvWithExt?.external_ids?.imdb_id || tvWithExt?.imdb_id || null;
+
+  const { data: ratingData } = useIMDBRating(imdbId ?? undefined, tmdbVote);
+
+  if (loadingDetails && !details) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <Skeleton className="h-3.5 w-3.5 rounded" />
+        <Skeleton className="h-4 w-10" />
+      </div>
+    );
+  }
+
+  if (!ratingData?.rating) {
+    return <span className="text-sm text-muted-foreground">N/A</span>;
+  }
+
+  const isImdb = ratingData.source === "imdb";
+  return (
+    <div className="flex items-center gap-1.5">
+      {isImdb ? (
+        <IMDBBadge size={14} />
+      ) : (
+        <Star className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400 shrink-0" />
+      )}
+      <span className="text-sm font-medium">{ratingData.rating.toFixed(1)}</span>
+    </div>
+  );
+}
+
 export default function MyListContent() {
   const router = useRouter();
   const { data: favorites = [], isLoading } = useFavorites();
@@ -55,6 +107,7 @@ export default function MyListContent() {
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isPersonalitiesSheetOpen, setIsPersonalitiesSheetOpen] = useState(false);
+  const [isChannelsSheetOpen, setIsChannelsSheetOpen] = useState(false);
   const [pendingPersonalityId, setPendingPersonalityId] = useState<number | null>(null);
 
   // Convert favorites to TMDB format for display
@@ -245,7 +298,18 @@ export default function MyListContent() {
       {/* Channels Section - First Section */}
       {favoriteChannels.length > 0 && (
         <div className="mb-12">
-          <h2 className="text-2xl font-semibold mb-4">Channels</h2>
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-2xl font-semibold">Channels</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full cursor-pointer"
+              onClick={() => setIsChannelsSheetOpen(true)}
+              aria-label="Open favorite channels"
+            >
+              <Info className="h-4 w-4" />
+            </Button>
+          </div>
           <div className="relative group/carousel">
             <Carousel
               opts={{
@@ -412,7 +476,10 @@ export default function MyListContent() {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2">My List</h1>
+            <h1 className="text-3xl font-bold mb-1">My List</h1>
+            <p className="text-sm text-muted-foreground mb-2">
+              Your favorite movies and TV shows.
+            </p>
             <p className="text-muted-foreground">
               {favorites.length} {favorites.length === 1 ? "item" : "items"}
               {movieCount > 0 && tvCount > 0 && ` • ${movieCount} movies • ${tvCount} TV shows`}
@@ -425,25 +492,37 @@ export default function MyListContent() {
           <div className="flex flex-wrap gap-3">
             {/* Type Filter */}
             <Select value={filterType} onValueChange={(value) => setFilterType(value as FilterType)}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-[140px] cursor-pointer">
                 <SelectValue placeholder="All" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="movie">Movies</SelectItem>
-                <SelectItem value="tv">TV Shows</SelectItem>
+                <SelectItem value="all" className="cursor-pointer">
+                  All
+                </SelectItem>
+                <SelectItem value="movie" className="cursor-pointer">
+                  Movies
+                </SelectItem>
+                <SelectItem value="tv" className="cursor-pointer">
+                  TV Shows
+                </SelectItem>
               </SelectContent>
             </Select>
 
             {/* Sort By */}
             <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortBy)}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-[140px] cursor-pointer">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="recent">Recently Added</SelectItem>
-                <SelectItem value="title">Title (A-Z)</SelectItem>
-                <SelectItem value="year">Year (Newest)</SelectItem>
+                <SelectItem value="recent" className="cursor-pointer">
+                  Recently Added
+                </SelectItem>
+                <SelectItem value="title" className="cursor-pointer">
+                  Title (A-Z)
+                </SelectItem>
+                <SelectItem value="year" className="cursor-pointer">
+                  Year (Newest)
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -547,14 +626,16 @@ export default function MyListContent() {
                     <tr
                       key={favoriteId}
                       className="hover:bg-muted/20 transition-colors cursor-pointer group"
-                      onClick={() => setSelectedItem({ item, type })}
+                      onClick={() =>
+                        router.push(createContentUrl(type, item.id, title))
+                      }
                     >
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
                           {posterPath ? (
                             <div className="relative w-20 h-12 rounded overflow-hidden flex-shrink-0 bg-muted">
                               <img
-                                src={`https://image.tmdb.org/t/p/w300${posterPath}`}
+                                src={getPosterUrl(posterPath, "w300")}
                                 alt={title}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
@@ -583,20 +664,13 @@ export default function MyListContent() {
                         {year || "N/A"}
                       </td>
                       <td className="px-4 py-4">
-                        {item.vote_average > 0 ? (
-                          <div className="flex items-center gap-1.5">
-                            <Star className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
-                            <span className="text-sm font-medium">{item.vote_average.toFixed(1)}</span>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">N/A</span>
-                        )}
+                        <MyListTableRatingCell tmdbId={item.id} type={type} />
                       </td>
                       <td className="px-4 py-4">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 cursor-pointer"
                           onClick={(e) => {
                             e.stopPropagation();
                             setItemToRemove({
@@ -625,6 +699,7 @@ export default function MyListContent() {
             size="sm"
             onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
             disabled={currentPage === 1}
+            className="cursor-pointer disabled:cursor-not-allowed"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
             Previous
@@ -636,7 +711,7 @@ export default function MyListContent() {
                 variant={currentPage === page ? "default" : "outline"}
                 size="sm"
                 onClick={() => setCurrentPage(page)}
-                className="min-w-[40px]"
+                className="min-w-[40px] cursor-pointer"
               >
                 {page}
               </Button>
@@ -647,6 +722,7 @@ export default function MyListContent() {
             size="sm"
             onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
             disabled={currentPage === totalPages}
+            className="cursor-pointer disabled:cursor-not-allowed"
           >
             Next
             <ChevronRight className="h-4 w-4 ml-1" />
@@ -675,6 +751,20 @@ export default function MyListContent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Sheet open={isChannelsSheetOpen} onOpenChange={setIsChannelsSheetOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-[30rem] p-0 flex flex-col">
+          <SheetHeader className="px-6 py-4 border-b">
+            <SheetTitle>Favorite Channels</SheetTitle>
+          </SheetHeader>
+
+          <div className="flex overflow-y-auto px-6 py-4 flex-col gap-1.5 scrollbar-thin">
+            {favoriteChannels.map((favorite) => (
+              <FavoriteChannelCard key={favorite.id} favorite={favorite} />
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <Sheet open={isPersonalitiesSheetOpen} onOpenChange={setIsPersonalitiesSheetOpen}>
         <SheetContent side="right" className="w-full sm:max-w-[30rem] p-0 flex flex-col">

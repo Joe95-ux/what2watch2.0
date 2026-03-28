@@ -176,7 +176,7 @@ export function YouTubeChannelSidebar({
         <div className="p-4 border-b flex items-center justify-between">
           <h2 className="font-semibold text-lg">Channels</h2>
           <SheetClose asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
               <X className="h-4 w-4" />
             </Button>
           </SheetClose>
@@ -195,7 +195,7 @@ export function YouTubeChannelSidebar({
               variant="ghost"
               size="icon"
               className={cn(
-                "h-8 w-8",
+                "h-8 w-8 cursor-pointer",
                 isCollapsed && "mx-auto"
               )}
               onClick={() => {
@@ -230,7 +230,7 @@ export function YouTubeChannelSidebar({
             <Button
               variant={activeTab === "favorites" ? "secondary" : "ghost"}
               className={cn(
-                "w-full transition-all",
+                "w-full cursor-pointer transition-all",
                 isCollapsed ? "justify-center p-2" : "justify-start gap-3"
               )}
               onClick={() => {
@@ -266,7 +266,7 @@ export function YouTubeChannelSidebar({
             <Button
               variant={activeTab === "watchlater" ? "secondary" : "ghost"}
               className={cn(
-                "w-full transition-all",
+                "w-full cursor-pointer transition-all",
                 isCollapsed ? "justify-center p-2" : "justify-start gap-3"
               )}
               onClick={() => {
@@ -302,7 +302,7 @@ export function YouTubeChannelSidebar({
             <Button
               variant={activeTab === "recommendations" ? "secondary" : "ghost"}
               className={cn(
-                "w-full transition-all",
+                "w-full cursor-pointer transition-all",
                 isCollapsed ? "justify-center p-2" : "justify-start gap-3"
               )}
               onClick={() => {
@@ -340,7 +340,7 @@ export function YouTubeChannelSidebar({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6"
+                  className="h-6 w-6 cursor-pointer"
                   onClick={() => setSearchQuery("")}
                 >
                   <X className="h-3 w-3" />
@@ -484,7 +484,7 @@ export function YouTubeChannelSidebar({
                 }
                 setIsCustomizeFeedOpen(true);
               }}
-              className="h-7 px-2 text-xs cursor-pointer"
+              className="h-7 px-2 text-xs cursor-pointer disabled:cursor-not-allowed"
               disabled={!isSignedIn}
             >
               <Edit className="h-3 w-3 mr-1" />
@@ -523,7 +523,7 @@ export function YouTubeChannelSidebar({
                   }
                   setIsCustomizeFeedOpen(true);
                 }}
-                className="cursor-pointer"
+                className="cursor-pointer disabled:cursor-not-allowed"
                 disabled={!isSignedIn}
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -541,9 +541,10 @@ export function YouTubeChannelSidebar({
 
               const channelButton = (
                 <button
+                  type="button"
                   onClick={() => handleChannelClick(channel.id, channel.slug)}
                   className={cn(
-                    "w-full flex items-center rounded-md text-left transition-colors",
+                    "w-full flex cursor-pointer items-center rounded-md text-left transition-colors",
                     isCollapsed ? "justify-center p-2" : "gap-3 p-2",
                     "hover:bg-muted",
                     isActive && "bg-muted",
