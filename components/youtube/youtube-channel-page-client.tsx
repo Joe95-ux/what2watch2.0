@@ -808,7 +808,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
                       />
                     ))}
                   </div>
-                  {hasMorePlaylists && (
+                  {hasMorePlaylists && playlists.length > 0 && (
                     <div className="text-center mt-6">
                       <Button
                         onClick={handleLoadMorePlaylists}
@@ -843,9 +843,21 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
                     </div>
                   ))}
                 </div>
-              ) : videos.length === 0 ? (
+              ) : filteredVideos.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground space-y-4">
-                  <p>{isErrorVideos ? "We couldn't load videos. Please try again." : "No videos found."}</p>
+                  <p>
+                    {isErrorVideos
+                      ? "We couldn't load videos. Please try again."
+                      : videos.length === 0
+                        ? "No videos found."
+                        : activeTab === "shorts"
+                          ? "No shorts found for this channel."
+                          : activeTab === "videos"
+                            ? "No full-length videos found for this channel."
+                            : showSearch && searchQuery && activeTab === "home"
+                              ? "No videos match your search."
+                              : "No videos match the current view."}
+                  </p>
                   {isErrorVideos && (
                     <Button variant="outline" onClick={() => refetchVideos()} className="cursor-pointer">
                       Retry
@@ -864,7 +876,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
                       />
                     ))}
                   </div>
-                  {hasMore && (
+                  {hasMore && filteredVideos.length > 0 && (
                     <div className="text-center mt-6">
                       <Button
                         onClick={handleLoadMore}
