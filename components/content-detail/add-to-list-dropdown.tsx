@@ -221,9 +221,10 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
           <div className="px-2 py-1.5 border-b border-border">
             <div className="flex items-center gap-0">
               <button
+                type="button"
                 onClick={() => setActiveTab("playlist")}
                 className={cn(
-                  "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                  "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer",
                   activeTab === "playlist" 
                     ? "bg-muted text-foreground" 
                     : "text-muted-foreground hover:text-foreground"
@@ -232,9 +233,10 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
                 Playlist
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTab("list")}
                 className={cn(
-                  "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                  "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer",
                   activeTab === "list" 
                     ? "bg-muted text-foreground" 
                     : "text-muted-foreground hover:text-foreground"

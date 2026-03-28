@@ -314,6 +314,8 @@ export function MovieChatSheet({
     // Handle message updates
     let updatedMessages = [...messages];
     let userMessageIndex = updatedMessages.length;
+    /** Retry count of the assistant being replaced (slice removes it, so read before slice). */
+    let priorAssistantRetryForRegenerate = 0;
 
     if (options.isEdit && options.messageIndex !== undefined) {
       // Replace the edited message
@@ -322,6 +324,8 @@ export function MovieChatSheet({
       updatedMessages = updatedMessages.slice(0, options.messageIndex + 1);
       userMessageIndex = options.messageIndex;
     } else if (options.isRegenerate && options.messageIndex !== undefined) {
+      priorAssistantRetryForRegenerate =
+        messages[options.messageIndex]?.retryCount || 0;
       // Remove the assistant message being regenerated and all after it
       updatedMessages = updatedMessages.slice(0, options.messageIndex);
       userMessageIndex = options.messageIndex - 1;
@@ -372,7 +376,7 @@ export function MovieChatSheet({
         role: "assistant",
         content: data.message,
         retryCount: options.isRegenerate && options.messageIndex !== undefined
-          ? (updatedMessages[options.messageIndex]?.retryCount || 0) + 1
+          ? priorAssistantRetryForRegenerate + 1
           : 0,
       };
 
@@ -1026,7 +1030,7 @@ export function MovieChatSheet({
                               "h-6 w-6 cursor-pointer",
                               "text-foreground hover:bg-foreground/10"
                             )}
-                            onClick={() => handleRegenerate(index + 1)}
+                            onClick={() => handleRegenerate(index)}
                             disabled={isLoading}
                             title="Regenerate response"
                           >
