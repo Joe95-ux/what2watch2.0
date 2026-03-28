@@ -14,6 +14,7 @@ import {
   MoreVertical,
   Trash2,
   Check,
+  Loader2,
 } from "lucide-react";
 import { YouTubeVideo } from "@/hooks/use-youtube-channel";
 import { CircleActionButton } from "@/components/browse/circle-action-button";
@@ -427,6 +428,7 @@ export default function YouTubeVideoCard({
                   onClick={async (e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    if (favoriteTogglePending) return;
                     await requireAuth(
                       async () => {
                         const willFavorite = !toggleVideoFavorite.isFavorited(video.id);
@@ -439,22 +441,32 @@ export default function YouTubeVideoCard({
                     );
                     setIsActionsDropdownOpen(false);
                   }}
+                  disabled={favoriteTogglePending}
                   className="cursor-pointer text-[0.8rem]"
                 >
-                  <Heart
-                    className={cn(
-                      "h-4 w-4 mr-2",
-                      toggleVideoFavorite.isFavorited(video.id)
-                        ? "text-red-500 fill-red-500"
-                        : "text-muted-foreground"
-                    )}
-                  />
-                  {toggleVideoFavorite.isFavorited(video.id) ? "Remove from favorites" : "Liked video"}
+                  {favoriteTogglePending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin text-muted-foreground shrink-0" />
+                  ) : (
+                    <Heart
+                      className={cn(
+                        "h-4 w-4 mr-2 shrink-0",
+                        toggleVideoFavorite.isFavorited(video.id)
+                          ? "text-red-500 fill-red-500"
+                          : "text-muted-foreground"
+                      )}
+                    />
+                  )}
+                  {favoriteTogglePending
+                    ? "Updating..."
+                    : toggleVideoFavorite.isFavorited(video.id)
+                      ? "Remove from favorites"
+                      : "Add to favorites"}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={async (e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    if (watchlistTogglePending) return;
                     await requireAuth(
                       async () => {
                         const willAdd = !toggleVideoWatchlist.isInWatchlist(video.id);
@@ -467,17 +479,26 @@ export default function YouTubeVideoCard({
                     );
                     setIsActionsDropdownOpen(false);
                   }}
+                  disabled={watchlistTogglePending}
                   className="cursor-pointer text-[0.8rem]"
                 >
-                  <Bookmark
-                    className={cn(
-                      "h-4 w-4 mr-2",
-                      toggleVideoWatchlist.isInWatchlist(video.id)
-                        ? "text-blue-500 fill-blue-500"
-                        : "text-muted-foreground"
-                    )}
-                  />
-                  {toggleVideoWatchlist.isInWatchlist(video.id) ? "Remove from watch later" : "Watch later"}
+                  {watchlistTogglePending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin text-muted-foreground shrink-0" />
+                  ) : (
+                    <Bookmark
+                      className={cn(
+                        "h-4 w-4 mr-2 shrink-0",
+                        toggleVideoWatchlist.isInWatchlist(video.id)
+                          ? "text-blue-500 fill-blue-500"
+                          : "text-muted-foreground"
+                      )}
+                    />
+                  )}
+                  {watchlistTogglePending
+                    ? "Updating..."
+                    : toggleVideoWatchlist.isInWatchlist(video.id)
+                      ? "In Watch Later"
+                      : "Watch later"}
                 </DropdownMenuItem>
                 {onRemove && (
                   <>

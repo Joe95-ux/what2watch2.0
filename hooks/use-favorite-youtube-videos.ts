@@ -113,6 +113,10 @@ export function useToggleFavoriteYouTubeVideo() {
 
   const isFavorited = (videoId: string) => favorites.some((favorite) => favorite.videoId === videoId);
 
+  const isFavoriteTogglePendingForVideo = (videoId: string) =>
+    (addMutation.isPending && addMutation.variables?.id === videoId) ||
+    (removeMutation.isPending && removeMutation.variables === videoId);
+
   return {
     favorites,
     isFavorited,
@@ -127,6 +131,7 @@ export function useToggleFavoriteYouTubeVideo() {
       await addMutation.mutateAsync(video);
     },
     isLoading: addMutation.isPending || removeMutation.isPending,
+    isFavoriteTogglePendingForVideo,
   };
 }
 

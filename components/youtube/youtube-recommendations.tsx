@@ -46,7 +46,7 @@ export function YouTubeRecommendations() {
                   key={idx} 
                   className="pl-2 sm:pl-3 md:pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5 2xl:basis-1/6"
                 >
-                  <YouTubeVideoCardSkeleton />
+                  <YouTubeVideoCardSkeleton titleLines={1} />
                 </CarouselItem>
               ))}
             </CarouselContent>
@@ -112,10 +112,10 @@ export function YouTubeRecommendations() {
           </CarouselContent>
           {/* Mobile carousel controls - top right, visible on mobile only */}
           <CarouselPrevious 
-            className="absolute top-0 right-10 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm border shadow-sm hover:bg-background opacity-100 md:hidden z-20"
+            className="absolute top-0 right-10 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm border shadow-sm hover:bg-background opacity-100 md:hidden z-20 cursor-pointer"
           />
           <CarouselNext 
-            className="absolute top-0 right-0 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm border shadow-sm hover:bg-background opacity-100 md:hidden z-20"
+            className="absolute top-0 right-0 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm border shadow-sm hover:bg-background opacity-100 md:hidden z-20 cursor-pointer"
           />
           {/* Desktop carousel controls - hidden on mobile, shown on hover */}
           <CarouselPrevious 

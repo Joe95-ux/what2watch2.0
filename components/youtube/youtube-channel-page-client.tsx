@@ -15,6 +15,7 @@ import {
 } from "@/hooks/use-youtube-channel";
 import { useToggleFavoriteChannel } from "@/hooks/use-favorite-channels";
 import YouTubeVideoCard from "@/components/youtube/youtube-video-card";
+import { YouTubeVideoCardSkeleton } from "@/components/youtube/youtube-video-card-skeleton";
 import { YouTubePlaylistCard } from "@/components/youtube/youtube-playlist-card";
 import YouTubeChannelStickyNav from "@/components/youtube/youtube-channel-sticky-nav";
 import YouTubeChannelPageSkeleton from "@/components/youtube/youtube-channel-page-skeleton";
@@ -508,7 +509,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
         return (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <Skeleton key={i} className="h-72 rounded-xl" />
+              <YouTubeVideoCardSkeleton key={i} titleLines={1} />
             ))}
           </div>
         );

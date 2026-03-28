@@ -100,6 +100,10 @@ export function useToggleYouTubeVideoWatchlist() {
 
   const isInWatchlist = (videoId: string) => watchlist.some((item) => item.videoId === videoId);
 
+  const isWatchlistTogglePendingForVideo = (videoId: string) =>
+    (addMutation.isPending && addMutation.variables?.id === videoId) ||
+    (removeMutation.isPending && removeMutation.variables === videoId);
+
   return {
     watchlist,
     isInWatchlist,
@@ -114,6 +118,7 @@ export function useToggleYouTubeVideoWatchlist() {
       await addMutation.mutateAsync(video);
     },
     isLoading: addMutation.isPending || removeMutation.isPending,
+    isWatchlistTogglePendingForVideo,
   };
 }
 
