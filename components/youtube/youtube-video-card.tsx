@@ -166,6 +166,10 @@ export default function YouTubeVideoCard({
   const shouldShowActions = true;
   const isPlaylistVariant = variant === "playlist";
   const effectiveTitleLines = isPlaylistVariant ? 1 : titleLines;
+  const favoriteTogglePending =
+    toggleVideoFavorite.isFavoriteTogglePendingForVideo(video.id);
+  const watchlistTogglePending =
+    toggleVideoWatchlist.isWatchlistTogglePendingForVideo(video.id);
 
   const handleCardClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
