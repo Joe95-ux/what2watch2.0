@@ -94,6 +94,8 @@ export function MovieChatSheet({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const shouldAutoScroll = useRef(true);
+  /** Abort in-flight GET /movie-details so history load can't overwrite state mid-send/regenerate. */
+  const historyLoadAbortRef = useRef<AbortController | null>(null);
 
   // Check for Web Speech API support (Chrome, Edge, Safari) or MediaRecorder (Firefox)
   useEffect(() => {
@@ -267,9 +269,13 @@ export function MovieChatSheet({
   }, [isOpen]);
 
   const loadChatHistory = async () => {
+    historyLoadAbortRef.current?.abort();
+    const controller = new AbortController();
+    historyLoadAbortRef.current = controller;
     try {
       const res = await fetch(
-        `/api/ai/chat/movie-details?tmdbId=${tmdbId}&sessionId=${sessionId}`
+        `/api/ai/chat/movie-details?tmdbId=${tmdbId}&sessionId=${sessionId}`,
+        { signal: controller.signal }
       );
       if (res.ok) {
         const data = await res.json();
@@ -281,6 +287,7 @@ export function MovieChatSheet({
         }
       }
     } catch (error) {
+      if ((error as Error).name === "AbortError") return;
       console.error("Failed to load chat history:", error);
     }
   };
@@ -310,6 +317,9 @@ export function MovieChatSheet({
     }
 
     setIsLoading(true);
+    historyLoadAbortRef.current?.abort();
+
+    const messagesSnapshot = [...messages];
 
     // Handle message updates
     let updatedMessages = [...messages];
@@ -365,6 +375,7 @@ export function MovieChatSheet({
             setMaxQuestions(data.maxQuestions === -1 ? Infinity : data.maxQuestions);
           }
           setQuestionCount(data.questionCount || maxQuestions);
+          setMessages(messagesSnapshot);
         } else {
           throw new Error(data.error || "Failed to send message");
         }
@@ -402,7 +413,9 @@ export function MovieChatSheet({
         }
       }
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      // Use local `updatedMessages` (not functional `prev`) so a late `loadChatHistory()` or other
+      // update can't leave `prev` stale and wipe the thread when appending.
+      setMessages([...updatedMessages, assistantMessage]);
       
       if (!options.isRegenerate) {
         setQuestionCount(data.questionCount || questionCount + 1);
@@ -413,7 +426,9 @@ export function MovieChatSheet({
     } catch (error) {
       console.error("Chat error:", error);
       toast.error("Failed to send message. Please try again.");
-      if (!options.isRegenerate && !options.isEdit) {
+      if (options.isRegenerate || options.isEdit) {
+        setMessages(messagesSnapshot);
+      } else {
         setMessages((prev) => prev.slice(0, -1));
       }
     } finally {

@@ -208,7 +208,9 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold">List not found</h1>
           <p className="text-muted-foreground">{errorMessage || "This list doesn't exist or is private."}</p>
-          <Button onClick={() => router.back()} className="cursor-pointer">Go Back</Button>
+          <Button onClick={() => router.push("/lists")} className="cursor-pointer">
+            Back to Lists
+          </Button>
         </div>
       </div>
     );

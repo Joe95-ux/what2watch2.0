@@ -133,6 +133,7 @@ interface PlaylistViewProps {
   errorDescription?: string;
   errorAction?: React.ReactNode;
   onBack?: () => void;
+  backLabel?: string;
   // Like and Follow props for non-owners
   isLiked?: boolean;
   onToggleLike?: () => Promise<void>;
@@ -161,6 +162,7 @@ export default function PlaylistView({
   errorDescription = "This playlist doesn't exist or is private.",
   errorAction,
   onBack,
+  backLabel = "Back to Playlists",
   isLiked = false,
   onToggleLike,
   isLikeLoading = false,
@@ -944,10 +946,10 @@ export default function PlaylistView({
             <Button
               variant="ghost"
               onClick={onBack}
-              className="mb-4"
+              className="mb-4 cursor-pointer"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Playlists
+              {backLabel}
             </Button>
           )}
 

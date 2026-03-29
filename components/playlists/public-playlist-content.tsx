@@ -222,11 +222,12 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
             : error || "This playlist doesn't exist."
         }
         errorAction={
-          <Button onClick={() => router.push("/browse")} className="cursor-pointer">
-            Back to Browse
+          <Button onClick={() => router.push("/lists")} className="cursor-pointer">
+            Back to Lists
           </Button>
         }
-        onBack={() => router.push("/playlists")}
+        onBack={() => router.push("/lists")}
+        backLabel="Back to Lists"
       />
     );
   }
@@ -250,7 +251,8 @@ export default function PublicPlaylistContent({ playlistId }: PublicPlaylistCont
         emptyDescription="No items have been added yet."
         errorTitle="Playlist not found"
         errorDescription="This playlist doesn't exist or is private."
-        onBack={() => router.push("/playlists")}
+        onBack={() => router.push("/lists")}
+        backLabel="Back to Lists"
         isLiked={isLiked}
         onToggleLike={handleToggleLike}
         isLikeLoading={likePlaylist.isPending || unlikePlaylist.isPending}

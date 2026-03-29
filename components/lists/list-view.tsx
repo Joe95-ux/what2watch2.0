@@ -686,7 +686,7 @@ export default function ListView({
             <Button
               variant="ghost"
               onClick={onBack}
-              className="mb-4"
+              className="mb-4 cursor-pointer"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Lists
