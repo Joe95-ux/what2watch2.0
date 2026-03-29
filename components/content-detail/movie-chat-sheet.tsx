@@ -876,6 +876,13 @@ export function MovieChatSheet({
 
   const remainingQuestions = maxQuestions === Infinity ? Infinity : maxQuestions - questionCount;
 
+  useEffect(() => {
+    if (!isOpen) return;
+    if (maxQuestions !== Infinity && questionCount >= maxQuestions) {
+      setChatHeaderMode("upgrade");
+    }
+  }, [isOpen, maxQuestions, questionCount]);
+
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-[30rem] p-0 flex flex-col [&>button]:hidden">
