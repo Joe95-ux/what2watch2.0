@@ -1062,7 +1062,7 @@ export default function PlaylistView({
                       size="sm"
                       onClick={onToggleLike}
                       disabled={isLikeLoading || !likeUserId}
-                      className="cursor-pointer flex-shrink-0 text-foreground hover:bg-muted"
+                      className="cursor-pointer flex-shrink-0 text-foreground hover:bg-muted border border-border/60"
                     >
                       <Heart
                         className={cn(

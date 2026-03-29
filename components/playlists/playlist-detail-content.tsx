@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { usePlaylist, useDeletePlaylist, useRemoveItemFromPlaylist, useUpdatePlaylist, type Playlist } from "@/hooks/use-playlists";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import CreatePlaylistModal from "./create-playlist-modal";
 import SharePlaylistDialog from "./share-playlist-dialog";
@@ -47,6 +47,9 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
   const removeItem = useRemoveItemFromPlaylist();
   const updatePlaylist = useUpdatePlaylist();
   const router = useRouter();
+  const pathname = usePathname();
+  const isDashboardRoute = pathname?.startsWith("/dashboard/");
+  const backTarget = isDashboardRoute ? "/dashboard/playlists" : "/lists";
   
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -170,11 +173,12 @@ export default function PlaylistDetailContent({ playlistId }: PlaylistDetailCont
         errorTitle="Playlist not found"
         errorDescription="This playlist doesn't exist or you don't have access to it."
         errorAction={
-          <Button onClick={() => router.push("/playlists")} className="cursor-pointer">
-            Back to Playlists
+          <Button onClick={() => router.push(backTarget)} className="cursor-pointer">
+            Back to Lists
           </Button>
         }
-        onBack={() => router.push("/playlists")}
+        onBack={() => router.push(backTarget)}
+        backLabel={isDashboardRoute ? "Back to Playlists" : "Back to Lists"}
         isLiked={isLiked}
         onToggleLike={handleToggleLike}
         isLikeLoading={likePlaylist.isPending || unlikePlaylist.isPending}
