@@ -1549,6 +1549,7 @@ export default function PlaylistView({
                         <MovieCard
                           item={item}
                           type={type}
+                          variant="more-like-this"
                           onCardClick={(clickedItem, clickedType) =>
                             setSelectedItem({
                               item: clickedItem,

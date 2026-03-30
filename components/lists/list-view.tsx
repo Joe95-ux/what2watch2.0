@@ -1325,6 +1325,7 @@ export default function ListView({
                     <MovieCard
                       item={item}
                       type={type}
+                      variant="more-like-this"
                       onCardClick={(clickedItem, clickedType) =>
                         setSelectedItem({
                           item: clickedItem,

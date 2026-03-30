@@ -195,14 +195,10 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
     ? `${window.location.origin}/lists/${list.id}`
     : "";
 
-  if (isLoading) {
-    return null; // ListView handles loading
-  }
-
   const errorMessage: string | null =
     error instanceof Error ? error.message : error ? String(error) : null;
 
-  if (errorMessage || !list) {
+  if (!isLoading && (errorMessage || !list)) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center space-y-4">
@@ -237,7 +233,7 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
         onToggleLike={handleToggleLike}
         isLikeLoading={likeList.isPending || unlikeList.isPending}
         likeUserId={currentUser?.id || null}
-        showLikeFollow={!isOwner && list?.visibility !== "PRIVATE"}
+        showLikeFollow={!isLoading && !isOwner && list?.visibility !== "PRIVATE"}
       />
 
       {/* Comments Section */}
