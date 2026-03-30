@@ -282,7 +282,7 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete List</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete &quot;{list.name}&quot;? This action cannot be undone.
+              Are you sure you want to delete &quot;{list?.name}&quot;? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
