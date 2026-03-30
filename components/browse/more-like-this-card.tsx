@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
-import { Play, Plus, Heart, Bookmark, MoreVertical, Eye, ThumbsUp } from "lucide-react";
+import { Play, Plus, Heart, Bookmark, MoreVertical, Eye, ThumbsUp, Trash2 } from "lucide-react";
 import { FaCaretUp, FaCaretDown } from "react-icons/fa6";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
@@ -39,6 +39,10 @@ interface MoreLikeThisCardProps {
   showTypeBadge?: boolean; // Show TV/Movies badge when filter is "all"
   className?: string;
   onAddToPlaylist?: () => void;
+  /** Optional removal action used in list/playlist/watchlist grids. */
+  onRemove?: () => void;
+  /** Label for the removal dropdown item. */
+  removeLabel?: string;
   /** When set (e.g. from /search?watchProvider=x), show JustWatch 24h rank instead of runtime in top-right. */
   justwatchRank?: number | null;
   /** Delta for rank badge (positive = up, negative = down). Used with justwatchRank. */
@@ -56,10 +60,16 @@ export default function MoreLikeThisCard({
   showTypeBadge = false,
   className,
   onAddToPlaylist,
+  onRemove,
+  removeLabel = "Remove",
   justwatchRank = null,
   justwatchRankDelta = null,
   justwatchRankLoading = false,
 }: MoreLikeThisCardProps) {
+  // Defensive: some grids can occasionally pass an undefined/empty entry during transitions.
+  // Prevents runtime crashes like "Cannot read properties of undefined (reading 'name')".
+  if (!item) return null;
+
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
   const [runtime, setRuntime] = useState<number | null>(null);
@@ -410,6 +420,23 @@ export default function MoreLikeThisCard({
                   />
                   {toggleWatchlist.isInWatchlist(item.id, type) ? "Remove from Watchlist" : "Add to Watchlist"}
                 </DropdownMenuItem>
+                {onRemove && (
+                  <>
+                    <div className="my-1 border-t border-border" />
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onRemove();
+                        setIsActionsDropdownOpen(false);
+                      }}
+                      className="cursor-pointer text-destructive focus:text-destructive text-[0.8rem]"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      {removeLabel}
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

@@ -4,9 +4,9 @@ import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { createContentUrl } from "@/lib/content-slug";
-import MovieCard from "@/components/browse/movie-card";
+import MoreLikeThisCard from "@/components/browse/more-like-this-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
-import { MovieCardSkeleton } from "@/components/skeletons/movie-card-skeleton";
+import { MoreLikeThisCardSkeleton } from "@/components/skeletons/more-like-this-card-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
@@ -680,7 +680,7 @@ export default function WatchlistView({
           <Skeleton className="h-10 w-48 mb-8" />
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {Array.from({ length: 12 }).map((_, i) => (
-              <MovieCardSkeleton key={i} />
+              <MoreLikeThisCardSkeleton key={i} />
             ))}
           </div>
         </div>
@@ -1559,11 +1559,10 @@ export default function WatchlistView({
                       </Button>
                     </div>
                   )}
-                  <MovieCard
+                  <MoreLikeThisCard
                     item={item}
                     type={type}
-                    variant="more-like-this"
-                    onCardClick={(clickedItem, clickedType) =>
+                    onItemClick={(clickedItem, clickedType) =>
                       setSelectedItem({
                         item: clickedItem,
                         type: clickedType,
@@ -1571,15 +1570,15 @@ export default function WatchlistView({
                     }
                     onRemove={
                       enableRemove
-                        ? () => {
+                        ? () =>
                             setItemToRemove({
                               tmdbId: watchlistItem.tmdbId,
                               mediaType: watchlistItem.mediaType,
                               title: watchlistItem.title,
-                            });
-                          }
+                            })
                         : undefined
                     }
+                    removeLabel="Remove from Watchlist"
                   />
                 </div>
               ))}
