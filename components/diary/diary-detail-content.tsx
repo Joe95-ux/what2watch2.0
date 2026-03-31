@@ -1515,9 +1515,9 @@ function CommentsSection({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="newest">Newest</SelectItem>
-            <SelectItem value="oldest">Oldest</SelectItem>
-            <SelectItem value="most-liked">Most Liked</SelectItem>
+            <SelectItem value="newest" className="cursor-pointer">Newest</SelectItem>
+            <SelectItem value="oldest" className="cursor-pointer">Oldest</SelectItem>
+            <SelectItem value="most-liked" className="cursor-pointer">Most Liked</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -1839,7 +1839,7 @@ function CommentItem({
             {isOwner && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-6 w-6">
+                  <Button variant="ghost" size="icon" className="h-6 w-6 cursor-pointer">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -1854,7 +1854,7 @@ function CommentItem({
                         onDelete(comment.id);
                       }
                     }}
-                    className="text-destructive"
+                    className="text-destructive cursor-pointer"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete
