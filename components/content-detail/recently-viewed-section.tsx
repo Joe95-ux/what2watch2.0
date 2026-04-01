@@ -97,7 +97,7 @@ export default function RecentlyViewedSection({ currentItemId, currentType }: Re
             size="sm"
             onClick={handleClear}
             disabled={isClearing}
-            className="gap-2"
+            className="gap-2 cursor-pointer"
           >
             <Trash2 className="h-4 w-4" />
             {isClearing ? "Clearing..." : "Clear"}

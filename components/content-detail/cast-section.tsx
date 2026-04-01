@@ -170,7 +170,9 @@ export default function CastSection({ cast, crew, isLoading, type = "movie" }: C
   }
 
   if (!cast || cast.length === 0) {
-    return null;
+    return (<div className="justify-center items-center py-12">
+      <p className="text-muted-foreground text-center">No cast found</p>
+    </div>);
   }
 
   // Group crew by department
@@ -290,6 +292,7 @@ export default function CastSection({ cast, crew, isLoading, type = "movie" }: C
                 setViewMode("carousel");
                 setCurrentPage(1);
               }}
+              className="cursor-pointer"
             >
               Carousel
             </Button>
@@ -300,6 +303,7 @@ export default function CastSection({ cast, crew, isLoading, type = "movie" }: C
                 setViewMode("table");
                 setCurrentPage(1);
               }}
+              className="cursor-pointer"
             >
               Table
             </Button>
@@ -564,21 +568,21 @@ export default function CastSection({ cast, crew, isLoading, type = "movie" }: C
           <div className="flex flex-wrap items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button variant="outline" size="sm" className="gap-2 cursor-pointer">
                   <Filter className="h-4 w-4" />
                   {filterType === "all" ? "All" : filterType === "cast" ? "Cast" : "Crew"}
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => setFilterType("all")}>
+                <DropdownMenuItem onClick={() => setFilterType("all")} className="cursor-pointer">
                   All ({allPeople.length})
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterType("cast")}>
+                <DropdownMenuItem onClick={() => setFilterType("cast")} className="cursor-pointer">
                   Cast ({cast.length})
                 </DropdownMenuItem>
                 {crew && crew.length > 0 && (
-                  <DropdownMenuItem onClick={() => setFilterType("crew")}>
+                  <DropdownMenuItem onClick={() => setFilterType("crew")} className="cursor-pointer">
                     Crew ({crew.length})
                   </DropdownMenuItem>
                 )}
@@ -587,7 +591,7 @@ export default function CastSection({ cast, crew, isLoading, type = "movie" }: C
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button variant="outline" size="sm" className="gap-2 cursor-pointer">
                   <ArrowUpDown className="h-4 w-4" />
                   Sort: {sortField === "name" ? "Name" : sortField === "character" ? "Character" : "Order"}
                   {sortDirection === "asc" ? " ↑" : " ↓"}
@@ -595,13 +599,13 @@ export default function CastSection({ cast, crew, isLoading, type = "movie" }: C
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => handleSort("order")}>
+                <DropdownMenuItem onClick={() => handleSort("order")} className="cursor-pointer">
                   Order {sortField === "order" && (sortDirection === "asc" ? "↑" : "↓")}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleSort("name")}>
+                <DropdownMenuItem onClick={() => handleSort("name")} className="cursor-pointer">
                   Name {sortField === "name" && (sortDirection === "asc" ? "↑" : "↓")}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleSort("character")}>
+                <DropdownMenuItem onClick={() => handleSort("character")} className="cursor-pointer">
                   Character {sortField === "character" && (sortDirection === "asc" ? "↑" : "↓")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -690,6 +694,7 @@ export default function CastSection({ cast, crew, isLoading, type = "movie" }: C
                   size="sm"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
+                  className="cursor-pointer"
                 >
                   Previous
                 </Button>
@@ -701,6 +706,7 @@ export default function CastSection({ cast, crew, isLoading, type = "movie" }: C
                   size="sm"
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
+                  className="cursor-pointer"
                 >
                   Next
                 </Button>

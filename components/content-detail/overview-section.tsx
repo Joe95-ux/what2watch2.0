@@ -823,7 +823,7 @@ function OverviewDetailsRows({
     networks && { label: "Network", value: networks },
     productionCompanies && { label: "Production Companies", value: productionCompanies },
     type === "movie" && omdbData?.rated && { label: "Rated", value: omdbData.rated },
-    type === "movie" && omdbData?.boxOffice && { label: "Box Office", value: omdbData.boxOffice },
+    type === "movie" && omdbData?.boxOffice && { label: "Box Office U.S", value: omdbData.boxOffice },
     type === "movie" && omdbData?.production && { label: "Production", value: omdbData.production },
     type === "movie" && omdbData?.dvd && formatOMDBDate(omdbData.dvd) && { label: "DVD Release", value: formatOMDBDate(omdbData.dvd)! },
     budget && { label: "Budget", value: budget },
