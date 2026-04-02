@@ -155,7 +155,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                 className="flex-1 cursor-pointer"
               >
                 <div className="flex flex-col items-center gap-2">
-                    <div className="rounded-full bg-muted/85 dark:bg-muted/50 p-3 hover:bg-muted/95 transition-all duration-300">
+                    <div className="rounded-full bg-muted/85 dark:bg-muted/50 p-3 hover:bg-muted dark:hover:bg-muted/70 transition-all duration-300">
                       <LayoutDashboard className="h-5 w-5 text-foreground" />
                     </div>
                   <span className="text-xs font-medium">Dashboard</span>
@@ -166,7 +166,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                 <SheetTrigger asChild>
                   <button className="flex-1 cursor-pointer">
                     <div className="flex flex-col items-center gap-2">
-                        <div className="rounded-full bg-muted/85 dark:bg-muted/50 p-3 relative hover:bg-muted/95 transition-all duration-300">
+                        <div className="rounded-full bg-muted/85 dark:bg-muted/50 p-3 relative hover:bg-muted dark:hover:bg-muted/70 transition-all duration-300">
                           <Bell className="h-5 w-5 text-foreground" />
                           {totalUnreadCount > 0 && (
                             <Badge
@@ -190,7 +190,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                 <PopoverTrigger asChild>
                   <button className="flex-1 cursor-pointer">
                     <div className="flex flex-col items-center gap-2">
-                      <div className="rounded-full bg-muted/85 dark:bg-muted/50 p-3 hover:bg-muted/95 transition-all duration-300">
+                      <div className="rounded-full bg-muted/85 dark:bg-muted/50 p-3 hover:bg-muted dark:hover:bg-muted/70 transition-all duration-300">
                         <Megaphone className="h-5 w-5 text-foreground" />
                       </div>
                       <span className="text-xs font-medium">Feedback</span>
@@ -269,7 +269,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   }, 100);
                 }}
               >
-                <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/85 dark:bg-muted/50 hover:bg-muted/95 transition-all duration-300 cursor-pointer">
+                <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/85 dark:bg-muted/50 hover:bg-muted dark:hover:bg-muted/70 transition-all duration-300 cursor-pointer">
                   <Bookmark className="h-5 w-5 text-foreground" />
                   <span className="text-xs font-medium">Watchlist</span>
                 </div>
@@ -284,7 +284,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   }, 100);
                 }}
               >
-                <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/85 dark:bg-muted/50 hover:bg-muted/95 transition-all duration-300 cursor-pointer">
+                <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/85 dark:bg-muted/50 hover:bg-muted dark:hover:bg-muted/70 transition-all duration-300 cursor-pointer">
                   <ClipboardList className="h-5 w-5 text-foreground" />
                   <span className="text-xs font-medium">Lists</span>
                 </div>
@@ -299,7 +299,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   }, 100);
                 }}
               >
-                <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/85 dark:bg-muted/50 hover:bg-muted/95 transition-all duration-300 cursor-pointer">
+                <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/85 dark:bg-muted/50 hover:bg-muted dark:hover:bg-muted/70 transition-all duration-300 cursor-pointer">
                   <List className="h-5 w-5 text-foreground" />
                   <span className="text-xs font-medium">Playlists</span>
                 </div>
@@ -314,7 +314,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   }, 100);
                 }}
               >
-                <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/85 dark:bg-muted/50 hover:bg-muted/95 transition-all duration-300 cursor-pointer">
+                <div className="flex flex-col items-center gap-2 p-3 rounded-md bg-muted/85 dark:bg-muted/50 hover:bg-muted dark:hover:bg-muted/70 transition-all duration-300 cursor-pointer">
                   <BookOpen className="h-5 w-5 text-foreground" />
                   <span className="text-xs font-medium">Diary</span>
                 </div>
@@ -365,7 +365,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   }, 100);
                 }}
                 className={cn(
-                  "flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted/95 transition-all duration-300 cursor-pointer",
+                  "flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted dark:hover:bg-muted/70 transition-all duration-300 cursor-pointer",
                   "text-[0.95rem]",
                   isActive ? "bg-muted text-foreground font-medium" : "text-muted-foreground"
                 )}
@@ -389,7 +389,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                     }, 100);
                   }}
                   className={cn(
-                    "flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted/95 transition-all duration-300 text-[0.95rem] cursor-pointer",
+                    "flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted dark:hover:bg-muted/70 transition-all duration-300 text-[0.95rem] cursor-pointer",
                     pathname === "/browse/personalized" || pathname?.startsWith("/browse/personalized")
                       ? "bg-muted text-foreground font-medium"
                       : "text-muted-foreground"
@@ -408,7 +408,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
             {showSimpleYouTubeLink ? (
               <a
                 href="/youtube"
-                className="flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted/95 transition-all duration-300 text-[0.95rem] text-muted-foreground cursor-pointer"
+                className="flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted dark:hover:bg-muted/70 transition-all duration-300 text-[0.95rem] text-muted-foreground cursor-pointer"
                 onClick={(e) => {
                   e.preventDefault();
                   onLinkClick();
@@ -425,7 +425,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                 <button
                   onClick={() => setYoutubeExpanded(!youtubeExpanded)}
                   className={cn(
-                    "flex items-center justify-between w-full rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted/95 transition-all duration-300 text-[0.95rem] cursor-pointer",
+                    "flex items-center justify-between w-full rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted dark:hover:bg-muted/70 transition-all duration-300 text-[0.95rem] cursor-pointer",
                     (pathname === "/youtube" || pathname?.startsWith("/youtube/"))
                       ? "bg-muted text-foreground font-medium"
                       : "text-muted-foreground"
@@ -461,7 +461,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                             }, 100);
                           }}
                           className={cn(
-                            "flex items-center rounded-md px-3 py-2 bg-muted/60 dark:bg-muted/40 hover:bg-muted/80 transition-all duration-300 text-[0.9rem] cursor-pointer",
+                            "flex items-center rounded-md px-3 py-2 bg-muted/60 dark:bg-muted/40 hover:bg-muteddark:hover:bg-muted/70 transition-all duration-300 text-[0.9rem] cursor-pointer",
                             isActive
                               ? "bg-muted/70 dark:bg-muted/60 text-foreground font-medium"
                               : "text-muted-foreground"
@@ -492,7 +492,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                 }, 100);
               }}
               className={cn(
-                "flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted/95 dark:hover:bg-muted/70 transition-all duration-300 text-[0.95rem] cursor-pointer",
+                "flex items-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted dark:hover:bg-muted/70 transition-all duration-300 text-[0.95rem] cursor-pointer",
                 pathname === "/settings"
                   ? "bg-muted text-foreground font-medium"
                   : "text-muted-foreground"
@@ -511,7 +511,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                 }, 100);
               }}
               className={cn(
-                "flex items-center w-full rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted/95 dark:hover:bg-muted/70 transition-all duration-300 text-[0.95rem] cursor-pointer",
+                "flex items-center w-full rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted dark:hover:bg-muted/70 transition-all duration-300 text-[0.95rem] cursor-pointer",
                 pathname === "/dashboard/profile"
                   ? "bg-muted text-foreground font-medium"
                   : "text-muted-foreground"
@@ -526,7 +526,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               <button
                 onClick={() => setIsThemeOpen(!isThemeOpen)}
                 className={cn(
-                  "flex w-full items-center justify-between rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted/95 dark:hover:bg-muted/70 transition-all duration-300 text-[0.95rem] cursor-pointer",
+                  "flex w-full items-center justify-between rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted dark:hover:bg-muted/70 transition-all duration-300 text-[0.95rem] cursor-pointer",
                   isThemeOpen
                     ? "bg-muted text-foreground font-medium"
                     : "text-muted-foreground"
@@ -557,7 +557,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                       onLinkClick();
                     }}
                     className={cn(
-                      "flex w-full items-center rounded-md px-3 py-2 bg-muted/85 dark:bg-muted/50 hover:bg-muted/95 dark:hover:bg-muted/70 transition-all duration-300 text-[0.95rem] cursor-pointer",
+                      "flex w-full items-center rounded-md px-3 py-2 bg-muted/85 dark:bg-muted/50 hover:bg-muted dark:hover:bg-muted/70 transition-all duration-300 text-[0.95rem] cursor-pointer",
                       theme === "light"
                         ? "bg-muted text-foreground font-medium"
                         : "text-muted-foreground"
@@ -572,7 +572,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                       onLinkClick();
                     }}
                     className={cn(
-                      "flex w-full items-center rounded-md px-3 py-2 bg-muted/85 dark:bg-muted/50 hover:bg-muted/95 dark:hover:bg-muted/70 transition-all duration-300 text-[0.95rem] cursor-pointer",
+                      "flex w-full items-center rounded-md px-3 py-2 bg-muted/85 dark:bg-muted/50 hover:bg-muted dark:hover:bg-muted/70 transition-all duration-300 text-[0.95rem] cursor-pointer",
                       theme === "dark"
                         ? "bg-muted text-foreground font-medium"
                         : "text-muted-foreground"
@@ -587,7 +587,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                       onLinkClick();
                     }}
                     className={cn(
-                      "flex w-full items-center rounded-md px-3 py-2 bg-muted/85 dark:bg-muted/50 hover:bg-muted/95 dark:hover:bg-muted/70 transition-all duration-300 text-[0.95rem] cursor-pointer",
+                      "flex w-full items-center rounded-md px-3 py-2 bg-muted/85 dark:bg-muted/50 hover:bg-muted dark:hover:bg-muted/70 transition-all duration-300 text-[0.95rem] cursor-pointer",
                       theme === "system"
                         ? "bg-muted text-foreground font-medium"
                         : "text-muted-foreground"
@@ -610,7 +610,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               mode="modal"
               fallbackRedirectUrl={typeof window !== "undefined" ? window.location.href : "/browse"}
             >
-              <Button className="w-full cursor-pointer" onClick={onLinkClick} variant="default">
+              <Button className="w-full cursor-pointer hover:bg-primary/80 transition-all duration-300" onClick={onLinkClick} variant="default">
                 Sign In
               </Button>
             </SignInButton>
@@ -623,7 +623,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
         <div className="sticky bottom-0 px-4 py-3 border-t bg-background">
           <button
             onClick={handleSignOut}
-            className="flex w-full items-center justify-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted/95 dark:hover:bg-muted/70 transition-all duration-300 text-[0.95rem] text-destructive cursor-pointer"
+            className="flex w-full items-center justify-center rounded-md px-3 py-2.5 bg-muted/85 dark:bg-muted/50 hover:bg-muted dark:hover:bg-muted/70 transition-all duration-300 text-[0.95rem] text-destructive cursor-pointer"
           >
             <LogOut className="mr-3 h-4 w-4 text-destructive/70" />
             <span>Logout</span>
