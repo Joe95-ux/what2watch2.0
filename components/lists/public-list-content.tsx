@@ -218,7 +218,7 @@ export default function PublicListContent({ listId }: PublicListContentProps) {
         list={list || null}
         isLoading={isLoading}
         isOwner={isOwner}
-        enableRemove={false}
+        enableRemove={isOwner}
         enableEdit={isOwner}
         enableExport={isOwner}
         enablePublicToggle={isOwner}

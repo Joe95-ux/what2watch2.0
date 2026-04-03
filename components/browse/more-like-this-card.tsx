@@ -332,7 +332,7 @@ export default function MoreLikeThisCard({
                     }
                     setIsActionsDropdownOpen(false);
                   }}
-                  className="cursor-pointer text-[0.8rem]"
+                  className="cursor-pointer text-[0.8rem] gap-0.5"
                 >
                   <Eye
                     className={cn(
@@ -354,7 +354,7 @@ export default function MoreLikeThisCard({
                     );
                     setIsActionsDropdownOpen(false);
                   }}
-                  className="cursor-pointer text-[0.8rem]"
+                  className="cursor-pointer text-[0.8rem] gap-0.5"
                 >
                   <Heart
                     className={cn(
@@ -364,7 +364,7 @@ export default function MoreLikeThisCard({
                         : "text-muted-foreground"
                     )}
                   />
-                  {toggleFavorite.isFavorite(item.id, type) ? "Remove from My List" : "Add to My List"}
+                  {toggleFavorite.isFavorite(item.id, type) ? "Remove from Favorites" : "Add to Favorites"}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={async (e) => {
@@ -385,18 +385,18 @@ export default function MoreLikeThisCard({
                     }
                     setIsActionsDropdownOpen(false);
                   }}
-                  className="cursor-pointer text-[0.8rem]"
+                  className="cursor-pointer text-[0.8rem] gap-0.5"
                 >
                   <ThumbsUp
                     className={cn(
                       "h-4 w-4 mr-2",
                       isLiked
-                        ? "text-primary fill-primary"
+                        ? "text-primary fill-primary stroke-primary"
                         : "text-muted-foreground"
                     )}
                   />
                   {isLiked ? "Unlike" : "Like"}
-                  {likeCount > 0 && <span className="ml-2 text-sm">({likeCount})</span>}
+                  {likeCount > 0 && <span className="text-sm">({likeCount})</span>}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={async (e) => {
@@ -408,7 +408,7 @@ export default function MoreLikeThisCard({
                     );
                     setIsActionsDropdownOpen(false);
                   }}
-                  className="cursor-pointer text-[0.8rem]"
+                  className="cursor-pointer text-[0.8rem] gap-0.5"
                 >
                   <Bookmark
                     className={cn(
@@ -430,7 +430,7 @@ export default function MoreLikeThisCard({
                         onRemove();
                         setIsActionsDropdownOpen(false);
                       }}
-                      className="cursor-pointer text-destructive focus:text-destructive text-[0.8rem]"
+                      className="cursor-pointer text-destructive focus:text-destructive text-[0.8rem] gap-0.5"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       {removeLabel}
