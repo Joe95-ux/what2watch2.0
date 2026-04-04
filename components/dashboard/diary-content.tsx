@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { diaryLogWatchSignature, diaryRewatchAriaLabel } from "@/lib/diary-rewatch";
 import { FilterSearchBar, FilterRow } from "@/components/ui/filter-search-bar";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useToggleFavorite, useAddFavorite, useRemoveFavorite } from "@/hooks/use-favorites";
@@ -237,13 +238,13 @@ export default function DiaryContent() {
     return { visibleDates, hasMore };
   }, [sortedDates, groupedLogs, rowsToShow]);
 
-  // Count viewings per content (tmdbId + mediaType) for rewatched indicator
-  const rewatchedCountByContent = useMemo(() => {
+  // TV: same episode/season batch logged 2+ times; movies: same film 2+ times
+  const rewatchCountBySignature = useMemo(() => {
     const count = new Map<string, number>();
-    logs.forEach((log) => {
-      const key = `${log.tmdbId}-${log.mediaType}`;
-      count.set(key, (count.get(key) ?? 0) + 1);
-    });
+    for (const log of logs) {
+      const sig = diaryLogWatchSignature(log);
+      count.set(sig, (count.get(sig) ?? 0) + 1);
+    }
     return count;
   }, [logs]);
 
@@ -883,8 +884,8 @@ export default function DiaryContent() {
                     ? new Date(log.firstAirDate).getFullYear() 
                     : "—";
                   const isLiked = toggleFavorite.isFavorite(log.tmdbId, log.mediaType);
-                  const contentKey = `${log.tmdbId}-${log.mediaType}`;
-                  const viewingsCount = rewatchedCountByContent.get(contentKey) ?? 0;
+                  const sig = diaryLogWatchSignature(log);
+                  const viewingsCount = rewatchCountBySignature.get(sig) ?? 0;
                   const isRewatched = viewingsCount > 1;
                   
                   return (
@@ -975,10 +976,7 @@ export default function DiaryContent() {
                       </td>
                       <td className="px-4 py-4">
                         {isRewatched ? (
-                          <span
-                            title={log.mediaType === "movie" ? "Movie has been rewatched" : "TV show has been rewatched"}
-                            aria-label={log.mediaType === "movie" ? "Movie has been rewatched" : "TV show has been rewatched"}
-                          >
+                          <span title={diaryRewatchAriaLabel(log)} aria-label={diaryRewatchAriaLabel(log)}>
                             <Repeat className="h-4 w-4 text-muted-foreground" />
                           </span>
                         ) : (

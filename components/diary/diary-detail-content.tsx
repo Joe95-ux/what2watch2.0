@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -12,6 +12,7 @@ import { useViewingLogComments, useCreateComment, useUpdateComment, useDeleteCom
 import { useMovieDetails, useTVDetails, useContentVideos, useWatchProviders, useJustWatchCountries, useIMDBRating, useOMDBData } from "@/hooks/use-content-details";
 import { getPosterUrl, getBackdropUrl, type TMDBVideo, type TMDBMovie, type TMDBSeries } from "@/lib/tmdb";
 import { createContentUrl } from "@/lib/content-slug";
+import { diaryRewatchAriaLabel, isDiaryLogRewatchForDetailPage } from "@/lib/diary-rewatch";
 import { format } from "date-fns";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -118,7 +119,11 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
   );
   const { data: justwatchCountries = [] } = useJustWatchCountries();
   const { data: allViewingLogs = [] } = useViewingLogsByContent(log.tmdbId, log.mediaType);
-  const hasMultipleViewings = allViewingLogs.length > 1;
+  const hasWatchHistory = allViewingLogs.length > 1;
+  const showRewatchIndicator = useMemo(
+    () => isDiaryLogRewatchForDetailPage(log, allViewingLogs),
+    [log, allViewingLogs]
+  );
   
   const details = log.mediaType === "movie" ? movieDetails : tvDetails;
   const title = log.title;
@@ -683,15 +688,15 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
               <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
                 <CalendarIcon className="h-4 w-4" />
                 <button
-                  onClick={() => hasMultipleViewings && setIsWatchHistoryModalOpen(true)}
+                  onClick={() => hasWatchHistory && setIsWatchHistoryModalOpen(true)}
                   className={cn(
                     "flex items-center gap-1.5",
-                    hasMultipleViewings && "cursor-pointer hover:text-foreground transition-colors"
+                    hasWatchHistory && "cursor-pointer hover:text-foreground transition-colors"
                   )}
-                  disabled={!hasMultipleViewings}
+                  disabled={!hasWatchHistory}
                 >
                   <span>Watched on {format(watchedDate, "MMMM d, yyyy")}</span>
-                  {hasMultipleViewings && (
+                  {hasWatchHistory && (
                     <Info className="h-4 w-4 text-green-500" />
                   )}
                 </button>
@@ -726,11 +731,8 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                 <div className="flex items-center gap-2">
                   <Eye className="h-6 w-6 text-green-500" />
                   <span>Watched</span>
-                  {hasMultipleViewings && (
-                    <span
-                      title={log.mediaType === "movie" ? "Movie has been rewatched" : "TV show has been rewatched"}
-                      aria-label={log.mediaType === "movie" ? "Movie has been rewatched" : "TV show has been rewatched"}
-                    >
+                  {showRewatchIndicator && (
+                    <span title={diaryRewatchAriaLabel(log)} aria-label={diaryRewatchAriaLabel(log)}>
                       <Repeat className="h-4 w-4 text-muted-foreground" />
                     </span>
                   )}
@@ -1116,7 +1118,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
       />
 
       {/* Watch History Modal */}
-      {hasMultipleViewings && (
+      {hasWatchHistory && (
         <WatchHistoryModal
           isOpen={isWatchHistoryModalOpen}
           onClose={() => setIsWatchHistoryModalOpen(false)}
