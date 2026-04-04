@@ -607,7 +607,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
           </div>
         </div>
 
-        <div className="relative -mt-16 md:-mt-24 lg:-mt-32">
+        <div className="relative z-10 -mt-16 md:-mt-24 lg:-mt-32">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
             <div className="hidden md:block mb-4">
               <Button
