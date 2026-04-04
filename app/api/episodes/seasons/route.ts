@@ -139,6 +139,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
             title: formattedTitle,
             posterPath: tvShowDetails.poster_path || null,
             rating: null,
+            metadata: { viewingLogId: viewingLog.id },
           },
         });
       } catch (error) {

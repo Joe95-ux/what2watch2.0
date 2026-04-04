@@ -78,6 +78,11 @@ export default function Navbar() {
 
   const isDashboardNav = pathname === "/dashboard" || pathname?.startsWith("/dashboard");
 
+  // Public diary entry: /[username]/film/[slug] — same dark navbar as list hero pages
+  const pathSegments = pathname?.split("/").filter(Boolean) ?? [];
+  const isDiaryFilmDetail =
+    pathSegments.length >= 3 && pathSegments[1] === "film";
+
   // Check if we're on a page with hero section (dark navbar needed)
   const hasHeroSection =
     pathname === "/browse" ||
@@ -88,7 +93,8 @@ export default function Navbar() {
     pathname?.startsWith("/browse/") ||
     pathname?.startsWith("/popular") ||
     pathname?.startsWith("/lists/") ||
-    pathname?.startsWith("/editorial/");
+    pathname?.startsWith("/editorial/") ||
+    isDiaryFilmDetail;
 
   return (
     <nav

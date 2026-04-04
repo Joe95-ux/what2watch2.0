@@ -80,7 +80,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
         const formattedTitle = `${baseTitle} S${seasonNumber}E${episodeNumber}`;
         
         // Create a new ViewingLog entry
-        await db.viewingLog.create({
+        const episodeViewingLog = await db.viewingLog.create({
           data: {
             userId: user.id,
             tmdbId: tvShowTmdbId,
@@ -108,6 +108,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
               title: formattedTitle,
               posterPath: tvShowDetails.poster_path || null,
               rating: null,
+              metadata: { viewingLogId: episodeViewingLog.id },
             },
           });
         } catch (error) {

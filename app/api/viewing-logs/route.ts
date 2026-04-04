@@ -222,7 +222,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
         });
       }
 
-      // Create all activities
+      // Create all activities (metadata links feed likes to this diary entry)
       for (const activity of activities) {
         await db.activity.create({
           data: {
@@ -233,6 +233,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
             title: activity.title,
             posterPath: activity.posterPath,
             rating: activity.rating || null,
+            metadata: { viewingLogId: log.id },
           },
         });
       }

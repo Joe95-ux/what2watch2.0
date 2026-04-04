@@ -225,7 +225,7 @@ function DuneWatchProvidersCard() {
   const isLoadingDisplay = isLoading || isFetching || !displayData;
 
   return (
-    <div className="order-1 lg:order-2 relative">
+    <div className="relative w-full min-w-0">
       <div className="relative rounded-2xl overflow-hidden border bg-card/50 backdrop-blur-sm p-6 lg:p-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
@@ -376,18 +376,18 @@ export default function LandingPage() {
 
 
       {/* Watch Availability Section */}
-      <section className="py-24 relative overflow-hidden bg-gradient-to-b from-background to-muted/20">
+      <section className="py-16 sm:py-20 lg:py-24 relative overflow-hidden bg-gradient-to-b from-background to-muted/20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="order-2 lg:order-1">
+          <div className="flex flex-col gap-10 lg:flex-row lg:items-center lg:gap-12 xl:gap-16">
+            <div className="w-full shrink-0 lg:basis-[45%] lg:max-w-[45%]">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border bg-background px-4 py-1.5 text-sm font-medium">
                 <Search className="h-4 w-4 text-primary" />
                 Global Availability
               </div>
-              <h2 className="text-4xl font-bold tracking-tight sm:text-5xl mb-6">
+              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-6">
                 Know exactly where to watch
               </h2>
-              <p className="text-lg text-muted-foreground mb-8">
+              <p className="text-base sm:text-lg text-muted-foreground mb-8">
                 Stop jumping between streaming apps. <strong className="text-foreground">What2Watch</strong> instantly tells you exactly where any movie or show is available to stream, rent, or buy in your country, thanks to our integration with JustWatch.
               </p>
               <ul className="space-y-4 mb-8">
@@ -405,7 +405,9 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            <DuneWatchProvidersCard />
+            <div className="w-full min-w-0 lg:basis-[55%] lg:max-w-[55%]">
+              <DuneWatchProvidersCard />
+            </div>
           </div>
         </div>
       </section>
@@ -429,7 +431,7 @@ export default function LandingPage() {
       {/* Features Section */}
       <section className="py-20 sm:py-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center mb-16">
+          <div className="max-w-xl mb-16">
             <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
               Everything you need to discover great content
             </h2>
@@ -437,7 +439,7 @@ export default function LandingPage() {
               Powerful features designed to help you find, organize, and share your favorite entertainment.
             </p>
           </div>
-          <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((feature, index) => (
               <div
                 key={index}
@@ -468,8 +470,8 @@ export default function LandingPage() {
             </div>
             <div className="grid gap-8 md:grid-cols-3">
               <div className="text-center">
-                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <span className="text-xl font-bold">1</span>
+                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full border border-border bg-muted text-foreground shadow-sm">
+                  <span className="text-xl font-bold tabular-nums">1</span>
                 </div>
                 <h3 className="mb-2 text-lg font-semibold">Sign Up</h3>
                 <p className="text-sm text-muted-foreground">
@@ -477,8 +479,8 @@ export default function LandingPage() {
                 </p>
               </div>
               <div className="text-center">
-                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <span className="text-xl font-bold">2</span>
+                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full border border-border bg-muted text-foreground shadow-sm">
+                  <span className="text-xl font-bold tabular-nums">2</span>
                 </div>
                 <h3 className="mb-2 text-lg font-semibold">Discover</h3>
                 <p className="text-sm text-muted-foreground">
@@ -486,8 +488,8 @@ export default function LandingPage() {
                 </p>
               </div>
               <div className="text-center">
-                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <span className="text-xl font-bold">3</span>
+                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full border border-border bg-muted text-foreground shadow-sm">
+                  <span className="text-xl font-bold tabular-nums">3</span>
                 </div>
                 <h3 className="mb-2 text-lg font-semibold">Share</h3>
                 <p className="text-sm text-muted-foreground">

@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useViewingLogActivityLikes } from "@/hooks/use-viewing-log-activity-likes";
 import { useUpdateViewingLog, useDeleteViewingLog, useLogViewing, useViewingLogsByContent, type ViewingLog } from "@/hooks/use-viewing-logs";
 import { useToggleFavorite, useAddFavorite, useRemoveFavorite } from "@/hooks/use-favorites";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
@@ -16,7 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Heart, Star, CalendarIcon, Play, Edit, Trash2, Plus, Repeat,
-  MessageSquare, ArrowLeft, BookOpen, Reply, MoreVertical, Filter, ChevronDown, ChevronUp, Smile, Bookmark, Eye, Info
+  MessageSquare, ArrowLeft, BookOpen, Reply, MoreVertical, Filter, ChevronDown, ChevronUp, Smile, Bookmark, Eye, Info,
+  Loader2,
 } from "lucide-react";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
@@ -62,8 +65,12 @@ interface DiaryDetailContentProps {
   };
 }
 
+const diaryActionBtnClass =
+  "h-9 rounded-[20px] border border-border/30 bg-muted/25 hover:bg-muted/45 dark:border-border/40 dark:bg-muted/40 dark:hover:bg-muted/65 cursor-pointer gap-1.5";
+
 export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetailContentProps) {
   const router = useRouter();
+  const { isSignedIn } = useUser();
   const { data: currentUser } = useCurrentUser();
   const isOwner = currentUser?.id === user.id;
   
@@ -90,6 +97,11 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
   const isInWatchlist = toggleWatchlist.isInWatchlist(log.tmdbId, log.mediaType);
   const { data: comments = [], isLoading: commentsLoading } = useViewingLogComments(log.id, commentFilter);
   const deleteComment = useDeleteComment();
+  const {
+    data: diaryLikes,
+    isLoading: diaryLikesLoading,
+    toggleLike: toggleDiaryActivityLike,
+  } = useViewingLogActivityLikes(log.id);
   
   // Fetch movie/TV details
   const { data: movieDetails, isLoading: isLoadingMovie } = useMovieDetails(
@@ -296,7 +308,9 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
               priority
               unoptimized
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+            {/* Dark overlays — match lists banner; stay dark in light + dark site theme */}
+            <div className="absolute inset-0 bg-black/60" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent" />
           </>
         ) : (
           <div className="absolute inset-0 bg-muted" />
@@ -589,11 +603,24 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                 </div>
               )}
               
-              {/* Review Likes and Watch Status */}
+              {/* Review likes (activity feed) + watch status */}
               <div className="flex items-center gap-4 mb-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  <Heart className="h-4 w-4" />
-                  <span>No likes yet</span>
+                  <Heart
+                    className={cn(
+                      "h-4 w-4 shrink-0",
+                      !isOwner && diaryLikes?.likedByMe && "text-red-500 fill-red-500"
+                    )}
+                  />
+                  {diaryLikesLoading ? (
+                    <Skeleton className="h-4 w-24" />
+                  ) : (
+                    <span>
+                      {(diaryLikes?.likeCount ?? 0) === 0
+                        ? "No likes yet"
+                        : `${diaryLikes!.likeCount} ${diaryLikes!.likeCount === 1 ? "like" : "likes"}`}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <Eye className="h-6 w-6 text-green-500" />
@@ -609,7 +636,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                 </div>
               </div>
               
-              {/* Actions: left = Edit, Log again, Add to list; right = 3-dot menu (Like, Watchlist, Share, Delete) */}
+              {/* Actions: owner = Edit, Log again, Add to list; visitor = Like (review), Add to list; right = menu (TMDB favorite, watchlist, share, delete) */}
               <div className="flex flex-wrap items-center justify-between gap-4 overflow-x-auto scrollbar-hide">
                 <div className="flex items-center gap-2 min-w-0">
                   {isOwner && (
@@ -618,7 +645,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                         variant="ghost"
                         size="sm"
                         onClick={() => setIsEditDialogOpen(true)}
-                        className="h-9 rounded-[20px] border-none bg-muted/50 hover:bg-muted cursor-pointer gap-1.5"
+                        className={diaryActionBtnClass}
                       >
                         <Edit className="h-4 w-4" />
                         Edit
@@ -627,12 +654,59 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                         variant="ghost"
                         size="sm"
                         onClick={() => setIsLogAgainDialogOpen(true)}
-                        className="h-9 rounded-[20px] border-none bg-muted/50 hover:bg-muted cursor-pointer gap-1.5"
+                        className={diaryActionBtnClass}
                       >
                         <BookOpen className="h-4 w-4" />
                         Log Again
                       </Button>
                     </>
+                  )}
+                  {!isOwner && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      title={
+                        !diaryLikes?.primaryActivityId
+                          ? "This entry cannot be liked (missing activity link)."
+                          : undefined
+                      }
+                      disabled={
+                        toggleDiaryActivityLike.isPending ||
+                        diaryLikesLoading ||
+                        !diaryLikes?.primaryActivityId
+                      }
+                      onClick={async () => {
+                        if (!isSignedIn) {
+                          toast.error("Sign in to like this review.");
+                          return;
+                        }
+                        if (!diaryLikes?.primaryActivityId) {
+                          toast.error("Unable to like this entry right now.");
+                          return;
+                        }
+                        try {
+                          await toggleDiaryActivityLike.mutateAsync(diaryLikes);
+                        } catch (e) {
+                          toast.error(e instanceof Error ? e.message : "Could not update like");
+                        }
+                      }}
+                      className={cn(
+                        diaryActionBtnClass,
+                        diaryLikes?.likedByMe && "text-red-600 dark:text-red-400"
+                      )}
+                    >
+                      {toggleDiaryActivityLike.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Heart
+                          className={cn(
+                            "h-4 w-4",
+                            diaryLikes?.likedByMe && "fill-current"
+                          )}
+                        />
+                      )}
+                      {diaryLikes?.likedByMe ? "Liked" : "Like"}
+                    </Button>
                   )}
                   <AddToListDropdown
                     item={mockItem}
@@ -641,7 +715,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-9 rounded-[20px] border-none bg-muted/50 hover:bg-muted cursor-pointer gap-1.5"
+                        className={diaryActionBtnClass}
                       >
                         <Plus className="h-4 w-4" />
                         Add to List

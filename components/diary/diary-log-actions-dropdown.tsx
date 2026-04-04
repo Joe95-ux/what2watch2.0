@@ -44,7 +44,7 @@ export function DiaryLogActionsDropdown({
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 rounded-[20px] border-none bg-muted/50 hover:bg-muted cursor-pointer flex-shrink-0"
+          className="h-9 w-9 rounded-[20px] border border-border/30 bg-muted/25 hover:bg-muted/45 dark:border-border/40 dark:bg-muted/40 dark:hover:bg-muted/65 cursor-pointer flex-shrink-0"
           aria-label="More actions"
         >
           <MoreVertical className="h-4 w-4" />
@@ -58,7 +58,7 @@ export function DiaryLogActionsDropdown({
               isLiked ? "text-red-500 fill-red-500" : ""
             )}
           />
-          {isLiked ? "Liked" : "Like"}
+          {isLiked ? "Favorited" : "Favorite"}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => void onWatchlistToggle()} className="cursor-pointer">
           <Bookmark
