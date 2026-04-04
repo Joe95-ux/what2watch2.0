@@ -403,7 +403,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                     className="object-contain"
                     unoptimized
                   />
-                  <span className="font-semibold text-sm text-[#F5C518]">#{jwPrimaryRank.rank}</span>
+                  <span className="font-semibold text-sm text-jw-gold">#{jwPrimaryRank.rank}</span>
                   {jwPrimaryRank.delta !== 0 && (
                     <span
                       className={cn(
@@ -584,7 +584,12 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
                 unoptimized
               />
               <div className="absolute inset-0 bg-black/60" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/55 to-black/20" />
+              {/* Fade bottom into page background so the banner does not read as a hard “cut out” */}
+              <div
+                className="pointer-events-none absolute inset-x-0 bottom-0 z-[4] h-[min(50%,11rem)] sm:h-[min(45%,13rem)] bg-gradient-to-b from-transparent via-background/80 to-background"
+                aria-hidden
+              />
             </>
           ) : (
             <div className="absolute inset-0 bg-muted" />

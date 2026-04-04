@@ -346,7 +346,7 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
                               className="object-contain"
                               unoptimized
                             />
-                            <span className="font-semibold text-[#F5C518]">#{jwPrimaryRank.rank}</span>
+                            <span className="font-semibold text-jw-gold">#{jwPrimaryRank.rank}</span>
                             {jwPrimaryRank.delta !== 0 && (
                               <span
                                 className={cn(
@@ -378,7 +378,7 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
                           className="object-contain"
                           unoptimized
                         />
-                        <span className="font-semibold text-[#F5C518]">#{jwPrimaryRank.rank}</span>
+                        <span className="font-semibold text-jw-gold">#{jwPrimaryRank.rank}</span>
                         {jwPrimaryRank.delta !== 0 && (
                           <span
                             className={cn(

@@ -43,6 +43,11 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  /* Yellow / gold: light = higher chroma + slightly lower L so stars & ranks don’t read washed out */
+  --color-yellow-400: var(--app-yellow-400);
+  --color-yellow-500: var(--app-yellow-500);
+  --color-yellow-600: var(--app-yellow-600);
+  --color-jw-gold: var(--app-jw-gold);
 }
 
 :root {
@@ -78,6 +83,10 @@
   --sidebar-accent-foreground: oklch(0.12 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --app-yellow-400: oklch(0.7 0.2 84);
+  --app-yellow-500: oklch(0.62 0.21 83);
+  --app-yellow-600: oklch(0.54 0.2 81);
+  --app-jw-gold: oklch(0.6 0.22 85);
 }
 
 .dark {
@@ -113,6 +122,11 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
   --unread-notification-bg: color-mix(in oklab, rgb(8, 14, 130) 20%, transparent);
+  /* Match Tailwind default yellow steps (current look on dark UI) */
+  --app-yellow-400: oklch(0.852 0.199 91.936);
+  --app-yellow-500: oklch(0.795 0.184 86.047);
+  --app-yellow-600: oklch(0.681 0.162 75.834);
+  --app-jw-gold: #f5c518;
 }
 
 /* Primary Color Themes */

@@ -538,7 +538,7 @@ function DetailedPlaylistItem({
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
                   <div className="flex items-center gap-1.5">
                     <Image src="/jw-icon.png" alt="JustWatch" width={16} height={16} className="object-contain" unoptimized />
-                    <span className="text-[#F5C518] font-medium">
+                    <span className="text-jw-gold font-medium">
                       {justWatchRank != null ? `#${justWatchRank}` : "-"}
                     </span>
                     {justWatchDelta != null && justWatchDelta !== 0 && (

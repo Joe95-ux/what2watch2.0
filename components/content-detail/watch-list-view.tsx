@@ -164,7 +164,7 @@ export default function WatchListView({ watchAvailability, selectedFilter, selec
                                   {quality && (
                                     <>
                                       <span className="text-muted-foreground" style={{ fontSize: "13px" }}> </span>
-                                      <span className="text-[#F5C518]" style={{ fontSize: "11px" }}>{quality}</span>
+                                      <span className="text-jw-gold" style={{ fontSize: "11px" }}>{quality}</span>
                                     </>
                                   )}
                                 </>

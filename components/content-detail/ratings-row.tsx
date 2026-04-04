@@ -83,7 +83,7 @@ export function RatingsRow({
         className="object-contain opacity-90"
         unoptimized
       />
-      <span className="text-[#F5C518]">#{displayRank}</span>
+      <span className="text-jw-gold">#{displayRank}</span>
       {displayRankDelta != null && displayRankDelta !== 0 && (
         <span
           className={cn(

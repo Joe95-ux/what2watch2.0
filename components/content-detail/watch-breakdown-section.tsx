@@ -321,7 +321,7 @@ export default function WatchBreakdownSection({
               className="object-contain"
               unoptimized
             />
-            <span className="font-semibold text-[#F5C518]">#{primaryRank.rank}</span>
+            <span className="font-semibold text-jw-gold">#{primaryRank.rank}</span>
             {primaryRank.delta !== 0 && (
               <span
                 className={cn(
@@ -378,9 +378,9 @@ export default function WatchBreakdownSection({
         </div>
       </div>
 
-      {/* Cheapest to watch callout - border matches rank accent (#F5C518) for visibility */}
+      {/* Cheapest to watch callout - border matches rank accent (jw-gold) for visibility */}
       {cheapestOffer && cheapestPrice && (
-        <div className="rounded-xl border border-[#F5C518]/50 px-4 py-3">
+        <div className="rounded-xl border border-jw-gold/50 px-4 py-3">
           <p className="text-sm font-medium text-foreground">
             Cheapest to watch: {cheapestOffer.monetizationType === "rent" ? "Rent" : "Buy"} on {cheapestOffer.providerName} — {cheapestPrice}
           </p>
