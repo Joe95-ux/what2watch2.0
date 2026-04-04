@@ -523,7 +523,7 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
     <div className="min-h-screen bg-background">
       {/* Light theme: single dark hero; poster + info sit inside (no negative margins) */}
       <div className="block dark:hidden">
-        <div className="relative w-full min-h-[420px] sm:min-h-[500px] md:min-h-[600px] overflow-hidden bg-black -mt-[65px] pt-[65px]">
+        <div className="relative flex w-full min-h-[420px] sm:min-h-[500px] md:min-h-[700px] flex-col overflow-hidden bg-black -mt-[65px] pt-[65px]">
           {backdropPath ? (
             <>
               <Image
@@ -551,19 +551,21 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
               Back
             </Button>
           </div>
-          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 pt-2 sm:pt-4 md:pt-6">
-            <div className="hidden md:block mb-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.back()}
-                className="cursor-pointer text-white hover:text-white hover:bg-white/10 border border-white/20"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
+          <div className="relative z-10 flex w-full flex-1 flex-row items-center justify-start min-h-0">
+            <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-10">
+              <div className="hidden md:block mb-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => router.back()}
+                  className="cursor-pointer text-white hover:text-white hover:bg-white/10 border border-white/20"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back
+                </Button>
+              </div>
+              {renderPosterAndDetails("lightHero")}
             </div>
-            {renderPosterAndDetails("lightHero")}
           </div>
         </div>
       </div>
