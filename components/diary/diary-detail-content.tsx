@@ -294,236 +294,330 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
   const isHeroLine3Loading = isDetailsLoading;
   const isHeroLine4Loading = isLoadingVideos;
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <div className="relative w-full h-[40vh] sm:h-[50vh] md:h-[60vh] min-h-[250px] sm:min-h-[300px] md:min-h-[400px] overflow-hidden -mt-[65px]">
-        {backdropPath ? (
-          <>
+  const renderPosterAndDetails = (variant: "lightHero" | "page") => {
+    const H = variant === "lightHero";
+
+    return (
+      <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+        {posterPath && (
+          <Link
+            href={createContentUrl(log.mediaType, log.tmdbId, urlTitle)}
+            className={cn(
+              "relative w-32 h-48 sm:w-40 sm:h-60 md:w-48 md:h-72 rounded-lg overflow-hidden flex-shrink-0 shadow-lg cursor-pointer hover:opacity-90 transition-opacity",
+              H && "ring-1 ring-white/20 shadow-black/40"
+            )}
+          >
             <Image
-              src={getBackdropUrl(backdropPath, "w1280")}
+              src={getPosterUrl(posterPath, "w500")}
               alt={title}
               fill
               className="object-cover"
-              priority
               unoptimized
             />
-            {/* Dark overlays — match lists banner; stay dark in light + dark site theme */}
-            <div className="absolute inset-0 bg-black/60" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent" />
-          </>
-        ) : (
-          <div className="absolute inset-0 bg-muted" />
+          </Link>
         )}
-        
-        {/* Back Button - Only visible on banner */}
-        <div className="absolute top-4 left-4 z-20 md:hidden">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.back()}
-            className="bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white border-white/20 cursor-pointer"
+
+        <div className="flex-1 pt-2 sm:pt-0">
+          <h1
+            className={cn(
+              "text-2xl sm:text-3xl md:text-4xl font-bold mb-3",
+              H ? "text-white" : "text-foreground"
+            )}
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
+            {title}
+          </h1>
+
+          {isHeroLine1Loading ? (
+            <div className="mb-2">
+              <Skeleton className={cn("h-4 w-56 mb-1", H && "!bg-white/20")} />
+            </div>
+          ) : (
+            <div
+              className={cn(
+                "flex items-center gap-2 text-sm mb-2 flex-wrap",
+                H ? "text-white/75" : "text-muted-foreground"
+              )}
+            >
+              {releaseDateFormatted && (
+                <>
+                  <span>{releaseDateFormatted}</span>
+                  <span>•</span>
+                </>
+              )}
+              <span className="capitalize">{log.mediaType}</span>
+              {rated && (
+                <>
+                  <span>•</span>
+                  <span>{rated}</span>
+                </>
+              )}
+              {runtimeText && (
+                <>
+                  <span>•</span>
+                  <span>{runtimeText}</span>
+                </>
+              )}
+            </div>
+          )}
+
+          {isHeroLine2Loading ? (
+            <div className="mb-2">
+              <Skeleton className={cn("h-4 w-40 mb-1", H && "!bg-white/20")} />
+            </div>
+          ) : (
+            <div className="flex items-center gap-4 mb-2 flex-wrap">
+              {displayRating && displayRating > 0 && (
+                <div className="flex items-center gap-2">
+                  {ratingSource === "imdb" ? (
+                    <IMDBBadge size={20} />
+                  ) : (
+                    <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                  )}
+                  <span
+                    className={cn(
+                      "font-semibold text-sm",
+                      H ? "text-white" : undefined
+                    )}
+                  >
+                    {displayRating.toFixed(1)}
+                  </span>
+                  {ratingSource === "imdb" && imdbVotes && (
+                    <span
+                      className={cn(
+                        "text-xs",
+                        H ? "text-white/65" : "text-muted-foreground"
+                      )}
+                    >
+                      ({imdbVotes >= 1000 ? `${(imdbVotes / 1000).toFixed(1)}k` : imdbVotes.toLocaleString()})
+                    </span>
+                  )}
+                </div>
+              )}
+              {jwPrimaryRank != null && (
+                <div className="flex items-center gap-1.5">
+                  <Image
+                    src="/jw-icon.png"
+                    alt="JustWatch"
+                    width={16}
+                    height={16}
+                    className="object-contain"
+                    unoptimized
+                  />
+                  <span className="font-semibold text-sm text-[#F5C518]">#{jwPrimaryRank.rank}</span>
+                  {jwPrimaryRank.delta !== 0 && (
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium",
+                        jwPrimaryRank.delta > 0
+                          ? "bg-green-600 text-white"
+                          : "bg-red-600 text-white"
+                      )}
+                    >
+                      {jwPrimaryRank.delta > 0 ? (
+                        <ChevronUp className="h-3 w-3" />
+                      ) : (
+                        <ChevronDown className="h-3 w-3" />
+                      )}
+                      {Math.abs(jwPrimaryRank.delta)}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {isHeroLine3Loading ? (
+            <div className="mb-3 space-y-2">
+              <Skeleton className={cn("h-4 w-full max-w-[360px]", H && "!bg-white/20")} />
+              <Skeleton className={cn("h-4 w-3/4 max-w-[280px]", H && "!bg-white/20")} />
+            </div>
+          ) : (
+            synopsis && (
+              <div className="mb-3">
+                <p
+                  className={cn(
+                    "text-base leading-relaxed",
+                    H ? "text-white/85" : "text-muted-foreground",
+                    !isSynopsisExpanded && "line-clamp-2"
+                  )}
+                >
+                  {synopsis}
+                </p>
+                {synopsis.length > 100 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsSynopsisExpanded(!isSynopsisExpanded)}
+                    className={cn(
+                      "mt-1 flex items-center gap-1 text-sm transition-colors cursor-pointer",
+                      H ? "text-white/70 hover:text-white" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {isSynopsisExpanded ? (
+                      <>
+                        <ChevronUp className="h-4 w-4" />
+                        Hide
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4" />
+                        Show more
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            )
+          )}
+
+          {isHeroLine4Loading ? (
+            <div className="flex items-center gap-3">
+              <Skeleton className={cn("h-14 w-14 rounded-full", H && "!bg-white/20")} />
+              <Skeleton className={cn("h-4 w-28", H && "!bg-white/20")} />
+            </div>
+          ) : (
+            trailer && (
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedVideo(trailer);
+                    setIsTrailerModalOpen(true);
+                  }}
+                  className={cn(
+                    "flex items-center justify-center h-14 w-14 rounded-full border-2 transition cursor-pointer backdrop-blur-sm",
+                    H
+                      ? "border-white/40 bg-white/15 hover:bg-white/30 text-white"
+                      : "border-foreground/20 bg-background/80 hover:bg-background/90"
+                  )}
+                  aria-label="Play trailer"
+                >
+                  <Play
+                    className={cn(
+                      "h-7 w-7",
+                      H ? "text-white fill-white" : "text-foreground fill-foreground"
+                    )}
+                  />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedVideo(trailer);
+                    setIsTrailerModalOpen(true);
+                  }}
+                  className={cn(
+                    "text-sm font-medium transition-opacity cursor-pointer",
+                    H ? "text-white hover:opacity-90" : "text-foreground hover:opacity-80"
+                  )}
+                >
+                  Watch Trailer
+                </button>
+              </div>
+            )
+          )}
         </div>
       </div>
-      
-      {/* Poster and Movie Info Section - Below banner on mobile, inside on desktop */}
-      <div className="relative -mt-16 md:-mt-24 lg:-mt-32">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-          {/* Back Button - Desktop only */}
-          <div className="hidden md:block mb-4">
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Light theme: single dark hero; poster + info sit inside (no negative margins) */}
+      <div className="block dark:hidden">
+        <div className="relative w-full min-h-[420px] sm:min-h-[500px] md:min-h-[600px] overflow-hidden bg-black -mt-[65px] pt-[65px]">
+          {backdropPath ? (
+            <>
+              <Image
+                src={getBackdropUrl(backdropPath, "w1280")}
+                alt={title}
+                fill
+                className="object-cover object-[78%_center] sm:object-[82%_center] md:object-[85%_center]"
+                priority
+                unoptimized
+              />
+              <div className="absolute inset-0 bg-black/65" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-black/25" />
+            </>
+          ) : (
+            <div className="absolute inset-0 bg-neutral-950" />
+          )}
+          <div className="absolute top-[calc(65px+0.75rem)] left-4 z-20 md:hidden">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => router.back()}
-              className="cursor-pointer"
+              className="bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white border-white/25 cursor-pointer"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
           </div>
-          
-          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-            {posterPath && (
-              <Link 
-                href={createContentUrl(log.mediaType, log.tmdbId, urlTitle)}
-                className="relative w-32 h-48 sm:w-40 sm:h-60 md:w-48 md:h-72 rounded-lg overflow-hidden flex-shrink-0 shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 pt-2 sm:pt-4 md:pt-6">
+            <div className="hidden md:block mb-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.back()}
+                className="cursor-pointer text-white hover:text-white hover:bg-white/10 border border-white/20"
               >
-                <Image
-                  src={getPosterUrl(posterPath, "w500")}
-                  alt={title}
-                  fill
-                  className="object-cover"
-                  unoptimized
-                />
-              </Link>
-            )}
-            
-            <div className="flex-1 pt-2 sm:pt-0">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 text-foreground">{title}</h1>
-              
-              {/* Line 1: Release date . Type . Rated . Runtime */}
-              {isHeroLine1Loading ? (
-                <div className="mb-2">
-                  <Skeleton className="h-4 w-56 mb-1" />
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
-                  {releaseDateFormatted && (
-                    <>
-                      <span>{releaseDateFormatted}</span>
-                      <span>•</span>
-                    </>
-                  )}
-                  <span className="capitalize">{log.mediaType}</span>
-                  {rated && (
-                    <>
-                      <span>•</span>
-                      <span>{rated}</span>
-                    </>
-                  )}
-                  {runtimeText && (
-                    <>
-                      <span>•</span>
-                      <span>{runtimeText}</span>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* Line 2: IMDb rating . JustWatch rank */}
-              {isHeroLine2Loading ? (
-                <div className="mb-2">
-                  <Skeleton className="h-4 w-40 mb-1" />
-                </div>
-              ) : (
-                <div className="flex items-center gap-4 mb-2 flex-wrap">
-                  {displayRating && displayRating > 0 && (
-                    <div className="flex items-center gap-2">
-                      {ratingSource === "imdb" ? (
-                        <IMDBBadge size={20} />
-                      ) : (
-                        <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                      )}
-                      <span className="font-semibold text-sm">{displayRating.toFixed(1)}</span>
-                      {ratingSource === "imdb" && imdbVotes && (
-                        <span className="text-xs text-muted-foreground">
-                          ({imdbVotes >= 1000 ? `${(imdbVotes / 1000).toFixed(1)}k` : imdbVotes.toLocaleString()})
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {jwPrimaryRank != null && (
-                    <div className="flex items-center gap-1.5">
-                      <Image
-                        src="/jw-icon.png"
-                        alt="JustWatch"
-                        width={16}
-                        height={16}
-                        className="object-contain"
-                        unoptimized
-                      />
-                      <span className="font-semibold text-sm text-[#F5C518]">#{jwPrimaryRank.rank}</span>
-                      {jwPrimaryRank.delta !== 0 && (
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium",
-                            jwPrimaryRank.delta > 0
-                              ? "bg-green-600 text-white"
-                              : "bg-red-600 text-white"
-                          )}
-                        >
-                          {jwPrimaryRank.delta > 0 ? (
-                            <ChevronUp className="h-3 w-3" />
-                          ) : (
-                            <ChevronDown className="h-3 w-3" />
-                          )}
-                          {Math.abs(jwPrimaryRank.delta)}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Line 3: Synopsis with expand/collapse */}
-              {isHeroLine3Loading ? (
-                <div className="mb-3 space-y-2">
-                  <Skeleton className="h-4 w-full max-w-[360px]" />
-                  <Skeleton className="h-4 w-3/4 max-w-[280px]" />
-                </div>
-              ) : (
-                synopsis && (
-                  <div className="mb-3">
-                    <p
-                      className={cn(
-                        "text-base text-muted-foreground leading-relaxed",
-                        !isSynopsisExpanded && "line-clamp-2"
-                      )}
-                    >
-                      {synopsis}
-                    </p>
-                    {synopsis.length > 100 && (
-                      <button
-                        onClick={() => setIsSynopsisExpanded(!isSynopsisExpanded)}
-                        className="mt-1 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                      >
-                        {isSynopsisExpanded ? (
-                          <>
-                            <ChevronUp className="h-4 w-4" />
-                            Hide
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDown className="h-4 w-4" />
-                            Show more
-                          </>
-                        )}
-                      </button>
-                    )}
-                  </div>
-                )
-              )}
-
-              {/* Line 4: Play button and Watch Trailer text */}
-              {isHeroLine4Loading ? (
-                <div className="flex items-center gap-3">
-                  <Skeleton className="h-14 w-14 rounded-full" />
-                  <Skeleton className="h-4 w-28" />
-                </div>
-              ) : (
-                trailer && (
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => {
-                        setSelectedVideo(trailer);
-                        setIsTrailerModalOpen(true);
-                      }}
-                      className="flex items-center justify-center h-14 w-14 rounded-full border-2 border-foreground/20 bg-background/80 backdrop-blur hover:bg-background/90 transition cursor-pointer"
-                      aria-label="Play trailer"
-                    >
-                      <Play className="h-7 w-7 text-foreground fill-foreground" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedVideo(trailer);
-                        setIsTrailerModalOpen(true);
-                      }}
-                      className="text-sm font-medium text-foreground hover:opacity-80 transition-opacity cursor-pointer"
-                    >
-                      Watch Trailer
-                    </button>
-                  </div>
-                )
-              )}
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
             </div>
+            {renderPosterAndDetails("lightHero")}
           </div>
         </div>
       </div>
-      
+
+      {/* Dark theme: banner + overlapping header (unchanged behavior) */}
+      <div className="hidden dark:block">
+        <div className="relative w-full h-[40vh] sm:h-[50vh] md:h-[60vh] min-h-[250px] sm:min-h-[300px] md:min-h-[400px] overflow-hidden -mt-[65px]">
+          {backdropPath ? (
+            <>
+              <Image
+                src={getBackdropUrl(backdropPath, "w1280")}
+                alt={title}
+                fill
+                className="object-cover"
+                priority
+                unoptimized
+              />
+              <div className="absolute inset-0 bg-black/60" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent" />
+            </>
+          ) : (
+            <div className="absolute inset-0 bg-muted" />
+          )}
+          <div className="absolute top-4 left-4 z-20 md:hidden">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.back()}
+              className="bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white border-white/20 cursor-pointer"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+          </div>
+        </div>
+
+        <div className="relative -mt-16 md:-mt-24 lg:-mt-32">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+            <div className="hidden md:block mb-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.back()}
+                className="cursor-pointer"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+            </div>
+            {renderPosterAndDetails("page")}
+          </div>
+        </div>
+      </div>
+
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-14">
