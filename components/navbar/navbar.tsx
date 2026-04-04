@@ -189,7 +189,7 @@ export default function Navbar() {
                     className={cn(
                       "hidden md:inline-flex cursor-pointer",
                       hasHeroSection &&
-                        "[&_button]:hover:bg-black/20 [&_button]:text-white"
+                        "[&_button]:!text-white [&_button]:hover:!bg-black/20 [&_button]:hover:!text-white [&_button_svg]:!text-white [&_button]:hover:[&_svg]:!text-white"
                     )}
                   >
                     <UnifiedNotificationCenter />
@@ -198,7 +198,7 @@ export default function Navbar() {
                     className={cn(
                       "hidden md:inline-flex cursor-pointer",
                       hasHeroSection &&
-                        "[&_button]:hover:bg-black/20 [&_button]:text-white"
+                        "[&_button]:!text-white [&_button]:hover:!bg-black/20 [&_button]:hover:!text-white [&_button_svg]:!text-white [&_button]:hover:[&_svg]:!text-white"
                     )}
                   >
                     <FeedbackDropdown hasHeroSection={hasHeroSection} />
