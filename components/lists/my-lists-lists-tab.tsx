@@ -6,7 +6,7 @@ import { useLists, useDeleteList, type List } from "@/hooks/use-lists";
 import { usePlaylists, useDeletePlaylist, type Playlist } from "@/hooks/use-playlists";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Plus, Grid3x3, Table2, Trash2, Edit } from "lucide-react";
+import { Plus, Grid3x3, Table2, Trash2, Edit, ListIcon } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CreateListModal from "./create-list-modal";
 import CreatePlaylistModal from "@/components/playlists/create-playlist-modal";
@@ -115,9 +115,9 @@ export default function MyListsListsTab() {
   return (
     <div className="space-y-6 pb-8">
       {/* Header with Tabs - Desktop: same row, Mobile: toggle/CTA above tabs */}
-      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 gap-4">
         {/* Tabs - Popular page style */}
-        <div className="order-2 sm:order-1">
+        <div className="mb-0">
           <Tabs value={activeTab} onValueChange={(v) => {
             setActiveTab(v as TabType);
             setCurrentPage(1);
@@ -130,7 +130,7 @@ export default function MyListsListsTab() {
         </div>
 
         {/* View Toggle and CTA - Desktop: right side, Mobile: above tabs */}
-        <div className="flex items-center gap-2 order-1 sm:order-2">
+        <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 border rounded-[20px] px-[5px] py-[3px]">
             <Button
               variant={viewMode === "grid" ? "default" : "ghost"}
@@ -207,7 +207,7 @@ export default function MyListsListsTab() {
             </>
           ) : (
             <>
-              <Music className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <ListIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h2 className="text-2xl font-bold tracking-tight mb-2">My Playlists</h2>
               <p className="text-muted-foreground mb-4">
                 Create and manage your playlists of movies, TV shows, and YouTube videos
@@ -484,4 +484,3 @@ export default function MyListsListsTab() {
     </div>
   );
 }
-

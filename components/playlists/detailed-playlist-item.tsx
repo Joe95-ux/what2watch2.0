@@ -400,7 +400,7 @@ function DetailedPlaylistItem({
                           <span
                             className={cn(
                               "pl-2 pr-2 flex items-center font-medium truncate text-white",
-                              isMobile ? "text-[14px]" : "text-[13px]"
+                              isMobile ? "text-[12px]" : "text-[13px]"
                             )}
                           >
                             Watch Now
@@ -410,7 +410,7 @@ function DetailedPlaylistItem({
                         <span
                           className={cn(
                             "px-2 flex items-center font-medium truncate text-white",
-                            isMobile ? "text-[14px]" : "text-[13px]"
+                            isMobile ? "text-[12px]" : "text-[13px]"
                           )}
                         >
                           Watch Now

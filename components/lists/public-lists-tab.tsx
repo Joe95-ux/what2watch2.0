@@ -124,7 +124,7 @@ export default function PublicListsTab() {
                 </Button>
               </div>
               <Button onClick={() => setIsCreateModalOpen(true)} className="cursor-pointer rounded-[20px] h-10">
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="size-6" />
                 Create {activeTab === "lists" ? "List" : "Playlist"}
               </Button>
             </div>

@@ -186,22 +186,12 @@ export function SimpleMediaListItem({
                   className="object-contain rounded-l-[5px] w-7 h-7 block flex-shrink-0"
                   unoptimized
                 />
-                <span
-                  className={cn(
-                    "pl-2 pr-2 flex items-center font-medium truncate text-white",
-                    isMobile ? "text-[14px]" : "text-[12px]"
-                  )}
-                >
+                <span className="pl-2 pr-2 flex items-center text-[12px] font-medium truncate text-white">
                   Watch Now
                 </span>
               </>
             ) : (
-              <span
-                className={cn(
-                  "px-2 flex items-center font-medium truncate text-white",
-                  isMobile ? "text-[14px]" : "text-[12px]"
-                )}
-              >
+              <span className="px-2 flex items-center text-[12px] font-medium truncate text-white">
                 Watch Now
               </span>
             )}
