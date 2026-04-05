@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import MyListsListsTab from "./my-lists-lists-tab";
 import MyListsWatchlistTab from "./my-lists-watchlist-tab";
 import MyListsWatchedTab from "./my-lists-watched-tab";
@@ -90,22 +91,32 @@ export default function MyListsTab() {
   }
 
   return (
-    <div className="space-y-6 pb-8">
-      <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
-        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-          <TabsList className="inline-flex h-auto w-max max-w-none min-h-0 flex-nowrap rounded-[20px] py-[10px] px-[3px]">
+    <div className="space-y-6">
+      <div className="border-b border-border">
+        <div className="overflow-x-auto scrollbar-hide">
+          <div className="flex items-center gap-2 py-4">
             {subTabs.map((tab) => (
-              <TabsTrigger
+              <Button
                 key={tab.id}
-                value={tab.id}
-                className="cursor-pointer shrink-0 rounded-[20px] p-[15px] flex-none"
+                variant="outline"
+                size="sm"
+                onClick={() => setActiveSubTab(tab.id)}
+                className={cn(
+                  "h-9 rounded-[25px] cursor-pointer flex-shrink-0 px-4 transition-colors",
+                  activeSubTab === tab.id
+                    ? "bg-blue-50 dark:bg-muted border-blue-200 dark:border-border text-foreground"
+                    : "bg-muted border-none text-muted-foreground hover:bg-muted/80"
+                )}
               >
                 {tab.label}
-              </TabsTrigger>
+              </Button>
             ))}
-          </TabsList>
+          </div>
         </div>
+      </div>
 
+      {/* Sub-tab Content */}
+      <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
         <TabsContent value="lists" className="mt-0">
           <MyListsListsTab />
         </TabsContent>
