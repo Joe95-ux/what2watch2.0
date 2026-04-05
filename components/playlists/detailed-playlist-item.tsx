@@ -514,7 +514,7 @@ function DetailedPlaylistItem({
               </div>
 
               {isEditMode && !isMobile && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                   {displayRating && displayRating > 0 && (
                     <div className="flex items-center gap-1.5">
                       {ratingSource === "imdb" ? (
@@ -536,7 +536,7 @@ function DetailedPlaylistItem({
               )}
 
               {!isEditMode && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                   {displayRating && displayRating > 0 && (
                     <div className="flex items-center gap-1.5">
                       {ratingSource === "imdb" ? (
@@ -746,7 +746,7 @@ function DetailedPlaylistItem({
           </div>
 
           {isEditMode && isMobile && (
-            <div className="w-full flex items-center gap-2 text-sm text-muted-foreground flex-wrap min-w-0">
+            <div className="w-full flex items-center gap-2 text-sm text-muted-foreground min-w-0">
               {displayRating && displayRating > 0 && (
                 <div className="flex items-center gap-1.5">
                   {ratingSource === "imdb" ? (

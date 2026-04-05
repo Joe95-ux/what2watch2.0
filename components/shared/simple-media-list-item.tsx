@@ -329,7 +329,7 @@ export function SimpleMediaListItem({
                 </>
               )}
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
               {displayRating && displayRating > 0 && (
                 <div className="flex items-center gap-1.5">
                   {ratingSource === "imdb" ? (

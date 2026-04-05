@@ -2487,7 +2487,7 @@ function DetailedWatchlistItem({
 
             {/* Line 3: rating + watched; edit mode on desktop stays inline, mobile uses row below poster + info */}
             {isEditMode && !isMobile && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                 {displayRating && displayRating > 0 && (
                   <div className="flex items-center gap-1.5">
                     {ratingSource === "imdb" ? (
@@ -2723,7 +2723,7 @@ function DetailedWatchlistItem({
         </div>
 
         {isEditMode && isMobile && (
-          <div className="w-full flex items-center gap-2 text-sm text-muted-foreground flex-wrap min-w-0">
+          <div className="w-full flex items-center gap-2 text-sm text-muted-foreground min-w-0">
             {displayRating && displayRating > 0 && (
               <div className="flex items-center gap-1.5">
                 {ratingSource === "imdb" ? (
