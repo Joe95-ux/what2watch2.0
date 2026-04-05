@@ -18,13 +18,15 @@ export default async function MovieDetailPageRedirect({ params }: PageProps) {
     redirect("/");
   }
 
+  let movie;
   try {
-    const movie = await getMovieDetails(movieId);
-    const slug = createContentSlug(movie.title);
-    redirect(`/movie/${movieId}/${slug}`);
+    movie = await getMovieDetails(movieId);
   } catch (error) {
     console.error("Error fetching movie details for redirect:", error);
     redirect("/");
   }
+
+  const slug = createContentSlug(movie.title);
+  redirect(`/movie/${movieId}/${slug}`);
 }
 

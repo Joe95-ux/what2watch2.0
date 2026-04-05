@@ -1458,7 +1458,7 @@ export default function PlaylistView({
                 <h2 className="text-xl font-semibold">Movies & TV Shows</h2>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   {isEditMode && enableEdit ? (
-                    <div className="flex items-center gap-2 flex-shrink-0 overflow-x-auto">
+                    <div className="flex items-center gap-2 flex-shrink-0 overflow-x-auto scrollbar-hide">
                       <Button
                         variant="outline"
                         size="sm"
@@ -1739,7 +1739,7 @@ export default function PlaylistView({
               {isEditMode && enableEdit ? (
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                   {/* Bulk Actions Div */}
-                  <div className="flex items-center gap-3 flex-shrink-0 overflow-x-auto">
+                  <div className="flex items-center gap-3 flex-shrink-0 overflow-x-auto scrollbar-hide">
                     <Button
                       variant="outline"
                       size="sm"

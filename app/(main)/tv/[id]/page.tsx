@@ -18,13 +18,15 @@ export default async function TVDetailPageRedirect({ params }: PageProps) {
     redirect("/");
   }
 
+  let tv;
   try {
-    const tv = await getTVDetails(tvId);
-    const slug = createContentSlug(tv.name);
-    redirect(`/tv/${tvId}/${slug}`);
+    tv = await getTVDetails(tvId);
   } catch (error) {
     console.error("Error fetching TV details for redirect:", error);
     redirect("/");
   }
+
+  const slug = createContentSlug(tv.name);
+  redirect(`/tv/${tvId}/${slug}`);
 }
 

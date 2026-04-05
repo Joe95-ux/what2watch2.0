@@ -17,6 +17,7 @@ import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-log
 import { useAddToWatchlist, useRemoveFromWatchlist, useWatchlist } from "@/hooks/use-watchlist";
 import { Button } from "@/components/ui/button";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SimpleMediaListItemProps {
   tmdbId: number;
@@ -39,6 +40,7 @@ export function SimpleMediaListItem({
   orderLabel,
   onClick,
 }: SimpleMediaListItemProps) {
+  const isMobile = useIsMobile();
   const [rankWindow, setRankWindow] = useState<"1d" | "7d" | "30d">("7d");
   const quickWatch = useQuickWatch();
   const unwatch = useUnwatch();
@@ -128,206 +130,222 @@ export function SimpleMediaListItem({
     }
   };
 
+  const posterBlock = posterPath ? (
+    <div className="relative w-28 h-40 sm:w-28 sm:h-[9.5rem] rounded-[5px] overflow-hidden flex-shrink-0 bg-muted">
+      <Image
+        src={getPosterUrl(posterPath, "w500")}
+        alt={title}
+        fill
+        className="object-cover"
+        sizes="(max-width: 640px) 112px, 128px"
+        unoptimized
+      />
+      <div
+        onClick={handleWatchlistToggle}
+        role="button"
+        tabIndex={0}
+        aria-label={isInWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+        className="absolute -top-[3px] -left-[9px] z-10 flex items-center justify-center cursor-pointer"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleWatchlistToggle(e as unknown as React.MouseEvent);
+          }
+        }}
+      >
+        <div className="relative flex items-center justify-center">
+          <IoBookmarkSharp
+            className={cn(
+              "h-[44px] w-[44px]",
+              isInWatchlist ? "text-[#E0B416] fill-[#E0B416]" : "text-gray-900 fill-gray-900"
+            )}
+          />
+          {isInWatchlist ? (
+            <Check className="absolute top-[5px] size-6 text-black z-10" />
+          ) : (
+            <Plus className="absolute top-[5px] size-6 text-white z-10" />
+          )}
+        </div>
+      </div>
+      {primaryOffer && (
+        <div className="absolute bottom-0 left-0 right-0 p-1">
+          <a
+            href={primaryOffer.standardWebUrl ?? primaryOffer.deepLinkUrl ?? "#"}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center h-7 w-full overflow-hidden rounded-[5px] bg-black/70 hover:bg-black/80 transition-colors cursor-pointer"
+          >
+            {primaryOffer.iconUrl ? (
+              <>
+                <Image
+                  src={primaryOffer.iconUrl}
+                  alt={primaryOffer.providerName}
+                  width={28}
+                  height={28}
+                  className="object-contain rounded-l-[5px] w-7 h-7 block flex-shrink-0"
+                  unoptimized
+                />
+                <span className="pl-2 pr-2 flex items-center text-[12px] font-medium truncate text-white">
+                  Watch Now
+                </span>
+              </>
+            ) : (
+              <span className="px-2 flex items-center text-[12px] font-medium truncate text-white">
+                Watch Now
+              </span>
+            )}
+          </a>
+        </div>
+      )}
+    </div>
+  ) : (
+    <div className="w-28 h-40 sm:w-32 sm:h-48 rounded-[5px] bg-muted flex-shrink-0 flex items-center justify-center">
+      {mediaType === "movie" ? (
+        <Film className="h-6 w-6 text-muted-foreground" />
+      ) : (
+        <Tv className="h-6 w-6 text-muted-foreground" />
+      )}
+    </div>
+  );
+
+  const justWatchRankRow = (
+    <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap w-full min-w-0">
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <Image src="/jw-icon.png" alt="JustWatch" width={16} height={16} className="object-contain shrink-0" unoptimized />
+        <span className="text-jw-gold font-medium">
+          {justWatchRank != null ? `#${justWatchRank}` : "-"}
+        </span>
+        {justWatchDelta != null && justWatchDelta !== 0 && (
+          <span
+            className={cn(
+              "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium",
+              justWatchDelta > 0 ? "bg-green-600 text-white" : "bg-red-600 text-white"
+            )}
+          >
+            {justWatchDelta > 0 ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            {Math.abs(justWatchDelta)}
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-1 text-xs text-muted-foreground flex-wrap">
+        {(["1d", "7d", "30d"] as const).map((w) => (
+          <button
+            key={w}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setRankWindow(w);
+            }}
+            className={cn(
+              "px-1.5 py-0.5 rounded cursor-pointer",
+              rankWindow === w ? "bg-muted font-medium text-foreground" : "hover:text-foreground"
+            )}
+          >
+            {w === "1d" ? "24h" : w}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <button
       type="button"
       onClick={onClick}
       className="w-full text-left cursor-pointer py-3 px-3 transition-colors"
     >
-      <div className="flex items-center gap-4">
-        {posterPath ? (
-          <div className="relative w-28 h-40 sm:w-28 sm:h-[9.5rem] rounded-[5px] overflow-hidden flex-shrink-0 bg-muted">
-            <Image
-              src={getPosterUrl(posterPath, "w500")}
-              alt={title}
-              fill
-              className="object-cover"
-              sizes="(max-width: 640px) 112px, 128px"
-              unoptimized
-            />
-            <div
-              onClick={handleWatchlistToggle}
-              role="button"
-              tabIndex={0}
-              aria-label={isInWatchlist ? "Remove from watchlist" : "Add to watchlist"}
-              className="absolute -top-[3px] -left-[9px] z-10 flex items-center justify-center cursor-pointer"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  handleWatchlistToggle(e as unknown as React.MouseEvent);
-                }
-              }}
-            >
-              <div className="relative flex items-center justify-center">
-                <IoBookmarkSharp
-                  className={cn(
-                    "h-[44px] w-[44px]",
-                    isInWatchlist ? "text-[#E0B416] fill-[#E0B416]" : "text-gray-900 fill-gray-900"
-                  )}
-                />
-                {isInWatchlist ? (
-                  <Check className="absolute top-[5px] size-6 text-black z-10" />
-                ) : (
-                  <Plus className="absolute top-[5px] size-6 text-white z-10" />
-                )}
-              </div>
+      <div className={cn("w-full", isMobile ? "flex flex-col gap-3" : "flex items-center gap-4")}>
+        <div
+          className={cn(
+            "flex gap-4 min-w-0",
+            isMobile ? "flex-row items-start w-full" : "items-center flex-1"
+          )}
+        >
+          {posterBlock}
+          <div className="min-w-0 flex-1 flex flex-col">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              {orderLabel && <span className="text-sm text-muted-foreground">{orderLabel}</span>}
+              <h3 className="text-lg font-semibold truncate">{title}</h3>
+              {addedLabel && <span className="text-xs text-muted-foreground">Added {addedLabel}</span>}
             </div>
-            {primaryOffer && (
-              <div className="absolute bottom-0 left-0 right-0 p-1">
-                <a
-                  href={primaryOffer.standardWebUrl ?? primaryOffer.deepLinkUrl ?? "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex items-center h-7 w-full overflow-hidden rounded-[5px] bg-black/70 hover:bg-black/80 transition-colors cursor-pointer"
-                >
-                  {primaryOffer.iconUrl ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
+              {yearLabel && <span>{yearLabel}</span>}
+              {mediaType === "movie"
+                ? formattedRuntime && (
                     <>
-                      <Image
-                        src={primaryOffer.iconUrl}
-                        alt={primaryOffer.providerName}
-                        width={28}
-                        height={28}
-                        className="object-contain rounded-l-[5px] w-7 h-7 block flex-shrink-0"
-                        unoptimized
-                      />
-                      <span className="pl-2 pr-2 flex items-center text-[12px] font-medium truncate text-white">
-                        Watch Now
+                      {yearLabel && <span>•</span>}
+                      <span>{formattedRuntime}</span>
+                    </>
+                  )
+                : averageEpisodeRuntime && (
+                    <>
+                      {yearLabel && <span>•</span>}
+                      <span>
+                        {Math.floor(averageEpisodeRuntime / 60)}h {averageEpisodeRuntime % 60}m
                       </span>
                     </>
-                  ) : (
-                    <span className="px-2 flex items-center text-[12px] font-medium truncate text-white">
-                      Watch Now
-                    </span>
                   )}
-                </a>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="w-28 h-40 sm:w-32 sm:h-48 rounded-[5px] bg-muted flex-shrink-0 flex items-center justify-center">
-            {mediaType === "movie" ? (
-              <Film className="h-6 w-6 text-muted-foreground" />
-            ) : (
-              <Tv className="h-6 w-6 text-muted-foreground" />
-            )}
-          </div>
-        )}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            {orderLabel && <span className="text-sm text-muted-foreground">{orderLabel}</span>}
-            <h3 className="text-lg font-semibold truncate">{title}</h3>
-            {addedLabel && <span className="text-xs text-muted-foreground">Added {addedLabel}</span>}
-          </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
-            {yearLabel && <span>{yearLabel}</span>}
-            {mediaType === "movie"
-              ? formattedRuntime && (
-                  <>
-                    {yearLabel && <span>•</span>}
-                    <span>{formattedRuntime}</span>
-                  </>
-                )
-              : averageEpisodeRuntime && (
-                  <>
-                    {yearLabel && <span>•</span>}
-                    <span>{Math.floor(averageEpisodeRuntime / 60)}h {averageEpisodeRuntime % 60}m</span>
-                  </>
-                )}
-            {numberOfEpisodes && (
-              <>
-                {(yearLabel || averageEpisodeRuntime) && <span>•</span>}
-                <span>{numberOfEpisodes} episodes</span>
-              </>
-            )}
-            {rated && (
-              <>
-                <span>•</span>
-                <span>{rated}</span>
-              </>
-            )}
-            {metascore && (
-              <>
-                <span>•</span>
-                <div className="flex items-center gap-1.5">
-                  <div
-                    className={cn(
-                      "w-5 h-5 rounded flex items-center justify-center text-xs font-bold",
-                      metascore >= 60
-                        ? "bg-green-500 text-white"
-                        : metascore >= 40
-                        ? "bg-yellow-500 text-white"
-                        : "bg-red-500 text-white"
-                    )}
-                  >
-                    {metascore}
+              {numberOfEpisodes && (
+                <>
+                  {(yearLabel || averageEpisodeRuntime) && <span>•</span>}
+                  <span>{numberOfEpisodes} episodes</span>
+                </>
+              )}
+              {rated && (
+                <>
+                  <span>•</span>
+                  <span>{rated}</span>
+                </>
+              )}
+              {metascore && (
+                <>
+                  <span>•</span>
+                  <div className="flex items-center gap-1.5">
+                    <div
+                      className={cn(
+                        "w-5 h-5 rounded flex items-center justify-center text-xs font-bold",
+                        metascore >= 60
+                          ? "bg-green-500 text-white"
+                          : metascore >= 40
+                            ? "bg-yellow-500 text-white"
+                            : "bg-red-500 text-white"
+                      )}
+                    >
+                      {metascore}
+                    </div>
+                    <span className="text-xs text-muted-foreground">Metascore</span>
                   </div>
-                  <span className="text-xs text-muted-foreground">Metascore</span>
-                </div>
-              </>
-            )}
-          </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
-            {displayRating && displayRating > 0 && (
-              <div className="flex items-center gap-1.5">
-                {ratingSource === "imdb" ? (
-                  <IMDBBadge size={16} />
-                ) : (
-                  <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                )}
-                <span className="font-semibold">{displayRating.toFixed(1)}</span>
-              </div>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 cursor-pointer"
-              onClick={handleWatchToggle}
-            >
-              <Eye className={cn("h-4 w-4", isWatched ? "text-green-500" : "text-muted-foreground")} />
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              {isWatched ? "Watched" : "Mark as watched"}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
-            <div className="flex items-center gap-1.5">
-              <Image src="/jw-icon.png" alt="JustWatch" width={16} height={16} className="object-contain" unoptimized />
-              <span className="text-jw-gold font-medium">
-                {justWatchRank != null ? `#${justWatchRank}` : "-"}
-              </span>
-              {justWatchDelta != null && justWatchDelta !== 0 && (
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium",
-                    justWatchDelta > 0 ? "bg-green-600 text-white" : "bg-red-600 text-white"
-                  )}
-                >
-                  {justWatchDelta > 0 ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                  {Math.abs(justWatchDelta)}
-                </span>
+                </>
               )}
             </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              {(["1d", "7d", "30d"] as const).map((w) => (
-                <button
-                  key={w}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setRankWindow(w);
-                  }}
-                  className={cn(
-                    "px-1.5 py-0.5 rounded cursor-pointer",
-                    rankWindow === w ? "bg-muted font-medium text-foreground" : "hover:text-foreground"
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
+              {displayRating && displayRating > 0 && (
+                <div className="flex items-center gap-1.5">
+                  {ratingSource === "imdb" ? (
+                    <IMDBBadge size={16} />
+                  ) : (
+                    <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
                   )}
-                >
-                  {w === "1d" ? "24h" : w}
-                </button>
-              ))}
+                  <span className="font-semibold">{displayRating.toFixed(1)}</span>
+                </div>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 cursor-pointer"
+                onClick={handleWatchToggle}
+              >
+                <Eye className={cn("h-4 w-4", isWatched ? "text-green-500" : "text-muted-foreground")} />
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {isWatched ? "Watched" : "Mark as watched"}
+              </span>
             </div>
+            {!isMobile && justWatchRankRow}
           </div>
         </div>
+        {isMobile && justWatchRankRow}
       </div>
     </button>
   );

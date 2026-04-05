@@ -62,13 +62,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -100,6 +93,7 @@ import { useSearch } from "@/hooks/use-search";
 import { useDebounce } from "@/hooks/use-debounce";
 import { ShareDropdown } from "@/components/ui/share-dropdown";
 import { SimpleMediaListItem } from "@/components/shared/simple-media-list-item";
+import { SearchableCollectionPicker } from "@/components/shared/searchable-collection-picker";
 import { Separator } from "@/components/ui/separator";
 import { useWatchlistDragDrop } from "@/hooks/use-watchlist-drag-drop";
 import { Droppable, Draggable } from "@hello-pangea/dnd";
@@ -118,6 +112,7 @@ import { ChangeOrderModal } from "./change-order-modal";
 import { Textarea } from "@/components/ui/textarea";
 import ImportWatchlistModal from "./import-watchlist-modal";
 import { IoBookmarkSharp } from "react-icons/io5";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type SortField = "listOrder" | "createdAt" | "title" | "releaseYear";
 type SortOrder = "asc" | "desc";
@@ -1204,7 +1199,7 @@ export default function WatchlistView({
           {/* View Mode Toggle and Filters / Edit Mode Actions */}
           <div className="mb-6 flex flex-col md:flex-row items-start justify-between gap-4">
             {isEditMode && enableEdit ? (
-              <div className="overflow-x-auto max-w-full">
+              <div className="overflow-x-auto max-w-full scrollbar-hide">
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
@@ -2038,6 +2033,7 @@ function DetailedWatchlistItem({
   sortField,
 }: DetailedWatchlistItemProps) {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const { isSignedIn } = useUser();
   const quickWatch = useQuickWatch();
   const unwatch = useUnwatch();
@@ -2282,7 +2278,7 @@ function DetailedWatchlistItem({
       {/* Mobile: Two divs - First div: Poster + First 3 Lines, Second div: Synopsis + Cast */}
       {/* Desktop: Single row with all content */}
       <div className="flex flex-col sm:flex-row gap-4 flex-1 min-w-0">
-        {/* First Div: Poster + First 3 Lines (Mobile) or Poster only (Desktop) */}
+        <div className="flex flex-col gap-3 flex-1 min-w-0 w-full">
         <div className="flex flex-row gap-4 flex-1 min-w-0">
           {/* Checkbox for smaller screens (mobile) */}
           {isEditMode && !isLgScreen && (
@@ -2478,43 +2474,45 @@ function DetailedWatchlistItem({
               )}
             </div>
 
-            {/* Line 3: IMDb rating and watched status */}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
-              {displayRating && displayRating > 0 && (
-                <div className="flex items-center gap-1.5">
-                  {ratingSource === "imdb" ? (
-                    <IMDBBadge size={16} />
-                  ) : (
-                    <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                  )}
-                  <span className="font-semibold">
-                    {displayRating.toFixed(1)}
-                  </span>
-                </div>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 cursor-pointer"
-                onClick={handleWatchToggle}
-              >
-                <Eye
-                  className={cn(
-                    "h-4 w-4",
-                    isWatched ? "text-green-500" : "text-muted-foreground"
-                  )}
-                />
-              </Button>
-              {isWatched ? (
-                <span className="text-sm text-muted-foreground">Watched</span>
-              ) : (
-                <span className="text-sm text-muted-foreground">
-                  Mark as watched
-                </span>
-              )}
-            </div>
-
+            {/* Line 3: IMDb rating and watched status (hidden in edit — full-width row below poster + info) */}
             {!isEditMode && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
+                {displayRating && displayRating > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    {ratingSource === "imdb" ? (
+                      <IMDBBadge size={16} />
+                    ) : (
+                      <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                    )}
+                    <span className="font-semibold">
+                      {displayRating.toFixed(1)}
+                    </span>
+                  </div>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 cursor-pointer"
+                  onClick={handleWatchToggle}
+                >
+                  <Eye
+                    className={cn(
+                      "h-4 w-4",
+                      isWatched ? "text-green-500" : "text-muted-foreground"
+                    )}
+                  />
+                </Button>
+                {isWatched ? (
+                  <span className="text-sm text-muted-foreground">Watched</span>
+                ) : (
+                  <span className="text-sm text-muted-foreground">
+                    Mark as watched
+                  </span>
+                )}
+              </div>
+            )}
+
+            {!isEditMode && !isMobile && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
                 <div className="flex items-center gap-1.5">
                   <Image src="/jw-icon.png" alt="JustWatch" width={16} height={16} className="object-contain" unoptimized />
@@ -2706,8 +2704,85 @@ function DetailedWatchlistItem({
           </div>
         </div>
 
+        {isEditMode && (
+          <div className="w-full flex items-center gap-2 text-sm text-muted-foreground flex-wrap min-w-0">
+            {displayRating && displayRating > 0 && (
+              <div className="flex items-center gap-1.5">
+                {ratingSource === "imdb" ? (
+                  <IMDBBadge size={16} />
+                ) : (
+                  <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                )}
+                <span className="font-semibold">
+                  {displayRating.toFixed(1)}
+                </span>
+              </div>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 cursor-pointer shrink-0"
+              onClick={handleWatchToggle}
+            >
+              <Eye
+                className={cn(
+                  "h-4 w-4",
+                  isWatched ? "text-green-500" : "text-muted-foreground"
+                )}
+              />
+            </Button>
+            {isWatched ? (
+              <span className="text-sm text-muted-foreground">Watched</span>
+            ) : (
+              <span className="text-sm text-muted-foreground">
+                Mark as watched
+              </span>
+            )}
+          </div>
+        )}
+        </div>
+
         {/* Second Div: Note (edit mode) or Synopsis and Cast (mobile only, view mode) */}
         <div className="flex flex-col sm:hidden gap-2">
+          {!isEditMode && isMobile && (
+            <div className="w-full flex items-center gap-2 text-sm text-muted-foreground flex-wrap min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <Image src="/jw-icon.png" alt="JustWatch" width={16} height={16} className="object-contain shrink-0" unoptimized />
+                <span className="text-jw-gold font-medium">
+                  {justWatchRank != null ? `#${justWatchRank}` : "-"}
+                </span>
+                {justWatchDelta != null && justWatchDelta !== 0 && (
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-xs font-medium",
+                      justWatchDelta > 0 ? "bg-green-600 text-white" : "bg-red-600 text-white"
+                    )}
+                  >
+                    {justWatchDelta > 0 ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                    {Math.abs(justWatchDelta)}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground flex-wrap">
+                {(["1d", "7d", "30d"] as const).map((w) => (
+                  <button
+                    key={w}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRankWindow(w);
+                    }}
+                    className={cn(
+                      "px-1.5 py-0.5 rounded cursor-pointer",
+                      rankWindow === w ? "bg-muted font-medium text-foreground" : "hover:text-foreground"
+                    )}
+                  >
+                    {w === "1d" ? "24h" : w}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {isEditMode ? (
             <div className="space-y-2">
               {isEditingNote ? (
@@ -2995,25 +3070,18 @@ function CopyToListModal({
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Select List</Label>
-            <Select
+            <SearchableCollectionPicker
               value={selectedListId}
-              onValueChange={(value) => {
-                setSelectedListId(value);
-                setIsCreatingNew(value === "new");
+              onValueChange={(id, isCreateNew) => {
+                setSelectedListId(id);
+                setIsCreatingNew(isCreateNew);
               }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a list or create new" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="new">Create New List</SelectItem>
-                {lists.map((list) => (
-                  <SelectItem key={list.id} value={list.id}>
-                    {list.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              items={lists.map((list) => ({ id: list.id, name: list.name }))}
+              placeholder="Choose a list or create new"
+              searchPlaceholder="Search lists..."
+              createNewLabel="Create New ..."
+              emptyText="No lists found."
+            />
           </div>
           {isCreatingNew && (
             <div className="space-y-2">
@@ -3199,25 +3267,18 @@ function MoveToListModal({
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Select List</Label>
-            <Select
+            <SearchableCollectionPicker
               value={selectedListId}
-              onValueChange={(value) => {
-                setSelectedListId(value);
-                setIsCreatingNew(value === "new");
+              onValueChange={(id, isCreateNew) => {
+                setSelectedListId(id);
+                setIsCreatingNew(isCreateNew);
               }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a list or create new" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="new">Create New List</SelectItem>
-                {lists.map((list) => (
-                  <SelectItem key={list.id} value={list.id}>
-                    {list.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              items={lists.map((list) => ({ id: list.id, name: list.name }))}
+              placeholder="Choose a list or create new"
+              searchPlaceholder="Search lists..."
+              createNewLabel="Create New ..."
+              emptyText="No lists found."
+            />
           </div>
           {isCreatingNew && (
             <div className="space-y-2">

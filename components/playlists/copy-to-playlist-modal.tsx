@@ -12,13 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableCollectionPicker } from "@/components/shared/searchable-collection-picker";
 import { toast } from "sonner";
 import { usePlaylists, useCreatePlaylist, useUpdatePlaylist } from "@/hooks/use-playlists";
 
@@ -162,25 +156,21 @@ export function CopyToPlaylistModal({
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Select Playlist</Label>
-            <Select
+            <SearchableCollectionPicker
               value={selectedPlaylistId}
-              onValueChange={(value) => {
-                setSelectedPlaylistId(value);
-                setIsCreatingNew(value === "new");
+              onValueChange={(id, isCreateNew) => {
+                setSelectedPlaylistId(id);
+                setIsCreatingNew(isCreateNew);
               }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a playlist or create new" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="new">Create New Playlist</SelectItem>
-                {availablePlaylists.map((playlist) => (
-                  <SelectItem key={playlist.id} value={playlist.id}>
-                    {playlist.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              items={availablePlaylists.map((p) => ({
+                id: p.id,
+                name: p.name,
+              }))}
+              placeholder="Choose a playlist or create new"
+              searchPlaceholder="Search playlists..."
+              createNewLabel="Create New ..."
+              emptyText="No playlists found."
+            />
           </div>
           {isCreatingNew && (
             <div className="space-y-2">
