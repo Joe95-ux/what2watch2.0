@@ -52,7 +52,7 @@ export function SearchableCollectionPicker({
     value === "new" ? createNewLabel : selected?.name ?? placeholder;
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover modal={true} open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           type="button"

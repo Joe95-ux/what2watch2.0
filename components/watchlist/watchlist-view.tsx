@@ -93,6 +93,7 @@ import { useSearch } from "@/hooks/use-search";
 import { useDebounce } from "@/hooks/use-debounce";
 import { ShareDropdown } from "@/components/ui/share-dropdown";
 import { SimpleMediaListItem } from "@/components/shared/simple-media-list-item";
+import { WatchToggleButton } from "@/components/shared/watch-toggle-button";
 import { SearchableCollectionPicker } from "@/components/shared/searchable-collection-picker";
 import { Separator } from "@/components/ui/separator";
 import { useWatchlistDragDrop } from "@/hooks/use-watchlist-drag-drop";
@@ -2365,12 +2366,22 @@ function DetailedWatchlistItem({
                           className="object-contain rounded-l-[5px] w-7 h-7 block flex-shrink-0"
                           unoptimized
                         />
-                        <span className="pl-2 pr-2 flex items-center text-[13px] font-medium truncate text-white">
+                        <span
+                          className={cn(
+                            "pl-2 pr-2 flex items-center font-medium truncate text-white",
+                            isMobile ? "text-[14px]" : "text-[13px]"
+                          )}
+                        >
                           Watch Now
                         </span>
                       </>
                     ) : (
-                      <span className="px-2 flex items-center text-[13px] font-medium truncate text-white">
+                      <span
+                        className={cn(
+                          "px-2 flex items-center font-medium truncate text-white",
+                          isMobile ? "text-[14px]" : "text-[13px]"
+                        )}
+                      >
                         Watch Now
                       </span>
                     )}
@@ -2474,7 +2485,29 @@ function DetailedWatchlistItem({
               )}
             </div>
 
-            {/* Line 3: IMDb rating and watched status (hidden in edit — full-width row below poster + info) */}
+            {/* Line 3: rating + watched; edit mode on desktop stays inline, mobile uses row below poster + info */}
+            {isEditMode && !isMobile && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
+                {displayRating && displayRating > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    {ratingSource === "imdb" ? (
+                      <IMDBBadge size={16} />
+                    ) : (
+                      <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                    )}
+                    <span className="font-semibold">
+                      {displayRating.toFixed(1)}
+                    </span>
+                  </div>
+                )}
+                <WatchToggleButton
+                  isWatched={isWatched}
+                  isMobile={isMobile}
+                  onClick={handleWatchToggle}
+                />
+              </div>
+            )}
+
             {!isEditMode && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
                 {displayRating && displayRating > 0 && (
@@ -2489,26 +2522,11 @@ function DetailedWatchlistItem({
                     </span>
                   </div>
                 )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 cursor-pointer"
+                <WatchToggleButton
+                  isWatched={isWatched}
+                  isMobile={isMobile}
                   onClick={handleWatchToggle}
-                >
-                  <Eye
-                    className={cn(
-                      "h-4 w-4",
-                      isWatched ? "text-green-500" : "text-muted-foreground"
-                    )}
-                  />
-                </Button>
-                {isWatched ? (
-                  <span className="text-sm text-muted-foreground">Watched</span>
-                ) : (
-                  <span className="text-sm text-muted-foreground">
-                    Mark as watched
-                  </span>
-                )}
+                />
               </div>
             )}
 
@@ -2704,7 +2722,7 @@ function DetailedWatchlistItem({
           </div>
         </div>
 
-        {isEditMode && (
+        {isEditMode && isMobile && (
           <div className="w-full flex items-center gap-2 text-sm text-muted-foreground flex-wrap min-w-0">
             {displayRating && displayRating > 0 && (
               <div className="flex items-center gap-1.5">
@@ -2718,26 +2736,11 @@ function DetailedWatchlistItem({
                 </span>
               </div>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 cursor-pointer shrink-0"
+            <WatchToggleButton
+              isWatched={isWatched}
+              isMobile={isMobile}
               onClick={handleWatchToggle}
-            >
-              <Eye
-                className={cn(
-                  "h-4 w-4",
-                  isWatched ? "text-green-500" : "text-muted-foreground"
-                )}
-              />
-            </Button>
-            {isWatched ? (
-              <span className="text-sm text-muted-foreground">Watched</span>
-            ) : (
-              <span className="text-sm text-muted-foreground">
-                Mark as watched
-              </span>
-            )}
+            />
           </div>
         )}
         </div>
@@ -3079,7 +3082,7 @@ function CopyToListModal({
               items={lists.map((list) => ({ id: list.id, name: list.name }))}
               placeholder="Choose a list or create new"
               searchPlaceholder="Search lists..."
-              createNewLabel="Create New ..."
+              createNewLabel="Create New List"
               emptyText="No lists found."
             />
           </div>
@@ -3276,7 +3279,7 @@ function MoveToListModal({
               items={lists.map((list) => ({ id: list.id, name: list.name }))}
               placeholder="Choose a list or create new"
               searchPlaceholder="Search lists..."
-              createNewLabel="Create New ..."
+              createNewLabel="Create New List"
               emptyText="No lists found."
             />
           </div>

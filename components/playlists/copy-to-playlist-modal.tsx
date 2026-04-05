@@ -168,7 +168,7 @@ export function CopyToPlaylistModal({
               }))}
               placeholder="Choose a playlist or create new"
               searchPlaceholder="Search playlists..."
-              createNewLabel="Create New ..."
+              createNewLabel="Create New Playlist"
               emptyText="No playlists found."
             />
           </div>

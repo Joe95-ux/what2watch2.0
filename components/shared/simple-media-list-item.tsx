@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Check, ChevronDown, ChevronUp, Eye, Film, Plus, Star, Tv } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Film, Plus, Star, Tv } from "lucide-react";
 import { IoBookmarkSharp } from "react-icons/io5";
 import { getPosterUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
@@ -15,9 +15,9 @@ import {
 } from "@/hooks/use-content-details";
 import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-logs";
 import { useAddToWatchlist, useRemoveFromWatchlist, useWatchlist } from "@/hooks/use-watchlist";
-import { Button } from "@/components/ui/button";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { WatchToggleButton } from "@/components/shared/watch-toggle-button";
 
 interface SimpleMediaListItemProps {
   tmdbId: number;
@@ -186,12 +186,22 @@ export function SimpleMediaListItem({
                   className="object-contain rounded-l-[5px] w-7 h-7 block flex-shrink-0"
                   unoptimized
                 />
-                <span className="pl-2 pr-2 flex items-center text-[12px] font-medium truncate text-white">
+                <span
+                  className={cn(
+                    "pl-2 pr-2 flex items-center font-medium truncate text-white",
+                    isMobile ? "text-[14px]" : "text-[12px]"
+                  )}
+                >
                   Watch Now
                 </span>
               </>
             ) : (
-              <span className="px-2 flex items-center text-[12px] font-medium truncate text-white">
+              <span
+                className={cn(
+                  "px-2 flex items-center font-medium truncate text-white",
+                  isMobile ? "text-[14px]" : "text-[12px]"
+                )}
+              >
                 Watch Now
               </span>
             )}
@@ -330,17 +340,11 @@ export function SimpleMediaListItem({
                   <span className="font-semibold">{displayRating.toFixed(1)}</span>
                 </div>
               )}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 cursor-pointer"
+              <WatchToggleButton
+                isWatched={isWatched}
+                isMobile={isMobile}
                 onClick={handleWatchToggle}
-              >
-                <Eye className={cn("h-4 w-4", isWatched ? "text-green-500" : "text-muted-foreground")} />
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                {isWatched ? "Watched" : "Mark as watched"}
-              </span>
+              />
             </div>
             {!isMobile && justWatchRankRow}
           </div>

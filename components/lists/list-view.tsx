@@ -65,6 +65,7 @@ import { CollectionBanner } from "@/components/shared/collection-banner";
 import { ViewModeToggle, type ViewMode } from "@/components/shared/view-mode-toggle";
 import { CollectionPagination } from "@/components/shared/collection-pagination";
 import { SimpleMediaListItem } from "@/components/shared/simple-media-list-item";
+import { WatchToggleButton } from "@/components/shared/watch-toggle-button";
 import { Separator } from "@/components/ui/separator";
 import { BulkActionsBar } from "@/components/shared/bulk-actions-bar";
 import { SearchableCollectionPicker } from "@/components/shared/searchable-collection-picker";
@@ -1818,7 +1819,7 @@ function CopyToListModal({
               items={availableLists.map((list) => ({ id: list.id, name: list.name }))}
               placeholder="Choose a list or create new"
               searchPlaceholder="Search lists..."
-              createNewLabel="Create New ..."
+              createNewLabel="Create New List"
               emptyText="No lists found."
             />
           </div>
@@ -2018,7 +2019,7 @@ function MoveToListModal({
               items={availableLists.map((list) => ({ id: list.id, name: list.name }))}
               placeholder="Choose a list or create new"
               searchPlaceholder="Search lists..."
-              createNewLabel="Create New ..."
+              createNewLabel="Create New List"
               emptyText="No lists found."
             />
           </div>
@@ -2431,12 +2432,22 @@ function DetailedListItem({
                           className="object-contain rounded-l-[5px] w-7 h-7 block flex-shrink-0"
                           unoptimized
                         />
-                        <span className="pl-2 pr-2 flex items-center text-[13px] font-medium truncate text-white">
+                        <span
+                          className={cn(
+                            "pl-2 pr-2 flex items-center font-medium truncate text-white",
+                            isMobile ? "text-[14px]" : "text-[13px]"
+                          )}
+                        >
                           Watch Now
                         </span>
                       </>
                     ) : (
-                      <span className="px-2 flex items-center text-[13px] font-medium truncate text-white">
+                      <span
+                        className={cn(
+                          "px-2 flex items-center font-medium truncate text-white",
+                          isMobile ? "text-[14px]" : "text-[13px]"
+                        )}
+                      >
                         Watch Now
                       </span>
                     )}
@@ -2537,6 +2548,28 @@ function DetailedListItem({
               )}
             </div>
 
+            {isEditMode && !isMobile && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
+                {displayRating && displayRating > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    {ratingSource === "imdb" ? (
+                      <IMDBBadge size={16} />
+                    ) : (
+                      <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                    )}
+                    <span className="font-semibold">
+                      {displayRating.toFixed(1)}
+                    </span>
+                  </div>
+                )}
+                <WatchToggleButton
+                  isWatched={isWatched}
+                  isMobile={isMobile}
+                  onClick={handleWatchToggle}
+                />
+              </div>
+            )}
+
             {!isEditMode && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2 flex-wrap">
                 {displayRating && displayRating > 0 && (
@@ -2551,26 +2584,11 @@ function DetailedListItem({
                     </span>
                   </div>
                 )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 cursor-pointer"
+                <WatchToggleButton
+                  isWatched={isWatched}
+                  isMobile={isMobile}
                   onClick={handleWatchToggle}
-                >
-                  <Eye
-                    className={cn(
-                      "h-4 w-4",
-                      isWatched ? "text-green-500" : "text-muted-foreground"
-                    )}
-                  />
-                </Button>
-                {isWatched ? (
-                  <span className="text-sm text-muted-foreground">Watched</span>
-                ) : (
-                  <span className="text-sm text-muted-foreground">
-                    Mark as watched
-                  </span>
-                )}
+                />
               </div>
             )}
 
@@ -2762,7 +2780,7 @@ function DetailedListItem({
           </div>
         </div>
 
-        {isEditMode && (
+        {isEditMode && isMobile && (
           <div className="w-full flex items-center gap-2 text-sm text-muted-foreground flex-wrap min-w-0">
             {displayRating && displayRating > 0 && (
               <div className="flex items-center gap-1.5">
@@ -2776,26 +2794,11 @@ function DetailedListItem({
                 </span>
               </div>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 cursor-pointer shrink-0"
+            <WatchToggleButton
+              isWatched={isWatched}
+              isMobile={isMobile}
               onClick={handleWatchToggle}
-            >
-              <Eye
-                className={cn(
-                  "h-4 w-4",
-                  isWatched ? "text-green-500" : "text-muted-foreground"
-                )}
-              />
-            </Button>
-            {isWatched ? (
-              <span className="text-sm text-muted-foreground">Watched</span>
-            ) : (
-              <span className="text-sm text-muted-foreground">
-                Mark as watched
-              </span>
-            )}
+            />
           </div>
         )}
         </div>
