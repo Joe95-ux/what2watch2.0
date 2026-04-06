@@ -89,7 +89,7 @@ export async function sendContactSubmissionEmail(
       <div style="max-width: 640px; margin: 0 auto; background-color: #0f172a; border: 1px solid #1f2937; border-radius: 12px; padding: 24px;">
         <div style="text-align: center; margin-bottom: 16px;">
           <a href="${baseUrl}" style="display: inline-block; text-decoration: none;">
-            <img src="${logoUrl}" alt="What2Watch logo" width="40" height="40" style="display: block; border-radius: 8px;" />
+            <img src="${logoUrl}" alt="What2Watch logo" width="160" style="display: block; width: 160px; max-width: 100%; height: auto;" />
           </a>
         </div>
         <h2 style="margin: 0 0 14px; color: #f8fafc;">New ${escapeHtml(typeLabel)} Submission</h2>
@@ -100,7 +100,7 @@ export async function sendContactSubmissionEmail(
         <p style="margin: 8px 0; color: #e5e7eb;"><strong>User email:</strong> ${escapeHtml(senderEmail)}</p>
         <hr style="margin: 16px 0; border: 0; border-top: 1px solid #1f2937;" />
         <p style="margin: 0 0 8px; color: #f8fafc;"><strong>Message:</strong></p>
-        <pre style="white-space: pre-wrap; font-family: inherit; margin: 0; color: #9ca3af; background-color: #111827; border-radius: 8px; padding: 12px;">${escapeHtml(
+        <pre style="white-space: pre-wrap; font-family: inherit; margin: 0; color: #e5e7eb; background-color: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px;">${escapeHtml(
         payload.message
       )}</pre>
       </div>

@@ -118,7 +118,7 @@ export function getEmailTemplate({
           <tr>
             <td style="padding: 28px 40px 12px; text-align: center;">
               <a href="${baseUrl}" style="display: inline-block; text-decoration: none;">
-                <img src="${logoUrl}" alt="What2Watch logo" width="40" height="40" style="display: block; border-radius: 8px;" />
+                <img src="${logoUrl}" alt="What2Watch logo" width="160" style="display: block; width: 160px; max-width: 100%; height: auto;" />
               </a>
             </td>
           </tr>
