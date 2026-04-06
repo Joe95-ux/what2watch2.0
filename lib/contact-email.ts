@@ -82,15 +82,14 @@ export async function sendContactSubmissionEmail(
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.NEXT_PUBLIC_SITE_URL ||
     "https://what2watch2-0.vercel.app";
-  const logoUrl = `${baseUrl.replace(/\/$/, "")}/icon0.svg`;
+  const logoUrl = `${baseUrl.replace(/\/$/, "")}/what2watch-logo.png`;
 
   const html = `
     <div style="font-family: Arial, sans-serif; line-height: 1.5; background-color: #0b1020; padding: 24px;">
       <div style="max-width: 640px; margin: 0 auto; background-color: #0f172a; border: 1px solid #1f2937; border-radius: 12px; padding: 24px;">
         <div style="text-align: center; margin-bottom: 16px;">
-          <a href="${baseUrl}" style="display: inline-flex; align-items: center; gap: 10px; text-decoration: none;">
-            <img src="${logoUrl}" alt="What2Watch logo" width="28" height="28" style="display: block; border-radius: 6px;" />
-            <span style="color: #f8fafc; font-size: 18px; font-weight: 700;">What2Watch</span>
+          <a href="${baseUrl}" style="display: inline-block; text-decoration: none;">
+            <img src="${logoUrl}" alt="What2Watch logo" width="40" height="40" style="display: block; border-radius: 8px;" />
           </a>
         </div>
         <h2 style="margin: 0 0 14px; color: #f8fafc;">New ${escapeHtml(typeLabel)} Submission</h2>

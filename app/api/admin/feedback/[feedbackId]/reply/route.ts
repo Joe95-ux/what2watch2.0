@@ -118,13 +118,13 @@ export async function POST(
         <p>Hi ${userName},</p>
         <p>Thank you for your feedback. Here's an update on your submission:</p>
         ${statusMessage}
-        <div style="background-color: #f5f5f5; padding: 20px; border-radius: 6px; margin: 20px 0;">
-          <p style="margin: 0; white-space: pre-wrap;">${message.trim()}</p>
+        <div style="background-color: #111827; padding: 20px; border-radius: 6px; margin: 20px 0;">
+          <p style="margin: 0; white-space: pre-wrap; color: #e5e7eb;">${message.trim()}</p>
         </div>
         <p>Your original feedback:</p>
-        <div style="background-color: #f5f5f5; padding: 20px; border-radius: 6px; margin: 20px 0;">
-          <p style="margin: 0 0 10px 0;"><strong>Reason:</strong> ${feedback.reason}</p>
-          <p style="margin: 0; white-space: pre-wrap;">${feedback.message}</p>
+        <div style="background-color: #111827; padding: 20px; border-radius: 6px; margin: 20px 0;">
+          <p style="margin: 0 0 10px 0; color: #f8fafc;"><strong>Reason:</strong> ${feedback.reason}</p>
+          <p style="margin: 0; white-space: pre-wrap; color: #e5e7eb;">${feedback.message}</p>
         </div>
         <p>If you have any further questions or concerns, please don't hesitate to reach out.</p>
       `,

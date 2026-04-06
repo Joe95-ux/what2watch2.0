@@ -145,6 +145,26 @@ const FEEDBACK_REASONS = [
 ];
 
 const FEEDBACK_PRIORITIES = ["Low", "Medium", "High", "Urgent"];
+const FEEDBACK_MODAL_TAB_STORAGE_KEY = "admin-feedback-modal-active-tab";
+const FEEDBACK_MODAL_TABS = ["replies", "notes", "tags", "activity"] as const;
+
+type FeedbackModalTab = (typeof FEEDBACK_MODAL_TABS)[number];
+
+function getInitialFeedbackModalTab(): FeedbackModalTab {
+  if (typeof window === "undefined") return "replies";
+  const stored = window.localStorage.getItem(FEEDBACK_MODAL_TAB_STORAGE_KEY);
+  if (stored && FEEDBACK_MODAL_TABS.includes(stored as FeedbackModalTab)) {
+    return stored as FeedbackModalTab;
+  }
+  return "replies";
+}
+
+function parseApiDate(value: string | null | undefined): Date {
+  if (!value) return new Date();
+  // If backend string has no timezone info, treat it as UTC to avoid local offset drift.
+  const hasTimezone = /(?:Z|[+-]\d{2}:\d{2})$/.test(value);
+  return new Date(hasTimezone ? value : `${value}Z`);
+}
 
 export function FeedbackManagementTable() {
   const queryClient = useQueryClient();
@@ -171,7 +191,7 @@ export function FeedbackManagementTable() {
   const [bulkStatus, setBulkStatus] = useState<string>("");
   const [userFilter, setUserFilter] = useState("all");
   const [replyCountFilter, setReplyCountFilter] = useState<"all" | "with" | "without">("all");
-  const [activeTab, setActiveTab] = useState<"replies" | "notes" | "tags" | "activity">("replies");
+  const [activeTab, setActiveTab] = useState<FeedbackModalTab>(getInitialFeedbackModalTab);
   const [newNote, setNewNote] = useState("");
   const [newTag, setNewTag] = useState("");
   const [availableAdmins, setAvailableAdmins] = useState<Array<{ id: string; username: string | null; displayName: string | null }>>([]);
@@ -293,7 +313,6 @@ export function FeedbackManagementTable() {
       if (!res.ok) throw new Error("Failed to fetch feedback detail");
       const data = await res.json();
       setViewingFeedback(data.feedback);
-      setActiveTab("replies"); // Reset to replies tab when loading new feedback
     } catch (error) {
       console.error("Failed to load feedback detail:", error);
       toast.error("Failed to load feedback details");
@@ -409,6 +428,12 @@ export function FeedbackManagementTable() {
         });
     }
   }, [viewingFeedback]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(FEEDBACK_MODAL_TAB_STORAGE_KEY, activeTab);
+    }
+  }, [activeTab]);
 
   const replyToFeedback = useMutation({
     mutationFn: async ({
@@ -1410,7 +1435,7 @@ export function FeedbackManagementTable() {
                     {feedback.replyCount || 0}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {formatDistanceToNow(new Date(feedback.createdAt), { addSuffix: true })}
+                    {formatDistanceToNow(parseApiDate(feedback.createdAt), { addSuffix: true })}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -1520,7 +1545,6 @@ export function FeedbackManagementTable() {
         setReplyMessage("");
         setNewNote("");
         setNewTag("");
-        setActiveTab("replies");
       }}>
         <DialogContent className="flex flex-col max-h-[90vh] p-0 sm:max-w-[38rem] lg:max-w-[40rem]">
           {/* Fixed Header */}
@@ -1580,7 +1604,7 @@ export function FeedbackManagementTable() {
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Date:</span>
                     <span className="text-sm text-muted-foreground">
-                      {new Date(viewingFeedback.createdAt).toLocaleString()}
+                      {parseApiDate(viewingFeedback.createdAt).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1682,7 +1706,7 @@ export function FeedbackManagementTable() {
                                 )}
                               </div>
                               <span className="text-xs text-muted-foreground">
-                                {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
+                                {formatDistanceToNow(parseApiDate(reply.createdAt), { addSuffix: true })}
                               </span>
                             </div>
                             <div className="text-sm whitespace-pre-wrap text-muted-foreground">{reply.message}</div>
@@ -1722,7 +1746,7 @@ export function FeedbackManagementTable() {
                                 )}
                               </div>
                               <span className="text-xs text-muted-foreground">
-                                {formatDistanceToNow(new Date(note.createdAt), { addSuffix: true })}
+                                {formatDistanceToNow(parseApiDate(note.createdAt), { addSuffix: true })}
                               </span>
                             </div>
                             <div className="text-sm whitespace-pre-wrap text-muted-foreground">{note.note}</div>
@@ -1853,7 +1877,7 @@ export function FeedbackManagementTable() {
                                 </Badge>
                               </div>
                               <span className="text-xs text-muted-foreground">
-                                {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
+                                {formatDistanceToNow(parseApiDate(activity.createdAt), { addSuffix: true })}
                               </span>
                             </div>
                             <p className="text-sm text-muted-foreground">{activity.description}</p>
