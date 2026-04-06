@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { SimplePagination } from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -485,24 +486,35 @@ export function TrafficAnalyticsContent() {
             <CardDescription>Top countries by page views</CardDescription>
           </CardHeader>
           <CardContent>
+            {(() => {
+              const topCountries = data.countries.slice(0, 6).map((entry) => {
+                const countryCode = entry.country?.toUpperCase() || "";
+                const countryName =
+                  countries.getName(countryCode, "en") || countryCode || "Unknown";
+                return { ...entry, countryName };
+              });
+              const visibleCountries = topCountries.slice(0, 4);
+              const hiddenCountries = topCountries.slice(4);
+
+              return (
+                <>
             <div className="overflow-x-auto">
               <div style={{ minWidth: "600px" }}>
                 <ResponsiveContainer width="100%" height={400}>
                   <PieChart>
                     <Pie
-                      data={data.countries.slice(0, 6)}
+                      data={topCountries}
                       dataKey="views"
-                      nameKey="country"
+                      nameKey="countryName"
                       cx="50%"
                       cy="50%"
+                      innerRadius={80}
                       outerRadius={140}
-                      label={({ country, percent }) => 
-                        `${country}\n${(percent * 100).toFixed(1)}%`
-                      }
-                      labelLine={true}
+                      cornerRadius={8}
+                      paddingAngle={4}
                       stroke="none"
                     >
-                      {data.countries.slice(0, 6).map((entry, index) => (
+                      {topCountries.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -516,6 +528,52 @@ export function TrafficAnalyticsContent() {
                 </ResponsiveContainer>
               </div>
             </div>
+            <div className="flex flex-wrap items-center justify-center gap-4 mt-6">
+              {visibleCountries.map((country, index) => (
+                <div key={country.country} className="flex items-center gap-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                  />
+                  <span className="text-sm">{country.countryName}</span>
+                  <span className="text-sm text-muted-foreground">
+                    ({country.views.toLocaleString()})
+                  </span>
+                </div>
+              ))}
+              {hiddenCountries.length > 0 && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 rounded-[20px] cursor-pointer"
+                    >
+                      See all ({topCountries.length})
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="center" className="w-[280px] p-3">
+                    <div className="space-y-2">
+                      {topCountries.map((country, index) => (
+                        <div key={`${country.country}-${index}`} className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                          />
+                          <span className="text-sm flex-1 truncate">{country.countryName}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {country.views.toLocaleString()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+            </div>
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
 

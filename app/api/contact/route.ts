@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { sendContactSubmissionEmail } from "@/lib/contact-email";
 
 const VALID_TYPES = ["support", "feedback", "general"];
 const VALID_PRIORITIES = ["Low", "Medium", "High", "Urgent"];
@@ -103,6 +104,16 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      await sendContactSubmissionEmail({
+        type: "feedback",
+        reason,
+        priority,
+        message: message.trim(),
+        userEmail: user.email,
+        username: user.username,
+        displayName: user.displayName,
+      });
+
       return NextResponse.json({ success: true, feedback });
     }
 
@@ -158,6 +169,16 @@ export async function POST(request: NextRequest) {
         data: notifications,
       });
     }
+
+    await sendContactSubmissionEmail({
+      type,
+      reason,
+      priority: contactPriority,
+      message: message.trim(),
+      userEmail: user.email,
+      username: user.username,
+      displayName: user.displayName,
+    });
 
     return NextResponse.json({ success: true, contact });
   } catch (error) {

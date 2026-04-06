@@ -6,6 +6,7 @@ import { useState } from "react";
 import { SocialIcon } from "react-social-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 const PLATFORM_LINKS = [
   { href: "/dashboard/diary", label: "Diary" },
@@ -33,15 +34,43 @@ export default function Footer() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) return;
+
     setStatus("loading");
-    // TODO: Hook up with Mailchimp later
-    setTimeout(() => {
+    try {
+      const response = await fetch("/api/newsletter/subscribe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message =
+          typeof result?.error === "string"
+            ? result.error
+            : "Subscription failed. Please try again.";
+        setStatus("error");
+        toast.error(message);
+        return;
+      }
+
       setStatus("success");
       setEmail("");
-    }, 500);
+      toast.success(
+        typeof result?.message === "string"
+          ? result.message
+          : "Subscribed successfully."
+      );
+    } catch {
+      setStatus("error");
+      toast.error("Subscription failed. Please try again.");
+    }
   };
 
   return (
@@ -131,6 +160,11 @@ export default function Footer() {
               {status === "success" && (
                 <p className="text-xs text-green-600 dark:text-green-400">
                   Thanks! We&apos;ll be in touch.
+                </p>
+              )}
+              {status === "error" && (
+                <p className="text-xs text-destructive">
+                  Could not subscribe right now. Please try again.
                 </p>
               )}
             </form>

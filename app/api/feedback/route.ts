@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { sendContactSubmissionEmail } from "@/lib/contact-email";
 
 export async function POST(request: NextRequest) {
   try {
@@ -82,6 +83,16 @@ export async function POST(request: NextRequest) {
         data: notifications,
       });
     }
+
+    await sendContactSubmissionEmail({
+      type: "feedback",
+      reason,
+      priority,
+      message: message.trim(),
+      userEmail: user.email,
+      username: user.username,
+      displayName: user.displayName,
+    });
 
     return NextResponse.json({ feedback });
   } catch (error) {

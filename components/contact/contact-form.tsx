@@ -187,12 +187,12 @@ export function ContactForm({ type: initialType = "general", onSuccess }: Contac
           Reason <span className="text-destructive">*</span>
         </Label>
         <Select value={reason} onValueChange={setReason}>
-          <SelectTrigger id="reason" className="w-full">
+          <SelectTrigger id="reason" className="w-full cursor-pointer">
             <SelectValue placeholder="Select a reason" />
           </SelectTrigger>
           <SelectContent>
             {CONTACT_REASONS[contactType].map((r) => (
-              <SelectItem key={r} value={r}>
+              <SelectItem key={r} value={r} className="cursor-pointer">
                 {r}
               </SelectItem>
             ))}
@@ -207,12 +207,12 @@ export function ContactForm({ type: initialType = "general", onSuccess }: Contac
             Priority <span className="text-destructive">*</span>
           </Label>
           <Select value={priority} onValueChange={setPriority}>
-            <SelectTrigger id="priority" className="w-full">
+            <SelectTrigger id="priority" className="w-full cursor-pointer">
               <SelectValue placeholder="Select priority" />
             </SelectTrigger>
             <SelectContent>
               {CONTACT_PRIORITIES[contactType].map((p) => (
-                <SelectItem key={p} value={p}>
+                <SelectItem key={p} value={p} className="cursor-pointer">
                   {p}
                 </SelectItem>
               ))}

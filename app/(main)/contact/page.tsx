@@ -80,11 +80,11 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <div className="font-semibold">Call us</div>
-                    <div className="text-sm text-muted-foreground">+1 (555) 123-4567</div>
+                    <div className="text-sm text-muted-foreground">+1(227) 218-8678</div>
                   </div>
                 </div>
                 <Link
-                  href="tel:+15551234567"
+                  href="tel:+12272188678"
                   className="rounded-full bg-muted hover:bg-muted/80 p-2 transition-colors"
                 >
                   <ArrowUpRight className="h-4 w-4" />
@@ -99,7 +99,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <div className="font-semibold">Visit us</div>
-                    <div className="text-sm text-muted-foreground">123 Main St, City, State 12345</div>
+                    <div className="text-sm text-muted-foreground">6115 Greenbelt Rd Berwyn Heights, MD 20740</div>
                   </div>
                 </div>
                 <Link
