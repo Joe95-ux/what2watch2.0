@@ -78,19 +78,33 @@ export async function sendContactSubmissionEmail(
     payload.message,
   ].join("\n");
 
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "https://what2watch2-0.vercel.app";
+  const logoUrl = `${baseUrl.replace(/\/$/, "")}/icon0.svg`;
+
   const html = `
-    <div style="font-family: Arial, sans-serif; line-height: 1.5;">
-      <h2 style="margin-bottom: 12px;">New ${escapeHtml(typeLabel)} Submission</h2>
-      <p><strong>Type:</strong> ${escapeHtml(typeLabel)}</p>
-      <p><strong>Reason:</strong> ${escapeHtml(payload.reason)}</p>
-      <p><strong>Priority:</strong> ${escapeHtml(payload.priority || "Medium")}</p>
-      <p><strong>From user:</strong> ${escapeHtml(displayName)}</p>
-      <p><strong>User email:</strong> ${escapeHtml(senderEmail)}</p>
-      <hr style="margin: 16px 0;" />
-      <p><strong>Message:</strong></p>
-      <pre style="white-space: pre-wrap; font-family: inherit;">${escapeHtml(
+    <div style="font-family: Arial, sans-serif; line-height: 1.5; background-color: #0b1020; padding: 24px;">
+      <div style="max-width: 640px; margin: 0 auto; background-color: #0f172a; border: 1px solid #1f2937; border-radius: 12px; padding: 24px;">
+        <div style="text-align: center; margin-bottom: 16px;">
+          <a href="${baseUrl}" style="display: inline-flex; align-items: center; gap: 10px; text-decoration: none;">
+            <img src="${logoUrl}" alt="What2Watch logo" width="28" height="28" style="display: block; border-radius: 6px;" />
+            <span style="color: #f8fafc; font-size: 18px; font-weight: 700;">What2Watch</span>
+          </a>
+        </div>
+        <h2 style="margin: 0 0 14px; color: #f8fafc;">New ${escapeHtml(typeLabel)} Submission</h2>
+        <p style="margin: 8px 0; color: #e5e7eb;"><strong>Type:</strong> ${escapeHtml(typeLabel)}</p>
+        <p style="margin: 8px 0; color: #e5e7eb;"><strong>Reason:</strong> ${escapeHtml(payload.reason)}</p>
+        <p style="margin: 8px 0; color: #e5e7eb;"><strong>Priority:</strong> ${escapeHtml(payload.priority || "Medium")}</p>
+        <p style="margin: 8px 0; color: #e5e7eb;"><strong>From user:</strong> ${escapeHtml(displayName)}</p>
+        <p style="margin: 8px 0; color: #e5e7eb;"><strong>User email:</strong> ${escapeHtml(senderEmail)}</p>
+        <hr style="margin: 16px 0; border: 0; border-top: 1px solid #1f2937;" />
+        <p style="margin: 0 0 8px; color: #f8fafc;"><strong>Message:</strong></p>
+        <pre style="white-space: pre-wrap; font-family: inherit; margin: 0; color: #9ca3af; background-color: #111827; border-radius: 8px; padding: 12px;">${escapeHtml(
         payload.message
       )}</pre>
+      </div>
     </div>
   `;
 

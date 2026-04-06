@@ -13,7 +13,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Mail, MessageSquare, HelpCircle } from "lucide-react";
+import {
+  Loader2,
+  Mail,
+  MessageSquare,
+  HelpCircle,
+  Command,
+  CornerDownLeft,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ContactType = "support" | "feedback" | "general";
@@ -60,6 +67,7 @@ export function ContactForm({ type: initialType = "general", onSuccess }: Contac
   const [priority, setPriority] = useState<string>("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMac, setIsMac] = useState(false);
 
   // Reset form when contact type changes
   useEffect(() => {
@@ -67,6 +75,10 @@ export function ContactForm({ type: initialType = "general", onSuccess }: Contac
     setPriority("");
     setMessage("");
   }, [contactType]);
+
+  useEffect(() => {
+    setIsMac(/Mac|iPhone|iPod|iPad/i.test(navigator.platform));
+  }, []);
 
   const handleSubmit = useCallback(async () => {
     if (!isSignedIn) {
@@ -132,6 +144,24 @@ export function ContactForm({ type: initialType = "general", onSuccess }: Contac
       setIsSubmitting(false);
     }
   }, [isSignedIn, contactType, reason, priority, message, onSuccess]);
+
+  useEffect(() => {
+    const canSubmit =
+      !!reason &&
+      !!message.trim() &&
+      (contactType === "general" ? true : !!priority) &&
+      !isSubmitting;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && canSubmit) {
+        e.preventDefault();
+        handleSubmit();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [contactType, reason, priority, message, isSubmitting, handleSubmit]);
 
   const getTypeIcon = (type: ContactType) => {
     switch (type) {
@@ -246,24 +276,44 @@ export function ContactForm({ type: initialType = "general", onSuccess }: Contac
       </div>
 
       {/* Submit Button */}
-      <Button
-        onClick={handleSubmit}
-        disabled={isSubmitting || !reason || !message.trim() || (contactType !== "general" && !priority)}
-        className="w-full"
-        size="lg"
-      >
-        {isSubmitting ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Sending...
-          </>
-        ) : (
-          <>
-            <Mail className="mr-2 h-4 w-4" />
-            Send Message
-          </>
-        )}
-      </Button>
+      <div className="flex justify-end pt-2 border-t">
+        <Button
+          onClick={handleSubmit}
+          disabled={
+            isSubmitting ||
+            !reason ||
+            !message.trim() ||
+            (contactType !== "general" && !priority)
+          }
+          size="sm"
+          className="gap-2 cursor-pointer"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Sending...</span>
+            </>
+          ) : (
+            <>
+              <span>Send</span>
+              <div className="flex items-center gap-0.5">
+                {isMac ? (
+                  <kbd className="px-1.5 py-0.5 bg-muted/20 rounded-xl text-[10px] flex items-center justify-center">
+                    <Command className="h-3 w-3" />
+                  </kbd>
+                ) : (
+                  <kbd className="px-1.5 py-0.5 bg-muted/20 rounded-xl text-[10px] font-mono">
+                    Ctrl
+                  </kbd>
+                )}
+                <kbd className="px-1.5 py-0.5 bg-muted/20 rounded-xl text-[10px] flex items-center justify-center">
+                  <CornerDownLeft className="h-3 w-3" />
+                </kbd>
+              </div>
+            </>
+          )}
+        </Button>
+      </div>
 
       {!isSignedIn && (
         <p className="text-sm text-muted-foreground text-center">

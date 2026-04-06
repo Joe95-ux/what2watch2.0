@@ -30,13 +30,13 @@ export function getContentReportedEmail({
       Your ${contentLabel} has been reported by a community member. We're reviewing the report and will take appropriate action if necessary.
     </p>
     
-    <div style="background-color: #f9f9f9; padding: 20px; border-radius: 6px; margin: 20px 0;">
-      <p style="margin: 0 0 10px; font-weight: 600; color: #1a1a1a;">Reported ${contentLabel === "post" ? "Post" : "Reply"}:</p>
-      ${contentTitle ? `<p style="margin: 0 0 10px; font-weight: 500; color: #4a4a4a;">${title}</p>` : ""}
-      <p style="margin: 0 0 15px; color: #6a6a6a; font-size: 14px; line-height: 1.5;">${contentPreview}</p>
+    <div style="background-color: #111827; padding: 20px; border-radius: 6px; margin: 20px 0;">
+      <p style="margin: 0 0 10px; font-weight: 600; color: #f8fafc;">Reported ${contentLabel === "post" ? "Post" : "Reply"}:</p>
+      ${contentTitle ? `<p style="margin: 0 0 10px; font-weight: 500; color: #e5e7eb;">${title}</p>` : ""}
+      <p style="margin: 0 0 15px; color: #9ca3af; font-size: 14px; line-height: 1.5;">${contentPreview}</p>
       
-      <p style="margin: 15px 0 0; font-weight: 600; color: #1a1a1a;">Report Reason:</p>
-      <p style="margin: 5px 0 0; color: #6a6a6a; font-size: 14px;">${reportReason}</p>
+      <p style="margin: 15px 0 0; font-weight: 600; color: #f8fafc;">Report Reason:</p>
+      <p style="margin: 5px 0 0; color: #9ca3af; font-size: 14px;">${reportReason}</p>
     </div>
     
     <p style="margin: 20px 0;">
@@ -84,11 +84,11 @@ export function getReportReviewedEmail({
       The report on your ${contentLabel} has been reviewed by our moderation team.
     </p>
     
-    <div style="background-color: ${isApproved ? "#fee2e2" : "#dcfce7"}; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid ${isApproved ? "#dc2626" : "#16a34a"};">
-      <p style="margin: 0 0 10px; font-weight: 600; color: #1a1a1a;">
+    <div style="background-color: ${isApproved ? "#3f1d1d" : "#052e16"}; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid ${isApproved ? "#dc2626" : "#16a34a"};">
+      <p style="margin: 0 0 10px; font-weight: 600; color: #f8fafc;">
         ${isApproved ? "⚠️ Action Taken" : "✓ Report Dismissed"}
       </p>
-      <p style="margin: 0; color: #4a4a4a;">
+      <p style="margin: 0; color: #e5e7eb;">
         ${isApproved 
           ? `Your ${contentLabel} has been hidden due to a violation of our community guidelines.` 
           : `The report on your ${contentLabel} has been dismissed. Your content remains visible.`}
@@ -96,9 +96,9 @@ export function getReportReviewedEmail({
     </div>
     
     ${reviewNotes ? `
-    <div style="background-color: #f9f9f9; padding: 15px; border-radius: 6px; margin: 20px 0;">
-      <p style="margin: 0 0 8px; font-weight: 600; color: #1a1a1a; font-size: 14px;">Review Notes:</p>
-      <p style="margin: 0; color: #6a6a6a; font-size: 14px; line-height: 1.5;">${reviewNotes}</p>
+    <div style="background-color: #111827; padding: 15px; border-radius: 6px; margin: 20px 0;">
+      <p style="margin: 0 0 8px; font-weight: 600; color: #f8fafc; font-size: 14px;">Review Notes:</p>
+      <p style="margin: 0; color: #9ca3af; font-size: 14px; line-height: 1.5;">${reviewNotes}</p>
     </div>
     ` : ""}
     
@@ -147,8 +147,8 @@ export function getAppealSubmittedEmail({
       We've received your appeal for your ${contentLabel}. Our moderation team will review it and get back to you within 2-3 business days.
     </p>
     
-    <div style="background-color: #f0f9ff; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #0284c7;">
-      <p style="margin: 0; color: #4a4a4a;">
+    <div style="background-color: #0c223a; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #0284c7;">
+      <p style="margin: 0; color: #e5e7eb;">
         <strong>What happens next?</strong><br>
         Our team will carefully review your appeal and the original report. You'll receive an email notification once a decision has been made.
       </p>
@@ -196,11 +196,11 @@ export function getAppealReviewedEmail({
       Your appeal has been reviewed by our moderation team.
     </p>
     
-    <div style="background-color: ${isApproved ? "#dcfce7" : "#fee2e2"}; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid ${isApproved ? "#16a34a" : "#dc2626"};">
-      <p style="margin: 0 0 10px; font-weight: 600; color: #1a1a1a;">
+    <div style="background-color: ${isApproved ? "#052e16" : "#3f1d1d"}; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid ${isApproved ? "#16a34a" : "#dc2626"};">
+      <p style="margin: 0 0 10px; font-weight: 600; color: #f8fafc;">
         ${isApproved ? "✓ Appeal Approved" : "✗ Appeal Rejected"}
       </p>
-      <p style="margin: 0; color: #4a4a4a;">
+      <p style="margin: 0; color: #e5e7eb;">
         ${isApproved 
           ? `Your appeal has been approved! Your ${contentLabel} has been restored and is now visible again.` 
           : `After careful review, we've determined that the original moderation action was correct. Your ${contentLabel} will remain hidden.`}
@@ -208,9 +208,9 @@ export function getAppealReviewedEmail({
     </div>
     
     ${reviewNotes ? `
-    <div style="background-color: #f9f9f9; padding: 15px; border-radius: 6px; margin: 20px 0;">
-      <p style="margin: 0 0 8px; font-weight: 600; color: #1a1a1a; font-size: 14px;">Review Notes:</p>
-      <p style="margin: 0; color: #6a6a6a; font-size: 14px; line-height: 1.5;">${reviewNotes}</p>
+    <div style="background-color: #111827; padding: 15px; border-radius: 6px; margin: 20px 0;">
+      <p style="margin: 0 0 8px; font-weight: 600; color: #f8fafc; font-size: 14px;">Review Notes:</p>
+      <p style="margin: 0; color: #9ca3af; font-size: 14px; line-height: 1.5;">${reviewNotes}</p>
     </div>
     ` : ""}
     
@@ -258,9 +258,9 @@ export function getForumReplyEmail({
       <strong>${actorName}</strong> replied to your post "${postTitle}".
     </p>
     
-    <div style="background-color: #f9f9f9; padding: 20px; border-radius: 6px; margin: 20px 0;">
-      <p style="margin: 0 0 10px; font-weight: 600; color: #1a1a1a;">Reply:</p>
-      <p style="margin: 0; color: #6a6a6a; font-size: 14px; line-height: 1.5;">${replyPreview}</p>
+    <div style="background-color: #111827; padding: 20px; border-radius: 6px; margin: 20px 0;">
+      <p style="margin: 0 0 10px; font-weight: 600; color: #f8fafc;">Reply:</p>
+      <p style="margin: 0; color: #9ca3af; font-size: 14px; line-height: 1.5;">${replyPreview}</p>
     </div>
     
     <p style="margin: 20px 0;">
@@ -273,7 +273,7 @@ export function getForumReplyEmail({
     content,
     ctaText: "View Post",
     ctaUrl: viewPostUrl,
-    footerText: `You're receiving this because someone replied to your post. <a href="${notificationSettingsUrl}" style="color: #6b7280; text-decoration: underline;">Manage notification preferences</a>`,
+    footerText: `You're receiving this because someone replied to your post. <a href="${notificationSettingsUrl}" style="color: #93c5fd; text-decoration: underline;">Manage notification preferences</a>`,
   });
 }
 
@@ -306,9 +306,9 @@ export function getForumMentionEmail({
       <strong>${actorName}</strong> mentioned you in a ${contentLabel} on "${contentTitle}".
     </p>
     
-    <div style="background-color: #f9f9f9; padding: 20px; border-radius: 6px; margin: 20px 0;">
-      <p style="margin: 0 0 10px; font-weight: 600; color: #1a1a1a;">${contentLabel === "post" ? "Post" : "Comment"}:</p>
-      <p style="margin: 0; color: #6a6a6a; font-size: 14px; line-height: 1.5;">${contentPreview}</p>
+    <div style="background-color: #111827; padding: 20px; border-radius: 6px; margin: 20px 0;">
+      <p style="margin: 0 0 10px; font-weight: 600; color: #f8fafc;">${contentLabel === "post" ? "Post" : "Comment"}:</p>
+      <p style="margin: 0; color: #9ca3af; font-size: 14px; line-height: 1.5;">${contentPreview}</p>
     </div>
     
     <p style="margin: 20px 0;">
@@ -321,7 +321,7 @@ export function getForumMentionEmail({
     content,
     ctaText: `View ${contentLabel === "post" ? "Post" : "Comment"}`,
     ctaUrl: viewContentUrl,
-    footerText: `You're receiving this because you were mentioned. <a href="${notificationSettingsUrl}" style="color: #6b7280; text-decoration: underline;">Manage notification preferences</a>`,
+    footerText: `You're receiving this because you were mentioned. <a href="${notificationSettingsUrl}" style="color: #93c5fd; text-decoration: underline;">Manage notification preferences</a>`,
   });
 }
 
@@ -350,9 +350,9 @@ export function getForumSubscriptionEmail({
       <strong>${actorName}</strong> replied to a post you're following: "${postTitle}".
     </p>
     
-    <div style="background-color: #f9f9f9; padding: 20px; border-radius: 6px; margin: 20px 0;">
-      <p style="margin: 0 0 10px; font-weight: 600; color: #1a1a1a;">Reply:</p>
-      <p style="margin: 0; color: #6a6a6a; font-size: 14px; line-height: 1.5;">${replyPreview}</p>
+    <div style="background-color: #111827; padding: 20px; border-radius: 6px; margin: 20px 0;">
+      <p style="margin: 0 0 10px; font-weight: 600; color: #f8fafc;">Reply:</p>
+      <p style="margin: 0; color: #9ca3af; font-size: 14px; line-height: 1.5;">${replyPreview}</p>
     </div>
     
     <p style="margin: 20px 0;">
@@ -365,7 +365,7 @@ export function getForumSubscriptionEmail({
     content,
     ctaText: "View Post",
     ctaUrl: viewPostUrl,
-    footerText: `You're receiving this because you're following this post. <a href="${notificationSettingsUrl}" style="color: #6b7280; text-decoration: underline;">Manage notification preferences</a>`,
+    footerText: `You're receiving this because you're following this post. <a href="${notificationSettingsUrl}" style="color: #93c5fd; text-decoration: underline;">Manage notification preferences</a>`,
   });
 }
 
@@ -390,13 +390,13 @@ export function getAdminAppealNotificationEmail({
   const content = `
     <p style="margin: 0 0 20px;">A new appeal has been submitted and requires your review.</p>
     
-    <div style="background-color: #f9f9f9; padding: 20px; border-radius: 6px; margin: 20px 0;">
-      <p style="margin: 0 0 10px; font-weight: 600; color: #1a1a1a;">Appealed ${contentLabel === "post" ? "Post" : "Reply"}:</p>
-      ${contentTitle ? `<p style="margin: 0 0 10px; font-weight: 500; color: #4a4a4a;">${contentTitle}</p>` : ""}
-      <p style="margin: 0 0 15px; color: #6a6a6a; font-size: 14px; line-height: 1.5;">${contentPreview}</p>
+    <div style="background-color: #111827; padding: 20px; border-radius: 6px; margin: 20px 0;">
+      <p style="margin: 0 0 10px; font-weight: 600; color: #f8fafc;">Appealed ${contentLabel === "post" ? "Post" : "Reply"}:</p>
+      ${contentTitle ? `<p style="margin: 0 0 10px; font-weight: 500; color: #e5e7eb;">${contentTitle}</p>` : ""}
+      <p style="margin: 0 0 15px; color: #9ca3af; font-size: 14px; line-height: 1.5;">${contentPreview}</p>
       
-      <p style="margin: 15px 0 0; font-weight: 600; color: #1a1a1a;">Appeal Reason:</p>
-      <p style="margin: 5px 0 0; color: #6a6a6a; font-size: 14px; line-height: 1.5;">${appealReason}</p>
+      <p style="margin: 15px 0 0; font-weight: 600; color: #f8fafc;">Appeal Reason:</p>
+      <p style="margin: 5px 0 0; color: #9ca3af; font-size: 14px; line-height: 1.5;">${appealReason}</p>
     </div>
     
     <p style="margin: 20px 0;">
@@ -445,12 +445,12 @@ export function getFeedbackAssignedEmail({
       <strong>${assignedByName}</strong> has assigned a feedback item to you for review and response.
     </p>
     
-    <div style="background-color: #f9f9f9; padding: 20px; border-radius: 6px; margin: 20px 0;">
-      <p style="margin: 0 0 10px; font-weight: 600; color: #1a1a1a;">Feedback Details:</p>
-      <p style="margin: 0 0 8px; color: #4a4a4a;"><strong>Reason:</strong> ${feedbackReason}</p>
-      <p style="margin: 0 0 8px; color: #4a4a4a;"><strong>Priority:</strong> ${feedbackPriority}</p>
-      <p style="margin: 15px 0 0; font-weight: 600; color: #1a1a1a;">Message:</p>
-      <p style="margin: 5px 0 0; color: #6a6a6a; font-size: 14px; line-height: 1.5;">${fullMessagePreview}</p>
+    <div style="background-color: #111827; padding: 20px; border-radius: 6px; margin: 20px 0;">
+      <p style="margin: 0 0 10px; font-weight: 600; color: #f8fafc;">Feedback Details:</p>
+      <p style="margin: 0 0 8px; color: #e5e7eb;"><strong>Reason:</strong> ${feedbackReason}</p>
+      <p style="margin: 0 0 8px; color: #e5e7eb;"><strong>Priority:</strong> ${feedbackPriority}</p>
+      <p style="margin: 15px 0 0; font-weight: 600; color: #f8fafc;">Message:</p>
+      <p style="margin: 5px 0 0; color: #9ca3af; font-size: 14px; line-height: 1.5;">${fullMessagePreview}</p>
     </div>
     
     <p style="margin: 20px 0;">
@@ -463,7 +463,7 @@ export function getFeedbackAssignedEmail({
     content,
     ctaText: "View Feedback",
     ctaUrl: viewFeedbackUrl,
-    footerText: `You're receiving this because you've been assigned to handle this feedback. <a href="${notificationSettingsUrl}" style="color: #6b7280; text-decoration: underline;">Manage notification preferences</a>`,
+    footerText: `You're receiving this because you've been assigned to handle this feedback. <a href="${notificationSettingsUrl}" style="color: #93c5fd; text-decoration: underline;">Manage notification preferences</a>`,
   });
 }
 

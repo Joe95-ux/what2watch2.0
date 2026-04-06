@@ -95,6 +95,12 @@ export function getEmailTemplate({
   ctaUrl?: string;
   footerText?: string;
 }): string {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "https://what2watch2-0.vercel.app";
+  const logoUrl = `${baseUrl.replace(/\/$/, "")}/icon0.svg`;
+
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -103,22 +109,31 @@ export function getEmailTemplate({
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title}</title>
 </head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
-  <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f5f5f5;">
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0b1020;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #0b1020;">
     <tr>
       <td align="center" style="padding: 40px 20px;">
-        <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #0f172a; border-radius: 12px; border: 1px solid #1f2937; box-shadow: 0 10px 25px rgba(0,0,0,0.35);">
+          <!-- Brand -->
+          <tr>
+            <td style="padding: 28px 40px 12px; text-align: center;">
+              <a href="${baseUrl}" style="display: inline-flex; align-items: center; gap: 10px; text-decoration: none;">
+                <img src="${logoUrl}" alt="What2Watch logo" width="28" height="28" style="display: block; border-radius: 6px;" />
+                <span style="color: #f8fafc; font-size: 18px; font-weight: 700; letter-spacing: 0.2px;">What2Watch</span>
+              </a>
+            </td>
+          </tr>
           <!-- Header -->
           <tr>
-            <td style="padding: 40px 40px 30px; text-align: center; border-bottom: 1px solid #e5e5e5;">
-              <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #1a1a1a;">${title}</h1>
+            <td style="padding: 12px 40px 24px; text-align: center; border-bottom: 1px solid #1f2937;">
+              <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #f8fafc;">${title}</h1>
             </td>
           </tr>
           
           <!-- Content -->
           <tr>
             <td style="padding: 30px 40px;">
-              <div style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
+              <div style="color: #e5e7eb; font-size: 16px; line-height: 1.6;">
                 ${content}
               </div>
             </td>
@@ -128,15 +143,15 @@ export function getEmailTemplate({
           <!-- CTA Button -->
           <tr>
             <td style="padding: 0 40px 30px; text-align: center;">
-              <a href="${ctaUrl}" style="display: inline-block; padding: 12px 24px; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 16px;">${ctaText}</a>
+              <a href="${ctaUrl}" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">${ctaText}</a>
             </td>
           </tr>
           ` : ""}
           
           <!-- Footer -->
           <tr>
-            <td style="padding: 30px 40px; border-top: 1px solid #e5e5e5; text-align: center;">
-              <p style="margin: 0; color: #8a8a8a; font-size: 14px;">
+            <td style="padding: 24px 40px 30px; border-top: 1px solid #1f2937; text-align: center;">
+              <p style="margin: 0; color: #9ca3af; font-size: 14px;">
                 ${footerText || "This is an automated message. Please do not reply to this email."}
               </p>
             </td>

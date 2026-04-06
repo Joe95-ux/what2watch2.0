@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { sendEmail } from "@/lib/email";
+import { getEmailTemplate, sendEmail } from "@/lib/email";
 import { subDays } from "date-fns";
 
 function startOfDayUTC(d: Date): Date {
@@ -105,12 +105,20 @@ async function runPeakCheck(request: NextRequest) {
         await sendEmail({
           to: user.email,
           subject: "Your link page had a traffic peak",
-          html: `
-            <p>Hi ${name},</p>
-            <p>Your link page had higher than usual ${metric} yesterday. Take a look at your analytics:</p>
-            <p><a href="${analyticsUrl}">View link page analytics</a></p>
-            <p>— What2Watch</p>
-          `,
+          html: getEmailTemplate({
+            title: "Link Page Activity Peak",
+            content: `
+              <p style="margin: 0 0 20px;">Hi ${name},</p>
+              <p style="margin: 0 0 20px;">
+                Your link page had higher than usual ${metric} yesterday.
+              </p>
+              <p style="margin: 0;">
+                Open your dashboard to review the spike in detail.
+              </p>
+            `,
+            ctaText: "View link page analytics",
+            ctaUrl: analyticsUrl,
+          }),
         });
       }
 
