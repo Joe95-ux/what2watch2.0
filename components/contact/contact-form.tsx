@@ -276,7 +276,7 @@ export function ContactForm({ type: initialType = "general", onSuccess }: Contac
       </div>
 
       {/* Submit Button */}
-      <div className="flex justify-end pt-2 border-t">
+      <div className="flex justify-end">
         <Button
           onClick={handleSubmit}
           disabled={
