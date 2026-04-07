@@ -52,6 +52,7 @@ import ContentDetailWhereToWatch from "./content-detail-where-to-watch";
 import ContentDetailDetailsGrid from "./content-detail-details-grid";
 import TVSeasonsSection from "./content-detail-tv-seasons-section";
 import ImagesSection from "./content-detail-images-section";
+import { HeroStylizedTitle } from "@/components/ui/hero-stylized-title";
 
 interface ContentDetailModalProps {
   item: TMDBMovie | TMDBSeries;
@@ -241,6 +242,7 @@ export default function ContentDetailModal({
   const title = "title" in item ? item.title : item.name;
   const backdropPath = item.backdrop_path || item.poster_path;
   const posterPath = item.poster_path;
+  const hasWatchAvailability = (watchAvailability?.allOffers?.length ?? 0) > 0;
 
   // Find trailer for hero section
   const trailer: TMDBVideo | null =
@@ -382,9 +384,7 @@ export default function ContentDetailModal({
             <div className="absolute inset-0 flex items-end z-10">
               <div className="w-full px-6 sm:px-8 lg:px-12 pb-12">
                 <div className="max-w-3xl">
-                  <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-white drop-shadow-lg">
-                    {title}
-                  </h1>
+                  <HeroStylizedTitle title={title} className="mb-4 text-3xl md:text-4xl lg:text-5xl" />
                   <div className="flex items-center gap-4 mb-6 flex-wrap">
                     {(omdbData?.imdbRating || (item.vote_average > 0 && !omdbData?.imdbRating)) && (
                       <div className="flex items-center gap-1.5">
@@ -642,7 +642,7 @@ export default function ContentDetailModal({
                   )}
 
                   {/* Where to Watch */}
-                  {(watchAvailability || isLoadingWatchAvailability) && (
+                  {(hasWatchAvailability || isLoadingWatchAvailability) && (
                     <ContentDetailWhereToWatch 
                       watchAvailability={watchAvailability}
                       watchCountry={watchCountry}
@@ -650,6 +650,9 @@ export default function ContentDetailModal({
                       justwatchCountries={justwatchCountries}
                       isLoading={isLoadingWatchAvailability}
                     />
+                  )}
+                  {!isLoadingWatchAvailability && !hasWatchAvailability && (
+                    <ContentDetailDetailsGrid type={type} details={details} columns={2} />
                   )}
                 </div>
 
@@ -668,7 +671,9 @@ export default function ContentDetailModal({
                   )}
                   
                   {/* Details */}
-                  <ContentDetailDetailsGrid type={type} details={details} />
+                  {(hasWatchAvailability || isLoadingWatchAvailability) && (
+                    <ContentDetailDetailsGrid type={type} details={details} />
+                  )}
                  
                 </div>
               </div>

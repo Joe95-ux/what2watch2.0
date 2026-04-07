@@ -13,11 +13,15 @@ interface ContentDetailDetailsGridProps {
     number_of_seasons?: number;
     number_of_episodes?: number;
   } | null;
+  columns?: 1 | 2;
+  className?: string;
 }
 
 export default function ContentDetailDetailsGrid({
   type,
   details,
+  columns = 1,
+  className,
 }: ContentDetailDetailsGridProps) {
   if (!details) return null;
 
@@ -76,18 +80,18 @@ export default function ContentDetailDetailsGrid({
   if (entries.length === 0) return null;
 
   return (
-    <div>
+    <div className={className}>
       <h3 className="text-xs font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
         Details
       </h3>
-      <div className="space-y-0 text-sm">
+      <div className={columns === 2 ? "grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-0 text-sm" : "space-y-0 text-sm"}>
         {entries.map((entry, index) => (
           <div key={entry.label}>
             <div className="py-3">
               <span className="text-muted-foreground block mb-1">{entry.label}</span>
               <p className="font-medium text-foreground">{entry.value}</p>
             </div>
-            {index < entries.length - 1 && <div className="border-t border-border" />}
+            {columns === 1 && index < entries.length - 1 && <div className="border-t border-border" />}
           </div>
         ))}
       </div>

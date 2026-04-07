@@ -129,7 +129,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
 
   if (isLoading || !currentItem) {
     return (
-      <div className="relative w-full h-[80vh] -mt-[65px] bg-muted">
+      <div className="relative w-full h-[65vh] sm:h-[80vh] -mt-[65px] bg-muted">
         <Skeleton className="absolute inset-0 w-full h-full" />
       </div>
     );
@@ -164,10 +164,10 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
   };
 
   return (
-    <div className="relative w-full h-[80vh] -mt-[65px] overflow-hidden bg-background">
+    <div className="relative w-full h-[65vh] sm:h-[80vh] -mt-[65px] overflow-hidden bg-background">
       {/* Trailer Video (if available) - Full width with autoplay */}
       {/* Stop video when details sheet is open */}
-      {!isMuted && trailer && !isLoadingTrailer && !isDetailModalOpen && (
+      {trailer && !isLoadingTrailer && !isDetailModalOpen && (
         <div className={`absolute inset-0 z-0 transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
           <iframe
             key={`${trailer.key}-${isMuted}`} // Force reload when trailer or mute state changes
@@ -186,7 +186,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
       )}
 
       {/* Backdrop Image (fallback when no trailer) */}
-      {(isMuted || !trailer) && !isLoadingTrailer && (backdropPath || posterPath) && (
+      {(!trailer || isDetailModalOpen) && !isLoadingTrailer && (backdropPath || posterPath) && (
         <>
           <div className={`absolute inset-0 transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
             <Image
@@ -239,7 +239,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
           <div className="max-w-2xl">
             <HeroStylizedTitle title={title} className="mb-4" />
             {isMuted && (
-              <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-white/90">
+              <div className="mb-4 flex flex-wrap items-center gap-2 text-base text-white/90">
                 <span>{formatRuntime(runtime)}</span>
                 <span>•</span>
                 <span>{releaseYear}</span>
