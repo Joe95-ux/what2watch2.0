@@ -24,15 +24,25 @@ export default function TVContent({ favoriteGenres, preferredTypes }: TVContentP
     favoriteGenres,
     preferredTypes.length > 0 ? preferredTypes.filter(t => t === "tv") : ["tv"]
   );
-  const personalizedTV = allPersonalized.filter((item): item is TMDBSeries => "name" in item);
+  const personalizedTV = useMemo(
+    () =>
+      allPersonalized.filter(
+        (item): item is TMDBSeries =>
+          item != null && typeof item === "object" && "name" in item
+      ),
+    [allPersonalized]
+  );
   const { data: allGenres = [] } = useAllGenres();
 
   // Featured items for hero carousel (only TV shows)
-  const featuredItems: TMDBSeries[] = useMemo(() => popularTV.slice(0, 5) || [], [popularTV]);
+  const featuredItems: TMDBSeries[] = useMemo(() => (popularTV ?? []).slice(0, 5), [popularTV]);
   const featuredTV: TMDBSeries | null = useMemo(() => popularTV[0] || null, [popularTV]);
 
   // Get top genres for genre sections (limit to 6 most common genres)
-  const topGenres = allGenres;
+  const topGenres = useMemo(
+    () => allGenres.filter((genre) => genre?.id != null && typeof genre.name === "string" && genre.name.length > 0),
+    [allGenres]
+  );
 
   return (
     <div className="min-h-screen bg-background relative">

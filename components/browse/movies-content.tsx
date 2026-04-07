@@ -24,16 +24,26 @@ export default function MoviesContent({ favoriteGenres, preferredTypes }: Movies
     favoriteGenres,
     preferredTypes.length > 0 ? preferredTypes.filter(t => t === "movie") : ["movie"]
   );
-  const personalizedMovies = allPersonalized.filter((item): item is TMDBMovie => "title" in item);
+  const personalizedMovies = useMemo(
+    () =>
+      allPersonalized.filter(
+        (item): item is TMDBMovie =>
+          item != null && typeof item === "object" && "title" in item
+      ),
+    [allPersonalized]
+  );
   const { data: allGenres = [] } = useAllGenres();
 
   // Featured items for hero carousel (only movies)
-  const featuredItems: TMDBMovie[] = useMemo(() => popularMovies.slice(0, 5) || [], [popularMovies]);
+  const featuredItems: TMDBMovie[] = useMemo(() => (popularMovies ?? []).slice(0, 5), [popularMovies]);
   const featuredMovie: TMDBMovie | null = useMemo(() => popularMovies[0] || null, [popularMovies]);
 
   // Get movie genres only (filter out TV-only genres if needed)
   // For simplicity, we'll use all genres but only show movie sections
-  const topGenres = allGenres;
+  const topGenres = useMemo(
+    () => allGenres.filter((genre) => genre?.id != null && typeof genre.name === "string" && genre.name.length > 0),
+    [allGenres]
+  );
 
   return (
     <div className="min-h-screen bg-background relative">

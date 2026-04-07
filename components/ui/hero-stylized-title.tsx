@@ -18,7 +18,7 @@ export function HeroStylizedTitle({ title, className }: HeroStylizedTitleProps) 
         <span
           key={`${word}-${index}`}
           className={[
-            "inline-block uppercase text-inherit font-inherit leading-inherit",
+            "inline-block uppercase text-4xl md:text-5xl lg:text-[5rem] font-inherit leading-inherit",
             index % 2 === 0 ? "tracking-[0.08em]" : "tracking-[0.14em]",
             index === 0 ? "mr-2" : "mr-2",
           ].join(" ")}

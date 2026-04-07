@@ -153,7 +153,9 @@ const fetchPersonalizedContent = async (
   }
 
   const results = await Promise.all(fetchPromises);
-  const combined = results.flat();
+  const combined = results.flat().filter((item): item is TMDBMovie | TMDBSeries => {
+    return item != null && typeof item === "object" && "id" in item;
+  });
   console.log(`[PersonalizedContent] Combined results: ${combined.length} items`);
 
   const seen = new Set<string>();
