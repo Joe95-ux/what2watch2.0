@@ -10,10 +10,11 @@ import { generatePageNumbers } from "@/lib/pagination-utils";
 interface SimplePaginationProps {
   currentPage: number;
   totalPages: number;
+  origin?: string;
   onPageChange: (page: number) => void;
 }
 
-export function SimplePagination({ currentPage, totalPages, onPageChange }: SimplePaginationProps) {
+export function SimplePagination({ currentPage, totalPages, onPageChange, origin}: SimplePaginationProps) {
   if (totalPages <= 1) return null;
 
   const pageNumbers = generatePageNumbers(currentPage, totalPages);
@@ -28,7 +29,7 @@ export function SimplePagination({ currentPage, totalPages, onPageChange }: Simp
         className="flex-shrink-0 cursor-pointer"
       >
         <ChevronLeft className="h-4 w-4 mr-1" />
-        Previous
+        {origin === "traffic" ? "" : "Previous"}
       </Button>
       <div className="flex items-center gap-1 overflow-x-auto">
         {pageNumbers.map((page, index) => {
@@ -59,7 +60,7 @@ export function SimplePagination({ currentPage, totalPages, onPageChange }: Simp
         disabled={currentPage === totalPages}
         className="flex-shrink-0 cursor-pointer"
       >
-        Next
+        {origin === "traffic" ? "" : "Next"}
         <ChevronRight className="h-4 w-4 ml-1" />
       </Button>
     </div>

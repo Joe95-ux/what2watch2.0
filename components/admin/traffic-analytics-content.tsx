@@ -423,6 +423,7 @@ export function TrafficAnalyticsContent() {
                               currentPage={countriesPage}
                               totalPages={totalPages}
                               onPageChange={setCountriesPage}
+                              origin="traffic"
                             />
                           </div>
                         )}
