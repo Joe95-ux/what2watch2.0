@@ -1,3 +1,5 @@
+import { getResendConfiguredFromEmail } from "./email-from";
+
 // Dynamic import to avoid issues if resend is not installed
 let Resend: any;
 try {
@@ -7,27 +9,14 @@ try {
 }
 
 const resendApiKey = process.env.RESEND_API_KEY;
-const resendDomain = process.env.RESEND_DOMAIN;
-const resendFromEmail = process.env.RESEND_FROM_EMAIL;
 
 // Initialize Resend client
 const resend = resendApiKey && Resend ? new Resend(resendApiKey) : null;
 
 // Get the from email address
 function getFromEmail() {
-  // Prefer explicit full address (e.g. hello@what2watch.net). Avoid "noreply" — Resend
-  // recommends sender addresses that don't imply one-way-only communication.
-  if (resendFromEmail?.trim()) {
-    return resendFromEmail.trim();
-  }
-  if (resendDomain) {
-    // If RESEND_DOMAIN contains @, use it directly as full email
-    // Otherwise, prepend a friendly local part (not noreply@)
-    const fromEmail = resendDomain.includes("@")
-      ? resendDomain
-      : `hello@${resendDomain}`;
-    return fromEmail;
-  }
+  const configured = getResendConfiguredFromEmail();
+  if (configured) return configured;
   // Use Resend's default domain (onboarding.resend.dev)
   return "onboarding@resend.dev";
 }

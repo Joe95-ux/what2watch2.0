@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { getResendConfiguredFromEmail } from "./email-from";
 
 type ContactType = "support" | "feedback" | "general";
 
@@ -16,8 +17,18 @@ const smtpHost = process.env.SMTP_HOST;
 const smtpPort = Number(process.env.SMTP_PORT || 465);
 const smtpUser = process.env.SMTP_USER;
 const smtpPass = process.env.SMTP_PASS;
-const contactFromEmail = process.env.CONTACT_FROM_EMAIL;
+const contactFromEmailFallback = process.env.CONTACT_FROM_EMAIL;
 const contactToEmail = process.env.CONTACT_TO_EMAIL;
+
+function getContactFromEmail(): string | null {
+  // Match transactional mail: RESEND_FROM_EMAIL / RESEND_DOMAIN first so contact form
+  // does not keep using a stale CONTACT_FROM_EMAIL (e.g. noreply@).
+  return (
+    getResendConfiguredFromEmail() ||
+    contactFromEmailFallback?.trim() ||
+    null
+  );
+}
 
 let transporter: nodemailer.Transporter | null = null;
 
@@ -56,7 +67,8 @@ function getTypeLabel(type: ContactType) {
 export async function sendContactSubmissionEmail(
   payload: ContactEmailPayload
 ): Promise<boolean> {
-  if (!contactFromEmail || !contactToEmail) return false;
+  const fromEmail = getContactFromEmail();
+  if (!fromEmail || !contactToEmail) return false;
 
   const transport = getTransporter();
   if (!transport) return false;
@@ -109,7 +121,7 @@ export async function sendContactSubmissionEmail(
 
   try {
     await transport.sendMail({
-      from: contactFromEmail,
+      from: fromEmail,
       to: contactToEmail,
       replyTo: payload.userEmail || undefined,
       subject,
