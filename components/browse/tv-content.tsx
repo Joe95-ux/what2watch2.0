@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { usePopularTV, useOnTheAirTV, useTVByGenre, usePersonalizedContent } from "@/hooks/use-movies";
 import { useAllGenres } from "@/hooks/use-genres";
 import ContentRow from "./content-row";
@@ -25,8 +26,8 @@ export default function TVContent({ favoriteGenres, preferredTypes }: TVContentP
   const { data: allGenres = [] } = useAllGenres();
 
   // Featured items for hero carousel (only TV shows)
-  const featuredItems: TMDBSeries[] = popularTV.slice(0, 5) || [];
-  const featuredTV: TMDBSeries | null = popularTV[0] || null;
+  const featuredItems: TMDBSeries[] = useMemo(() => popularTV.slice(0, 5) || [], [popularTV]);
+  const featuredTV: TMDBSeries | null = useMemo(() => popularTV[0] || null, [popularTV]);
 
   // Get top genres for genre sections (limit to 6 most common genres)
   const topGenres = allGenres.slice(0, 6);

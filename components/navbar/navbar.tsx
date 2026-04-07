@@ -90,6 +90,8 @@ export default function Navbar() {
     pathname === "/lists" ||
     pathname === "/members" ||
     pathname === "/editorial" ||
+    pathname === "/movies" ||
+    pathname === "/tv" ||
     pathname?.startsWith("/browse/") ||
     pathname?.startsWith("/popular") ||
     pathname?.startsWith("/lists/") ||

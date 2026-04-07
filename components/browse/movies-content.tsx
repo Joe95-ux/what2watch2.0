@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { usePopularMovies, useNowPlayingMovies, usePersonalizedContent, useMoviesByGenre } from "@/hooks/use-movies";
 import { useAllGenres } from "@/hooks/use-genres";
 import ContentRow from "./content-row";
@@ -25,8 +26,8 @@ export default function MoviesContent({ favoriteGenres, preferredTypes }: Movies
   const { data: allGenres = [] } = useAllGenres();
 
   // Featured items for hero carousel (only movies)
-  const featuredItems: TMDBMovie[] = popularMovies.slice(0, 5) || [];
-  const featuredMovie: TMDBMovie | null = popularMovies[0] || null;
+  const featuredItems: TMDBMovie[] = useMemo(() => popularMovies.slice(0, 5) || [], [popularMovies]);
+  const featuredMovie: TMDBMovie | null = useMemo(() => popularMovies[0] || null, [popularMovies]);
 
   // Get movie genres only (filter out TV-only genres if needed)
   // For simplicity, we'll use all genres but only show movie sections

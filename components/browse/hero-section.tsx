@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import { Play, Info, Plus, Volume2, VolumeX } from "lucide-react";
 import { TMDBMovie, TMDBSeries, getBackdropUrl, getYouTubeEmbedUrl, TMDBVideo } from "@/lib/tmdb";
@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import TrailerModal from "./trailer-modal";
 import ContentDetailModal from "./content-detail-modal";
-import { useContentVideos } from "@/hooks/use-content-details";
-import AddToPlaylistDropdown from "@/components/playlists/add-to-playlist-dropdown";
+import { useContentVideos, useMovieDetails, useOMDBData, useTVDetails } from "@/hooks/use-content-details";
+import AddToListDropdown from "@/components/content-detail/add-to-list-dropdown";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { HeroStylizedTitle } from "@/components/ui/hero-stylized-title";
 
 interface HeroSectionProps {
   featuredItem: TMDBMovie | TMDBSeries | null;
@@ -26,9 +27,13 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isRotationPaused, setIsRotationPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay compatibility
+  const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Determine which items to use (array or single item)
-  const items = featuredItems || (featuredItem ? [featuredItem] : []);
+  const items = useMemo(
+    () => featuredItems || (featuredItem ? [featuredItem] : []),
+    [featuredItems, featuredItem]
+  );
   const currentItem = items[currentIndex] || featuredItem;
 
   // Type-safe title extraction
@@ -41,6 +46,19 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
 
   // Determine type for current item
   const currentItemType = currentItem && "title" in currentItem ? "movie" : "tv";
+
+  const { data: movieDetails } = useMovieDetails(
+    currentItemType === "movie" && currentItem ? currentItem.id : null
+  );
+  const { data: tvDetails } = useTVDetails(
+    currentItemType === "tv" && currentItem ? currentItem.id : null
+  );
+  const details = currentItemType === "movie" ? movieDetails : tvDetails;
+  const imdbId =
+    details && "imdb_id" in details && typeof details.imdb_id === "string"
+      ? details.imdb_id
+      : null;
+  const { data: omdbData } = useOMDBData(imdbId);
 
   // Use React Query hook for videos with caching
   const { data: videosData, isLoading: isLoadingTrailer } = useContentVideos(
@@ -77,6 +95,16 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
     }
   }, [currentItem]);
 
+  useEffect(() => {
+    if (items.length === 0) {
+      setCurrentIndex(0);
+      return;
+    }
+    if (currentIndex >= items.length) {
+      setCurrentIndex(0);
+    }
+  }, [items.length, currentIndex]);
+
   // Auto-rotate to next item after video playback (approximately 30-60 seconds)
   // Pause rotation when trailer modal or details sheet is open
   useEffect(() => {
@@ -84,13 +112,19 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
     
     const rotationInterval = setInterval(() => {
       setIsTransitioning(true);
-      setTimeout(() => {
+      transitionTimeoutRef.current = setTimeout(() => {
         setCurrentIndex((prev) => (prev + 1) % featuredItems.length);
         setIsTransitioning(false);
       }, 500); // Transition duration
     }, 45000); // Rotate every 45 seconds (typical trailer length)
 
-    return () => clearInterval(rotationInterval);
+    return () => {
+      clearInterval(rotationInterval);
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current);
+        transitionTimeoutRef.current = null;
+      }
+    };
   }, [featuredItems, isRotationPaused, isDetailModalOpen]);
 
   if (isLoading || !currentItem) {
@@ -104,6 +138,28 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
   const title = getTitle(currentItem);
   const overview = currentItem.overview || "";
   const backdropPath = currentItem.backdrop_path;
+  const runtime =
+    details && "runtime" in details
+      ? details.runtime
+      : details && "episode_run_time" in details && details.episode_run_time?.[0]
+        ? details.episode_run_time[0]
+        : null;
+  const releaseYearSource =
+    currentItemType === "movie" && "release_date" in currentItem
+      ? currentItem.release_date
+      : "first_air_date" in currentItem
+        ? currentItem.first_air_date
+        : "";
+  const releaseYear = releaseYearSource ? new Date(releaseYearSource).getFullYear().toString() : "N/A";
+  const rated = omdbData?.rated || "NR";
+  const imdbRating = omdbData?.imdbRating ?? (currentItem.vote_average > 0 ? currentItem.vote_average : null);
+  const formatRuntime = (minutes: number | null) => {
+    if (!minutes || Number.isNaN(minutes)) return "N/A";
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
+  };
 
   return (
     <div className="relative w-full h-[80vh] -mt-[65px] overflow-hidden bg-background">
@@ -137,7 +193,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
               src={getBackdropUrl(backdropPath, "w1280")}
               alt={title}
               fill
-              className="object-cover"
+              className="object-cover object-center"
               priority
               onLoad={() => setImageLoaded(true)}
               unoptimized
@@ -157,7 +213,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
               src={getBackdropUrl(backdropPath, "w1280")}
               alt={title}
               fill
-              className="object-cover"
+              className="object-cover object-center"
               priority
               onLoad={() => setImageLoaded(true)}
               unoptimized
@@ -177,9 +233,16 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
       <div className={`relative z-20 h-full flex items-end transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
         <div className="relative w-full px-4 sm:px-6 lg:px-8 pb-20">
           <div className="max-w-2xl">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-white drop-shadow-lg">
-              {title}
-            </h1>
+            <HeroStylizedTitle title={title} className="mb-4" />
+            <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-white/90">
+              <span>{formatRuntime(runtime)}</span>
+              <span>•</span>
+              <span>{releaseYear}</span>
+              <span>•</span>
+              <span>{rated}</span>
+              <span>•</span>
+              <span>IMDb {imdbRating ? imdbRating.toFixed(1) : "N/A"}</span>
+            </div>
             {overview && (
               <p className="text-base md:text-lg text-white/90 mb-6 line-clamp-3 drop-shadow-md">
                 {overview}
@@ -198,7 +261,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
                   }}
                   disabled={!trailer}
                 >
-                  <Play className="mr-1.5 sm:mr-2.5 fill-black dark:fill-black size-4 sm:size-6" />
+                  <Play className="fill-black dark:fill-black size-4 sm:size-6" />
                   Play
                 </Button>
                 <Button
@@ -214,7 +277,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div>
-                        <AddToPlaylistDropdown
+                        <AddToListDropdown
                           item={currentItem}
                           type={currentItemType}
                           trigger={
@@ -242,7 +305,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
                     <Button
                       size="lg"
                       variant="ghost"
-                      className="h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 hover:border-white/60 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl cursor-pointer sm:absolute sm:right-8 sm:bottom-20 dark:border-white/30"
+                      className="h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 hover:border-white/60 backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl cursor-pointer absolute right-4 top-4 sm:right-8 sm:top-auto sm:bottom-20 dark:border-white/30"
                       onClick={() => setIsMuted(!isMuted)}
                       aria-label={isMuted ? "Unmute" : "Mute"}
                     >

@@ -218,13 +218,37 @@ function PopularContentInner() {
 
   // Constants for pagination
   const ITEMS_PER_PAGE = 24;
+  const TMDB_ITEMS_PER_PAGE = 20;
   const API_ITEMS_PER_PAGE = 42;
 
   // Fetch popular movies when no filters and type is movie or all
   const shouldFetchMovies = !hasActiveFilters && (type === "movie" || type === "all");
+  const movieApiPage = Math.ceil(((page - 1) * ITEMS_PER_PAGE + 1) / TMDB_ITEMS_PER_PAGE);
+  const movieStartIndex = ((page - 1) * ITEMS_PER_PAGE) % TMDB_ITEMS_PER_PAGE;
   const { data: popularMoviesData, isLoading: isLoadingPopularMovies } = useQuery<TMDBResponse<TMDBMovie>>({
-    queryKey: ["popular-movies", page],
+    queryKey: ["popular-movies", page, type, hasActiveFilters],
     queryFn: async () => {
+      if (type === "movie") {
+        const [primaryRes, secondaryRes] = await Promise.all([
+          fetch(`/api/movies/popular?page=${movieApiPage}`),
+          fetch(`/api/movies/popular?page=${movieApiPage + 1}`),
+        ]);
+
+        if (!primaryRes.ok) throw new Error("Failed to fetch popular movies");
+        if (!secondaryRes.ok) throw new Error("Failed to fetch additional popular movies");
+
+        const primaryData = await primaryRes.json() as TMDBResponse<TMDBMovie>;
+        const secondaryData = await secondaryRes.json() as TMDBResponse<TMDBMovie>;
+        const combinedResults = [...(primaryData.results || []), ...(secondaryData.results || [])];
+
+        return {
+          ...primaryData,
+          page,
+          results: combinedResults.slice(movieStartIndex, movieStartIndex + ITEMS_PER_PAGE),
+          total_pages: Math.ceil((primaryData.total_results || 0) / ITEMS_PER_PAGE),
+        };
+      }
+
       const res = await fetch(`/api/movies/popular?page=${page}`);
       if (!res.ok) throw new Error("Failed to fetch popular movies");
       return res.json();
@@ -235,9 +259,32 @@ function PopularContentInner() {
 
   // Fetch popular TV when no filters and type is tv or all
   const shouldFetchTV = !hasActiveFilters && (type === "tv" || type === "all");
+  const tvApiPage = Math.ceil(((page - 1) * ITEMS_PER_PAGE + 1) / TMDB_ITEMS_PER_PAGE);
+  const tvStartIndex = ((page - 1) * ITEMS_PER_PAGE) % TMDB_ITEMS_PER_PAGE;
   const { data: popularTVData, isLoading: isLoadingPopularTV } = useQuery<TMDBResponse<TMDBSeries>>({
-    queryKey: ["popular-tv", page],
+    queryKey: ["popular-tv", page, type, hasActiveFilters],
     queryFn: async () => {
+      if (type === "tv") {
+        const [primaryRes, secondaryRes] = await Promise.all([
+          fetch(`/api/tv/popular?page=${tvApiPage}`),
+          fetch(`/api/tv/popular?page=${tvApiPage + 1}`),
+        ]);
+
+        if (!primaryRes.ok) throw new Error("Failed to fetch popular TV");
+        if (!secondaryRes.ok) throw new Error("Failed to fetch additional popular TV");
+
+        const primaryData = await primaryRes.json() as TMDBResponse<TMDBSeries>;
+        const secondaryData = await secondaryRes.json() as TMDBResponse<TMDBSeries>;
+        const combinedResults = [...(primaryData.results || []), ...(secondaryData.results || [])];
+
+        return {
+          ...primaryData,
+          page,
+          results: combinedResults.slice(tvStartIndex, tvStartIndex + ITEMS_PER_PAGE),
+          total_pages: Math.ceil((primaryData.total_results || 0) / ITEMS_PER_PAGE),
+        };
+      }
+
       const res = await fetch(`/api/tv/popular?page=${page}`);
       if (!res.ok) throw new Error("Failed to fetch popular TV");
       return res.json();
