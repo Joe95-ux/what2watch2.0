@@ -179,11 +179,19 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
   const backdropPath = currentItem.backdrop_path;
   const posterPath = currentItem.poster_path;
   const hasBackdrop = !!backdropPath;
-  const runtime =
-    details && "runtime" in details
-      ? details.runtime
-      : details && "episode_run_time" in details && details.episode_run_time?.[0]
-        ? details.episode_run_time[0]
+  const runtimeMinutes: number | null =
+    currentItemType === "movie"
+      ? details && "runtime" in details && typeof details.runtime === "number" && details.runtime > 0
+        ? details.runtime
+        : null
+      : details && "episode_run_time" in details && Array.isArray(details.episode_run_time)
+        ? (() => {
+            const valid = details.episode_run_time.filter(
+              (n): n is number => typeof n === "number" && !Number.isNaN(n) && n > 0
+            );
+            if (valid.length === 0) return null;
+            return Math.round(valid.reduce((a, b) => a + b, 0) / valid.length);
+          })()
         : null;
   const releaseYearSource =
     currentItemType === "movie" && "release_date" in currentItem
@@ -194,13 +202,15 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
   const releaseYear = releaseYearSource ? new Date(releaseYearSource).getFullYear().toString() : "N/A";
   const rated = omdbData?.rated ?? null;
   const imdbRating = omdbData?.imdbRating ?? (currentItem.vote_average > 0 ? currentItem.vote_average : null);
-  const formatRuntime = (minutes: number | null) => {
-    if (!minutes || Number.isNaN(minutes)) return "N/A";
+  const formatRuntimeMinutes = (minutes: number | null): string | null => {
+    if (minutes == null || Number.isNaN(minutes) || minutes <= 0) return null;
     const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
+    const m = Math.round(minutes % 60);
     if (h > 0) return `${h}h ${m}m`;
     return `${m}m`;
   };
+  const movieRuntimeLabel = formatRuntimeMinutes(runtimeMinutes) ?? "N/A";
+  const tvRuntimeLabel = formatRuntimeMinutes(runtimeMinutes);
 
   return (
     <div className="relative w-full h-[65vh] sm:h-[80vh] -mt-[65px] overflow-hidden bg-background">
@@ -279,8 +289,19 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
             <HeroStylizedTitle title={title} className="mb-4" />
             {isMuted && (
               <div className="mb-4 flex flex-wrap items-center gap-2 text-base text-white/90">
-                <span>{formatRuntime(runtime)}</span>
-                <span>•</span>
+                {currentItemType === "tv" ? (
+                  tvRuntimeLabel && (
+                    <>
+                      <span>{tvRuntimeLabel}</span>
+                      <span aria-hidden>•</span>
+                    </>
+                  )
+                ) : (
+                  <>
+                    <span>{movieRuntimeLabel}</span>
+                    <span aria-hidden>•</span>
+                  </>
+                )}
                 <span>{releaseYear}</span>
                 {rated && (
                   <>
