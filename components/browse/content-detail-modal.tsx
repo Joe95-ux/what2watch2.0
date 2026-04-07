@@ -384,7 +384,7 @@ export default function ContentDetailModal({
             <div className="absolute inset-0 flex items-end z-10">
               <div className="w-full px-6 sm:px-8 lg:px-12 pb-12">
                 <div className="max-w-3xl">
-                  <HeroStylizedTitle title={title} className="mb-4 text-3xl md:text-4xl lg:text-5xl" />
+                  <HeroStylizedTitle title={title} variant="detail" className="mb-4" />
                   <div className="flex items-center gap-4 mb-6 flex-wrap">
                     {(omdbData?.imdbRating || (item.vote_average > 0 && !omdbData?.imdbRating)) && (
                       <div className="flex items-center gap-1.5">

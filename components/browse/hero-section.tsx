@@ -29,6 +29,9 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
   const [isRotationPaused, setIsRotationPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay compatibility
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rotationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mountedRef = useRef(false);
+  const transitionInProgressRef = useRef(false);
 
   // Determine which items to use (array or single item)
   const items = useMemo(
@@ -105,25 +108,61 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
     }
   }, [items.length, currentIndex]);
 
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   // Auto-rotate to next item after video playback (approximately 30-60 seconds)
   // Pause rotation when trailer modal or details sheet is open
   useEffect(() => {
-    if (!featuredItems || featuredItems.length <= 1 || isRotationPaused || isDetailModalOpen || !isMuted) return;
-    
-    const rotationInterval = setInterval(() => {
-      setIsTransitioning(true);
-      transitionTimeoutRef.current = setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % featuredItems.length);
-        setIsTransitioning(false);
-      }, 500); // Transition duration
-    }, 45000); // Rotate every 45 seconds (typical trailer length)
-
-    return () => {
-      clearInterval(rotationInterval);
-      if (transitionTimeoutRef.current) {
+    const clearRotationTimers = () => {
+      if (rotationIntervalRef.current !== null) {
+        clearInterval(rotationIntervalRef.current);
+        rotationIntervalRef.current = null;
+      }
+      if (transitionTimeoutRef.current !== null) {
         clearTimeout(transitionTimeoutRef.current);
         transitionTimeoutRef.current = null;
       }
+      transitionInProgressRef.current = false;
+      setIsTransitioning((prev) => (prev ? false : prev));
+    };
+
+    if (!featuredItems || featuredItems.length <= 1 || isRotationPaused || isDetailModalOpen || !isMuted) {
+      clearRotationTimers();
+      return;
+    }
+
+    const len = featuredItems.length;
+
+    rotationIntervalRef.current = setInterval(() => {
+      if (!mountedRef.current) return;
+      if (transitionInProgressRef.current) return;
+
+      transitionInProgressRef.current = true;
+      setIsTransitioning((prev) => (prev ? prev : true));
+
+      transitionTimeoutRef.current = setTimeout(() => {
+        transitionTimeoutRef.current = null;
+        if (!mountedRef.current) {
+          transitionInProgressRef.current = false;
+          return;
+        }
+
+        setCurrentIndex((prev) => {
+          const next = (prev + 1) % len;
+          return next === prev ? prev : next;
+        });
+        setIsTransitioning((prev) => (prev ? false : prev));
+        transitionInProgressRef.current = false;
+      }, 500);
+    }, 45000);
+
+    return () => {
+      clearRotationTimers();
     };
   }, [featuredItems, isRotationPaused, isDetailModalOpen, isMuted]);
 
@@ -170,7 +209,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
       {trailer && !isLoadingTrailer && !isDetailModalOpen && (
         <div className={`absolute inset-0 z-0 transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
           <iframe
-            key={`${trailer.key}-${isMuted}`} // Force reload when trailer or mute state changes
+            key={trailer.key}
             src={getYouTubeEmbedUrl(trailer.key, true, isMuted)}
             className="w-full h-full"
             allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
