@@ -44,6 +44,8 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
   const [scrollProgress, setScrollProgress] = useState(0); // 0 = start, 1 = scrolled
   const [currentPadding, setCurrentPadding] = useState(16); // Default to px-4 (16px)
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
+  const scrollPrev = () => emblaApi?.scrollPrev();
+  const scrollNext = () => emblaApi?.scrollNext();
 
   // Calculate padding based on viewport width
   useEffect(() => {
@@ -74,6 +76,7 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
       setScrollProgress(Math.min(emblaApi.scrollProgress(), 1));
     };
 
+    updateScrollState();
     emblaApi.on("select", updateScrollState);
     emblaApi.on("reInit", updateScrollState);
     emblaApi.on("scroll", updateScrollState);
@@ -144,6 +147,26 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
             {titleAction}
           </div>
           <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 md:hidden">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={scrollPrev}
+                disabled={!canScrollPrev}
+                className="h-8 w-8 cursor-pointer"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={scrollNext}
+                disabled={!canScrollNext}
+                className="h-8 w-8 cursor-pointer"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
             {viewAllHref && (
               <Link 
                 href={viewAllHref} 
@@ -185,7 +208,7 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
             !canScrollPrev && "opacity-0 pointer-events-none"
           )}
           aria-label="Scroll left"
-          onClick={() => emblaApi?.scrollPrev()}
+          onClick={scrollPrev}
         >
           <ChevronLeft className="h-6 w-6 text-white" />
         </button>
@@ -196,7 +219,7 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
             !canScrollNext && "opacity-0 pointer-events-none"
           )}
           aria-label="Scroll right"
-          onClick={() => emblaApi?.scrollNext()}
+          onClick={scrollNext}
         >
           <ChevronRight className="h-6 w-6 text-white" />
         </button>

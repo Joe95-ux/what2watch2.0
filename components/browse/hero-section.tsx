@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import { Play, Info, Plus, Volume2, VolumeX } from "lucide-react";
-import { TMDBMovie, TMDBSeries, getBackdropUrl, getYouTubeEmbedUrl, TMDBVideo } from "@/lib/tmdb";
+import { TMDBMovie, TMDBSeries, getBackdropUrl, getPosterUrl, getYouTubeEmbedUrl, TMDBVideo } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import TrailerModal from "./trailer-modal";
@@ -12,6 +12,7 @@ import { useContentVideos, useMovieDetails, useOMDBData, useTVDetails } from "@/
 import AddToListDropdown from "@/components/content-detail/add-to-list-dropdown";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { HeroStylizedTitle } from "@/components/ui/hero-stylized-title";
+import { IMDBBadge } from "@/components/ui/imdb-badge";
 
 interface HeroSectionProps {
   featuredItem: TMDBMovie | TMDBSeries | null;
@@ -89,15 +90,14 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
 
   // Reset image loaded and muted state when current item changes
   useEffect(() => {
-    if (currentItem) {
-      setImageLoaded(false);
-      setIsMuted(true);
-    }
-  }, [currentItem]);
+    if (!currentItem) return;
+    setImageLoaded(false);
+    setIsMuted(true);
+  }, [currentItem?.id]);
 
   useEffect(() => {
     if (items.length === 0) {
-      setCurrentIndex(0);
+      setCurrentIndex((prev) => (prev === 0 ? prev : 0));
       return;
     }
     if (currentIndex >= items.length) {
@@ -108,7 +108,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
   // Auto-rotate to next item after video playback (approximately 30-60 seconds)
   // Pause rotation when trailer modal or details sheet is open
   useEffect(() => {
-    if (!featuredItems || featuredItems.length <= 1 || isRotationPaused || isDetailModalOpen) return;
+    if (!featuredItems || featuredItems.length <= 1 || isRotationPaused || isDetailModalOpen || !isMuted) return;
     
     const rotationInterval = setInterval(() => {
       setIsTransitioning(true);
@@ -125,7 +125,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
         transitionTimeoutRef.current = null;
       }
     };
-  }, [featuredItems, isRotationPaused, isDetailModalOpen]);
+  }, [featuredItems, isRotationPaused, isDetailModalOpen, isMuted]);
 
   if (isLoading || !currentItem) {
     return (
@@ -138,6 +138,8 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
   const title = getTitle(currentItem);
   const overview = currentItem.overview || "";
   const backdropPath = currentItem.backdrop_path;
+  const posterPath = currentItem.poster_path;
+  const hasBackdrop = !!backdropPath;
   const runtime =
     details && "runtime" in details
       ? details.runtime
@@ -151,7 +153,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
         ? currentItem.first_air_date
         : "";
   const releaseYear = releaseYearSource ? new Date(releaseYearSource).getFullYear().toString() : "N/A";
-  const rated = omdbData?.rated || "NR";
+  const rated = omdbData?.rated ?? null;
   const imdbRating = omdbData?.imdbRating ?? (currentItem.vote_average > 0 ? currentItem.vote_average : null);
   const formatRuntime = (minutes: number | null) => {
     if (!minutes || Number.isNaN(minutes)) return "N/A";
@@ -165,7 +167,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
     <div className="relative w-full h-[80vh] -mt-[65px] overflow-hidden bg-background">
       {/* Trailer Video (if available) - Full width with autoplay */}
       {/* Stop video when details sheet is open */}
-      {trailer && !isLoadingTrailer && !isDetailModalOpen && (
+      {!isMuted && trailer && !isLoadingTrailer && !isDetailModalOpen && (
         <div className={`absolute inset-0 z-0 transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
           <iframe
             key={`${trailer.key}-${isMuted}`} // Force reload when trailer or mute state changes
@@ -180,17 +182,15 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
             }}
             title="Trailer"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-transparent pointer-events-none" />
         </div>
       )}
 
       {/* Backdrop Image (fallback when no trailer) */}
-      {!trailer && !isLoadingTrailer && backdropPath && (
+      {(isMuted || !trailer) && !isLoadingTrailer && (backdropPath || posterPath) && (
         <>
           <div className={`absolute inset-0 transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
             <Image
-              src={getBackdropUrl(backdropPath, "w1280")}
+              src={hasBackdrop ? getBackdropUrl(backdropPath, "w1280") : getPosterUrl(posterPath, "w780")}
               alt={title}
               fill
               className="object-cover object-center"
@@ -206,11 +206,11 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
       )}
 
       {/* Loading state backdrop */}
-      {isLoadingTrailer && backdropPath && (
+      {isLoadingTrailer && (backdropPath || posterPath) && (
         <>
           <div className={`absolute inset-0 transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
             <Image
-              src={getBackdropUrl(backdropPath, "w1280")}
+              src={hasBackdrop ? getBackdropUrl(backdropPath, "w1280") : getPosterUrl(posterPath, "w780")}
               alt={title}
               fill
               className="object-cover object-center"
@@ -226,24 +226,41 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
       )}
 
       {/* Gradient Overlay - Additional overlays on hero section */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/90 to-transparent z-10" />
-      <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-transparent z-10" />
+      {isMuted && (
+        <>
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/90 to-transparent z-10" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-transparent z-10" />
+        </>
+      )}
 
       {/* Content - Positioned at bottom of hero */}
       <div className={`relative z-20 h-full flex items-end transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-        <div className="relative w-full px-4 sm:px-6 lg:px-8 pb-20">
+        <div className="relative w-full px-4 sm:px-6 lg:px-8 pb-10 sm:pb-20">
           <div className="max-w-2xl">
             <HeroStylizedTitle title={title} className="mb-4" />
-            <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-white/90">
-              <span>{formatRuntime(runtime)}</span>
-              <span>•</span>
-              <span>{releaseYear}</span>
-              <span>•</span>
-              <span>{rated}</span>
-              <span>•</span>
-              <span>IMDb {imdbRating ? imdbRating.toFixed(1) : "N/A"}</span>
-            </div>
-            {overview && (
+            {isMuted && (
+              <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-white/90">
+                <span>{formatRuntime(runtime)}</span>
+                <span>•</span>
+                <span>{releaseYear}</span>
+                {rated && (
+                  <>
+                    <span>•</span>
+                    <span>{rated}</span>
+                  </>
+                )}
+                {imdbRating && (
+                  <>
+                    <span>•</span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <IMDBBadge size={20} />
+                      <span>{imdbRating.toFixed(1)}</span>
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+            {isMuted && overview && (
               <p className="text-base md:text-lg text-white/90 mb-6 line-clamp-3 drop-shadow-md">
                 {overview}
               </p>
@@ -262,7 +279,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
                   disabled={!trailer}
                 >
                   <Play className="fill-black dark:fill-black size-4 sm:size-6" />
-                  Play
+                  Play Trailer
                 </Button>
                 <Button
                   size="lg"
@@ -270,7 +287,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
                   className="bg-white/10 text-white border-white/30 hover:bg-white/25 hover:border-white/60 h-10 sm:h-14 px-4 sm:px-10 text-sm sm:text-base font-medium backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl cursor-pointer dark:border-white/30"
                   onClick={() => setIsDetailModalOpen(true)}
                 >
-                  <Info className="mr-1.5 sm:mr-2.5 size-4 sm:size-6" />
+                  <Info className="size-4 sm:size-6" />
                   More Info
                 </Button>
                 {currentItem && (

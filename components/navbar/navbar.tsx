@@ -67,7 +67,7 @@ export default function Navbar() {
   const shouldUseMaxSearchNav =
     pathname === "/search" || pathname?.startsWith("/search") || pathname === "/popular" || pathname?.startsWith("/popular") || pathname === "/members" || pathname?.startsWith("/members");
 
-  const isDetailsNav = pathname?.startsWith("/tv") || pathname?.startsWith("/movie");
+  const isDetailsNav = pathname?.startsWith("/tv/") || pathname?.startsWith("/movie/");
 
   const isGuideNav =
     pathname === "/browse/personalized" ||

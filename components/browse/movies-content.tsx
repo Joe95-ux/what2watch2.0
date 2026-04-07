@@ -31,7 +31,7 @@ export default function MoviesContent({ favoriteGenres, preferredTypes }: Movies
 
   // Get movie genres only (filter out TV-only genres if needed)
   // For simplicity, we'll use all genres but only show movie sections
-  const topGenres = allGenres.slice(0, 6);
+  const topGenres = allGenres;
 
   return (
     <div className="min-h-screen bg-background relative">

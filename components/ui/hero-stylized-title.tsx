@@ -9,7 +9,7 @@ export function HeroStylizedTitle({ title, className }: HeroStylizedTitleProps) 
   return (
     <h1
       className={[
-        "text-4xl md:text-5xl lg:text-6xl font-black text-white drop-shadow-lg leading-[0.95]",
+        "text-4xl md:text-5xl lg:text-[5rem] font-normal font-serif text-white drop-shadow-lg leading-[0.95]",
         className ?? "",
       ].join(" ")}
       aria-label={title}

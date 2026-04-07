@@ -30,7 +30,7 @@ export default function TVContent({ favoriteGenres, preferredTypes }: TVContentP
   const featuredTV: TMDBSeries | null = useMemo(() => popularTV[0] || null, [popularTV]);
 
   // Get top genres for genre sections (limit to 6 most common genres)
-  const topGenres = allGenres.slice(0, 6);
+  const topGenres = allGenres;
 
   return (
     <div className="min-h-screen bg-background relative">
