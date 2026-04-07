@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { usePopularMovies, useNowPlayingMovies, usePersonalizedContent, useMoviesByGenre } from "@/hooks/use-movies";
 import { useAllGenres } from "@/hooks/use-genres";
+import { useIsMobile } from "@/hooks/use-mobile";
 import ContentRow from "./content-row";
 import HeroSection from "./hero-section";
 import RecentlyViewed from "./recently-viewed";
@@ -14,6 +15,7 @@ interface MoviesContentProps {
 }
 
 export default function MoviesContent({ favoriteGenres, preferredTypes }: MoviesContentProps) {
+  const isMobile = useIsMobile();
   // Fetch all data with TanStack Query
   const { data: popularMovies = [], isLoading: isLoadingPopularMovies } = usePopularMovies(1);
   const { data: nowPlayingMovies = [], isLoading: isLoadingNowPlaying } = useNowPlayingMovies(1);
@@ -53,7 +55,7 @@ export default function MoviesContent({ favoriteGenres, preferredTypes }: Movies
         {/* Personalized Section */}
         {favoriteGenres && favoriteGenres.length > 0 && (
           <ContentRow
-            title="We Think You'll Love This"
+            title={isMobile ? "Picked for you" : "We Think You'll Love This"}
             items={personalizedMovies}
             type="movie"
             isLoading={isLoadingPersonalized}

@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { usePopularTV, useOnTheAirTV, useTVByGenre, usePersonalizedContent } from "@/hooks/use-movies";
 import { useAllGenres } from "@/hooks/use-genres";
+import { useIsMobile } from "@/hooks/use-mobile";
 import ContentRow from "./content-row";
 import HeroSection from "./hero-section";
 import RecentlyViewed from "./recently-viewed";
@@ -14,6 +15,7 @@ interface TVContentProps {
 }
 
 export default function TVContent({ favoriteGenres, preferredTypes }: TVContentProps) {
+  const isMobile = useIsMobile();
   // Fetch all data with TanStack Query
   const { data: popularTV = [], isLoading: isLoadingPopularTV } = usePopularTV(1);
   const { data: onTheAirTV = [], isLoading: isLoadingOnTheAir } = useOnTheAirTV(1);
@@ -52,7 +54,7 @@ export default function TVContent({ favoriteGenres, preferredTypes }: TVContentP
         {/* Personalized Section */}
         {favoriteGenres && favoriteGenres.length > 0 && (
           <ContentRow
-            title="We Think You'll Love This"
+            title={isMobile ? "Picked for you" : "We Think You'll Love This"}
             items={personalizedTV}
             type="tv"
             isLoading={isLoadingPersonalized}

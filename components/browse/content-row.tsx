@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import MovieCard from "./movie-card";
@@ -28,17 +28,17 @@ interface ContentRowProps {
 }
 
 export default function ContentRow({ title, items, type, isLoading, href, showClearButton, onClear, isClearing, titleAction, titlePrefix, viewAllHref, onLoadMore, isLoadingMore }: ContentRowProps) {
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    align: "start",
+  const emblaOptions = useMemo(() => ({
+    align: "start" as const,
     slidesToScroll: 5,
     breakpoints: {
       "(max-width: 640px)": { slidesToScroll: 2 },
       "(max-width: 1024px)": { slidesToScroll: 3 },
       "(max-width: 1280px)": { slidesToScroll: 4 },
     },
-  },  [
-    WheelGesturesPlugin()
-  ]);
+  }), []);
+  const wheelGesturesPlugin = useMemo(() => WheelGesturesPlugin(), []);
+  const [emblaRef, emblaApi] = useEmblaCarousel(emblaOptions, [wheelGesturesPlugin]);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0); // 0 = start, 1 = scrolled
@@ -57,7 +57,8 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
     };
 
     const updatePadding = () => {
-      setCurrentPadding(getCurrentPadding());
+      const nextPadding = getCurrentPadding();
+      setCurrentPadding((prev) => (prev === nextPadding ? prev : nextPadding));
     };
 
     updatePadding();
@@ -71,9 +72,12 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
     if (!emblaApi) return;
 
     const updateScrollState = () => {
-      setCanScrollPrev(emblaApi.canScrollPrev());
-      setCanScrollNext(emblaApi.canScrollNext());
-      setScrollProgress(Math.min(emblaApi.scrollProgress(), 1));
+      const nextCanScrollPrev = emblaApi.canScrollPrev();
+      const nextCanScrollNext = emblaApi.canScrollNext();
+      const nextProgress = Math.min(emblaApi.scrollProgress(), 1);
+      setCanScrollPrev((prev) => (prev === nextCanScrollPrev ? prev : nextCanScrollPrev));
+      setCanScrollNext((prev) => (prev === nextCanScrollNext ? prev : nextCanScrollNext));
+      setScrollProgress((prev) => (prev === nextProgress ? prev : nextProgress));
     };
 
     updateScrollState();
@@ -137,7 +141,7 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
               className="group/title inline-flex items-center gap-2 transition-all duration-300"
             >
               {titlePrefix}
-              <h2 className="text-2xl font-medium text-foreground group-hover/title:text-primary transition-colors">
+              <h2 className="text-[1.4rem] md:text-2xl font-medium text-foreground group-hover/title:text-primary transition-colors">
                 {title}
               </h2>
               <ChevronRight 

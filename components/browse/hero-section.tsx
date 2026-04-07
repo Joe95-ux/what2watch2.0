@@ -91,8 +91,8 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
   // Reset image loaded and muted state when current item changes
   useEffect(() => {
     if (!currentItem) return;
-    setImageLoaded(false);
-    setIsMuted(true);
+    setImageLoaded((prev) => (prev ? false : prev));
+    setIsMuted((prev) => (prev ? prev : true));
   }, [currentItem?.id]);
 
   useEffect(() => {
