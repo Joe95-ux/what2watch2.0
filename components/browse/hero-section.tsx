@@ -13,6 +13,7 @@ import AddToListDropdown from "@/components/content-detail/add-to-list-dropdown"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { HeroStylizedTitle } from "@/components/ui/hero-stylized-title";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface HeroSectionProps {
   featuredItem: TMDBMovie | TMDBSeries | null;
@@ -21,6 +22,7 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({ featuredItem, featuredItems, isLoading }: HeroSectionProps) {
+  const isMobile = useIsMobile();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
@@ -168,7 +170,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
 
   if (isLoading || !currentItem) {
     return (
-      <div className="relative w-full h-[65vh] sm:h-[80vh] -mt-[65px] bg-muted">
+      <div className="relative w-full h-[75vh] sm:h-[80vh] -mt-[65px] bg-muted">
         <Skeleton className="absolute inset-0 w-full h-full" />
       </div>
     );
@@ -213,10 +215,10 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
   const tvRuntimeLabel = formatRuntimeMinutes(runtimeMinutes);
 
   return (
-    <div className="relative w-full h-[65vh] sm:h-[80vh] -mt-[65px] overflow-hidden bg-background">
+    <div className="relative w-full h-[75vh] sm:h-[80vh] -mt-[65px] overflow-hidden bg-background">
       {/* Trailer Video (if available) - Full width with autoplay */}
       {/* Stop video when details sheet is open */}
-      {trailer && !isLoadingTrailer && !isDetailModalOpen && (
+      {trailer && !isLoadingTrailer && !isDetailModalOpen && !isMobile && (
         <div className={`absolute inset-0 z-0 transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
           <iframe
             key={trailer.key}
@@ -235,7 +237,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
       )}
 
       {/* Backdrop Image (fallback when no trailer) */}
-      {(!trailer || isDetailModalOpen) && !isLoadingTrailer && (backdropPath || posterPath) && (
+      {(!trailer || isDetailModalOpen || isMobile) && !isLoadingTrailer && (backdropPath || posterPath) && (
         <>
           <div className={`absolute inset-0 transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
             <Image
@@ -376,7 +378,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
                 )}
               </div>
               {/* Mute/Unmute Toggle - Only show when trailer is available */}
-              {trailer && !isLoadingTrailer && (
+              {trailer && !isLoadingTrailer && !isMobile && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button

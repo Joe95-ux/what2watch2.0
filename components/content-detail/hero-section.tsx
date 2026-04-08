@@ -540,7 +540,7 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
 
 
             <div className="absolute bottom-6 left-6 right-6">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 rounded-xl bg-black/45 p-3 sm:bg-transparent sm:p-0">
                 {posterPath && (
                   <div className="relative w-20 sm:w-24 aspect-[2/3] rounded-xl overflow-hidden border border-white/20 lg:hidden">
                     <Image
@@ -558,16 +558,16 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
                     onClick={() => trailer && handleOpenTrailerModal(trailer?.id)}
                     disabled={!trailer}
                     className={cn(
-                      "flex items-center justify-center h-16 w-16 rounded-full border-2 border-white/60 bg-white/10 backdrop-blur hover:bg-white/20 transition cursor-pointer",
+                      "flex items-center justify-center h-[3.25rem] w-[3.25rem] sm:h-16 sm:w-16 rounded-full border-2 border-white/60 bg-white/10 backdrop-blur hover:bg-white/20 transition cursor-pointer",
                       !trailer && "opacity-60 cursor-not-allowed"
                     )}
                     aria-label="Play trailer"
                   >
-                    <Play className="h-7 w-7 text-white fill-white" />
+                    <Play className="h-5 w-5 sm:h-7 sm:w-7 text-white fill-white" />
                   </button>
                   {trailer && (
                     <div className="flex flex-col gap-1">
-                      <p className="text-white font-semibold text-lg">Play Trailer</p>
+                      <p className="text-white/90 sm:text-white font-semibold text-lg">Play Trailer</p>
                       {trailerDurationText && (
                         <p className="text-white/80 text-sm">{trailerDurationText}</p>
                       )}

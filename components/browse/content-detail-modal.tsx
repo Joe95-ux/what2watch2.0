@@ -74,6 +74,7 @@ export default function ContentDetailModal({
   onNavigate,
 }: ContentDetailModalProps) {
   const router = useRouter();
+  const isMobile = useIsMobile();
   // Internal navigation state for More Like This
   const [currentItem, setCurrentItem] = useState(initialItem);
   const [currentType, setCurrentType] = useState(initialType);
@@ -344,7 +345,7 @@ export default function ContentDetailModal({
 
         {/* Hero Section with Trailer/Backdrop */}
         <div className="relative w-full h-[70vh] min-h-[500px] overflow-hidden">
-          {trailer && isOpen && videosData ? (
+          {trailer && isOpen && videosData && !isMobile ? (
             <div className="absolute inset-0">
               {isOpen && (
                 <iframe
@@ -511,7 +512,7 @@ export default function ContentDetailModal({
                       }
                     />
                     {/* Mute/Unmute Toggle - Only show when trailer is available, on extreme right */}
-                    {trailer && videosData && (
+                    {trailer && videosData && !isMobile && (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button

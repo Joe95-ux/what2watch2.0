@@ -273,34 +273,35 @@ export default function MoreLikeThisCard({
           )}
 
           {/* Actions Menu - Top Left */}
-          <div className="absolute top-2 left-2 z-[5]">
-            <DropdownMenu open={isActionsDropdownOpen} onOpenChange={setIsActionsDropdownOpen}>
-              <DropdownMenuTrigger asChild>
-                <CircleActionButton
-                  size="sm"
-                  className="bg-black/60 hover:bg-black/80 backdrop-blur-sm"
-                  onClick={(e: React.MouseEvent) => {
+          {!isMobile && (
+            <div className="absolute top-2 left-2 z-[5]">
+              <DropdownMenu open={isActionsDropdownOpen} onOpenChange={setIsActionsDropdownOpen}>
+                <DropdownMenuTrigger asChild>
+                  <CircleActionButton
+                    size="sm"
+                    className="bg-black/60 hover:bg-black/80 backdrop-blur-sm"
+                    onClick={(e: React.MouseEvent) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                  >
+                    <MoreVertical className="h-3 w-3 text-white" />
+                  </CircleActionButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="start"
+                  className="w-48 z-[110]"
+                  onClick={(e) => {
+                    e.stopPropagation();
                     e.preventDefault();
+                  }}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onMouseDown={(e) => {
                     e.stopPropagation();
                   }}
                 >
-                  <MoreVertical className="h-3 w-3 text-white" />
-                </CircleActionButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                className="w-48 z-[110]"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                }}
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                }}
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                }}
-              >
                 <DropdownMenuItem
                   onClick={async (e) => {
                     e.preventDefault();
@@ -437,9 +438,10 @@ export default function MoreLikeThisCard({
                     </DropdownMenuItem>
                   </>
                 )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
 
           {/* Rank (24h), Runtime, or Skeleton - Top Right */}
           {justwatchRankLoading ? (
@@ -473,7 +475,7 @@ export default function MoreLikeThisCard({
                 </span>
               )}
             </div>
-          ) : runtimeText ? (
+          ) : runtimeText && !isMobile ? (
             <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-[0.85rem] text-white font-medium z-[5]">
               {runtimeText}
             </div>
@@ -537,26 +539,28 @@ export default function MoreLikeThisCard({
           )}
 
           {/* Centered Play Button - Revealed on hover with animation */}
-          <div
-            className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300 ${
-              isHovered || isMobile ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            {!isMobile && <div className="bg-black/40 backdrop-blur-sm absolute inset-0" />}
-            <CircleActionButton
-              size="lg"
-              onClick={(e: React.MouseEvent) => {
-                e.preventDefault();
-                e.stopPropagation();
-                // Navigate to details page
-                const title = "title" in item ? item.title : item.name;
-                router.push(createContentUrl(type, item.id, title));
-              }}
-              className="pointer-events-auto z-[5]"
+          {!isMobile && (
+            <div
+              className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300 ${
+                isHovered ? "opacity-100" : "opacity-0"
+              }`}
             >
-              <Play className="size-6 text-white fill-white" />
-            </CircleActionButton>
-          </div>
+              <div className="bg-black/40 backdrop-blur-sm absolute inset-0" />
+              <CircleActionButton
+                size="lg"
+                onClick={(e: React.MouseEvent) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  // Navigate to details page
+                  const title = "title" in item ? item.title : item.name;
+                  router.push(createContentUrl(type, item.id, title));
+                }}
+                className="pointer-events-auto z-[5]"
+              >
+                <Play className="size-6 text-white fill-white" />
+              </CircleActionButton>
+            </div>
+          )}
         </div>
 
         {/* Section 2: Movie Details */}
