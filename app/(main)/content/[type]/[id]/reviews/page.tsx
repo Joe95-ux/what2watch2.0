@@ -152,9 +152,11 @@ export default function ReviewsPage() {
   });
 
   const filmTitle =
-    type === "movie"
-      ? ((details as { title?: string } | null)?.title ?? "Movie")
-      : ((details as { name?: string } | null)?.name ?? "TV Show");
+    details == null
+      ? ""
+      : type === "movie"
+        ? ((details as { title?: string }).title ?? "Movie")
+        : ((details as { name?: string }).name ?? "TV Show");
 
   const detailUrl = useMemo(
     () => createContentUrl(type, id, filmTitle),
@@ -349,37 +351,54 @@ export default function ReviewsPage() {
                 </div>
               ) : null}
               <div className="min-w-0 flex-1">
-                <Link
-                  href={detailUrl}
-                  className="group block min-w-0 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                >
-                  <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-zinc-50 line-clamp-2 group-hover:underline underline-offset-2">
-                    {filmTitle}
-                  </h1>
-                </Link>
-                <div className="mt-2 flex items-center gap-2 flex-wrap text-xs sm:text-sm text-zinc-300">
-                  {displayHeaderRating && displayHeaderRating > 0 ? (
-                    <>
-                      <span className="inline-flex items-center gap-1.5">
-                        <IMDBBadge size={20} />
-                        <span className="font-medium text-zinc-100">
-                          {displayHeaderRating.toFixed(1)}
-                        </span>
-                      </span>
-                      <span>•</span>
-                    </>
-                  ) : null}
-                  {releaseYear ? <span>{releaseYear}</span> : null}
-                  {runtime ? (
-                    <>
-                      {releaseYear ? <span>•</span> : null}
-                      <span>{runtime}</span>
-                    </>
-                  ) : null}
-                </div>
-                <p className="mt-2 text-xs sm:text-sm text-zinc-400">
-                  Reviews ({userPagination.total + tmdbPagination.total})
-                </p>
+                {isDetailsLoading ? (
+                  <div className="space-y-0" aria-busy="true" aria-label="Loading title and details">
+                    <div className="space-y-2">
+                      <Skeleton className="h-8 max-w-[min(20rem,100%)] rounded-md border-0 bg-zinc-800/50 sm:h-10 sm:max-w-[min(28rem,100%)]" />
+                      <Skeleton className="hidden h-7 max-w-[min(14rem,85%)] rounded-md border-0 bg-zinc-800/50 sm:block" />
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Skeleton className="h-4 w-28 rounded-md border-0 bg-zinc-800/50" />
+                      <Skeleton className="h-4 w-10 rounded-md border-0 bg-zinc-800/50" />
+                      <Skeleton className="h-4 w-24 rounded-md border-0 bg-zinc-800/50" />
+                    </div>
+                    <Skeleton className="mt-2 h-4 w-44 rounded-md border-0 bg-zinc-800/50 sm:w-52" />
+                  </div>
+                ) : (
+                  <>
+                    <Link
+                      href={detailUrl}
+                      className="group block min-w-0 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                    >
+                      <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-zinc-50 line-clamp-2 group-hover:underline underline-offset-2">
+                        {filmTitle}
+                      </h1>
+                    </Link>
+                    <div className="mt-2 flex items-center gap-2 flex-wrap text-xs sm:text-sm text-zinc-300">
+                      {displayHeaderRating && displayHeaderRating > 0 ? (
+                        <>
+                          <span className="inline-flex items-center gap-1.5">
+                            <IMDBBadge size={20} />
+                            <span className="font-medium text-zinc-100">
+                              {displayHeaderRating.toFixed(1)}
+                            </span>
+                          </span>
+                          <span>•</span>
+                        </>
+                      ) : null}
+                      {releaseYear ? <span>{releaseYear}</span> : null}
+                      {runtime ? (
+                        <>
+                          {releaseYear ? <span>•</span> : null}
+                          <span>{runtime}</span>
+                        </>
+                      ) : null}
+                    </div>
+                    <p className="mt-2 text-xs sm:text-sm text-zinc-400">
+                      Reviews ({userPagination.total + tmdbPagination.total})
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           </div>
