@@ -8,7 +8,11 @@ interface ContentReactionResponse {
 }
 
 // Get reaction status and counts for content
-export function useContentReactions(tmdbId: number | null, mediaType: "movie" | "tv" | null) {
+export function useContentReactions(
+  tmdbId: number | null,
+  mediaType: "movie" | "tv" | null,
+  enabled: boolean = true
+) {
   return useQuery<ContentReactionResponse>({
     queryKey: ["content", tmdbId, mediaType, "reaction"],
     queryFn: async () => {
@@ -31,8 +35,10 @@ export function useContentReactions(tmdbId: number | null, mediaType: "movie" | 
       }
       return response.json();
     },
-    enabled: !!tmdbId && !!mediaType,
+    enabled: !!tmdbId && !!mediaType && enabled,
     staleTime: 30 * 1000, // 30 seconds
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
 

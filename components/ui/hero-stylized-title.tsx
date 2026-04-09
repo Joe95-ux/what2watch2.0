@@ -5,9 +5,9 @@ const TITLE_VARIANT_STYLES: Record<
   { h1: string; span: string }
 > = {
   default: {
-    h1: "text-4xl md:text-5xl lg:text-[5rem] font-normal font-serif text-white drop-shadow-lg leading-[0.95]",
+    h1: "text-4xl md:text-5xl lg:text-[4rem] font-normal font-serif text-white drop-shadow-lg leading-[0.95]",
     span:
-      "inline-block uppercase text-4xl md:text-5xl lg:text-[5rem] font-normal font-serif leading-[0.95]",
+      "inline-block uppercase text-4xl md:text-5xl lg:text-[4rem] font-normal font-serif leading-[0.95]",
   },
   detail: {
     h1: "text-2xl sm:text-3xl md:text-[3.5rem] font-normal font-serif text-white drop-shadow-lg leading-[0.95]",

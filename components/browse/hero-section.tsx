@@ -170,7 +170,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
 
   if (isLoading || !currentItem) {
     return (
-      <div className="relative w-full h-[75vh] sm:h-[80vh] -mt-[65px] bg-muted">
+      <div className="relative w-full h-[82vh] sm:h-[80vh] -mt-[65px] bg-muted">
         <Skeleton className="absolute inset-0 w-full h-full" />
       </div>
     );
@@ -215,7 +215,7 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
   const tvRuntimeLabel = formatRuntimeMinutes(runtimeMinutes);
 
   return (
-    <div className="relative w-full h-[75vh] sm:h-[80vh] -mt-[65px] overflow-hidden bg-background">
+    <div className="relative w-full h-[82vh] sm:h-[80vh] -mt-[65px] overflow-hidden bg-background">
       {/* Trailer Video (if available) - Full width with autoplay */}
       {/* Stop video when details sheet is open */}
       {trailer && !isLoadingTrailer && !isDetailModalOpen && !isMobile && (
@@ -283,12 +283,13 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
           <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-transparent z-10" />
         </>
       )}
+      <div className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black/95 via-black/75 to-transparent z-10 pointer-events-none sm:hidden" />
 
       {/* Content - Positioned at bottom of hero */}
       <div className={`relative z-20 h-full flex items-end transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
         <div className="relative w-full px-4 sm:px-6 lg:px-8 pb-10 sm:pb-20">
           <div className="max-w-2xl">
-            <HeroStylizedTitle title={title} className="mb-4" />
+            <HeroStylizedTitle title={title} className="mb-4 w-[80vw] max-w-[80vw] sm:w-auto sm:max-w-none" />
             {isMuted && (
               <div className="mb-4 flex flex-wrap items-center gap-2 text-base text-white/90">
                 {currentItemType === "tv" ? (

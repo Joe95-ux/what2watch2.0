@@ -220,7 +220,7 @@ export default function ContentDetailWhereToWatch({
                 {/* Provider List with Scroll */}
                 <div className="flex-1 min-w-0 h-full overflow-x-auto scrollbar-thin">
                   <div className="flex items-center gap-2 h-full py-4">
-                    {row.offers.map((offer) => {
+                    {row.offers.map((offer, offerIndex) => {
                       const quality = getQuality(offer.presentationType);
                       const price = offer.monetizationType === "rent" || offer.monetizationType === "buy"
                         ? formatPrice(offer.retailPrice, offer.currency)
@@ -228,7 +228,7 @@ export default function ContentDetailWhereToWatch({
 
                       return (
                         <a
-                          key={offer.providerId}
+                          key={`${row.key}-${offer.providerId}-${offer.monetizationType ?? "na"}-${offer.presentationType ?? "na"}-${offerIndex}`}
                           href={offer.standardWebUrl ?? offer.deepLinkUrl ?? "#"}
                           target="_blank"
                           rel="noopener noreferrer"

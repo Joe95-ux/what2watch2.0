@@ -539,8 +539,9 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
             </div>
 
 
+            <div className="absolute inset-x-0 bottom-0 h-[42%] bg-gradient-to-t from-black/95 via-black/70 to-transparent pointer-events-none sm:hidden" />
             <div className="absolute bottom-6 left-6 right-6">
-              <div className="flex items-center gap-4 rounded-xl bg-black/45 p-3 sm:bg-transparent sm:p-0">
+              <div className="flex items-center gap-4">
                 {posterPath && (
                   <div className="relative w-20 sm:w-24 aspect-[2/3] rounded-xl overflow-hidden border border-white/20 lg:hidden">
                     <Image

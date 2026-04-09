@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { usePopularMovies, useNowPlayingMovies, usePersonalizedContent, useMoviesByGenre } from "@/hooks/use-movies";
 import { useAllGenres } from "@/hooks/use-genres";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -44,21 +44,10 @@ export default function MoviesContent({ favoriteGenres, preferredTypes }: Movies
     () => allGenres.filter((genre) => genre?.id != null && typeof genre.name === "string" && genre.name.length > 0),
     [allGenres]
   );
-  const initialGenreCount = isMobile ? 4 : 8;
-  const [visibleGenreCount, setVisibleGenreCount] = useState(initialGenreCount);
-
-  useEffect(() => {
-    setVisibleGenreCount(initialGenreCount);
-  }, [initialGenreCount, topGenres.length]);
-
-  useEffect(() => {
-    if (visibleGenreCount >= topGenres.length) return;
-    const chunkSize = isMobile ? 2 : 4;
-    const timer = setInterval(() => {
-      setVisibleGenreCount((prev) => Math.min(prev + chunkSize, topGenres.length));
-    }, 220);
-    return () => clearInterval(timer);
-  }, [visibleGenreCount, topGenres.length, isMobile]);
+  const visibleGenres = useMemo(
+    () => topGenres.slice(0, isMobile ? 4 : 8),
+    [topGenres, isMobile]
+  );
 
   return (
     <div className="min-h-screen bg-background relative">
@@ -107,7 +96,7 @@ export default function MoviesContent({ favoriteGenres, preferredTypes }: Movies
         />
 
         {/* Genre Sections */}
-        {topGenres.slice(0, visibleGenreCount).map((genre) => (
+        {visibleGenres.map((genre) => (
           <GenreRow key={genre.id} genreId={genre.id} genreName={genre.name} />
         ))}
 

@@ -283,12 +283,18 @@ const checkIsWatched = async (tmdbId: number, mediaType: "movie" | "tv"): Promis
 };
 
 // Hook to check if a film is watched
-export function useIsWatched(tmdbId: number | null, mediaType: "movie" | "tv") {
+export function useIsWatched(
+  tmdbId: number | null,
+  mediaType: "movie" | "tv",
+  enabled: boolean = true
+) {
   return useQuery<{ isWatched: boolean; logId: string | null }>({
     queryKey: ["is-watched", tmdbId, mediaType],
     queryFn: () => checkIsWatched(tmdbId!, mediaType),
-    enabled: !!tmdbId,
+    enabled: !!tmdbId && enabled,
     staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
 

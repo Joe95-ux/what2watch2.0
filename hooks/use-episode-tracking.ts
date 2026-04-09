@@ -193,33 +193,36 @@ export function useUnmarkSeasonsSeen() {
 const checkSeenSeasons = async (tvShowTmdbId: number): Promise<number[]> => {
   const res = await fetch(`/api/episodes/seasons/check?tvShowTmdbId=${tvShowTmdbId}`);
   if (!res.ok) {
-    throw new Error("Failed to fetch seen seasons");
+    // For signed-out users (or missing data), treat as "no seen seasons" instead
+    // of surfacing noisy client-side runtime errors.
+    if (res.status === 401 || res.status === 403 || res.status === 404) {
+      return [];
+    }
+    throw new Error(`Failed to fetch seen seasons (status: ${res.status})`);
   }
   const data = await res.json();
-  return data.seenSeasons || [];
+  return Array.isArray(data?.seenSeasons) ? data.seenSeasons : [];
 };
 
 // Hook to get which seasons are fully seen
-export function useSeenSeasons(tvShowTmdbId: number | null) {
+export function useSeenSeasons(tvShowTmdbId: number | null, enabled: boolean = true) {
   return useQuery<number[]>({
     queryKey: tvShowTmdbId ? ["seen-seasons", tvShowTmdbId] : ["seen-seasons"],
     queryFn: async () => {
-      console.log("[useSeenSeasons] Fetching seen seasons for tvShow:", tvShowTmdbId);
       if (!tvShowTmdbId) {
-        console.log("[useSeenSeasons] No tvShowTmdbId, returning empty array");
         return [];
       }
       try {
-        const result = await checkSeenSeasons(tvShowTmdbId);
-        console.log("[useSeenSeasons] Fetched seen seasons:", result);
-        return result;
+        return await checkSeenSeasons(tvShowTmdbId);
       } catch (error) {
         console.error("[useSeenSeasons] Failed to check seen seasons:", error);
         throw error; // Let React Query handle the error properly
       }
     },
-    enabled: !!tvShowTmdbId,
+    enabled: !!tvShowTmdbId && enabled,
     staleTime: 0, // Always refetch when invalidated
     retry: 1,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }

@@ -79,14 +79,14 @@ export default function MoreLikeThisCard({
   const toggleWatchlist = useToggleWatchlist();
   const quickWatch = useQuickWatch();
   const unwatch = useUnwatch();
-  const { data: watchedData } = useIsWatched(item.id, type);
+  const { isSignedIn } = useUser();
+  const { data: watchedData } = useIsWatched(item.id, type, isSignedIn);
   const isWatched = watchedData?.isWatched || false;
   const watchedLogId = watchedData?.logId || null;
   const isMobile = useIsMobile();
-  const { isSignedIn } = useUser();
   
   // For TV shows: calculate progress percentage
-  const { data: seenSeasons = [] } = useSeenSeasons(type === "tv" ? item.id : null);
+  const { data: seenSeasons = [] } = useSeenSeasons(type === "tv" ? item.id : null, isSignedIn);
   const { data: tvSeasonsData } = useTVSeasons(type === "tv" ? item.id : null);
   
   // Calculate progress percentage for TV shows
@@ -107,7 +107,7 @@ export default function MoreLikeThisCard({
   const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
   
   // Content reactions (likes)
-  const { data: reactionData } = useContentReactions(item.id, type);
+  const { data: reactionData } = useContentReactions(item.id, type, isSignedIn);
   const likeContent = useLikeContent();
   const isLiked = reactionData?.isLiked || false;
   const likeCount = reactionData?.likeCount || 0;

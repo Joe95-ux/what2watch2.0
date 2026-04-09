@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { usePlaylists, useAddItemToPlaylist, useRemoveItemFromPlaylist, type Playlist } from "@/hooks/use-playlists";
 import { useLists, useUpdateList, useRemoveItemFromList, type List } from "@/hooks/use-lists";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
@@ -44,6 +44,7 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
   const [isCreateListModalOpen, setIsCreateListModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"playlist" | "list">("playlist");
+  const lastOpenRef = useRef<boolean>(false);
   const isMobile = useIsMobile();
 
   const promptSignIn = useCallback(
@@ -69,14 +70,16 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
     [isSignedIn, promptSignIn]
   );
 
-  const handleOpenChange = (open: boolean) => {
+  const handleOpenChange = useCallback((open: boolean) => {
     if (open && !isSignedIn) {
       promptSignIn("Sign in to add items to lists or playlists.");
       return;
     }
+    if (lastOpenRef.current === open) return;
+    lastOpenRef.current = open;
     setIsDropdownOpen(open);
     onOpenChange?.(open);
-  };
+  }, [isSignedIn, onOpenChange, promptSignIn]);
 
   const handleTogglePlaylist = async (playlistId: string) => {
     await requireAuth(async () => {

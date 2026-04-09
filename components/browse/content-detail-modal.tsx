@@ -24,7 +24,7 @@ import {
 } from "@/hooks/use-content-details";
 import { cn } from "@/lib/utils";
 import { createContentUrl } from "@/lib/content-slug";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import VideosCarousel from "./videos-carousel";
 import TrailerModal from "./trailer-modal";
 import MoreLikeThis from "./more-like-this";
@@ -145,8 +145,14 @@ export default function ContentDetailModal({
   const [isEpisodeModalOpen, setIsEpisodeModalOpen] = useState(false);
   const isClosingRef = useRef(false);
   const [isSheetMounted, setIsSheetMounted] = useState(false);
+  const [hasHydrated, setHasHydrated] = useState(false);
   const [isHeroListDropdownOpen, setIsHeroListDropdownOpen] = useState(false);
   const [watchCountry, setWatchCountry] = useState("US");
+  const allowInlineTrailerPlayback = hasHydrated && !isMobile;
+
+  useEffect(() => {
+    setHasHydrated(true);
+  }, []);
   
   // Track recently viewed
   const addRecentlyViewed = useAddRecentlyViewed();
@@ -320,6 +326,7 @@ export default function ContentDetailModal({
           // Allow normal close behavior for clicks outside
         }}
       >
+        <SheetTitle className="sr-only">{title}</SheetTitle>
         {/* Control Buttons - Wrapped in div to avoid [&>button]:hidden selector */}
         <div className="no-close">
           {/* Back Button (when opened from More Like This) */}
@@ -344,8 +351,8 @@ export default function ContentDetailModal({
         </div>
 
         {/* Hero Section with Trailer/Backdrop */}
-        <div className="relative w-full h-[70vh] min-h-[500px] overflow-hidden">
-          {trailer && isOpen && videosData && !isMobile ? (
+        <div className="relative w-full h-[70vh] min-h-[70vh] overflow-hidden">
+          {trailer && isOpen && videosData && allowInlineTrailerPlayback ? (
             <div className="absolute inset-0">
               {isOpen && (
                 <iframe
@@ -379,13 +386,14 @@ export default function ContentDetailModal({
           ) : (
             <div className="absolute inset-0 bg-muted" />
           )}
+          <div className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black/95 via-black/75 to-transparent z-[9] pointer-events-none sm:hidden" />
 
           {/* Content Overlay - Hidden when audio is enabled */}
           {isMuted && (
             <div className="absolute inset-0 flex items-end z-10">
               <div className="w-full px-6 sm:px-8 lg:px-12 pb-12">
-                <div className="max-w-3xl">
-                  <HeroStylizedTitle title={title} variant="detail" className="mb-4" />
+                <div>
+                  <HeroStylizedTitle title={title} variant="detail" className="mb-4 max-w-xl" />
                   <div className="flex items-center gap-4 mb-6 flex-wrap">
                     {(omdbData?.imdbRating || (item.vote_average > 0 && !omdbData?.imdbRating)) && (
                       <div className="flex items-center gap-1.5">
@@ -512,7 +520,7 @@ export default function ContentDetailModal({
                       }
                     />
                     {/* Mute/Unmute Toggle - Only show when trailer is available, on extreme right */}
-                    {trailer && videosData && !isMobile && (
+                    {trailer && videosData && allowInlineTrailerPlayback && (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
@@ -541,7 +549,7 @@ export default function ContentDetailModal({
           )}
 
           {/* Clear Icon - Only show when audio is enabled (not muted) */}
-          {!isMuted && trailer && videosData && (
+          {!isMuted && trailer && videosData && allowInlineTrailerPlayback && (
             <div className="absolute inset-0 flex items-end justify-end z-10 pointer-events-none p-6 sm:p-8 lg:p-12">
               <Tooltip>
                 <TooltipTrigger asChild>

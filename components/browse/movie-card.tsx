@@ -55,23 +55,22 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const toggleWatchlist = useToggleWatchlist();
   const quickWatch = useQuickWatch();
   const unwatch = useUnwatch();
-  const { data: watchedData } = useIsWatched(item.id, type);
+  const { isSignedIn } = useUser();
+  const { data: watchedData } = useIsWatched(item.id, type, isSignedIn);
   const isWatched = watchedData?.isWatched || false;
   const watchedLogId = watchedData?.logId || null;
   const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(true);
-  const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
   const cardRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const attemptedFetchRef = useRef<number | null>(null); // Track which item ID we've attempted to fetch
   const [trailerError, setTrailerError] = useState<string | null>(null);
-  const [isPlaylistDropdownOpen, setIsPlaylistDropdownOpen] = useState(false);
   const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
   
   // Content reactions (likes)
-  const { data: reactionData } = useContentReactions(item.id, type);
+  const { data: reactionData } = useContentReactions(item.id, type, isSignedIn);
   const likeContent = useLikeContent();
   const isLiked = reactionData?.isLiked || false;
   const likeCount = reactionData?.likeCount || 0;
@@ -187,7 +186,17 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
     try {
       const response = await fetch(`/api/${type}/${item.id}/videos`);
       if (!response.ok) {
-        throw new Error("Failed to fetch trailers");
+        // Treat common non-critical statuses as "no trailers available"
+        if (response.status === 404 || response.status === 401 || response.status === 403) {
+          setTrailer(null);
+          setAllVideos([]);
+          setTrailerError("No trailers are available for this title yet.");
+          return;
+        }
+        setTrailer(null);
+        setAllVideos([]);
+        setTrailerError("Unable to load trailers right now. Please try again later.");
+        return;
       }
 
       const data = await response.json();
@@ -208,7 +217,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
         noVideosAvailable ? "No trailers are available for this title yet." : null
       );
     } catch (error) {
-      console.error("Error fetching trailer:", error);
+      console.warn("Trailer fetch skipped:", error);
       attemptedFetchRef.current = null;
       setTrailer(null);
       setAllVideos([]);
@@ -601,9 +610,6 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                             item={item}
                             type={type}
                             onAddSuccess={onAddToPlaylist}
-                            onOpenChange={(open) => {
-                              setIsPlaylistDropdownOpen(open);
-                            }}
                             trigger={
                               <CircleActionButton
                                 size="sm"
