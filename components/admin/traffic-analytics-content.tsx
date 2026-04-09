@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
@@ -36,66 +36,144 @@ interface TrafficAnalytics {
 
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#00ff00", "#0088fe"];
 
+const TRAFFIC_DATE_STORAGE_KEY = "w2w-traffic-analytics-date-range-v1";
+
+type DatePreset = "7" | "30" | "90" | "365";
+
+type PersistedTrafficDate =
+  | { v: 1; kind: "preset"; preset: DatePreset }
+  | { v: 1; kind: "custom"; from: string; to: string };
+
+const PRESET_KEYS: DatePreset[] = ["7", "30", "90", "365"];
+
+function isPresetKey(s: string): s is DatePreset {
+  return PRESET_KEYS.includes(s as DatePreset);
+}
+
+/** Same window as API `range` presets — used for calendar + fetch. */
+function getPresetDateRange(preset: DatePreset): { from: Date; to: Date } {
+  const now = new Date();
+  let from: Date;
+  switch (preset) {
+    case "7":
+      from = startOfDay(subDays(now, 7));
+      break;
+    case "30":
+      from = startOfDay(subDays(now, 30));
+      break;
+    case "90":
+      from = startOfDay(subDays(now, 90));
+      break;
+    case "365":
+      from = startOfDay(subDays(now, 365));
+      break;
+    default:
+      from = startOfDay(subDays(now, 30));
+  }
+  return { from, to: endOfDay(now) };
+}
+
 export function TrafficAnalyticsContent() {
   const [dateFilter, setDateFilter] = useState<"7" | "30" | "90" | "365" | "custom">("30");
   const [customDateRange, setCustomDateRange] = useState<{ from?: Date; to?: Date } | undefined>(undefined);
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
   const [sourcesPage, setSourcesPage] = useState(1);
   const [countriesPage, setCountriesPage] = useState(1);
+  const [prefsReady, setPrefsReady] = useState(false);
   const itemsPerPage = 10;
 
-  // Calculate date range for API
-  const getDateRange = () => {
+  // Restore persisted range after mount (avoids SSR/localStorage hydration issues)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(TRAFFIC_DATE_STORAGE_KEY);
+      if (raw) {
+        const p = JSON.parse(raw) as PersistedTrafficDate;
+        if (p?.v === 1 && p.kind === "custom" && p.from && p.to) {
+          setDateFilter("custom");
+          setCustomDateRange({ from: new Date(p.from), to: new Date(p.to) });
+        } else if (p?.v === 1 && p.kind === "preset" && isPresetKey(p.preset)) {
+          setDateFilter(p.preset);
+          setCustomDateRange(undefined);
+        }
+      }
+    } catch {
+      /* ignore corrupt storage */
+    }
+    setPrefsReady(true);
+  }, []);
+
+  // Persist whenever selection changes (after initial restore)
+  useEffect(() => {
+    if (!prefsReady) return;
+    try {
+      if (dateFilter === "custom") {
+        if (customDateRange?.from && customDateRange?.to) {
+          const payload: PersistedTrafficDate = {
+            v: 1,
+            kind: "custom",
+            from: customDateRange.from.toISOString(),
+            to: customDateRange.to.toISOString(),
+          };
+          localStorage.setItem(TRAFFIC_DATE_STORAGE_KEY, JSON.stringify(payload));
+        }
+      } else {
+        const payload: PersistedTrafficDate = {
+          v: 1,
+          kind: "preset",
+          preset: dateFilter,
+        };
+        localStorage.setItem(TRAFFIC_DATE_STORAGE_KEY, JSON.stringify(payload));
+      }
+    } catch {
+      /* quota / private mode */
+    }
+  }, [dateFilter, customDateRange, prefsReady]);
+
+  const dateRange = useMemo(() => {
     if (dateFilter === "custom" && customDateRange?.from && customDateRange?.to) {
       return {
         from: customDateRange.from.toISOString(),
         to: customDateRange.to.toISOString(),
       };
     }
-    const now = new Date();
-    let from: Date;
-    switch (dateFilter) {
-      case "7":
-        from = startOfDay(subDays(now, 7));
-        break;
-      case "30":
-        from = startOfDay(subDays(now, 30));
-        break;
-      case "90":
-        from = startOfDay(subDays(now, 90));
-        break;
-      case "365":
-        from = startOfDay(subDays(now, 365));
-        break;
-      default:
-        from = startOfDay(subDays(now, 30));
+    if (dateFilter === "custom") {
+      const now = new Date();
+      const from = startOfDay(subDays(now, 30));
+      return {
+        from: from.toISOString(),
+        to: endOfDay(now).toISOString(),
+      };
     }
+    const { from, to } = getPresetDateRange(dateFilter);
     return {
       from: from.toISOString(),
-      to: endOfDay(now).toISOString(),
+      to: to.toISOString(),
     };
-  };
+  }, [dateFilter, customDateRange]);
 
-  const dateRange = getDateRange();
-  const queryKey = dateFilter === "custom" 
-    ? ["traffic-analytics", dateRange.from, dateRange.to]
-    : ["traffic-analytics", dateFilter];
+  const queryKey = ["traffic-analytics", dateRange.from, dateRange.to];
 
   const { data, isLoading } = useQuery<TrafficAnalytics>({
     queryKey,
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (dateFilter === "custom" && dateRange.from && dateRange.to) {
-        params.append("from", dateRange.from);
-        params.append("to", dateRange.to);
-      } else {
-        params.append("range", dateFilter);
-      }
+      params.append("from", dateRange.from);
+      params.append("to", dateRange.to);
       const res = await fetch(`/api/analytics/traffic?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch traffic analytics");
       return res.json();
     },
+    enabled: prefsReady,
   });
+
+  /** Range shown in react-day-picker — must match left preset or custom selection. */
+  const calendarSelectedRange = useMemo(() => {
+    if (dateFilter === "custom" && customDateRange?.from && customDateRange?.to) {
+      return { from: customDateRange.from, to: customDateRange.to };
+    }
+    if (dateFilter === "custom") return undefined;
+    return getPresetDateRange(dateFilter);
+  }, [dateFilter, customDateRange]);
 
   const getDateFilterDisplay = () => {
     if (dateFilter === "custom" && customDateRange?.from && customDateRange?.to) {
@@ -110,34 +188,13 @@ export function TrafficAnalyticsContent() {
     return labels[dateFilter] || "Last 30 Days";
   };
 
-  // Sync calendar with selected preset so the range is visible on the right
-  const calendarSelectedRange = (() => {
-    if (dateFilter === "custom" && customDateRange?.from && customDateRange?.to) {
-      return { from: customDateRange.from, to: customDateRange.to };
-    }
-    if (dateFilter === "custom") return undefined;
-    const now = new Date();
-    let from: Date;
-    switch (dateFilter) {
-      case "7":
-        from = startOfDay(subDays(now, 7));
-        break;
-      case "30":
-        from = startOfDay(subDays(now, 30));
-        break;
-      case "90":
-        from = startOfDay(subDays(now, 90));
-        break;
-      case "365":
-        from = startOfDay(subDays(now, 365));
-        break;
-      default:
-        return undefined;
-    }
-    return { from, to: endOfDay(now) };
-  })();
+  const calendarMonthAnchor =
+    calendarSelectedRange?.from ?? calendarSelectedRange?.to ?? new Date();
+  const calendarRemountKey = `${dateFilter}-${
+    customDateRange?.from?.getTime() ?? ""
+  }-${customDateRange?.to?.getTime() ?? ""}-${dateRange.from}-${dateRange.to}`;
 
-  if (isLoading) {
+  if (!prefsReady || isLoading) {
     return (
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -273,7 +330,9 @@ export function TrafficAnalyticsContent() {
               {/* Right Column - Date Picker */}
               <div className="p-3">
                 <Calendar
+                  key={calendarRemountKey}
                   mode="range"
+                  defaultMonth={calendarMonthAnchor}
                   selected={calendarSelectedRange}
                   onSelect={(range) => {
                     if (range) {

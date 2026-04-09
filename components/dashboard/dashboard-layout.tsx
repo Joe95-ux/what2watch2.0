@@ -79,23 +79,22 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { avatarUrl: contextAvatarUrl } = useAvatar();
   const { openUserProfile } = useClerk();
   
-  // Determine sidebar state based on screen size (< lg = collapsed)
-  // Use controlled state to ensure correct behavior on all screen sizes
-  const [sidebarOpen, setSidebarOpen] = useState(() => {
-    if (typeof window !== "undefined") {
-      return window.innerWidth >= 1024; // lg breakpoint
-    }
-    return false; // SSR: default to collapsed
-  });
-  
+  // Sidebar open state must match SSR and first client paint (no `window` in useState)
+  // or hydration mismatches data-state expanded/collapsed. Sync after mount + on resize.
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [themeIconMounted, setThemeIconMounted] = useState(false);
+
   useEffect(() => {
     const checkScreenSize = () => {
-      setSidebarOpen(window.innerWidth >= 1024); // lg breakpoint
+      setSidebarOpen(window.innerWidth >= 1024);
     };
-    
     checkScreenSize();
     window.addEventListener("resize", checkScreenSize);
     return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
+
+  useEffect(() => {
+    setThemeIconMounted(true);
   }, []);
 
   // General navigation items
@@ -411,7 +410,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <SidebarMenuButton tooltip="Theme">
-                            {theme === "light" ? (
+                            {!themeIconMounted ? (
+                              <Moon className="opacity-40" aria-hidden />
+                            ) : theme === "light" ? (
                               <Sun />
                             ) : theme === "dark" ? (
                               <Moon />
