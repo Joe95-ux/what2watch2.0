@@ -289,7 +289,7 @@ export default function ReviewsPage() {
                 <div className="relative w-16 h-24 sm:w-24 sm:h-36 flex-shrink-0 overflow-visible">
                   <Link
                     href={detailUrl}
-                    className="absolute inset-0 block cursor-pointer rounded overflow-hidden bg-zinc-800/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                    className="absolute inset-0 block cursor-pointer rounded-md overflow-hidden bg-zinc-800/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                   >
                     <Image
                       src={getPosterUrl(posterPath, "w300")}
