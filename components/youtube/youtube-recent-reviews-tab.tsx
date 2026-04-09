@@ -133,7 +133,7 @@ export function YouTubeRecentReviewsTab() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-14 lg:gap-18">
       <div className="lg:col-span-8 space-y-6">
         {isLoading ? (
           <div className="space-y-4">

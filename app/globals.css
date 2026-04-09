@@ -5,6 +5,7 @@
 
 @theme inline {
   --spacing-15: 3.75rem;
+  --spacing-18: 4.5rem;
   --spacing-34: 8.5rem;
   --color-background: var(--background);
   --color-foreground: var(--foreground);

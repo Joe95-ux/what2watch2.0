@@ -15,7 +15,7 @@ interface TMDBReviewCardProps {
 
 export default function TMDBReviewCard({
   review,
-  showFullContent = false,
+  showFullContent = true,
 }: TMDBReviewCardProps) {
   const [isExpanded, setIsExpanded] = useState(showFullContent);
 

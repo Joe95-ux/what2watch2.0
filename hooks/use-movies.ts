@@ -1,5 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { TMDBMovie, TMDBSeries, TMDBResponse } from "@/lib/tmdb";
+import {
+  TMDBMovie,
+  TMDBSeries,
+  TMDBResponse,
+  TMDBTrendingAllItem,
+} from "@/lib/tmdb";
 
 // Query keys
 export const movieQueryKeys = {
@@ -9,6 +14,8 @@ export const movieQueryKeys = {
   topRated: (page: number) => [...movieQueryKeys.all, "top-rated", page] as const,
   trending: (timeWindow: "day" | "week", page: number) =>
     [...movieQueryKeys.all, "trending", timeWindow, page] as const,
+  trendingAll: (timeWindow: "day" | "week", page: number) =>
+    [...movieQueryKeys.all, "trending-all", timeWindow, page] as const,
   personalized: (genreId: number) => [...movieQueryKeys.all, "personalized", genreId] as const,
   byGenre: (genreId: number, page: number) => [...movieQueryKeys.all, "genre", genreId, page] as const,
 };
@@ -81,6 +88,20 @@ const fetchTrendingTV = async (
   });
   const res = await fetch(`/api/tv/trending?${params.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch trending TV shows");
+  const data = await res.json();
+  return data.results || [];
+};
+
+const fetchTrendingAll = async (
+  timeWindow: "day" | "week" = "day",
+  page: number = 1
+): Promise<TMDBTrendingAllItem[]> => {
+  const params = new URLSearchParams({
+    timeWindow,
+    page: String(page),
+  });
+  const res = await fetch(`/api/trending/all?${params.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch trending (all media)");
   const data = await res.json();
   return data.results || [];
 };
@@ -241,13 +262,15 @@ export function useNowPlayingMovies(page: number = 1) {
 
 export function useTrendingMovies(
   timeWindow: "day" | "week" = "week",
-  page: number = 1
+  page: number = 1,
+  options?: { enabled?: boolean }
 ) {
   return useQuery({
     queryKey: movieQueryKeys.trending(timeWindow, page),
     queryFn: () => fetchTrendingMovies(timeWindow, page),
     staleTime: 1000 * 60 * 60, // 1 hour (trending updates less frequently than expected)
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
+    enabled: options?.enabled !== false,
   });
 }
 
@@ -262,13 +285,29 @@ export function usePopularTV(page: number = 1) {
 
 export function useTrendingTV(
   timeWindow: "day" | "week" = "week",
-  page: number = 1
+  page: number = 1,
+  options?: { enabled?: boolean }
 ) {
   return useQuery({
     queryKey: tvQueryKeys.trending(timeWindow, page),
     queryFn: () => fetchTrendingTV(timeWindow, page),
     staleTime: 1000 * 60 * 60, // 1 hour (trending updates less frequently than expected)
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
+    enabled: options?.enabled !== false,
+  });
+}
+
+export function useTrendingAll(
+  timeWindow: "day" | "week" = "day",
+  page: number = 1,
+  options?: { enabled?: boolean }
+) {
+  return useQuery({
+    queryKey: movieQueryKeys.trendingAll(timeWindow, page),
+    queryFn: () => fetchTrendingAll(timeWindow, page),
+    staleTime: 1000 * 60 * 60,
+    gcTime: 1000 * 60 * 60 * 24,
+    enabled: options?.enabled !== false,
   });
 }
 

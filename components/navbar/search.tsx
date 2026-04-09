@@ -13,10 +13,20 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { TMDBMovie, TMDBSeries, TMDBResponse, getPosterUrl } from "@/lib/tmdb";
+import {
+  TMDBMovie,
+  TMDBSeries,
+  TMDBResponse,
+  TMDBTrendingAllItem,
+  getPosterUrl,
+} from "@/lib/tmdb";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useTrendingMovies, useTrendingTV } from "@/hooks/use-movies";
+import {
+  useTrendingAll,
+  useTrendingMovies,
+  useTrendingTV,
+} from "@/hooks/use-movies";
 import Image from "next/image";
 import Link from "next/link";
 import { createContentUrl } from "@/lib/content-slug";
@@ -35,6 +45,79 @@ interface SearchResult {
   first_air_date?: string;
   known_for_department?: string;
 }
+
+type SearchTrendingTab = "trending" | "today" | "week";
+
+function interleaveTrendingMoviesAndTV(
+  movies: TMDBMovie[],
+  tvShows: TMDBSeries[],
+  limit = 10
+): SearchResult[] {
+  const movieResults: SearchResult[] = movies.slice(0, 5).map((movie) => ({
+    id: movie.id,
+    title: movie.title,
+    type: "movie" as const,
+    poster_path: movie.poster_path,
+    release_date: movie.release_date,
+  }));
+  const tvResults: SearchResult[] = tvShows.slice(0, 5).map((show) => ({
+    id: show.id,
+    title: show.name,
+    type: "tv" as const,
+    poster_path: show.poster_path,
+    first_air_date: show.first_air_date,
+  }));
+  const combined: SearchResult[] = [];
+  const maxLength = Math.max(movieResults.length, tvResults.length);
+  for (let i = 0; i < maxLength && combined.length < limit; i++) {
+    if (i < movieResults.length) combined.push(movieResults[i]);
+    if (i < tvResults.length && combined.length < limit) combined.push(tvResults[i]);
+  }
+  return combined;
+}
+
+function mapTrendingAllToSearchResults(
+  items: TMDBTrendingAllItem[],
+  limit = 10
+): SearchResult[] {
+  const out: SearchResult[] = [];
+  for (const item of items) {
+    if (out.length >= limit) break;
+    if (item.media_type === "movie") {
+      out.push({
+        id: item.id,
+        title: item.title,
+        type: "movie",
+        poster_path: item.poster_path,
+        release_date: item.release_date,
+      });
+    } else if (item.media_type === "tv") {
+      out.push({
+        id: item.id,
+        title: item.name,
+        type: "tv",
+        poster_path: item.poster_path,
+        first_air_date: item.first_air_date,
+      });
+    } else if (item.media_type === "person") {
+      out.push({
+        id: item.id,
+        title: item.name,
+        type: "person",
+        poster_path: null,
+        profile_path: item.profile_path,
+        known_for_department: item.known_for_department,
+      });
+    }
+  }
+  return out;
+}
+
+const SEARCH_TRENDING_TABS: { id: SearchTrendingTab; label: string }[] = [
+  { id: "trending", label: "Trending" },
+  { id: "today", label: "Today" },
+  { id: "week", label: "This Week" },
+];
 
 interface SearchProps {
   hasHeroSection?: boolean;
@@ -70,47 +153,57 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
 
   // Check if mobile (using standard md breakpoint: 768px)
   const isMobile = useIsMobile();
+  const [trendingTab, setTrendingTab] = useState<SearchTrendingTab>("today");
 
   // Fetch trending content when search is expanded but query is empty
   const shouldShowTrending = isExpanded && !query.trim();
-  const { data: trendingMovies = [], isLoading: isLoadingTrendingMovies } = useTrendingMovies("week", 1);
-  const { data: trendingTV = [], isLoading: isLoadingTrendingTV } = useTrendingTV("week", 1);
+  const showTrendingAllTab = shouldShowTrending && trendingTab === "trending";
+  const showTodayTab = shouldShowTrending && trendingTab === "today";
+  const showWeekTab = shouldShowTrending && trendingTab === "week";
 
-  // Combine and limit trending content to first 10 items (mix of movies and TV)
+  const { data: trendingMoviesDay = [], isLoading: loadingMoviesDay } =
+    useTrendingMovies("day", 1, { enabled: showTodayTab });
+  const { data: trendingTVDay = [], isLoading: loadingTVDay } = useTrendingTV(
+    "day",
+    1,
+    { enabled: showTodayTab }
+  );
+  const { data: trendingMoviesWeek = [], isLoading: loadingMoviesWeek } =
+    useTrendingMovies("week", 1, { enabled: showWeekTab });
+  const { data: trendingTVWeek = [], isLoading: loadingTVWeek } = useTrendingTV(
+    "week",
+    1,
+    { enabled: showWeekTab }
+  );
+  const { data: trendingAllItems = [], isLoading: loadingTrendingAll } =
+    useTrendingAll("day", 1, { enabled: showTrendingAllTab });
+
   const trendingContent = useMemo(() => {
     if (!shouldShowTrending) return [];
-    
-    const combined: SearchResult[] = [];
-    
-    // Take first 5 movies
-    const movies = trendingMovies.slice(0, 5).map((movie) => ({
-      id: movie.id,
-      title: movie.title,
-      type: "movie" as const,
-      poster_path: movie.poster_path,
-      release_date: movie.release_date,
-    }));
-    
-    // Take first 5 TV shows
-    const tvShows = trendingTV.slice(0, 5).map((show) => ({
-      id: show.id,
-      title: show.name,
-      type: "tv" as const,
-      poster_path: show.poster_path,
-      first_air_date: show.first_air_date,
-    }));
-    
-    // Interleave: movie, tv, movie, tv, etc. up to 10 total
-    const maxLength = Math.max(movies.length, tvShows.length);
-    for (let i = 0; i < maxLength && combined.length < 10; i++) {
-      if (i < movies.length) combined.push(movies[i]);
-      if (i < tvShows.length && combined.length < 10) combined.push(tvShows[i]);
+    if (trendingTab === "trending") {
+      return mapTrendingAllToSearchResults(trendingAllItems);
     }
-    
-    return combined;
-  }, [shouldShowTrending, trendingMovies, trendingTV]);
+    if (trendingTab === "today") {
+      return interleaveTrendingMoviesAndTV(trendingMoviesDay, trendingTVDay);
+    }
+    return interleaveTrendingMoviesAndTV(trendingMoviesWeek, trendingTVWeek);
+  }, [
+    shouldShowTrending,
+    trendingTab,
+    trendingAllItems,
+    trendingMoviesDay,
+    trendingTVDay,
+    trendingMoviesWeek,
+    trendingTVWeek,
+  ]);
 
-  const isLoadingTrending = isLoadingTrendingMovies || isLoadingTrendingTV;
+  const isLoadingTrending =
+    shouldShowTrending &&
+    (trendingTab === "today"
+      ? loadingMoviesDay || loadingTVDay
+      : trendingTab === "week"
+        ? loadingMoviesWeek || loadingTVWeek
+        : loadingTrendingAll);
 
   // Prevent hydration mismatch by only showing content after mount
   useEffect(() => {
@@ -247,8 +340,10 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
     setResults([]);
     if (result.type === "person") {
       router.push(`/person/${result.id}`);
+    } else if (result.type === "movie") {
+      router.push(createContentUrl("movie", result.id, result.title));
     } else {
-      router.push(createContentUrl(result.type, result.id, result.title));
+      router.push(createContentUrl("tv", result.id, result.title));
     }
   };
 
@@ -474,8 +569,24 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
                   {!isLoadingDisplay && displayResults.length > 0 && (
                     <>
                       {isShowingTrending && (
-                        <div className="px-2 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                          Trending Now
+                        <div className="px-2 pt-2 pb-0">
+                          <span className="flex flex-wrap items-center gap-0.5 text-xs text-muted-foreground">
+                            {SEARCH_TRENDING_TABS.map((t) => (
+                              <button
+                                key={t.id}
+                                type="button"
+                                onClick={() => setTrendingTab(t.id)}
+                                className={cn(
+                                  "px-1.5 py-0.5 rounded cursor-pointer",
+                                  trendingTab === t.id
+                                    ? "bg-muted font-medium text-foreground"
+                                    : "hover:text-foreground"
+                                )}
+                              >
+                                {t.label}
+                              </button>
+                            ))}
+                          </span>
                         </div>
                       )}
                       <div className="space-y-4">
@@ -631,8 +742,24 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
             {!isLoadingDisplay && displayResults.length > 0 && (
               <>
                 {isShowingTrending && (
-                  <div className="px-2 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Trending Now
+                  <div className="px-2 pt-2 pb-0">
+                    <span className="flex flex-wrap items-center gap-0.5 text-xs text-muted-foreground">
+                      {SEARCH_TRENDING_TABS.map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setTrendingTab(t.id)}
+                          className={cn(
+                            "px-1.5 py-0.5 rounded cursor-pointer",
+                            trendingTab === t.id
+                              ? "bg-muted font-medium text-foreground"
+                              : "hover:text-foreground"
+                          )}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </span>
                   </div>
                 )}
                 <div className="space-y-4">
@@ -690,7 +817,11 @@ function SearchResultItem({
     ? "Movie"
     : "TV Show";
 
-  const href = isPerson ? `/person/${result.id}` : createContentUrl(result.type, result.id, result.title);
+  const href = isPerson
+    ? `/person/${result.id}`
+    : result.type === "movie"
+      ? createContentUrl("movie", result.id, result.title)
+      : createContentUrl("tv", result.id, result.title);
 
   const posterClass = variant === "desktop"
     ? isPerson

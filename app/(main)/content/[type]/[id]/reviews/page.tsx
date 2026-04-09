@@ -1,11 +1,14 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
+import { IoBookmarkSharp } from "react-icons/io5";
 import { useReviews, useTMDBReviews } from "@/hooks/use-reviews";
-import { useMovieDetails, useTVDetails } from "@/hooks/use-content-details";
+import { useMovieDetails, useTVDetails, useIMDBRating } from "@/hooks/use-content-details";
+import { IMDBBadge } from "@/components/ui/imdb-badge";
 import ReviewCard from "@/components/reviews/review-card";
 import TMDBReviewCard from "@/components/reviews/tmdb-review-card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,17 +29,21 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Plus, Check } from "lucide-react";
 import WriteReviewDialog from "@/components/reviews/write-review-dialog";
-import { useUser } from "@clerk/nextjs";
-import { ArrowLeft } from "lucide-react";
-import { getPosterUrl } from "@/lib/tmdb";
+import { useUser, useClerk } from "@clerk/nextjs";
+import { getPosterUrl, type TMDBMovie, type TMDBSeries } from "@/lib/tmdb";
 import CreateListModal from "@/components/lists/create-list-modal";
+import { useToggleWatchlist } from "@/hooks/use-watchlist";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export default function ReviewsPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useUser();
+  const { user, isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
+  const toggleWatchlist = useToggleWatchlist();
   const [writeDialogOpen, setWriteDialogOpen] = useState(false);
   const [ratingFilter, setRatingFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("featured");
@@ -85,8 +92,19 @@ export default function ReviewsPage() {
     ...userReviews.map((review) => ({ type: "user" as const, review })),
   ];
 
-  const { data: relatedUserLists = [], isLoading: isRelatedUserListsLoading } = useQuery({
-    queryKey: ["reviews-page-related-user-lists", id, type],
+  const { data: editorialLists = [], isLoading: isEditorialListsLoading } = useQuery({
+    queryKey: ["reviews-page-editorial-lists"],
+    queryFn: async () => {
+      const res = await fetch("/api/lists/public?editorialOnly=true&limit=4");
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data.lists ?? []).slice(0, 4) as Array<Record<string, unknown> & { id: string }>;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: userListsMixed = [], isLoading: isUserListsMixedLoading } = useQuery({
+    queryKey: ["reviews-page-user-lists-mixed", id, type],
     queryFn: async () => {
       const genreIds = ((details as { genres?: Array<{ id: number }> } | null)?.genres || [])
         .map((g) => g.id)
@@ -149,6 +167,86 @@ export default function ReviewsPage() {
         return `${Math.floor(avg / 60)}h ${avg % 60}m`;
       })();
   const rating = (details as { vote_average?: number } | null)?.vote_average ?? null;
+  const imdbId =
+    (details as { imdb_id?: string | null } | null)?.imdb_id ??
+    (details as { external_ids?: { imdb_id?: string | null } } | null)?.external_ids?.imdb_id ??
+    null;
+  const tmdbRatingForDisplay = rating && rating > 0 ? rating : null;
+  const { data: ratingData } = useIMDBRating(imdbId, tmdbRatingForDisplay);
+  const displayHeaderRating = ratingData?.rating || tmdbRatingForDisplay;
+
+  const watchlistItem = useMemo((): TMDBMovie | TMDBSeries | null => {
+    if (!details) return null;
+    const overview =
+      typeof (details as { overview?: string }).overview === "string"
+        ? (details as { overview: string }).overview
+        : "";
+    const poster_path = (details as { poster_path?: string | null }).poster_path ?? null;
+    const backdrop_path = (details as { backdrop_path?: string | null }).backdrop_path ?? null;
+    const vote_average = (details as { vote_average?: number }).vote_average ?? 0;
+    const vote_count = (details as { vote_count?: number }).vote_count ?? 0;
+    const genre_ids = ((details as { genres?: Array<{ id: number }> }).genres ?? []).map((g) => g.id);
+    const popularity = (details as { popularity?: number }).popularity ?? 0;
+    const original_language =
+      (details as { original_language?: string }).original_language ?? "en";
+
+    if (type === "movie") {
+      return {
+        id,
+        title: filmTitle,
+        overview,
+        poster_path,
+        backdrop_path,
+        release_date: (details as { release_date?: string }).release_date ?? "",
+        vote_average,
+        vote_count,
+        genre_ids,
+        popularity,
+        adult: Boolean((details as { adult?: boolean }).adult),
+        original_language,
+        original_title: filmTitle,
+      } as TMDBMovie;
+    }
+
+    return {
+      id,
+      name: filmTitle,
+      overview,
+      poster_path,
+      backdrop_path,
+      first_air_date: (details as { first_air_date?: string }).first_air_date ?? "",
+      vote_average,
+      vote_count,
+      genre_ids,
+      popularity,
+      original_language,
+      original_name: filmTitle,
+    } as TMDBSeries;
+  }, [details, type, id, filmTitle]);
+
+  const promptSignIn = useCallback(
+    (message?: string) => {
+      toast.info(message ?? "Please sign in to perform this action.");
+      openSignIn?.({
+        afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+      });
+    },
+    [openSignIn],
+  );
+
+  const handleWatchlistToggle = useCallback(
+    async (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!watchlistItem) return;
+      if (!isSignedIn) {
+        promptSignIn("Sign in to manage your watchlist.");
+        return;
+      }
+      await toggleWatchlist.toggle(watchlistItem, type);
+    },
+    [watchlistItem, isSignedIn, promptSignIn, toggleWatchlist, type],
+  );
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
@@ -187,15 +285,52 @@ export default function ReviewsPage() {
           </Button>
           <div className="flex items-start gap-3 sm:gap-4 min-w-0">
               {posterPath ? (
-                <div className="relative w-16 h-24 sm:w-24 sm:h-36 rounded overflow-hidden flex-shrink-0 bg-zinc-800/50">
-                  <Image
-                    src={getPosterUrl(posterPath, "w300")}
-                    alt={filmTitle}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 64px, 96px"
-                    unoptimized
-                  />
+                <div className="relative w-16 h-24 sm:w-24 sm:h-36 flex-shrink-0">
+                  <div className="absolute inset-0 rounded overflow-hidden bg-zinc-800/50">
+                    <Image
+                      src={getPosterUrl(posterPath, "w300")}
+                      alt={filmTitle}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 64px, 96px"
+                      unoptimized
+                    />
+                  </div>
+                  {watchlistItem ? (
+                    <div
+                      onClick={handleWatchlistToggle}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={
+                        toggleWatchlist.isInWatchlist(id, type)
+                          ? "Remove from watchlist"
+                          : "Add to watchlist"
+                      }
+                      className="absolute -top-[2px] -left-[6px] z-10 flex items-center justify-center cursor-pointer sm:-top-0.5 sm:-left-2"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          void handleWatchlistToggle(e as unknown as React.MouseEvent);
+                        }
+                      }}
+                    >
+                      <div className="relative flex items-center justify-center">
+                        <IoBookmarkSharp
+                          className={cn(
+                            "h-9 w-9 sm:h-11 sm:w-11",
+                            toggleWatchlist.isInWatchlist(id, type)
+                              ? "text-[#E0B416] fill-[#E0B416]"
+                              : "text-gray-900 fill-gray-900",
+                          )}
+                        />
+                        {toggleWatchlist.isInWatchlist(id, type) ? (
+                          <Check className="absolute top-[4px] size-3.5 text-black z-10 sm:top-[5px] sm:size-4" />
+                        ) : (
+                          <Plus className="absolute top-[4px] size-3.5 text-white z-10 sm:top-[5px] sm:size-4" />
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
               <div className="min-w-0 flex-1">
@@ -203,9 +338,14 @@ export default function ReviewsPage() {
                   {filmTitle}
                 </h1>
                 <div className="mt-2 flex items-center gap-2 flex-wrap text-xs sm:text-sm text-zinc-300">
-                  {rating && rating > 0 ? (
+                  {displayHeaderRating && displayHeaderRating > 0 ? (
                     <>
-                      <span className="font-medium text-zinc-100">{rating.toFixed(1)}</span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <IMDBBadge size={20} />
+                        <span className="font-medium text-zinc-100">
+                          {displayHeaderRating.toFixed(1)}
+                        </span>
+                      </span>
                       <span>•</span>
                     </>
                   ) : null}
@@ -234,7 +374,7 @@ export default function ReviewsPage() {
                 <Button
                   variant="ghost"
                   onClick={() => setWriteDialogOpen(true)}
-                  className="cursor-pointer w-fit"
+                  className="cursor-pointer w-fit h-9 rounded-[20px] px-3"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Review
@@ -536,39 +676,72 @@ export default function ReviewsPage() {
             </Tabs>
           </div>
 
-          <aside className="lg:col-span-4 space-y-3 lg:sticky lg:top-24 lg:self-start">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-lg font-semibold">Related user Lists</h3>
-              {user && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-8 px-2 rounded-[20px] cursor-pointer"
-                  onClick={() => setIsCreateListModalOpen(true)}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Create List
-                </Button>
-              )}
+          <aside className="lg:col-span-4 space-y-8 lg:sticky lg:top-24 lg:self-start">
+            <div className="space-y-3">
+              <Link
+                href="/editorial"
+                className="group/title inline-flex items-center gap-2 transition-all duration-300 w-fit cursor-pointer"
+              >
+                <h3 className="text-lg font-semibold text-foreground group-hover/title:text-primary transition-colors">
+                  Editorial Lists
+                </h3>
+                <ChevronRight className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover/title:opacity-100 group-hover/title:translate-x-0 transition-all duration-300 shrink-0" />
+              </Link>
+              <div className="space-y-2">
+                {isEditorialListsLoading ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <CompactListCardSkeleton key={`editorial-skeleton-${i}`} />
+                  ))
+                ) : editorialLists.length > 0 ? (
+                  editorialLists.map((list) => (
+                    <CompactEditorialListCard key={String(list.id)} list={list} />
+                  ))
+                ) : (
+                  <div className="text-sm text-muted-foreground border border-dashed rounded-lg p-4">
+                    No editorial lists yet.
+                  </div>
+                )}
+              </div>
             </div>
 
-            {isRelatedUserListsLoading ? (
-              <div className="space-y-2">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <CompactListCardSkeleton key={`related-list-skeleton-${i}`} />
-                ))}
-              </div>
-            ) : relatedUserLists.length > 0 ? (
-              <div className="space-y-2">
-                {relatedUserLists.map((row: { kind: "list" | "playlist"; id: string }) => (
-                  <CompactRelatedCard key={`${row.kind}-${row.id}`} row={row} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground border border-dashed rounded-lg p-4">
-                No related lists yet.
-              </div>
+            {user && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-fit rounded-[20px] border-0 bg-transparent hover:bg-muted/60 cursor-pointer h-9 px-3"
+                onClick={() => setIsCreateListModalOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create List
+              </Button>
             )}
+
+            <div className="space-y-3">
+              <Link
+                href="/lists"
+                className="group/title inline-flex items-center gap-2 transition-all duration-300 w-fit cursor-pointer"
+              >
+                <h3 className="text-lg font-semibold text-foreground group-hover/title:text-primary transition-colors">
+                  User Lists
+                </h3>
+                <ChevronRight className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover/title:opacity-100 group-hover/title:translate-x-0 transition-all duration-300 shrink-0" />
+              </Link>
+              <div className="space-y-2">
+                {isUserListsMixedLoading ? (
+                  Array.from({ length: 8 }).map((_, i) => (
+                    <CompactListCardSkeleton key={`user-list-skeleton-${i}`} />
+                  ))
+                ) : userListsMixed.length > 0 ? (
+                  userListsMixed.map((row: { kind: "list" | "playlist"; id: string }) => (
+                    <CompactRelatedCard key={`${row.kind}-${row.id}`} row={row} />
+                  ))
+                ) : (
+                  <div className="text-sm text-muted-foreground border border-dashed rounded-lg p-4">
+                    No lists yet.
+                  </div>
+                )}
+              </div>
+            </div>
           </aside>
         </div>
 
@@ -623,6 +796,7 @@ export default function ReviewsPage() {
           <CreateListModal
             isOpen={isCreateListModalOpen}
             onClose={() => setIsCreateListModalOpen(false)}
+            initialItem={watchlistItem ? { item: watchlistItem, type } : undefined}
           />
         )}
       </div>
@@ -640,6 +814,64 @@ function CompactListCardSkeleton() {
       <div className="w-16 sm:w-20 aspect-[3/4] flex-shrink-0">
         <Skeleton className="h-full w-full rounded-r-lg" />
       </div>
+    </div>
+  );
+}
+
+function CompactEditorialListCard({ list }: { list: Record<string, unknown> & { id: string; name?: string } }) {
+  const router = useRouter();
+  const items = (list.items as Array<{ posterPath?: string | null }> | undefined) ?? [];
+  const firstWithPoster = items.find((x) => Boolean(x.posterPath));
+  const posterPath = firstWithPoster?.posterPath || null;
+  const itemCount =
+    (list._count as { items?: number } | undefined)?.items ?? items.length;
+  const updatedAt = list.updatedAt
+    ? new Date(list.updatedAt as string).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
+  const title = (list.name as string) || "Untitled";
+
+  return (
+    <div
+      className="relative flex rounded-lg border border-border transition-all group cursor-pointer overflow-hidden"
+      onClick={() => router.push(`/lists/${list.id}`)}
+    >
+      <div className="flex-1 min-w-0 flex flex-col p-3">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/lists/${list.id}`);
+          }}
+          className="text-left text-sm font-semibold line-clamp-1 hover:text-primary transition-colors cursor-pointer"
+        >
+          {title}
+        </button>
+        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+          {updatedAt ? `Updated ${updatedAt}` : "Recently updated"} · {itemCount}{" "}
+          {itemCount === 1 ? "item" : "items"}
+        </p>
+      </div>
+
+      {posterPath ? (
+        <div className="relative w-16 sm:w-20 aspect-[3/4] rounded-r-lg overflow-hidden flex-shrink-0 bg-muted">
+          <Image
+            src={getPosterUrl(posterPath, "w200")}
+            alt={title}
+            fill
+            className="object-cover"
+            sizes="80px"
+            unoptimized
+          />
+        </div>
+      ) : (
+        <div className="w-16 sm:w-20 aspect-[3/4] rounded-r-lg bg-muted flex-shrink-0 flex items-center justify-center">
+          <span className="text-xs text-muted-foreground">No Image</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -701,4 +933,6 @@ function CompactRelatedCard({ row }: { row: Record<string, unknown> & { kind: "l
     </div>
   );
 }
+
+
 

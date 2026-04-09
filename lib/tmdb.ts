@@ -221,6 +221,28 @@ export async function getTrendingTV(
   );
 }
 
+/** Mixed movies, TV, and people from TMDB trending/all (day | week). */
+export type TMDBTrendingAllItem =
+  | (TMDBMovie & { media_type: "movie" })
+  | (TMDBSeries & { media_type: "tv" })
+  | {
+      id: number;
+      name: string;
+      profile_path: string | null;
+      media_type: "person";
+      known_for_department?: string;
+    };
+
+export async function getTrendingAll(
+  timeWindow: "day" | "week" = "day",
+  page: number = 1
+): Promise<TMDBResponse<TMDBTrendingAllItem>> {
+  return fetchTMDB<TMDBResponse<TMDBTrendingAllItem>>(
+    `/trending/all/${timeWindow}`,
+    { page }
+  );
+}
+
 /**
  * Get top rated TV shows
  */
