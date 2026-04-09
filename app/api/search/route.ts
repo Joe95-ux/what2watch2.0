@@ -52,8 +52,11 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
     const watchProvider = watchProviderParam ? parseInt(watchProviderParam, 10) : undefined;
     const watchRegion = searchParams.get("watchRegion") || "US";
     const pageSizeParam = searchParams.get("pageSize");
-    const pageSize = pageSizeParam ? parseInt(pageSizeParam, 10) : 20;
-    const RESULTS_PER_PAGE = pageSize === 42 ? 42 : 20;
+    const parsedPageSize = pageSizeParam ? parseInt(pageSizeParam, 10) : 20;
+    const RESULTS_PER_PAGE =
+      Number.isFinite(parsedPageSize) && parsedPageSize > 0
+        ? Math.min(parsedPageSize, 60)
+        : 20;
 
     // Allow requests with filters or sortBy even without query
     const hasQuery = query && query.trim().length > 0;
@@ -160,7 +163,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
           });
 
           // Paginate combined results
-          const itemsPerPage = 20;
+          const itemsPerPage = RESULTS_PER_PAGE;
           const startIndex = (page - 1) * itemsPerPage;
           const paginatedResults = combinedResults.slice(startIndex, startIndex + itemsPerPage);
           const totalPages = Math.ceil(combinedResults.length / itemsPerPage);
@@ -186,72 +189,58 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
             sortBy,
           };
 
-          if (RESULTS_PER_PAGE === 42) {
-            // Fetch 3 TMDB pages per logical page (TMDB returns 20 per page)
-            const tmdbPage1 = (page - 1) * 3 + 1;
-            const tmdbPage2 = tmdbPage1 + 1;
-            const tmdbPage3 = tmdbPage1 + 2;
+          if (RESULTS_PER_PAGE > 20) {
+            // Fetch enough TMDB pages per logical page (TMDB returns 20 per page)
+            const tmdbPagesPerLogicalPage = Math.ceil(RESULTS_PER_PAGE / 20);
+            const tmdbStartPage = (page - 1) * tmdbPagesPerLogicalPage + 1;
+            const tmdbPages = Array.from({ length: tmdbPagesPerLogicalPage }, (_, i) => tmdbStartPage + i);
             if (type === "movie") {
-              const [r1, r2, r3] = await Promise.race([
-                Promise.all([
-                  discoverMovies({ ...baseFilterProps, page: tmdbPage1 }),
-                  discoverMovies({ ...baseFilterProps, page: tmdbPage2 }),
-                  discoverMovies({ ...baseFilterProps, page: tmdbPage3 }),
-                ]),
+              const moviePages = await Promise.race([
+                Promise.all(tmdbPages.map((tmdbPage) => discoverMovies({ ...baseFilterProps, page: tmdbPage }))),
                 timeoutPromise,
               ]);
-              const merged = [...(r1.results || []), ...(r2.results || []), ...(r3.results || [])];
-              const total = r1.total_results ?? 0;
+              const merged = moviePages.flatMap((res) => res.results || []);
+              const total = moviePages[0]?.total_results ?? 0;
               results = {
                 page,
-                results: merged.slice(0, 42),
-                total_pages: Math.ceil(total / 42),
+                results: merged.slice(0, RESULTS_PER_PAGE),
+                total_pages: Math.ceil(total / RESULTS_PER_PAGE),
                 total_results: total,
               };
             } else if (type === "tv") {
-              const [r1, r2, r3] = await Promise.race([
-                Promise.all([
-                  discoverTV({ ...baseFilterProps, page: tmdbPage1 }),
-                  discoverTV({ ...baseFilterProps, page: tmdbPage2 }),
-                  discoverTV({ ...baseFilterProps, page: tmdbPage3 }),
-                ]),
+              const tvPages = await Promise.race([
+                Promise.all(tmdbPages.map((tmdbPage) => discoverTV({ ...baseFilterProps, page: tmdbPage }))),
                 timeoutPromise,
               ]);
-              const merged = [...(r1.results || []), ...(r2.results || []), ...(r3.results || [])];
-              const total = r1.total_results ?? 0;
+              const merged = tvPages.flatMap((res) => res.results || []);
+              const total = tvPages[0]?.total_results ?? 0;
               results = {
                 page,
-                results: merged.slice(0, 42),
-                total_pages: Math.ceil(total / 42),
+                results: merged.slice(0, RESULTS_PER_PAGE),
+                total_pages: Math.ceil(total / RESULTS_PER_PAGE),
                 total_results: total,
               };
             } else {
-              const [m1, m2, m3, t1, t2, t3] = await Promise.race([
+              const [moviePages, tvPages] = await Promise.race([
                 Promise.all([
-                  discoverMovies({ ...baseFilterProps, page: tmdbPage1 }),
-                  discoverMovies({ ...baseFilterProps, page: tmdbPage2 }),
-                  discoverMovies({ ...baseFilterProps, page: tmdbPage3 }),
-                  discoverTV({ ...baseFilterProps, page: tmdbPage1 }),
-                  discoverTV({ ...baseFilterProps, page: tmdbPage2 }),
-                  discoverTV({ ...baseFilterProps, page: tmdbPage3 }),
+                  Promise.all(tmdbPages.map((tmdbPage) => discoverMovies({ ...baseFilterProps, page: tmdbPage }))),
+                  Promise.all(tmdbPages.map((tmdbPage) => discoverTV({ ...baseFilterProps, page: tmdbPage }))),
                 ]),
                 timeoutPromise,
               ]);
+              const movieResults = moviePages.flatMap((res) => res.results || []);
+              const tvResults = tvPages.flatMap((res) => res.results || []);
               const interleave: (TMDBMovie | TMDBSeries)[] = [];
-              const maxLen = Math.max(m1.results.length, m2.results.length, m3.results.length, t1.results.length, t2.results.length, t3.results.length);
+              const maxLen = Math.max(movieResults.length, tvResults.length);
               for (let i = 0; i < maxLen; i++) {
-                if (i < m1.results.length) interleave.push(m1.results[i]);
-                if (i < t1.results.length) interleave.push(t1.results[i]);
-                if (i < m2.results.length) interleave.push(m2.results[i]);
-                if (i < t2.results.length) interleave.push(t2.results[i]);
-                if (i < m3.results.length) interleave.push(m3.results[i]);
-                if (i < t3.results.length) interleave.push(t3.results[i]);
+                if (i < movieResults.length) interleave.push(movieResults[i]);
+                if (i < tvResults.length) interleave.push(tvResults[i]);
               }
-              const total = (m1.total_results ?? 0) + (t1.total_results ?? 0);
+              const total = (moviePages[0]?.total_results ?? 0) + (tvPages[0]?.total_results ?? 0);
               results = {
                 page,
-                results: interleave.slice(0, 42),
-                total_pages: Math.ceil(total / 42),
+                results: interleave.slice(0, RESULTS_PER_PAGE),
+                total_pages: Math.ceil(total / RESULTS_PER_PAGE),
                 total_results: total,
               };
             }

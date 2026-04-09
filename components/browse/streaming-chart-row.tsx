@@ -41,6 +41,7 @@ export function StreamingChartRow({
       align: "start",
       slidesToScroll: 4,
       breakpoints: {
+        "(max-width: 428px)": { slidesToScroll: 2 },
         "(max-width: 640px)": { slidesToScroll: 2 },
         "(max-width: 1024px)": { slidesToScroll: 3 },
       },

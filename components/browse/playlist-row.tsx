@@ -20,6 +20,7 @@ export default function PlaylistRow({ title, playlists, isLoading, href }: Playl
     align: "start",
     slidesToScroll: 5,
     breakpoints: {
+      "(max-width: 428px)": { slidesToScroll: 1 },
       "(max-width: 640px)": { slidesToScroll: 2 },
       "(max-width: 1024px)": { slidesToScroll: 3 },
       "(max-width: 1280px)": { slidesToScroll: 4 },
