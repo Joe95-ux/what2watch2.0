@@ -10,6 +10,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import useEmblaCarousel from "embla-carousel-react";
 import { WheelGesturesPlugin } from 'embla-carousel-wheel-gestures';
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ContentRowProps {
   title: string;
@@ -28,20 +29,23 @@ interface ContentRowProps {
 }
 
 export default function ContentRow({ title, items, type, isLoading, href, showClearButton, onClear, isClearing, titleAction, titlePrefix, viewAllHref, onLoadMore, isLoadingMore }: ContentRowProps) {
+  const isMobile = useIsMobile();
   const emblaOptions = useMemo(() => ({
     align: "start" as const,
     slidesToScroll: 5,
     breakpoints: {
-      "(max-width: 640px)": { slidesToScroll: 2 },
+      "(max-width: 767px)": { slidesToScroll: 2 },
       "(max-width: 1024px)": { slidesToScroll: 3 },
       "(max-width: 1280px)": { slidesToScroll: 4 },
     },
   }), []);
-  const wheelGesturesPlugin = useMemo(() => WheelGesturesPlugin(), []);
-  const [emblaRef, emblaApi] = useEmblaCarousel(emblaOptions, [wheelGesturesPlugin]);
+  const emblaPlugins = useMemo(
+    () => (isMobile ? [] : [WheelGesturesPlugin()]),
+    [isMobile]
+  );
+  const [emblaRef, emblaApi] = useEmblaCarousel(emblaOptions, emblaPlugins);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
-  const [scrollProgress, setScrollProgress] = useState(0); // 0 = start, 1 = scrolled
   const [currentPadding, setCurrentPadding] = useState(16); // Default to px-4 (16px)
   const [selectedItem, setSelectedItem] = useState<{ item: TMDBMovie | TMDBSeries; type: "movie" | "tv" } | null>(null);
   const scrollPrev = () => emblaApi?.scrollPrev();
@@ -74,23 +78,17 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
     const updateScrollState = () => {
       const nextCanScrollPrev = emblaApi.canScrollPrev();
       const nextCanScrollNext = emblaApi.canScrollNext();
-      const nextProgress = Math.min(emblaApi.scrollProgress(), 1);
       setCanScrollPrev((prev) => (prev === nextCanScrollPrev ? prev : nextCanScrollPrev));
       setCanScrollNext((prev) => (prev === nextCanScrollNext ? prev : nextCanScrollNext));
-      setScrollProgress((prev) => (prev === nextProgress ? prev : nextProgress));
     };
 
     updateScrollState();
     emblaApi.on("select", updateScrollState);
     emblaApi.on("reInit", updateScrollState);
-    emblaApi.on("scroll", updateScrollState);
-    emblaApi.on("slideFocus", updateScrollState);
 
     return () => {
       emblaApi.off("select", updateScrollState);
       emblaApi.off("reInit", updateScrollState);
-      emblaApi.off("scroll", updateScrollState);
-      emblaApi.off("slideFocus", updateScrollState);
     };
   }, [emblaApi]);
 
@@ -200,8 +198,8 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
       <div 
         className="relative group/carousel overflow-hidden transition-all duration-300 ease-out"
         style={{
-          paddingLeft: `${currentPadding * (1 - scrollProgress)}px`, // Match title padding at start, 0 when scrolled
-          paddingRight: scrollProgress > 0 ? '0px' : `${currentPadding}px`, // Remove right padding when scrolled
+          paddingLeft: `${currentPadding}px`,
+          paddingRight: `${currentPadding}px`,
         }}
       >
         {/* Control buttons - matching Explore Curated Lists style */}

@@ -43,10 +43,6 @@ export default function TVContent({ favoriteGenres, preferredTypes }: TVContentP
     () => allGenres.filter((genre) => genre?.id != null && typeof genre.name === "string" && genre.name.length > 0),
     [allGenres]
   );
-  const visibleGenres = useMemo(
-    () => topGenres.slice(0, isMobile ? 4 : 8),
-    [topGenres, isMobile]
-  );
 
   return (
     <div className="min-h-screen bg-background relative">
@@ -95,7 +91,7 @@ export default function TVContent({ favoriteGenres, preferredTypes }: TVContentP
         />
 
         {/* Genre Sections */}
-        {visibleGenres.map((genre) => (
+        {topGenres.map((genre) => (
           <GenreRow key={genre.id} genreId={genre.id} genreName={genre.name} />
         ))}
 
@@ -120,7 +116,7 @@ function GenreRow({ genreId, genreName }: { genreId: number; genreName: string }
       items={genreTV}
       type="tv"
       isLoading={isLoading}
-      href={`/browse/genre/${genreId}`}
+      href={`/search?type=tv&genre=${genreId}`}
     />
   );
 }

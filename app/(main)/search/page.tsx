@@ -94,7 +94,7 @@ function SearchResultsContent() {
     minRating: minRating > 0 ? minRating : undefined,
     sortBy,
     page,
-    pageSize: 42,
+    pageSize: 36,
     runtimeMin,
     runtimeMax,
     withOriginCountry,
@@ -426,6 +426,7 @@ function SearchResultsContent() {
                   size="sm"
                   onClick={() => updateURL({ page: currentPage - 1 })}
                   disabled={currentPage === 1 || isLoading}
+                  className="cursor-pointer disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   Previous
@@ -449,7 +450,7 @@ function SearchResultsContent() {
                         size="sm"
                         onClick={() => updateURL({ page: pageNum })}
                         disabled={isLoading}
-                        className="min-w-[40px]"
+                        className="min-w-[40px] cursor-pointer disabled:cursor-not-allowed"
                       >
                         {pageNum}
                       </Button>
@@ -461,6 +462,7 @@ function SearchResultsContent() {
                   size="sm"
                   onClick={() => updateURL({ page: currentPage + 1 })}
                   disabled={currentPage === totalPages || isLoading}
+                  className="cursor-pointer disabled:cursor-not-allowed"
                 >
                   Next
                   <ChevronRight className="h-4 w-4 ml-1" />

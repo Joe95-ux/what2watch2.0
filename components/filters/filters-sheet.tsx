@@ -432,7 +432,7 @@ export function FiltersSheet({
                         }
                       }}
                       className={cn(
-                        "rounded-full h-8 px-4 text-sm font-normal transition-colors",
+                        "rounded-full h-8 px-4 text-sm font-normal transition-colors cursor-pointer",
                         isSelected 
                           ? "bg-primary text-primary-foreground hover:bg-primary/90" 
                           : "bg-background hover:bg-accent hover:text-accent-foreground"
@@ -446,7 +446,7 @@ export function FiltersSheet({
               {genresToShow.length > GENRES_TO_SHOW && (
                 <button
                   onClick={() => setShowAllGenres(!showAllGenres)}
-                  className="text-sm text-primary hover:underline mt-2"
+                  className="text-sm text-primary hover:underline mt-2 cursor-pointer"
                 >
                   {showAllGenres ? "Show less" : "Show more"}
                 </button>

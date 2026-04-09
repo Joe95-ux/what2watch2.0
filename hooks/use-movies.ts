@@ -101,6 +101,23 @@ const fetchPersonalizedMovies = async (genreId: number): Promise<TMDBMovie[]> =>
   return data.results || [];
 };
 
+const GENRE_ROW_MIN_ITEMS = 30;
+
+const fetchSearchResults = async (
+  genreId: number,
+  mediaType: "movie" | "tv",
+  page: number
+): Promise<(TMDBMovie | TMDBSeries)[]> => {
+  const res = await fetch(
+    `/api/search?genre=${genreId}&type=${mediaType}&sortBy=popularity.desc&page=${page}`
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to fetch ${mediaType} by genre`);
+  }
+  const data = await res.json();
+  return Array.isArray(data?.results) ? data.results : [];
+};
+
 // Fetch personalized content using multiple genres and preferred types
 const fetchPersonalizedContent = async (
   favoriteGenres: number[],
@@ -174,21 +191,33 @@ const fetchPersonalizedContent = async (
 };
 
 const fetchMoviesByGenre = async (genreId: number, page: number = 1): Promise<TMDBMovie[]> => {
-  const res = await fetch(
-    `/api/search?genre=${genreId}&type=movie&sortBy=popularity.desc&page=${page}`
-  );
-  if (!res.ok) throw new Error("Failed to fetch movies by genre");
-  const data = await res.json();
-  return data.results || [];
+  const [firstPage, secondPage] = await Promise.all([
+    fetchSearchResults(genreId, "movie", page) as Promise<TMDBMovie[]>,
+    fetchSearchResults(genreId, "movie", page + 1) as Promise<TMDBMovie[]>,
+  ]);
+
+  const deduped = new Map<number, TMDBMovie>();
+  [...firstPage, ...secondPage].forEach((item) => {
+    if (item?.id != null && !deduped.has(item.id)) {
+      deduped.set(item.id, item);
+    }
+  });
+  return Array.from(deduped.values()).slice(0, GENRE_ROW_MIN_ITEMS);
 };
 
 const fetchTVByGenre = async (genreId: number, page: number = 1): Promise<TMDBSeries[]> => {
-  const res = await fetch(
-    `/api/search?genre=${genreId}&type=tv&sortBy=popularity.desc&page=${page}`
-  );
-  if (!res.ok) throw new Error("Failed to fetch TV shows by genre");
-  const data = await res.json();
-  return data.results || [];
+  const [firstPage, secondPage] = await Promise.all([
+    fetchSearchResults(genreId, "tv", page) as Promise<TMDBSeries[]>,
+    fetchSearchResults(genreId, "tv", page + 1) as Promise<TMDBSeries[]>,
+  ]);
+
+  const deduped = new Map<number, TMDBSeries>();
+  [...firstPage, ...secondPage].forEach((item) => {
+    if (item?.id != null && !deduped.has(item.id)) {
+      deduped.set(item.id, item);
+    }
+  });
+  return Array.from(deduped.values()).slice(0, GENRE_ROW_MIN_ITEMS);
 };
 
 // Custom hooks
@@ -286,6 +315,8 @@ export function useMoviesByGenre(genreId: number, page: number = 1) {
     queryFn: () => fetchMoviesByGenre(genreId, page),
     staleTime: 1000 * 60 * 60 * 2, // 2 hours (genre content is relatively stable)
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
 
@@ -295,6 +326,8 @@ export function useTVByGenre(genreId: number, page: number = 1) {
     queryFn: () => fetchTVByGenre(genreId, page),
     staleTime: 1000 * 60 * 60 * 2, // 2 hours (genre content is relatively stable)
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
 

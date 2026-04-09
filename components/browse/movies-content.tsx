@@ -44,10 +44,6 @@ export default function MoviesContent({ favoriteGenres, preferredTypes }: Movies
     () => allGenres.filter((genre) => genre?.id != null && typeof genre.name === "string" && genre.name.length > 0),
     [allGenres]
   );
-  const visibleGenres = useMemo(
-    () => topGenres.slice(0, isMobile ? 4 : 8),
-    [topGenres, isMobile]
-  );
 
   return (
     <div className="min-h-screen bg-background relative">
@@ -96,7 +92,7 @@ export default function MoviesContent({ favoriteGenres, preferredTypes }: Movies
         />
 
         {/* Genre Sections */}
-        {visibleGenres.map((genre) => (
+        {topGenres.map((genre) => (
           <GenreRow key={genre.id} genreId={genre.id} genreName={genre.name} />
         ))}
 
@@ -121,7 +117,7 @@ function GenreRow({ genreId, genreName }: { genreId: number; genreName: string }
       items={genreMovies}
       type="movie"
       isLoading={isLoading}
-      href={`/browse/genre/${genreId}`}
+      href={`/search?type=movie&genre=${genreId}`}
     />
   );
 }
