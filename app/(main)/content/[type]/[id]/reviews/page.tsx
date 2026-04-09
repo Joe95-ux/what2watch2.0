@@ -33,6 +33,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Plus, Check } from "lucide-react"
 import WriteReviewDialog from "@/components/reviews/write-review-dialog";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { getPosterUrl, type TMDBMovie, type TMDBSeries } from "@/lib/tmdb";
+import { createContentUrl } from "@/lib/content-slug";
 import CreateListModal from "@/components/lists/create-list-modal";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import { cn } from "@/lib/utils";
@@ -148,6 +149,11 @@ export default function ReviewsPage() {
     type === "movie"
       ? ((details as { title?: string } | null)?.title ?? "Movie")
       : ((details as { name?: string } | null)?.name ?? "TV Show");
+
+  const detailUrl = useMemo(
+    () => createContentUrl(type, id, filmTitle),
+    [type, id, filmTitle],
+  );
   const posterPath = (details as { poster_path?: string | null } | null)?.poster_path ?? null;
   const releaseYearRaw =
     type === "movie"
@@ -234,19 +240,14 @@ export default function ReviewsPage() {
     [openSignIn],
   );
 
-  const handleWatchlistToggle = useCallback(
-    async (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!watchlistItem) return;
-      if (!isSignedIn) {
-        promptSignIn("Sign in to manage your watchlist.");
-        return;
-      }
-      await toggleWatchlist.toggle(watchlistItem, type);
-    },
-    [watchlistItem, isSignedIn, promptSignIn, toggleWatchlist, type],
-  );
+  const handleWatchlistToggle = useCallback(async () => {
+    if (!watchlistItem) return;
+    if (!isSignedIn) {
+      promptSignIn("Sign in to manage your watchlist.");
+      return;
+    }
+    await toggleWatchlist.toggle(watchlistItem, type);
+  }, [watchlistItem, isSignedIn, promptSignIn, toggleWatchlist, type]);
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
@@ -285,8 +286,11 @@ export default function ReviewsPage() {
           </Button>
           <div className="flex items-start gap-3 sm:gap-4 min-w-0">
               {posterPath ? (
-                <div className="relative w-16 h-24 sm:w-24 sm:h-36 flex-shrink-0">
-                  <div className="absolute inset-0 rounded overflow-hidden bg-zinc-800/50">
+                <div className="relative w-16 h-24 sm:w-24 sm:h-36 flex-shrink-0 overflow-visible">
+                  <Link
+                    href={detailUrl}
+                    className="absolute inset-0 block cursor-pointer rounded overflow-hidden bg-zinc-800/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  >
                     <Image
                       src={getPosterUrl(posterPath, "w300")}
                       alt={filmTitle}
@@ -295,7 +299,7 @@ export default function ReviewsPage() {
                       sizes="(max-width: 640px) 64px, 96px"
                       unoptimized
                     />
-                  </div>
+                  </Link>
                   {watchlistItem ? (
                     <div
                       onClick={handleWatchlistToggle}
@@ -306,27 +310,27 @@ export default function ReviewsPage() {
                           ? "Remove from watchlist"
                           : "Add to watchlist"
                       }
-                      className="absolute -top-[2px] -left-[6px] z-10 flex items-center justify-center cursor-pointer sm:-top-0.5 sm:-left-2"
+                      className="absolute -top-[14px] -left-[12px] z-20 flex origin-top-left scale-[0.38] cursor-pointer sm:scale-[0.52]"
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          void handleWatchlistToggle(e as unknown as React.MouseEvent);
+                          void handleWatchlistToggle();
                         }
                       }}
                     >
                       <div className="relative flex items-center justify-center">
                         <IoBookmarkSharp
                           className={cn(
-                            "h-9 w-9 sm:h-11 sm:w-11",
+                            "w-16 h-21",
                             toggleWatchlist.isInWatchlist(id, type)
                               ? "text-[#E0B416] fill-[#E0B416]"
                               : "text-gray-900 fill-gray-900",
                           )}
                         />
                         {toggleWatchlist.isInWatchlist(id, type) ? (
-                          <Check className="absolute top-[4px] size-3.5 text-black z-10 sm:top-[5px] sm:size-4" />
+                          <Check className="absolute top-6 size-6 text-black z-10" />
                         ) : (
-                          <Plus className="absolute top-[4px] size-3.5 text-white z-10 sm:top-[5px] sm:size-4" />
+                          <Plus className="absolute top-6 size-6 text-white z-10" />
                         )}
                       </div>
                     </div>
@@ -334,9 +338,14 @@ export default function ReviewsPage() {
                 </div>
               ) : null}
               <div className="min-w-0 flex-1">
-                <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-zinc-50 line-clamp-2">
-                  {filmTitle}
-                </h1>
+                <Link
+                  href={detailUrl}
+                  className="group block min-w-0 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                >
+                  <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-zinc-50 line-clamp-2 group-hover:underline underline-offset-2">
+                    {filmTitle}
+                  </h1>
+                </Link>
                 <div className="mt-2 flex items-center gap-2 flex-wrap text-xs sm:text-sm text-zinc-300">
                   {displayHeaderRating && displayHeaderRating > 0 ? (
                     <>
@@ -462,9 +471,9 @@ export default function ReviewsPage() {
                   <div className="space-y-4 mb-8">
                     {allReviews.map((item) => (
                       item.type === "tmdb" ? (
-                        <TMDBReviewCard key={`tmdb-${item.review.id}`} review={item.review} showFullContent />
+                        <TMDBReviewCard key={`tmdb-${item.review.id}`} review={item.review} />
                       ) : (
-                        <ReviewCard key={`user-${item.review.id}`} review={item.review} showFullContent />
+                        <ReviewCard key={`user-${item.review.id}`} review={item.review} />
                       )
                     ))}
                   </div>
@@ -487,7 +496,7 @@ export default function ReviewsPage() {
                   <>
                     <div className="space-y-4 mb-8">
                       {tmdbReviews.map((review) => (
-                        <TMDBReviewCard key={review.id} review={review} showFullContent />
+                        <TMDBReviewCard key={review.id} review={review} />
                       ))}
                     </div>
 
@@ -581,7 +590,7 @@ export default function ReviewsPage() {
                   <>
                     <div className="space-y-4 mb-8">
                       {userReviews.map((review) => (
-                        <ReviewCard key={review.id} review={review} showFullContent />
+                        <ReviewCard key={review.id} review={review} />
                       ))}
                     </div>
 

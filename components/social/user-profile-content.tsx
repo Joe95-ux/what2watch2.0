@@ -579,7 +579,7 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
             <>
               <div className="space-y-4">
                 {reviews.map((review) => (
-                  <ReviewCard key={review.id} review={review} showFullContent />
+                  <ReviewCard key={review.id} review={review} />
                 ))}
               </div>
               {totalPages > 1 && (

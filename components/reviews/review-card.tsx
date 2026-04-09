@@ -39,7 +39,7 @@ interface ReviewCardProps {
 
 export default function ReviewCard({
   review,
-  showFullContent = true,
+  showFullContent = false,
 }: ReviewCardProps) {
   const { data: currentUser } = useCurrentUser();
   const { avatarUrl: contextAvatarUrl } = useAvatar();

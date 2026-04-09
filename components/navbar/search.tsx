@@ -569,7 +569,7 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
                   {!isLoadingDisplay && displayResults.length > 0 && (
                     <>
                       {isShowingTrending && (
-                        <div className="px-2 pt-2 pb-0">
+                        <div className="px-2 pt-1 pb-3">
                           <span className="flex flex-wrap items-center gap-0.5 text-xs text-muted-foreground">
                             {SEARCH_TRENDING_TABS.map((t) => (
                               <button
@@ -742,7 +742,7 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
             {!isLoadingDisplay && displayResults.length > 0 && (
               <>
                 {isShowingTrending && (
-                  <div className="px-2 pt-2 pb-0">
+                  <div className="px-2 pt-1 pb-3">
                     <span className="flex flex-wrap items-center gap-0.5 text-xs text-muted-foreground">
                       {SEARCH_TRENDING_TABS.map((t) => (
                         <button
