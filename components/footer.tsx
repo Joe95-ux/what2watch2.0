@@ -80,13 +80,15 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6 max-w-7xl mx-auto justify-items-center">
           {/* 1 - Platform */}
           <div className="flex flex-col w-full max-w-xs">
-            <h3 className="text-[16px] font-semibold text-foreground mb-4">Platform</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-4 sm:text-base">
+              Platform
+            </h3>
             <ul className="space-y-2.5">
               {PLATFORM_LINKS.map((item) => (
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-base text-muted-foreground hover:text-foreground transition-colors sm:text-sm"
                   >
                     {item.label}
                   </Link>
@@ -97,13 +99,15 @@ export default function Footer() {
 
           {/* 2 - Discover */}
           <div className="flex flex-col w-full max-w-xs">
-            <h3 className="text-sm font-semibold text-foreground mb-4">Discover</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-4 sm:text-base">
+              Discover
+            </h3>
             <ul className="space-y-2.5">
               {DISCOVER_LINKS.map((item) => (
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-base text-muted-foreground hover:text-foreground transition-colors sm:text-sm"
                   >
                     {item.label}
                   </Link>
@@ -114,13 +118,15 @@ export default function Footer() {
 
           {/* 3 - Useful Links */}
           <div className="flex flex-col w-full max-w-xs">
-            <h3 className="text-[16px] font-semibold text-foreground mb-4">Useful Links</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-4 sm:text-base">
+              Useful Links
+            </h3>
             <ul className="space-y-2.5">
               {USEFUL_LINKS.map((item) => (
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-base text-muted-foreground hover:text-foreground transition-colors sm:text-sm"
                   >
                     {item.label}
                   </Link>
@@ -131,10 +137,10 @@ export default function Footer() {
 
           {/* 4 - Newsletter + social */}
           <div className="flex flex-col w-full max-w-xs">
-            <h3 className="text-[16px] font-semibold text-foreground mb-2">
+            <h3 className="text-lg font-semibold text-foreground mb-2 sm:text-base">
               Get the latest update
             </h3>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-base text-muted-foreground mb-4 sm:text-sm">
               Subscribe to our newsletter for the latest movie and tv show insights.
             </p>
             <form onSubmit={handleNewsletterSubmit} className="space-y-3 w-full">
@@ -145,25 +151,25 @@ export default function Footer() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={status === "loading"}
-                  className="w-full h-9 bg-background"
+                  className="w-full h-10 text-base sm:h-9 sm:text-sm bg-background"
                   aria-label="Email for newsletter"
                 />
                 <Button
                   type="submit"
                   size="sm"
-                  className="w-full h-9 cursor-pointer bg-[#006DCA] hover:bg-[#0056A3] text-white"
+                  className="w-full h-10 text-base sm:h-9 sm:text-sm cursor-pointer bg-[#006DCA] hover:bg-[#0056A3] text-white"
                   disabled={status === "loading" || !email.trim()}
                 >
                   {status === "loading" ? "Submitting…" : "Submit"}
                 </Button>
               </div>
               {status === "success" && (
-                <p className="text-xs text-green-600 dark:text-green-400">
+                <p className="text-sm text-green-600 dark:text-green-400 sm:text-xs">
                   Thanks! We&apos;ll be in touch.
                 </p>
               )}
               {status === "error" && (
-                <p className="text-xs text-destructive">
+                <p className="text-sm text-destructive sm:text-xs">
                   Could not subscribe right now. Please try again.
                 </p>
               )}
@@ -206,7 +212,9 @@ export default function Footer() {
       <div className="w-full px-4 sm:px-6 lg:px-8 py-6 border-t">
         <div className="flex flex-col items-center justify-center gap-4 max-w-7xl mx-auto">
           <div className="flex flex-col items-center gap-2">
-            <p className="text-xs text-muted-foreground">Powered by (not endorsed)</p>
+            <p className="text-sm text-muted-foreground sm:text-xs">
+              Powered by (not endorsed)
+            </p>
             <Link
               href="https://www.themoviedb.org"
               target="_blank"
@@ -218,11 +226,11 @@ export default function Footer() {
                 alt="The Movie Database"
                 width={80}
                 height={16}
-                className="h-4 w-auto"
+                className="h-5 w-auto sm:h-4"
               />
             </Link>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground text-center sm:text-xs">
             &copy; {currentYear} What2Watch. All rights reserved.
           </p>
         </div>

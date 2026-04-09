@@ -93,13 +93,13 @@ export function YouTubeChannelsTab() {
           setPoolFilter(value as typeof poolFilter);
           setPage(1);
         }}>
-          <SelectTrigger className="w-full sm:w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px] cursor-pointer">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Channels</SelectItem>
-            <SelectItem value="inMyFeed">In My Feed</SelectItem>
-            <SelectItem value="notInMyFeed">Not In My Feed</SelectItem>
+            <SelectItem value="all" className="cursor-pointer">All Channels</SelectItem>
+            <SelectItem value="inMyFeed" className="cursor-pointer">In My Feed</SelectItem>
+            <SelectItem value="notInMyFeed" className="cursor-pointer">Not In My Feed</SelectItem>
           </SelectContent>
         </Select>
         {availableCategories.length > 0 && (
@@ -107,14 +107,14 @@ export function YouTubeChannelsTab() {
             setCategoryFilter(value);
             setPage(1);
           }}>
-            <SelectTrigger className="w-full sm:w-[200px]">
+            <SelectTrigger className="w-full sm:w-[200px] cursor-pointer">
               <SelectValue placeholder="All categories" />
             </SelectTrigger>
             <SelectContent className="max-h-[300px] overflow-hidden">
               <div className="max-h-[300px] overflow-y-auto scrollbar-thin">
-                <SelectItem value="all">All categories</SelectItem>
+                <SelectItem value="all" className="cursor-pointer">All categories</SelectItem>
                 {availableCategories.map((category) => (
-                  <SelectItem key={category} value={category}>
+                  <SelectItem key={category} value={category} className="cursor-pointer">
                     {category}
                   </SelectItem>
                 ))}

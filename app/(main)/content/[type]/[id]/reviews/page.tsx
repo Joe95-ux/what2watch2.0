@@ -2,6 +2,8 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import Image from "next/image";
 import { useReviews, useTMDBReviews } from "@/hooks/use-reviews";
 import { useMovieDetails, useTVDetails } from "@/hooks/use-content-details";
 import ReviewCard from "@/components/reviews/review-card";
@@ -24,10 +26,12 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import WriteReviewDialog from "@/components/reviews/write-review-dialog";
 import { useUser } from "@clerk/nextjs";
 import { ArrowLeft } from "lucide-react";
+import { getPosterUrl } from "@/lib/tmdb";
+import CreateListModal from "@/components/lists/create-list-modal";
 
 export default function ReviewsPage() {
   const params = useParams();
@@ -44,6 +48,7 @@ export default function ReviewsPage() {
   const { data: movieDetails } = useMovieDetails(type === "movie" ? id : null);
   const { data: tvDetails } = useTVDetails(type === "tv" ? id : null);
   const details = type === "movie" ? movieDetails : tvDetails;
+  const [isCreateListModalOpen, setIsCreateListModalOpen] = useState(false);
 
   const [tmdbPage, setTMDBPage] = useState(1);
   const [activeTab, setActiveTab] = useState<"all" | "user" | "tmdb">("all");
@@ -80,6 +85,71 @@ export default function ReviewsPage() {
     ...userReviews.map((review) => ({ type: "user" as const, review })),
   ];
 
+  const { data: relatedUserLists = [], isLoading: isRelatedUserListsLoading } = useQuery({
+    queryKey: ["reviews-page-related-user-lists", id, type],
+    queryFn: async () => {
+      const genreIds = ((details as { genres?: Array<{ id: number }> } | null)?.genres || [])
+        .map((g) => g.id)
+        .join(",");
+      const listParams = new URLSearchParams({
+        limit: "12",
+        editorialOnly: "false",
+        tmdbId: String(id),
+        mediaType: type,
+        genreIds,
+      });
+      const playlistParams = new URLSearchParams({
+        limit: "12",
+        tmdbId: String(id),
+        mediaType: type,
+        genreIds,
+      });
+      const [listsRes, playlistsRes] = await Promise.all([
+        fetch(`/api/lists/public?${listParams}`),
+        fetch(`/api/playlists/public?${playlistParams}`),
+      ]);
+      const listsJson = listsRes.ok ? await listsRes.json() : { lists: [] };
+      const playlistsJson = playlistsRes.ok ? await playlistsRes.json() : { playlists: [] };
+      const lists = (listsJson.lists ?? []) as Array<Record<string, unknown> & { id: string; updatedAt: string }>;
+      const playlists = (playlistsJson.playlists ?? []) as Array<Record<string, unknown> & { id: string; updatedAt: string }>;
+      const merged = [
+        ...lists.map((l) => ({ kind: "list" as const, ...l })),
+        ...playlists.map((p) => ({ kind: "playlist" as const, ...p })),
+      ];
+      merged.sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+      );
+      return merged.slice(0, 8);
+    },
+    staleTime: 1000 * 60 * 3,
+    enabled: Boolean(details),
+  });
+
+  const filmTitle =
+    type === "movie"
+      ? ((details as { title?: string } | null)?.title ?? "Movie")
+      : ((details as { name?: string } | null)?.name ?? "TV Show");
+  const posterPath = (details as { poster_path?: string | null } | null)?.poster_path ?? null;
+  const releaseYearRaw =
+    type === "movie"
+      ? (details as { release_date?: string } | null)?.release_date
+      : (details as { first_air_date?: string } | null)?.first_air_date;
+  const releaseYear = releaseYearRaw ? new Date(releaseYearRaw).getFullYear().toString() : null;
+  const runtime = type === "movie"
+    ? (() => {
+        const mins = (details as { runtime?: number } | null)?.runtime;
+        if (!mins) return null;
+        return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+      })()
+    : (() => {
+        const runTimes = (details as { episode_run_time?: number[] } | null)?.episode_run_time;
+        if (!runTimes || runTimes.length === 0) return null;
+        const avg = Math.round(runTimes.reduce((a, b) => a + b, 0) / runTimes.length);
+        return `${Math.floor(avg / 60)}h ${avg % 60}m`;
+      })();
+  const rating = (details as { vote_average?: number } | null)?.vote_average ?? null;
+
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -105,332 +175,402 @@ export default function ReviewsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Button
-          variant="ghost"
-          onClick={() => router.back()}
-          className="mb-6 cursor-pointer"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <h1 className="text-3xl font-bold">
-            Reviews ({userPagination.total + tmdbPagination.total})
-          </h1>
-          {user && (
-            <Button onClick={() => setWriteDialogOpen(true)} className="cursor-pointer">
-              Write a Review
-            </Button>
-          )}
-        </div>
-
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="mb-6">
-          <TabsList>
-            <TabsTrigger value="all">All Reviews</TabsTrigger>
-            <TabsTrigger value="tmdb">
-              TMDB ({tmdbPagination.total})
-            </TabsTrigger>
-            <TabsTrigger value="user">
-              User Reviews ({userPagination.total})
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Filters - Only show for user reviews */}
-          {(activeTab === "all" || activeTab === "user") && (
-            <div className="flex flex-wrap items-center gap-4 mt-6 mb-6">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Filter by Rating:</label>
-                <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Ratings</SelectItem>
-                    <SelectItem value="10">10/10</SelectItem>
-                    <SelectItem value="9">9/10</SelectItem>
-                    <SelectItem value="8">8/10</SelectItem>
-                    <SelectItem value="7">7/10</SelectItem>
-                    <SelectItem value="6">6/10</SelectItem>
-                    <SelectItem value="5">5/10</SelectItem>
-                    <SelectItem value="4">4/10</SelectItem>
-                    <SelectItem value="3">3/10</SelectItem>
-                    <SelectItem value="2">2/10</SelectItem>
-                    <SelectItem value="1">1/10</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Sort by:</label>
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="featured">Featured</SelectItem>
-                    <SelectItem value="date">Review Date</SelectItem>
-                    <SelectItem value="rating">Rating</SelectItem>
-                    <SelectItem value="helpful">Most Helpful</SelectItem>
-                  </SelectContent>
-                </Select>
+      <header className="-mt-[65px] border-b border-white/10 bg-zinc-950 text-zinc-50 dark:bg-black pt-20 sm:pt-34 pb-6 sm:pb-8 lg:pb-15">
+        <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8">
+          <Button
+            variant="ghost"
+            onClick={() => router.back()}
+            className="mb-3 sm:mb-5 -ml-2 h-9 text-zinc-300 hover:text-white hover:bg-white/10 cursor-pointer"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+              {posterPath ? (
+                <div className="relative w-16 h-24 sm:w-24 sm:h-36 rounded overflow-hidden flex-shrink-0 bg-zinc-800/50">
+                  <Image
+                    src={getPosterUrl(posterPath, "w300")}
+                    alt={filmTitle}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 64px, 96px"
+                    unoptimized
+                  />
+                </div>
+              ) : null}
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-zinc-50 line-clamp-2">
+                  {filmTitle}
+                </h1>
+                <div className="mt-2 flex items-center gap-2 flex-wrap text-xs sm:text-sm text-zinc-300">
+                  {rating && rating > 0 ? (
+                    <>
+                      <span className="font-medium text-zinc-100">{rating.toFixed(1)}</span>
+                      <span>•</span>
+                    </>
+                  ) : null}
+                  {releaseYear ? <span>{releaseYear}</span> : null}
+                  {runtime ? (
+                    <>
+                      {releaseYear ? <span>•</span> : null}
+                      <span>{runtime}</span>
+                    </>
+                  ) : null}
+                </div>
+                <p className="mt-2 text-xs sm:text-sm text-zinc-400">
+                  Reviews ({userPagination.total + tmdbPagination.total})
+                </p>
               </div>
             </div>
-          )}
+          </div>
+      </header>
 
-          {/* Reviews */}
-          {/* All Reviews Tab */}
-          <TabsContent value="all" className="mt-0">
-            {isLoading || tmdbLoading ? (
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <Skeleton key={i} className="h-48 w-full rounded-lg" />
-                ))}
-              </div>
-            ) : allReviews.length === 0 ? (
-              <div className="text-center text-muted-foreground py-12 border border-border rounded-lg">
-                <p className="text-sm mb-4">No reviews found</p>
-                {user && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setWriteDialogOpen(true)}
-                    className="cursor-pointer"
-                  >
-                    Be the first to review
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <>
-                <div className="space-y-4 mb-8">
-                  {allReviews.map((item) => (
-                    item.type === "tmdb" ? (
-                      <TMDBReviewCard key={`tmdb-${item.review.id}`} review={item.review} showFullContent />
-                    ) : (
-                      <ReviewCard key={`user-${item.review.id}`} review={item.review} showFullContent />
-                    )
-                  ))}
+      <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14">
+          <div className="lg:col-span-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <h2 className="text-2xl font-bold">All Reviews</h2>
+              {user && (
+                <Button
+                  variant="ghost"
+                  onClick={() => setWriteDialogOpen(true)}
+                  className="cursor-pointer w-fit"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Review
+                </Button>
+              )}
+            </div>
+
+            {/* Tabs */}
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="mb-6">
+              <TabsList>
+                <TabsTrigger value="all" className="cursor-pointer">All Reviews</TabsTrigger>
+                <TabsTrigger value="tmdb" className="cursor-pointer">
+                  TMDB ({tmdbPagination.total})
+                </TabsTrigger>
+                <TabsTrigger value="user" className="cursor-pointer">
+                  User Reviews ({userPagination.total})
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Filters - Only show for user reviews */}
+              {(activeTab === "all" || activeTab === "user") && (
+                <div className="flex flex-wrap items-center gap-4 mt-6 mb-6">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">Filter by Rating:</label>
+                    <Select value={ratingFilter} onValueChange={setRatingFilter}>
+                      <SelectTrigger className="w-[140px] cursor-pointer">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all" className="cursor-pointer">All Ratings</SelectItem>
+                        <SelectItem value="10" className="cursor-pointer">10/10</SelectItem>
+                        <SelectItem value="9" className="cursor-pointer">9/10</SelectItem>
+                        <SelectItem value="8" className="cursor-pointer">8/10</SelectItem>
+                        <SelectItem value="7" className="cursor-pointer">7/10</SelectItem>
+                        <SelectItem value="6" className="cursor-pointer">6/10</SelectItem>
+                        <SelectItem value="5" className="cursor-pointer">5/10</SelectItem>
+                        <SelectItem value="4" className="cursor-pointer">4/10</SelectItem>
+                        <SelectItem value="3" className="cursor-pointer">3/10</SelectItem>
+                        <SelectItem value="2" className="cursor-pointer">2/10</SelectItem>
+                        <SelectItem value="1" className="cursor-pointer">1/10</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">Sort by:</label>
+                    <Select value={sortBy} onValueChange={setSortBy}>
+                      <SelectTrigger className="w-[180px] cursor-pointer">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="featured" className="cursor-pointer">Featured</SelectItem>
+                        <SelectItem value="date" className="cursor-pointer">Review Date</SelectItem>
+                        <SelectItem value="rating" className="cursor-pointer">Rating</SelectItem>
+                        <SelectItem value="helpful" className="cursor-pointer">Most Helpful</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </>
-            )}
-          </TabsContent>
+              )}
 
-          {/* TMDB Reviews Tab */}
-          <TabsContent value="tmdb" className="mt-0">
-            {tmdbLoading ? (
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <Skeleton key={i} className="h-48 w-full rounded-lg" />
-                ))}
-              </div>
-            ) : tmdbReviews.length === 0 ? (
-              <div className="text-center text-muted-foreground py-12 border border-border rounded-lg">
-                <p className="text-sm mb-4">No TMDB reviews available</p>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-4 mb-8">
-                  {tmdbReviews.map((review) => (
-                    <TMDBReviewCard key={review.id} review={review} showFullContent />
-                  ))}
-                </div>
-
-                {/* TMDB Pagination */}
-                {tmdbPagination.totalPages > 1 && (
-                  <div className="mt-6">
-                    <Pagination>
-                      <PaginationContent>
-                        <PaginationItem>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setTMDBPage(tmdbPage - 1)}
-                            disabled={tmdbPage === 1}
-                            className="gap-1 cursor-pointer"
-                          >
-                            <ChevronLeft className="h-4 w-4" />
-                            Previous
-                          </Button>
-                        </PaginationItem>
-
-                        {Array.from({ length: Math.min(5, tmdbPagination.totalPages) }, (_, i) => {
-                          let pageNum: number;
-                          if (tmdbPagination.totalPages <= 5) {
-                            pageNum = i + 1;
-                          } else if (tmdbPage <= 3) {
-                            pageNum = i + 1;
-                          } else if (tmdbPage >= tmdbPagination.totalPages - 2) {
-                            pageNum = tmdbPagination.totalPages - 4 + i;
-                          } else {
-                            pageNum = tmdbPage - 2 + i;
-                          }
-                          return (
-                            <PaginationItem key={pageNum}>
-                              <PaginationLink
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  setTMDBPage(pageNum);
-                                }}
-                                isActive={tmdbPage === pageNum}
-                                className="cursor-pointer"
-                              >
-                                {pageNum}
-                              </PaginationLink>
-                            </PaginationItem>
-                          );
-                        })}
-
-                        <PaginationItem>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setTMDBPage(tmdbPage + 1)}
-                            disabled={tmdbPage === tmdbPagination.totalPages}
-                            className="gap-1 cursor-pointer"
-                          >
-                            Next
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
+              {/* Reviews */}
+              {/* All Reviews Tab */}
+              <TabsContent value="all" className="mt-0">
+                {isLoading || tmdbLoading ? (
+                  <div className="space-y-4">
+                    {[...Array(5)].map((_, i) => (
+                      <Skeleton key={i} className="h-48 w-full rounded-lg" />
+                    ))}
+                  </div>
+                ) : allReviews.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-12 border border-border rounded-lg">
+                    <p className="text-sm mb-4">No reviews found</p>
+                    {user && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setWriteDialogOpen(true)}
+                        className="cursor-pointer"
+                      >
+                        Be the first to review
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4 mb-8">
+                    {allReviews.map((item) => (
+                      item.type === "tmdb" ? (
+                        <TMDBReviewCard key={`tmdb-${item.review.id}`} review={item.review} showFullContent />
+                      ) : (
+                        <ReviewCard key={`user-${item.review.id}`} review={item.review} showFullContent />
+                      )
+                    ))}
                   </div>
                 )}
-              </>
-            )}
-          </TabsContent>
+              </TabsContent>
 
-          {/* User Reviews Tab */}
-          <TabsContent value="user" className="mt-0">
-            {isLoading ? (
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <Skeleton key={i} className="h-48 w-full rounded-lg" />
-                ))}
-              </div>
-            ) : userReviews.length === 0 ? (
-              <div className="text-center text-muted-foreground py-12 border border-border rounded-lg">
-                <p className="text-sm mb-4">No user reviews found</p>
-                {user && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setWriteDialogOpen(true)}
-                    className="cursor-pointer"
-                  >
-                    Be the first to review
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <>
-                <div className="space-y-4 mb-8">
-                  {userReviews.map((review) => (
-                    <ReviewCard key={review.id} review={review} showFullContent />
-                  ))}
-                </div>
+              {/* TMDB Reviews Tab */}
+              <TabsContent value="tmdb" className="mt-0">
+                {tmdbLoading ? (
+                  <div className="space-y-4">
+                    {[...Array(5)].map((_, i) => (
+                      <Skeleton key={i} className="h-48 w-full rounded-lg" />
+                    ))}
+                  </div>
+                ) : tmdbReviews.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-12 border border-border rounded-lg">
+                    <p className="text-sm mb-4">No TMDB reviews available</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-4 mb-8">
+                      {tmdbReviews.map((review) => (
+                        <TMDBReviewCard key={review.id} review={review} showFullContent />
+                      ))}
+                    </div>
 
-                {/* User Reviews Pagination */}
-                {userPagination.totalPages > 1 && (
-                  <div className="mt-6">
-                    <Pagination>
-                      <PaginationContent>
-                        <PaginationItem>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handlePageChange(page - 1)}
-                            disabled={page === 1}
-                            className="gap-1 cursor-pointer"
-                          >
-                            <ChevronLeft className="h-4 w-4" />
-                            Previous
-                          </Button>
-                        </PaginationItem>
+                    {/* TMDB Pagination */}
+                    {tmdbPagination.totalPages > 1 && (
+                      <div className="mt-6">
+                        <Pagination>
+                          <PaginationContent>
+                            <PaginationItem>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setTMDBPage(tmdbPage - 1)}
+                                disabled={tmdbPage === 1}
+                                className="gap-1 cursor-pointer"
+                              >
+                                <ChevronLeft className="h-4 w-4" />
+                                Previous
+                              </Button>
+                            </PaginationItem>
 
-                        {(() => {
-                          const pages: (number | "ellipsis")[] = [];
-                          
-                          // Always show first page
-                          pages.push(1);
-                          
-                          // Add ellipsis if needed
-                          if (page > 3) {
-                            pages.push("ellipsis");
-                          }
-                          
-                          // Add pages around current
-                          for (let i = Math.max(2, page - 1); i <= Math.min(userPagination.totalPages - 1, page + 1); i++) {
-                            if (i !== 1 && i !== userPagination.totalPages) {
-                              pages.push(i);
-                            }
-                          }
-                          
-                          // Add ellipsis if needed
-                          if (page < userPagination.totalPages - 2) {
-                            pages.push("ellipsis");
-                          }
-                          
-                          // Always show last page
-                          if (userPagination.totalPages > 1) {
-                            pages.push(userPagination.totalPages);
-                          }
-                          
-                          // Remove duplicates
-                          const uniquePages = pages.filter((p, index, self) => {
-                            if (p === "ellipsis") {
-                              return index === self.indexOf("ellipsis") || 
-                                     (index > 0 && self[index - 1] !== "ellipsis");
-                            }
-                            return index === self.findIndex((page) => page === p);
-                          });
-                          
-                          return uniquePages.map((p, index) => {
-                            if (p === "ellipsis") {
+                            {Array.from({ length: Math.min(5, tmdbPagination.totalPages) }, (_, i) => {
+                              let pageNum: number;
+                              if (tmdbPagination.totalPages <= 5) {
+                                pageNum = i + 1;
+                              } else if (tmdbPage <= 3) {
+                                pageNum = i + 1;
+                              } else if (tmdbPage >= tmdbPagination.totalPages - 2) {
+                                pageNum = tmdbPagination.totalPages - 4 + i;
+                              } else {
+                                pageNum = tmdbPage - 2 + i;
+                              }
                               return (
-                                <PaginationItem key={`ellipsis-${index}`}>
-                                  <span className="px-2">...</span>
+                                <PaginationItem key={pageNum}>
+                                  <PaginationLink
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      setTMDBPage(pageNum);
+                                    }}
+                                    isActive={tmdbPage === pageNum}
+                                    className="cursor-pointer"
+                                  >
+                                    {pageNum}
+                                  </PaginationLink>
                                 </PaginationItem>
                               );
-                            }
-                            return (
-                              <PaginationItem key={p}>
-                                <PaginationLink
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    handlePageChange(p);
-                                  }}
-                                  isActive={page === p}
-                                  className="cursor-pointer"
-                                >
-                                  {p}
-                                </PaginationLink>
-                              </PaginationItem>
-                            );
-                          });
-                        })()}
+                            })}
 
-                        <PaginationItem>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handlePageChange(page + 1)}
-                            disabled={page === userPagination.totalPages}
-                            className="gap-1 cursor-pointer"
-                          >
-                            Next
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  </div>
+                            <PaginationItem>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setTMDBPage(tmdbPage + 1)}
+                                disabled={tmdbPage === tmdbPagination.totalPages}
+                                className="gap-1 cursor-pointer"
+                              >
+                                Next
+                                <ChevronRight className="h-4 w-4" />
+                              </Button>
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      </div>
+                    )}
+                  </>
                 )}
-              </>
+              </TabsContent>
+
+              {/* User Reviews Tab */}
+              <TabsContent value="user" className="mt-0">
+                {isLoading ? (
+                  <div className="space-y-4">
+                    {[...Array(5)].map((_, i) => (
+                      <Skeleton key={i} className="h-48 w-full rounded-lg" />
+                    ))}
+                  </div>
+                ) : userReviews.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-12 border border-border rounded-lg">
+                    <p className="text-sm mb-4">No user reviews found</p>
+                    {user && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setWriteDialogOpen(true)}
+                        className="cursor-pointer"
+                      >
+                        Be the first to review
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-4 mb-8">
+                      {userReviews.map((review) => (
+                        <ReviewCard key={review.id} review={review} showFullContent />
+                      ))}
+                    </div>
+
+                    {/* User Reviews Pagination */}
+                    {userPagination.totalPages > 1 && (
+                      <div className="mt-6">
+                        <Pagination>
+                          <PaginationContent>
+                            <PaginationItem>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePageChange(page - 1)}
+                                disabled={page === 1}
+                                className="gap-1 cursor-pointer"
+                              >
+                                <ChevronLeft className="h-4 w-4" />
+                                Previous
+                              </Button>
+                            </PaginationItem>
+
+                            {(() => {
+                              const pages: (number | "ellipsis")[] = [];
+                              pages.push(1);
+                              if (page > 3) {
+                                pages.push("ellipsis");
+                              }
+                              for (let i = Math.max(2, page - 1); i <= Math.min(userPagination.totalPages - 1, page + 1); i++) {
+                                if (i !== 1 && i !== userPagination.totalPages) {
+                                  pages.push(i);
+                                }
+                              }
+                              if (page < userPagination.totalPages - 2) {
+                                pages.push("ellipsis");
+                              }
+                              if (userPagination.totalPages > 1) {
+                                pages.push(userPagination.totalPages);
+                              }
+
+                              const uniquePages = pages.filter((p, index, self) => {
+                                if (p === "ellipsis") {
+                                  return index === self.indexOf("ellipsis") ||
+                                    (index > 0 && self[index - 1] !== "ellipsis");
+                                }
+                                return index === self.findIndex((pageNumber) => pageNumber === p);
+                              });
+
+                              return uniquePages.map((p, index) => {
+                                if (p === "ellipsis") {
+                                  return (
+                                    <PaginationItem key={`ellipsis-${index}`}>
+                                      <span className="px-2">...</span>
+                                    </PaginationItem>
+                                  );
+                                }
+                                return (
+                                  <PaginationItem key={p}>
+                                    <PaginationLink
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        handlePageChange(p);
+                                      }}
+                                      isActive={page === p}
+                                      className="cursor-pointer"
+                                    >
+                                      {p}
+                                    </PaginationLink>
+                                  </PaginationItem>
+                                );
+                              });
+                            })()}
+
+                            <PaginationItem>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePageChange(page + 1)}
+                                disabled={page === userPagination.totalPages}
+                                className="gap-1 cursor-pointer"
+                              >
+                                Next
+                                <ChevronRight className="h-4 w-4" />
+                              </Button>
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      </div>
+                    )}
+                  </>
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          <aside className="lg:col-span-4 space-y-3 lg:sticky lg:top-24 lg:self-start">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-lg font-semibold">Related user Lists</h3>
+              {user && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-8 px-2 rounded-[20px] cursor-pointer"
+                  onClick={() => setIsCreateListModalOpen(true)}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Create List
+                </Button>
+              )}
+            </div>
+
+            {isRelatedUserListsLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <CompactListCardSkeleton key={`related-list-skeleton-${i}`} />
+                ))}
+              </div>
+            ) : relatedUserLists.length > 0 ? (
+              <div className="space-y-2">
+                {relatedUserLists.map((row: { kind: "list" | "playlist"; id: string }) => (
+                  <CompactRelatedCard key={`${row.kind}-${row.id}`} row={row} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground border border-dashed rounded-lg p-4">
+                No related lists yet.
+              </div>
             )}
-          </TabsContent>
-        </Tabs>
+          </aside>
+        </div>
 
         {user && (
           <WriteReviewDialog
@@ -441,14 +581,7 @@ export default function ReviewsPage() {
             filmData={
               details
                 ? {
-                    title:
-                      type === "movie"
-                        ? "title" in details
-                          ? details.title
-                          : ""
-                        : "name" in details
-                        ? details.name
-                        : "",
+                    title: filmTitle,
                     posterPath: details.poster_path || null,
                     releaseYear:
                       type === "movie"
@@ -485,7 +618,86 @@ export default function ReviewsPage() {
             }
           />
         )}
+
+        {user && (
+          <CreateListModal
+            isOpen={isCreateListModalOpen}
+            onClose={() => setIsCreateListModalOpen(false)}
+          />
+        )}
       </div>
+    </div>
+  );
+}
+
+function CompactListCardSkeleton() {
+  return (
+    <div className="relative flex rounded-lg border border-border overflow-hidden">
+      <div className="flex-1 min-w-0 flex flex-col p-3 gap-2">
+        <Skeleton className="h-4 w-4/5" />
+        <Skeleton className="h-3 w-3/5" />
+      </div>
+      <div className="w-16 sm:w-20 aspect-[3/4] flex-shrink-0">
+        <Skeleton className="h-full w-full rounded-r-lg" />
+      </div>
+    </div>
+  );
+}
+
+function CompactRelatedCard({ row }: { row: Record<string, unknown> & { kind: "list" | "playlist"; id: string; name?: string } }) {
+  const router = useRouter();
+  const isPlaylist = row.kind === "playlist";
+  const href = isPlaylist ? `/playlists/${row.id}` : `/lists/${row.id}`;
+  const items = (row.items as Array<{ posterPath?: string | null }> | undefined) ?? [];
+  const firstWithPoster = items.find((x) => Boolean(x.posterPath));
+  const posterPath = firstWithPoster?.posterPath || null;
+  const countList = row._count as { items?: number; youtubeItems?: number } | undefined;
+  const itemCount = isPlaylist
+    ? (countList?.items ?? 0) + (countList?.youtubeItems ?? 0)
+    : countList?.items ?? items.length;
+  const updatedAt = row.updatedAt
+    ? new Date(row.updatedAt as string).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : null;
+  const title = (row.name as string) || "Untitled";
+
+  return (
+    <div
+      className="relative flex rounded-lg border border-border transition-all group cursor-pointer overflow-hidden"
+      onClick={() => router.push(href)}
+    >
+      <div className="flex-1 min-w-0 flex flex-col p-3">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(href);
+          }}
+          className="text-left text-sm font-semibold line-clamp-1 hover:text-primary transition-colors cursor-pointer"
+        >
+          {title}
+        </button>
+        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+          {isPlaylist ? "Playlist · " : "List · "}
+          {updatedAt ? `Updated ${updatedAt}` : "Recently updated"} . {itemCount} {itemCount === 1 ? "item" : "items"}
+        </p>
+      </div>
+
+      {posterPath ? (
+        <div className="relative w-16 sm:w-20 aspect-[3/4] rounded-r-lg overflow-hidden flex-shrink-0 bg-muted">
+          <Image
+            src={getPosterUrl(posterPath, "w200")}
+            alt={title}
+            fill
+            className="object-cover"
+            sizes="80px"
+            unoptimized
+          />
+        </div>
+      ) : (
+        <div className="w-16 sm:w-20 aspect-[3/4] rounded-r-lg bg-muted flex-shrink-0 flex items-center justify-center">
+          <span className="text-[10px] text-muted-foreground">No Image</span>
+        </div>
+      )}
     </div>
   );
 }

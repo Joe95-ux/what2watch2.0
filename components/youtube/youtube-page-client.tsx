@@ -146,7 +146,12 @@ export function YouTubePageClient() {
       </div>
 
       {/* Content */}
-      <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div
+        className={cn(
+          "max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8",
+          activeTab === "lists" ? "pb-8" : "py-8"
+        )}
+      >
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsContent value="channels" className="mt-0">
             <YouTubeChannelsTab />
