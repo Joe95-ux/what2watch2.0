@@ -53,9 +53,15 @@ export default function ReviewsPage() {
   const type = params.type as "movie" | "tv";
   const id = parseInt(params.id as string, 10);
 
-  const { data: movieDetails } = useMovieDetails(type === "movie" ? id : null);
-  const { data: tvDetails } = useTVDetails(type === "tv" ? id : null);
+  const { data: movieDetails, isLoading: isMovieDetailsLoading } = useMovieDetails(
+    type === "movie" ? id : null,
+  );
+  const { data: tvDetails, isLoading: isTVDetailsLoading } = useTVDetails(
+    type === "tv" ? id : null,
+  );
   const details = type === "movie" ? movieDetails : tvDetails;
+  const isDetailsLoading =
+    type === "movie" ? isMovieDetailsLoading : isTVDetailsLoading;
   const [isCreateListModalOpen, setIsCreateListModalOpen] = useState(false);
 
   const [tmdbPage, setTMDBPage] = useState(1);
@@ -285,7 +291,12 @@ export default function ReviewsPage() {
             Back
           </Button>
           <div className="flex items-start gap-3 sm:gap-4 min-w-0">
-              {posterPath ? (
+              {isDetailsLoading ? (
+                <Skeleton
+                  className="h-24 w-16 shrink-0 rounded-md border border-white/10 bg-zinc-800/50 sm:h-36 sm:w-24"
+                  aria-hidden
+                />
+              ) : posterPath ? (
                 <div className="relative w-16 h-24 sm:w-24 sm:h-36 flex-shrink-0 overflow-visible">
                   <Link
                     href={detailUrl}
