@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Share2, Pencil, Trash2, ArrowLeftCircle, Users, Facebook, Twitter, Mail, Link2, Eye, Heart } from "lucide-react";
+import { Share2, Pencil, Trash2, ArrowLeftCircle, Users, UsersRound, Facebook, Twitter, Mail, Link2, Eye, Heart } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -383,7 +383,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
     <div className="mx-auto max-w-[92rem] px-4 py-10 space-y-8">
       <button
         onClick={() => router.back()}
-        className="flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
+        className="flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground cursor-pointer"
       >
         <ArrowLeftCircle className="h-4 w-4" />
         Back
@@ -434,7 +434,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
                   {list.viewsCount ?? 0} {list.viewsCount === 1 ? "view" : "views"}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Users className="h-4 w-4" />
+                  <UsersRound className="h-4 w-4" />
                   {list.followersCount ?? list._count?.followedBy ?? 0} {list.followersCount === 1 ? "follower" : "followers"}
                 </span>
               </div>

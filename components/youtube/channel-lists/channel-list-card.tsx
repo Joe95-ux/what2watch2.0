@@ -3,13 +3,17 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Edit, MoreVertical, Share2, Trash2 } from "lucide-react";
+import { Edit, Facebook, Link2, Mail, MoreVertical, Share2, Trash2, Twitter } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -46,11 +50,41 @@ export function ChannelListCard({ list, className, onEdit, onDeleted }: ChannelL
   const channelAvatars = list.items.slice(0, isMobile ? 8 : 10);
   const detailUrl = useMemo(() => `/youtube-channel/lists/${list.id}`, [list.id]);
 
-  const handleCopyLink = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const url = typeof window !== "undefined" ? `${window.location.origin}${detailUrl}` : detailUrl;
-    await navigator.clipboard.writeText(url);
-    toast.success("List link copied");
+  const shareUrl =
+    typeof window !== "undefined" ? `${window.location.origin}${detailUrl}` : detailUrl;
+
+  const handleSocialShare = async (
+    platform: "facebook" | "twitter" | "whatsapp" | "email" | "link"
+  ) => {
+    const encodedUrl = encodeURIComponent(shareUrl);
+    const encodedTitle = encodeURIComponent(list.name);
+    const encodedDescription = encodeURIComponent(list.description || "");
+
+    if (platform === "link") {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("List link copied");
+      return;
+    }
+
+    let url = "";
+    if (platform === "facebook") {
+      url = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+    } else if (platform === "twitter") {
+      url = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}${encodedDescription ? ` - ${encodedDescription}` : ""}`;
+    } else if (platform === "whatsapp") {
+      url = `https://wa.me/?text=${encodedTitle}%20${encodedUrl}`;
+    } else if (platform === "email") {
+      const subject = encodeURIComponent(list.name);
+      const body = encodeURIComponent(`${list.description || ""}\n\n${shareUrl}`);
+      url = `mailto:?subject=${subject}&body=${body}`;
+    }
+
+    if (!url) return;
+    if (platform === "email") {
+      window.location.href = url;
+    } else {
+      window.open(url, "_blank", "width=600,height=400");
+    }
   };
 
   const handleDelete = async () => {
@@ -136,7 +170,7 @@ export function ChannelListCard({ list, className, onEdit, onDeleted }: ChannelL
         )}
 
         {/* 3-dot card menu */}
-        <div className="absolute right-0 top-0 z-20" onClick={(e) => e.stopPropagation()}>
+        <div className="absolute right-0 top-1.5 z-20" onClick={(e) => e.stopPropagation()}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -173,13 +207,34 @@ export function ChannelListCard({ list, className, onEdit, onDeleted }: ChannelL
                   Delete
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={handleCopyLink}
-              >
-                <Share2 className="h-4 w-4 mr-2" />
-                Share list
-              </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="cursor-pointer">
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share list
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-44">
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => handleSocialShare("facebook")}>
+                    <Facebook className="h-4 w-4 mr-2" />
+                    Facebook
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => handleSocialShare("twitter")}>
+                    <Twitter className="h-4 w-4 mr-2" />
+                    X (Twitter)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => handleSocialShare("whatsapp")}>
+                    <FaWhatsapp className="h-4 w-4 mr-2" />
+                    WhatsApp
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => handleSocialShare("email")}>
+                    <Mail className="h-4 w-4 mr-2" />
+                    Email
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => handleSocialShare("link")}>
+                    <Link2 className="h-4 w-4 mr-2" />
+                    Copy Link
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
