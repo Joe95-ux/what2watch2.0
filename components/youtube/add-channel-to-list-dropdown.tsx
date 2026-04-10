@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useClerk, useUser } from "@clerk/nextjs";
-import { ListCheck, Plus } from "lucide-react";
+import { ChevronRight, ListCheck, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ interface YouTubeAddToListDropdownProps {
 }
 
 export function YouTubeAddToListDropdown({ channel, trigger }: YouTubeAddToListDropdownProps) {
+  const router = useRouter();
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
   const updateList = useUpdateYouTubeChannelList();
@@ -56,6 +58,8 @@ export function YouTubeAddToListDropdown({ channel, trigger }: YouTubeAddToListD
 
   const isChannelInList = (list: YouTubeChannelList) =>
     list.items.some((item) => item.channelId === channel.channelId);
+
+  const [localMembership, setLocalMembership] = useState<Record<string, boolean>>({});
 
   const handleToggleInList = async (listId: string) => {
     if (!requireAuth()) return;
@@ -108,6 +112,7 @@ export function YouTubeAddToListDropdown({ channel, trigger }: YouTubeAddToListD
         listId,
         channels: nextItems,
       });
+      setLocalMembership((prev) => ({ ...prev, [listId]: !exists }));
       toast.success(
         exists ? `Removed from "${baseList.name}"` : `Added to "${baseList.name}"`
       );
@@ -143,7 +148,7 @@ export function YouTubeAddToListDropdown({ channel, trigger }: YouTubeAddToListD
           className="w-64 p-0 flex flex-col max-h-[360px]"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="px-2 py-1.5 border-b border-border text-xs text-muted-foreground">
+          <div className="px-2 py-2 border-b border-border text-sm font-medium text-foreground">
             Add channel to list
           </div>
           <div className="overflow-y-auto scrollbar-thin p-2 space-y-1">
@@ -153,7 +158,7 @@ export function YouTubeAddToListDropdown({ channel, trigger }: YouTubeAddToListD
               <DropdownMenuItem disabled>No lists yet</DropdownMenuItem>
             ) : (
               myLists.map((list) => {
-                const isInList = isChannelInList(list);
+                const isInList = localMembership[list.id] ?? isChannelInList(list);
                 return (
                   <DropdownMenuItem
                     key={list.id}
@@ -161,26 +166,41 @@ export function YouTubeAddToListDropdown({ channel, trigger }: YouTubeAddToListD
                     className="p-0"
                     disabled={updateList.isPending}
                   >
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleToggleInList(list.id);
-                      }}
-                      className={cn(
-                        "w-full px-2 py-2 rounded text-left flex items-center gap-2 cursor-pointer hover:bg-muted",
-                        isInList && "text-primary"
-                      )}
-                    >
-                      <ListCheck
+                    <div className="flex items-center w-full">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleToggleInList(list.id);
+                        }}
                         className={cn(
-                          "h-4 w-4",
-                          isInList ? "text-primary" : "text-muted-foreground"
+                          "flex items-center gap-2 flex-1 min-w-0 px-2 py-2 rounded transition-colors text-left cursor-pointer hover:bg-muted",
+                          isInList && "bg-muted/70 text-primary"
                         )}
-                      />
-                      <span className="truncate">{list.name}</span>
-                    </button>
+                      >
+                        <ListCheck
+                          className={cn(
+                            "h-4 w-4 flex-shrink-0",
+                            isInList ? "text-green-500" : "text-muted-foreground"
+                          )}
+                        />
+                        <span className="truncate">{list.name}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          router.push(`/youtube-channel/lists/${list.id}`);
+                          setOpen(false);
+                        }}
+                        className="p-2 rounded transition-colors flex-shrink-0 hover:bg-muted cursor-pointer"
+                        title="Open list"
+                      >
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      </button>
+                    </div>
                   </DropdownMenuItem>
                 );
               })

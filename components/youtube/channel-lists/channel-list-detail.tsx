@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Share2, Pencil, Trash2, ArrowLeftCircle, Users, UsersRound, Facebook, Twitter, Mail, Link2, Eye, Heart } from "lucide-react";
+import { Share2, Pencil, Trash2, ArrowLeftCircle, UsersRound, Facebook, Twitter, Mail, Link2, Eye, Heart } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,8 @@ import { YouTubeChannelCardHorizontal, YouTubeChannelCardHorizontalSkeleton } fr
 import { useYouTubeCardStyle } from "@/hooks/use-youtube-card-style";
 import { useUser } from "@clerk/nextjs";
 import { useClerk } from "@clerk/nextjs";
+import Link from "next/link";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ChannelListDetailProps {
   listId: string;
@@ -329,6 +331,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
   };
 
   const ownerName = list.user?.username || list.user?.displayName || "Curator";
+  const ownerProfileHref = `/user/${list.user?.username || list.user?.id}`;
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
 
   const handleSocialShare = async (platform: "facebook" | "twitter" | "whatsapp" | "email" | "link") => {
@@ -401,15 +404,21 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
             <p className="text-muted-foreground">{list.description}</p>
           </div>
 
-          <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-            <span>Curated by {ownerName}</span>
+          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+            <Link
+              href={ownerProfileHref}
+              className="inline-flex items-center gap-2 hover:text-foreground transition-colors cursor-pointer"
+            >
+              <Avatar className="h-6 w-6">
+                <AvatarImage src={list.user?.avatarUrl || undefined} alt={ownerName} />
+                <AvatarFallback>
+                  {(ownerName || "C")[0].toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span>Curated by {ownerName}</span>
+            </Link>
             <span>•</span>
             <span>{list._count.items} channels</span>
-            <span>•</span>
-            <span className="inline-flex items-center gap-1">
-              <Users className="h-4 w-4" />
-              {list.followersCount} followers
-            </span>
           </div>
 
           {list.tags?.length ? (
@@ -472,7 +481,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
               onClick={handleFollowToggle}
               disabled={toggleFollow.isPending || !isSignedIn}
             >
-              <Users className="h-4 w-4" />
+                  <UsersRound className="h-4 w-4" />
               {list.viewerState.isFollowing ? "Following" : "Follow list"}
             </Button>
           )}

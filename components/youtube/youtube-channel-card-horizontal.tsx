@@ -271,10 +271,10 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
                 variant="ghost"
                 size="sm"
                 onClick={handleReviewClick}
-                className="h-auto p-0 border-0 bg-transparent hover:bg-transparent text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer"
+                title="Review Channel"
+                className="h-auto w-auto p-0 border-0 bg-transparent hover:bg-transparent text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer"
               >
-                <Star className="h-3.5 w-3.5 mr-1 fill-none" />
-                Review Channel
+                <Star className="h-3.5 w-3.5 fill-none" />
               </Button>
               <YouTubeAddToListDropdown
                 channel={{
