@@ -70,12 +70,10 @@ function ChannelListChannelsGrid({ items, listId }: { items: YouTubeChannelListI
     queryFn: async () => {
       if (channelIds.length === 0) return { channels: [] };
 
-      // Fetch channels data using the all channels endpoint
+      // Fetch only channels in this list so inUserPool and metadata are accurate.
       const params = new URLSearchParams({
-        page: "1",
-        limit: "100", // Should be enough for most lists
+        channelIds: channelIds.join(","),
       });
-      // We'll filter by channel IDs on the client side since the API doesn't support filtering by specific IDs
       const response = await fetch(`/api/youtube/channels/all?${params}`);
       if (!response.ok) throw new Error("Failed to fetch channels");
       const data = await response.json() as {
@@ -239,7 +237,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-[90rem] px-4 py-10 space-y-8">
+      <div className="mx-auto max-w-[92rem] px-4 py-10 space-y-8">
         {/* Back Button Skeleton */}
         <Skeleton className="h-5 w-32" />
 
@@ -291,7 +289,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
 
   if (!list) {
     return (
-      <div className="mx-auto max-w-[90rem] px-4 py-20 text-center">
+      <div className="mx-auto max-w-[92rem] px-4 py-20 text-center">
         <h1 className="text-2xl font-bold">Channel list not found</h1>
         <p className="text-muted-foreground">It may have been removed or set to private.</p>
         <Button onClick={() => router.push("/youtube-channel/lists")} className="mt-6 cursor-pointer">
@@ -382,7 +380,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
   };
 
   return (
-    <div className="mx-auto max-w-[90rem] px-4 py-10 space-y-8">
+    <div className="mx-auto max-w-[92rem] px-4 py-10 space-y-8">
       <button
         onClick={() => router.back()}
         className="flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"

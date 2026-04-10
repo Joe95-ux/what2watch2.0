@@ -16,6 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChannelReviewFormSheet } from "./channel-review-form-sheet";
 import { useState } from "react";
 import { useChannelReviews, ChannelReview } from "@/hooks/use-youtube-channel-reviews";
+import { YouTubeAddToListDropdown } from "./add-channel-to-list-dropdown";
 
 function formatCount(count: string | number): string {
   const num = typeof count === "string" ? parseInt(count, 10) : count;
@@ -263,40 +264,38 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
             </div>
           </div>
 
-          {/* Review Channel Action/Average Reviews - Third Line */}
+          {/* Review / Add actions - Third Line */}
           <div className="text-left space-y-1">
-            {channel.rating ? (
+            <div className="flex items-center gap-2 flex-wrap">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleReviewClick}
-                className="h-auto p-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                className="h-8 px-3 text-xs border border-primary/35 text-primary hover:bg-primary/10 hover:text-primary cursor-pointer"
               >
-                <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star
-                      key={star}
-                      className={cn(
-                        "h-3 w-3",
-                        star <= Math.round(channel.rating!.average)
-                          ? "fill-yellow-500 text-yellow-500"
-                          : "fill-none text-muted-foreground"
-                      )}
-                    />
-                  ))}
-                  <span>({channel.rating.count})</span>
-                </div>
+                Review Channel
               </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleReviewClick}
-                className="h-auto p-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                review channel
-              </Button>
-            )}
+              <YouTubeAddToListDropdown
+                channel={{
+                  channelId: channel.channelId,
+                  title: channelTitle,
+                  thumbnail: channel.thumbnail,
+                  channelUrl,
+                  subscriberCount: channel.subscriberCount || "0",
+                  videoCount: channel.videoCount || "0",
+                }}
+                trigger={
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-3 text-xs border border-border hover:border-primary/30 cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1.5" />
+                    Add to
+                  </Button>
+                }
+              />
+            </div>
             {/* YouTube Link - Under review average */}
             <Link
               href={channelUrl}

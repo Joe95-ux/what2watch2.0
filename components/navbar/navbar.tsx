@@ -71,8 +71,10 @@ export default function Navbar() {
 
   const isGuideNav =
     pathname === "/browse/personalized" ||
+    pathname === "/youtube" ||
     pathname?.startsWith("/lists") ||
     pathname?.startsWith("/playlists") ||
+    pathname?.startsWith("/youtube-channel/lists/") ||
     pathname === "/editorial" ||
     pathname?.startsWith("/editorial/") ||
     (pathname?.startsWith("/content/") && pathname?.endsWith("/reviews"));

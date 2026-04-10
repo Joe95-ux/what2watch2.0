@@ -16,6 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChannelReviewFormSheet } from "./channel-review-form-sheet";
 import { useState } from "react";
 import { useChannelReviews, ChannelReview } from "@/hooks/use-youtube-channel-reviews";
+import { YouTubeAddToListDropdown } from "./add-channel-to-list-dropdown";
 
 function formatCount(count: string | number): string {
   const num = typeof count === "string" ? parseInt(count, 10) : count;
@@ -285,7 +286,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
         {/* Separator */}
         <div className="border-t border-border" />
 
-        {/* Next Line: Subscriber count | Video count | Review count - Center Aligned */}
+        {/* Next Line: Subscriber count | Video count - Center Aligned */}
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground flex-wrap">
           <div className="flex items-center gap-1">
             <UsersRound className="h-4 w-4" />
@@ -296,39 +297,38 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
             <Video className="h-4 w-4" />
             <span>{formatCount(channel.videoCount || "0")}</span>
           </div>
-          <span>|</span>
-          {channel.rating ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleReviewClick}
-              className="h-auto p-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-            >
-              <div className="flex items-center gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className={cn(
-                      "h-3 w-3",
-                      star <= Math.round(channel.rating!.average)
-                        ? "fill-yellow-500 text-yellow-500"
-                        : "fill-none text-muted-foreground"
-                    )}
-                  />
-                ))}
-                <span>({channel.rating.count})</span>
-              </div>
-            </Button>
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleReviewClick}
-              className="h-auto p-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-            >
-              review channel
-            </Button>
-          )}
+        </div>
+
+        {/* Action row: Review + Add to list */}
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleReviewClick}
+            className="h-8 px-3 text-xs border border-primary/35 text-primary hover:bg-primary/10 hover:text-primary cursor-pointer"
+          >
+            Review Channel
+          </Button>
+          <YouTubeAddToListDropdown
+            channel={{
+              channelId: channel.channelId,
+              title: channelTitle,
+              thumbnail: channel.thumbnail,
+              channelUrl,
+              subscriberCount: channel.subscriberCount || "0",
+              videoCount: channel.videoCount || "0",
+            }}
+            trigger={
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-3 text-xs border border-border hover:border-primary/30 cursor-pointer"
+              >
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                Add to
+              </Button>
+            }
+          />
         </div>
 
         {/* Another Separator */}

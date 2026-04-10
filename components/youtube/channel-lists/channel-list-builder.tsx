@@ -631,7 +631,7 @@ export function ChannelListBuilder({
                           type="button"
                           size="icon"
                           variant="secondary"
-                          className="h-8 w-8 flex-shrink-0 rounded-lg"
+                          className="h-8 w-8 flex-shrink-0 rounded-lg cursor-pointer"
                           onClick={() => handleAddChannel(channel)}
                         >
                           <Plus className="h-4 w-4" />

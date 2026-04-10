@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
     const limitParam = Number(searchParams.get("limit") || DEFAULT_LIMIT);
     const categoryFilter = searchParams.get("category");
     const searchQuery = searchParams.get("search");
+    const channelIdsParam = searchParams.get("channelIds");
 
     const limit = Math.max(1, Math.min(MAX_LIMIT, limitParam));
     const page = Math.max(1, pageParam);
@@ -186,10 +187,26 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    // Optional exact channel-id filter (used by channel list detail pages).
+    // When present, return all matched channels (no page cap) so inUserPool stays accurate.
+    const channelIdFilter = channelIdsParam
+      ? new Set(
+          channelIdsParam
+            .split(",")
+            .map((id) => id.trim())
+            .filter((id) => id.length > 0)
+        )
+      : null;
+
     // Filter by category if specified (after fetching stats/categories from API)
     let filteredChannels = channels;
+    if (channelIdFilter && channelIdFilter.size > 0) {
+      filteredChannels = filteredChannels.filter((channel) =>
+        channelIdFilter.has(channel.channelId)
+      );
+    }
     if (categoryFilter) {
-      filteredChannels = channels.filter((channel) => {
+      filteredChannels = filteredChannels.filter((channel) => {
         const categories = channelCategoriesMap.get(channel.channelId) || [];
         return categories.some((cat) => cat === categoryFilter);
       });
@@ -205,9 +222,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Now apply pagination to filtered results
+    // Apply pagination for explorer pages, but return all requested ids for list detail.
     const total = filteredChannels.length;
-    const paginatedChannels = filteredChannels.slice(skip, skip + limit);
+    const paginatedChannels =
+      channelIdFilter && channelIdFilter.size > 0
+        ? filteredChannels
+        : filteredChannels.slice(skip, skip + limit);
     
     console.log(`[YouTubeChannelsAll] After filtering: ${total} total channels, returning ${paginatedChannels.length} for page ${page}`);
 

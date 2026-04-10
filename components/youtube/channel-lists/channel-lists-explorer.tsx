@@ -143,7 +143,17 @@ export function ChannelListsExplorer() {
             ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {lists.map((list) => (
-                  <ChannelListCard key={list.id} list={list} />
+                  <ChannelListCard
+                    key={list.id}
+                    list={list}
+                    onEdit={(selected) => {
+                      setEditingList(selected);
+                      setBuilderOpen(true);
+                    }}
+                    onDeleted={() => {
+                      refetch();
+                    }}
+                  />
                 ))}
               </div>
             )}
