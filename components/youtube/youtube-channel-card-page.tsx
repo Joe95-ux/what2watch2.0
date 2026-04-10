@@ -180,7 +180,13 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
 
   // Determine if summary is negative based on rating
   const isNegativeSummary = channel.rating && channel.rating.average < 3;
-  const summaryWords = channelSummary?.summary ? channelSummary.summary.split(" ") : [];
+  const summaryValues = channelSummary?.summary
+    ? channelSummary.summary
+        .split(" ")
+        .map((word) => word.trim())
+        .filter(Boolean)
+        .join(", ")
+    : "";
 
   return (
     <div
@@ -265,28 +271,23 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
         {channelSummary?.summary && (
           <div className="text-center">
             <span className="text-sm text-muted-foreground">Users found channel: </span>
-            <div className="inline-flex flex-wrap items-center gap-1.5 mt-1">
-              {summaryWords.map((word, index) => (
-                <span
-                  key={index}
-                  className={cn(
-                    "px-2 py-0.5 rounded-md border text-xs font-medium",
-                    isNegativeSummary
-                      ? "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
-                      : "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
-                  )}
-                >
-                  {word}
-                </span>
-              ))}
-            </div>
+            <span
+              className={cn(
+                "text-sm font-medium",
+                isNegativeSummary
+                  ? "text-orange-700 dark:text-orange-400"
+                  : "text-blue-700 dark:text-blue-400"
+              )}
+            >
+              {summaryValues}
+            </span>
           </div>
         )}
 
         {/* Separator */}
         <div className="border-t border-border" />
 
-        {/* Next Line: Subscriber count | Video count - Center Aligned */}
+        {/* Combined row: followers | videos | rating/review | add to */}
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground flex-wrap">
           <div className="flex items-center gap-1">
             <UsersRound className="h-4 w-4" />
@@ -297,17 +298,14 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
             <Video className="h-4 w-4" />
             <span>{formatCount(channel.videoCount || "0")}</span>
           </div>
-        </div>
-
-        {/* Action row: Rating/Review | Add to list */}
-        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground flex-wrap">
+          <span>|</span>
           <Button
             variant="ghost"
             size="sm"
             onClick={handleReviewClick}
             title="Review Channel"
             className={cn(
-              "h-auto w-auto p-0 border-0 bg-transparent hover:bg-transparent cursor-pointer",
+              "h-auto w-auto p-0 px-0 border-0 bg-transparent hover:bg-transparent cursor-pointer",
               channel.rating
                 ? "text-yellow-500 hover:text-yellow-500"
                 : "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"

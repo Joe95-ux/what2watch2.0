@@ -180,7 +180,13 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
 
   // Determine if summary is negative based on rating
   const isNegativeSummary = channel.rating && channel.rating.average < 3;
-  const summaryWords = channelSummary?.summary ? channelSummary.summary.split(" ") : [];
+  const summaryValues = channelSummary?.summary
+    ? channelSummary.summary
+        .split(" ")
+        .map((word) => word.trim())
+        .filter(Boolean)
+        .join(", ")
+    : "";
 
   return (
     <div
@@ -251,8 +257,8 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
             )}
           </div>
 
-          {/* Subscribers | Videos | Rating/Review | Add to */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground text-left flex-wrap">
+          {/* Subscribers and Video Count - Second Line */}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground text-left">
             <div className="flex items-center gap-1">
               <UsersRound className="h-4 w-4" />
               <span>{formatCount(channel.subscriberCount || "0")}</span>
@@ -262,52 +268,53 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
               <Video className="h-4 w-4" />
               <span>{formatCount(channel.videoCount || "0")}</span>
             </div>
-            <span>|</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleReviewClick}
-              title="Review Channel"
-              className={cn(
-                "h-auto w-auto p-0 border-0 bg-transparent hover:bg-transparent cursor-pointer",
-                channel.rating
-                  ? "text-yellow-500 hover:text-yellow-500"
-                  : "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
-              )}
-            >
-              {channel.rating ? (
-                <span className="inline-flex items-center gap-1">
-                  <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
-                  <span>({channel.rating.count})</span>
-                </span>
-              ) : (
-                <Star className="h-3.5 w-3.5 fill-none" />
-              )}
-            </Button>
-            <span>|</span>
-            <YouTubeAddToListDropdown
-              channel={{
-                channelId: channel.channelId,
-                title: channelTitle,
-                thumbnail: channel.thumbnail,
-                channelUrl,
-                subscriberCount: channel.subscriberCount || "0",
-                videoCount: channel.videoCount || "0",
-              }}
-              trigger={
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-3 text-xs rounded-[20px] border-0 bg-transparent hover:bg-muted/60 cursor-pointer"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Add to
-                </Button>
-              }
-            />
           </div>
-          {/* YouTube Link - Under actions row */}
+
+          {/* Review / Add actions - Third Line */}
           <div className="text-left space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleReviewClick}
+                title="Review Channel"
+                className={cn(
+                  "h-auto w-auto p-0 px-0 border-0 bg-transparent hover:bg-transparent cursor-pointer",
+                  channel.rating
+                    ? "text-yellow-500 hover:text-yellow-500"
+                    : "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                )}
+              >
+                {channel.rating ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
+                    <span>({channel.rating.count})</span>
+                  </span>
+                ) : (
+                  <Star className="h-3.5 w-3.5 fill-none" />
+                )}
+              </Button>
+              <YouTubeAddToListDropdown
+                channel={{
+                  channelId: channel.channelId,
+                  title: channelTitle,
+                  thumbnail: channel.thumbnail,
+                  channelUrl,
+                  subscriberCount: channel.subscriberCount || "0",
+                  videoCount: channel.videoCount || "0",
+                }}
+                trigger={
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-3 text-xs rounded-[20px] border-0 bg-transparent hover:bg-muted/60 cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Add to
+                  </Button>
+                }
+              />
+            </div>
             {/* YouTube Link - Under review average */}
             <Link
               href={channelUrl}
@@ -334,21 +341,16 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
         {channelSummary?.summary && (
           <div>
             <span className="text-sm text-muted-foreground">Users found channel: </span>
-            <div className="flex flex-wrap items-center gap-1.5 mt-1">
-              {summaryWords.map((word, index) => (
-                <span
-                  key={index}
-                  className={cn(
-                    "text-xs font-medium",
-                    isNegativeSummary
-                      ? "text-orange-700 dark:text-orange-400"
-                      : "text-blue-700 dark:text-blue-400"
-                  )}
-                >
-                  {word}
-                </span>
-              ))}
-            </div>
+            <span
+              className={cn(
+                "text-sm font-medium",
+                isNegativeSummary
+                  ? "text-orange-700 dark:text-orange-400"
+                  : "text-blue-700 dark:text-blue-400"
+              )}
+            >
+              {summaryValues}
+            </span>
           </div>
         )}
 
