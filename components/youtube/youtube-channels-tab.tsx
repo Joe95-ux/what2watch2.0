@@ -111,7 +111,7 @@ export function YouTubeChannelsTab() {
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="space-y-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -125,6 +125,7 @@ export function YouTubeChannelsTab() {
             className="pl-10"
           />
         </div>
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
         <div
           className="flex items-center gap-1 border border-border rounded-md p-1 bg-background h-10 shrink-0"
           role="group"
@@ -167,7 +168,7 @@ export function YouTubeChannelsTab() {
           setPoolFilter(value as typeof poolFilter);
           setPage(1);
         }}>
-          <SelectTrigger className="w-full sm:w-[180px] cursor-pointer">
+          <SelectTrigger className="w-[170px] sm:w-[180px] cursor-pointer shrink-0">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -181,7 +182,7 @@ export function YouTubeChannelsTab() {
             setCategoryFilter(value);
             setPage(1);
           }}>
-            <SelectTrigger className="w-full sm:w-[200px] cursor-pointer">
+            <SelectTrigger className="w-[190px] sm:w-[200px] cursor-pointer shrink-0">
               <SelectValue placeholder="All categories" />
             </SelectTrigger>
             <SelectContent className="max-h-[300px] overflow-hidden">
@@ -196,6 +197,7 @@ export function YouTubeChannelsTab() {
             </SelectContent>
           </Select>
         )}
+        </div>
       </div>
 
       {/* Channels Grid */}

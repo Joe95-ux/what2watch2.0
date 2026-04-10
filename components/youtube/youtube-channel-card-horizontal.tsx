@@ -279,7 +279,7 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
                 onClick={handleReviewClick}
                 title="Review Channel"
                 className={cn(
-                  "h-auto w-auto p-0 px-0 border-0 bg-transparent hover:bg-transparent cursor-pointer",
+                  "h-auto w-auto p-0 px-0 border-0 bg-none hover:bg-none cursor-pointer",
                   channel.rating
                     ? "text-yellow-500 hover:text-yellow-500"
                     : "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
@@ -339,7 +339,7 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
       <div className="p-4 space-y-3 text-left" onClick={(e) => e.stopPropagation()}>
         {/* Users found channel summary */}
         {channelSummary?.summary && (
-          <div>
+          <div className="flex flex-col">
             <span className="text-sm text-muted-foreground">Users found channel: </span>
             <span
               className={cn(

@@ -269,7 +269,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
 
         {/* Second Line: Users found channel with summary tags - Center Aligned */}
         {channelSummary?.summary && (
-          <div className="text-center">
+          <div className="flex flex-col text-center">
             <span className="text-sm text-muted-foreground">Users found channel: </span>
             <span
               className={cn(
@@ -305,7 +305,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
             onClick={handleReviewClick}
             title="Review Channel"
             className={cn(
-              "h-auto w-auto p-0 px-0 border-0 bg-transparent hover:bg-transparent cursor-pointer",
+              "h-auto w-auto p-0 px-0 border-0 bg-none hover:bg-none cursor-pointer",
               channel.rating
                 ? "text-yellow-500 hover:text-yellow-500"
                 : "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
