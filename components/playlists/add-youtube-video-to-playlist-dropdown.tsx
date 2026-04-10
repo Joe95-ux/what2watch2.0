@@ -204,7 +204,7 @@ export default function AddYouTubeVideoToPlaylistDropdown({
           </div>
 
           {/* Fixed Footer */}
-          <div className="px-1">
+          <div className="p-1">
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={(e) => {
@@ -213,6 +213,7 @@ export default function AddYouTubeVideoToPlaylistDropdown({
                 setIsDropdownOpen(false);
                 setIsCreateModalOpen(true);
               }}
+              className="cursor-pointer"
             >
               <Plus className="h-4 w-4 mr-2" />
               {playlists.length === 0 ? "Create Playlist" : "Create New Playlist"}

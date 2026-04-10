@@ -305,10 +305,10 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
             onClick={handleReviewClick}
             title="Review Channel"
             className={cn(
-              "h-auto w-auto p-2 px-0 border-0 bg-none cursor-pointer",
+              "h-auto w-auto border-0 bg-none cursor-pointer",
               channel.rating
-                ? "text-yellow-500 hover:text-yellow-500"
-                : "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                ? "text-yellow-500 hover:text-yellow-500 p-1"
+                : "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-2"
             )}
           >
             {channel.rating ? (
