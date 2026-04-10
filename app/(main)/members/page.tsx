@@ -160,7 +160,7 @@ export default function MembersPage() {
   const pagination = data?.pagination;
 
   return (
-    <div className="container max-w-6xl mx-auto px-4 py-8">
+    <div className="container max-w-[92rem] mx-auto px-4 py-8">
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
           <UsersRound className="h-8 w-8" />
@@ -304,7 +304,7 @@ export default function MembersPage() {
 
       {/* Users Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {Array.from({ length: 12 }).map((_, i) =>
             viewMode === "compact" ? (
               <MemberCardCompactSkeleton key={i} />

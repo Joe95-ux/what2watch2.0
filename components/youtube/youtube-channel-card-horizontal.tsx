@@ -272,14 +272,14 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
 
           {/* Review / Add actions - Third Line */}
           <div className="text-left space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1 flex-wrap">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleReviewClick}
                 title="Review Channel"
                 className={cn(
-                  "h-auto w-auto p-0 px-0 border-0 bg-none hover:!bg-none dark:hover:!bg-none cursor-pointer",
+                  "h-auto w-auto p-2 border-0 bg-none cursor-pointer",
                   channel.rating
                     ? "text-yellow-500 hover:text-yellow-500"
                     : "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
@@ -310,7 +310,7 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
                     className="h-8 px-3 text-xs rounded-[20px] border-0 bg-transparent hover:bg-muted/60 cursor-pointer"
                   >
                     <Plus className="h-3.5 w-3.5" />
-                    Add to
+                    Add To
                   </Button>
                 }
               />
