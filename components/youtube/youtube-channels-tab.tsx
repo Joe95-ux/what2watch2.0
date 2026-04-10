@@ -111,7 +111,7 @@ export function YouTubeChannelsTab() {
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <div className="space-y-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -122,10 +122,10 @@ export function YouTubeChannelsTab() {
               setSearchQuery(e.target.value);
               setPage(1);
             }}
-            className="pl-10"
+            className="pl-10 h-10"
           />
         </div>
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
         <div
           className="flex items-center gap-1 border border-border rounded-md p-1 bg-background h-10 shrink-0"
           role="group"

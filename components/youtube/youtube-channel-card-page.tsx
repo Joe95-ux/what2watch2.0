@@ -305,7 +305,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
             onClick={handleReviewClick}
             title="Review Channel"
             className={cn(
-              "h-auto w-auto p-0 px-0 border-0 bg-none hover:bg-none cursor-pointer",
+              "h-auto w-auto p-0 px-0 border-0 bg-none hover:!bg-none dark:hover:!bg-none cursor-pointer",
               channel.rating
                 ? "text-yellow-500 hover:text-yellow-500"
                 : "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
