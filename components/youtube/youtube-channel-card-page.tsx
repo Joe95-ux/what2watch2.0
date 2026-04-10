@@ -299,17 +299,30 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
           </div>
         </div>
 
-        {/* Action row: Review + Add to list */}
-        <div className="flex items-center justify-center gap-2 flex-wrap">
+        {/* Action row: Rating/Review | Add to list */}
+        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground flex-wrap">
           <Button
             variant="ghost"
             size="sm"
             onClick={handleReviewClick}
             title="Review Channel"
-            className="h-auto w-auto p-0 border-0 bg-transparent hover:bg-transparent text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer"
+            className={cn(
+              "h-auto w-auto p-0 border-0 bg-transparent hover:bg-transparent cursor-pointer",
+              channel.rating
+                ? "text-yellow-500 hover:text-yellow-500"
+                : "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+            )}
           >
-            <Star className="h-3.5 w-3.5 fill-none" />
+            {channel.rating ? (
+              <span className="inline-flex items-center gap-1">
+                <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
+                <span>({channel.rating.count})</span>
+              </span>
+            ) : (
+              <Star className="h-3.5 w-3.5 fill-none" />
+            )}
           </Button>
+          <span>|</span>
           <YouTubeAddToListDropdown
             channel={{
               channelId: channel.channelId,

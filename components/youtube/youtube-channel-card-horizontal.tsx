@@ -251,8 +251,8 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
             )}
           </div>
 
-          {/* Subscribers and Video Count - Second Line */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground text-left">
+          {/* Subscribers | Videos | Rating/Review | Add to */}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground text-left flex-wrap">
             <div className="flex items-center gap-1">
               <UsersRound className="h-4 w-4" />
               <span>{formatCount(channel.subscriberCount || "0")}</span>
@@ -262,41 +262,52 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
               <Video className="h-4 w-4" />
               <span>{formatCount(channel.videoCount || "0")}</span>
             </div>
-          </div>
-
-          {/* Review / Add actions - Third Line */}
-          <div className="text-left space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleReviewClick}
-                title="Review Channel"
-                className="h-auto w-auto p-0 border-0 bg-transparent hover:bg-transparent text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer"
-              >
+            <span>|</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleReviewClick}
+              title="Review Channel"
+              className={cn(
+                "h-auto w-auto p-0 border-0 bg-transparent hover:bg-transparent cursor-pointer",
+                channel.rating
+                  ? "text-yellow-500 hover:text-yellow-500"
+                  : "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+              )}
+            >
+              {channel.rating ? (
+                <span className="inline-flex items-center gap-1">
+                  <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
+                  <span>({channel.rating.count})</span>
+                </span>
+              ) : (
                 <Star className="h-3.5 w-3.5 fill-none" />
-              </Button>
-              <YouTubeAddToListDropdown
-                channel={{
-                  channelId: channel.channelId,
-                  title: channelTitle,
-                  thumbnail: channel.thumbnail,
-                  channelUrl,
-                  subscriberCount: channel.subscriberCount || "0",
-                  videoCount: channel.videoCount || "0",
-                }}
-                trigger={
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-3 text-xs rounded-[20px] border-0 bg-transparent hover:bg-muted/60 cursor-pointer"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Add to
-                  </Button>
-                }
-              />
-            </div>
+              )}
+            </Button>
+            <span>|</span>
+            <YouTubeAddToListDropdown
+              channel={{
+                channelId: channel.channelId,
+                title: channelTitle,
+                thumbnail: channel.thumbnail,
+                channelUrl,
+                subscriberCount: channel.subscriberCount || "0",
+                videoCount: channel.videoCount || "0",
+              }}
+              trigger={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-3 text-xs rounded-[20px] border-0 bg-transparent hover:bg-muted/60 cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add to
+                </Button>
+              }
+            />
+          </div>
+          {/* YouTube Link - Under actions row */}
+          <div className="text-left space-y-1">
             {/* YouTube Link - Under review average */}
             <Link
               href={channelUrl}
