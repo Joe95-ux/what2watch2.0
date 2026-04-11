@@ -427,16 +427,29 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
         ) : (
           <div
             className={cn(
-              "fixed left-0 right-0 z-[60] bg-background flex flex-col min-h-0",
-              filtersOpen ? "top-0 bottom-0 h-[100dvh] sm:h-screen" : "top-0 border-b shadow-lg",
+              "fixed left-0 right-0 z-[60] flex flex-col min-h-0",
+              hasHeroSection
+                ? "bg-zinc-950 text-zinc-50 border-b border-white/10"
+                : "bg-background border-b shadow-lg",
+              filtersOpen ? "top-0 bottom-0 h-[100dvh] sm:h-screen" : "top-0",
               "animate-in slide-in-from-top-2 duration-300"
             )}
             style={{ paddingTop: "env(safe-area-inset-top, 0)" }}
           >
             {filtersOpen ? (
               <>
-                <div className="flex-shrink-0 flex items-center justify-end px-4 h-14 border-b">
-                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setFiltersOpen(false)}>
+                <div
+                  className={cn(
+                    "flex-shrink-0 flex items-center justify-end px-4 h-14 border-b",
+                    hasHeroSection && "border-white/10"
+                  )}
+                >
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn("h-10 w-10", hasHeroSection && "text-zinc-200 hover:bg-white/10 hover:text-white")}
+                    onClick={() => setFiltersOpen(false)}
+                  >
                     <X className="h-5 w-5" />
                   </Button>
                 </div>
@@ -470,7 +483,12 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
               </>
             ) : (
               <>
-            <div className="flex-shrink-0 border-b">
+            <div
+              className={cn(
+                "flex-shrink-0 border-b",
+                hasHeroSection && "border-white/10"
+              )}
+            >
             <div className="flex items-center gap-2 px-4 py-3 h-16">
               <div className="relative flex-1">
                 <SearchIcon className={cn(
@@ -533,7 +551,7 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10"
+                className={cn("h-10 w-10", hasHeroSection && "text-zinc-200 hover:bg-white/10 hover:text-white")}
                 onClick={() => {
                   setIsExpanded(false);
                   setQuery("");
@@ -546,23 +564,44 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
             </div>
             {/* Results Dropdown */}
             {(isExpanded && (query || displayResults.length > 0 || isLoadingDisplay)) && (
-              <div className="h-auto overflow-hidden border-t">
+              <div
+                className={cn(
+                  "h-auto overflow-hidden border-t",
+                  hasHeroSection && "border-white/10 bg-zinc-950"
+                )}
+              >
                 <div className="p-2 max-h-[80vh] sm:max-h-[60vh] overflow-y-auto scrollbar-thin">
                   {isLoadingDisplay && (
                     <div className="space-y-4">
                       {[...Array(3)].map((_, i) => (
-                        <div key={i} className="relative flex rounded-lg border border-border overflow-hidden px-2 py-2">
-                          <Skeleton className="h-12 w-8 rounded-l-lg flex-shrink-0" />
+                        <div
+                          key={i}
+                          className={cn(
+                            "relative flex rounded-lg border overflow-hidden px-2 py-2",
+                            hasHeroSection ? "border-white/10 bg-white/[0.03]" : "border-border"
+                          )}
+                        >
+                          <Skeleton
+                            className={cn(
+                              "h-12 w-8 rounded-l-lg flex-shrink-0",
+                              hasHeroSection && "bg-white/10"
+                            )}
+                          />
                           <div className="flex-1 min-w-0 flex flex-col gap-1 px-3">
-                            <Skeleton className="h-4 w-3/4" />
-                            <Skeleton className="h-3.5 w-1/2" />
+                            <Skeleton className={cn("h-4 w-3/4", hasHeroSection && "bg-white/10")} />
+                            <Skeleton className={cn("h-3.5 w-1/2", hasHeroSection && "bg-white/10")} />
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
                   {!isLoadingDisplay && query && results.length === 0 && (
-                    <div className="py-6 text-center text-sm text-muted-foreground">
+                    <div
+                      className={cn(
+                        "py-6 text-center text-sm",
+                        hasHeroSection ? "text-zinc-400" : "text-muted-foreground"
+                      )}
+                    >
                       No results found.
                     </div>
                   )}
@@ -570,17 +609,26 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
                     <>
                       {isShowingTrending && (
                         <div className="px-2 pt-1 pb-3">
-                          <span className="flex flex-wrap items-center gap-0.5 text-xs text-muted-foreground">
+                          <span
+                            className={cn(
+                              "flex flex-wrap items-center gap-0.5 text-xs",
+                              hasHeroSection ? "text-zinc-500" : "text-muted-foreground"
+                            )}
+                          >
                             {SEARCH_TRENDING_TABS.map((t) => (
                               <button
                                 key={t.id}
                                 type="button"
                                 onClick={() => setTrendingTab(t.id)}
                                 className={cn(
-                                  "px-1.5 py-0.5 rounded cursor-pointer",
-                                  trendingTab === t.id
-                                    ? "bg-muted font-medium text-foreground"
-                                    : "hover:text-foreground"
+                                  "px-1.5 py-0.5 rounded cursor-pointer transition-colors",
+                                  hasHeroSection
+                                    ? trendingTab === t.id
+                                      ? "bg-white/15 font-medium text-white"
+                                      : "hover:text-zinc-200"
+                                    : trendingTab === t.id
+                                      ? "bg-muted font-medium text-foreground"
+                                      : "hover:text-foreground"
                                 )}
                               >
                                 {t.label}
@@ -595,6 +643,7 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
                             key={`${result.type}-${result.id}`}
                             result={result}
                             onSelect={handleSelect}
+                            hasHeroSection={hasHeroSection}
                           />
                         ))}
                       </div>
@@ -719,23 +768,46 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
 
       {/* Results Dropdown */}
       {isExpanded && (query || displayResults.length > 0 || isLoadingDisplay) && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-[60] h-auto overflow-hidden">
+        <div
+          className={cn(
+            "absolute top-full left-0 right-0 mt-1 rounded-md shadow-lg z-[60] h-auto overflow-hidden border",
+            hasHeroSection
+              ? "bg-zinc-950 border-white/10 text-zinc-50 shadow-xl shadow-black/40"
+              : "bg-background border-border"
+          )}
+        >
           <div className="p-2 max-h-[400px] overflow-y-auto scrollbar-thin">
             {isLoadingDisplay && (
               <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="relative flex rounded-lg border border-border overflow-hidden px-2 py-2">
-                    <Skeleton className="h-16 w-11 rounded-l-lg flex-shrink-0" />
+                  <div
+                    key={i}
+                    className={cn(
+                      "relative flex rounded-lg border overflow-hidden px-2 py-2",
+                      hasHeroSection ? "border-white/10 bg-white/[0.03]" : "border-border"
+                    )}
+                  >
+                    <Skeleton
+                      className={cn(
+                        "h-16 w-11 rounded-l-lg flex-shrink-0",
+                        hasHeroSection && "bg-white/10"
+                      )}
+                    />
                     <div className="flex-1 min-w-0 flex flex-col gap-1 px-3">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-3.5 w-1/2" />
+                      <Skeleton className={cn("h-4 w-3/4", hasHeroSection && "bg-white/10")} />
+                      <Skeleton className={cn("h-3.5 w-1/2", hasHeroSection && "bg-white/10")} />
                     </div>
                   </div>
                 ))}
               </div>
             )}
             {!isLoadingDisplay && query && results.length === 0 && (
-              <div className="py-6 text-center text-sm text-muted-foreground">
+              <div
+                className={cn(
+                  "py-6 text-center text-sm",
+                  hasHeroSection ? "text-zinc-400" : "text-muted-foreground"
+                )}
+              >
                 No results found.
               </div>
             )}
@@ -743,17 +815,26 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
               <>
                 {isShowingTrending && (
                   <div className="px-2 pt-1 pb-3">
-                    <span className="flex flex-wrap items-center gap-0.5 text-xs text-muted-foreground">
+                    <span
+                      className={cn(
+                        "flex flex-wrap items-center gap-0.5 text-xs",
+                        hasHeroSection ? "text-zinc-500" : "text-muted-foreground"
+                      )}
+                    >
                       {SEARCH_TRENDING_TABS.map((t) => (
                         <button
                           key={t.id}
                           type="button"
                           onClick={() => setTrendingTab(t.id)}
                           className={cn(
-                            "px-1.5 py-0.5 rounded cursor-pointer",
-                            trendingTab === t.id
-                              ? "bg-muted font-medium text-foreground"
-                              : "hover:text-foreground"
+                            "px-1.5 py-0.5 rounded cursor-pointer transition-colors",
+                            hasHeroSection
+                              ? trendingTab === t.id
+                                ? "bg-white/15 font-medium text-white"
+                                : "hover:text-zinc-200"
+                              : trendingTab === t.id
+                                ? "bg-muted font-medium text-foreground"
+                                : "hover:text-foreground"
                           )}
                         >
                           {t.label}
@@ -769,6 +850,7 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
                       result={result}
                       onSelect={handleSelect}
                       variant="desktop"
+                      hasHeroSection={hasHeroSection}
                     />
                   ))}
                 </div>
@@ -786,10 +868,12 @@ function SearchResultItem({
   result,
   onSelect,
   variant = "mobile",
+  hasHeroSection = false,
 }: {
   result: SearchResult;
   onSelect: (result: SearchResult) => void;
   variant?: "mobile" | "desktop";
+  hasHeroSection?: boolean;
 }) {
   const isPerson = result.type === "person";
   const imageUrl = isPerson
@@ -838,10 +922,22 @@ function SearchResultItem({
         e.preventDefault();
         onSelect(result);
       }}
-      className="relative flex rounded-lg border border-border transition-all group cursor-pointer hover:border-primary/50 overflow-hidden px-2 py-2"
+      className={cn(
+        "relative flex rounded-lg border transition-all group cursor-pointer overflow-hidden px-2 py-2",
+        hasHeroSection
+          ? "border-white/10 bg-white/[0.04] hover:border-primary/60 hover:bg-white/[0.08]"
+          : "border-border hover:border-primary/50"
+      )}
     >
       {imageUrl ? (
-        <div className={cn("relative rounded-l-lg overflow-hidden flex-shrink-0 bg-muted", isPerson ? "rounded-full" : "", posterClass)}>
+        <div
+          className={cn(
+            "relative rounded-l-lg overflow-hidden flex-shrink-0",
+            isPerson ? "rounded-full" : "",
+            posterClass,
+            hasHeroSection ? "bg-white/10" : "bg-muted"
+          )}
+        >
           <Image
             src={imageUrl}
             alt={result.title}
@@ -852,23 +948,49 @@ function SearchResultItem({
           />
         </div>
       ) : (
-        <div className={cn("bg-muted rounded flex items-center justify-center flex-shrink-0", isPerson ? "rounded-full" : "rounded-l-lg", posterClass)}>
-          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+        <div
+          className={cn(
+            "rounded flex items-center justify-center flex-shrink-0",
+            isPerson ? "rounded-full" : "rounded-l-lg",
+            posterClass,
+            hasHeroSection ? "bg-white/10" : "bg-muted"
+          )}
+        >
+          <ImageIcon
+            className={cn("h-4 w-4", hasHeroSection ? "text-zinc-500" : "text-muted-foreground")}
+          />
         </div>
       )}
 
       <div className="flex-1 min-w-0 flex flex-col gap-1 px-3">
-        <div className="text-sm font-medium truncate transition-colors">
+        <div
+          className={cn(
+            "text-sm font-medium truncate transition-colors",
+            hasHeroSection ? "text-zinc-100 group-hover:text-white" : ""
+          )}
+        >
           {result.title}
         </div>
-        <div className="flex items-center gap-2 text-[13px] text-muted-foreground flex-wrap">
+        <div
+          className={cn(
+            "flex items-center gap-2 text-[13px] flex-wrap",
+            hasHeroSection ? "text-zinc-400" : "text-muted-foreground"
+          )}
+        >
           {formattedDate && (
             <span>{formattedDate}</span>
           )}
           {formattedDate && (
             <span>•</span>
           )}
-          <Badge variant="secondary" className="text-[13px] font-normal py-0 rounded-[4px]">
+          <Badge
+            variant="secondary"
+            className={cn(
+              "text-[13px] font-normal py-0 rounded-[4px]",
+              hasHeroSection &&
+                "border border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10"
+            )}
+          >
             {typeTag}
           </Badge>
         </div>

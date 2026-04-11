@@ -690,7 +690,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
       </header>
 
       <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        <div className="flex flex-col items-stretch sm:items-end sm:justify-end w-full">
+        <div className="w-full min-w-0">
           <ChannelListChannelsToolbar
             searchQuery={channelSearch}
             onSearchChange={setChannelSearch}

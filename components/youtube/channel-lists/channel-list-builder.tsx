@@ -674,7 +674,7 @@ export function ChannelListBuilder({
           <Button
             type="submit"
             form="channel-list-form"
-            className="w-full"
+            className="w-full cursor-pointer"
             disabled={isSubmitting || !formReady}
           >
             {isSubmitting ? "Saving..." : mode === "create" ? "Publish list" : "Save changes"}
@@ -682,7 +682,7 @@ export function ChannelListBuilder({
           <Button
             type="button"
             variant="outline"
-            className="w-full"
+            className="w-full cursor-pointer"
             disabled={isSubmitting}
             onClick={onClose}
           >

@@ -100,6 +100,7 @@ export default function Navbar() {
     pathname?.startsWith("/popular") ||
     pathname?.startsWith("/lists/") ||
     pathname?.startsWith("/editorial/") ||
+    pathname?.startsWith("/youtube-channel/lists") ||
     isDiaryFilmDetail;
 
   return (
