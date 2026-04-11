@@ -1,11 +1,14 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import type { Metadata } from "next";
 import YouTubeManagementContent from "@/components/youtube/youtube-management-content";
 
-export const metadata = {
-  title: "YouTube Channel Management | what2watch",
-  description: "Manage your YouTube channels, control visibility, and set privacy settings.",
+export const metadata: Metadata = {
+  title: "YouTube channel management — privacy & visibility | what2watch",
+  description:
+    "Control how your linked YouTube channels appear on what2watch: visibility, privacy, and metadata—keep your presence aligned with how you want to be discovered.",
+  robots: { index: false, follow: true },
 };
 
 export default async function YouTubeManagementPage() {

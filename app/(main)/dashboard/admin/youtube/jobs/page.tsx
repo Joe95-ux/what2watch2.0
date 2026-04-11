@@ -5,7 +5,8 @@ import { YouTubeJobsAdminClient } from "@/components/admin/youtube-jobs-admin-cl
 
 export const metadata: Metadata = {
   title: "YouTube Jobs | Admin | what2watch",
-  description: "Manage YouTube background jobs",
+  description: "Manage YouTube background jobs and ingestion tasks for what2watch.",
+  robots: { index: false, follow: false },
 };
 
 export default async function YouTubeJobsAdminPage() {

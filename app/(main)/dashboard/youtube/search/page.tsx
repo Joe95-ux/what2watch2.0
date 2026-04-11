@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { YouTubeSearch } from "@/components/youtube/youtube-search";
 
-export const metadata = {
-  title: "Search YouTube | what2watch",
-  description: "Search for YouTube videos",
+export const metadata: Metadata = {
+  title: "Search YouTube videos | what2watch dashboard",
+  description:
+    "Search YouTube from your dashboard: find videos and channels faster, then save to playlists or your feed. Built for discovery without leaving what2watch.",
+  robots: { index: false, follow: true },
 };
 
 export default function YouTubeSearchPage() {

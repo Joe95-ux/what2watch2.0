@@ -50,7 +50,8 @@ export async function generateMetadata({
   if (!record) {
     return {
       title: "Channel Not Found | what2watch",
-      description: "Discover Nollywood content creators on what2watch.",
+      description:
+        "This YouTube channel profile could not be found. Browse channels, lists, and reviews on what2watch.",
     };
   }
 
@@ -59,20 +60,27 @@ export async function generateMetadata({
 
   const title = channel?.title || record.title || "YouTube Channel";
   const description =
-    channel?.description?.slice(0, 160) ||
-    `Explore the latest Nollywood content from ${title} on what2watch.`;
+    (channel?.description && channel.description.slice(0, 160)) ||
+    `YouTube channel profile for ${title} on what2watch—videos, playlists, community ratings, and reviews to help you decide what to watch.`;
 
   return {
-    title: `${title} | what2watch`,
+    title: `${title} | YouTube channel | what2watch`,
     description,
+    keywords: [
+      "YouTube channel",
+      "YouTube channel profile",
+      "YouTube reviews",
+      "channel ratings",
+      "what2watch",
+    ],
     openGraph: {
-      title: `${title} | what2watch`,
+      title: `${title} | YouTube channel | what2watch`,
       description,
       images: channel?.thumbnail ? [channel.thumbnail] : undefined,
     },
     twitter: {
       card: "summary_large_image",
-      title: `${title} | what2watch`,
+      title: `${title} | YouTube channel | what2watch`,
       description,
       images: channel?.thumbnail ? [channel.thumbnail] : undefined,
     },
