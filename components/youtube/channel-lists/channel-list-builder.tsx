@@ -534,7 +534,7 @@ export function ChannelListBuilder({
                             </Button>
                           </div>
                           <Textarea
-                            placeholder="Add notes..."
+                            placeholder="Add notes about why this channel is on the list..."
                             value={channel.notes ?? ""}
                             onChange={(event) =>
                               setSelectedChannels((prev) =>
@@ -546,6 +546,9 @@ export function ChannelListBuilder({
                             rows={2}
                             className="text-xs rounded-lg"
                           />
+                          <p className="text-[11px] text-muted-foreground leading-snug">
+                            When you save, we extract keywords from this note so viewers can filter channels by topic.
+                          </p>
                         </div>
                       </div>
                     </div>

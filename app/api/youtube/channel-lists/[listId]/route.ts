@@ -7,6 +7,7 @@ import {
   sanitizeListTags,
   resolveCurrentUserId,
 } from "../helpers";
+import { assignKeywordsToChannelListItems } from "@/lib/youtube-channel-list-keywords";
 
 export async function GET(
   _request: NextRequest,
@@ -101,8 +102,17 @@ export async function PATCH(
     const shouldReplaceItems =
       Array.isArray(body.channels) && normalizedChannels.length > 0;
 
+    const keywordMap = shouldReplaceItems
+      ? await assignKeywordsToChannelListItems(
+          normalizedChannels.map((c) => ({
+            channelId: c.channelId,
+            notes: c.notes ?? null,
+          }))
+        )
+      : null;
+
     const updated = await db.$transaction(async (tx) => {
-      if (shouldReplaceItems) {
+      if (shouldReplaceItems && keywordMap) {
         await tx.youTubeChannelListItem.deleteMany({
           where: { listId },
         });
@@ -116,6 +126,7 @@ export async function PATCH(
             videoCount: item.videoCount,
             channelUrl: item.channelUrl,
             notes: item.notes,
+            keywords: keywordMap.get(item.channelId) ?? [],
             position: item.position ?? index + 1,
           })),
         };

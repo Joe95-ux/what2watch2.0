@@ -7,6 +7,7 @@ import {
   sanitizeListTags,
   resolveCurrentUserId,
 } from "./helpers";
+import { assignKeywordsToChannelListItems } from "@/lib/youtube-channel-list-keywords";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
@@ -116,6 +117,13 @@ export async function POST(request: NextRequest) {
         ? coverImage.trim()
         : normalizedChannels[0]?.channelThumbnail ?? null;
 
+    const keywordMap = await assignKeywordsToChannelListItems(
+      normalizedChannels.map((c) => ({
+        channelId: c.channelId,
+        notes: c.notes ?? null,
+      }))
+    );
+
     const list = await db.youTubeChannelList.create({
       data: {
         userId: currentUserId,
@@ -134,6 +142,7 @@ export async function POST(request: NextRequest) {
             videoCount: item.videoCount,
             channelUrl: item.channelUrl,
             notes: item.notes,
+            keywords: keywordMap.get(item.channelId) ?? [],
             position: item.position ?? index + 1,
           })),
         },

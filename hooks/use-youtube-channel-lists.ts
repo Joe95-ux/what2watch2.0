@@ -13,6 +13,8 @@ export interface YouTubeChannelListItem {
   videoCount: string | null;
   channelUrl: string | null;
   notes: string | null;
+  /** AI-extracted from curator notes; used for keyword filter on list detail */
+  keywords?: string[];
   position: number;
   createdAt: string;
 }

@@ -1738,6 +1738,8 @@ model YouTubeChannelListItem {
   videoCount        String?
   channelUrl        String?
   notes             String?
+  /// AI-extracted from curator notes (for filtering on list detail)
+  keywords          String[]            @default([])
   position          Int                 @default(0)
 
   createdAt         DateTime            @default(now())
