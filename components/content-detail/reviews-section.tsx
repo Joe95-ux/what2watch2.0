@@ -8,7 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import WriteReviewDialog from "@/components/reviews/write-review-dialog";
 import { useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useClerk } from "@clerk/nextjs";
+import { toast } from "sonner";
 
 interface ReviewsSectionProps {
   tmdbId: number;
@@ -28,8 +29,20 @@ export default function ReviewsSection({
   filmData,
 }: ReviewsSectionProps) {
   const router = useRouter();
-  const { user } = useUser();
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const [writeDialogOpen, setWriteDialogOpen] = useState(false);
+
+  const openWriteReviewDialog = () => {
+    if (!isSignedIn) {
+      toast.info("Sign in to write a review.");
+      openSignIn?.({
+        afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+      });
+      return;
+    }
+    setWriteDialogOpen(true);
+  };
   
   // Fetch user reviews
   const { data: userReviewsData, isLoading: userReviewsLoading } = useReviews(tmdbId, mediaType, {
@@ -55,8 +68,8 @@ export default function ReviewsSection({
         <h2 className="text-2xl font-bold">
           Reviews {totalReviews > 0 && `(${totalReviews})`}
         </h2>
-        {user && (
-          <Button onClick={() => setWriteDialogOpen(true)} className="cursor-pointer">
+        {isSignedIn && (
+          <Button onClick={openWriteReviewDialog} className="cursor-pointer">
             Write a Review
           </Button>
         )}
@@ -71,10 +84,10 @@ export default function ReviewsSection({
       ) : !hasAnyReviews ? (
         <div className="text-center text-muted-foreground py-12 border border-border rounded-lg">
           <p className="text-sm mb-4">No reviews yet</p>
-          {user && (
+          {isSignedIn && (
             <Button
               variant="outline"
-              onClick={() => setWriteDialogOpen(true)}
+              onClick={openWriteReviewDialog}
               className="cursor-pointer"
             >
               Be the first to review
@@ -119,7 +132,7 @@ export default function ReviewsSection({
         </>
       )}
 
-      {user && (
+      {isSignedIn && (
         <WriteReviewDialog
           isOpen={writeDialogOpen}
           onClose={() => setWriteDialogOpen(false)}

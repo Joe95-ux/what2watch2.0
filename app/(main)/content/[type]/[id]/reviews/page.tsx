@@ -67,6 +67,17 @@ export default function ReviewsPage() {
   const [tmdbPage, setTMDBPage] = useState(1);
   const [activeTab, setActiveTab] = useState<"all" | "user" | "tmdb">("all");
 
+  const openWriteReviewDialog = useCallback(() => {
+    if (!isSignedIn) {
+      toast.info("Sign in to write a review.");
+      openSignIn?.({
+        afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+      });
+      return;
+    }
+    setWriteDialogOpen(true);
+  }, [isSignedIn, openSignIn]);
+
   // Fetch user reviews
   const { data, isLoading } = useReviews(id, type, {
     rating: ratingFilter !== "all" ? parseInt(ratingFilter, 10) : null,
@@ -409,16 +420,14 @@ export default function ReviewsPage() {
           <div className="lg:col-span-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <h2 className="text-2xl font-bold">All Reviews</h2>
-              {user && (
-                <Button
-                  variant="ghost"
-                  onClick={() => setWriteDialogOpen(true)}
-                  className="cursor-pointer w-fit h-9 rounded-[20px] px-3"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Review
-                </Button>
-              )}
+              <Button
+                variant="ghost"
+                onClick={openWriteReviewDialog}
+                className="cursor-pointer w-fit h-9 rounded-[20px] px-3"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Review
+              </Button>
             </div>
 
             {/* Tabs */}
@@ -487,15 +496,13 @@ export default function ReviewsPage() {
                 ) : allReviews.length === 0 ? (
                   <div className="text-center text-muted-foreground py-12 border border-border rounded-lg">
                     <p className="text-sm mb-4">No reviews found</p>
-                    {user && (
-                      <Button
-                        variant="outline"
-                        onClick={() => setWriteDialogOpen(true)}
-                        className="cursor-pointer"
-                      >
-                        Be the first to review
-                      </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      onClick={openWriteReviewDialog}
+                      className="cursor-pointer"
+                    >
+                      Be the first to review
+                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-4 mb-8">
@@ -606,15 +613,13 @@ export default function ReviewsPage() {
                 ) : userReviews.length === 0 ? (
                   <div className="text-center text-muted-foreground py-12 border border-border rounded-lg">
                     <p className="text-sm mb-4">No user reviews found</p>
-                    {user && (
-                      <Button
-                        variant="outline"
-                        onClick={() => setWriteDialogOpen(true)}
-                        className="cursor-pointer"
-                      >
-                        Be the first to review
-                      </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      onClick={openWriteReviewDialog}
+                      className="cursor-pointer"
+                    >
+                      Be the first to review
+                    </Button>
                   </div>
                 ) : (
                   <>
@@ -784,7 +789,7 @@ export default function ReviewsPage() {
           </aside>
         </div>
 
-        {user && (
+        {isSignedIn && (
           <WriteReviewDialog
             isOpen={writeDialogOpen}
             onClose={() => setWriteDialogOpen(false)}

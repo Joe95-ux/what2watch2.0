@@ -11,7 +11,8 @@ import { getChannelProfilePath } from "@/lib/channel-path";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useChannelPool } from "@/hooks/use-channel-pool";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useClerk } from "@clerk/nextjs";
+import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { ChannelReviewFormSheet } from "./channel-review-form-sheet";
 import { useState } from "react";
@@ -49,6 +50,7 @@ interface YouTubeChannelCardHorizontalProps {
 export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHorizontalProps) {
   const router = useRouter();
   const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const { addToPool, removeFromPool } = useChannelPool();
   const [isReviewSheetOpen, setIsReviewSheetOpen] = useState(false);
   const [initialReview, setInitialReview] = useState<ChannelReview | null>(null);
@@ -127,6 +129,14 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
 
   const handleReviewClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    if (!isSignedIn) {
+      toast.info("Sign in to review channels.");
+      openSignIn?.({
+        afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+      });
+      return;
+    }
 
     if (viewerState?.hasReview && viewerState.reviewId) {
       const reviewId = viewerState.reviewId;

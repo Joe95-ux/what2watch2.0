@@ -1,16 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { useUser } from "@clerk/nextjs";
 import { YouTubeChannelCardPage, YouTubeChannelCardPageSkeleton } from "./youtube-channel-card-page";
 import { YouTubeChannelCardHorizontal, YouTubeChannelCardHorizontalSkeleton } from "./youtube-channel-card-horizontal";
-import { useYouTubeCardStyle } from "@/hooks/use-youtube-card-style";
+import { useYouTubeCardStyle, useUpdateYouTubeCardStyle } from "@/hooks/use-youtube-card-style";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Search, ChevronLeft, ChevronRight, LayoutGrid, Rows3 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
 interface Channel {
   id: string;
@@ -30,7 +30,7 @@ interface Channel {
 }
 
 export function YouTubeChannelsTab() {
-  const queryClient = useQueryClient();
+  const { isLoaded } = useUser();
   const [page, setPage] = useState(1);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -38,37 +38,7 @@ export function YouTubeChannelsTab() {
   const { data: cardStyle } = useYouTubeCardStyle();
   const effectiveCardStyle = cardStyle || "centered";
 
-  const updateCardStyle = useMutation({
-    mutationFn: async (nextStyle: "centered" | "horizontal") => {
-      const response = await fetch("/api/user/view-settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ youtubeCardStyle: nextStyle }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update card style");
-      }
-      return nextStyle;
-    },
-    onMutate: async (nextStyle) => {
-      await queryClient.cancelQueries({ queryKey: ["youtube-card-style"] });
-      const previousStyle = queryClient.getQueryData<"centered" | "horizontal">([
-        "youtube-card-style",
-      ]);
-      queryClient.setQueryData(["youtube-card-style"], nextStyle);
-      return { previousStyle };
-    },
-    onError: (_error, _nextStyle, context) => {
-      if (context?.previousStyle) {
-        queryClient.setQueryData(["youtube-card-style"], context.previousStyle);
-      }
-      toast.error("Failed to update card style");
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["youtube-card-style"] });
-    },
-  });
+  const updateCardStyle = useUpdateYouTubeCardStyle();
 
   const { data, isLoading } = useQuery<{
     channels: Channel[];
@@ -136,7 +106,7 @@ export function YouTubeChannelsTab() {
             variant="ghost"
             size="sm"
             onClick={() => updateCardStyle.mutate("centered")}
-            disabled={updateCardStyle.isPending}
+            disabled={!isLoaded || updateCardStyle.isPending}
             title="Centered cards"
             aria-label="Centered cards"
             aria-pressed={effectiveCardStyle === "centered"}
@@ -152,7 +122,7 @@ export function YouTubeChannelsTab() {
             variant="ghost"
             size="sm"
             onClick={() => updateCardStyle.mutate("horizontal")}
-            disabled={updateCardStyle.isPending}
+            disabled={!isLoaded || updateCardStyle.isPending}
             title="Horizontal cards"
             aria-label="Horizontal cards"
             aria-pressed={effectiveCardStyle === "horizontal"}

@@ -35,11 +35,11 @@ import { useYouTubeChannels } from "@/hooks/use-youtube-channels";
 import { ChannelListBuilder } from "./channel-list-builder";
 import { ChannelListChannelsToolbar } from "./channel-list-channels-toolbar";
 import { toast } from "sonner";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { YouTubeChannelCardPage, YouTubeChannelCardPageSkeleton } from "../youtube-channel-card-page";
 import { YouTubeChannelCardHorizontal, YouTubeChannelCardHorizontalSkeleton } from "../youtube-channel-card-horizontal";
-import { useYouTubeCardStyle } from "@/hooks/use-youtube-card-style";
+import { useYouTubeCardStyle, useUpdateYouTubeCardStyle } from "@/hooks/use-youtube-card-style";
 import { useUser } from "@clerk/nextjs";
 import { useClerk } from "@clerk/nextjs";
 import Link from "next/link";
@@ -256,8 +256,7 @@ function ChannelListChannelsGrid({ items, listId }: { items: YouTubeChannelListI
 
 export function ChannelListDetail({ listId }: ChannelListDetailProps) {
   const router = useRouter();
-  const queryClient = useQueryClient();
-  const { isSignedIn } = useUser();
+  const { isSignedIn, isLoaded } = useUser();
   const { openSignIn } = useClerk();
   const [builderOpen, setBuilderOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -273,36 +272,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
   const { data: cardStyle } = useYouTubeCardStyle();
   const effectiveCardStyle = cardStyle || "centered";
 
-  const updateCardStyle = useMutation({
-    mutationFn: async (nextStyle: "centered" | "horizontal") => {
-      const response = await fetch("/api/user/view-settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ youtubeCardStyle: nextStyle }),
-      });
-      if (!response.ok) {
-        throw new Error("Failed to update card style");
-      }
-      return nextStyle;
-    },
-    onMutate: async (nextStyle) => {
-      await queryClient.cancelQueries({ queryKey: ["youtube-card-style"] });
-      const previousStyle = queryClient.getQueryData<"centered" | "horizontal">([
-        "youtube-card-style",
-      ]);
-      queryClient.setQueryData(["youtube-card-style"], nextStyle);
-      return { previousStyle };
-    },
-    onError: (_error, _nextStyle, context) => {
-      if (context?.previousStyle) {
-        queryClient.setQueryData(["youtube-card-style"], context.previousStyle);
-      }
-      toast.error("Failed to update card style");
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["youtube-card-style"] });
-    },
-  });
+  const updateCardStyle = useUpdateYouTubeCardStyle();
 
   const keywordOptions = useMemo(() => {
     const items = list?.items;
@@ -699,7 +669,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
             keywordOptions={keywordOptions}
             effectiveCardStyle={effectiveCardStyle}
             onCardStyleChange={(style) => updateCardStyle.mutate(style)}
-            isCardStylePending={updateCardStyle.isPending}
+            isCardStylePending={!isLoaded || updateCardStyle.isPending}
           />
         </div>
 
