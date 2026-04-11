@@ -30,6 +30,8 @@ import { YouTubeChannel } from "@/hooks/use-youtube-channels";
 import { toast } from "sonner";
 import { extractChannelIdFromUrl } from "@/lib/youtube-channels";
 import { useQueryClient } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
+import { SheetLoadingDots } from "@/components/ui/sheet-loading-dots";
 
 interface ChannelListBuilderProps {
   isOpen: boolean;
@@ -81,6 +83,7 @@ export function ChannelListBuilder({
   } | null>(null);
   const [addToUserPool, setAddToUserPool] = useState(false);
   const [isAddingChannel, setIsAddingChannel] = useState(false);
+  const [formReady, setFormReady] = useState(false);
 
   // Format count helper
   const formatCount = (count: string | number | null | undefined): string => {
@@ -96,37 +99,45 @@ export function ChannelListBuilder({
   const isSubmitting = createList.isPending || updateList.isPending;
 
   useEffect(() => {
-    if (!isOpen) return;
-    if (initialData) {
-      setName(initialData.name);
-      setDescription(initialData.description ?? "");
-      setIsPublic(initialData.isPublic);
-      setTags(initialData.tags ?? []);
-      setSelectedChannels(
-        initialData.items
-          .sort((a, b) => a.position - b.position)
-          .map((item) => ({
-            channelId: item.channelId,
-            channelTitle: item.channelTitle ?? "Channel",
-            channelThumbnail: item.channelThumbnail ?? undefined,
-            channelDescription: item.channelDescription ?? undefined,
-            subscriberCount: item.subscriberCount ?? undefined,
-            videoCount: item.videoCount ?? undefined,
-            channelUrl: item.channelUrl ?? undefined,
-            notes: item.notes ?? undefined,
-            position: item.position,
-          }))
-      );
-    } else {
-      setName("");
-      setDescription("");
-      setIsPublic(true);
-      setTagInput("");
-      setTags([]);
-      setChannelSearchInput("");
-      setSearchResults([]);
-      setSelectedChannels([]);
+    if (!isOpen) {
+      setFormReady(false);
+      return;
     }
+    setFormReady(false);
+    const id = window.setTimeout(() => {
+      if (initialData) {
+        setName(initialData.name);
+        setDescription(initialData.description ?? "");
+        setIsPublic(initialData.isPublic);
+        setTags(initialData.tags ?? []);
+        setSelectedChannels(
+          initialData.items
+            .sort((a, b) => a.position - b.position)
+            .map((item) => ({
+              channelId: item.channelId,
+              channelTitle: item.channelTitle ?? "Channel",
+              channelThumbnail: item.channelThumbnail ?? undefined,
+              channelDescription: item.channelDescription ?? undefined,
+              subscriberCount: item.subscriberCount ?? undefined,
+              videoCount: item.videoCount ?? undefined,
+              channelUrl: item.channelUrl ?? undefined,
+              notes: item.notes ?? undefined,
+              position: item.position,
+            }))
+        );
+      } else {
+        setName("");
+        setDescription("");
+        setIsPublic(true);
+        setTagInput("");
+        setTags([]);
+        setChannelSearchInput("");
+        setSearchResults([]);
+        setSelectedChannels([]);
+      }
+      setFormReady(true);
+    }, 0);
+    return () => clearTimeout(id);
   }, [isOpen, initialData]);
 
   const handleSearchChannels = async () => {
@@ -334,6 +345,7 @@ export function ChannelListBuilder({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!formReady) return;
     if (!name.trim()) {
       toast.error("List name required. Give your list a memorable name.");
       return;
@@ -383,8 +395,17 @@ export function ChannelListBuilder({
         </div>
 
         {/* Scrollable Content */}
-        <form id="channel-list-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-6">
-          <div className="space-y-6">
+        <form
+          id="channel-list-form"
+          onSubmit={handleSubmit}
+          className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-6 relative min-h-0"
+        >
+          {!formReady && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-[1px]">
+              <SheetLoadingDots className="min-h-0 py-0" />
+            </div>
+          )}
+          <div className={cn("space-y-6", !formReady && "pointer-events-none opacity-0")}>
             <div className="space-y-2">
               <Label htmlFor="channel-list-name">List name</Label>
               <Input
@@ -650,7 +671,12 @@ export function ChannelListBuilder({
 
         {/* Fixed Footer */}
         <div className="border-t border-border p-4 space-y-2 flex-shrink-0">
-          <Button type="submit" form="channel-list-form" className="w-full" disabled={isSubmitting}>
+          <Button
+            type="submit"
+            form="channel-list-form"
+            className="w-full"
+            disabled={isSubmitting || !formReady}
+          >
             {isSubmitting ? "Saving..." : mode === "create" ? "Publish list" : "Save changes"}
           </Button>
           <Button

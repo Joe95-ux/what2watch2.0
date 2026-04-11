@@ -18,6 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { SheetLoadingDots } from "@/components/ui/sheet-loading-dots";
 import { useUpdateReview } from "@/hooks/use-reviews";
 import { toast } from "sonner";
 import { getPosterUrl } from "@/lib/tmdb";
@@ -41,24 +42,26 @@ export default function EditReviewDialog({
   onClose,
   review,
   filmData,
+  isBootstrapping = false,
 }: EditReviewDialogProps) {
-  const [rating, setRating] = useState(review.rating);
-  const [title, setTitle] = useState(review.title || "");
-  const [content, setContent] = useState(review.content);
+  const [rating, setRating] = useState(review?.rating ?? 5);
+  const [title, setTitle] = useState(review?.title || "");
+  const [content, setContent] = useState(review?.content ?? "");
   const [containsSpoilers, setContainsSpoilers] = useState<"yes" | "no">(
-    review.containsSpoilers ? "yes" : "no"
+    review?.containsSpoilers ? "yes" : "no"
   );
   const updateReview = useUpdateReview();
 
-  // Update form when review changes
+  const showFormLoader = isBootstrapping || !review;
+
+  // Update form when review changes (skip while async payload is loading)
   useEffect(() => {
-    if (review) {
-      setRating(review.rating);
-      setTitle(review.title || "");
-      setContent(review.content);
-      setContainsSpoilers(review.containsSpoilers ? "yes" : "no");
-    }
-  }, [review]);
+    if (!review || isBootstrapping) return;
+    setRating(review.rating);
+    setTitle(review.title || "");
+    setContent(review.content);
+    setContainsSpoilers(review.containsSpoilers ? "yes" : "no");
+  }, [review, isBootstrapping]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -74,6 +77,7 @@ export default function EditReviewDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!review || isBootstrapping) return;
 
     if (!content.trim()) {
       toast.error("Review content is required");
@@ -104,7 +108,8 @@ export default function EditReviewDialog({
     }
   };
 
-  const filmTitle = filmData?.title || (review.mediaType === "movie" ? "Movie" : "TV Show");
+  const filmTitle =
+    filmData?.title || (review?.mediaType === "tv" ? "TV Show" : "Movie");
   const posterPath = filmData?.posterPath;
   const releaseYear = filmData?.releaseYear;
   const runtime = filmData?.runtime;
@@ -179,6 +184,9 @@ export default function EditReviewDialog({
 
           {/* Body */}
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+            {showFormLoader ? (
+              <SheetLoadingDots className="flex-1 min-h-[18rem]" />
+            ) : (
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               <div className="space-y-2">
                 <Label>Rating (1-10)</Label>
@@ -281,15 +289,20 @@ export default function EditReviewDialog({
                 </div>
               </div>
             </div>
+            )}
 
             {/* Footer */}
             <div className="border-t border-border p-6 space-y-3">
               <Button
                 type="submit"
-                disabled={updateReview.isPending || !content.trim()}
+                disabled={showFormLoader || updateReview.isPending || !content.trim()}
                 className="w-full cursor-pointer"
               >
-                {updateReview.isPending ? "Updating..." : "Update Review"}
+                {showFormLoader
+                  ? "Loading..."
+                  : updateReview.isPending
+                    ? "Updating..."
+                    : "Update Review"}
               </Button>
               <Button
                 type="button"

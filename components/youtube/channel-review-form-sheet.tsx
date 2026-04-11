@@ -21,6 +21,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
+import { SheetLoadingDots } from "@/components/ui/sheet-loading-dots";
 import {
   ChannelReview,
   useCreateChannelReview,
@@ -81,6 +82,8 @@ interface ChannelReviewFormSheetProps {
   isOpen: boolean;
   onClose: () => void;
   initialReview?: ChannelReview | null;
+  /** When true, sheet is open but edit payload is still loading (show centered loader). */
+  isBootstrapping?: boolean;
 }
 
 export function ChannelReviewFormSheet({
@@ -90,10 +93,11 @@ export function ChannelReviewFormSheet({
   isOpen,
   onClose,
   initialReview,
+  isBootstrapping = false,
 }: ChannelReviewFormSheetProps) {
   const createReview = useCreateChannelReview(channelId);
   const updateReview = useUpdateChannelReview(channelId);
-  const mode: "create" | "edit" = initialReview ? "edit" : "create";
+  const mode: "create" | "edit" = initialReview || isBootstrapping ? "edit" : "create";
 
   const form = useForm<ChannelReviewFormValues>({
     resolver: zodResolver(channelReviewSchema),
@@ -111,21 +115,24 @@ export function ChannelReviewFormSheet({
   const tags = watch("tags");
   const [tagInput, setTagInput] = useState("");
 
-  // Reset form when sheet opens/closes or initialReview changes
+  // Reset form when sheet opens/closes or initialReview changes (skip while async edit payload loads)
   useEffect(() => {
-    if (isOpen) {
-      reset({
-        rating: initialReview?.rating ?? 0,
-        title: initialReview?.title ?? null,
-        content: initialReview?.content ?? "",
-        tags: initialReview?.tags ?? [],
-      });
-      setTagInput("");
-    } else {
+    if (!isOpen) {
       reset();
       setTagInput("");
+      return;
     }
-  }, [isOpen, initialReview, reset]);
+    if (isBootstrapping) {
+      return;
+    }
+    reset({
+      rating: initialReview?.rating ?? 0,
+      title: initialReview?.title ?? null,
+      content: initialReview?.content ?? "",
+      tags: initialReview?.tags ?? [],
+    });
+    setTagInput("");
+  }, [isOpen, initialReview, isBootstrapping, reset]);
 
   const isSubmitting = createReview.isPending || updateReview.isPending;
 
@@ -177,6 +184,10 @@ export function ChannelReviewFormSheet({
     onClose();
   };
 
+  const handleOpenChange = (open: boolean) => {
+    if (!open) handleClose();
+  };
+
   const onSubmit = async (values: ChannelReviewFormValues) => {
     try {
       if (mode === "create") {
@@ -215,7 +226,7 @@ export function ChannelReviewFormSheet({
         : `${contentLength}/1500 characters`;
 
   return (
-    <Sheet open={isOpen} onOpenChange={handleClose}>
+    <Sheet open={isOpen} onOpenChange={handleOpenChange}>
       <SheetContent side="right" className="w-full sm:w-[500px] flex flex-col p-0">
         {/* Fixed Header */}
         <div className="flex items-start gap-4 border-b border-border p-4 flex-shrink-0">
@@ -247,6 +258,9 @@ export function ChannelReviewFormSheet({
         {/* Scrollable Content */}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
+            {isBootstrapping ? (
+              <SheetLoadingDots className="flex-1 min-h-[18rem]" />
+            ) : (
             <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-6">
               <FormField
                 control={form.control}
@@ -390,15 +404,18 @@ export function ChannelReviewFormSheet({
                 )}
               />
             </div>
+            )}
 
             {/* Fixed Footer */}
             <div className="border-t border-border p-4 space-y-3 flex-shrink-0">
               <Button
                 type="submit"
-                disabled={isSubmitting || !form.formState.isValid}
+                disabled={isSubmitting || isBootstrapping || !form.formState.isValid}
                 className="w-full cursor-pointer"
               >
-                {isSubmitting
+                {isBootstrapping
+                  ? "Loading..."
+                  : isSubmitting
                   ? "Saving..."
                   : mode === "create"
                     ? "Publish review"

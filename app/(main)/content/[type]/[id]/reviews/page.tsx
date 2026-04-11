@@ -790,6 +790,7 @@ export default function ReviewsPage() {
             onClose={() => setWriteDialogOpen(false)}
             tmdbId={id}
             mediaType={type}
+            isBootstrapping={writeDialogOpen && isDetailsLoading}
             filmData={
               details
                 ? {

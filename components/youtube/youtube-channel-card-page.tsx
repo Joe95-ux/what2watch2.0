@@ -52,6 +52,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
   const { addToPool, removeFromPool } = useChannelPool();
   const [isReviewSheetOpen, setIsReviewSheetOpen] = useState(false);
   const [initialReview, setInitialReview] = useState<ChannelReview | null>(null);
+  const [isReviewBootstrap, setIsReviewBootstrap] = useState(false);
   const channelTitle = channel.title || "Unknown Channel";
   const channelUrl = channel.channelUrl || `https://www.youtube.com/channel/${channel.channelId}`;
   const displayName = channelTitle.length > 30 ? channelTitle.slice(0, 30) + "..." : channelTitle;
@@ -124,55 +125,61 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
     }
   };
 
-  const handleReviewClick = async (e: React.MouseEvent) => {
+  const handleReviewClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
-    // Check if user has already reviewed
+
     if (viewerState?.hasReview && viewerState.reviewId) {
-      // Fetch the existing review
-      try {
-        const response = await fetch(`/api/youtube/channel-reviews/${viewerState.reviewId}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.id) {
-            setInitialReview({
-              id: data.id,
-              channelId: data.channelId,
-              userId: data.userId,
-              rating: data.rating,
-              title: data.title,
-              content: data.content,
-              tags: data.tags,
-              helpfulCount: data.helpfulCount,
-              notHelpfulCount: data.notHelpfulCount,
-              isEdited: data.isEdited,
-              status: "published",
-              createdAt: data.createdAt,
-              updatedAt: data.updatedAt,
-              user: data.user,
-              viewerHasVoted: data.viewerHasVoted,
-              canEdit: data.canEdit,
-            } as ChannelReview);
+      const reviewId = viewerState.reviewId;
+      setInitialReview(null);
+      setIsReviewBootstrap(true);
+      setIsReviewSheetOpen(true);
+      void (async () => {
+        try {
+          const response = await fetch(`/api/youtube/channel-reviews/${reviewId}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.id) {
+              setInitialReview({
+                id: data.id,
+                channelId: data.channelId,
+                userId: data.userId,
+                rating: data.rating,
+                title: data.title,
+                content: data.content,
+                tags: data.tags,
+                helpfulCount: data.helpfulCount,
+                notHelpfulCount: data.notHelpfulCount,
+                isEdited: data.isEdited,
+                status: "published",
+                createdAt: data.createdAt,
+                updatedAt: data.updatedAt,
+                user: data.user,
+                viewerHasVoted: data.viewerHasVoted,
+                canEdit: data.canEdit,
+              } as ChannelReview);
+            } else {
+              setInitialReview(null);
+            }
           } else {
             setInitialReview(null);
           }
-        } else {
+        } catch (error) {
+          console.error("[YouTubeChannelCardPage] Failed to fetch review:", error);
           setInitialReview(null);
+        } finally {
+          setIsReviewBootstrap(false);
         }
-      } catch (error) {
-        console.error("[YouTubeChannelCardPage] Failed to fetch review:", error);
-        setInitialReview(null);
-      }
+      })();
     } else {
       setInitialReview(null);
+      setIsReviewBootstrap(false);
+      setIsReviewSheetOpen(true);
     }
-    
-    setIsReviewSheetOpen(true);
   };
 
   const handleCloseReviewSheet = () => {
     setIsReviewSheetOpen(false);
-    // Reset initial review after a short delay to allow sheet to close
+    setIsReviewBootstrap(false);
     setTimeout(() => {
       setInitialReview(null);
     }, 200);
@@ -404,6 +411,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
         isOpen={isReviewSheetOpen}
         onClose={handleCloseReviewSheet}
         initialReview={initialReview}
+        isBootstrapping={isReviewBootstrap}
       />
     </div>
   );

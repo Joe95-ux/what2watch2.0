@@ -18,6 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { SheetLoadingDots } from "@/components/ui/sheet-loading-dots";
 import { useCreateReview } from "@/hooks/use-reviews";
 import { toast } from "sonner";
 import { getPosterUrl } from "@/lib/tmdb";
@@ -34,6 +35,8 @@ interface WriteReviewDialogProps {
     runtime: string | null;
     rating: number | null;
   };
+  /** Show centered loader in the form area (e.g. while film metadata is still loading). */
+  isBootstrapping?: boolean;
 }
 
 export default function WriteReviewDialog({
@@ -42,6 +45,7 @@ export default function WriteReviewDialog({
   tmdbId,
   mediaType,
   filmData,
+  isBootstrapping = false,
 }: WriteReviewDialogProps) {
   const [rating, setRating] = useState(5);
   const [title, setTitle] = useState("");
@@ -73,6 +77,7 @@ export default function WriteReviewDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isBootstrapping) return;
 
     if (!content.trim()) {
       toast.error("Review content is required");
@@ -177,6 +182,9 @@ export default function WriteReviewDialog({
 
           {/* Body */}
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+            {isBootstrapping ? (
+              <SheetLoadingDots className="flex-1 min-h-[18rem]" />
+            ) : (
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               <div className="space-y-2">
                 <Label>Rating (1-10)</Label>
@@ -279,15 +287,20 @@ export default function WriteReviewDialog({
                 </div>
               </div>
             </div>
+            )}
 
             {/* Footer */}
             <div className="border-t border-border p-6 space-y-3">
               <Button
                 type="submit"
-                disabled={createReview.isPending || !content.trim()}
+                disabled={isBootstrapping || createReview.isPending || !content.trim()}
                 className="w-full cursor-pointer"
               >
-                {createReview.isPending ? "Submitting..." : "Submit Review"}
+                {isBootstrapping
+                  ? "Loading..."
+                  : createReview.isPending
+                    ? "Submitting..."
+                    : "Submit Review"}
               </Button>
               <Button
                 type="button"

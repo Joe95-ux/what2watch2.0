@@ -82,16 +82,15 @@ function ChannelListChannelsGrid({ items, listId }: { items: YouTubeChannelListI
     setVisibleCount(CHANNELS_PAGE_SIZE);
   }, [itemsKey, listId]);
 
-  // Create a map of channelId to position to preserve order
-  const positionMap = new Map(
-    items.map((item) => [item.channelId, item.position])
-  );
-
   // Fetch channel data with categories and ratings
   const { data: channelsData, isLoading } = useQuery<{ channels: ChannelData[] }>({
-    queryKey: ["channel-list-channels", listId, channelIds.join(",")],
+    queryKey: ["channel-list-channels", listId, itemsKey],
     queryFn: async () => {
       if (channelIds.length === 0) return { channels: [] };
+
+      const positionMap = new Map(
+        items.map((item) => [item.channelId, item.position])
+      );
 
       // Fetch only channels in this list so inUserPool and metadata are accurate.
       const params = new URLSearchParams({
@@ -177,21 +176,11 @@ function ChannelListChannelsGrid({ items, listId }: { items: YouTubeChannelListI
     staleTime: 0, // Always refetch when query key changes (e.g., when list is updated)
   });
 
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {items.map((_, index) => 
-          effectiveCardStyle === "horizontal" ? (
-            <YouTubeChannelCardHorizontalSkeleton key={index} />
-          ) : (
-            <YouTubeChannelCardPageSkeleton key={index} />
-          )
-        )}
-      </div>
-    );
-  }
+  const channels = useMemo(
+    () => channelsData?.channels ?? [],
+    [channelsData]
+  );
 
-  const channels = channelsData?.channels || [];
   const visibleChannels = useMemo(
     () => channels.slice(0, visibleCount),
     [channels, visibleCount]
@@ -215,7 +204,21 @@ function ChannelListChannelsGrid({ items, listId }: { items: YouTubeChannelListI
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [channels.length, itemsKey]);
+  }, [channels.length, itemsKey, visibleCount]);
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {items.map((_, index) => 
+          effectiveCardStyle === "horizontal" ? (
+            <YouTubeChannelCardHorizontalSkeleton key={index} />
+          ) : (
+            <YouTubeChannelCardPageSkeleton key={index} />
+          )
+        )}
+      </div>
+    );
+  }
 
   if (channels.length === 0) {
     return (
@@ -302,20 +305,22 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
   });
 
   const keywordOptions = useMemo(() => {
-    if (!list?.items?.length) return [];
+    const items = list?.items;
+    if (!items?.length) return [];
     const set = new Set<string>();
-    for (const item of list.items) {
+    for (const item of items) {
       for (const k of item.keywords ?? []) {
         const t = k.trim();
         if (t) set.add(t);
       }
     }
     return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [list?.items]);
+  }, [list]);
 
   const filteredListItems = useMemo(() => {
-    if (!list?.items?.length) return [];
-    let next = list.items;
+    const items = list?.items;
+    if (!items?.length) return [];
+    let next = items;
     if (keywordFilter !== "all") {
       next = next.filter((item) =>
         (item.keywords ?? []).some((k) => k.trim() === keywordFilter)
@@ -331,7 +336,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
       });
     }
     return next;
-  }, [list?.items, keywordFilter, channelSearch]);
+  }, [list, keywordFilter, channelSearch]);
 
   useEffect(() => {
     if (keywordFilter !== "all" && !keywordOptions.includes(keywordFilter)) {
@@ -387,8 +392,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
                   <Skeleton className="h-4 w-40 rounded-md bg-zinc-800/50" />
                 </div>
               </div>
-              <div className="hidden md:block w-px min-h-[120px] bg-white/10 mx-2" />
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <Skeleton className="h-10 w-24 rounded-md bg-zinc-800/50" />
                 <Skeleton className="h-10 w-20 rounded-md bg-zinc-800/50" />
               </div>
@@ -592,8 +596,6 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
                 </div>
               </div>
             </div>
-
-            <div className="hidden md:block w-px min-h-[140px] self-stretch bg-white/10 mx-2 shrink-0" />
 
             <div className="flex items-center gap-2 flex-wrap md:flex-nowrap md:justify-end shrink-0">
               {list.viewerState.isOwner ? (
