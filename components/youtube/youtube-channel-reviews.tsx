@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { MessageCircle } from "lucide-react";
+import { ChannelReviewRatingSummary } from "@/components/youtube/channel-review-rating-summary";
 
 function ChannelReviewCardSkeleton() {
   return (
@@ -67,12 +68,15 @@ interface YouTubeChannelReviewsProps {
   channelId: string;
   channelTitle: string;
   channelThumbnail?: string | null;
+  /** Optional fallback for average when review stats are still loading */
+  channelRating?: { average: number; count: number } | null;
 }
 
 export function YouTubeChannelReviews({
   channelId,
   channelTitle,
   channelThumbnail,
+  channelRating,
 }: YouTubeChannelReviewsProps) {
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
@@ -332,11 +336,11 @@ export function YouTubeChannelReviews({
 
   return (
     <section className="py-12">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
         <h2 className="text-2xl font-bold">
           Reviews {pagination?.total ? `(${pagination.total})` : ""}
         </h2>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Select value={sort} onValueChange={(value) => setSort(value)}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Sort reviews" />
@@ -357,8 +361,25 @@ export function YouTubeChannelReviews({
         </div>
       </div>
 
-      {renderReviews()}
-      {renderPagination()}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
+        <div className="lg:col-span-2 min-w-0">
+          {renderReviews()}
+          {renderPagination()}
+        </div>
+        <aside className="lg:col-span-1 min-w-0">
+          <div className="rounded-xl border border-border bg-muted/30 p-5 lg:sticky lg:top-28">
+            <h3 className="text-sm font-semibold text-foreground mb-4">
+              Community ratings
+            </h3>
+            <ChannelReviewRatingSummary
+              variant="sidebar"
+              reviewStats={data?.stats}
+              isReviewStatsLoading={isLoading}
+              channelRating={channelRating}
+            />
+          </div>
+        </aside>
+      </div>
 
       <ChannelReviewFormSheet
         channelId={channelId}

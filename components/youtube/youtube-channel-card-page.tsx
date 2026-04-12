@@ -6,12 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ChannelCuratorNoteDialog } from "./channel-curator-note-dialog";
 import { Star, UsersRound, Video, ExternalLink, Youtube, Plus, X } from "lucide-react";
 import { getChannelProfilePath } from "@/lib/channel-path";
 import { cn } from "@/lib/utils";
@@ -83,7 +78,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
   });
 
   // Fetch viewer state to check if user has already reviewed
-  const { data: reviewsData } = useChannelReviews(channel.channelId, {
+  const { data: reviewsData, isLoading: isReviewsLoading } = useChannelReviews(channel.channelId, {
     page: 1,
     limit: 1,
   });
@@ -401,16 +396,16 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
               {channel.note}
             </button>
           </div>
-          <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
-            <DialogContent className="max-h-[85vh] flex flex-col gap-4 sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Curator note</DialogTitle>
-              </DialogHeader>
-              <div className="max-h-[60vh] overflow-y-auto pr-1 text-sm text-foreground whitespace-pre-wrap">
-                {channel.note}
-              </div>
-            </DialogContent>
-          </Dialog>
+          <ChannelCuratorNoteDialog
+            open={noteDialogOpen}
+            onOpenChange={setNoteDialogOpen}
+            channelTitle={channelTitle}
+            channelThumbnail={channel.thumbnail}
+            note={channel.note}
+            reviewStats={reviewsData?.stats}
+            isReviewStatsLoading={isReviewsLoading}
+            channelRating={channel.rating}
+          />
         </>
       )}
 
