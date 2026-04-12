@@ -446,7 +446,7 @@ export default function YouTubeVideoCard({
                     setIsActionsDropdownOpen(false);
                   }}
                   disabled={favoriteTogglePending}
-                  className="cursor-pointer text-[0.8rem]"
+                  className="cursor-pointer text-[0.8rem] gap-0"
                 >
                   {favoriteTogglePending ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin text-muted-foreground shrink-0" />
@@ -484,7 +484,7 @@ export default function YouTubeVideoCard({
                     setIsActionsDropdownOpen(false);
                   }}
                   disabled={watchlistTogglePending}
-                  className="cursor-pointer text-[0.8rem]"
+                  className="cursor-pointer text-[0.8rem] gap-0"
                 >
                   {watchlistTogglePending ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin text-muted-foreground shrink-0" />
@@ -514,7 +514,7 @@ export default function YouTubeVideoCard({
                         onRemove();
                         setIsActionsDropdownOpen(false);
                       }}
-                      className="cursor-pointer text-destructive focus:text-destructive text-[0.8rem]"
+                      className="cursor-pointer text-destructive focus:text-destructive text-[0.8rem] gap-0"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Remove from Playlist
