@@ -438,7 +438,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                               }
                               setIsActionsDropdownOpen(false);
                             }}
-                            className="cursor-pointer text-[0.8rem]"
+                            className="cursor-pointer text-[0.8rem] gap-0.5"
                           >
                             <Eye
                               className={cn(
@@ -460,7 +460,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                               );
                               setIsActionsDropdownOpen(false);
                             }}
-                            className="cursor-pointer text-[0.8rem]"
+                            className="cursor-pointer text-[0.8rem] gap-0.5"
                           >
                             <Heart
                               className={cn(
@@ -491,13 +491,13 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                               }
                               setIsActionsDropdownOpen(false);
                             }}
-                            className="cursor-pointer text-[0.8rem]"
+                            className="cursor-pointer text-[0.8rem] gap-0.5"
                           >
                             <ThumbsUp
                               className={cn(
                                 "h-4 w-4 mr-2",
                                 isLiked
-                                  ? "text-primary fill-primary"
+                                  ? "text-primary fill-primary stroke-primary"
                                   : "text-muted-foreground"
                               )}
                             />
@@ -514,7 +514,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                               );
                               setIsActionsDropdownOpen(false);
                             }}
-                            className="cursor-pointer text-[0.8rem]"
+                            className="cursor-pointer text-[0.8rem] gap-0.5"
                           >
                             <Bookmark
                               className={cn(
@@ -536,7 +536,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                                   onRemove();
                                   setIsActionsDropdownOpen(false);
                                 }}
-                                className="cursor-pointer text-destructive focus:text-destructive text-[0.8rem]"
+                                className="cursor-pointer text-destructive focus:text-destructive text-[0.8rem] gap-0.5"
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Remove from Playlist

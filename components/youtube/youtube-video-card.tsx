@@ -464,7 +464,7 @@ export default function YouTubeVideoCard({
                     ? "Updating..."
                     : toggleVideoFavorite.isFavorited(video.id)
                       ? "Remove from favorites"
-                      : "Add to favorites"}
+                      : "Favorite"}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={async (e) => {

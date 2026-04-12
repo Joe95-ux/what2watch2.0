@@ -54,14 +54,7 @@ const channelReviewSchema = z.object({
   content: z
     .string()
     .transform((val) => sanitizeString(val))
-    .refine(
-      (val) => val.length >= 20,
-      "Review must be at least 20 characters after sanitization"
-    )
-    .refine(
-      (val) => val.length <= 1500,
-      "Review must be 1500 characters or less"
-    ),
+    .pipe(z.string().max(1500, "Review must be 1500 characters or less")),
   tags: z
     .array(
       z
@@ -189,6 +182,10 @@ export function ChannelReviewFormSheet({
   };
 
   const onSubmit = async (values: ChannelReviewFormValues) => {
+    if (values.content.length < 20) {
+      toast.error("Please write a longer review (at least 20 characters) before publishing.");
+      return;
+    }
     try {
       if (mode === "create") {
         await createReview.mutateAsync({
@@ -221,9 +218,7 @@ export function ChannelReviewFormSheet({
   const helperText =
     contentLength === 0
       ? "Share what makes this channel worth watching."
-      : contentLength < 20
-        ? "Write at least 20 characters."
-        : `${contentLength}/1500 characters`;
+      : `${Math.min(contentLength, 1500)}/1500 characters`;
 
   return (
     <Sheet open={isOpen} onOpenChange={handleOpenChange}>
