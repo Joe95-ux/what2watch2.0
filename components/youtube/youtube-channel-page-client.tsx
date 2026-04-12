@@ -746,7 +746,15 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
                   variant="ghost"
                   size="sm"
                   onClick={async () => {
-                    await requireAuth(() => toggleFavorite.toggle(channelId), "Sign in to favorite channels.");
+                    await requireAuth(async () => {
+                      try {
+                        await toggleFavorite.toggle(channelId);
+                      } catch (e) {
+                        toast.error(
+                          e instanceof Error ? e.message : "Could not update favorite. Try again."
+                        );
+                      }
+                    }, "Sign in to favorite channels.");
                   }}
                   disabled={toggleFavorite.isLoading}
                   className="cursor-pointer bg-transparent border border-border/60"

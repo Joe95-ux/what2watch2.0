@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export interface FavoriteChannel {
   id: string;
@@ -19,7 +19,7 @@ interface FavoriteChannelsResponse {
 /**
  * Fetch user's favorite channels
  */
-async function fetchFavoriteChannels(): Promise<FavoriteChannel[]> {
+export async function fetchFavoriteChannels(): Promise<FavoriteChannel[]> {
   const response = await fetch("/api/youtube/channels/favorites");
   if (!response.ok) {
     throw new Error("Failed to fetch favorite channels");
@@ -32,7 +32,7 @@ async function fetchFavoriteChannels(): Promise<FavoriteChannel[]> {
  * Like/Favorite a channel
  */
 async function favoriteChannel(channelId: string): Promise<FavoriteChannel> {
-  const response = await fetch(`/api/youtube/channels/${channelId}/favorite`, {
+  const response = await fetch(`/api/youtube/channels/${encodeURIComponent(channelId)}/favorite`, {
     method: "POST",
   });
   if (!response.ok) {
@@ -47,7 +47,7 @@ async function favoriteChannel(channelId: string): Promise<FavoriteChannel> {
  * Unlike/Unfavorite a channel
  */
 async function unfavoriteChannel(channelId: string): Promise<void> {
-  const response = await fetch(`/api/youtube/channels/${channelId}/favorite`, {
+  const response = await fetch(`/api/youtube/channels/${encodeURIComponent(channelId)}/favorite`, {
     method: "DELETE",
   });
   if (!response.ok) {
@@ -76,8 +76,32 @@ export function useFavoriteChannel() {
 
   return useMutation({
     mutationFn: favoriteChannel,
-    onSuccess: async () => {
+    onMutate: async (channelId) => {
+      await queryClient.cancelQueries({ queryKey: ["favorite-channels"] });
+      const previous = queryClient.getQueryData<FavoriteChannel[]>(["favorite-channels"]);
+      queryClient.setQueryData<FavoriteChannel[]>(["favorite-channels"], (old = []) => {
+        if (old.some((f) => f.channelId === channelId)) return old;
+        return [
+          ...old,
+          {
+            id: `pending-${channelId}`,
+            userId: "",
+            channelId,
+            isFavorite: true,
+            createdAt: new Date().toISOString(),
+          },
+        ];
+      });
+      return { previous };
+    },
+    onError: (_err, _channelId, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(["favorite-channels"], context.previous);
+      }
+    },
+    onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: ["favorite-channels"] });
+      await queryClient.invalidateQueries({ queryKey: ["feed-channels"] });
     },
   });
 }
@@ -90,8 +114,22 @@ export function useUnfavoriteChannel() {
 
   return useMutation({
     mutationFn: unfavoriteChannel,
-    onSuccess: async () => {
+    onMutate: async (channelId) => {
+      await queryClient.cancelQueries({ queryKey: ["favorite-channels"] });
+      const previous = queryClient.getQueryData<FavoriteChannel[]>(["favorite-channels"]);
+      queryClient.setQueryData<FavoriteChannel[]>(["favorite-channels"], (old = []) =>
+        old.filter((f) => f.channelId !== channelId)
+      );
+      return { previous };
+    },
+    onError: (_err, _channelId, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(["favorite-channels"], context.previous);
+      }
+    },
+    onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: ["favorite-channels"] });
+      await queryClient.invalidateQueries({ queryKey: ["feed-channels"] });
     },
   });
 }
@@ -100,16 +138,20 @@ export function useUnfavoriteChannel() {
  * Hook to check if a channel is favorited and toggle it
  */
 export function useToggleFavoriteChannel() {
+  const queryClient = useQueryClient();
   const { data: favorites = [] } = useFavoriteChannels();
   const favorite = useFavoriteChannel();
   const unfavorite = useUnfavoriteChannel();
 
+  const getFavoritesList = () =>
+    queryClient.getQueryData<FavoriteChannel[]>(["favorite-channels"]) ?? favorites;
+
   return {
     isFavorited: (channelId: string) => {
-      return favorites.some((fav) => fav.channelId === channelId);
+      return getFavoritesList().some((fav) => fav.channelId === channelId);
     },
     toggle: async (channelId: string) => {
-      const isFavorited = favorites.some((fav) => fav.channelId === channelId);
+      const isFavorited = getFavoritesList().some((fav) => fav.channelId === channelId);
       if (isFavorited) {
         await unfavorite.mutateAsync(channelId);
       } else {
@@ -119,4 +161,3 @@ export function useToggleFavoriteChannel() {
     isLoading: favorite.isPending || unfavorite.isPending,
   };
 }
-
