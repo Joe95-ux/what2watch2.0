@@ -23,6 +23,9 @@ function buildDistribution(reviewStats: ChannelReviewStats | null | undefined) {
       }));
 }
 
+const MUTED_STAR =
+  "h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0 fill-muted-foreground/35 text-muted-foreground/45";
+
 function RatingHistogramRows({
   distribution,
   maxCount,
@@ -36,14 +39,13 @@ function RatingHistogramRows({
         const barWidth = maxCount > 0 ? (row.count / maxCount) * 100 : 0;
         return (
           <div key={row.rating} className="flex items-center gap-2 sm:gap-3">
-            <div className="flex items-center gap-1 w-14 shrink-0 justify-end">
-              <span className="text-xs font-medium tabular-nums text-muted-foreground w-3 text-right">
-                {row.rating}
-              </span>
-              <Star
-                className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400"
-                aria-hidden
-              />
+            <div
+              className="flex items-center justify-end gap-px sm:gap-0.5 shrink-0 w-[5.75rem] sm:w-[6.25rem]"
+              aria-label={`${row.rating} star${row.rating === 1 ? "" : "s"}`}
+            >
+              {Array.from({ length: row.rating }, (_, i) => (
+                <Star key={i} className={MUTED_STAR} aria-hidden />
+              ))}
             </div>
             <div className="flex-1 min-w-0 h-2.5 rounded-full bg-muted overflow-hidden">
               <div

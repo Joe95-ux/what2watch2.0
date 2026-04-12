@@ -797,7 +797,11 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
 
         <div
           className={cn(
-            showSearch && activeTab === "home" ? "pb-8" : "py-8",
+            showSearch && activeTab === "home"
+              ? "pb-8"
+              : activeTab === "reviews"
+                ? "pb-12"
+                : "py-8",
           )}
         >
           {showSearch && activeTab === "home" && (

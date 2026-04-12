@@ -6,10 +6,15 @@ import { ChannelReviewCard } from "./channel-review-card";
 import { ChannelReviewFormSheet } from "./channel-review-form-sheet";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
-import { MessageCircle } from "lucide-react";
+import { ArrowUpDown, Check, MessageCircle, PenLine, Pencil } from "lucide-react";
 import { ChannelReviewRatingSummary } from "@/components/youtube/channel-review-rating-summary";
 
 function ChannelReviewCardSkeleton() {
@@ -37,12 +42,11 @@ function ChannelReviewCardSkeleton() {
             <Skeleton className="h-4 w-20" />
           </div>
           {/* Action buttons Skeleton */}
-          <div className="flex items-center justify-between pt-2">
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-8 w-24" />
-              <Skeleton className="h-8 w-28" />
-            </div>
-            <Skeleton className="h-8 w-8 rounded-full" />
+          <div className="flex flex-wrap items-center gap-2 pt-2">
+            <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+            <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+            <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+            <Skeleton className="h-9 w-9 rounded-full shrink-0" />
           </div>
         </div>
       </div>
@@ -335,49 +339,77 @@ export function YouTubeChannelReviews({
   };
 
   return (
-    <section className="py-12">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
-        <h2 className="text-2xl font-bold">
-          Reviews {pagination?.total ? `(${pagination.total})` : ""}
-        </h2>
-        <div className="flex flex-wrap items-center gap-3">
-          <Select value={sort} onValueChange={(value) => setSort(value)}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Sort reviews" />
-            </SelectTrigger>
-            <SelectContent>
-              {SORT_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {isSignedIn && (
-            <Button onClick={handleWriteReview} className="cursor-pointer">
-              {viewerState?.hasReview ? "Edit your review" : "Write a Review"}
-            </Button>
-          )}
-        </div>
-      </div>
-
+    <section className="pb-12">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
         <div className="lg:col-span-2 min-w-0">
+          <div className="flex items-center justify-between gap-3 mb-6">
+            <h2 className="text-2xl font-bold min-w-0">
+              Reviews {pagination?.total ? `(${pagination.total})` : ""}
+            </h2>
+            <div className="flex shrink-0 items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9 rounded-full cursor-pointer"
+                    aria-label="Sort reviews"
+                  >
+                    <ArrowUpDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-[12rem]">
+                  {SORT_OPTIONS.map((option) => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      className="cursor-pointer justify-between gap-3"
+                      onSelect={() => setSort(option.value)}
+                    >
+                      {option.label}
+                      {sort === option.value ? (
+                        <Check className="h-4 w-4 shrink-0" aria-hidden />
+                      ) : (
+                        <span className="w-4 shrink-0" aria-hidden />
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {isSignedIn && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 rounded-full cursor-pointer"
+                  onClick={() => void handleWriteReview()}
+                  aria-label={
+                    viewerState?.hasReview ? "Edit your review" : "Write a review"
+                  }
+                >
+                  {viewerState?.hasReview ? (
+                    <Pencil className="h-4 w-4" />
+                  ) : (
+                    <PenLine className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+
           {renderReviews()}
           {renderPagination()}
         </div>
-        <aside className="lg:col-span-1 min-w-0">
-          <div className="rounded-xl border border-border bg-muted/30 p-5 lg:sticky lg:top-28">
-            <h3 className="text-sm font-semibold text-foreground mb-4">
-              Community ratings
-            </h3>
-            <ChannelReviewRatingSummary
-              variant="sidebar"
-              reviewStats={data?.stats}
-              isReviewStatsLoading={isLoading}
-              channelRating={channelRating}
-            />
-          </div>
+        <aside className="lg:col-span-1 min-w-0 lg:sticky lg:top-28 space-y-4">
+          <h3 className="text-sm font-semibold text-foreground">
+            Community ratings
+          </h3>
+          <ChannelReviewRatingSummary
+            variant="sidebar"
+            reviewStats={data?.stats}
+            isReviewStatsLoading={isLoading}
+            channelRating={channelRating}
+          />
         </aside>
       </div>
 

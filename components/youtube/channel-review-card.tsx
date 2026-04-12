@@ -2,22 +2,8 @@
 
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import {
-  MoreVertical,
-  Edit,
-  Trash2,
-  ThumbsUp,
-  ThumbsDown,
-  Tag,
-  Star,
-} from "lucide-react";
+import { Edit, Trash2, ThumbsUp, ThumbsDown, Tag, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -197,101 +183,83 @@ export function ChannelReviewCard({
             </div>
           )}
 
-          {/* Action buttons */}
-          <div className="flex items-center justify-between pt-2">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleVote("UP");
-                }}
-                disabled={toggleVote.isPending}
-                className="cursor-pointer gap-2"
-              >
-                <ThumbsUp
-                  className={cn(
-                    "h-4 w-4",
-                    review.viewerVoteType === "UP" && "fill-black dark:fill-white"
-                  )}
-                />
-                Helpful
-                <span className="text-xs font-medium text-muted-foreground">
-                  {review.helpfulCount}
-                </span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleVote("DOWN");
-                }}
-                disabled={toggleVote.isPending}
-                className="cursor-pointer gap-2"
-              >
-                <ThumbsDown
-                  className={cn(
-                    "h-4 w-4",
-                    review.viewerVoteType === "DOWN" && "fill-black dark:fill-white"
-                  )}
-                />
-                Not Helpful
-                <span className="text-xs font-medium text-muted-foreground">
-                  {review.notHelpfulCount ?? 0}
-                </span>
-              </Button>
-            </div>
-
+          {/* Action buttons — icon-only, single row (first column) */}
+          <div className="flex flex-wrap items-center gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 shrink-0 rounded-full cursor-pointer"
+              title={`Helpful (${review.helpfulCount})`}
+              aria-label={`Helpful — ${review.helpfulCount} votes`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleVote("UP");
+              }}
+              disabled={toggleVote.isPending}
+            >
+              <ThumbsUp
+                className={cn(
+                  "h-4 w-4",
+                  review.viewerVoteType === "UP" && "fill-foreground text-foreground"
+                )}
+              />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 shrink-0 rounded-full cursor-pointer"
+              title={`Not helpful (${review.notHelpfulCount ?? 0})`}
+              aria-label={`Not helpful — ${review.notHelpfulCount ?? 0} votes`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleVote("DOWN");
+              }}
+              disabled={toggleVote.isPending}
+            >
+              <ThumbsDown
+                className={cn(
+                  "h-4 w-4",
+                  review.viewerVoteType === "DOWN" && "fill-foreground text-foreground"
+                )}
+              />
+            </Button>
             {canEdit && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 cursor-pointer"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="w-40"
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0 rounded-full cursor-pointer"
+                  title="Edit review"
+                  aria-label="Edit review"
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
+                    onEdit(review);
                   }}
                 >
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onEdit(review);
-                    }}
-                    className="cursor-pointer gap-2"
-                  >
-                    <Edit className="h-4 w-4" />
-                    Edit review
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setIsDeleteDialogOpen(true);
-                    }}
-                    className="cursor-pointer gap-2 text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0 rounded-full cursor-pointer text-destructive hover:text-destructive"
+                  title="Delete review"
+                  aria-label="Delete review"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDeleteDialogOpen(true);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
             )}
           </div>
         </div>
