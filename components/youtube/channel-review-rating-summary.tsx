@@ -102,7 +102,7 @@ export function ChannelReviewRatingSummary({
     return (
       <div className={className}>
         <div className="flex flex-col gap-6">
-          <div className="text-center lg:text-left">
+          <div className="text-left">
             <p className="text-3xl sm:text-4xl font-bold tabular-nums tracking-tight text-foreground">
               <span>{avgDisplay}</span>
               <span className="text-lg sm:text-xl font-semibold text-muted-foreground">

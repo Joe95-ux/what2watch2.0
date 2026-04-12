@@ -42,11 +42,12 @@ function ChannelReviewCardSkeleton() {
             <Skeleton className="h-4 w-20" />
           </div>
           {/* Action buttons Skeleton */}
-          <div className="flex flex-wrap items-center gap-2 pt-2">
-            <Skeleton className="h-9 w-9 rounded-full shrink-0" />
-            <Skeleton className="h-9 w-9 rounded-full shrink-0" />
-            <Skeleton className="h-9 w-9 rounded-full shrink-0" />
-            <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-8 w-28" />
+            </div>
+            <Skeleton className="h-8 w-8 rounded-full" />
           </div>
         </div>
       </div>
@@ -341,9 +342,9 @@ export function YouTubeChannelReviews({
   return (
     <section className="pb-12">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
-        <div className="lg:col-span-2 min-w-0">
+        <div className="order-2 lg:order-1 lg:col-span-2 min-w-0">
           <div className="flex items-center justify-between gap-3 mb-6">
-            <h2 className="text-2xl font-bold min-w-0">
+            <h2 className="text-[18px] font-bold min-w-0 lg:text-2xl">
               Reviews {pagination?.total ? `(${pagination.total})` : ""}
             </h2>
             <div className="flex shrink-0 items-center gap-2">
@@ -400,9 +401,10 @@ export function YouTubeChannelReviews({
           {renderReviews()}
           {renderPagination()}
         </div>
-        <aside className="lg:col-span-1 min-w-0 lg:sticky lg:top-28 space-y-4">
-          <h3 className="text-sm font-semibold text-foreground">
-            Community ratings
+        <aside className="order-1 lg:order-2 lg:col-span-1 min-w-0 lg:sticky lg:top-28 space-y-4">
+          <h3 className="text-[18px] font-semibold text-foreground lg:text-sm">
+            <span className="lg:hidden">Community ratings &amp; Reviews</span>
+            <span className="hidden lg:inline">Community ratings</span>
           </h3>
           <ChannelReviewRatingSummary
             variant="sidebar"
