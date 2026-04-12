@@ -5,6 +5,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/** Navbar notification bell: show 99+ when count exceeds two digits. */
+export function formatNotificationBadgeCount(count: number): string {
+  if (count > 99) return "99+";
+  return String(count);
+}
+
 /**
  * Decode HTML entities in a string
  * Converts entities like &#39; to ' and &amp; to &

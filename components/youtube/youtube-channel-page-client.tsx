@@ -723,17 +723,17 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
                       variant="ghost"
                       size="sm"
                       onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                      className="mt-2 h-auto p-0 text-sm text-primary hover:text-primary/80 cursor-pointer"
+                      className="mt-2 h-auto py-1 px-2 text-sm text-primary hover:text-primary/80 cursor-pointer gap-0"
                     >
                       {isDescriptionExpanded ? (
                         <>
                           Show less
-                          <ChevronUp className="h-4 w-4 ml-1" />
+                          <ChevronUp className="h-4 w-4 mt-[3px] ml-[8px]" />
                         </>
                       ) : (
                         <>
                           Read more
-                          <ChevronDown className="h-4 w-4 ml-1" />
+                          <ChevronDown className="h-4 w-4 mt-[5px] ml-[8px]" />
                         </>
                       )}
                     </Button>
@@ -751,13 +751,17 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
                   disabled={toggleFavorite.isLoading}
                   className="cursor-pointer bg-transparent border border-border/60"
                 >
-                  <Heart
-                    className={cn(
-                      "h-4 w-4 mr-2",
-                      toggleFavorite.isFavorited(channelId) && "fill-red-500 text-red-500"
-                    )}
-                  />
-                  Favorite
+                  {toggleFavorite.isLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin text-muted-foreground shrink-0" />
+                  ) : (
+                    <Heart
+                      className={cn(
+                        "h-4 w-4 mr-2 shrink-0",
+                        toggleFavorite.isFavorited(channelId) && "fill-red-500 text-red-500"
+                      )}
+                    />
+                  )}
+                  {toggleFavorite.isLoading ? "Updating..." : "Favorite"}
                 </Button>
                 <Button
                   variant="outline"

@@ -27,7 +27,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { useAvatar } from "@/contexts/avatar-context";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { cn, decodeHtmlEntities } from "@/lib/utils";
+import { cn, decodeHtmlEntities, formatNotificationBadgeCount } from "@/lib/utils";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
@@ -192,9 +192,9 @@ export function UnifiedNotificationCenter() {
           {totalUnreadCount > 0 && (
             <Badge
               variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+              className="absolute -top-1 -right-1 flex h-5 min-h-5 min-w-5 items-center justify-center rounded-[20px] px-1.5 py-0 text-[11px] font-semibold leading-none tabular-nums shadow-sm"
             >
-              {totalUnreadCount > 99 ? "99+" : totalUnreadCount}
+              {formatNotificationBadgeCount(totalUnreadCount)}
             </Badge>
           )}
         </Button>

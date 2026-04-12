@@ -6,6 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Star, UsersRound, Video, ExternalLink, Youtube, Plus, X } from "lucide-react";
 import { getChannelProfilePath } from "@/lib/channel-path";
 import { cn } from "@/lib/utils";
@@ -53,6 +59,7 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
   const { openSignIn } = useClerk();
   const { addToPool, removeFromPool } = useChannelPool();
   const [isReviewSheetOpen, setIsReviewSheetOpen] = useState(false);
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [initialReview, setInitialReview] = useState<ChannelReview | null>(null);
   const [isReviewBootstrap, setIsReviewBootstrap] = useState(false);
   const channelTitle = channel.title || "Unknown Channel";
@@ -92,8 +99,8 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Don't navigate if sheet is open
-    if (isReviewSheetOpen) {
+    // Don't navigate if sheet or note dialog is open
+    if (isReviewSheetOpen || noteDialogOpen) {
       return;
     }
     
@@ -379,11 +386,32 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
         )}
       </div>
 
-      {/* Note */}
+      {/* Note — truncated; tap to read full text */}
       {channel.note && (
-        <div className="mt-3 mb-3">
-          <p className="text-sm text-muted-foreground line-clamp-2 text-center">{channel.note}</p>
-        </div>
+        <>
+          <div className="mt-3 mb-3">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setNoteDialogOpen(true);
+              }}
+              className="text-sm text-muted-foreground line-clamp-2 text-center w-full cursor-pointer hover:text-foreground hover:underline underline-offset-2 transition-colors"
+            >
+              {channel.note}
+            </button>
+          </div>
+          <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+            <DialogContent className="max-h-[85vh] flex flex-col gap-4 sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Curator note</DialogTitle>
+              </DialogHeader>
+              <div className="max-h-[60vh] overflow-y-auto pr-1 text-sm text-foreground whitespace-pre-wrap">
+                {channel.note}
+              </div>
+            </DialogContent>
+          </Dialog>
+        </>
       )}
 
       {/* Pool Action Footer Button - Trello style */}

@@ -10,7 +10,7 @@ import { Sheet, SheetContent, SheetHeader, SheetClose, SheetTrigger } from "@/co
 import { Badge } from "@/components/ui/badge";
 import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserRound, X, Megaphone, Bookmark, List, BookOpen, ClipboardList, TrendingUp, UsersRound, MessageSquare, Youtube as YoutubeIcon, Search, BarChart3, Sparkles, ChevronDown, Target, Stethoscope, Lightbulb, BellIcon, MessageSquare as MessageSquareIcon, Award } from "lucide-react";
 import { Youtube } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatNotificationBadgeCount } from "@/lib/utils";
 import { useForumNotifications } from "@/hooks/use-forum-notifications";
 import { useYouTubeNotifications } from "@/hooks/use-youtube-notifications";
 import { useGeneralNotifications } from "@/hooks/use-general-notifications";
@@ -171,9 +171,9 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                           {totalUnreadCount > 0 && (
                             <Badge
                               variant="destructive"
-                              className="absolute -top-1 -right-1 h-4 min-w-4 px-1 flex items-center justify-center text-[10px]"
+                              className="absolute -top-1 -right-1 flex h-5 min-h-5 min-w-5 items-center justify-center rounded-[20px] px-1.5 py-0 text-[10px] font-semibold leading-none tabular-nums shadow-sm"
                             >
-                              {totalUnreadCount > 99 ? "99+" : totalUnreadCount}
+                              {formatNotificationBadgeCount(totalUnreadCount)}
                             </Badge>
                           )}
                         </div>
