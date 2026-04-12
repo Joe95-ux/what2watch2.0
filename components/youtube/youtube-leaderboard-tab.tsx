@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useReviewLeaderboard } from "@/hooks/use-youtube-review-leaderboard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -69,6 +70,7 @@ export function YouTubeLeaderboardTab() {
             const displayName = entry.user?.username || entry.user?.displayName || "Anonymous";
             const initials = displayName.slice(0, 2).toUpperCase();
             const rankIcon = getRankIcon(entry.rank);
+            const profileHref = `/users/${entry.user?.username || entry.userId}`;
 
             return (
               <TableRow key={entry.userId}>
@@ -80,16 +82,19 @@ export function YouTubeLeaderboardTab() {
                   )}
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
+                  <Link
+                    href={profileHref}
+                    className="inline-flex items-center gap-3 min-w-0 max-w-full rounded-md outline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Avatar className="h-8 w-8 shrink-0">
                       {entry.user?.avatarUrl ? (
                         <AvatarImage src={entry.user.avatarUrl} alt={displayName} />
                       ) : (
                         <AvatarFallback className="text-xs">{initials}</AvatarFallback>
                       )}
                     </Avatar>
-                    <span className="font-medium">{displayName}</span>
-                  </div>
+                    <span className="font-medium truncate">{displayName}</span>
+                  </Link>
                 </TableCell>
                 <TableCell className="text-right">{entry.reviewCount}</TableCell>
                 <TableCell className="text-right">{entry.helpfulVotes}</TableCell>

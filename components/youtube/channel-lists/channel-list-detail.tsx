@@ -495,7 +495,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
         <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8">
           <Button
             variant="ghost"
-            onClick={() => router.back()}
+            onClick={() => router.push("/youtube?tab=lists")}
             className="mb-3 sm:mb-5 -ml-2 h-9 text-zinc-300 hover:text-white hover:bg-white/10 cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />

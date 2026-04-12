@@ -26,8 +26,10 @@ function ChannelListCardSkeleton() {
       </div>
       {/* List Title Skeleton */}
       <Skeleton className="h-6 w-3/4" />
-      {/* Creator Skeleton */}
-      <Skeleton className="h-4 w-1/2" />
+      <div className="flex items-center gap-2 min-w-0">
+        <Skeleton className="h-7 w-7 rounded-full shrink-0" />
+        <Skeleton className="h-4 flex-1 max-w-[220px]" />
+      </div>
       {/* Description Skeleton */}
       <div className="space-y-2">
         <Skeleton className="h-4 w-full" />

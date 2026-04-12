@@ -125,7 +125,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
       {/* Header with Logo and Close Button */}
       <SheetHeader className="flex flex-row items-center justify-between px-4 py-3 border-b">
         <div className="h-full">
-          <Logo />
+          <Logo priority={false} />
         </div>
         <SheetClose asChild>
           <Button

@@ -46,6 +46,7 @@ export function ChannelListCard({ list, className, onEdit, onDeleted }: ChannelL
   const [deleteOpen, setDeleteOpen] = useState(false);
   const ownerName = list.user?.username || list.user?.displayName || "Unknown curator";
   const isOwner = Boolean(list.viewerState?.isOwner);
+  const channelCount = list._count?.items ?? list.items.length;
   // Show more channel posters in stack (responsive count)
   const channelAvatars = list.items.slice(0, isMobile ? 8 : 10);
   const detailUrl = useMemo(() => `/youtube-channel/lists/${list.id}`, [list.id]);
@@ -245,10 +246,24 @@ export function ChannelListCard({ list, className, onEdit, onDeleted }: ChannelL
         {list.name}
       </h3>
 
-      {/* Creator */}
-      <p className="text-sm text-muted-foreground">
-        By {ownerName}
-      </p>
+      <div className="flex items-center gap-2 min-w-0 text-sm text-muted-foreground">
+        <Avatar className="h-7 w-7 shrink-0 border border-border">
+          <AvatarImage src={list.user?.avatarUrl ?? undefined} alt="" />
+          <AvatarFallback className="text-[10px] font-medium">
+            {ownerName.slice(0, 2).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        <span className="min-w-0 truncate">
+          <span className="lowercase">by</span>{" "}
+          <span className="font-medium text-foreground/90">{ownerName}</span>
+        </span>
+        <span className="text-muted-foreground/50 shrink-0 px-0.5 select-none" aria-hidden>
+          |
+        </span>
+        <span className="shrink-0 tabular-nums">
+          {channelCount} {channelCount === 1 ? "channel" : "channels"}
+        </span>
+      </div>
 
       {/* Description */}
       {list.description && (
