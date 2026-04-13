@@ -32,6 +32,9 @@ interface YouTubeVideoDurationItem {
   contentDetails: {
     duration?: string;
   };
+  statistics?: {
+    viewCount?: string;
+  };
 }
 
 interface YouTubeVideoDurationResponse {
@@ -136,10 +139,11 @@ export async function GET(
         .filter(Boolean) as string[];
 
       const videoDurations: Record<string, string> = {};
+      const videoViewCounts: Record<string, string> = {};
       if (videoIds.length > 0) {
         const durationsUrl = new URL("https://www.googleapis.com/youtube/v3/videos");
         durationsUrl.searchParams.set("id", videoIds.join(","));
-        durationsUrl.searchParams.set("part", "contentDetails");
+        durationsUrl.searchParams.set("part", "contentDetails,statistics");
         durationsUrl.searchParams.set("key", YOUTUBE_API_KEY);
 
         const durationsResponse = await fetch(durationsUrl.toString(), {
@@ -150,6 +154,7 @@ export async function GET(
           const durationsData = (await durationsResponse.json()) as YouTubeVideoDurationResponse;
           durationsData.items?.forEach((item) => {
             videoDurations[item.id] = item.contentDetails?.duration || "";
+            videoViewCounts[item.id] = item.statistics?.viewCount || "";
           });
         }
       }
@@ -164,6 +169,7 @@ export async function GET(
           channelId: item.snippet.channelId,
           channelTitle: item.snippet.channelTitle,
           publishedAt: item.snippet.publishedAt,
+          viewCount: videoViewCounts[videoId] || undefined,
           duration: videoDurations[videoId] || undefined,
           videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
         };

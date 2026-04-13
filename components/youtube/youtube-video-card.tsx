@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import {
   Play,
@@ -182,7 +182,6 @@ export default function YouTubeVideoCard({
   };
   const publishedTime = formatPublishedDate(video.publishedAt);
   const viewCountLabel = formatViewCount(video.viewCount);
-  const isDev = process.env.NODE_ENV !== "production";
   const shouldShowActions = true;
   const isPlaylistVariant = variant === "playlist";
   const effectiveTitleLines = isPlaylistVariant ? 1 : titleLines;
@@ -211,17 +210,6 @@ export default function YouTubeVideoCard({
       }
     }
   };
-
-  useEffect(() => {
-    if (!isDev) return;
-    console.debug("[YouTubeVideoCard] viewCount debug", {
-      videoId: video.id,
-      title: video.title,
-      publishedAt: video.publishedAt,
-      viewCount: video.viewCount ?? null,
-      formattedViewCount: viewCountLabel,
-    });
-  }, [isDev, video.id, video.title, video.publishedAt, video.viewCount, viewCountLabel]);
 
   const handlePlayClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -568,13 +556,13 @@ export default function YouTubeVideoCard({
         {/* Top Row: Published Time + Add Button */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>{publishedTime}</span>
             {viewCountLabel && (
               <>
-                <span>•</span>
                 <span>{viewCountLabel}</span>
+                <span>•</span>
               </>
             )}
+            <span>{publishedTime}</span>
           </div>
           <Tooltip
             open={playlistTooltipOpen && !isPlaylistDropdownOpen}
@@ -641,11 +629,6 @@ export default function YouTubeVideoCard({
         <p className="text-sm text-muted-foreground line-clamp-1">
           {video.channelTitle}
         </p>
-        {isDev && (
-          <p className="text-[11px] text-amber-600/90 dark:text-amber-400/90 line-clamp-1">
-            debug viewCount: {video.viewCount == null ? "missing" : String(video.viewCount)}
-          </p>
-        )}
       </div>
     </div>
   );
