@@ -340,8 +340,8 @@ export function YouTubeChannelReviews({
   };
 
   return (
-    <section className="pb-12">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
+    <section className="pb-12 pt-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 sm:gap-14 items-start">
         <div className="order-2 lg:order-1 lg:col-span-2 min-w-0">
           <div className="flex items-center justify-between gap-3 mb-6">
             <h2 className="text-[18px] font-bold min-w-0 lg:text-2xl">

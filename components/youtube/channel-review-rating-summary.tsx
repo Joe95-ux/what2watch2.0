@@ -2,6 +2,7 @@
 
 import { Star } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import type { ChannelReviewStats } from "@/hooks/use-youtube-channel-reviews";
 
 export interface ChannelReviewRatingSummaryProps {
@@ -29,32 +30,58 @@ const MUTED_STAR =
 function RatingHistogramRows({
   distribution,
   maxCount,
+  compact,
 }: {
   distribution: ReturnType<typeof buildDistribution>;
   maxCount: number;
+  /** Curator modal mobile: tighter bars, spacing, count column */
+  compact?: boolean;
 }) {
   return (
-    <div className="space-y-2.5 min-w-0 w-full">
+    <div
+      className={cn("min-w-0 w-full", compact ? "space-y-1" : "space-y-2.5")}
+    >
       {distribution.map((row) => {
         const barWidth = maxCount > 0 ? (row.count / maxCount) * 100 : 0;
         return (
-          <div key={row.rating} className="flex items-center gap-2 sm:gap-3">
+          <div
+            key={row.rating}
+            className={cn(
+              "flex items-center",
+              compact ? "gap-1.5" : "gap-2 sm:gap-3"
+            )}
+          >
             <div
-              className="flex items-center justify-end gap-px sm:gap-0.5 shrink-0 w-[5.75rem] sm:w-[6.25rem]"
+              className={cn(
+                "flex items-center justify-end shrink-0 gap-px sm:gap-0.5",
+                compact
+                  ? "w-[4.5rem] gap-px [&_svg]:h-2.5 [&_svg]:w-2.5"
+                  : "w-[5.75rem] sm:w-[6.25rem]"
+              )}
               aria-label={`${row.rating} star${row.rating === 1 ? "" : "s"}`}
             >
               {Array.from({ length: row.rating }, (_, i) => (
                 <Star key={i} className={MUTED_STAR} aria-hidden />
               ))}
             </div>
-            <div className="flex-1 min-w-0 h-2.5 rounded-full bg-muted overflow-hidden">
+            <div
+              className={cn(
+                "flex-1 min-w-0 rounded-full bg-muted overflow-hidden",
+                compact ? "h-1.5" : "h-2.5"
+              )}
+            >
               <div
                 className="h-full rounded-full bg-primary/90 transition-all"
                 style={{ width: `${barWidth}%` }}
                 role="presentation"
               />
             </div>
-            <span className="text-xs text-muted-foreground tabular-nums w-8 text-right shrink-0">
+            <span
+              className={cn(
+                "text-xs text-muted-foreground tabular-nums text-right shrink-0",
+                compact ? "w-6" : "w-8"
+              )}
+            >
               {row.count}
             </span>
           </div>
@@ -122,22 +149,44 @@ export function ChannelReviewRatingSummary({
     );
   }
 
-  // modal: side-by-side large average + histogram
+  // modal: max-sm = flex row (avg + count stacked | compact chart); sm+ = grid
+  const countLabel =
+    totalReviews === 0
+      ? "No ratings yet"
+      : `${totalReviews} rating${totalReviews === 1 ? "" : "s"}`;
+
   return (
     <div className={className}>
-      <div className="grid grid-cols-1 sm:grid-cols-[7.5rem_1fr] gap-6 sm:gap-8 items-start">
-        <div className="flex flex-col items-center sm:items-start justify-center gap-0.5">
+      <div className="flex sm:hidden flex-row items-start gap-2 min-w-0">
+        <div className="flex flex-col items-start gap-0.5 shrink-0 text-left">
           <div className="flex items-baseline gap-0.5">
-            <span className="text-4xl sm:text-5xl font-bold tabular-nums tracking-tight text-foreground">
+            <span className="text-xl font-bold tabular-nums tracking-tight text-foreground">
               {avgDisplay}
             </span>
-            <span className="text-lg text-muted-foreground font-medium">/5</span>
+            <span className="text-xs font-medium text-muted-foreground">/5</span>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {totalReviews === 0
-              ? "No ratings yet"
-              : `${totalReviews} rating${totalReviews === 1 ? "" : "s"}`}
+          <p className="text-[11px] leading-tight text-muted-foreground">
+            {countLabel}
           </p>
+        </div>
+        <RatingHistogramRows
+          distribution={distribution}
+          maxCount={maxCount}
+          compact
+        />
+      </div>
+
+      <div className="hidden sm:grid sm:grid-cols-[7.5rem_1fr] gap-6 sm:gap-8 items-start">
+        <div className="w-full min-w-0 text-left">
+          <div className="flex flex-col items-start justify-center gap-0.5">
+            <div className="flex items-baseline gap-0.5">
+              <span className="text-4xl sm:text-5xl font-bold tabular-nums tracking-tight text-foreground">
+                {avgDisplay}
+              </span>
+              <span className="text-lg text-muted-foreground font-medium">/5</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">{countLabel}</p>
+          </div>
         </div>
         <RatingHistogramRows distribution={distribution} maxCount={maxCount} />
       </div>
