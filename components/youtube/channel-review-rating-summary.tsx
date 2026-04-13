@@ -39,7 +39,7 @@ function RatingHistogramRows({
 }) {
   return (
     <div
-      className={cn("min-w-0 w-full", compact ? "space-y-1" : "space-y-2.5")}
+      className={cn("min-w-0 w-full", compact ? "space-y-0" : "space-y-2.5")}
     >
       {distribution.map((row) => {
         const barWidth = maxCount > 0 ? (row.count / maxCount) * 100 : 0;
@@ -160,12 +160,12 @@ export function ChannelReviewRatingSummary({
       <div className="flex sm:hidden flex-row items-start gap-2 min-w-0">
         <div className="flex flex-col items-start gap-0.5 shrink-0 text-left">
           <div className="flex items-baseline gap-0.5">
-            <span className="text-xl font-bold tabular-nums tracking-tight text-foreground">
+            <span className="text-4xl font-bold tabular-nums tracking-tight text-foreground">
               {avgDisplay}
             </span>
             <span className="text-xs font-medium text-muted-foreground">/5</span>
           </div>
-          <p className="text-[11px] leading-tight text-muted-foreground">
+          <p className="text-[13px] leading-tight text-muted-foreground">
             {countLabel}
           </p>
         </div>
