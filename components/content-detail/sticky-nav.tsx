@@ -31,8 +31,8 @@ export default function StickyNav({ activeTab, onTabChange, isScrolled, type }: 
       className={cn(
         "sticky top-[65px] z-40 transition-all duration-300",
         isScrolled
-          ? "bg-background/95 backdrop-blur-md border-b border-border shadow-sm"
-          : "bg-transparent"
+          ? "bg-black/85 backdrop-blur-md border-b border-white/10 shadow-sm"
+          : "bg-black/70 backdrop-blur-md border-b border-white/10"
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -44,8 +44,8 @@ export default function StickyNav({ activeTab, onTabChange, isScrolled, type }: 
               className={cn(
                 "relative py-4 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer",
                 activeTab === tab.id
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                ? "text-white"
+                : "text-white/70 hover:text-white"
               )}
             >
               {getTabLabel(tab.id)}

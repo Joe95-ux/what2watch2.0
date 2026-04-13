@@ -102,12 +102,13 @@ export default function Navbar() {
     pathname?.startsWith("/editorial/") ||
     pathname?.startsWith("/youtube-channel/lists") ||
     isDiaryFilmDetail;
+  const useDarkNavbar = hasHeroSection || true;
 
   return (
     <nav
       className={cn(
         "sticky top-0 z-50 w-full backdrop-blur-md transition-all duration-300 ease-in-out",
-        hasHeroSection
+        useDarkNavbar
           ? "bg-black/80 border-b border-[rgba(255,255,255,0.1)] shadow-sm"
           : "bg-background/95 dark:bg-background/80 border-b border-border/50 supports-[backdrop-filter]:bg-background/80 dark:supports-[backdrop-filter]:bg-background/80"
       )}
@@ -132,7 +133,7 @@ export default function Navbar() {
                 showMorph={false}
                 className={cn(
                   "h-9 w-9 max-[412px]:h-7 max-[412px]:w-7 transition-colors duration-300 flex-shrink-0",
-                  hasHeroSection && "text-white hover:bg-black/20"
+                    useDarkNavbar && "text-white hover:bg-black/20"
                 )}
               />
             </SheetTrigger>
@@ -156,14 +157,14 @@ export default function Navbar() {
                     href={link.href}
                     className={cn(
                       "relative px-3 py-2 text-sm font-medium transition-colors rounded-md whitespace-nowrap",
-                      hasHeroSection
+                      useDarkNavbar
                         ? "hover:bg-white/10 hover:text-white"
                         : "hover:bg-accent hover:text-accent-foreground",
                       isActive
-                        ? hasHeroSection
+                        ? useDarkNavbar
                           ? "text-white font-semibold"
                           : "text-foreground dark:text-foreground font-semibold"
-                        : hasHeroSection
+                        : useDarkNavbar
                         ? "text-white/90"
                         : "text-foreground/80 dark:text-muted-foreground",
                       isActive &&
@@ -180,13 +181,13 @@ export default function Navbar() {
 
         {/* Center: Search bar (wider, centered). On mobile shown on right via same Search behavior. */}
         <div className="hidden md:flex items-center justify-center min-w-0 px-2">
-          <Search hasHeroSection={hasHeroSection} centered />
+          <Search hasHeroSection={useDarkNavbar} centered />
         </div>
 
         {/* Right: Search on mobile only (icon, aligned right); auth items */}
         <div className="flex items-center gap-0 sm:gap-3 flex-shrink-0 justify-end md:justify-start">
           <div className="md:hidden">
-            <Search hasHeroSection={hasHeroSection} />
+            <Search hasHeroSection={useDarkNavbar} />
           </div>
           {isLoaded && (
             <div className="flex items-center gap-0 sm:gap-2">
@@ -195,7 +196,7 @@ export default function Navbar() {
                   <div
                     className={cn(
                       "hidden md:inline-flex cursor-pointer",
-                      hasHeroSection &&
+                      useDarkNavbar &&
                         "[&_button]:!text-white [&_button]:hover:!bg-black/20 [&_button]:hover:!text-white [&_button_svg]:!text-white [&_button]:hover:[&_svg]:!text-white"
                     )}
                   >
@@ -204,13 +205,13 @@ export default function Navbar() {
                   <div
                     className={cn(
                       "hidden md:inline-flex cursor-pointer",
-                      hasHeroSection &&
+                      useDarkNavbar &&
                         "[&_button]:!text-white [&_button]:hover:!bg-black/20 [&_button]:hover:!text-white [&_button_svg]:!text-white [&_button]:hover:[&_svg]:!text-white"
                     )}
                   >
-                    <FeedbackDropdown hasHeroSection={hasHeroSection} />
+                    <FeedbackDropdown hasHeroSection={useDarkNavbar} />
                   </div>
-                  <UserProfileButton hasHeroSection={hasHeroSection} />
+                  <UserProfileButton hasHeroSection={useDarkNavbar} />
                 </>
               ) : (
                 <SignInButton 

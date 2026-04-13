@@ -84,9 +84,9 @@
   --sidebar-accent-foreground: oklch(0.12 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  --app-yellow-400: oklch(0.7 0.2 84);
-  --app-yellow-500: oklch(0.62 0.21 83);
-  --app-yellow-600: oklch(0.54 0.2 81);
+  --app-yellow-400: #ffd84d;
+  --app-yellow-500: #FFC905;
+  --app-yellow-600: #e2ae00;
   --app-jw-gold: oklch(0.6 0.22 85);
 }
 

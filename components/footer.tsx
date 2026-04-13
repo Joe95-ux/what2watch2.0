@@ -33,11 +33,16 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const normalizedEmail = email.trim().toLowerCase();
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail);
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const normalizedEmail = email.trim().toLowerCase();
-    if (!normalizedEmail) return;
+    if (!normalizedEmail || !isEmailValid) {
+      setStatus("error");
+      toast.error("Please enter a valid email address.");
+      return;
+    }
 
     setStatus("loading");
     try {
@@ -158,7 +163,7 @@ export default function Footer() {
                   type="submit"
                   size="sm"
                   className="w-full h-10 text-base sm:h-9 sm:text-sm cursor-pointer bg-[#006DCA] hover:bg-[#0056A3] text-white"
-                  disabled={status === "loading" || !email.trim()}
+                  disabled={status === "loading" || !normalizedEmail || !isEmailValid}
                 >
                   {status === "loading" ? "Submitting…" : "Submit"}
                 </Button>
