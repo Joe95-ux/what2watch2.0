@@ -32,8 +32,8 @@ export default function YouTubeChannelStickyNav({
       className={cn(
         "sticky top-0 z-40 transition-all duration-300 flex-1",
         isScrolled
-          ? "bg-black/85 backdrop-blur-md border-b border-white/10"
-          : "bg-black/70 backdrop-blur-md border-b border-white/10"
+          ? "bg-background/95 backdrop-blur-md border-b border-border"
+          : "bg-transparent"
       )}
     >
       <div className="flex items-center gap-8 overflow-x-auto scrollbar-hide">
@@ -44,8 +44,8 @@ export default function YouTubeChannelStickyNav({
             className={cn(
               "relative py-4 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer",
               activeTab === tab.id
-                ? "text-white"
-                : "text-white/70 hover:text-white"
+                ? "text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             {tab.label}
@@ -59,7 +59,7 @@ export default function YouTubeChannelStickyNav({
           onClick={onSearchClick}
           className={cn(
             "relative py-4 cursor-pointer transition-colors",
-            isSearchOpen ? "text-white" : "text-white/70 hover:text-white"
+            isSearchOpen ? "text-foreground" : "text-muted-foreground hover:text-foreground"
           )}
           aria-label={isSearchOpen ? "Close search" : "Search videos"}
           aria-pressed={isSearchOpen}
