@@ -77,7 +77,7 @@ export function ChannelCuratorNoteDialog({
           {note}
         </div>
 
-        <div className="border-t border-border bg-muted/30 px-3 py-5 sm:px-6">
+        <div className="border-t border-border bg-background px-3 py-5 sm:px-6">
           <h3 className="text-sm font-semibold text-foreground mb-4">
             Community ratings
           </h3>

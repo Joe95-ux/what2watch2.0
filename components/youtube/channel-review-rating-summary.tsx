@@ -27,15 +27,22 @@ function buildDistribution(reviewStats: ChannelReviewStats | null | undefined) {
 const MUTED_STAR =
   "h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0 fill-muted-foreground/35 text-muted-foreground/45";
 
+/** Curator dialog: bordered track reads clearly on Safari (avoids flat muted-on-muted) */
+const MODAL_HISTOGRAM_TRACK =
+  "box-border border border-border/90 bg-card shadow-[inset_0_1px_2px_rgb(0_0_0/0.06)] dark:shadow-[inset_0_1px_2px_rgb(0_0_0/0.45)]";
+
 function RatingHistogramRows({
   distribution,
   maxCount,
   compact,
+  /** Curator modal: distinct track so bars read on Safari vs section bg */
+  trackClassName,
 }: {
   distribution: ReturnType<typeof buildDistribution>;
   maxCount: number;
   /** Modal mobile & reviews tab (compact column): tighter bars, spacing, count */
   compact?: boolean;
+  trackClassName?: string;
 }) {
   return (
     <div
@@ -66,8 +73,9 @@ function RatingHistogramRows({
             </div>
             <div
               className={cn(
-                "flex-1 min-w-0 rounded-full bg-muted overflow-hidden",
-                compact ? "h-1.5" : "h-2.5"
+                "flex-1 min-w-0 rounded-full overflow-hidden",
+                compact ? "h-1.5" : "h-2.5",
+                trackClassName ?? "bg-muted"
               )}
             >
               <div
@@ -197,6 +205,7 @@ export function ChannelReviewRatingSummary({
           distribution={distribution}
           maxCount={maxCount}
           compact
+          trackClassName={MODAL_HISTOGRAM_TRACK}
         />
       </div>
 
@@ -212,7 +221,11 @@ export function ChannelReviewRatingSummary({
             <p className="text-xs text-muted-foreground mt-1">{countLabel}</p>
           </div>
         </div>
-        <RatingHistogramRows distribution={distribution} maxCount={maxCount} />
+        <RatingHistogramRows
+          distribution={distribution}
+          maxCount={maxCount}
+          trackClassName={MODAL_HISTOGRAM_TRACK}
+        />
       </div>
     </div>
   );
