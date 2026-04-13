@@ -401,7 +401,7 @@ export function YouTubeChannelReviews({
           {renderReviews()}
           {renderPagination()}
         </div>
-        <aside className="order-1 lg:order-2 lg:col-span-1 min-w-0 lg:sticky lg:top-28 space-y-4">
+        <aside className="order-1 lg:order-2 lg:col-span-1 min-w-0 space-y-4 px-3 lg:sticky lg:top-28 lg:px-0">
           <h3 className="text-[18px] font-semibold text-foreground lg:text-sm">
             <span className="lg:hidden">Community ratings &amp; Reviews</span>
             <span className="hidden lg:inline">Community ratings</span>

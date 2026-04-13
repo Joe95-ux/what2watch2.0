@@ -34,7 +34,7 @@ function RatingHistogramRows({
 }: {
   distribution: ReturnType<typeof buildDistribution>;
   maxCount: number;
-  /** Curator modal mobile: tighter bars, spacing, count column */
+  /** Modal mobile & reviews tab (compact column): tighter bars, spacing, count */
   compact?: boolean;
 }) {
   return (
@@ -126,9 +126,37 @@ export function ChannelReviewRatingSummary({
   }
 
   if (variant === "sidebar") {
+    const countLabel =
+      totalReviews === 0
+        ? "No ratings yet"
+        : `${totalReviews} rating${totalReviews === 1 ? "" : "s"}`;
+
     return (
       <div className={className}>
-        <div className="flex flex-col gap-6">
+        {/* max-lg: same flex + compact layout as curator modal (mobile) */}
+        <div className="lg:hidden">
+          <div className="flex flex-row items-start gap-2 min-w-0">
+            <div className="flex flex-col items-start gap-0.5 shrink-0 text-left">
+              <div className="flex items-baseline gap-0.5">
+                <span className="text-4xl font-bold tabular-nums tracking-tight text-foreground">
+                  {avgDisplay}
+                </span>
+                <span className="text-xs font-medium text-muted-foreground">/5</span>
+              </div>
+              <p className="text-[13px] leading-tight text-muted-foreground">
+                {countLabel}
+              </p>
+            </div>
+            <RatingHistogramRows
+              distribution={distribution}
+              maxCount={maxCount}
+              compact
+            />
+          </div>
+        </div>
+
+        {/* lg+: two-column page — stacked summary + full histogram */}
+        <div className="hidden lg:flex flex-col gap-6">
           <div className="text-left">
             <p className="text-3xl sm:text-4xl font-bold tabular-nums tracking-tight text-foreground">
               <span>{avgDisplay}</span>
@@ -137,11 +165,7 @@ export function ChannelReviewRatingSummary({
                 out of 5
               </span>
             </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              {totalReviews === 0
-                ? "No ratings yet"
-                : `${totalReviews} rating${totalReviews === 1 ? "" : "s"}`}
-            </p>
+            <p className="text-xs text-muted-foreground mt-2">{countLabel}</p>
           </div>
           <RatingHistogramRows distribution={distribution} maxCount={maxCount} />
         </div>

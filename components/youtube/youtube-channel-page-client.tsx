@@ -648,6 +648,79 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
     );
   }
 
+  const renderChannelDescriptionAndButtons = () => (
+    <>
+      {channel.description && (
+        <div className="mb-4">
+          <p className="text-sm text-foreground">
+            {isDescriptionExpanded ? channel.description : getTruncatedDescription(channel.description, 4)}
+          </p>
+          {descriptionNeedsTruncation && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+              className="mt-2 h-auto py-1 px-2 text-sm text-primary hover:text-primary/80 cursor-pointer gap-0"
+            >
+              {isDescriptionExpanded ? (
+                <>
+                  Show less
+                  <ChevronUp className="h-4 w-4 mt-[3px] ml-[8px]" />
+                </>
+              ) : (
+                <>
+                  Read more
+                  <ChevronDown className="h-4 w-4 mt-[5px] ml-[8px]" />
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={async () => {
+            await requireAuth(async () => {
+              try {
+                await toggleFavorite.toggle(channelId);
+              } catch (e) {
+                toast.error(
+                  e instanceof Error ? e.message : "Could not update favorite. Try again."
+                );
+              }
+            }, "Sign in to favorite channels.");
+          }}
+          disabled={toggleFavorite.isLoading}
+          className="cursor-pointer bg-transparent border border-border/60"
+        >
+          {toggleFavorite.isLoading ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin text-muted-foreground shrink-0" />
+          ) : (
+            <Heart
+              className={cn(
+                "h-4 w-4 mr-2 shrink-0",
+                toggleFavorite.isFavorited(channelId) && "fill-red-500 text-red-500"
+              )}
+            />
+          )}
+          {toggleFavorite.isLoading ? "Updating..." : "Favorite"}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.open(channel.channelUrl, "_blank", "noopener,noreferrer")}
+          className="cursor-pointer"
+        >
+          <ExternalLink className="h-4 w-4 mr-2" />
+          View on YouTube
+        </Button>
+      </div>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
@@ -684,102 +757,65 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
           ) : (
             <div className="w-full h-32 sm:h-[206px] bg-gradient-to-r from-muted via-muted/80 to-muted rounded-lg" />
           )}
-        </div>
 
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
-            <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden flex-shrink-0 border-4 border-background shadow-lg">
+          {/* Mobile: avatar overlaps banner; name + stats to the right */}
+          <div className="relative z-10 -mt-8 flex gap-3 sm:hidden">
+            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-4 border-background bg-background shadow-md ring-1 ring-border/30">
               {channel.thumbnail ? (
                 <Image
                   src={channel.thumbnail}
                   alt={channel.title}
                   fill
                   className="object-cover"
-                  sizes="160px"
+                  sizes="64px"
                   unoptimized
                 />
               ) : (
                 <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                  <Youtube className="h-16 w-16 text-muted-foreground" />
+                  <Youtube className="h-8 w-8 text-muted-foreground" />
                 </div>
               )}
             </div>
-
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold mb-2">{channel.title}</h1>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-4">
+            <div className="min-w-0 flex-1 pt-1">
+              <h1 className="text-xl font-bold leading-snug text-foreground">{channel.title}</h1>
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                 <span>{formatSubscriberCount(channel.subscriberCount)} subscribers</span>
-                <span>•</span>
+                <span className="text-muted-foreground/70">·</span>
                 <span>{channel.videoCount} videos</span>
               </div>
+            </div>
+          </div>
 
-              {channel.description && (
-                <div className="mb-4">
-                  <p className="text-sm text-foreground">
-                    {isDescriptionExpanded ? channel.description : getTruncatedDescription(channel.description, 4)}
-                  </p>
-                  {descriptionNeedsTruncation && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                      className="mt-2 h-auto py-1 px-2 text-sm text-primary hover:text-primary/80 cursor-pointer gap-0"
-                    >
-                      {isDescriptionExpanded ? (
-                        <>
-                          Show less
-                          <ChevronUp className="h-4 w-4 mt-[3px] ml-[8px]" />
-                        </>
-                      ) : (
-                        <>
-                          Read more
-                          <ChevronDown className="h-4 w-4 mt-[5px] ml-[8px]" />
-                        </>
-                      )}
-                    </Button>
-                  )}
+          <div className="mt-4 space-y-4 sm:hidden">{renderChannelDescriptionAndButtons()}</div>
+
+          {/* sm+: banner + row layout (unchanged) */}
+          <div className="mt-0 hidden sm:block">
+            <div className="flex flex-row gap-6 items-start sm:items-center">
+              <div className="relative h-40 w-40 shrink-0 overflow-hidden rounded-full border-4 border-background shadow-lg">
+                {channel.thumbnail ? (
+                  <Image
+                    src={channel.thumbnail}
+                    alt={channel.title}
+                    fill
+                    className="object-cover"
+                    sizes="160px"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-muted flex items-center justify-center">
+                    <Youtube className="h-16 w-16 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <h1 className="mb-2 text-2xl font-bold sm:text-3xl">{channel.title}</h1>
+                <div className="mb-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                  <span>{formatSubscriberCount(channel.subscriberCount)} subscribers</span>
+                  <span>•</span>
+                  <span>{channel.videoCount} videos</span>
                 </div>
-              )}
-
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={async () => {
-                    await requireAuth(async () => {
-                      try {
-                        await toggleFavorite.toggle(channelId);
-                      } catch (e) {
-                        toast.error(
-                          e instanceof Error ? e.message : "Could not update favorite. Try again."
-                        );
-                      }
-                    }, "Sign in to favorite channels.");
-                  }}
-                  disabled={toggleFavorite.isLoading}
-                  className="cursor-pointer bg-transparent border border-border/60"
-                >
-                  {toggleFavorite.isLoading ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin text-muted-foreground shrink-0" />
-                  ) : (
-                    <Heart
-                      className={cn(
-                        "h-4 w-4 mr-2 shrink-0",
-                        toggleFavorite.isFavorited(channelId) && "fill-red-500 text-red-500"
-                      )}
-                    />
-                  )}
-                  {toggleFavorite.isLoading ? "Updating..." : "Favorite"}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(channel.channelUrl, "_blank", "noopener,noreferrer")}
-                  className="cursor-pointer"
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  View on YouTube
-                </Button>
+                {renderChannelDescriptionAndButtons()}
               </div>
             </div>
           </div>
