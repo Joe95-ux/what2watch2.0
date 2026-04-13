@@ -758,9 +758,9 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
             <div className="w-full h-32 sm:h-[206px] bg-gradient-to-r from-muted via-muted/80 to-muted rounded-lg" />
           )}
 
-          {/* Mobile: avatar overlaps banner; name + stats to the right */}
-          <div className="relative z-10 -mt-8 flex gap-3 sm:hidden">
-            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-4 border-background bg-background shadow-md ring-1 ring-border/30">
+          {/* Mobile: below banner — avatar + name/stats; spaced from banner */}
+          <div className="mt-5 flex gap-3 sm:hidden">
+            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border border-border/60 bg-background shadow-sm">
               {channel.thumbnail ? (
                 <Image
                   src={channel.thumbnail}
@@ -776,7 +776,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
                 </div>
               )}
             </div>
-            <div className="min-w-0 flex-1 pt-1">
+            <div className="min-w-0 flex-1 pt-0.5">
               <h1 className="text-xl font-bold leading-snug text-foreground">{channel.title}</h1>
               <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                 <span>{formatSubscriberCount(channel.subscriberCount)} subscribers</span>
@@ -788,8 +788,8 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
 
           <div className="mt-4 space-y-4 sm:hidden">{renderChannelDescriptionAndButtons()}</div>
 
-          {/* sm+: banner + row layout (unchanged) */}
-          <div className="mt-0 hidden sm:block">
+          {/* sm+: banner + row layout; spaced from banner */}
+          <div className="mt-8 hidden sm:block">
             <div className="flex flex-row gap-6 items-start sm:items-center">
               <div className="relative h-40 w-40 shrink-0 overflow-hidden rounded-full border-4 border-background shadow-lg">
                 {channel.thumbnail ? (
