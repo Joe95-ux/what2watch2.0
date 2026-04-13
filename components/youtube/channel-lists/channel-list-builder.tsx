@@ -602,7 +602,7 @@ export function ChannelListBuilder({
                     type="button"
                     onClick={handleSearchChannels}
                     disabled={isSearchingChannels || !channelSearchInput.trim()}
-                    className="rounded-lg"
+                    className="rounded-lg cursor-pointer"
                   >
                     {isSearchingChannels ? (
                       <Loader2 className="h-4 w-4 animate-spin" />

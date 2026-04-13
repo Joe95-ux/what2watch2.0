@@ -94,6 +94,24 @@ function formatPublishedDate(publishedAt: string): string {
   return `${Math.floor(diffInSeconds / 31536000)}y ago`;
 }
 
+function formatViewCount(viewCount?: string | number): string | null {
+  if (viewCount == null) return null;
+  const raw = typeof viewCount === "string" ? viewCount.replace(/,/g, "") : viewCount;
+  const numeric = typeof raw === "number" ? raw : Number(raw);
+  if (!Number.isFinite(numeric) || numeric < 0) return null;
+
+  const compact = new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  })
+    .format(numeric)
+    .replace("K", "k")
+    .replace("M", "m")
+    .replace("B", "b");
+
+  return `${compact} views`;
+}
+
 export default function YouTubeVideoCard({
   video,
   className,
@@ -163,6 +181,7 @@ export default function YouTubeVideoCard({
     });
   };
   const publishedTime = formatPublishedDate(video.publishedAt);
+  const viewCountLabel = formatViewCount(video.viewCount);
   const shouldShowActions = true;
   const isPlaylistVariant = variant === "playlist";
   const effectiveTitleLines = isPlaylistVariant ? 1 : titleLines;
@@ -538,6 +557,12 @@ export default function YouTubeVideoCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>{publishedTime}</span>
+            {viewCountLabel && (
+              <>
+                <span>•</span>
+                <span>{viewCountLabel}</span>
+              </>
+            )}
           </div>
           <Tooltip
             open={playlistTooltipOpen && !isPlaylistDropdownOpen}
