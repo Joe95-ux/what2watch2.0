@@ -639,60 +639,97 @@ export async function getJustWatchRecommendations(
     const token = getToken();
     if (!token) return [];
 
-    const path = `/recommendations/object_type/${objectType}/id_type/tmdb/locale/${locale}`;
-    const data = await fetchFromJustWatch(path, { id: String(tmdbId) }) as Array<Record<string, unknown>>;
-
-    const list = Array.isArray(data)
-      ? data
-      : Array.isArray((data as any)?.recommendations)
-        ? (data as any).recommendations
-        : Array.isArray((data as any)?.items)
-          ? (data as any).items
-          : [];
-
-    if (!list.length) return [];
-
-    const textFrom = (rec: Record<string, unknown>): string | null => {
-      const candidates = [
-        rec.text,
-        rec.recommendation_text,
-        rec.recommendation,
-        rec.description,
-        rec.quote,
-        rec.editorial_summary,
-      ];
-      for (const c of candidates) {
-        if (typeof c === "string" && c.trim().length > 0) return c;
+    // JustWatch docs route:
+    // GET /whytowatch/recommendations/object_type/{object_type}/id_type/{id_type}/locale/{locale}?id={id}
+    const path = `/whytowatch/recommendations/object_type/${objectType}/id_type/tmdb/locale/${locale}`;
+    let data: Record<string, unknown>;
+    try {
+      data = (await fetchFromJustWatch(path, { id: String(tmdbId) })) as Record<string, unknown>;
+      if (process.env.NODE_ENV === "development") {
+        console.info("[JustWatch] WhyToWatch id format succeeded", {
+          idType: "numeric",
+          idValue: String(tmdbId),
+          type,
+          tmdbId,
+          country,
+        });
       }
-      return null;
-    };
+    } catch (err) {
+      // Some partner configurations require tmdb ids with a "tm" prefix on this route.
+      if (err instanceof Error && err.message.includes("404")) {
+        if (process.env.NODE_ENV === "development") {
+          console.info("[JustWatch] WhyToWatch numeric id returned 404, retrying tm-prefixed id", {
+            idValue: String(tmdbId),
+            type,
+            tmdbId,
+            country,
+          });
+        }
+        data = (await fetchFromJustWatch(path, { id: `tm${tmdbId}` })) as Record<string, unknown>;
+        if (process.env.NODE_ENV === "development") {
+          console.info("[JustWatch] WhyToWatch id format succeeded", {
+            idType: "tm-prefixed",
+            idValue: `tm${tmdbId}`,
+            type,
+            tmdbId,
+            country,
+          });
+        }
+      } else {
+        throw err;
+      }
+    }
 
     const stringFrom = (value: unknown): string | null => {
       if (typeof value === "string" && value.trim().length > 0) return value;
       return null;
     };
 
-    return list
+    const celebrity = Array.isArray((data as any)?.celebrityrecommendations)
+      ? ((data as any).celebrityrecommendations as Array<Record<string, unknown>>)
+      : [];
+    const editorial = Array.isArray((data as any)?.editorrecommendations)
+      ? ((data as any).editorrecommendations as Array<Record<string, unknown>>)
+      : [];
+
+    const merged = [...celebrity, ...editorial];
+    if (!merged.length) return [];
+
+    return merged
       .slice(0, 40)
       .map((rec, idx) => {
-        const text = textFrom(rec);
+        const title = stringFrom(rec.title);
+        const content = stringFrom(rec.content);
+        const text = [title, content].filter(Boolean).join(" — ").trim();
         if (!text) return null;
 
-        const id =
-          stringFrom(rec.id) ||
-          (text ? `${tmdbId}-${text.slice(0, 20)}` : null) ||
-          `${tmdbId}-${idx}`;
+        const firstName = stringFrom(rec.firstName);
+        const lastName = stringFrom(rec.lastName);
+        const author = [firstName, lastName].filter(Boolean).join(" ").trim() || undefined;
+        const authorRole = stringFrom(rec.type) ?? undefined;
 
         return {
-          id,
+          id: `${tmdbId}-whytowatch-${idx}`,
           text,
-          author: stringFrom(rec.author) ?? undefined,
-          authorRole: stringFrom((rec as any).author_role) ?? stringFrom((rec as any).authorRole) ?? undefined,
-          source: stringFrom(rec.source) ?? undefined,
+          author,
+          authorRole,
+          source: "JustWatch Why to Watch",
         } satisfies JustWatchRecommendation;
       })
       .filter((r): r is JustWatchRecommendation => r !== null);
   } catch (error) {
+    // Some locales/titles legitimately have no recommendations endpoint data.
+    // Treat upstream 404 as "no recommendations" instead of a noisy error.
+    if (error instanceof Error && error.message.includes("404")) {
+      if (process.env.NODE_ENV === "development") {
+        console.info("[JustWatch] Recommendations unavailable (404). Returning empty list.", {
+          type,
+          tmdbId,
+          country,
+        });
+      }
+      return [];
+    }
     console.error("[JustWatch] Failed to load recommendations", error);
     return [];
   }

@@ -70,6 +70,8 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
   const youtubeUnreadCount = youtubeData?.unreadCount || 0;
   const generalUnreadCount = generalData?.unreadCount || 0;
   const totalUnreadCount = forumUnreadCount + youtubeUnreadCount + generalUnreadCount;
+  const formattedTotalUnreadCount = formatNotificationBadgeCount(totalUnreadCount);
+  const isSingleDigitUnreadBadge = totalUnreadCount < 10;
 
   const handleSignOut = async () => {
     await signOut();
@@ -171,9 +173,12 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                           {totalUnreadCount > 0 && (
                             <Badge
                               variant="destructive"
-                              className="absolute -top-1 -right-1 flex h-5 min-h-5 min-w-5 items-center justify-center rounded-[20px] px-1.5 py-0 text-[10px] font-semibold leading-none tabular-nums shadow-sm"
+                              className={cn(
+                                "absolute -top-1 -right-3 flex h-5 min-h-5 min-w-5 items-center justify-center px-1.5 py-0 text-[10px] font-semibold leading-none tabular-nums shadow-sm",
+                                isSingleDigitUnreadBadge ? "rounded-full" : "rounded-[20px]"
+                              )}
                             >
-                              {formatNotificationBadgeCount(totalUnreadCount)}
+                              {formattedTotalUnreadCount}
                             </Badge>
                           )}
                         </div>
@@ -204,12 +209,12 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                       <div className="space-y-2">
                         <Label>Reason</Label>
                         <Select value={feedbackReason} onValueChange={setFeedbackReason}>
-                          <SelectTrigger>
+                          <SelectTrigger className="cursor-pointer">
                             <SelectValue placeholder="Select reason" />
                           </SelectTrigger>
                           <SelectContent>
                             {["Bug Report", "Feature Request", "UI/UX Issue", "Performance Issue", "Content Issue", "Account Issue", "Other"].map((r) => (
-                              <SelectItem key={r} value={r}>{r}</SelectItem>
+                              <SelectItem key={r} value={r} className="cursor-pointer">{r}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -217,12 +222,12 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                       <div className="space-y-2">
                         <Label>Priority</Label>
                         <Select value={feedbackPriority} onValueChange={setFeedbackPriority}>
-                          <SelectTrigger>
+                          <SelectTrigger className="cursor-pointer">
                             <SelectValue placeholder="Select priority" />
                           </SelectTrigger>
                           <SelectContent>
                             {["Low", "Medium", "High", "Urgent"].map((p) => (
-                              <SelectItem key={p} value={p}>{p}</SelectItem>
+                              <SelectItem key={p} value={p} className="cursor-pointer">{p}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
