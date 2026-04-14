@@ -232,8 +232,14 @@ async function fetchFromJustWatch(path: string, searchParams?: Record<string, st
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => response.statusText);
-    console.error(`[JustWatch] Request failed: ${response.status} ${response.statusText}`, errorText);
-    throw new Error(`JustWatch request failed: ${response.status} ${response.statusText}`);
+    const normalizedErrorText = errorText?.trim?.() ? errorText.trim() : response.statusText;
+    const message = `JustWatch request failed: ${response.status} ${response.statusText}${normalizedErrorText ? ` - ${normalizedErrorText}` : ""}`;
+    if (response.status === 403 && normalizedErrorText.toLowerCase().includes("endpoint permission not granted")) {
+      console.info(`[JustWatch] Request failed: ${response.status} ${response.statusText}`, normalizedErrorText);
+    } else {
+      console.error(`[JustWatch] Request failed: ${response.status} ${response.statusText}`, normalizedErrorText);
+    }
+    throw new Error(message);
   }
 
   return response.json();
@@ -631,7 +637,8 @@ export async function getJustWatchSeasonAvailability(
 export async function getJustWatchRecommendations(
   type: "movie" | "tv",
   tmdbId: number,
-  country: string = "US"
+  country: string = "US",
+  seasonNumber?: number | null
 ): Promise<JustWatchRecommendation[]> {
   try {
     const locale = countryToLocale(country);
@@ -639,45 +646,73 @@ export async function getJustWatchRecommendations(
     const token = getToken();
     if (!token) return [];
 
-    // JustWatch docs route:
+    const hasSeasonNumber = type === "tv" && Number.isInteger(seasonNumber) && Number(seasonNumber) > 0;
+    // TV recommendations route (season-specific per docs):
+    // GET /whytowatch/recommendations/object_type/show/id_type/{id_type}/season_number/{season_number}/locale/{locale}?id={id}
+    const seasonPath = hasSeasonNumber
+      ? `/whytowatch/recommendations/object_type/show/id_type/tmdb/season_number/${seasonNumber}/locale/${locale}`
+      : null;
+    // Movie route (and TV fallback when season endpoint unavailable):
     // GET /whytowatch/recommendations/object_type/{object_type}/id_type/{id_type}/locale/{locale}?id={id}
-    const path = `/whytowatch/recommendations/object_type/${objectType}/id_type/tmdb/locale/${locale}`;
-    let data: Record<string, unknown>;
-    try {
-      data = (await fetchFromJustWatch(path, { id: String(tmdbId) })) as Record<string, unknown>;
-      if (process.env.NODE_ENV === "development") {
-        console.info("[JustWatch] WhyToWatch id format succeeded", {
-          idType: "numeric",
-          idValue: String(tmdbId),
-          type,
-          tmdbId,
-          country,
-        });
-      }
-    } catch (err) {
-      // Some partner configurations require tmdb ids with a "tm" prefix on this route.
-      if (err instanceof Error && err.message.includes("404")) {
-        if (process.env.NODE_ENV === "development") {
-          console.info("[JustWatch] WhyToWatch numeric id returned 404, retrying tm-prefixed id", {
-            idValue: String(tmdbId),
-            type,
-            tmdbId,
-            country,
-          });
-        }
-        data = (await fetchFromJustWatch(path, { id: `tm${tmdbId}` })) as Record<string, unknown>;
+    const titlePath = `/whytowatch/recommendations/object_type/${objectType}/id_type/tmdb/locale/${locale}`;
+    const pathsToTry = seasonPath ? [seasonPath, titlePath] : [titlePath];
+
+    let data: Record<string, unknown> | null = null;
+    let lastError: Error | null = null;
+
+    for (const path of pathsToTry) {
+      try {
+        data = (await fetchFromJustWatch(path, { id: String(tmdbId) })) as Record<string, unknown>;
         if (process.env.NODE_ENV === "development") {
           console.info("[JustWatch] WhyToWatch id format succeeded", {
-            idType: "tm-prefixed",
-            idValue: `tm${tmdbId}`,
+            idType: "numeric",
+            idValue: String(tmdbId),
+            path,
             type,
             tmdbId,
+            seasonNumber,
             country,
           });
         }
-      } else {
-        throw err;
+        break;
+      } catch (err) {
+        if (err instanceof Error && err.message.includes("404")) {
+          if (process.env.NODE_ENV === "development") {
+            console.info("[JustWatch] WhyToWatch numeric id returned 404, retrying tm-prefixed id", {
+              idValue: String(tmdbId),
+              path,
+              type,
+              tmdbId,
+              seasonNumber,
+              country,
+            });
+          }
+          try {
+            data = (await fetchFromJustWatch(path, { id: `tm${tmdbId}` })) as Record<string, unknown>;
+            if (process.env.NODE_ENV === "development") {
+              console.info("[JustWatch] WhyToWatch id format succeeded", {
+                idType: "tm-prefixed",
+                idValue: `tm${tmdbId}`,
+                path,
+                type,
+                tmdbId,
+                seasonNumber,
+                country,
+              });
+            }
+            break;
+          } catch (prefixedError) {
+            lastError = prefixedError instanceof Error ? prefixedError : new Error(String(prefixedError));
+            continue;
+          }
+        }
+        lastError = err instanceof Error ? err : new Error(String(err));
       }
+    }
+
+    if (!data) {
+      if (lastError) throw lastError;
+      return [];
     }
 
     const stringFrom = (value: unknown): string | null => {
@@ -697,7 +732,7 @@ export async function getJustWatchRecommendations(
 
     return merged
       .slice(0, 40)
-      .map((rec, idx) => {
+      .map((rec, idx): JustWatchRecommendation | null => {
         const title = stringFrom(rec.title);
         const content = stringFrom(rec.content);
         const text = [title, content].filter(Boolean).join(" — ").trim();
@@ -708,23 +743,25 @@ export async function getJustWatchRecommendations(
         const author = [firstName, lastName].filter(Boolean).join(" ").trim() || undefined;
         const authorRole = stringFrom(rec.type) ?? undefined;
 
-        return {
+        const recommendation: JustWatchRecommendation = {
           id: `${tmdbId}-whytowatch-${idx}`,
           text,
-          author,
-          authorRole,
           source: "JustWatch Why to Watch",
-        } satisfies JustWatchRecommendation;
+        };
+        if (author) recommendation.author = author;
+        if (authorRole) recommendation.authorRole = authorRole;
+        return recommendation;
       })
       .filter((r): r is JustWatchRecommendation => r !== null);
   } catch (error) {
     // Some locales/titles legitimately have no recommendations endpoint data.
     // Treat upstream 404 as "no recommendations" instead of a noisy error.
-    if (error instanceof Error && error.message.includes("404")) {
+    if (error instanceof Error && (error.message.includes("404") || error.message.includes("403 Forbidden"))) {
       if (process.env.NODE_ENV === "development") {
-        console.info("[JustWatch] Recommendations unavailable (404). Returning empty list.", {
+        console.info("[JustWatch] Recommendations unavailable (404/403). Returning empty list.", {
           type,
           tmdbId,
+          seasonNumber,
           country,
         });
       }

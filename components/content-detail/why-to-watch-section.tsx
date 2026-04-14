@@ -23,10 +23,20 @@ interface WhyToWatchSectionProps {
   type: "movie" | "tv";
   tmdbId: number;
   country?: string;
+  seasonNumber?: number | null;
 }
 
-async function fetchRecommendations(type: "movie" | "tv", tmdbId: number, country: string) {
-  const response = await fetch(`/api/justwatch/recommendations/${type}/${tmdbId}?country=${country}`);
+async function fetchRecommendations(
+  type: "movie" | "tv",
+  tmdbId: number,
+  country: string,
+  seasonNumber?: number | null
+) {
+  const params = new URLSearchParams({ country });
+  if (type === "tv" && seasonNumber != null && Number.isInteger(seasonNumber) && seasonNumber > 0) {
+    params.set("seasonNumber", String(seasonNumber));
+  }
+  const response = await fetch(`/api/justwatch/recommendations/${type}/${tmdbId}?${params.toString()}`);
   if (!response.ok) return [];
   return (await response.json()) as JustWatchRecommendation[];
 }
@@ -59,10 +69,15 @@ function RecommendationCard({ recommendation }: { recommendation: JustWatchRecom
   );
 }
 
-export default function WhyToWatchSection({ type, tmdbId, country = "US" }: WhyToWatchSectionProps) {
+export default function WhyToWatchSection({
+  type,
+  tmdbId,
+  country = "US",
+  seasonNumber,
+}: WhyToWatchSectionProps) {
   const { data: recommendations = [], isLoading, error } = useQuery({
-    queryKey: ["justwatch-recommendations", type, tmdbId, country],
-    queryFn: () => fetchRecommendations(type, tmdbId, country),
+    queryKey: ["justwatch-recommendations", type, tmdbId, country, seasonNumber ?? null],
+    queryFn: () => fetchRecommendations(type, tmdbId, country, seasonNumber),
     enabled: !!tmdbId,
     staleTime: 60 * 60 * 1000, // 1 hour
     gcTime: 2 * 60 * 60 * 1000, // 2 hours

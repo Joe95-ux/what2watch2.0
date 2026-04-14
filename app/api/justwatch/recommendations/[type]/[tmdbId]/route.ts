@@ -17,6 +17,7 @@ export async function GET(
     
     const validType = type as "movie" | "tv";
     let country = request.nextUrl.searchParams.get("country") ?? "US";
+    const seasonNumberParam = request.nextUrl.searchParams.get("seasonNumber");
     
     if (country.length < 2) {
       country = "US";
@@ -29,7 +30,21 @@ export async function GET(
       return NextResponse.json({ error: "Invalid TMDB id" }, { status: 400 });
     }
 
-    const recommendations = await getJustWatchRecommendations(validType, tmdbId, country);
+    const seasonNumber =
+      seasonNumberParam != null && seasonNumberParam.trim().length > 0
+        ? Number(seasonNumberParam)
+        : null;
+    const normalizedSeasonNumber =
+      seasonNumber != null && Number.isInteger(seasonNumber) && seasonNumber > 0
+        ? seasonNumber
+        : null;
+
+    const recommendations = await getJustWatchRecommendations(
+      validType,
+      tmdbId,
+      country,
+      normalizedSeasonNumber
+    );
 
     return NextResponse.json(recommendations, {
       headers: {

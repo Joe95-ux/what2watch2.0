@@ -419,7 +419,12 @@ export default function OverviewSection({
           )}
 
           {/* Why to Watch Section */}
-          <WhyToWatchSection type={type} tmdbId={item.id} country={watchAvailability?.country} />
+          <WhyToWatchSection
+            type={type}
+            tmdbId={item.id}
+            country={watchAvailability?.country}
+            seasonNumber={type === "tv" ? selectedSeason : null}
+          />
 
           {/* TV Seasons & Episodes - Inside left column */}
           {type === "tv" && seasons && (

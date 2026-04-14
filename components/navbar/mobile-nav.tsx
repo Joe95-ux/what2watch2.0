@@ -72,6 +72,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
   const totalUnreadCount = forumUnreadCount + youtubeUnreadCount + generalUnreadCount;
   const formattedTotalUnreadCount = formatNotificationBadgeCount(totalUnreadCount);
   const isSingleDigitUnreadBadge = totalUnreadCount < 10;
+  const isOverflowUnreadBadge = formattedTotalUnreadCount.includes("+");
 
   const handleSignOut = async () => {
     await signOut();
@@ -174,7 +175,8 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                             <Badge
                               variant="destructive"
                               className={cn(
-                                "absolute -top-1 -right-3 flex h-5 min-h-5 min-w-5 items-center justify-center px-1.5 py-0 text-[10px] font-semibold leading-none tabular-nums shadow-sm",
+                                "absolute -top-1 flex h-5 min-h-5 min-w-5 items-center justify-center px-1.5 py-0 text-[10px] font-semibold leading-none tabular-nums shadow-sm",
+                                isOverflowUnreadBadge ? "-right-3" : "-right-1",
                                 isSingleDigitUnreadBadge ? "rounded-full" : "rounded-[20px]"
                               )}
                             >
