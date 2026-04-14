@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { SocialIcon } from "react-social-icons";
+import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -210,6 +211,21 @@ export default function Footer() {
               </a>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-4 border-t">
+        <div className="max-w-7xl mx-auto flex items-center justify-end">
+          <Link
+            href="https://www.boldwebstudio.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-4 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <span>Built with</span>
+            <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500" aria-hidden />
+            <span>by Bold Web Studio</span>
+          </Link>
         </div>
       </div>
 
