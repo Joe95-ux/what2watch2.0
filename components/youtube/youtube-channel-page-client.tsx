@@ -694,7 +694,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
             }, "Sign in to favorite channels.");
           }}
           disabled={toggleFavorite.isLoading}
-          className="cursor-pointer bg-transparent border border-border/60"
+          className="cursor-pointer bg-transparent border border-border/60 h-9 rounded-[20px]"
         >
           {toggleFavorite.isLoading ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin text-muted-foreground shrink-0" />
@@ -712,7 +712,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
           variant="outline"
           size="sm"
           onClick={() => window.open(channel.channelUrl, "_blank", "noopener,noreferrer")}
-          className="cursor-pointer"
+          className="cursor-pointer h-9 rounded-[20px]"
         >
           <ExternalLink className="h-4 w-4 mr-2" />
           View on YouTube
