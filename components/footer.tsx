@@ -214,13 +214,13 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-4 border-t">
-        <div className="max-w-7xl mx-auto flex items-center justify-end">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto flex items-center justify-center">
           <Link
             href="https://www.boldwebstudio.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-4 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="inline-flex items-center gap-1.5 border border-border rounded-t-[8px] rounded-b-none bg-muted/60 px-4 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <span>Built with</span>
             <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500" aria-hidden />
