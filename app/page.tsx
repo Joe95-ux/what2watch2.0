@@ -501,19 +501,19 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Public Playlists Section */}
+      {/* Public Lists Section */}
       <section className="border-t py-20 sm:py-24 overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 overflow-hidden">
           <div className="mb-8 flex items-center justify-between">
             <div>
               <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                Explore User Playlists
+                Explore User Lists
               </h2>
               <p className="mt-2 text-lg text-muted-foreground">
                 Discover curated collections from our community
               </p>
             </div>
-            <Link href="/dashboard/playlists" className="hidden text-sm text-muted-foreground hover:text-foreground sm:block">
+            <Link href="/lists" className="hidden text-sm text-muted-foreground hover:text-foreground sm:block">
               View all →
             </Link>
           </div>

@@ -51,6 +51,9 @@ const listInclude = {
   },
 };
 
+const LISTS_PUBLIC_CACHE = { ttl: 60, swr: 300, tags: ["lists-public"] } as const;
+const LISTS_RELATED_CACHE = { ttl: 30, swr: 180, tags: ["lists-related"] } as const;
+
 // GET - Fetch public lists (no authentication required)
 export async function GET(
   request: NextRequest,
@@ -145,6 +148,7 @@ export async function GET(
         include: listInclude,
         orderBy: { updatedAt: "desc" },
         take: Math.max(limitNum * 2, 20),
+        cacheStrategy: LISTS_RELATED_CACHE,
       });
 
       if (lists.length === 0) {
@@ -159,6 +163,7 @@ export async function GET(
           include: listInclude,
           orderBy: { updatedAt: "desc" },
           take: limitNum,
+          cacheStrategy: LISTS_RELATED_CACHE,
         });
       }
 
@@ -194,7 +199,7 @@ export async function GET(
 
     const whereCatalog = { AND: whereAnd };
 
-    const total = await db.list.count({ where: whereCatalog });
+    const total = await db.list.count({ where: whereCatalog, cacheStrategy: LISTS_PUBLIC_CACHE });
 
     const orderBy =
       sortBy === "name"
@@ -209,6 +214,7 @@ export async function GET(
       orderBy,
       skip,
       take: limitNum,
+      cacheStrategy: LISTS_PUBLIC_CACHE,
     });
 
     const mappedLists = lists.map(mapListForClient);
