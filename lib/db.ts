@@ -1,15 +1,17 @@
 import { PrismaClient } from "@prisma/client";
+import { withAccelerate } from "@prisma/extension-accelerate";
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
+  prisma: ReturnType<PrismaClient["$extends"]> | undefined;
 };
 
 export const db =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["error"] : ["error"], // Reduced logging for WSL2
-  });
+    log: ["error"],
+  }).$extends(withAccelerate());
 
+// Only cache in development (prevents hot-reload connection spam)
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = db;
 }

@@ -149,12 +149,12 @@ export function FeedbackDropdown({ hasHeroSection }: { hasHeroSection?: boolean 
               <div className="space-y-2">
                 <Label htmlFor="reason" className="text-xs">Reason</Label>
                 <Select value={reason} onValueChange={setReason}>
-                  <SelectTrigger id="reason" className="h-9 w-full">
+                  <SelectTrigger id="reason" className="h-9 w-full cursor-pointer">
                     <SelectValue placeholder="Select reason" />
                   </SelectTrigger>
                   <SelectContent>
                     {FEEDBACK_REASONS.map((r) => (
-                      <SelectItem key={r} value={r}>
+                      <SelectItem key={r} value={r} className="cursor-pointer">
                         {r}
                       </SelectItem>
                     ))}
@@ -164,12 +164,12 @@ export function FeedbackDropdown({ hasHeroSection }: { hasHeroSection?: boolean 
               <div className="space-y-2">
                 <Label htmlFor="priority" className="text-xs">Priority</Label>
                 <Select value={priority} onValueChange={setPriority}>
-                  <SelectTrigger id="priority" className="h-9 w-full">
+                  <SelectTrigger id="priority" className="h-9 w-full cursor-pointer">
                     <SelectValue placeholder="Select priority" />
                   </SelectTrigger>
                   <SelectContent>
                     {FEEDBACK_PRIORITIES.map((p) => (
-                      <SelectItem key={p} value={p}>
+                      <SelectItem key={p} value={p} className="cursor-pointer">
                         {p}
                       </SelectItem>
                     ))}
