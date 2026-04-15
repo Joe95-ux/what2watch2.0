@@ -10,7 +10,18 @@ import { PageViewTracker } from "@/components/analytics/page-view-tracker";
 import { PrimaryColorProvider } from "@/components/providers/primary-color-provider";
 
 function RootProviders({ children }: { children: ReactNode }) {
-  const [queryClient] = React.useState(() => new QueryClient({}));
+  const [queryClient] = React.useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            // Avoid automatic network churn when switching tabs or reconnecting.
+            refetchOnWindowFocus: false,
+            refetchOnReconnect: false,
+          },
+        },
+      })
+  );
   return (
     <QueryClientProvider client={queryClient}>
       <AvatarProvider>

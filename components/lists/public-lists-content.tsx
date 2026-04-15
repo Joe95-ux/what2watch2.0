@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import ListCard from "@/components/browse/list-card";
@@ -35,24 +35,19 @@ export function usePublicLists(limit?: number) {
   return useQuery<List[]>({
     queryKey: ["public-lists", limit],
     queryFn: () => fetchPublicLists(limit),
-    staleTime: 0, // Always refetch when invalidated
+    staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 5, // Keep in cache for 5 minutes
-    refetchOnMount: true, // Always refetch on mount
-    refetchOnWindowFocus: true, // Refetch when window regains focus
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 }
 
 export default function PublicListsContent() {
-  const { data: lists = [], isLoading, refetch } = usePublicLists(50);
+  const { data: lists = [], isLoading } = usePublicLists(50);
   const { isSignedIn } = useUser();
   const router = useRouter();
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
-  // Refetch when component mounts to ensure fresh data
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
 
   return (
     <div className="container max-w-[1400px] mx-auto px-4 py-8">

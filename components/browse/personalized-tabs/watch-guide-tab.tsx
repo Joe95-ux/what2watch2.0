@@ -21,11 +21,21 @@ import { Playlist } from "@/hooks/use-playlists";
 const ITEMS_PER_PAGE = 12; // 3 per row × 4 rows
 
 type SortOption = "popularity" | "newest" | "oldest" | "name";
+type FilterType = "all" | "editorial" | "lists" | "playlists";
+
+function buildVisiblePageNumbers(currentPage: number, totalPages: number): number[] {
+  if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+  if (currentPage <= 4) return [1, 2, 3, 4, 5, totalPages - 1, totalPages];
+  if (currentPage >= totalPages - 3) {
+    return [1, 2, totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+  }
+  return [1, currentPage - 1, currentPage, currentPage + 1, totalPages];
+}
 
 export function WatchGuideTab() {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<SortOption>("popularity");
-  const [filterType, setFilterType] = useState<"all" | "lists" | "playlists">("all");
+  const [filterType, setFilterType] = useState<FilterType>("all");
 
   // Fetch all public lists and playlists
   const { data: publicLists = [], isLoading: isLoadingLists } = usePublicLists(100);
@@ -36,9 +46,17 @@ export function WatchGuideTab() {
   // Combine and filter items
   const allItems = useMemo(() => {
     const items: Array<{ type: "list" | "playlist"; data: List | Playlist }> = [];
+    const editorialLists = publicLists.filter((list) => list.isEditorial);
+    const nonEditorialLists = publicLists.filter((list) => !list.isEditorial);
+
+    if (filterType === "all" || filterType === "editorial") {
+      editorialLists.forEach((list) => {
+        items.push({ type: "list", data: list });
+      });
+    }
 
     if (filterType === "all" || filterType === "lists") {
-      publicLists.forEach((list) => {
+      nonEditorialLists.forEach((list) => {
         items.push({ type: "list", data: list });
       });
     }
@@ -49,8 +67,13 @@ export function WatchGuideTab() {
       });
     }
 
-    // Sort items
+    // Sort items (editorial lists stay prioritized in "all")
     items.sort((a, b) => {
+      if (filterType === "all") {
+        const aIsEditorialList = a.type === "list" && Boolean((a.data as List).isEditorial);
+        const bIsEditorialList = b.type === "list" && Boolean((b.data as List).isEditorial);
+        if (aIsEditorialList !== bIsEditorialList) return aIsEditorialList ? -1 : 1;
+      }
       switch (sortBy) {
         case "popularity":
           // Sort by likes/follows count (if available)
@@ -92,7 +115,7 @@ export function WatchGuideTab() {
     setCurrentPage(1);
   };
 
-  const handleFilterChange = (value: "all" | "lists" | "playlists") => {
+  const handleFilterChange = (value: FilterType) => {
     setFilterType(value);
     setCurrentPage(1);
   };
@@ -134,9 +157,10 @@ export function WatchGuideTab() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="lists">Lists</SelectItem>
-            <SelectItem value="playlists">Playlists</SelectItem>
+            <SelectItem className="cursor-pointer" value="all">All</SelectItem>
+            <SelectItem className="cursor-pointer" value="editorial">Editorial Lists</SelectItem>
+            <SelectItem className="cursor-pointer" value="lists">Lists</SelectItem>
+            <SelectItem className="cursor-pointer" value="playlists">Playlists</SelectItem>
           </SelectContent>
         </Select>
 
@@ -145,10 +169,10 @@ export function WatchGuideTab() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="popularity">Popularity</SelectItem>
-            <SelectItem value="newest">Newest</SelectItem>
-            <SelectItem value="oldest">Oldest</SelectItem>
-            <SelectItem value="name">Name</SelectItem>
+            <SelectItem className="cursor-pointer" value="popularity">Popularity</SelectItem>
+            <SelectItem className="cursor-pointer" value="newest">Newest</SelectItem>
+            <SelectItem className="cursor-pointer" value="oldest">Oldest</SelectItem>
+            <SelectItem className="cursor-pointer" value="name">Name</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -166,29 +190,37 @@ export function WatchGuideTab() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4 mt-8">
+        <div className="flex items-center justify-center gap-2 mt-8 flex-wrap">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
             disabled={currentPage === 1}
             className="cursor-pointer"
+            aria-label="Previous page"
           >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Previous
+            <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-sm text-muted-foreground">
-            Page {currentPage} of {totalPages}
-          </span>
+          {buildVisiblePageNumbers(currentPage, totalPages).map((page) => (
+            <Button
+              key={page}
+              variant={page === currentPage ? "default" : "outline"}
+              size="sm"
+              onClick={() => setCurrentPage(page)}
+              className="cursor-pointer min-w-9"
+            >
+              {page}
+            </Button>
+          ))}
           <Button
             variant="outline"
             size="sm"
             onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
             disabled={currentPage === totalPages}
             className="cursor-pointer"
+            aria-label="Next page"
           >
-            Next
-            <ChevronRight className="h-4 w-4 ml-1" />
+            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       )}

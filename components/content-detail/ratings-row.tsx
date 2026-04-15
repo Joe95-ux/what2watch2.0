@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp, ChevronDown, Star } from "lucide-react";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -39,7 +39,8 @@ export function RatingsRow({
   year,
 }: RatingsRowProps) {
   const [rankWindow, setRankWindow] = useState<"1d" | "7d" | "30d">("7d");
-  const displayRating = imdbRating || tmdbRating;
+  const ratingSource = imdbRating ? "imdb" : tmdbRating ? "tmdb" : null;
+  const displayRating = ratingSource === "imdb" ? imdbRating : tmdbRating;
 
   const formatVotes = (votes: number | null) => {
     if (!votes) return null;
@@ -143,10 +144,14 @@ export function RatingsRow({
       {/* IMDb Rating */}
       {displayRating && (
         <div className="flex items-center gap-1.5">
-          <IMDBBadge size={24} />
+          {ratingSource === "imdb" ? (
+            <IMDBBadge size={24} />
+          ) : (
+            <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+          )}
           <span className="font-medium text-sm">
             {displayRating.toFixed(1)}
-            {imdbVotes && (
+            {ratingSource === "imdb" && imdbVotes && (
               <span className="text-muted-foreground ml-1">
                 ({formatVotes(imdbVotes)})
               </span>

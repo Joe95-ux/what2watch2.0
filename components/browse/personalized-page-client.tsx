@@ -28,6 +28,7 @@ function getStoredTab(): string {
 
 export function PersonalizedPageClient() {
   const [activeTab, setActiveTab] = useState("top-picks");
+  const [loadedTabs, setLoadedTabs] = useState<Set<string>>(() => new Set(["top-picks"]));
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   // Restore tab from localStorage on mount
@@ -37,6 +38,12 @@ export function PersonalizedPageClient() {
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
+    setLoadedTabs((prev) => {
+      if (prev.has(tabId)) return prev;
+      const next = new Set(prev);
+      next.add(tabId);
+      return next;
+    });
     if (typeof window !== "undefined") {
       window.localStorage.setItem(TAB_STORAGE_KEY, tabId);
     }
@@ -82,19 +89,19 @@ export function PersonalizedPageClient() {
       <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsContent value="top-picks" className="mt-0">
-            <TopPicksTab />
+            {loadedTabs.has("top-picks") ? <TopPicksTab /> : null}
           </TabsContent>
           <TabsContent value="watch-guide" className="mt-0">
-            <WatchGuideTab />
+            {loadedTabs.has("watch-guide") ? <WatchGuideTab /> : null}
           </TabsContent>
           <TabsContent value="from-watchlist" className="mt-0">
-            <FromYourWatchlistTab />
+            {loadedTabs.has("from-watchlist") ? <FromYourWatchlistTab /> : null}
           </TabsContent>
           <TabsContent value="rank-charts" className="mt-0">
-            <RankChartsTab />
+            {loadedTabs.has("rank-charts") ? <RankChartsTab /> : null}
           </TabsContent>
           <TabsContent value="most-popular" className="mt-0">
-            <MostPopularTab />
+            {loadedTabs.has("most-popular") ? <MostPopularTab /> : null}
           </TabsContent>
         </Tabs>
       </div>
