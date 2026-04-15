@@ -51,8 +51,8 @@ const listInclude = {
   },
 };
 
-const LISTS_PUBLIC_CACHE = { ttl: 60, swr: 300, tags: ["lists-public"] } as const;
-const LISTS_RELATED_CACHE = { ttl: 30, swr: 180, tags: ["lists-related"] } as const;
+const LISTS_PUBLIC_CACHE = { ttl: 60, swr: 300, tags: ["lists_public"] } as const;
+const LISTS_RELATED_CACHE = { ttl: 30, swr: 180, tags: ["lists_related"] } as const;
 
 // GET - Fetch public lists (no authentication required)
 export async function GET(

@@ -18,8 +18,8 @@ const publicPlaylistBase: Prisma.PlaylistWhereInput = {
   },
 };
 
-const PLAYLISTS_PUBLIC_CACHE = { ttl: 60, swr: 300, tags: ["playlists-public"] } as const;
-const PLAYLISTS_RELATED_CACHE = { ttl: 30, swr: 180, tags: ["playlists-related"] } as const;
+const PLAYLISTS_PUBLIC_CACHE = { ttl: 60, swr: 300, tags: ["playlists_public"] } as const;
+const PLAYLISTS_RELATED_CACHE = { ttl: 30, swr: 180, tags: ["playlists_related"] } as const;
 
 // GET - Fetch public playlists (no authentication required)
 export async function GET(

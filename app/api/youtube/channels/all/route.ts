@@ -26,7 +26,7 @@ interface ChannelRatingAggregate {
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
-const CHANNEL_POOL_CACHE = { ttl: 120, swr: 600, tags: ["youtube-channel-pool"] } as const;
+const CHANNEL_POOL_CACHE = { ttl: 120, swr: 600, tags: ["youtube_channel_pool"] } as const;
 
 export async function GET(request: NextRequest) {
   try {
