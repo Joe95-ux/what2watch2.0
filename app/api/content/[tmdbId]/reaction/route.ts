@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { triggerContentReactionsUpdated } from "@/lib/pusher/server";
 
 interface RouteParams {
   params: Promise<{ tmdbId: string }>;
@@ -72,6 +73,7 @@ export async function POST(
             id: existingReaction.id,
           },
         });
+        await triggerContentReactionsUpdated(mediaType, tmdbIdNum);
         return NextResponse.json({
           success: true,
           reaction: null,
@@ -87,6 +89,7 @@ export async function POST(
             reactionType,
           },
         });
+        await triggerContentReactionsUpdated(mediaType, tmdbIdNum);
         return NextResponse.json({
           success: true,
           reaction: updated,
@@ -103,6 +106,7 @@ export async function POST(
           reactionType,
         },
       });
+      await triggerContentReactionsUpdated(mediaType, tmdbIdNum);
       return NextResponse.json({
         success: true,
         reaction,

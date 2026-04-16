@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { moderateContent } from "@/lib/moderation";
+import { triggerViewingLogCommentsUpdated } from "@/lib/pusher/server";
 
 // PATCH - Update a comment
 export async function PATCH(
@@ -74,6 +75,11 @@ export async function PATCH(
       },
     });
 
+    await triggerViewingLogCommentsUpdated(logId, {
+      action: "updated",
+      commentId,
+    });
+
     return NextResponse.json({ success: true, comment: updatedComment });
   } catch (error) {
     console.error("Update comment API error:", error);
@@ -120,6 +126,11 @@ export async function DELETE(
     // Delete comment (replies will be cascade deleted)
     await db.viewingLogComment.delete({
       where: { id: commentId },
+    });
+
+    await triggerViewingLogCommentsUpdated(logId, {
+      action: "deleted",
+      commentId,
     });
 
     return NextResponse.json({ success: true });

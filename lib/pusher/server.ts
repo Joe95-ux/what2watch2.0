@@ -1,7 +1,12 @@
 import Pusher from "pusher";
 import {
+  getActivityFeedChannelName,
+  getContentReactionsChannelName,
   getForumPostChannelName,
+  getListCommentsChannelName,
+  getReviewsChannelName,
   getUserChannelName,
+  getViewingLogCommentsChannelName,
   PUSHER_EVENTS,
 } from "@/lib/pusher/channels";
 
@@ -85,5 +90,45 @@ export async function triggerUserNotificationsChanged(
         ...payload,
       })
     )
+  );
+}
+
+export async function triggerReviewsUpdated(mediaType: "movie" | "tv", tmdbId: number) {
+  await triggerChannelEvent(
+    getReviewsChannelName(mediaType, tmdbId),
+    PUSHER_EVENTS.REVIEWS_UPDATED,
+    { mediaType, tmdbId }
+  );
+}
+
+export async function triggerContentReactionsUpdated(mediaType: "movie" | "tv", tmdbId: number) {
+  await triggerChannelEvent(
+    getContentReactionsChannelName(mediaType, tmdbId),
+    PUSHER_EVENTS.CONTENT_REACTIONS_UPDATED,
+    { mediaType, tmdbId }
+  );
+}
+
+export async function triggerListCommentsUpdated(listId: string, payload: Record<string, unknown> = {}) {
+  await triggerChannelEvent(
+    getListCommentsChannelName(listId),
+    PUSHER_EVENTS.LIST_COMMENTS_UPDATED,
+    { listId, ...payload }
+  );
+}
+
+export async function triggerViewingLogCommentsUpdated(logId: string, payload: Record<string, unknown> = {}) {
+  await triggerChannelEvent(
+    getViewingLogCommentsChannelName(logId),
+    PUSHER_EVENTS.VIEWING_LOG_COMMENTS_UPDATED,
+    { logId, ...payload }
+  );
+}
+
+export async function triggerActivityFeedUpdated(payload: Record<string, unknown> = {}) {
+  await triggerChannelEvent(
+    getActivityFeedChannelName(),
+    PUSHER_EVENTS.ACTIVITY_FEED_UPDATED,
+    payload
   );
 }

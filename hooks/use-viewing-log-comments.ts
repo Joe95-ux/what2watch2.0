@@ -1,4 +1,7 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getPusherClient } from "@/lib/pusher/client";
+import { getViewingLogCommentsChannelName, PUSHER_EVENTS } from "@/lib/pusher/channels";
 
 export interface CommentReaction {
   id: string;
@@ -129,6 +132,28 @@ const deleteComment = async (logId: string, commentId: string): Promise<void> =>
 };
 
 export function useViewingLogComments(logId: string, filter: string = "newest") {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!logId) return;
+
+    const pusher = getPusherClient();
+    if (!pusher) return;
+
+    const channelName = getViewingLogCommentsChannelName(logId);
+    const channel = pusher.subscribe(channelName);
+    const handleUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ["viewing-log-comments", logId] });
+    };
+
+    channel.bind(PUSHER_EVENTS.VIEWING_LOG_COMMENTS_UPDATED, handleUpdate);
+
+    return () => {
+      channel.unbind(PUSHER_EVENTS.VIEWING_LOG_COMMENTS_UPDATED, handleUpdate);
+      pusher.unsubscribe(channelName);
+    };
+  }, [logId, queryClient]);
+
   return useQuery({
     queryKey: ["viewing-log-comments", logId, filter],
     queryFn: () => fetchComments(logId, filter),

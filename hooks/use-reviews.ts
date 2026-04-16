@@ -1,5 +1,8 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/nextjs";
+import { getPusherClient } from "@/lib/pusher/client";
+import { getReviewsChannelName, PUSHER_EVENTS } from "@/lib/pusher/channels";
 
 export interface Review {
   id: string;
@@ -61,6 +64,31 @@ export function useReviews(
     limit?: number;
   }
 ) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!tmdbId || !mediaType) return;
+
+    const pusher = getPusherClient();
+    if (!pusher) return;
+
+    const channelName = getReviewsChannelName(mediaType, tmdbId);
+    const channel = pusher.subscribe(channelName);
+    const handleUpdate = () => {
+      queryClient.invalidateQueries({
+        queryKey: ["reviews", tmdbId, mediaType],
+        exact: false,
+      });
+    };
+
+    channel.bind(PUSHER_EVENTS.REVIEWS_UPDATED, handleUpdate);
+
+    return () => {
+      channel.unbind(PUSHER_EVENTS.REVIEWS_UPDATED, handleUpdate);
+      pusher.unsubscribe(channelName);
+    };
+  }, [mediaType, queryClient, tmdbId]);
+
   return useQuery({
     queryKey: ["reviews", tmdbId, mediaType, options],
     queryFn: async () => {

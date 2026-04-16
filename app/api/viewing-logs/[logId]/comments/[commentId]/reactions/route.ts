@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { triggerViewingLogCommentsUpdated } from "@/lib/pusher/server";
 
 // POST - Add a reaction to a comment
 export async function POST(
@@ -90,6 +91,7 @@ export async function POST(
       });
     }
 
+    await triggerViewingLogCommentsUpdated(logId, { commentId, action: "added", reactionType });
     return NextResponse.json({ success: true, reaction });
   } catch (error) {
     console.error("Add reaction API error:", error);
@@ -165,6 +167,7 @@ export async function DELETE(
       });
     }
 
+    await triggerViewingLogCommentsUpdated(logId, { commentId, action: "removed", reactionType });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Remove reaction API error:", error);

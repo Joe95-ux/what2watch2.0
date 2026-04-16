@@ -1,4 +1,7 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getPusherClient } from "@/lib/pusher/client";
+import { getContentReactionsChannelName, PUSHER_EVENTS } from "@/lib/pusher/channels";
 
 interface ContentReactionResponse {
   isLiked: boolean;
@@ -13,6 +16,30 @@ export function useContentReactions(
   mediaType: "movie" | "tv" | null,
   enabled: boolean = true
 ) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!tmdbId || !mediaType || !enabled) return;
+
+    const pusher = getPusherClient();
+    if (!pusher) return;
+
+    const channelName = getContentReactionsChannelName(mediaType, tmdbId);
+    const channel = pusher.subscribe(channelName);
+    const handleUpdate = () => {
+      queryClient.invalidateQueries({
+        queryKey: ["content", tmdbId, mediaType, "reaction"],
+      });
+    };
+
+    channel.bind(PUSHER_EVENTS.CONTENT_REACTIONS_UPDATED, handleUpdate);
+
+    return () => {
+      channel.unbind(PUSHER_EVENTS.CONTENT_REACTIONS_UPDATED, handleUpdate);
+      pusher.unsubscribe(channelName);
+    };
+  }, [enabled, mediaType, queryClient, tmdbId]);
+
   return useQuery<ContentReactionResponse>({
     queryKey: ["content", tmdbId, mediaType, "reaction"],
     queryFn: async () => {

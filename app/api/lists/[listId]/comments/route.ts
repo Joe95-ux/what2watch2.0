@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { moderateContent } from "@/lib/moderation";
 import { checkRateLimit, COMMENT_RATE_LIMIT } from "@/lib/rate-limit";
+import { triggerListCommentsUpdated } from "@/lib/pusher/server";
 
 // GET - Fetch comments for a list
 export async function GET(
@@ -303,6 +304,12 @@ export async function POST(
           },
         },
       },
+    });
+
+    await triggerListCommentsUpdated(listId, {
+      action: "created",
+      commentId: comment.id,
+      parentCommentId: comment.parentCommentId,
     });
 
     return NextResponse.json(

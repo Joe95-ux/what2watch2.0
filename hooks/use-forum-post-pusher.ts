@@ -17,9 +17,18 @@ export function useForumPostPusher(postId: string | null, enabled = true) {
     const channelName = getForumPostChannelName(postId);
     const channel = pusher.subscribe(channelName);
     const handlePostUpdate = () => {
-      queryClient.invalidateQueries({ queryKey: ["forum-post", postId] });
-      queryClient.invalidateQueries({ queryKey: ["forum-post", postId, "reaction"] });
-      queryClient.invalidateQueries({ queryKey: ["forum-posts"] });
+      // Invalidate all forum post variants (slug/id keyed), reactions, and feed lists.
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const [scope] = query.queryKey;
+          return (
+            scope === "forum-post" ||
+            scope === "forum-reply" ||
+            scope === "forum-posts" ||
+            scope === "forum-posts-filter"
+          );
+        },
+      });
     };
 
     channel.bind(PUSHER_EVENTS.FORUM_POST_UPDATED, handlePostUpdate);

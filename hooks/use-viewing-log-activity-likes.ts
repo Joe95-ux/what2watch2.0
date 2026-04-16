@@ -1,6 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getPusherClient } from "@/lib/pusher/client";
+import { getActivityFeedChannelName, PUSHER_EVENTS } from "@/lib/pusher/channels";
 
 export interface ViewingLogActivityLikesData {
   likeCount: number;
@@ -17,6 +20,26 @@ async function fetchActivityLikes(logId: string): Promise<ViewingLogActivityLike
 
 export function useViewingLogActivityLikes(logId: string | undefined) {
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!logId) return;
+
+    const pusher = getPusherClient();
+    if (!pusher) return;
+
+    const channelName = getActivityFeedChannelName();
+    const channel = pusher.subscribe(channelName);
+    const handleUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ["viewing-log-activity-likes", logId] });
+    };
+
+    channel.bind(PUSHER_EVENTS.ACTIVITY_FEED_UPDATED, handleUpdate);
+
+    return () => {
+      channel.unbind(PUSHER_EVENTS.ACTIVITY_FEED_UPDATED, handleUpdate);
+      pusher.unsubscribe(channelName);
+    };
+  }, [logId, queryClient]);
 
   const query = useQuery({
     queryKey: ["viewing-log-activity-likes", logId],

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-import { triggerUserNotificationsChanged } from "@/lib/pusher/server";
+import { triggerActivityFeedUpdated, triggerUserNotificationsChanged } from "@/lib/pusher/server";
 import { publishUserNotification } from "@/lib/pusher/beams-server";
 
 // GET - Check if current user has liked this activity
@@ -101,6 +101,12 @@ export async function POST(
       },
     });
 
+    await triggerActivityFeedUpdated({
+      action: "liked",
+      activityId,
+      actorId: user.id,
+    });
+
     // Notify activity owner if they have activity-like notifications enabled
     try {
       const owner = await db.user.findUnique({
@@ -173,6 +179,14 @@ export async function DELETE(
         userId: user.id,
       },
     });
+
+    if (deleted.count > 0) {
+      await triggerActivityFeedUpdated({
+        action: "unliked",
+        activityId,
+        actorId: user.id,
+      });
+    }
 
     return NextResponse.json({
       success: true,

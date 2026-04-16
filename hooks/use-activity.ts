@@ -1,4 +1,7 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getPusherClient } from "@/lib/pusher/client";
+import { getActivityFeedChannelName, PUSHER_EVENTS } from "@/lib/pusher/channels";
 
 export type ActivityType = 
   | "LOGGED_FILM"
@@ -149,6 +152,28 @@ export function useActivityFeed(
   groupBy?: "day" | "week" | "month",
   userId?: string
 ) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const pusher = getPusherClient();
+    if (!pusher) return;
+
+    const channelName = getActivityFeedChannelName();
+    const channel = pusher.subscribe(channelName);
+    const handleUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ["activity-feed"] });
+      queryClient.invalidateQueries({ queryKey: ["user-activity"] });
+      queryClient.invalidateQueries({ queryKey: ["viewing-log-activity-likes"] });
+    };
+
+    channel.bind(PUSHER_EVENTS.ACTIVITY_FEED_UPDATED, handleUpdate);
+
+    return () => {
+      channel.unbind(PUSHER_EVENTS.ACTIVITY_FEED_UPDATED, handleUpdate);
+      pusher.unsubscribe(channelName);
+    };
+  }, [queryClient]);
+
   return useQuery<{ activities: Activity[]; grouped?: Record<string, Activity[]>; total: number }>({
     queryKey: ["activity-feed", type, limit, sortBy, sortOrder, startDate, endDate, search, groupBy, userId],
     queryFn: () => fetchActivityFeed(type, limit, sortBy, sortOrder, startDate, endDate, search, groupBy, userId),
@@ -177,6 +202,26 @@ export function useUserActivity(
   search?: string,
   groupBy?: "day" | "week" | "month"
 ) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const pusher = getPusherClient();
+    if (!pusher) return;
+
+    const channelName = getActivityFeedChannelName();
+    const channel = pusher.subscribe(channelName);
+    const handleUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ["user-activity", userId] });
+    };
+
+    channel.bind(PUSHER_EVENTS.ACTIVITY_FEED_UPDATED, handleUpdate);
+
+    return () => {
+      channel.unbind(PUSHER_EVENTS.ACTIVITY_FEED_UPDATED, handleUpdate);
+      pusher.unsubscribe(channelName);
+    };
+  }, [queryClient, userId]);
+
   return useQuery<{ activities: Activity[]; grouped?: Record<string, Activity[]>; total: number; privacy: { visibility: string; isOwnProfile: boolean; canViewAll: boolean } }>({
     queryKey: ["user-activity", userId, type, limit, sortBy, sortOrder, startDate, endDate, search, groupBy],
     queryFn: () => fetchUserActivity(userId, type === "all" ? undefined : type, limit, sortBy, sortOrder, startDate, endDate, search, groupBy),

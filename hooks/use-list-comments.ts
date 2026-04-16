@@ -1,4 +1,7 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getPusherClient } from "@/lib/pusher/client";
+import { getListCommentsChannelName, PUSHER_EVENTS } from "@/lib/pusher/channels";
 
 export interface ListCommentReaction {
   id: string;
@@ -122,6 +125,29 @@ const deleteComment = async (listId: string, commentId: string): Promise<void> =
 };
 
 export function useListComments(listId: string, filter: string = "newest") {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!listId) return;
+
+    const pusher = getPusherClient();
+    if (!pusher) return;
+
+    const channelName = getListCommentsChannelName(listId);
+    const channel = pusher.subscribe(channelName);
+    const handleUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ["list-comments", listId] });
+      queryClient.invalidateQueries({ queryKey: ["list", listId] });
+    };
+
+    channel.bind(PUSHER_EVENTS.LIST_COMMENTS_UPDATED, handleUpdate);
+
+    return () => {
+      channel.unbind(PUSHER_EVENTS.LIST_COMMENTS_UPDATED, handleUpdate);
+      pusher.unsubscribe(channelName);
+    };
+  }, [listId, queryClient]);
+
   return useQuery<ListComment[]>({
     queryKey: ["list-comments", listId, filter],
     queryFn: () => fetchComments(listId, filter),

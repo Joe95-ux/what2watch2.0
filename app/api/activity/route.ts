@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { triggerActivityFeedUpdated } from "@/lib/pusher/server";
 
 // GET - Fetch activity feed (activities from users you follow)
 export async function GET(request: NextRequest): Promise<NextResponse<{ activities: unknown[] } | { error: string }>> {
@@ -319,6 +320,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
           },
         },
       },
+    });
+
+    await triggerActivityFeedUpdated({
+      action: "created",
+      activityId: activity.id,
+      userId: activity.userId,
+      type: activity.type,
     });
 
     return NextResponse.json({ success: true, activity });

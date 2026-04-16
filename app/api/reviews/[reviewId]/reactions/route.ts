@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { triggerReviewsUpdated } from "@/lib/pusher/server";
 
 // POST /api/reviews/[reviewId]/reactions - Add or remove a reaction
 export async function POST(
@@ -40,6 +41,11 @@ export async function POST(
       return NextResponse.json({ error: "Review not found" }, { status: 404 });
     }
 
+    const reviewMediaType =
+      review.mediaType === "movie" || review.mediaType === "tv"
+        ? review.mediaType
+        : null;
+
     // Check if reaction already exists
     const existingReaction = await db.reviewReaction.findUnique({
       where: {
@@ -69,6 +75,9 @@ export async function POST(
         });
       }
 
+      if (reviewMediaType) {
+        await triggerReviewsUpdated(reviewMediaType, review.tmdbId);
+      }
       return NextResponse.json({ added: false });
     } else {
       // Add reaction
@@ -92,6 +101,9 @@ export async function POST(
         });
       }
 
+      if (reviewMediaType) {
+        await triggerReviewsUpdated(reviewMediaType, review.tmdbId);
+      }
       return NextResponse.json({ added: true });
     }
   } catch (error) {
