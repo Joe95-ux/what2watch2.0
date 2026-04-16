@@ -42,6 +42,7 @@ model User {
   notifyOnNewFollowers Boolean @default(true)
   notifyOnNewReviews Boolean @default(true)
   notifyOnListUpdates Boolean @default(true)
+  notifyOnEditorialLists Boolean @default(true)
   notifyOnPlaylistUpdates Boolean @default(true)
   notifyOnActivityLikes Boolean @default(true)
   notifyOnMentions Boolean @default(true)

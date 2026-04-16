@@ -1072,8 +1072,9 @@ export default function PlaylistView({
                       />
                       {isLiked ? "Liked" : "Like"}
                       {(() => {
-                        const likesCount =
-                          playlist._count?.likedBy ?? playlist.likesCount ?? 0;
+                        const likesCount = Number(
+                          playlist._count?.likedBy ?? playlist.likesCount ?? 0
+                        );
                         return likesCount > 0 && (
                           <span className="ml-2">({likesCount})</span>
                         );

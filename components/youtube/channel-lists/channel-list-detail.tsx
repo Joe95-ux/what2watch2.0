@@ -601,8 +601,17 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
                   onClick={handleFollowToggle}
                   disabled={toggleFollow.isPending || !isSignedIn}
                 >
-                  <UsersRound className="h-4 w-4" />
-                  {list.viewerState.isFollowing ? "Following" : "Follow list"}
+                  {toggleFollow.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {list.viewerState.isFollowing ? "Updating..." : "Following..."}
+                    </>
+                  ) : (
+                    <>
+                      <UsersRound className="h-4 w-4" />
+                      {list.viewerState.isFollowing ? "Following" : "Follow list"}
+                    </>
+                  )}
                 </Button>
               )}
               <DropdownMenu>

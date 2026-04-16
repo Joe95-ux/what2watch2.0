@@ -1,9 +1,22 @@
 import { DEFAULT_FREE_CHAT_LIMIT } from "@/lib/billing";
 
+const EDITORIAL_NOTIFICATIONS_EMAIL_ALLOWLIST = new Set([
+  process.env.SUPER_USER,
+]);
+
 /** Stripe subscription statuses that grant Pro access (unlimited AI chat). */
 export function hasActiveProSubscription(stripeSubscriptionStatus: string | null | undefined): boolean {
   const s = stripeSubscriptionStatus;
   return s === "active" || s === "trialing";
+}
+
+export function hasEditorialNotificationsAccess(
+  stripeSubscriptionStatus: string | null | undefined,
+  email: string | null | undefined
+): boolean {
+  if (hasActiveProSubscription(stripeSubscriptionStatus)) return true;
+  const normalizedEmail = (email ?? "").trim().toLowerCase();
+  return EDITORIAL_NOTIFICATIONS_EMAIL_ALLOWLIST.has(normalizedEmail);
 }
 
 /** Stripe subscription needs payment attention (show banner). */

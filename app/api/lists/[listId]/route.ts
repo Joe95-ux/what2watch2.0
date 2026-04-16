@@ -7,6 +7,7 @@ import {
   keepSystemListTags,
   stripSystemListTags,
 } from "@/lib/list-related-metadata";
+import { notifyPaidUsersEditorialListPublished } from "@/lib/editorial-list-notifications";
 
 function hasEditorialPrivileges(user: {
   role?: string | null;
@@ -236,6 +237,9 @@ export async function PATCH(
       ];
     }
 
+    const wasPublishedEditorialList =
+      (list.tags ?? []).includes(EDITORIAL_TAG) && list.visibility === "PUBLIC";
+
     const updatedList = await db.list.update({
       where: { id: listId },
       data: updateData,
@@ -253,6 +257,17 @@ export async function PATCH(
         },
       },
     });
+
+    const isPublishedEditorialList =
+      (updatedList.tags ?? []).includes(EDITORIAL_TAG) &&
+      updatedList.visibility === "PUBLIC";
+    if (!wasPublishedEditorialList && isPublishedEditorialList) {
+      await notifyPaidUsersEditorialListPublished({
+        listId: updatedList.id,
+        listName: updatedList.name,
+        actorUserId: user.id,
+      });
+    }
 
     return NextResponse.json({ success: true, list: mapListForClient(updatedList) });
   } catch (error) {

@@ -6,6 +6,7 @@ import {
   buildRelatedMetadataTags,
   stripSystemListTags,
 } from "@/lib/list-related-metadata";
+import { notifyPaidUsersEditorialListPublished } from "@/lib/editorial-list-notifications";
 
 function hasEditorialPrivileges(user: {
   role?: string | null;
@@ -221,6 +222,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
     } catch (error) {
       // Silently fail - activity creation is not critical
       console.error("Failed to create activity:", error);
+    }
+
+    const isPublishedEditorialList =
+      (list.tags ?? []).includes(EDITORIAL_TAG) && list.visibility === "PUBLIC";
+    if (isPublishedEditorialList) {
+      await notifyPaidUsersEditorialListPublished({
+        listId: list.id,
+        listName: list.name,
+        actorUserId: user.id,
+      });
     }
 
     return NextResponse.json({ success: true, list: mapListForClient(list) });

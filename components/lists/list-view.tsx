@@ -839,9 +839,12 @@ export default function ListView({
                         )}
                       />
                       {isLiked ? "Liked" : "Like"}
-                      {list._count?.likedBy && list._count.likedBy > 0 && (
-                        <span className="ml-2">({list._count.likedBy})</span>
-                      )}
+                      {(() => {
+                        const likesCount = Number(list._count?.likedBy ?? 0);
+                        return likesCount > 0 ? (
+                          <span className="ml-2">({likesCount})</span>
+                        ) : null;
+                      })()}
                     </Button>
                     {list.user && (
                       <div className="flex-shrink-0">

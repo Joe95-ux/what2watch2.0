@@ -46,6 +46,7 @@ import { SettingsLinksSection } from "@/components/settings/settings-links-secti
 import { SettingsYoutubeVisibilitySection } from "@/components/settings/settings-youtube-visibility-section";
 import { SettingsBillingSection } from "@/components/settings/settings-billing-section";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
+import { hasEditorialNotificationsAccess } from "@/lib/subscription";
 
 interface SettingsContentProps {
   user: {
@@ -82,6 +83,7 @@ interface SettingsContentProps {
     notifyOnNewFollowers: boolean;
     notifyOnNewReviews: boolean;
     notifyOnListUpdates: boolean;
+    notifyOnEditorialLists: boolean;
     notifyOnPlaylistUpdates: boolean;
     notifyOnActivityLikes: boolean;
     notifyOnMentions: boolean;
@@ -334,6 +336,10 @@ export default function SettingsContent({
   };
 
   const isAdmin = user.role === "ADMIN" || user.role === "SUPER_ADMIN";
+  const canUseEditorialNotifications = hasEditorialNotificationsAccess(
+    user.stripeSubscriptionStatus,
+    user.email
+  );
   const settingsSections: Array<{ id: SettingsSection; label: string; icon: React.ReactNode }> = [
     { id: "account", label: "Account", icon: <UserRound className="h-4 w-4" /> },
     { id: "billing", label: "Billing", icon: <CreditCard className="h-4 w-4" /> },
@@ -786,6 +792,9 @@ export default function SettingsContent({
                         { key: "notifyOnNewFollowers", label: "New Followers", icon: UserRoundPlus, desc: "When someone follows you" },
                         { key: "notifyOnNewReviews", label: "New Reviews", icon: FileText, desc: "When someone reviews content you follow" },
                         { key: "notifyOnListUpdates", label: "List Updates", icon: List, desc: "When lists you follow are updated" },
+                        ...(canUseEditorialNotifications
+                          ? [{ key: "notifyOnEditorialLists", label: "Editorial Lists (Pro)", icon: Sparkles, desc: "When a new editorial list is published" }]
+                          : []),
                         { key: "notifyOnPlaylistUpdates", label: "Playlist Updates", icon: Music, desc: "When playlists you follow are updated" },
                         { key: "notifyOnActivityLikes", label: "Activity Likes", icon: ThumbsUp, desc: "When someone likes your activity" },
                         { key: "notifyOnMentions", label: "Mentions", icon: AtSign, desc: "When someone mentions you" },
