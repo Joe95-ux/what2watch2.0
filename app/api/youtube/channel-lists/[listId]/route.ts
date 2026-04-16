@@ -8,6 +8,7 @@ import {
   resolveCurrentUserId,
 } from "../helpers";
 import { assignKeywordsToChannelListItems } from "@/lib/youtube-channel-list-keywords";
+import { triggerYouTubeChannelListUpdated } from "@/lib/pusher/server";
 
 export async function GET(
   _request: NextRequest,
@@ -140,6 +141,7 @@ export async function PATCH(
     });
 
     const [hydrated] = await attachViewerStateToLists([updated], currentUserId);
+    await triggerYouTubeChannelListUpdated(listId, { action: "updated" });
     return NextResponse.json({ list: hydrated });
   } catch (error) {
     console.error("[YouTubeChannelLists] PATCH error", error);
@@ -177,6 +179,7 @@ export async function DELETE(
     await db.youTubeChannelList.delete({
       where: { id: listId },
     });
+    await triggerYouTubeChannelListUpdated(listId, { action: "deleted" });
 
     return NextResponse.json({ success: true });
   } catch (error) {

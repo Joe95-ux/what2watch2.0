@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { sendEmail, getEmailTemplate } from "@/lib/email";
+import {
+  triggerListAnalyticsUpdated,
+  triggerListUpdated,
+  triggerUserNotificationsChanged,
+} from "@/lib/pusher/server";
+import { publishUserNotification } from "@/lib/pusher/beams-server";
 
 // POST - Like a list (PUBLIC or FOLLOWERS_ONLY only)
 export async function POST(
@@ -16,7 +23,7 @@ export async function POST(
 
     const user = await db.user.findUnique({
       where: { clerkId: clerkUserId },
-      select: { id: true },
+      select: { id: true, username: true, displayName: true },
     });
 
     if (!user) {
@@ -98,6 +105,72 @@ export async function POST(
       },
     });
 
+    await triggerListUpdated(listId, { action: "liked", actorId: user.id });
+    await triggerListAnalyticsUpdated(list.userId, { action: "liked", listId });
+
+    try {
+      const owner = await db.user.findUnique({
+        where: { id: list.userId },
+        select: {
+          id: true,
+          email: true,
+          emailNotifications: true,
+          pushNotifications: true,
+          notifyOnListUpdates: true,
+          username: true,
+          displayName: true,
+        },
+      });
+
+      if (owner && owner.notifyOnListUpdates !== false) {
+        const likerName = user.displayName || user.username || "Someone";
+
+        await db.generalNotification.create({
+          data: {
+            userId: owner.id,
+            type: "LIST_LIKED",
+            title: "Your list was liked",
+            message: `${likerName} liked your list`,
+            linkUrl: `/lists/${listId}`,
+            metadata: { listId, likerId: user.id },
+          },
+        });
+
+        await triggerUserNotificationsChanged([owner.id], "general", {
+          source: "list-liked",
+          listId,
+        });
+
+        if (owner.pushNotifications !== false) {
+          await publishUserNotification({
+            userIds: [owner.id],
+            title: "Your list was liked",
+            body: `${likerName} liked your list`,
+            linkUrl: `/lists/${listId}`,
+            data: { listId, likerId: user.id },
+          });
+        }
+
+        if (owner.emailNotifications && owner.email) {
+          const ownerName = owner.username || owner.displayName || "there";
+          const emailHtml = getEmailTemplate({
+            title: "Your list got a new like",
+            content: `<p style="margin:0 0 16px;">Hi ${ownerName},</p><p style="margin:0 0 16px;">${likerName} liked one of your lists.</p>`,
+            ctaText: "View List",
+            ctaUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/lists/${listId}`,
+            footerText: "You can manage notification preferences from your settings.",
+          });
+          await sendEmail({
+            to: owner.email,
+            subject: "Your list got a new like",
+            html: emailHtml,
+          });
+        }
+      }
+    } catch (notificationError) {
+      console.error("Failed to create list-like notifications:", notificationError);
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error liking list:", error);
@@ -144,6 +217,16 @@ export async function DELETE(
         { error: "List not liked" },
         { status: 404 }
       );
+    }
+
+    const list = await db.list.findUnique({
+      where: { id: listId },
+      select: { userId: true },
+    });
+
+    await triggerListUpdated(listId, { action: "unliked", actorId: user.id });
+    if (list?.userId) {
+      await triggerListAnalyticsUpdated(list.userId, { action: "unliked", listId });
     }
 
     return NextResponse.json({ success: true });

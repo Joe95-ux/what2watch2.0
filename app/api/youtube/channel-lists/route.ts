@@ -8,6 +8,7 @@ import {
   resolveCurrentUserId,
 } from "./helpers";
 import { assignKeywordsToChannelListItems } from "@/lib/youtube-channel-list-keywords";
+import { triggerYouTubeChannelListUpdated } from "@/lib/pusher/server";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
@@ -151,6 +152,7 @@ export async function POST(request: NextRequest) {
     });
 
     const [hydrated] = await attachViewerStateToLists([list], currentUserId);
+    await triggerYouTubeChannelListUpdated(list.id, { action: "created" });
 
     return NextResponse.json({ list: hydrated });
   } catch (error) {

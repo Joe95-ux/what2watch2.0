@@ -1,6 +1,9 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { toast } from "sonner";
+import { getPusherClient } from "@/lib/pusher/client";
+import { getListChannelName, PUSHER_EVENTS } from "@/lib/pusher/channels";
 
 export type ListVisibility = "PUBLIC" | "FOLLOWERS_ONLY" | "PRIVATE";
 
@@ -158,6 +161,28 @@ export function useLists(visibility?: string) {
 
 // Hook to fetch a specific list
 export function useList(listId: string | null) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!listId) return;
+    const pusher = getPusherClient();
+    if (!pusher) return;
+
+    const channelName = getListChannelName(listId);
+    const channel = pusher.subscribe(channelName);
+    const handleListUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ["list", listId] });
+      queryClient.invalidateQueries({ queryKey: ["public-lists"] });
+      queryClient.invalidateQueries({ queryKey: ["list-analytics-summary"] });
+    };
+
+    channel.bind(PUSHER_EVENTS.LIST_UPDATED, handleListUpdate);
+    return () => {
+      channel.unbind(PUSHER_EVENTS.LIST_UPDATED, handleListUpdate);
+      pusher.unsubscribe(channelName);
+    };
+  }, [listId, queryClient]);
+
   return useQuery<List>({
     queryKey: ["list", listId],
     queryFn: () => fetchList(listId!),

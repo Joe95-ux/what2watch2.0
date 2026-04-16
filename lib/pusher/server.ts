@@ -4,6 +4,10 @@ import {
   getContentReactionsChannelName,
   getForumPostChannelName,
   getListCommentsChannelName,
+  getListChannelName,
+  getPlaylistChannelName,
+  getYouTubeChannelListChannelName,
+  getYouTubeChannelListsGlobalChannelName,
   getReviewsChannelName,
   getUserChannelName,
   getViewingLogCommentsChannelName,
@@ -130,5 +134,58 @@ export async function triggerActivityFeedUpdated(payload: Record<string, unknown
     getActivityFeedChannelName(),
     PUSHER_EVENTS.ACTIVITY_FEED_UPDATED,
     payload
+  );
+}
+
+export async function triggerListUpdated(listId: string, payload: Record<string, unknown> = {}) {
+  await triggerChannelEvent(
+    getListChannelName(listId),
+    PUSHER_EVENTS.LIST_UPDATED,
+    { listId, ...payload }
+  );
+}
+
+export async function triggerPlaylistUpdated(playlistId: string, payload: Record<string, unknown> = {}) {
+  await triggerChannelEvent(
+    getPlaylistChannelName(playlistId),
+    PUSHER_EVENTS.PLAYLIST_UPDATED,
+    { playlistId, ...payload }
+  );
+}
+
+export async function triggerListAnalyticsUpdated(ownerId: string, payload: Record<string, unknown> = {}) {
+  await triggerChannelEvent(
+    getUserChannelName(ownerId),
+    PUSHER_EVENTS.LIST_ANALYTICS_UPDATED,
+    { ownerId, ...payload }
+  );
+}
+
+export async function triggerPlaylistAnalyticsUpdated(ownerId: string, payload: Record<string, unknown> = {}) {
+  await triggerChannelEvent(
+    getUserChannelName(ownerId),
+    PUSHER_EVENTS.PLAYLIST_ANALYTICS_UPDATED,
+    { ownerId, ...payload }
+  );
+}
+
+export async function triggerYouTubeChannelListUpdated(listId: string, payload: Record<string, unknown> = {}) {
+  await triggerChannelEvent(
+    getYouTubeChannelListChannelName(listId),
+    PUSHER_EVENTS.YOUTUBE_CHANNEL_LIST_UPDATED,
+    { listId, ...payload }
+  );
+  await triggerChannelEvent(
+    getYouTubeChannelListsGlobalChannelName(),
+    PUSHER_EVENTS.YOUTUBE_CHANNEL_LIST_UPDATED,
+    { listId, ...payload }
+  );
+}
+
+export async function triggerYouTubeListAnalyticsUpdated(ownerId: string, payload: Record<string, unknown> = {}) {
+  await triggerChannelEvent(
+    getUserChannelName(ownerId),
+    PUSHER_EVENTS.YOUTUBE_LIST_ANALYTICS_UPDATED,
+    { ownerId, ...payload }
   );
 }

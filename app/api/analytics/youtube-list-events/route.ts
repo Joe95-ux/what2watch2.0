@@ -6,6 +6,10 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import { Prisma, YouTubeChannelListEngagementType } from "@prisma/client";
+import {
+  triggerYouTubeChannelListUpdated,
+  triggerYouTubeListAnalyticsUpdated,
+} from "@/lib/pusher/server";
 
 const VISITOR_COOKIE_NAME = "w2w_vid";
 const VISITOR_COOKIE_MAX_AGE_DAYS = 365;
@@ -110,6 +114,16 @@ export async function POST(request: NextRequest) {
         visitorToken,
         metadata: metadataValue,
       },
+    });
+
+    await triggerYouTubeChannelListUpdated(list.id, {
+      action: "engagement",
+      type,
+    });
+    await triggerYouTubeListAnalyticsUpdated(list.userId, {
+      action: "engagement",
+      type,
+      listId: list.id,
     });
 
     // Log for debugging (can be removed in production)

@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import { Prisma, ListEngagementType } from "@prisma/client";
+import { triggerListAnalyticsUpdated, triggerListUpdated } from "@/lib/pusher/server";
 
 const VISITOR_COOKIE_NAME = "w2w_vid";
 const VISITOR_COOKIE_MAX_AGE_DAYS = 365;
@@ -110,6 +111,12 @@ export async function POST(request: NextRequest) {
         visitorToken,
         metadata: metadataValue,
       },
+    });
+    await triggerListUpdated(list.id, { action: type === ListEngagementType.VISIT ? "visited" : "shared" });
+    await triggerListAnalyticsUpdated(list.userId, {
+      action: type === ListEngagementType.VISIT ? "visited" : "shared",
+      listId: list.id,
+      type,
     });
 
     // Log for debugging (can be removed in production)

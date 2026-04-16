@@ -1,4 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { getPusherClient } from "@/lib/pusher/client";
+import { getUserChannelName, PUSHER_EVENTS } from "@/lib/pusher/channels";
 
 export interface ListAnalyticsTotals {
   shares: number;
@@ -89,6 +93,25 @@ const fetchListAnalyticsSummary = async (
 
 export function useListAnalytics(params: AnalyticsParams = {}) {
   const { range, startDate, endDate, enabled = true } = params;
+  const queryClient = useQueryClient();
+  const { data: currentUser } = useCurrentUser();
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    const pusher = getPusherClient();
+    if (!pusher) return;
+
+    const channelName = getUserChannelName(currentUser.id);
+    const channel = pusher.subscribe(channelName);
+    const handleAnalyticsUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ["list-analytics-summary"] });
+    };
+
+    channel.bind(PUSHER_EVENTS.LIST_ANALYTICS_UPDATED, handleAnalyticsUpdate);
+    return () => {
+      channel.unbind(PUSHER_EVENTS.LIST_ANALYTICS_UPDATED, handleAnalyticsUpdate);
+    };
+  }, [currentUser?.id, queryClient]);
 
   return useQuery({
     queryKey: ["list-analytics-summary", { range, startDate, endDate }],

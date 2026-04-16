@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { sendEmail, getEmailTemplate } from "@/lib/email";
+import {
+  triggerPlaylistAnalyticsUpdated,
+  triggerPlaylistUpdated,
+  triggerUserNotificationsChanged,
+} from "@/lib/pusher/server";
+import { publishUserNotification } from "@/lib/pusher/beams-server";
 
 // POST - Like a playlist (auto-saves to user's library)
 export async function POST(
@@ -16,7 +23,7 @@ export async function POST(
 
     const user = await db.user.findUnique({
       where: { clerkId: clerkUserId },
-      select: { id: true },
+      select: { id: true, username: true, displayName: true },
     });
 
     if (!user) {
@@ -82,6 +89,71 @@ export async function POST(
       }),
     ]);
 
+    await triggerPlaylistUpdated(playlistId, { action: "liked", actorId: user.id });
+    await triggerPlaylistAnalyticsUpdated(playlist.userId, { action: "liked", playlistId });
+
+    try {
+      const owner = await db.user.findUnique({
+        where: { id: playlist.userId },
+        select: {
+          id: true,
+          email: true,
+          emailNotifications: true,
+          pushNotifications: true,
+          notifyOnPlaylistUpdates: true,
+          username: true,
+          displayName: true,
+        },
+      });
+
+      if (owner && owner.notifyOnPlaylistUpdates !== false) {
+        const likerName = user.displayName || user.username || "Someone";
+        await db.generalNotification.create({
+          data: {
+            userId: owner.id,
+            type: "PLAYLIST_LIKED",
+            title: "Your playlist was liked",
+            message: `${likerName} liked your playlist`,
+            linkUrl: `/playlists/${playlistId}?public=true`,
+            metadata: { playlistId, likerId: user.id },
+          },
+        });
+
+        await triggerUserNotificationsChanged([owner.id], "general", {
+          source: "playlist-liked",
+          playlistId,
+        });
+
+        if (owner.pushNotifications !== false) {
+          await publishUserNotification({
+            userIds: [owner.id],
+            title: "Your playlist was liked",
+            body: `${likerName} liked your playlist`,
+            linkUrl: `/playlists/${playlistId}?public=true`,
+            data: { playlistId, likerId: user.id },
+          });
+        }
+
+        if (owner.emailNotifications && owner.email) {
+          const ownerName = owner.username || owner.displayName || "there";
+          const emailHtml = getEmailTemplate({
+            title: "Your playlist got a new like",
+            content: `<p style="margin:0 0 16px;">Hi ${ownerName},</p><p style="margin:0 0 16px;">${likerName} liked one of your playlists.</p>`,
+            ctaText: "View Playlist",
+            ctaUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/playlists/${playlistId}?public=true`,
+            footerText: "You can manage notification preferences from your settings.",
+          });
+          await sendEmail({
+            to: owner.email,
+            subject: "Your playlist got a new like",
+            html: emailHtml,
+          });
+        }
+      }
+    } catch (notificationError) {
+      console.error("Failed to create playlist-like notifications:", notificationError);
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error liking playlist:", error);
@@ -139,6 +211,15 @@ export async function DELETE(
         },
       },
     });
+
+    const playlist = await db.playlist.findUnique({
+      where: { id: playlistId },
+      select: { userId: true },
+    });
+    await triggerPlaylistUpdated(playlistId, { action: "unliked", actorId: user.id });
+    if (playlist?.userId) {
+      await triggerPlaylistAnalyticsUpdated(playlist.userId, { action: "unliked", playlistId });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

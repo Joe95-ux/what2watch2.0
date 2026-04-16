@@ -1,5 +1,8 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { getPusherClient } from "@/lib/pusher/client";
+import { getPlaylistChannelName, PUSHER_EVENTS } from "@/lib/pusher/channels";
 
 export interface YouTubePlaylistItem {
   id: string;
@@ -201,6 +204,28 @@ export function usePlaylists(includePublic: boolean = false) {
 }
 
 export function usePlaylist(playlistId: string) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!playlistId) return;
+    const pusher = getPusherClient();
+    if (!pusher) return;
+
+    const channelName = getPlaylistChannelName(playlistId);
+    const channel = pusher.subscribe(channelName);
+    const handlePlaylistUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ["playlist", playlistId] });
+      queryClient.invalidateQueries({ queryKey: ["public-playlists"] });
+      queryClient.invalidateQueries({ queryKey: ["playlist-analytics-summary"] });
+    };
+
+    channel.bind(PUSHER_EVENTS.PLAYLIST_UPDATED, handlePlaylistUpdate);
+    return () => {
+      channel.unbind(PUSHER_EVENTS.PLAYLIST_UPDATED, handlePlaylistUpdate);
+      pusher.unsubscribe(channelName);
+    };
+  }, [playlistId, queryClient]);
+
   return useQuery({
     queryKey: ["playlist", playlistId],
     queryFn: () => fetchPlaylist(playlistId),

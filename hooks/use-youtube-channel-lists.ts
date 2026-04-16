@@ -1,6 +1,14 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { getPusherClient, isPusherClientConfigured } from "@/lib/pusher/client";
+import {
+  getYouTubeChannelListChannelName,
+  getYouTubeChannelListsGlobalChannelName,
+  PUSHER_EVENTS,
+} from "@/lib/pusher/channels";
+import { useYouTubeListAnalyticsRealtime } from "@/hooks/use-youtube-list-analytics";
 
 export interface YouTubeChannelListItem {
   id: string;
@@ -153,6 +161,28 @@ async function toggleFollowChannelList(listId: string) {
 }
 
 export function useYouTubeChannelLists(scope: ChannelListScope = "public") {
+  const queryClient = useQueryClient();
+  useYouTubeListAnalyticsRealtime();
+
+  useEffect(() => {
+    if (!isPusherClientConfigured()) return;
+    const pusher = getPusherClient();
+    if (!pusher) return;
+
+    const globalChannel = pusher.subscribe(getYouTubeChannelListsGlobalChannelName());
+    const handleGlobalUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ["youtube-channel-lists"] });
+    };
+    globalChannel.bind(PUSHER_EVENTS.YOUTUBE_CHANNEL_LIST_UPDATED, handleGlobalUpdate);
+
+    return () => {
+      globalChannel.unbind(
+        PUSHER_EVENTS.YOUTUBE_CHANNEL_LIST_UPDATED,
+        handleGlobalUpdate
+      );
+    };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ["youtube-channel-lists", scope],
     queryFn: () => fetchChannelLists(scope),
@@ -161,6 +191,25 @@ export function useYouTubeChannelLists(scope: ChannelListScope = "public") {
 }
 
 export function useYouTubeChannelList(listId: string | null) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!listId || !isPusherClientConfigured()) return;
+    const pusher = getPusherClient();
+    if (!pusher) return;
+
+    const channel = pusher.subscribe(getYouTubeChannelListChannelName(listId));
+    const handleUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ["youtube-channel-list", listId] });
+      queryClient.invalidateQueries({ queryKey: ["youtube-channel-lists"] });
+    };
+    channel.bind(PUSHER_EVENTS.YOUTUBE_CHANNEL_LIST_UPDATED, handleUpdate);
+
+    return () => {
+      channel.unbind(PUSHER_EVENTS.YOUTUBE_CHANNEL_LIST_UPDATED, handleUpdate);
+    };
+  }, [listId, queryClient]);
+
   return useQuery({
     queryKey: ["youtube-channel-list", listId],
     queryFn: () => fetchChannelList(listId!),

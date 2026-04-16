@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import { Prisma, PlaylistEngagementType } from "@prisma/client";
+import { triggerPlaylistAnalyticsUpdated, triggerPlaylistUpdated } from "@/lib/pusher/server";
 
 const VISITOR_COOKIE_NAME = "w2w_vid";
 const VISITOR_COOKIE_MAX_AGE_DAYS = 365;
@@ -110,6 +111,12 @@ export async function POST(request: NextRequest) {
         visitorToken,
         metadata: metadataValue,
       },
+    });
+    await triggerPlaylistUpdated(playlist.id, { action: type === PlaylistEngagementType.VISIT ? "visited" : "shared" });
+    await triggerPlaylistAnalyticsUpdated(playlist.userId, {
+      action: type === PlaylistEngagementType.VISIT ? "visited" : "shared",
+      playlistId: playlist.id,
+      type,
     });
 
     // Log for debugging (can be removed in production)
