@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getEmailTemplate, sendEmail } from "@/lib/email";
 import { subDays } from "date-fns";
 import { triggerUserNotificationsChanged } from "@/lib/pusher/server";
+import { publishUserNotification } from "@/lib/pusher/beams-server";
 
 function startOfDayUTC(d: Date): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
@@ -103,6 +104,13 @@ async function runPeakCheck(request: NextRequest) {
       await triggerUserNotificationsChanged([user.id], "general", {
         source: "link-page-peak",
         metric,
+      });
+      await publishUserNotification({
+        userIds: [user.id],
+        title,
+        body: message,
+        linkUrl: analyticsUrl,
+        data: { metric },
       });
 
       if (user.email) {

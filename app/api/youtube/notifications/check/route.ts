@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { triggerUserNotificationsChanged } from "@/lib/pusher/server";
+import { publishUserNotification } from "@/lib/pusher/beams-server";
 
 /**
  * Background job to check for new videos from favorite channels
@@ -104,11 +105,12 @@ async function handleNotificationCheck(request: NextRequest) {
             });
 
             if (!existing) {
+              const channelTitle = channelInfo?.title || favoriteChannel.title;
               await db.youTubeNotification.create({
                 data: {
                   userId: user.id,
                   channelId: favoriteChannel.channelId,
-                  channelTitle: channelInfo?.title || favoriteChannel.title,
+                  channelTitle,
                   channelThumbnail: channelInfo?.thumbnails?.high?.url || favoriteChannel.thumbnail,
                   videoId,
                   videoTitle: item.snippet.title,
@@ -119,6 +121,13 @@ async function handleNotificationCheck(request: NextRequest) {
               });
               totalNotifications++;
               changedUserIds.add(user.id);
+              await publishUserNotification({
+                userIds: [user.id],
+                title: `New video from ${channelTitle}`,
+                body: item.snippet.title,
+                linkUrl: `https://www.youtube.com/watch?v=${videoId}`,
+                data: { videoId },
+              });
             }
           }
         } catch (error) {

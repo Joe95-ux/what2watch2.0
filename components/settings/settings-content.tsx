@@ -295,6 +295,7 @@ export default function SettingsContent({
         throw new Error("Failed to save settings");
       }
 
+      await queryClient.invalidateQueries({ queryKey: ["current-user"] });
       toast.success("Notification settings updated");
     } catch (error) {
       console.error("Error updating notification settings:", error);

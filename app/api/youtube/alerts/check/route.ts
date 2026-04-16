@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { triggerUserNotificationsChanged } from "@/lib/pusher/server";
+import { publishUserNotification } from "@/lib/pusher/beams-server";
 
 /**
  * Check all active alerts and trigger notifications
@@ -113,6 +114,13 @@ export async function GET(request: NextRequest) {
             await triggerUserNotificationsChanged([alert.userId], "general", {
               source: "trend-alert-triggered",
               alertId: alert.id,
+            });
+            await publishUserNotification({
+              userIds: [alert.userId],
+              title: `Trend Alert: "${alert.keyword}"`,
+              body: `Your trend alert for "${alert.keyword}" has been triggered! Momentum: ${matchingTrend.momentum.toFixed(1)}%, Search Volume: ${matchingTrend.searchVolume.toLocaleString()}`,
+              linkUrl: `${baseUrl}/youtube/alerts`,
+              data: { alertId: alert.id },
             });
           } catch (notifError) {
             console.error("Failed to create notification for alert:", notifError);

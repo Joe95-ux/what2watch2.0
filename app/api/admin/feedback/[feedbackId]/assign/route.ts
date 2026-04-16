@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { getFeedbackAssignedEmail } from "@/lib/email-templates";
 import { triggerUserNotificationsChanged } from "@/lib/pusher/server";
+import { publishUserNotification } from "@/lib/pusher/beams-server";
 
 export async function PATCH(
   request: NextRequest,
@@ -144,6 +145,13 @@ export async function PATCH(
             await triggerUserNotificationsChanged([assignedUser.id], "general", {
               source: "feedback-assigned",
               feedbackId,
+            });
+            await publishUserNotification({
+              userIds: [assignedUser.id],
+              title: "Feedback Assigned to You",
+              body: `You've been assigned to handle a ${currentFeedback.priority.toLowerCase()} priority feedback: ${currentFeedback.reason}`,
+              linkUrl: viewFeedbackUrl,
+              data: { feedbackId },
             });
           } catch (notificationError) {
             // Silently fail - notification creation is not critical

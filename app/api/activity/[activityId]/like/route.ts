@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { triggerUserNotificationsChanged } from "@/lib/pusher/server";
+import { publishUserNotification } from "@/lib/pusher/beams-server";
 
 // GET - Check if current user has liked this activity
 export async function GET(
@@ -121,6 +122,13 @@ export async function POST(
         await triggerUserNotificationsChanged([activity.userId], "general", {
           source: "activity-liked",
           activityId,
+        });
+        await publishUserNotification({
+          userIds: [activity.userId],
+          title: "Activity liked",
+          body: `${likerName} liked your activity`,
+          linkUrl: `/dashboard/activity?highlight=${activityId}`,
+          data: { activityId },
         });
       }
     } catch (err) {

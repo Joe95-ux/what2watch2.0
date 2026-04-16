@@ -8,6 +8,7 @@ import NextTopLoader from "nextjs-toploader";
 import { AvatarProvider } from "@/contexts/avatar-context";
 import { PageViewTracker } from "@/components/analytics/page-view-tracker";
 import { PrimaryColorProvider } from "@/components/providers/primary-color-provider";
+import { PusherBeamsProvider } from "@/components/providers/pusher-beams-provider";
 
 function RootProviders({ children }: { children: ReactNode }) {
   const [queryClient] = React.useState(
@@ -33,6 +34,7 @@ function RootProviders({ children }: { children: ReactNode }) {
           disableTransitionOnChange
         >
           <PrimaryColorProvider />
+          <PusherBeamsProvider />
           <Suspense fallback={null}>
             <PageViewTracker />
           </Suspense>

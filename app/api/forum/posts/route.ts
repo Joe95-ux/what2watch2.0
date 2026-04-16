@@ -10,6 +10,7 @@ import { extractMentions } from "@/lib/forum-mentions";
 import { sendEmail } from "@/lib/email";
 import { getForumMentionEmail } from "@/lib/email-templates";
 import { triggerUserNotificationsChanged } from "@/lib/pusher/server";
+import { publishUserNotification } from "@/lib/pusher/beams-server";
 
 // GET - Fetch forum posts with pagination and filters
 export async function GET(request: NextRequest) {
@@ -626,6 +627,17 @@ export async function POST(request: NextRequest) {
               source: "post-mentioned",
               postId: post.id,
             }
+          );
+          await Promise.all(
+            notificationsToCreate.map((notification) =>
+              publishUserNotification({
+                userIds: [notification.userId],
+                title: notification.title,
+                body: notification.message,
+                linkUrl: `/forum/${post.slug}`,
+                data: { postId: post.id },
+              })
+            )
           );
 
           // Send email notifications (async, don't block response)

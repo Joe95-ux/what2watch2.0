@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
         role: true,
         isForumAdmin: true,
         isForumModerator: true,
+        pushNotifications: true,
         chatQuota: true,
         stripeSubscriptionStatus: true,
         stripeSubscriptionCurrentPeriodEnd: true,

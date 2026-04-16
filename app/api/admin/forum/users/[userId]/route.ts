@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { sendEmail, getEmailTemplate } from "@/lib/email";
 import { triggerUserNotificationsChanged } from "@/lib/pusher/server";
+import { publishUserNotification } from "@/lib/pusher/beams-server";
 
 interface RouteParams {
   params: Promise<{ userId: string }>;
@@ -259,6 +260,17 @@ export async function PATCH(
           });
           await triggerUserNotificationsChanged([targetUser.id], "general", {
             source: actionType === "banned" ? "account-banned" : "account-suspended",
+          });
+          await publishUserNotification({
+            userIds: [targetUser.id],
+            title: `Account ${actionType === "banned" ? "Banned" : "Suspended"}`,
+            body:
+              reason ||
+              `Your account has been ${actionType}. ${
+                until ? `This action will be in effect until ${new Date(until).toLocaleDateString()}.` : ""
+              }`,
+            linkUrl: appealUrl,
+            data: { actionType: actionType || "moderation" },
           });
         } catch (notifError) {
           console.error("Failed to create notification:", notifError);

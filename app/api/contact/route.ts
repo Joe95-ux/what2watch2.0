@@ -5,6 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { sendContactSubmissionEmail } from "@/lib/contact-email";
 import { triggerUserNotificationsChanged } from "@/lib/pusher/server";
+import { publishUserNotification } from "@/lib/pusher/beams-server";
 
 const VALID_TYPES = ["support", "feedback", "general"];
 const VALID_PRIORITIES = ["Low", "Medium", "High", "Urgent"];
@@ -108,6 +109,13 @@ export async function POST(request: NextRequest) {
           "general",
           { source: "feedback-submitted" }
         );
+        await publishUserNotification({
+          userIds: admins.map((admin) => admin.id),
+          title: "New Feedback Submitted",
+          body: `${user.username || user.displayName || "A user"} submitted feedback: ${reason}`,
+          linkUrl: `${baseUrl}/dashboard/admin/forum?tab=feedback`,
+          data: { feedbackId: feedback.id },
+        });
       }
 
       await sendContactSubmissionEmail({
@@ -179,6 +187,13 @@ export async function POST(request: NextRequest) {
         "general",
         { source: `${type}-request-submitted` }
       );
+      await publishUserNotification({
+        userIds: admins.map((admin) => admin.id),
+        title,
+        body: `${user.username || user.displayName || "A user"} submitted a ${type} request: ${reason}`,
+        linkUrl: `${baseUrl}/dashboard/admin/forum?tab=feedback`,
+        data: { contactId: contact.id },
+      });
     }
 
     await sendContactSubmissionEmail({

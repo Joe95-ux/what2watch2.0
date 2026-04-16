@@ -8,6 +8,7 @@ import { extractMentions } from "@/lib/forum-mentions";
 import { sendEmail } from "@/lib/email";
 import { getForumReplyEmail, getForumMentionEmail, getForumSubscriptionEmail } from "@/lib/email-templates";
 import { triggerForumPostUpdated, triggerUserNotificationsChanged } from "@/lib/pusher/server";
+import { publishUserNotification } from "@/lib/pusher/beams-server";
 
 interface RouteParams {
   params: Promise<{ postId: string }>;
@@ -453,6 +454,17 @@ export async function POST(
             postId: actualPostId,
             replyId: reply.id,
           }
+        );
+        await Promise.all(
+          notificationsToCreate.map((notification) =>
+            publishUserNotification({
+              userIds: [notification.userId],
+              title: notification.title,
+              body: notification.message,
+              linkUrl: post.slug ? `/forum/${post.slug}` : `/forum/${actualPostId}`,
+              data: { postId: actualPostId, replyId: reply.id },
+            })
+          )
         );
 
         // Send email notifications (async, don't block response)
