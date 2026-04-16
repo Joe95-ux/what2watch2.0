@@ -18,8 +18,6 @@ const publicPlaylistBase: Prisma.PlaylistWhereInput = {
   },
 };
 
-const PLAYLISTS_PUBLIC_CACHE = { ttl: 60, swr: 300, tags: ["playlists_public"] } as const;
-const PLAYLISTS_RELATED_CACHE = { ttl: 30, swr: 180, tags: ["playlists_related"] } as const;
 
 // GET - Fetch public playlists (no authentication required)
 export async function GET(
@@ -112,7 +110,6 @@ export async function GET(
       },
       orderBy: { updatedAt: "desc" },
       take: hasExactTarget || genreTags.length > 0 ? Math.max(limitNum * 2, 20) : limitNum,
-      cacheStrategy: hasExactTarget || genreTags.length > 0 ? PLAYLISTS_RELATED_CACHE : PLAYLISTS_PUBLIC_CACHE,
     });
 
     if ((hasExactTarget || genreTags.length > 0) && playlists.length === 0) {
@@ -155,7 +152,6 @@ export async function GET(
         },
         orderBy: { updatedAt: "desc" },
         take: limitNum,
-        cacheStrategy: PLAYLISTS_RELATED_CACHE,
       });
     }
 

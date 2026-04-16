@@ -15,9 +15,9 @@ export interface RealtimeUpdate {
  * Polling configuration
  */
 export const POLLING_INTERVALS = {
-  ACTIVE: 5000, // 5 seconds when user is active
-  IDLE: 30000, // 30 seconds when user is idle
-  BACKGROUND: 60000, // 60 seconds when tab is in background
+  ACTIVE: 30000, // 30 seconds when user is active
+  IDLE: 60000, // 60 seconds when user is idle / unfocused
+  BACKGROUND: 120000, // 2 minutes when tab is in background
 } as const;
 
 /**
@@ -67,43 +67,93 @@ export async function checkForUpdates(
  */
 export function createPollingManager(
   callback: () => Promise<void>,
-  interval: number = POLLING_INTERVALS.ACTIVE
+  initialInterval: number = POLLING_INTERVALS.ACTIVE
 ) {
-  let intervalId: NodeJS.Timeout | null = null;
+  let timeoutId: ReturnType<typeof globalThis.setTimeout> | null = null;
   let isActive = false;
+  let isRunning = false;
+  let interval = initialInterval;
+  const isBrowser = typeof window !== "undefined" && typeof document !== "undefined";
+
+  const getCurrentInterval = () => {
+    if (!isBrowser) return interval;
+    if (document.visibilityState === "hidden") return POLLING_INTERVALS.BACKGROUND;
+    if (!document.hasFocus()) return POLLING_INTERVALS.IDLE;
+    return interval;
+  };
+
+  const clearPendingTimeout = () => {
+    if (!timeoutId) return;
+    clearTimeout(timeoutId);
+    timeoutId = null;
+  };
+
+  const scheduleNextPoll = () => {
+    if (!isActive) return;
+    clearPendingTimeout();
+    timeoutId = setTimeout(() => {
+      void poll();
+    }, getCurrentInterval());
+  };
+
+  const poll = async () => {
+    if (!isActive || isRunning) return;
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      scheduleNextPoll();
+      return;
+    }
+    isRunning = true;
+    try {
+      await callback();
+    } catch (error) {
+      console.error("Polling error:", error);
+    } finally {
+      isRunning = false;
+      scheduleNextPoll();
+    }
+  };
+
+  const handleVisibilityOrFocusChange = () => {
+    if (!isActive) return;
+    scheduleNextPoll();
+  };
 
   const start = () => {
     if (isActive) return;
     isActive = true;
-    intervalId = setInterval(async () => {
-      try {
-        await callback();
-      } catch (error) {
-        console.error("Polling error:", error);
-      }
-    }, interval);
+    if (isBrowser) {
+      document.addEventListener("visibilitychange", handleVisibilityOrFocusChange);
+      window.addEventListener("focus", handleVisibilityOrFocusChange);
+      window.addEventListener("blur", handleVisibilityOrFocusChange);
+      window.addEventListener("online", handleVisibilityOrFocusChange);
+    }
+    void poll();
   };
 
   const stop = () => {
-    if (intervalId) {
-      clearInterval(intervalId);
-      intervalId = null;
-    }
+    if (!isActive) return;
     isActive = false;
+    clearPendingTimeout();
+    if (isBrowser) {
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocusChange);
+      window.removeEventListener("focus", handleVisibilityOrFocusChange);
+      window.removeEventListener("blur", handleVisibilityOrFocusChange);
+      window.removeEventListener("online", handleVisibilityOrFocusChange);
+    }
   };
 
-  const setInterval = (newInterval: number) => {
-    stop();
+  const setPollingInterval = (newInterval: number) => {
     interval = newInterval;
     if (isActive) {
-      start();
+      scheduleNextPoll();
     }
   };
 
   return {
     start,
     stop,
-    setInterval: setIntervalTime,
+    destroy: stop,
+    setInterval: setPollingInterval,
     isActive: () => isActive,
   };
 }

@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { POLLING_INTERVALS, checkForUpdates, RealtimeUpdate } from "@/lib/services/forum-realtime.service";
+import {
+  POLLING_INTERVALS,
+  checkForUpdates,
+  createPollingManager,
+} from "@/lib/services/forum-realtime.service";
 
 /**
  * Hook for real-time updates via polling
@@ -12,9 +16,14 @@ export function useForumRealtimeUpdates(
 ) {
   const queryClient = useQueryClient();
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
+  const lastUpdateTimeRef = useRef<Date>(new Date());
   const [isOnline, setIsOnline] = useState(true);
   const [errorCount, setErrorCount] = useState(0);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingManagerRef = useRef<ReturnType<typeof createPollingManager> | null>(null);
+
+  useEffect(() => {
+    lastUpdateTimeRef.current = lastUpdateTime;
+  }, [lastUpdateTime]);
 
   // Monitor online/offline status
   useEffect(() => {
@@ -37,76 +46,41 @@ export function useForumRealtimeUpdates(
   }, []);
 
   useEffect(() => {
-    if (!enabled || !postId || !isOnline) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      return;
+    if (pollingManagerRef.current) {
+      pollingManagerRef.current.destroy();
+      pollingManagerRef.current = null;
     }
 
-    // Calculate backoff interval based on error count (exponential backoff)
-    // Max backoff: 60 seconds
-    const backoffInterval = Math.min(
-      interval * Math.pow(2, errorCount),
-      POLLING_INTERVALS.BACKGROUND * 2
-    );
+    if (!enabled || !postId || !isOnline) return;
 
     const poll = async () => {
       try {
-        const updates = await checkForUpdates(postId, lastUpdateTime);
-        
-        // Reset error count on successful poll
-        if (errorCount > 0) {
-          setErrorCount(0);
-        }
-        
+        const updates = await checkForUpdates(postId, lastUpdateTimeRef.current);
+        if (errorCount > 0) setErrorCount(0);
         if (updates.length > 0) {
-          // Invalidate relevant queries to trigger refetch
-          queryClient.invalidateQueries({
-            queryKey: ["forum-post", postId],
-          });
-          queryClient.invalidateQueries({
-            queryKey: ["forum-post-replies", postId],
-          });
-          queryClient.invalidateQueries({
-            queryKey: ["forum-post-reaction", postId],
-          });
-          
-          setLastUpdateTime(new Date());
+          queryClient.invalidateQueries({ queryKey: ["forum-post", postId] });
+          queryClient.invalidateQueries({ queryKey: ["forum-post-replies", postId] });
+          queryClient.invalidateQueries({ queryKey: ["forum-post-reaction", postId] });
+          const now = new Date();
+          lastUpdateTimeRef.current = now;
+          setLastUpdateTime(now);
         }
-      } catch (error) {
-        // Only log error if it's not a network error (to reduce console spam)
-        const isNetworkError = error instanceof TypeError && 
-          (error.message.includes("fetch") || error.message.includes("NetworkError"));
-        
-        if (!isNetworkError) {
-          console.error("Error polling for updates:", error);
-        }
-        
-        // Increment error count for backoff
+      } catch {
         setErrorCount((prev) => Math.min(prev + 1, 5)); // Cap at 5
       }
     };
 
-    // Clear existing interval
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-
-    // Initial poll
-    poll();
-
-    // Set up interval with backoff
-    intervalRef.current = setInterval(poll, backoffInterval);
+    const manager = createPollingManager(poll, interval);
+    const backoffInterval = Math.min(interval * Math.pow(2, errorCount), POLLING_INTERVALS.BACKGROUND);
+    manager.setInterval(backoffInterval);
+    manager.start();
+    pollingManagerRef.current = manager;
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      manager.destroy();
+      pollingManagerRef.current = null;
     };
-  }, [postId, enabled, interval, lastUpdateTime, queryClient, isOnline, errorCount]);
+  }, [postId, enabled, interval, queryClient, isOnline, errorCount]);
 
   return {
     lastUpdateTime,

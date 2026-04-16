@@ -1,10 +1,9 @@
-import { PrismaClient } from "@prisma/client/edge";
-import { withAccelerate } from "@prisma/extension-accelerate";
+import { PrismaClient } from "@prisma/client";
 
 const prismaClientSingleton = () =>
   new PrismaClient({
     log: ["error"],
-  }).$extends(withAccelerate());
+  });
 
 type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;
 

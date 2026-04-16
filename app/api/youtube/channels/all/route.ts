@@ -18,15 +18,8 @@ interface YouTubeChannelsResponse {
   items?: YouTubeChannelItem[];
 }
 
-interface ChannelRatingAggregate {
-  channelId: string;
-  _avg: { rating: number | null };
-  _count: { id: number };
-}
-
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
-const CHANNEL_POOL_CACHE = { ttl: 120, swr: 600, tags: ["youtube_channel_pool"] } as const;
 
 export async function GET(request: NextRequest) {
   try {
@@ -70,7 +63,6 @@ export async function GET(request: NextRequest) {
         isPrivate: true,
         addedByUserId: true,
       },
-      cacheStrategy: CHANNEL_POOL_CACHE,
     });
 
     console.log(`[YouTubeChannelsAll] Found ${channels.length} active channels in app pool`);
@@ -171,7 +163,7 @@ export async function GET(request: NextRequest) {
     const channelIds = channels.map((c) => c.channelId);
 
     // Get average ratings for channels
-    const channelRatings = (await db.channelReview.groupBy({
+    const channelRatingsRaw = await db.channelReview.groupBy({
       by: ["channelId"],
       where: {
         channelId: { in: channelIds },
@@ -183,7 +175,12 @@ export async function GET(request: NextRequest) {
       _count: {
         id: true,
       },
-    })) as ChannelRatingAggregate[];
+    });
+    const channelRatings = channelRatingsRaw as Array<{
+      channelId: string;
+      _avg: { rating: number | null };
+      _count: { id: number };
+    }>;
 
     const ratingsMap = new Map<string, { average: number; count: number }>();
     channelRatings.forEach((rating) => {

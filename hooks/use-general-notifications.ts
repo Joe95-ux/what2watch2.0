@@ -31,11 +31,21 @@ interface MarkAsReadParams {
   markAllAsRead?: boolean;
 }
 
+function getNotificationRefetchIntervalMs(baseMs: number): number | false {
+  if (typeof document !== "undefined" && document.visibilityState === "hidden") return false;
+  if (typeof navigator !== "undefined" && !navigator.onLine) return false;
+  return baseMs;
+}
+
 export function useGeneralNotifications(unreadOnly = false) {
   return useQuery({
     queryKey: ["general-notifications", unreadOnly],
     queryFn: () => fetchNotifications(unreadOnly),
-    refetchInterval: 30000, // Refetch every 30 seconds
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    refetchInterval: () => getNotificationRefetchIntervalMs(1000 * 60 * 2), // 2 minutes when visible
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
 
