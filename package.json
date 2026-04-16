@@ -77,6 +77,8 @@
     "nextjs-toploader": "^3.9.17",
     "nodemailer": "^8.0.4",
     "openai": "^6.9.0",
+    "pusher": "^5.3.3",
+    "pusher-js": "^8.5.0",
     "qrcode": "^1.5.4",
     "react": "^19.2.1",
     "react-avatar-editor": "^14.0.0",

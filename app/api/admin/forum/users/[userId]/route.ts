@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { sendEmail, getEmailTemplate } from "@/lib/email";
+import { triggerUserNotificationsChanged } from "@/lib/pusher/server";
 
 interface RouteParams {
   params: Promise<{ userId: string }>;
@@ -255,6 +256,9 @@ export async function PATCH(
               },
               isRead: false,
             },
+          });
+          await triggerUserNotificationsChanged([targetUser.id], "general", {
+            source: actionType === "banned" ? "account-banned" : "account-suspended",
           });
         } catch (notifError) {
           console.error("Failed to create notification:", notifError);

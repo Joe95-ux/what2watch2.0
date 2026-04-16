@@ -9,6 +9,7 @@ import { validateLinksInContent } from "@/lib/link-validation";
 import { extractMentions } from "@/lib/forum-mentions";
 import { sendEmail } from "@/lib/email";
 import { getForumMentionEmail } from "@/lib/email-templates";
+import { triggerUserNotificationsChanged } from "@/lib/pusher/server";
 
 // GET - Fetch forum posts with pagination and filters
 export async function GET(request: NextRequest) {
@@ -618,6 +619,14 @@ export async function POST(request: NextRequest) {
           await db.forumNotification.createMany({
             data: notificationsToCreate,
           });
+          await triggerUserNotificationsChanged(
+            notificationsToCreate.map((notification) => notification.userId),
+            "forum",
+            {
+              source: "post-mentioned",
+              postId: post.id,
+            }
+          );
 
           // Send email notifications (async, don't block response)
           const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";

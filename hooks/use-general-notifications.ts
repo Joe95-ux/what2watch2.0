@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { usePusherNotificationRealtime } from "@/hooks/use-pusher-notification-realtime";
 
 export interface GeneralNotification {
   id: string;
@@ -31,19 +32,13 @@ interface MarkAsReadParams {
   markAllAsRead?: boolean;
 }
 
-function getNotificationRefetchIntervalMs(baseMs: number): number | false {
-  if (typeof document !== "undefined" && document.visibilityState === "hidden") return false;
-  if (typeof navigator !== "undefined" && !navigator.onLine) return false;
-  return baseMs;
-}
-
 export function useGeneralNotifications(unreadOnly = false) {
+  usePusherNotificationRealtime("general");
+
   return useQuery({
     queryKey: ["general-notifications", unreadOnly],
     queryFn: () => fetchNotifications(unreadOnly),
-    staleTime: 1000 * 60 * 2, // 2 minutes
-    refetchInterval: () => getNotificationRefetchIntervalMs(1000 * 60 * 2), // 2 minutes when visible
-    refetchIntervalInBackground: false,
+    staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });

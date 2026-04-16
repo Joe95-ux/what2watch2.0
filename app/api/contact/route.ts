@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { sendContactSubmissionEmail } from "@/lib/contact-email";
+import { triggerUserNotificationsChanged } from "@/lib/pusher/server";
 
 const VALID_TYPES = ["support", "feedback", "general"];
 const VALID_PRIORITIES = ["Low", "Medium", "High", "Urgent"];
@@ -102,6 +103,11 @@ export async function POST(request: NextRequest) {
         await db.generalNotification.createMany({
           data: notifications,
         });
+        await triggerUserNotificationsChanged(
+          admins.map((admin) => admin.id),
+          "general",
+          { source: "feedback-submitted" }
+        );
       }
 
       await sendContactSubmissionEmail({
@@ -168,6 +174,11 @@ export async function POST(request: NextRequest) {
       await db.generalNotification.createMany({
         data: notifications,
       });
+      await triggerUserNotificationsChanged(
+        admins.map((admin) => admin.id),
+        "general",
+        { source: `${type}-request-submitted` }
+      );
     }
 
     await sendContactSubmissionEmail({

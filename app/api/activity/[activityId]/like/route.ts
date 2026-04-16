@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { triggerUserNotificationsChanged } from "@/lib/pusher/server";
 
 // GET - Check if current user has liked this activity
 export async function GET(
@@ -116,6 +117,10 @@ export async function POST(
             linkUrl: `/dashboard/activity?highlight=${activityId}`,
             metadata: { activityId, likerId: user.id },
           },
+        });
+        await triggerUserNotificationsChanged([activity.userId], "general", {
+          source: "activity-liked",
+          activityId,
         });
       }
     } catch (err) {

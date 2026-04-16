@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { triggerUserNotificationsChanged } from "@/lib/pusher/server";
 
 /**
  * Background job to check for new videos from favorite channels
@@ -16,6 +17,8 @@ export async function POST(request: NextRequest) {
 
 async function handleNotificationCheck(request: NextRequest) {
   try {
+    const changedUserIds = new Set<string>();
+
     // Optional: Add API key authentication for cron jobs
     const authHeader = request.headers.get("authorization");
     const expectedToken = process.env.CRON_SECRET;
@@ -115,12 +118,19 @@ async function handleNotificationCheck(request: NextRequest) {
                 },
               });
               totalNotifications++;
+              changedUserIds.add(user.id);
             }
           }
         } catch (error) {
           console.error(`Error processing channel ${favoriteChannel.channelId}:`, error);
         }
       }
+    }
+
+    if (changedUserIds.size > 0) {
+      await triggerUserNotificationsChanged([...changedUserIds], "youtube", {
+        source: "new-youtube-video",
+      });
     }
 
     return NextResponse.json({

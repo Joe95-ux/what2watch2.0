@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { triggerForumPostUpdated } from "@/lib/pusher/server";
 
 interface RouteParams {
   params: Promise<{ postId: string }>;
@@ -225,6 +226,11 @@ export async function POST(
       });
 
       return { reactionType, score, upvotes, downvotes };
+    });
+
+    await triggerForumPostUpdated(actualPostId, {
+      source: "post-reaction-updated",
+      reactionType: result.reactionType,
     });
 
     return NextResponse.json({

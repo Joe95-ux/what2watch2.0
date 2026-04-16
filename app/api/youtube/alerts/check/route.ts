@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { triggerUserNotificationsChanged } from "@/lib/pusher/server";
 
 /**
  * Check all active alerts and trigger notifications
@@ -108,6 +109,10 @@ export async function GET(request: NextRequest) {
                 },
                 isRead: false,
               },
+            });
+            await triggerUserNotificationsChanged([alert.userId], "general", {
+              source: "trend-alert-triggered",
+              alertId: alert.id,
             });
           } catch (notifError) {
             console.error("Failed to create notification for alert:", notifError);

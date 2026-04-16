@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getEmailTemplate, sendEmail } from "@/lib/email";
 import { subDays } from "date-fns";
+import { triggerUserNotificationsChanged } from "@/lib/pusher/server";
 
 function startOfDayUTC(d: Date): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
@@ -98,6 +99,10 @@ async function runPeakCheck(request: NextRequest) {
           linkUrl: analyticsUrl,
           metadata: { date: yesterday.toISOString(), metric, value },
         },
+      });
+      await triggerUserNotificationsChanged([user.id], "general", {
+        source: "link-page-peak",
+        metric,
       });
 
       if (user.email) {

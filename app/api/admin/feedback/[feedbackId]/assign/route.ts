@@ -5,6 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { getFeedbackAssignedEmail } from "@/lib/email-templates";
+import { triggerUserNotificationsChanged } from "@/lib/pusher/server";
 
 export async function PATCH(
   request: NextRequest,
@@ -139,6 +140,10 @@ export async function PATCH(
                 },
                 isRead: false,
               },
+            });
+            await triggerUserNotificationsChanged([assignedUser.id], "general", {
+              source: "feedback-assigned",
+              feedbackId,
             });
           } catch (notificationError) {
             // Silently fail - notification creation is not critical

@@ -7,6 +7,7 @@ import { sanitizeContent } from "@/lib/server-html-sanitizer";
 import { extractMentions } from "@/lib/forum-mentions";
 import { sendEmail } from "@/lib/email";
 import { getForumReplyEmail, getForumMentionEmail, getForumSubscriptionEmail } from "@/lib/email-templates";
+import { triggerForumPostUpdated, triggerUserNotificationsChanged } from "@/lib/pusher/server";
 
 interface RouteParams {
   params: Promise<{ postId: string }>;
@@ -444,6 +445,15 @@ export async function POST(
         await db.forumNotification.createMany({
           data: notificationsToCreate,
         });
+        await triggerUserNotificationsChanged(
+          notificationsToCreate.map((notification) => notification.userId),
+          "forum",
+          {
+            source: "reply-created",
+            postId: actualPostId,
+            replyId: reply.id,
+          }
+        );
 
         // Send email notifications (async, don't block response)
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -541,6 +551,12 @@ export async function POST(
       // Silently fail - notification creation is not critical
       console.error("Failed to create notifications for forum reply:", error);
     }
+
+    await triggerForumPostUpdated(actualPostId, {
+      source: "reply-created",
+      replyId: reply.id,
+      parentReplyId: reply.parentReplyId,
+    });
 
     return NextResponse.json({
       reply: {

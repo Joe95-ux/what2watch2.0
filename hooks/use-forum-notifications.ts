@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { usePusherNotificationRealtime } from "@/hooks/use-pusher-notification-realtime";
 
 export interface ForumNotification {
   id: string;
@@ -45,12 +46,6 @@ interface MarkAsReadParams {
   markAllAsRead?: boolean;
 }
 
-function getNotificationRefetchIntervalMs(baseMs: number): number | false {
-  if (typeof document !== "undefined" && document.visibilityState === "hidden") return false;
-  if (typeof navigator !== "undefined" && !navigator.onLine) return false;
-  return baseMs;
-}
-
 async function markNotificationsAsRead(params: MarkAsReadParams) {
   const { notificationIds, markAllAsRead = false } = params;
   const response = await fetch("/api/forum/notifications", {
@@ -67,12 +62,12 @@ async function markNotificationsAsRead(params: MarkAsReadParams) {
 }
 
 export function useForumNotifications(unreadOnly = false) {
+  usePusherNotificationRealtime("forum");
+
   return useQuery({
     queryKey: ["forum-notifications", unreadOnly],
     queryFn: () => fetchNotifications(unreadOnly),
-    staleTime: 1000 * 60 * 2, // 2 minutes
-    refetchInterval: () => getNotificationRefetchIntervalMs(1000 * 60 * 5), // 5 minutes when visible
-    refetchIntervalInBackground: false,
+    staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });

@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { triggerUserNotificationsChanged } from "@/lib/pusher/server";
 
 /**
  * Get user's general notifications
@@ -123,6 +124,10 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    await triggerUserNotificationsChanged([user.id], "general", {
+      source: "notifications-marked-read",
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[GeneralNotifications] PATCH error", error);
@@ -181,6 +186,10 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    await triggerUserNotificationsChanged([user.id], "general", {
+      source: "notifications-deleted",
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

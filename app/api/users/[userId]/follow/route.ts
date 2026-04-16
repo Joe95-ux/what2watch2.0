@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { triggerUserNotificationsChanged } from "@/lib/pusher/server";
 
 // POST - Follow a user
 export async function POST(
@@ -88,6 +89,10 @@ export async function POST(
             linkUrl: `/users/${currentUser.id}`,
             metadata: { followerId: currentUser.id },
           },
+        });
+        await triggerUserNotificationsChanged([targetUserId], "general", {
+          source: "new-follower",
+          followerId: currentUser.id,
         });
       } catch (err) {
         console.error("Failed to create new-follower notification:", err);

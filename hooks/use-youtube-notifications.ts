@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { usePusherNotificationRealtime } from "@/hooks/use-pusher-notification-realtime";
 
 export interface YouTubeNotification {
   id: string;
@@ -34,12 +35,6 @@ interface MarkAsReadParams {
   markAllAsRead?: boolean;
 }
 
-function getNotificationRefetchIntervalMs(baseMs: number): number | false {
-  if (typeof document !== "undefined" && document.visibilityState === "hidden") return false;
-  if (typeof navigator !== "undefined" && !navigator.onLine) return false;
-  return baseMs;
-}
-
 async function markNotificationsAsRead(params: MarkAsReadParams) {
   const { notificationIds, markAllAsRead = false } = params;
   const response = await fetch("/api/youtube/notifications", {
@@ -56,12 +51,12 @@ async function markNotificationsAsRead(params: MarkAsReadParams) {
 }
 
 export function useYouTubeNotifications(unreadOnly = false) {
+  usePusherNotificationRealtime("youtube");
+
   return useQuery({
     queryKey: ["youtube-notifications", unreadOnly],
     queryFn: () => fetchNotifications(unreadOnly),
-    staleTime: 1000 * 60 * 2, // 2 minutes
-    refetchInterval: () => getNotificationRefetchIntervalMs(1000 * 60 * 5), // 5 minutes when visible
-    refetchIntervalInBackground: false,
+    staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });

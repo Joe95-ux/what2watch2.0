@@ -27,7 +27,7 @@ import { useState } from "react";
 import { useForumPostReaction, useToggleForumPostLike } from "@/hooks/use-forum-reactions";
 import { usePostSubscription, useSubscribeToPost, useUnsubscribeFromPost } from "@/hooks/use-forum-post-subscription";
 import { usePostBookmark, useBookmarkPost, useUnbookmarkPost } from "@/hooks/use-forum-bookmarks";
-import { useForumRealtimeUpdates } from "@/hooks/use-forum-realtime";
+import { useForumPostPusher } from "@/hooks/use-forum-post-pusher";
 import { ShareDropdown } from "@/components/ui/share-dropdown";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -104,9 +104,6 @@ export function ForumPostDetailClient() {
   const [adsClosed, setAdsClosed] = useState(false);
   const postId = params.postId as string;
 
-  // Enable real-time updates
-  useForumRealtimeUpdates(postId || null, !!postId);
-
   const { data, isLoading, error } = useQuery<{ post: ForumPost }>({
     queryKey: ["forum-post", postId],
     queryFn: async () => {
@@ -130,6 +127,7 @@ export function ForumPostDetailClient() {
   });
 
   const post = data?.post;
+  useForumPostPusher(post?.id || null, !!post?.id);
   const { data: reaction } = useForumPostReaction(post?.id || "");
   const toggleReaction = useToggleForumPostLike(post?.id || "");
   const { data: subscription } = usePostSubscription(postId);

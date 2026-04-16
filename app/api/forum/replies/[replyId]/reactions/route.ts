@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { triggerForumPostUpdated } from "@/lib/pusher/server";
 
 interface RouteParams {
   params: Promise<{ replyId: string }>;
@@ -128,7 +129,7 @@ export async function POST(
     // Verify reply exists
     const reply = await db.forumReply.findUnique({
       where: { id: replyId },
-      select: { id: true },
+      select: { id: true, postId: true },
     });
 
     if (!reply) {
@@ -195,6 +196,12 @@ export async function POST(
       });
 
       return { reactionType, score, upvotes, downvotes };
+    });
+
+    await triggerForumPostUpdated(reply.postId, {
+      source: "reply-reaction-updated",
+      replyId,
+      reactionType: result.reactionType,
     });
 
     return NextResponse.json({
