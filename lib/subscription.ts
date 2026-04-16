@@ -1,8 +1,20 @@
 import { DEFAULT_FREE_CHAT_LIMIT } from "@/lib/billing";
 
-const EDITORIAL_NOTIFICATIONS_EMAIL_ALLOWLIST = new Set([
-  process.env.SUPER_USER,
-]);
+function getEditorialNotificationsEmailAllowlist() {
+  const fromDedicatedVar = (process.env.EDITORIAL_NOTIFICATIONS_ALLOWLIST || "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+
+  const fallbackSuperUser = (process.env.SUPER_USER || "")
+    .trim()
+    .toLowerCase();
+
+  return new Set([
+    ...fromDedicatedVar,
+    ...(fallbackSuperUser ? [fallbackSuperUser] : []),
+  ]);
+}
 
 /** Stripe subscription statuses that grant Pro access (unlimited AI chat). */
 export function hasActiveProSubscription(stripeSubscriptionStatus: string | null | undefined): boolean {
@@ -15,8 +27,9 @@ export function hasEditorialNotificationsAccess(
   email: string | null | undefined
 ): boolean {
   if (hasActiveProSubscription(stripeSubscriptionStatus)) return true;
+  const allowlist = getEditorialNotificationsEmailAllowlist();
   const normalizedEmail = (email ?? "").trim().toLowerCase();
-  return EDITORIAL_NOTIFICATIONS_EMAIL_ALLOWLIST.has(normalizedEmail);
+  return allowlist.has(normalizedEmail);
 }
 
 /** Stripe subscription needs payment attention (show banner). */
