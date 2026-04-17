@@ -9,22 +9,30 @@ import { publishUserNotification } from "@/lib/pusher/beams-server";
 interface NotifyPaidUsersInput {
   listId: string;
   listName: string;
+  /** Kept for callers / logging; publisher is included if they are Pro or allowlisted (same as everyone else). */
   actorUserId: string;
 }
 
 export async function notifyPaidUsersEditorialListPublished({
   listId,
   listName,
-  actorUserId,
+  actorUserId: _actorUserId,
 }: NotifyPaidUsersInput) {
   const allowlistEmails = getEditorialNotificationsAllowlistEmails();
 
   const candidates = await db.user.findMany({
     where: {
-      id: { not: actorUserId },
       OR: [
         { stripeSubscriptionStatus: { in: ["active", "trialing"] } },
-        ...(allowlistEmails.length > 0 ? [{ email: { in: allowlistEmails } }] : []),
+        ...(allowlistEmails.length > 0
+          ? [
+              {
+                OR: allowlistEmails.map((e) => ({
+                  email: { equals: e, mode: "insensitive" as const },
+                })),
+              },
+            ]
+          : []),
       ],
     },
     select: {

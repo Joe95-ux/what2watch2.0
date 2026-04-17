@@ -81,6 +81,8 @@ export default function Navbar() {
 
   const isDashboardNav = pathname === "/dashboard" || pathname?.startsWith("/dashboard");
 
+  const isSettingsNav = pathname === "/settings" || pathname?.startsWith("/settings");
+
   const useDarkNavbar = true;
 
   return (
@@ -94,13 +96,15 @@ export default function Navbar() {
     >
       <div
         className={cn(
-          "w-full flex h-16 items-center px-4 sm:px-6 lg:px-8",
+          "w-full flex h-16 items-center",
+          isSettingsNav ? "px-4" : "px-4 sm:px-6 lg:px-8",
           shouldUseMaxSearchNav && "container mx-auto",
           "grid grid-cols-[auto_1fr_auto] gap-2 md:gap-4",
           isDiscoverPage && "!grid",
           isDetailsNav && "max-w-7xl mx-auto",
+          isSettingsNav && "max-w-7xl mx-auto",
           isGuideNav && "max-w-[92rem] mx-auto",
-          isDashboardNav && "sm:px-4 lg:px-4",
+          isDashboardNav && !isSettingsNav && "sm:px-4 lg:px-4",
         )}
       >
         {/* Left: Hamburger + Logo + (Lists, Popular when not dashboard/discover) */}
