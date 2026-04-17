@@ -258,7 +258,21 @@ export default function PlaylistView({
 
   const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false);
   const [addSearchQuery, setAddSearchQuery] = useState("");
-  const [selectedItemsToAdd, setSelectedItemsToAdd] = useState<Set<string>>(new Set());
+  /** Map keyed by `${tmdbId}-movie|tv` — stores payloads so selections survive new searches. */
+  const [selectedItemsToAdd, setSelectedItemsToAdd] = useState<
+    Map<
+      string,
+      {
+        tmdbId: number;
+        mediaType: "movie" | "tv";
+        title: string;
+        posterPath: string | null;
+        backdropPath: string | null;
+        releaseDate?: string;
+        firstAirDate?: string;
+      }
+    >
+  >(new Map());
   const debouncedAddSearchQuery = useDebounce(addSearchQuery, 300);
   const { data: searchResults, isLoading: isSearchLoading } = useSearch({
     query: debouncedAddSearchQuery,
@@ -1250,7 +1264,7 @@ export default function PlaylistView({
                   onOpenChange={(open) => {
                     setIsAddToPlaylistOpen(open);
                     if (!open) {
-                      setSelectedItemsToAdd(new Set());
+                      setSelectedItemsToAdd(new Map());
                       setAddSearchQuery("");
                     }
                   }}
@@ -1277,7 +1291,10 @@ export default function PlaylistView({
                         className="w-full"
                         autoFocus
                       />
-                      {debouncedAddSearchQuery.trim() && searchResults?.results && searchResults.results.length > 0 && (
+                      {(selectedItemsToAdd.size > 0 ||
+                        (debouncedAddSearchQuery.trim() &&
+                          searchResults?.results &&
+                          searchResults.results.length > 0)) && (
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">
                             {selectedItemsToAdd.size} selected
@@ -1288,29 +1305,7 @@ export default function PlaylistView({
                             onClick={async () => {
                               if (!playlist || selectedItemsToAdd.size === 0) return;
 
-                              const itemsToAdd = Array.from(selectedItemsToAdd)
-                                .map((key) => {
-                                  const [id, type] = key.split("-");
-                                  const item = searchResults.results.find(
-                                    (i) => `${i.id}-${"title" in i ? "movie" : "tv"}` === key
-                                  );
-                                  if (!item) return null;
-                                  const isMovie = "title" in item;
-                                  return {
-                                    tmdbId: parseInt(id),
-                                    mediaType: type as "movie" | "tv",
-                                    title: isMovie ? item.title : item.name,
-                                    posterPath: item.poster_path || null,
-                                    backdropPath: item.backdrop_path || null,
-                                    releaseDate: isMovie
-                                      ? (item.release_date ?? undefined)
-                                      : undefined,
-                                    firstAirDate: !isMovie
-                                      ? (item.first_air_date ?? undefined)
-                                      : undefined,
-                                  };
-                                })
-                                .filter((item): item is NonNullable<typeof item> => item !== null);
+                              const itemsToAdd = Array.from(selectedItemsToAdd.values());
 
                               try {
                                 // Add items one by one to handle errors gracefully
@@ -1340,7 +1335,7 @@ export default function PlaylistView({
                                   );
                                 }
 
-                                setSelectedItemsToAdd(new Set());
+                                setSelectedItemsToAdd(new Map());
                                 setAddSearchQuery("");
                                 setIsAddToPlaylistOpen(false);
                               } catch (error) {
@@ -1386,6 +1381,10 @@ export default function PlaylistView({
                                   i.mediaType === mediaType
                               ) || false;
                               const isSelected = selectedItemsToAdd.has(itemKey);
+                              const yearLabel = isMovie
+                                ? item.release_date?.slice(0, 4)
+                                : item.first_air_date?.slice(0, 4);
+                              const typeLabel = isMovie ? "Movie" : "TV";
 
                               return (
                                 <div
@@ -1400,13 +1399,27 @@ export default function PlaylistView({
                                     disabled={isInPlaylist}
                                     onCheckedChange={(checked) => {
                                       if (isInPlaylist) return;
-                                      const newSelected = new Set(selectedItemsToAdd);
-                                      if (checked) {
-                                        newSelected.add(itemKey);
-                                      } else {
-                                        newSelected.delete(itemKey);
-                                      }
-                                      setSelectedItemsToAdd(newSelected);
+                                      setSelectedItemsToAdd((prev) => {
+                                        const next = new Map(prev);
+                                        if (checked) {
+                                          next.set(itemKey, {
+                                            tmdbId: item.id,
+                                            mediaType,
+                                            title,
+                                            posterPath: item.poster_path || null,
+                                            backdropPath: item.backdrop_path || null,
+                                            releaseDate: isMovie
+                                              ? item.release_date ?? undefined
+                                              : undefined,
+                                            firstAirDate: !isMovie
+                                              ? item.first_air_date ?? undefined
+                                              : undefined,
+                                          });
+                                        } else {
+                                          next.delete(itemKey);
+                                        }
+                                        return next;
+                                      });
                                     }}
                                     className="flex-shrink-0 cursor-pointer"
                                   />
@@ -1433,8 +1446,8 @@ export default function PlaylistView({
                                     <p className="font-medium text-sm truncate">
                                       {title}
                                     </p>
-                                    <p className="text-xs text-muted-foreground capitalize">
-                                      {mediaType}
+                                    <p className="text-xs text-muted-foreground">
+                                      {yearLabel ? `${yearLabel} · ${typeLabel}` : typeLabel}
                                     </p>
                                   </div>
                                   {isInPlaylist && (

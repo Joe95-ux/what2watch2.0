@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import {
+  buildTmdbItemNoteMap,
+  resolveNoteForBulkTmdbItem,
+} from "@/lib/preserve-notes-on-bulk-items";
+import {
   EDITORIAL_TAG,
   buildRelatedMetadataTags,
   keepSystemListTags,
@@ -187,6 +191,12 @@ export async function PATCH(
 
     // Update items if provided
     if (items !== undefined) {
+      const existingItems = await db.listItem.findMany({
+        where: { listId },
+        select: { tmdbId: true, mediaType: true, note: true },
+      });
+      const preservedNotes = buildTmdbItemNoteMap(existingItems);
+
       // Delete existing items
       await db.listItem.deleteMany({
         where: { listId },
@@ -204,6 +214,7 @@ export async function PATCH(
             releaseDate?: string | null;
             firstAirDate?: string | null;
             position?: number;
+            note?: string | null;
           }, index: number) => ({
             listId,
             tmdbId: item.tmdbId,
@@ -214,6 +225,7 @@ export async function PATCH(
             releaseDate: item.releaseDate || null,
             firstAirDate: item.firstAirDate || null,
             position: item.position !== undefined ? item.position : index + 1,
+            note: resolveNoteForBulkTmdbItem(item, preservedNotes),
           })),
         });
       }

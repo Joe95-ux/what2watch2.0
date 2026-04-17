@@ -235,7 +235,20 @@ export default function ListView({
   const [isEditListModalOpen, setIsEditListModalOpen] = useState(false);
   const [isAddToListOpen, setIsAddToListOpen] = useState(false);
   const [addSearchQuery, setAddSearchQuery] = useState("");
-  const [selectedItemsToAdd, setSelectedItemsToAdd] = useState<Set<string>>(new Set());
+  const [selectedItemsToAdd, setSelectedItemsToAdd] = useState<
+    Map<
+      string,
+      {
+        tmdbId: number;
+        mediaType: "movie" | "tv";
+        title: string;
+        posterPath: string | null;
+        backdropPath: string | null;
+        releaseDate: string | null;
+        firstAirDate: string | null;
+      }
+    >
+  >(new Map());
   const debouncedAddSearchQuery = useDebounce(addSearchQuery, 300);
   const { data: searchResults, isLoading: isSearchLoading } = useSearch({
     query: debouncedAddSearchQuery,
@@ -1039,7 +1052,7 @@ export default function ListView({
                   onOpenChange={(open) => {
                     setIsAddToListOpen(open);
                     if (!open) {
-                      setSelectedItemsToAdd(new Set());
+                      setSelectedItemsToAdd(new Map());
                       setAddSearchQuery("");
                     }
                   }}
@@ -1066,7 +1079,10 @@ export default function ListView({
                         className="w-full"
                         autoFocus
                       />
-                      {debouncedAddSearchQuery.trim() && searchResults?.results && searchResults.results.length > 0 && (
+                      {(selectedItemsToAdd.size > 0 ||
+                        (debouncedAddSearchQuery.trim() &&
+                          searchResults?.results &&
+                          searchResults.results.length > 0)) && (
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">
                             {selectedItemsToAdd.size} selected
@@ -1077,29 +1093,7 @@ export default function ListView({
                             onClick={async () => {
                               if (!list || selectedItemsToAdd.size === 0) return;
 
-                              const itemsToAdd = Array.from(selectedItemsToAdd)
-                                .map((key) => {
-                                  const [id, type] = key.split("-");
-                                  const item = searchResults.results.find(
-                                    (i) => `${i.id}-${"title" in i ? "movie" : "tv"}` === key
-                                  );
-                                  if (!item) return null;
-                                  const isMovie = "title" in item;
-                                  return {
-                                    tmdbId: parseInt(id),
-                                    mediaType: type as "movie" | "tv",
-                                    title: isMovie ? item.title : item.name,
-                                    posterPath: item.poster_path || null,
-                                    backdropPath: item.backdrop_path || null,
-                                    releaseDate: isMovie
-                                      ? (item.release_date ?? null)
-                                      : null,
-                                    firstAirDate: !isMovie
-                                      ? (item.first_air_date ?? null)
-                                      : null,
-                                  };
-                                })
-                                .filter((item): item is NonNullable<typeof item> => item !== null);
+                              const itemsToAdd = Array.from(selectedItemsToAdd.values());
 
                               try {
                                 const existingItems = list.items || [];
@@ -1127,7 +1121,7 @@ export default function ListView({
                                 toast.success(
                                   `Added ${itemsToAdd.length} item${itemsToAdd.length > 1 ? "s" : ""} to list`
                                 );
-                                setSelectedItemsToAdd(new Set());
+                                setSelectedItemsToAdd(new Map());
                                 setAddSearchQuery("");
                                 setIsAddToListOpen(false);
                               } catch (error) {
@@ -1174,6 +1168,10 @@ export default function ListView({
                                   i.mediaType === mediaType
                               );
                               const isSelected = selectedItemsToAdd.has(itemKey);
+                              const yearLabel = isMovie
+                                ? item.release_date?.slice(0, 4)
+                                : item.first_air_date?.slice(0, 4);
+                              const typeLabel = isMovie ? "Movie" : "TV";
 
                               return (
                                 <div
@@ -1188,13 +1186,27 @@ export default function ListView({
                                     disabled={isInList}
                                     onCheckedChange={(checked) => {
                                       if (isInList) return;
-                                      const newSelected = new Set(selectedItemsToAdd);
-                                      if (checked) {
-                                        newSelected.add(itemKey);
-                                      } else {
-                                        newSelected.delete(itemKey);
-                                      }
-                                      setSelectedItemsToAdd(newSelected);
+                                      setSelectedItemsToAdd((prev) => {
+                                        const next = new Map(prev);
+                                        if (checked) {
+                                          next.set(itemKey, {
+                                            tmdbId: item.id,
+                                            mediaType,
+                                            title,
+                                            posterPath: item.poster_path || null,
+                                            backdropPath: item.backdrop_path || null,
+                                            releaseDate: isMovie
+                                              ? item.release_date ?? null
+                                              : null,
+                                            firstAirDate: !isMovie
+                                              ? item.first_air_date ?? null
+                                              : null,
+                                          });
+                                        } else {
+                                          next.delete(itemKey);
+                                        }
+                                        return next;
+                                      });
                                     }}
                                     className="flex-shrink-0 cursor-pointer"
                                   />
@@ -1221,8 +1233,8 @@ export default function ListView({
                                     <p className="font-medium text-sm truncate">
                                       {title}
                                     </p>
-                                    <p className="text-xs text-muted-foreground capitalize">
-                                      {mediaType}
+                                    <p className="text-xs text-muted-foreground">
+                                      {yearLabel ? `${yearLabel} · ${typeLabel}` : typeLabel}
                                     </p>
                                   </div>
                                   {isInList && (
@@ -2730,9 +2742,11 @@ function DetailedListItem({
                         setIsEditingNote(true);
                       }}
                       className={cn(
-                        "border-l-4 border-[#E0B416] pl-4 py-2 text-sm text-muted-foreground cursor-text hover:border-[#E0B416] transition-colors rounded-r",
+                        "border-l-4 border-[#E0B416] pl-4 py-2 text-sm cursor-text hover:border-[#E0B416] transition-colors rounded-r",
                         "bg-muted/50 hover:bg-muted/70",
-                        !listItem.note && "text-muted-foreground/50 italic"
+                        listItem.note
+                          ? "text-foreground/95"
+                          : "text-muted-foreground/50 italic"
                       )}
                     >
                       {listItem.note || "Click to add a note..."}
@@ -2801,14 +2815,7 @@ function DetailedListItem({
                     </div>
                   )}
                   {listItem.note && (
-                    <div
-                      className={cn(
-                        "mt-2 border-l-4 pl-4 py-2 text-sm rounded-r",
-                        isPublic
-                          ? "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
-                          : "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
-                      )}
-                    >
+                    <div className="mt-2 border-l-4 border-[#E0B416] pl-4 py-2 text-sm rounded-r bg-muted/50 text-foreground/95">
                       {listItem.note}
                     </div>
                   )}
@@ -2940,9 +2947,11 @@ function DetailedListItem({
                     setIsEditingNote(true);
                   }}
                   className={cn(
-                    "border-l-4 border-primary/50 pl-4 py-2 text-sm text-muted-foreground cursor-text hover:border-primary/80 transition-colors rounded-r",
+                    "border-l-4 border-[#E0B416] pl-4 py-2 text-sm cursor-text hover:border-[#E0B416] transition-colors rounded-r",
                     "bg-muted/50 hover:bg-muted/70",
-                    !listItem.note && "text-muted-foreground/50 italic"
+                    listItem.note
+                      ? "text-foreground/95"
+                      : "text-muted-foreground/50 italic"
                   )}
                 >
                   {listItem.note || "Click to add a note..."}
@@ -3011,14 +3020,7 @@ function DetailedListItem({
                 </div>
               )}
               {listItem.note && (
-                <div
-                  className={cn(
-                    "mt-2 border-l-4 pl-4 py-2 text-sm rounded-r",
-                    isPublic
-                      ? "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
-                      : "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
-                  )}
-                >
+                <div className="mt-2 border-l-4 border-[#E0B416] pl-4 py-2 text-sm rounded-r bg-muted/50 text-foreground/95">
                   {listItem.note}
                 </div>
               )}

@@ -242,7 +242,20 @@ export default function WatchlistView({
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isAddToWatchlistOpen, setIsAddToWatchlistOpen] = useState(false);
   const [addSearchQuery, setAddSearchQuery] = useState("");
-  const [selectedItemsToAdd, setSelectedItemsToAdd] = useState<Set<string>>(new Set());
+  const [selectedItemsToAdd, setSelectedItemsToAdd] = useState<
+    Map<
+      string,
+      {
+        tmdbId: number;
+        mediaType: "movie" | "tv";
+        title: string;
+        posterPath: string | null;
+        backdropPath: string | null;
+        releaseDate?: string;
+        firstAirDate?: string;
+      }
+    >
+  >(new Map());
   const { isSignedIn } = useUser();
   const { data: currentUser } = useCurrentUser();
   const { avatarUrl: contextAvatarUrl } = useAvatar();
@@ -1012,7 +1025,7 @@ export default function WatchlistView({
                   onOpenChange={(open) => {
                     setIsAddToWatchlistOpen(open);
                     if (!open) {
-                      setSelectedItemsToAdd(new Set());
+                      setSelectedItemsToAdd(new Map());
                       setAddSearchQuery("");
                     }
                   }}
@@ -1039,7 +1052,10 @@ export default function WatchlistView({
                         className="w-full"
                         autoFocus
                       />
-                      {debouncedAddSearchQuery.trim() && searchResults?.results && searchResults.results.length > 0 && (
+                      {(selectedItemsToAdd.size > 0 ||
+                        (debouncedAddSearchQuery.trim() &&
+                          searchResults?.results &&
+                          searchResults.results.length > 0)) && (
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">
                             {selectedItemsToAdd.size} selected
@@ -1050,29 +1066,7 @@ export default function WatchlistView({
                             onClick={async () => {
                               if (selectedItemsToAdd.size === 0) return;
 
-                              const itemsToAdd = Array.from(selectedItemsToAdd)
-                                .map((key) => {
-                                  const [id, type] = key.split("-");
-                                  const item = searchResults.results.find(
-                                    (i) => `${i.id}-${"title" in i ? "movie" : "tv"}` === key
-                                  );
-                                  if (!item) return null;
-                                  const isMovie = "title" in item;
-                                  return {
-                                    tmdbId: parseInt(id),
-                                    mediaType: type as "movie" | "tv",
-                                    title: isMovie ? item.title : item.name,
-                                    posterPath: item.poster_path || null,
-                                    backdropPath: item.backdrop_path || null,
-                                    releaseDate: isMovie
-                                      ? (item.release_date ?? undefined)
-                                      : undefined,
-                                    firstAirDate: !isMovie
-                                      ? (item.first_air_date ?? undefined)
-                                      : undefined,
-                                  };
-                                })
-                                .filter((item): item is NonNullable<typeof item> => item !== null);
+                              const itemsToAdd = Array.from(selectedItemsToAdd.values());
 
                               try {
                                 // Add items one by one to handle errors gracefully
@@ -1107,7 +1101,7 @@ export default function WatchlistView({
                                   );
                                 }
 
-                                setSelectedItemsToAdd(new Set());
+                                setSelectedItemsToAdd(new Map());
                                 setAddSearchQuery("");
                                 setIsAddToWatchlistOpen(false);
                               } catch (error) {
@@ -1154,6 +1148,10 @@ export default function WatchlistView({
                                   w.mediaType === mediaType
                               );
                               const isSelected = selectedItemsToAdd.has(itemKey);
+                              const yearLabel = isMovie
+                                ? item.release_date?.slice(0, 4)
+                                : item.first_air_date?.slice(0, 4);
+                              const typeLabel = isMovie ? "Movie" : "TV";
 
                               return (
                                 <div
@@ -1168,13 +1166,27 @@ export default function WatchlistView({
                                     disabled={isInWatchlist}
                                     onCheckedChange={(checked) => {
                                       if (isInWatchlist) return;
-                                      const newSelected = new Set(selectedItemsToAdd);
-                                      if (checked) {
-                                        newSelected.add(itemKey);
-                                      } else {
-                                        newSelected.delete(itemKey);
-                                      }
-                                      setSelectedItemsToAdd(newSelected);
+                                      setSelectedItemsToAdd((prev) => {
+                                        const next = new Map(prev);
+                                        if (checked) {
+                                          next.set(itemKey, {
+                                            tmdbId: item.id,
+                                            mediaType,
+                                            title,
+                                            posterPath: item.poster_path || null,
+                                            backdropPath: item.backdrop_path || null,
+                                            releaseDate: isMovie
+                                              ? item.release_date ?? undefined
+                                              : undefined,
+                                            firstAirDate: !isMovie
+                                              ? item.first_air_date ?? undefined
+                                              : undefined,
+                                          });
+                                        } else {
+                                          next.delete(itemKey);
+                                        }
+                                        return next;
+                                      });
                                     }}
                                     className="flex-shrink-0 cursor-pointer"
                                   />
@@ -1201,24 +1213,8 @@ export default function WatchlistView({
                                     <div className="font-medium truncate">
                                       {title}
                                     </div>
-                                    <div className="text-sm text-muted-foreground flex items-center gap-2">
-                                      <span className="capitalize">
-                                        {mediaType}
-                                      </span>
-                                      {(isMovie
-                                        ? item.release_date
-                                        : item.first_air_date) && (
-                                        <>
-                                          <span>•</span>
-                                          <span>
-                                            {new Date(
-                                              isMovie
-                                                ? item.release_date!
-                                                : item.first_air_date!
-                                            ).getFullYear()}
-                                          </span>
-                                        </>
-                                      )}
+                                    <div className="text-xs text-muted-foreground">
+                                      {yearLabel ? `${yearLabel} · ${typeLabel}` : typeLabel}
                                     </div>
                                   </div>
                                   {isInWatchlist && (
@@ -2681,9 +2677,11 @@ function DetailedWatchlistItem({
                         setIsEditingNote(true);
                       }}
                       className={cn(
-                        "border-l-4 border-[#E0B416] pl-4 py-2 text-sm text-muted-foreground cursor-text hover:border-[#E0B416] transition-colors rounded-r",
+                        "border-l-4 border-[#E0B416] pl-4 py-2 text-sm cursor-text hover:border-[#E0B416] transition-colors rounded-r",
                         "bg-muted/50 hover:bg-muted/70",
-                        !watchlistItem.note && "text-muted-foreground/50 italic"
+                        watchlistItem.note
+                          ? "text-foreground/95"
+                          : "text-muted-foreground/50 italic"
                       )}
                     >
                       {watchlistItem.note || "Click to add a note..."}
@@ -2755,14 +2753,7 @@ function DetailedWatchlistItem({
                     </div>
                   )}
                   {watchlistItem.note && (
-                    <div
-                      className={cn(
-                        "mt-2 border-l-4 pl-4 py-2 text-sm rounded-r",
-                        isPublic
-                          ? "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
-                          : "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
-                      )}
-                    >
+                    <div className="mt-2 border-l-4 border-[#E0B416] pl-4 py-2 text-sm rounded-r bg-muted/50 text-foreground/95">
                       {watchlistItem.note}
                     </div>
                   )}
@@ -2895,9 +2886,11 @@ function DetailedWatchlistItem({
                     setIsEditingNote(true);
                   }}
                   className={cn(
-                    "border-l-4 border-primary/50 pl-4 py-2 text-sm text-muted-foreground cursor-text hover:border-primary/80 transition-colors rounded-r",
+                    "border-l-4 border-[#E0B416] pl-4 py-2 text-sm cursor-text hover:border-[#E0B416] transition-colors rounded-r",
                     "bg-muted/50 hover:bg-muted/70",
-                    !watchlistItem.note && "text-muted-foreground/50 italic"
+                    watchlistItem.note
+                      ? "text-foreground/95"
+                      : "text-muted-foreground/50 italic"
                   )}
                 >
                   {watchlistItem.note || "Click to add a note..."}
@@ -2965,14 +2958,7 @@ function DetailedWatchlistItem({
                 </div>
               )}
               {watchlistItem.note && (
-                <div
-                  className={cn(
-                    "mt-2 border-l-4 pl-4 py-2 text-sm rounded-r",
-                    isPublic
-                      ? "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
-                      : "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
-                  )}
-                >
+                <div className="mt-2 border-l-4 border-[#E0B416] pl-4 py-2 text-sm rounded-r bg-muted/50 text-foreground/95">
                   {watchlistItem.note}
                 </div>
               )}

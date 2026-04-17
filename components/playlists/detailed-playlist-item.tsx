@@ -657,9 +657,11 @@ function DetailedPlaylistItem({
                           setIsEditingNote(true);
                         }}
                         className={cn(
-                          "border-l-4 border-[#E0B416] pl-4 py-2 text-sm text-muted-foreground cursor-text hover:border-[#E0B416] transition-colors rounded-r",
+                          "border-l-4 border-[#E0B416] pl-4 py-2 text-sm cursor-text hover:border-[#E0B416] transition-colors rounded-r",
                           "bg-muted/50 hover:bg-muted/70",
-                          !playlistItem.note && "text-muted-foreground/50 italic"
+                          playlistItem.note
+                            ? "text-foreground/95"
+                            : "text-muted-foreground/50 italic"
                         )}
                       >
                         {playlistItem.note || "Click to add a note..."}
@@ -728,14 +730,7 @@ function DetailedPlaylistItem({
                       </div>
                     )}
                     {playlistItem.note && (
-                      <div
-                        className={cn(
-                          "mt-2 border-l-4 pl-4 py-2 text-sm rounded-r",
-                          isPublic
-                            ? "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
-                            : "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
-                        )}
-                      >
+                      <div className="mt-2 border-l-4 border-[#E0B416] pl-4 py-2 text-sm rounded-r bg-muted/50 text-foreground/95">
                         {playlistItem.note}
                       </div>
                     )}
@@ -867,9 +862,11 @@ function DetailedPlaylistItem({
                       setIsEditingNote(true);
                     }}
                     className={cn(
-                      "border-l-4 border-primary/50 pl-4 py-2 text-sm text-muted-foreground cursor-text hover:border-primary/80 transition-colors rounded-r",
+                      "border-l-4 border-[#E0B416] pl-4 py-2 text-sm cursor-text hover:border-[#E0B416] transition-colors rounded-r",
                       "bg-muted/50 hover:bg-muted/70",
-                      !playlistItem.note && "text-muted-foreground/50 italic"
+                      playlistItem.note
+                        ? "text-foreground/95"
+                        : "text-muted-foreground/50 italic"
                     )}
                   >
                     {playlistItem.note || "Click to add a note..."}
@@ -938,14 +935,7 @@ function DetailedPlaylistItem({
                   </div>
                 )}
                 {playlistItem.note && (
-                  <div
-                    className={cn(
-                      "mt-2 border-l-4 pl-4 py-2 text-sm rounded-r",
-                      isPublic
-                        ? "bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400"
-                        : "bg-orange-500/20 border-orange-500/30 text-orange-700 dark:text-orange-400"
-                    )}
-                  >
+                  <div className="mt-2 border-l-4 border-[#E0B416] pl-4 py-2 text-sm rounded-r bg-muted/50 text-foreground/95">
                     {playlistItem.note}
                   </div>
                 )}

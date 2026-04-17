@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { syncPlaylistRelatedMetadata } from "@/lib/sync-playlist-related-metadata";
+import {
+  buildTmdbItemNoteMap,
+  resolveNoteForBulkTmdbItem,
+} from "@/lib/preserve-notes-on-bulk-items";
 
 interface RouteParams {
   params: Promise<{ playlistId: string }>;
@@ -214,6 +218,12 @@ export async function PUT(
 
     // Update items if provided
     if (items !== undefined) {
+      const existingItems = await db.playlistItem.findMany({
+        where: { playlistId },
+        select: { tmdbId: true, mediaType: true, note: true },
+      });
+      const preservedNotes = buildTmdbItemNoteMap(existingItems);
+
       // Delete existing items
       await db.playlistItem.deleteMany({
         where: { playlistId },
@@ -231,6 +241,7 @@ export async function PUT(
             releaseDate?: string | null;
             firstAirDate?: string | null;
             order?: number;
+            note?: string | null;
           }, index: number) => ({
             playlistId,
             tmdbId: item.tmdbId,
@@ -241,6 +252,7 @@ export async function PUT(
             releaseDate: item.releaseDate || null,
             firstAirDate: item.firstAirDate || null,
             order: item.order !== undefined ? item.order : index,
+            note: resolveNoteForBulkTmdbItem(item, preservedNotes),
           })),
         });
       }
