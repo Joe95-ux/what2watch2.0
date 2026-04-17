@@ -13,7 +13,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Plus, ListCheck, ChevronRight } from "lucide-react";
+import { Plus, ListCheck, ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import CreatePlaylistModal from "./create-playlist-modal";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -177,12 +177,16 @@ export default function AddYouTubeVideoToPlaylistDropdown({
                         }}
                         className="flex items-center gap-2 flex-1 min-w-0 px-2 py-2 hover:bg-muted rounded transition-colors cursor-pointer"
                       >
-                        <ListCheck
-                          className={cn(
-                            "h-4 w-4 flex-shrink-0",
-                            isInPlaylist ? "text-green-500" : "text-muted-foreground"
-                          )}
-                        />
+                        {isProcessing ? (
+                          <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-muted-foreground" />
+                        ) : (
+                          <ListCheck
+                            className={cn(
+                              "h-4 w-4 flex-shrink-0",
+                              isInPlaylist ? "text-green-500" : "text-muted-foreground"
+                            )}
+                          />
+                        )}
                         <span className="truncate text-left">{playlist.name}</span>
                       </button>
                       <button

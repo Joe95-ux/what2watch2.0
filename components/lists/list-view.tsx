@@ -766,15 +766,12 @@ export default function ListView({
                       </p>
                     ) : (
                       <p className="text-sm text-muted-foreground flex flex-wrap items-center gap-x-1 gap-y-0.5">
-                        <span>
-                          Created by{" "}
-                          <Link
-                            href={`/users/${list.user.username || list.user.id}`}
-                            className="font-medium text-foreground hover:text-primary transition-colors cursor-pointer"
-                          >
-                            {list.user.username || list.user.displayName || "Unknown"}
-                          </Link>
-                        </span>
+                        <Link
+                          href={`/users/${list.user.username || list.user.id}`}
+                          className="font-medium text-foreground hover:text-primary transition-colors cursor-pointer"
+                        >
+                          {list.user.username || list.user.displayName || "Unknown"}
+                        </Link>
                         <span className="text-muted-foreground" aria-hidden>
                           .
                         </span>

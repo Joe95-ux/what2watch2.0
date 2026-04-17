@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Plus, ListCheck, ChevronRight } from "lucide-react";
+import { Plus, ListCheck, ChevronRight, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import CreatePlaylistModal from "@/components/playlists/create-playlist-modal";
@@ -43,6 +43,8 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
   const [isCreateListModalOpen, setIsCreateListModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [pendingPlaylistId, setPendingPlaylistId] = useState<string | null>(null);
+  const [pendingListId, setPendingListId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"playlist" | "list">("playlist");
   const lastOpenRef = useRef<boolean>(false);
   const isMobile = useIsMobile();
@@ -83,6 +85,7 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
 
   const handleTogglePlaylist = async (playlistId: string) => {
     await requireAuth(async () => {
+      setPendingPlaylistId(playlistId);
       try {
         const playlist = playlists.find((p) => p.id === playlistId);
         if (!playlist) return;
@@ -126,12 +129,15 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
         const errorMessage = error instanceof Error ? error.message : "Failed to update playlist";
         toast.error(errorMessage);
         console.error(error);
+      } finally {
+        setPendingPlaylistId(null);
       }
     }, "Sign in to manage playlists.");
   };
 
   const handleToggleList = async (listId: string) => {
     await requireAuth(async () => {
+      setPendingListId(listId);
       try {
         const list = lists.find((l) => l.id === listId);
         if (!list) return;
@@ -181,6 +187,8 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
       } catch (error) {
         toast.error("Failed to update list");
         console.error(error);
+      } finally {
+        setPendingListId(null);
       }
     }, "Sign in to manage lists.");
   };
@@ -261,10 +269,11 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
                 ) : (
                   playlists.map((playlist) => {
                     const isInPlaylist = isItemInPlaylist(playlist);
+                    const isRowPending = pendingPlaylistId === playlist.id;
                     return (
                       <DropdownMenuItem
                         key={playlist.id}
-                        disabled={addItemToPlaylist.isPending || removeItemFromPlaylist.isPending}
+                        disabled={isRowPending}
                         className="p-0"
                         onSelect={(e) => e.preventDefault()}
                       >
@@ -277,12 +286,16 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
                             }}
                             className="flex items-center gap-2 flex-1 min-w-0 px-2 py-2 hover:bg-muted rounded transition-colors cursor-pointer"
                           >
-                            <ListCheck 
-                              className={cn(
-                                "h-4 w-4 flex-shrink-0",
-                                isInPlaylist ? "text-green-500" : "text-muted-foreground"
-                              )} 
-                            />
+                            {isRowPending ? (
+                              <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-muted-foreground" />
+                            ) : (
+                              <ListCheck 
+                                className={cn(
+                                  "h-4 w-4 flex-shrink-0",
+                                  isInPlaylist ? "text-green-500" : "text-muted-foreground"
+                                )} 
+                              />
+                            )}
                             <span className="truncate text-left">{playlist.name}</span>
                           </button>
                           <button
@@ -311,10 +324,11 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
                 ) : (
                   lists.map((list) => {
                     const isInList = isItemInList(list);
+                    const isRowPending = pendingListId === list.id;
                     return (
                       <DropdownMenuItem
                         key={list.id}
-                        disabled={updateList.isPending || removeItemFromList.isPending}
+                        disabled={isRowPending}
                         className="p-0"
                         onSelect={(e) => e.preventDefault()}
                       >
@@ -327,12 +341,16 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
                             }}
                             className="flex items-center gap-2 flex-1 min-w-0 px-2 py-2 hover:bg-muted rounded transition-colors cursor-pointer"
                           >
-                            <ListCheck 
-                              className={cn(
-                                "h-4 w-4 flex-shrink-0",
-                                isInList ? "text-green-500" : "text-muted-foreground"
-                              )} 
-                            />
+                            {isRowPending ? (
+                              <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-muted-foreground" />
+                            ) : (
+                              <ListCheck 
+                                className={cn(
+                                  "h-4 w-4 flex-shrink-0",
+                                  isInList ? "text-green-500" : "text-muted-foreground"
+                                )} 
+                              />
+                            )}
                             <span className="truncate text-left">{list.name}</span>
                           </button>
                           <button

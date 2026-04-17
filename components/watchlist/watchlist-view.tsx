@@ -794,15 +794,12 @@ export default function WatchlistView({
                     </Avatar>
                   </Link>
                   <p className="text-sm text-muted-foreground flex flex-wrap items-center gap-x-1 gap-y-0.5">
-                    <span>
-                      Created by{" "}
-                      <Link
-                        href={`/users/${user.username || user.id}`}
-                        className="font-medium text-foreground hover:text-primary transition-colors cursor-pointer"
-                      >
-                        {user.username || user.displayName || "Unknown"}
-                      </Link>
-                    </span>
+                    <Link
+                      href={`/users/${user.username || user.id}`}
+                      className="font-medium text-foreground hover:text-primary transition-colors cursor-pointer"
+                    >
+                      {user.username || user.displayName || "Unknown"}
+                    </Link>
                     {watchlistItemTimeBounds && (
                       <>
                         <span className="text-muted-foreground" aria-hidden>

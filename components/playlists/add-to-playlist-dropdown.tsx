@@ -12,11 +12,10 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Plus, Check } from "lucide-react";
+import { Plus, Check, ListCheck, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import CreatePlaylistModal from "./create-playlist-modal";
 import { useIsMobile } from "@/hooks/use-mobile";
-
 interface AddToPlaylistDropdownProps {
   item: TMDBMovie | TMDBSeries;
   type: "movie" | "tv";
@@ -30,6 +29,7 @@ export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChang
   const addItemToPlaylist = useAddItemToPlaylist();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [pendingPlaylistId, setPendingPlaylistId] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   const handleOpenChange = (open: boolean) => {
@@ -110,6 +110,7 @@ export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChang
             ) : (
               playlists.map((playlist) => {
                 const isInPlaylist = isItemInPlaylist(playlist);
+                const isRowPending = pendingPlaylistId === playlist.id;
                 return (
                   <DropdownMenuItem
                     key={playlist.id}
@@ -121,16 +122,23 @@ export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChang
                         setIsDropdownOpen(false);
                       }
                     }}
-                    disabled={isInPlaylist || addItemToPlaylist.isPending}
+                    disabled={isInPlaylist || isRowPending}
                   >
                     {isInPlaylist ? (
                       <>
-                        <Check className="h-4 w-4 mr-2" />
+                        <Check className="h-4 w-4 mr-2 flex-shrink-0" />
                         <span className="flex-1">{playlist.name}</span>
                         <span className="text-xs text-muted-foreground">Added</span>
                       </>
                     ) : (
-                      <span>{playlist.name}</span>
+                      <>
+                        {isRowPending ? (
+                          <Loader2 className="h-4 w-4 mr-2 flex-shrink-0 animate-spin text-muted-foreground" />
+                        ) : (
+                          <ListCheck className="h-4 w-4 mr-2 flex-shrink-0 text-muted-foreground" />
+                        )}
+                        <span className="flex-1">{playlist.name}</span>
+                      </>
                     )}
                   </DropdownMenuItem>
                 );

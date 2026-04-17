@@ -976,15 +976,12 @@ export default function PlaylistView({
                   </Link>
                   <div>
                     <p className="text-sm text-muted-foreground flex flex-wrap items-center gap-x-1 gap-y-0.5">
-                      <span>
-                        Created by{" "}
-                        <Link
-                          href={`/users/${playlist.user.username || playlist.user.id}`}
-                          className="font-medium text-foreground hover:text-primary transition-colors cursor-pointer"
-                        >
-                          {playlist.user.username || playlist.user.displayName || "Unknown"}
-                        </Link>
-                      </span>
+                      <Link
+                        href={`/users/${playlist.user.username || playlist.user.id}`}
+                        className="font-medium text-foreground hover:text-primary transition-colors cursor-pointer"
+                      >
+                        {playlist.user.username || playlist.user.displayName || "Unknown"}
+                      </Link>
                       <span className="text-muted-foreground" aria-hidden>
                         .
                       </span>
