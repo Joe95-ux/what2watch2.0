@@ -35,10 +35,21 @@ export default function WatchlistContent() {
     await updatePublicStatus.mutateAsync(checked);
   };
 
+  const userForView =
+    currentUser != null
+      ? {
+          id: currentUser.id,
+          username: currentUser.username ?? null,
+          displayName: currentUser.displayName ?? null,
+          avatarUrl: currentUser.avatarUrl ?? null,
+        }
+      : null;
+
   return (
     <WatchlistView
       watchlist={watchlist}
       isLoading={isLoading}
+      user={userForView}
       isOwner={true}
       enableRemove={true}
       enableEdit={true}

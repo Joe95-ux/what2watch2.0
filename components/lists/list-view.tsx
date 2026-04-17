@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -732,21 +732,73 @@ export default function ListView({
                   )}
                   <div>
                     {list.isEditorial ? (
-                      <Link
-                        href="/editorial"
-                        className="text-sm font-medium text-foreground hover:text-primary transition-colors cursor-pointer"
-                      >
-                        What2watch.net Editors
-                      </Link>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Created by{" "}
+                      <p className="text-sm text-muted-foreground flex flex-wrap items-center gap-x-1 gap-y-0.5">
                         <Link
-                          href={`/users/${list.user.username || list.user.id}`}
-                          className="hover:text-primary transition-colors cursor-pointer"
+                          href="/editorial"
+                          className="font-medium text-foreground hover:text-primary transition-colors cursor-pointer"
                         >
-                          {list.user.username || list.user.displayName || "Unknown"}
+                          What2watch.net Editors
                         </Link>
+                        <span className="text-muted-foreground" aria-hidden>
+                          .
+                        </span>
+                        <span>
+                          Created{" "}
+                          {formatDistanceToNow(new Date(list.createdAt), {
+                            addSuffix: true,
+                          })}
+                        </span>
+                        {new Date(list.updatedAt).getTime() -
+                          new Date(list.createdAt).getTime() >
+                          2000 && (
+                          <>
+                            <span className="text-muted-foreground" aria-hidden>
+                              .
+                            </span>
+                            <span>
+                              Modified{" "}
+                              {formatDistanceToNow(new Date(list.updatedAt), {
+                                addSuffix: true,
+                              })}
+                            </span>
+                          </>
+                        )}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                        <span>
+                          Created by{" "}
+                          <Link
+                            href={`/users/${list.user.username || list.user.id}`}
+                            className="font-medium text-foreground hover:text-primary transition-colors cursor-pointer"
+                          >
+                            {list.user.username || list.user.displayName || "Unknown"}
+                          </Link>
+                        </span>
+                        <span className="text-muted-foreground" aria-hidden>
+                          .
+                        </span>
+                        <span>
+                          Created{" "}
+                          {formatDistanceToNow(new Date(list.createdAt), {
+                            addSuffix: true,
+                          })}
+                        </span>
+                        {new Date(list.updatedAt).getTime() -
+                          new Date(list.createdAt).getTime() >
+                          2000 && (
+                          <>
+                            <span className="text-muted-foreground" aria-hidden>
+                              .
+                            </span>
+                            <span>
+                              Modified{" "}
+                              {formatDistanceToNow(new Date(list.updatedAt), {
+                                addSuffix: true,
+                              })}
+                            </span>
+                          </>
+                        )}
                       </p>
                     )}
                   </div>
@@ -773,20 +825,6 @@ export default function ListView({
                 </p>
               )}
               <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                {list.user && !list.isEditorial && (
-                  <>
-                    <span>
-                      Created by{" "}
-                      <Link
-                        href={`/users/${list.user.username || list.user.id}`}
-                        className="hover:text-primary transition-colors cursor-pointer"
-                      >
-                        {list.user.username || list.user.displayName || "Unknown"}
-                      </Link>
-                    </span>
-                    <span>•</span>
-                  </>
-                )}
                 <span>
                   {filteredAndSorted.length} of {list.items.length}{" "}
                   {list.items.length === 1 ? "item" : "items"}

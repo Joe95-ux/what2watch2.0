@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { getPosterUrl, getBackdropUrl } from "@/lib/tmdb";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -975,14 +975,40 @@ export default function PlaylistView({
                     </Avatar>
                   </Link>
                   <div>
-                    <p className="text-sm text-muted-foreground">
-                      Created by{" "}
-                      <Link
-                        href={`/users/${playlist.user.username || playlist.user.id}`}
-                        className="hover:text-primary transition-colors cursor-pointer"
-                      >
-                        {playlist.user.username || playlist.user.displayName || "Unknown"}
-                      </Link>
+                    <p className="text-sm text-muted-foreground flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                      <span>
+                        Created by{" "}
+                        <Link
+                          href={`/users/${playlist.user.username || playlist.user.id}`}
+                          className="font-medium text-foreground hover:text-primary transition-colors cursor-pointer"
+                        >
+                          {playlist.user.username || playlist.user.displayName || "Unknown"}
+                        </Link>
+                      </span>
+                      <span className="text-muted-foreground" aria-hidden>
+                        .
+                      </span>
+                      <span>
+                        Created{" "}
+                        {formatDistanceToNow(new Date(playlist.createdAt), {
+                          addSuffix: true,
+                        })}
+                      </span>
+                      {new Date(playlist.updatedAt).getTime() -
+                        new Date(playlist.createdAt).getTime() >
+                        2000 && (
+                        <>
+                          <span className="text-muted-foreground" aria-hidden>
+                            .
+                          </span>
+                          <span>
+                            Modified{" "}
+                            {formatDistanceToNow(new Date(playlist.updatedAt), {
+                              addSuffix: true,
+                            })}
+                          </span>
+                        </>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -1008,20 +1034,6 @@ export default function PlaylistView({
                 </p>
               )}
               <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                {playlist.user && (
-                  <>
-                    <span>
-                      Created by{" "}
-                      <Link
-                        href={`/users/${playlist.user.username || playlist.user.id}`}
-                        className="hover:text-primary transition-colors cursor-pointer"
-                      >
-                        {playlist.user.username || playlist.user.displayName || "Unknown"}
-                      </Link>
-                    </span>
-                    <span>•</span>
-                  </>
-                )}
                 <span>
                   {filteredAndSortedTMDB.length + filteredYouTube.length} of{" "}
                   {(playlist.items?.length || 0) + (playlist.youtubeItems?.length || 0)}{" "}

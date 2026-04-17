@@ -43,7 +43,7 @@ import {
 import { BiSolidGrid } from "react-icons/bi";
 import Image from "next/image";
 import { getPosterUrl } from "@/lib/tmdb";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -84,6 +84,8 @@ import {
   useUnwatch,
 } from "@/hooks/use-viewing-logs";
 import { useUser } from "@clerk/nextjs";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { useAvatar } from "@/contexts/avatar-context";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { useLists, useUpdateList, useCreateList } from "@/hooks/use-lists";
 import { useReorderWatchlist, useAddToWatchlist, useUpdateWatchlistItem, useToggleWatchlist } from "@/hooks/use-watchlist";
@@ -242,6 +244,8 @@ export default function WatchlistView({
   const [addSearchQuery, setAddSearchQuery] = useState("");
   const [selectedItemsToAdd, setSelectedItemsToAdd] = useState<Set<string>>(new Set());
   const { isSignedIn } = useUser();
+  const { data: currentUser } = useCurrentUser();
+  const { avatarUrl: contextAvatarUrl } = useAvatar();
   const addToWatchlist = useAddToWatchlist();
   const [isLgScreen, setIsLgScreen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -307,6 +311,21 @@ export default function WatchlistView({
         return { item: tv, type: "tv" as const, watchlistItem: item };
       }
     });
+  }, [watchlist]);
+
+  const watchlistItemTimeBounds = useMemo(() => {
+    if (!watchlist.length) return null;
+    let minC = watchlist[0].createdAt;
+    let maxU = watchlist[0].updatedAt;
+    for (const item of watchlist) {
+      if (new Date(item.createdAt).getTime() < new Date(minC).getTime()) {
+        minC = item.createdAt;
+      }
+      if (new Date(item.updatedAt).getTime() > new Date(maxU).getTime()) {
+        maxU = item.updatedAt;
+      }
+    }
+    return { earliestCreated: minC, latestUpdated: maxU };
   }, [watchlist]);
 
   // Full watchlist sorted by order (for drag and drop reordering)
@@ -748,12 +767,23 @@ export default function WatchlistView({
         )}>
           <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
             <div className="flex-1">
-              {user ? (
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
+                {isOwner
+                  ? "Your Watchlist"
+                  : user
+                    ? `${user.displayName || user.username || "User"}'s Watchlist`
+                    : "Watchlist"}
+              </h1>
+              {user && (
                 <div className="flex items-center gap-3 mb-4">
                   <Link href={`/users/${user.username || user.id}`}>
                     <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 ring-primary transition-all">
                       <AvatarImage
-                        src={user.avatarUrl || undefined}
+                        src={
+                          currentUser?.id === user.id && contextAvatarUrl
+                            ? contextAvatarUrl
+                            : user.avatarUrl || undefined
+                        }
                         alt={user.username || user.displayName || "User"}
                       />
                       <AvatarFallback>
@@ -763,25 +793,48 @@ export default function WatchlistView({
                       </AvatarFallback>
                     </Avatar>
                   </Link>
-                  <div>
-                    <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                    <span>
                       Created by{" "}
                       <Link
                         href={`/users/${user.username || user.id}`}
-                        className="hover:text-primary transition-colors cursor-pointer"
+                        className="font-medium text-foreground hover:text-primary transition-colors cursor-pointer"
                       >
                         {user.username || user.displayName || "Unknown"}
                       </Link>
-                    </p>
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">
-                      Watchlist
-                    </h1>
-                  </div>
+                    </span>
+                    {watchlistItemTimeBounds && (
+                      <>
+                        <span className="text-muted-foreground" aria-hidden>
+                          .
+                        </span>
+                        <span>
+                          Created{" "}
+                          {formatDistanceToNow(
+                            new Date(watchlistItemTimeBounds.earliestCreated),
+                            { addSuffix: true },
+                          )}
+                        </span>
+                        {new Date(watchlistItemTimeBounds.latestUpdated).getTime() -
+                          new Date(watchlistItemTimeBounds.earliestCreated).getTime() >
+                          2000 && (
+                          <>
+                            <span className="text-muted-foreground" aria-hidden>
+                              .
+                            </span>
+                            <span>
+                              Modified{" "}
+                              {formatDistanceToNow(
+                                new Date(watchlistItemTimeBounds.latestUpdated),
+                                { addSuffix: true },
+                              )}
+                            </span>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </p>
                 </div>
-              ) : (
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
-                  Watchlist
-                </h1>
               )}
               <p className="text-base sm:text-lg text-muted-foreground mb-4 max-w-2xl">
                 {user && !isOwner
@@ -820,8 +873,8 @@ export default function WatchlistView({
             </div>
 
             {/* Actions */}
-            <div className="overflow-x-auto max-w-full">
-              <div className="flex items-cen gap-2">
+              <div className="overflow-x-auto max-w-full">
+              <div className="flex items-center gap-2">
                 {enableCreateList && (
                   <Button
                     variant="outline"
@@ -835,11 +888,11 @@ export default function WatchlistView({
                 <ShareDropdown
                   shareUrl={shareUrl}
                   title={
-                    user
-                      ? `${
-                          user.displayName || user.username || "User"
-                        }'s Watchlist`
-                      : "Watchlist"
+                    isOwner
+                      ? "Your Watchlist"
+                      : user
+                        ? `${user.displayName || user.username || "User"}'s Watchlist`
+                        : "Watchlist"
                   }
                   description={
                     user
