@@ -1,5 +1,8 @@
 import { db } from "@/lib/db";
-import { hasEditorialNotificationsAccess } from "@/lib/subscription";
+import {
+  getEditorialNotificationsAllowlistEmails,
+  hasEditorialNotificationsAccess,
+} from "@/lib/subscription";
 import { triggerUserNotificationsChanged } from "@/lib/pusher/server";
 import { publishUserNotification } from "@/lib/pusher/beams-server";
 
@@ -14,28 +17,36 @@ export async function notifyPaidUsersEditorialListPublished({
   listName,
   actorUserId,
 }: NotifyPaidUsersInput) {
-  const paidUsers = await db.user.findMany({
+  const allowlistEmails = getEditorialNotificationsAllowlistEmails();
+
+  const candidates = await db.user.findMany({
     where: {
       id: { not: actorUserId },
-      notifyOnEditorialLists: true,
+      OR: [
+        { stripeSubscriptionStatus: { in: ["active", "trialing"] } },
+        ...(allowlistEmails.length > 0 ? [{ email: { in: allowlistEmails } }] : []),
+      ],
     },
     select: {
       id: true,
       email: true,
       stripeSubscriptionStatus: true,
+      notifyOnEditorialLists: true,
     },
   });
 
-  const recipientIds = paidUsers
-    .filter((user) =>
-      hasEditorialNotificationsAccess(user.stripeSubscriptionStatus, user.email)
+  const recipientIds = candidates
+    .filter(
+      (user) =>
+        user.notifyOnEditorialLists !== false &&
+        hasEditorialNotificationsAccess(user.stripeSubscriptionStatus, user.email),
     )
     .map((user) => user.id);
 
   if (recipientIds.length === 0) return;
 
   const title = "New editorial list is out";
-  const message = `"${listName}" is now live for Pro members`;
+  const message = `"${listName}" is now live`;
   const linkUrl = `/lists/${listId}`;
 
   await db.generalNotification.createMany({

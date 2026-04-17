@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import SettingsContent from "@/components/settings/settings-content";
-import { resolveMaxChatQuestions } from "@/lib/subscription";
+import { hasEditorialNotificationsAccess, resolveMaxChatQuestions } from "@/lib/subscription";
 
 export default async function SettingsPage() {
   const { userId } = await auth();
@@ -68,6 +68,11 @@ export default async function SettingsPage() {
     user.stripeSubscriptionStatus,
   );
 
+  const showEditorialListNotificationsSetting = hasEditorialNotificationsAccess(
+    user.stripeSubscriptionStatus,
+    user.email,
+  );
+
   return <SettingsContent 
     user={{
       ...user,
@@ -104,6 +109,7 @@ export default async function SettingsPage() {
       notifyOnForumSubscriptions: user.notifyOnForumSubscriptions ?? true,
     }}
     youtubeCardStyle={user.youtubeCardStyle || "centered"}
+    showEditorialListNotificationsSetting={showEditorialListNotificationsSetting}
   />;
 }
 

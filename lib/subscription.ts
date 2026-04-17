@@ -16,6 +16,11 @@ function getEditorialNotificationsEmailAllowlist() {
   ]);
 }
 
+/** Lowercased emails for DB `in` queries (server-only). */
+export function getEditorialNotificationsAllowlistEmails(): string[] {
+  return [...getEditorialNotificationsEmailAllowlist()];
+}
+
 /** Stripe subscription statuses that grant Pro access (unlimited AI chat). */
 export function hasActiveProSubscription(stripeSubscriptionStatus: string | null | undefined): boolean {
   const s = stripeSubscriptionStatus;
