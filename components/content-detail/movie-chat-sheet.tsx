@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import React from "react";
 import { MessageCircle, Send, X, Loader2, History, HelpCircle, Clock, Copy, Check, SquarePen, Trash2, Mic, MicOff, CornerDownLeft, RotateCw, Edit2, Check as CheckIcon, X as XIcon, Info, ArrowLeft, ChevronDown } from "lucide-react";
 import Link from "next/link";
@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { SheetLoadingDots } from "@/components/ui/sheet-loading-dots";
 import { toast } from "sonner";
 import { useUser } from "@clerk/nextjs";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -67,6 +68,7 @@ export function MovieChatSheet({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [editingMessageIndex, setEditingMessageIndex] = useState<number | null>(null);
   const [questionCount, setQuestionCount] = useState(0);
   const [maxQuestions, setMaxQuestions] = useState(DEFAULT_FREE_CHAT_LIMIT); // Updated from API
@@ -241,8 +243,8 @@ export function MovieChatSheet({
     }
   }, [isOpen]);
 
-  // Load chat history when sheet opens or sessionId changes
-  useEffect(() => {
+  // Load chat history when sheet opens or sessionId changes (layout effect avoids one frame of empty state before loading flag is set)
+  useLayoutEffect(() => {
     if (isOpen && sessionId) {
       loadChatHistory();
       shouldAutoScroll.current = true;
@@ -298,6 +300,7 @@ export function MovieChatSheet({
 
   const loadChatHistory = async () => {
     if (!sessionId) return;
+    setIsLoadingHistory(true);
     historyLoadAbortRef.current?.abort();
     const controller = new AbortController();
     historyLoadAbortRef.current = controller;
@@ -318,6 +321,8 @@ export function MovieChatSheet({
     } catch (error) {
       if ((error as Error).name === "AbortError") return;
       console.error("Failed to load chat history:", error);
+    } finally {
+      setIsLoadingHistory(false);
     }
   };
 
@@ -1018,7 +1023,9 @@ export function MovieChatSheet({
           className="flex-1 min-h-0"
         >
           <div className="px-3 py-4 space-y-4">
-            {messages.length === 0 ? (
+            {isLoadingHistory ? (
+              <SheetLoadingDots className="min-h-[min(50vh,28rem)] sm:min-h-[22rem] py-6" />
+            ) : messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
                 <HelpCircle className="h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground mb-2">Ask me anything about {title}</p>
