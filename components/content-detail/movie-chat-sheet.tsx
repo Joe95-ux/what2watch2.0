@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import React from "react";
-import { MessageCircle, Send, X, Loader2, History, HelpCircle, Clock, Copy, Check, SquarePen, Trash2, Mic, MicOff, CornerDownLeft, RotateCw, Edit2, Check as CheckIcon, X as XIcon, Info, ArrowLeft } from "lucide-react";
+import { MessageCircle, Send, X, Loader2, History, HelpCircle, Clock, Copy, Check, SquarePen, Trash2, Mic, MicOff, CornerDownLeft, RotateCw, Edit2, Check as CheckIcon, X as XIcon, Info, ArrowLeft, ChevronDown } from "lucide-react";
 import Link from "next/link";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -24,6 +24,11 @@ import { formatDistanceToNow, format } from "date-fns";
 import Image from "next/image";
 import { containsProfanity, sanitizeHtml } from "@/lib/moderation";
 import { PRO_PRICE_USD_MONTHLY, DEFAULT_FREE_CHAT_LIMIT } from "@/lib/billing";
+import {
+  generateMovieChatSessionId,
+  mergeMovieChatPersist,
+  readMovieChatPersist,
+} from "@/lib/movie-chat-persist";
 
 interface Message {
   role: "user" | "assistant";
@@ -65,8 +70,10 @@ export function MovieChatSheet({
   const [editingMessageIndex, setEditingMessageIndex] = useState<number | null>(null);
   const [questionCount, setQuestionCount] = useState(0);
   const [maxQuestions, setMaxQuestions] = useState(DEFAULT_FREE_CHAT_LIMIT); // Updated from API
-  const [sessionId, setSessionId] = useState(() => `session-${Date.now()}`);
+  const [sessionId, setSessionId] = useState("");
   const [suggestionsDismissed, setSuggestionsDismissed] = useState(false);
+  /** Mobile: starter suggestions collapsed by default so the input stays visible. */
+  const [mobileSuggestionsOpen, setMobileSuggestionsOpen] = useState(false);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [chatHeaderMode, setChatHeaderMode] = useState<"chat" | "upgrade">("chat");
   const [chatSessions, setChatSessions] = useState<Array<{
@@ -96,6 +103,27 @@ export function MovieChatSheet({
   const shouldAutoScroll = useRef(true);
   /** Abort in-flight GET /movie-details so history load can't overwrite state mid-send/regenerate. */
   const historyLoadAbortRef = useRef<AbortController | null>(null);
+  const prevMediaTmdbRef = useRef<{ tmdbId: number; mediaType: "movie" | "tv" } | null>(null);
+
+  // When navigating to another title, load that title's persisted session (never mix movies).
+  useEffect(() => {
+    const prev = prevMediaTmdbRef.current;
+    prevMediaTmdbRef.current = { tmdbId, mediaType };
+    if (prev && prev.tmdbId === tmdbId && prev.mediaType === mediaType) return;
+
+    const p = readMovieChatPersist(tmdbId, mediaType);
+    const nextSessionId = p?.sessionId || generateMovieChatSessionId();
+    setSessionId(nextSessionId);
+    setMessages([]);
+    setSuggestionsDismissed(false);
+    setMobileSuggestionsOpen(false);
+    setInput("");
+  }, [tmdbId, mediaType]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    mergeMovieChatPersist(tmdbId, mediaType, { sessionId });
+  }, [sessionId, tmdbId, mediaType]);
 
   // Check for Web Speech API support (Chrome, Edge, Safari) or MediaRecorder (Firefox)
   useEffect(() => {
@@ -215,7 +243,7 @@ export function MovieChatSheet({
 
   // Load chat history when sheet opens or sessionId changes
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && sessionId) {
       loadChatHistory();
       shouldAutoScroll.current = true;
       // Scroll to bottom when sheet opens
@@ -269,6 +297,7 @@ export function MovieChatSheet({
   }, [isOpen]);
 
   const loadChatHistory = async () => {
+    if (!sessionId) return;
     historyLoadAbortRef.current?.abort();
     const controller = new AbortController();
     historyLoadAbortRef.current = controller;
@@ -300,7 +329,7 @@ export function MovieChatSheet({
       isEdit?: boolean;
     } = {}
   ) => {
-    if (isLoading) return;
+    if (isLoading || !sessionId) return;
 
     const sanitizedMessage = sanitizeHtml(userMessageText);
     
@@ -605,9 +634,9 @@ export function MovieChatSheet({
   };
 
   const handleLoadSession = async (fullSessionId: string, sessionIdPart: string) => {
-    // Update the current session ID
     setSessionId(sessionIdPart);
     setSuggestionsDismissed(false);
+    setMobileSuggestionsOpen(false);
     setIsHistoryDialogOpen(false);
     
     // Reload chat history with the new session
@@ -664,12 +693,12 @@ export function MovieChatSheet({
   };
 
   const handleNewChat = () => {
-    // Create a new session ID
-    const newSessionId = `session-${Date.now()}`;
+    const newSessionId = generateMovieChatSessionId();
     setSessionId(newSessionId);
     setMessages([]);
     setQuestionCount(0);
     setSuggestionsDismissed(false);
+    setMobileSuggestionsOpen(false);
     setInput("");
     toast.success("New chat started");
   };
@@ -1158,21 +1187,55 @@ export function MovieChatSheet({
         <div className="flex-shrink-0 border-t bg-background">
           {/* Suggestions */}
           {messages.length === 0 && (
-            <div className="px-6 py-3 border-b">
-              <p className="text-xs text-muted-foreground mb-2">Suggestions:</p>
-              <div className="flex flex-wrap gap-2">
-                {SUGGESTIONS.map((suggestion, index) => (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    className="text-xs h-8 rounded-full cursor-pointer"
-                    disabled={isLoading || (maxQuestions !== Infinity && questionCount >= maxQuestions)}
-                  >
-                    {suggestion}
-                  </Button>
-                ))}
+            <div className="px-6 py-2 sm:py-3 border-b">
+              <div className="sm:hidden">
+                <button
+                  type="button"
+                  onClick={() => setMobileSuggestionsOpen((o) => !o)}
+                  className="flex w-full items-center justify-between gap-2 py-2 text-left text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                  aria-expanded={mobileSuggestionsOpen}
+                >
+                  <span>Suggestions</span>
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 shrink-0 transition-transform text-muted-foreground",
+                      mobileSuggestionsOpen && "rotate-180"
+                    )}
+                  />
+                </button>
+                {mobileSuggestionsOpen && (
+                  <div className="flex flex-wrap gap-2 pb-2">
+                    {SUGGESTIONS.map((suggestion, index) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSuggestionClick(suggestion)}
+                        className="text-xs h-8 rounded-full cursor-pointer"
+                        disabled={isLoading || (maxQuestions !== Infinity && questionCount >= maxQuestions)}
+                      >
+                        {suggestion}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="hidden sm:block">
+                <p className="text-xs text-muted-foreground mb-2">Suggestions:</p>
+                <div className="flex flex-wrap gap-2">
+                  {SUGGESTIONS.map((suggestion, index) => (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className="text-xs h-8 rounded-full cursor-pointer"
+                      disabled={isLoading || (maxQuestions !== Infinity && questionCount >= maxQuestions)}
+                    >
+                      {suggestion}
+                    </Button>
+                  ))}
+                </div>
               </div>
             </div>
           )}

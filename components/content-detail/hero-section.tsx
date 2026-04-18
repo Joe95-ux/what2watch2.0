@@ -25,6 +25,7 @@ import { useUser } from "@clerk/nextjs";
 import { useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { MovieChatSheet } from "./movie-chat-sheet";
+import { mergeMovieChatPersist, readMovieChatPersist } from "@/lib/movie-chat-persist";
 
 interface DetailsType {
   release_date?: string;
@@ -60,6 +61,16 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [initialVideoId, setInitialVideoId] = useState<string | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
+
+  useEffect(() => {
+    const p = readMovieChatPersist(item.id, type);
+    setIsChatOpen(p?.sheetOpen === true);
+  }, [item.id, type]);
+
+  const handleChatOpenChange = useCallback((open: boolean) => {
+    setIsChatOpen(open);
+    mergeMovieChatPersist(item.id, type, { sheetOpen: open });
+  }, [item.id, type]);
   const [isPhotosModalOpen, setIsPhotosModalOpen] = useState(false);
   const [trailerDuration, setTrailerDuration] = useState<number | null>(null);
   const toggleWatchlist = useToggleWatchlist();
@@ -268,7 +279,7 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
                   }
                   return;
                 }
-                setIsChatOpen(true);
+                handleChatOpenChange(true);
               }}
             >
               <HelpCircle className="h-4 w-4" />
@@ -616,7 +627,7 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
 
       <MovieChatSheet
         isOpen={isChatOpen}
-        onOpenChange={setIsChatOpen}
+        onOpenChange={handleChatOpenChange}
         tmdbId={item.id}
         mediaType={type}
         title={type === "movie" ? (item as TMDBMovie).title : (item as TMDBSeries).name}

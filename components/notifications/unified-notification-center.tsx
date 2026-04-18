@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SheetLoadingDots } from "@/components/ui/sheet-loading-dots";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useForumNotifications, useMarkForumNotificationsAsRead, useDeleteForumNotifications, ForumNotification } from "@/hooks/use-forum-notifications";
@@ -188,7 +188,7 @@ export function UnifiedNotificationCenter() {
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={false}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative cursor-pointer">
           <Bell className="h-5 w-5" />
@@ -275,11 +275,7 @@ export function UnifiedNotificationCenter() {
           <TabsContent value="youtube" className="m-0">
             <ScrollArea className="h-[400px]">
               {isLoadingYoutube ? (
-                <div className="p-4 space-y-4">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-20 w-full" />
-                  ))}
-                </div>
+                <SheetLoadingDots className="h-[400px] min-h-0 py-12" />
               ) : youtubeNotifications.length === 0 ? (
                 <div className="p-8 text-center text-sm text-muted-foreground">
                   No YouTube notifications
@@ -387,11 +383,7 @@ export function UnifiedNotificationCenter() {
           <TabsContent value="general" className="m-0">
             <ScrollArea className="h-[400px]">
               {isLoadingGeneral ? (
-                <div className="p-4 space-y-4">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-20 w-full" />
-                  ))}
-                </div>
+                <SheetLoadingDots className="h-[400px] min-h-0 py-12" />
               ) : generalNotifications.length === 0 ? (
                 <div className="p-8 text-center text-sm text-muted-foreground">
                   No general notifications yet
@@ -483,11 +475,7 @@ export function UnifiedNotificationCenter() {
           <TabsContent value="forum" className="m-0">
             <ScrollArea className="h-[400px]">
               {isLoadingForum ? (
-                <div className="p-4 space-y-4">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-20 w-full" />
-                  ))}
-                </div>
+                <SheetLoadingDots className="h-[400px] min-h-0 py-12" />
               ) : forumNotifications.length === 0 ? (
                 <div className="p-8 text-center text-sm text-muted-foreground">
                   No forum notifications
