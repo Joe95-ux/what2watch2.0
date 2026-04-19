@@ -28,6 +28,7 @@ import { useFavoriteYouTubeVideos } from "@/hooks/use-favorite-youtube-videos";
 import { useYouTubeVideoWatchlist } from "@/hooks/use-youtube-video-watchlist";
 import { useUserYouTubePlaylists } from "@/hooks/use-user-youtube-playlists";
 import { TrendAlertsWidget } from "@/components/dashboard/trend-alerts-widget";
+import { PickForTonightCard } from "@/components/dashboard/pick-for-tonight-card";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
 import { SelectServicesModal } from "@/components/browse/select-services-modal";
 import { useQueryClient } from "@tanstack/react-query";
@@ -222,6 +223,8 @@ export default function DashboardContent() {
             Here&apos;s what&apos;s happening with your watchlist
           </p>
         </div>
+
+        <PickForTonightCard />
 
         {/* KPI Stats Grid (link page analytics style) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 border border-border rounded-lg overflow-hidden mb-4 sm:mb-6 md:mb-8">
